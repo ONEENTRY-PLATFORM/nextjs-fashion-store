@@ -4,15 +4,15 @@ An open-source e-commerce storefront built on **Next.js 16 / React 19** and powe
 
 ## Stack
 
-| Layer | Tech |
-|---|---|
-| Framework | Next.js 16 (App Router), React 19, TypeScript |
-| CMS / API | OneEntry Platform (`oneentry` SDK) |
-| State | Redux Toolkit + RTK Query, React Context facades |
-| Styling | Tailwind CSS 4, `tw-animate-css`, `lucide-react`, `@heroicons/react` |
-| Forms / validation | `zod` |
-| Testing | Vitest (unit), Playwright (e2e), Storybook |
-| PWA | Hand-rolled service worker (`public/sw.js`) + dynamic manifest |
+| Layer              | Tech                                                                 |
+| ------------------ | -------------------------------------------------------------------- |
+| Framework          | Next.js 16 (App Router), React 19, TypeScript                        |
+| CMS / API          | OneEntry Platform (`oneentry` SDK)                                   |
+| State              | Redux Toolkit + RTK Query, React Context facades                     |
+| Styling            | Tailwind CSS 4, `tw-animate-css`, `lucide-react`, `@heroicons/react` |
+| Forms / validation | `zod`                                                                |
+| Testing            | Vitest (unit), Playwright (e2e), Storybook                           |
+| PWA                | Hand-rolled service worker (`public/sw.js`) + dynamic manifest       |
 
 ## Requirements
 
@@ -40,25 +40,25 @@ yarn start
 
 ## Available scripts
 
-| Command | Purpose |
-|---|---|
-| `yarn dev` | Next.js dev server |
-| `yarn build` | Production build |
-| `yarn start` | Serve the production build |
-| `yarn lint` / `yarn lint:fix` | ESLint |
-| `yarn test` / `yarn test:watch` | Vitest (unit) |
-| `yarn test:e2e` / `yarn test:e2e:ui` / `yarn test:e2e:headed` | Playwright (e2e) |
-| `yarn storybook` / `yarn build-storybook` | Storybook |
+| Command                                                       | Purpose                    |
+| ------------------------------------------------------------- | -------------------------- |
+| `yarn dev`                                                    | Next.js dev server         |
+| `yarn build`                                                  | Production build           |
+| `yarn start`                                                  | Serve the production build |
+| `yarn lint` / `yarn lint:fix`                                 | ESLint                     |
+| `yarn test` / `yarn test:watch`                               | Vitest (unit)              |
+| `yarn test:e2e` / `yarn test:e2e:ui` / `yarn test:e2e:headed` | Playwright (e2e)           |
+| `yarn storybook` / `yarn build-storybook`                     | Storybook                  |
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `ONEENTRY_URL` | ✅ | Base URL of your OneEntry tenant, e.g. `https://your-tenant.oneentry.cloud` |
-| `ONEENTRY_TOKEN` | ✅ | App token from the OneEntry admin panel |
-| `NEXT_PUBLIC_API_URL` | | Public API URL exposed to the browser |
-| `BASE_URL` | | Public site URL, used for sitemap / SEO / metadata |
-| `GOOGLE_CLIENT_ID` | | Google OAuth client ID for one-tap / Sign in with Google |
+| Variable              | Required | Description                                                                 |
+| --------------------- | -------- | --------------------------------------------------------------------------- |
+| `ONEENTRY_URL`        | ✅       | Base URL of your OneEntry tenant, e.g. `https://your-tenant.oneentry.cloud` |
+| `ONEENTRY_TOKEN`      | ✅       | App token from the OneEntry admin panel                                     |
+| `NEXT_PUBLIC_API_URL` |          | Public API URL exposed to the browser                                       |
+| `BASE_URL`            |          | Public site URL, used for sitemap / SEO / metadata                          |
+| `GOOGLE_CLIENT_ID`    |          | Google OAuth client ID for one-tap / Sign in with Google                    |
 
 See [`docs/ONEENTRY_INTEGRATION.md`](./docs/ONEENTRY_INTEGRATION.md) for the full CMS-to-storefront mapping (labels, forms, categories, blocks, orders).
 
@@ -105,4 +105,4 @@ Pull requests are welcome. For substantial changes, please open an issue first t
 
 ## License
 
-[MIT](./LICENSE) © 2026 Aleksandr Gradov
+[MIT](./LICENSE) © 2026 OneEntry Platform
