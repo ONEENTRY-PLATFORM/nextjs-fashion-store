@@ -6,6 +6,7 @@ import type { CartItem } from '../../context/CartContext';
 import { fmt } from '../../utils/formatPrice';
 import { CART_ROW_LABELS as L } from '../../data/cartLabels';
 import { CART_LINE_LABELS as CLL } from '../../data/commonLabels';
+import { hexToColorName } from '../../utils/colorNames';
 
 interface CartBundleRowProps {
   bundleId: string;
@@ -55,7 +56,7 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
               <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
               <p className="text-sm mb-1 leading-snug font-semibold">{item.name}</p>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                <span>{CLL.colorPrefix} {item.color}</span>
+                <span>{CLL.colorPrefix} {hexToColorName(item.color)}</span>
                 <span>·</span>
                 <span>{CLL.skuPrefix} {item.sku}</span>
               </div>

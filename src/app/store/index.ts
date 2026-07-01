@@ -1,5 +1,4 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { USER_DATASET } from '../data/userData';
 import cartReducer from './cartSlice';
 import wishlistReducer from './wishlistSlice';
 import recentlyViewedReducer from './recentlyViewedSlice';
@@ -14,7 +13,7 @@ const STORAGE_KEY = 'oe_store';
  * Increment when Redux state shape changes.
  * Add a migration function in MIGRATIONS below for each version bump.
  */
-const STORAGE_VERSION = 4;
+const STORAGE_VERSION = 5;
 
 type PersistedRaw = Record<string, unknown> & { __version?: number };
 
@@ -45,6 +44,14 @@ const MIGRATIONS: Record<number, (data: PersistedRaw) => PersistedRaw> = {
   // they are explicitly NOT persisted (token never hits localStorage),
   // so no state shape change is needed here — kept for traceability.
   4: (data) => data,
+  // v4→v5: drop the legacy `userAddresses` key entirely. Real addresses
+  // now come from OE via AuthContext (`user.addresses`); the persisted
+  // copy only ever held the demo `Jane Smith` seed for guests, which was
+  // never a valid data source.
+  5: (data) => {
+    delete (data as Record<string, unknown>).userAddresses;
+    return data;
+  },
 };
 
 function migrateStorage(raw: PersistedRaw): PersistedRaw {
@@ -71,20 +78,13 @@ function loadFromStorage() {
       return undefined;
     }
     const migrated = migrateStorage(parsed);
-    const { catalog: _catalog, userAddresses, __version: _v, user: _legacyUser, cart: persistedCart, ...rest } = migrated;
+    const { catalog: _catalog, __version: _v, user: _legacyUser, cart: persistedCart, ...rest } = migrated;
     const result: Record<string, unknown> = { ...rest };
     if (persistedCart && typeof persistedCart === 'object') {
       // Drop any ephemeral UI flags (older builds persisted miniCartOpen,
       // which would re-open the mini-cart on every page load).
       const { miniCartOpen: _miniCartOpen, ...cleanCart } = persistedCart as Record<string, unknown>;
       result.cart = cleanCart;
-    }
-    if (userAddresses) {
-      result.user = {
-        status: 'idle',
-        error: null,
-        data: { ...USER_DATASET, addresses: userAddresses },
-      };
     }
     return result;
   } catch {
@@ -119,7 +119,6 @@ function saveToStorage(state: RootState) {
       wishlist: state.wishlist,
       recentlyViewed: state.recentlyViewed,
       catalog: state.catalog,
-      userAddresses: state.user.data.addresses,
     }));
   } catch {
     // ignore quota errors

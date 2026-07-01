@@ -30,17 +30,8 @@ next-env.d.ts
 storybook-static
 
 # Environment
-.env
 .env.local
-.env.*.local
-
-# Secrets — never commit
-client_secret*.json
-*credentials*.json
-*.pem
-*.key
-.claude
-.mcp.json
+.env
 
 # Logs
 npm-debug.log*
@@ -57,3 +48,7 @@ yarn-error.log*
 .vscode
 *.swp
 .playwright-mcp
+client_secret*.json
+*credentials*.json
+.claude
+.mcp.json

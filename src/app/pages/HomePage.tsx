@@ -16,27 +16,16 @@ import { DiscountBanner } from '../components/DiscountBanner';
 import { Footer } from '../components/Footer';
 
 function AnimatedSection({ children, className = '', immediate = false }: { children: React.ReactNode; className?: string; immediate?: boolean }) {
-  // Default: VISIBLE. Only hidden on the very first page load for scroll animation.
-  // This guarantees sections are never stuck invisible on any type of back navigation.
-  const [visible, setVisible] = useState(true);
+  // SSR renders `opacity-0 translate-y-7` for non-immediate sections and
+  // `opacity-100` for the hero. The IntersectionObserver flips the flag as
+  // each section enters the viewport, so the first render always matches
+  // between server and client (no flash of visible-then-hidden that the old
+  // sessionStorage gate produced).
+  const [visible, setVisible] = useState(immediate);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Hide for animation ONLY on genuine first page load (before sessionStorage is set).
-    // On any return visit / back navigation: sessionStorage = '1' → stay visible.
-    if (!immediate && sessionStorage.getItem('homepageAnimated') !== '1') {
-      setVisible(false);
-      if (ref.current) {
-        ref.current.style.opacity = '0';
-        ref.current.style.transform = 'translateY(28px)';
-        ref.current.style.transition = 'opacity 0.65s ease-out, transform 0.65s ease-out';
-      }
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Scroll-triggered animation (only runs when section is hidden = first visit)
-  useEffect(() => {
-    if (visible) return;
+    if (immediate) return;
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -50,39 +39,24 @@ function AnimatedSection({ children, className = '', immediate = false }: { chil
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [visible]);
+  }, [immediate]);
 
-  // Safety net: covers bfcache restore and SPA back nav with cached React tree
+  // Safety net for bfcache restore — the observer might not re-fire when the
+  // page comes back from the back/forward cache, so we force-reveal on
+  // `pageshow` with the persisted flag.
   useEffect(() => {
-    const makeVisible = () => {
-      setVisible(true);
-      if (ref.current) {
-        ref.current.style.opacity = '1';
-        ref.current.style.transform = 'none';
-        ref.current.style.transition = 'none';
-      }
-    };
     const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) makeVisible();
-    };
-    const handlePopstate = () => {
-      if (window.location.pathname === '/') makeVisible();
+      if (e.persisted) setVisible(true);
     };
     window.addEventListener('pageshow', handlePageShow);
-    window.addEventListener('popstate', handlePopstate);
-    return () => {
-      window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('popstate', handlePopstate);
-    };
+    return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
   return (
     <div
       ref={ref}
-      className={`${className ?? ''} ${
-        visible
-          ? 'opacity-100 translate-y-0 transition-none'
-          : 'opacity-0 translate-y-7 transition-[opacity,transform] duration-[650ms] ease-out'
+      className={`${className ?? ''} transition-[opacity,transform] duration-[650ms] ease-out ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-7'
       }`}
     >
       {children}
@@ -103,10 +77,6 @@ export function HomePage({
   initialCategorySection?: CategorySectionFromCms;
   pageBlocks?: PageBlock[];
 }) {
-  useEffect(() => {
-    sessionStorage.setItem('homepageAnimated', '1');
-  }, []);
-
   return (
     <div className="min-h-screen bg-white font-[Inter,sans-serif]">
       <Header />

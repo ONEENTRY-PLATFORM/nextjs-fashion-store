@@ -49,15 +49,11 @@ export function RegisterModal() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [phone, setPhone] = useState('');
-  const [codeSent, setCodeSent] = useState(false);
-  const [code, setCode] = useState('');
   const [emailSub, setEmailSub] = useState(false);
   const [smsSub, setSmsSub] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sendingCode, setSendingCode] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -71,30 +67,12 @@ export function RegisterModal() {
 
   if (!registerModalOpen) return null;
 
-  const delay = (ms: number) => new Promise<void>((resolve) => {
-    const t = setTimeout(resolve, ms);
-    abortRef.current?.signal.addEventListener('abort', () => { clearTimeout(t); resolve(); });
-  });
-
-  const handleSendCode = async () => {
-    if (!phone.trim()) { setError(L.errorPhoneRequired); return; }
-    abortRef.current?.abort();
-    abortRef.current = new AbortController();
-    setSendingCode(true);
-    await delay(800);
-    if (abortRef.current?.signal.aborted) return;
-    setSendingCode(false);
-    setCodeSent(true);
-    setError('');
-  };
-
   const handleRegister = async () => {
     const result = registerSchema.safeParse({
       firstName: firstName.trim(),
       email: email.trim(),
       password,
       confirmPassword: password, // confirm field not shown separately; validated on a dedicated confirm field if added
-      phone: phone.trim(),
       acceptsTerms: agreed || undefined,
     });
     if (!result.success) {
@@ -108,7 +86,7 @@ export function RegisterModal() {
       email: email.trim(),
       password,
       firstName: firstName.trim(),
-      phone: phone.trim(),
+      phone: '',
       gender,
       subscribeEmail: emailSub,
       subscribeSms: smsSub,
@@ -117,7 +95,7 @@ export function RegisterModal() {
     setLoading(false);
     if (abortRef.current?.signal.aborted) return;
     if (!res.ok) {
-      setError(res.error ?? L.errorPhoneRequired);
+      setError(res.error ?? L.errorGeneric);
       return;
     }
     if (!isCheckout) router.push('/account');
@@ -268,52 +246,6 @@ export function RegisterModal() {
             </div>
             {schema.password.helperText && <p className="text-xs text-gray-400 mt-1">{schema.password.helperText}</p>}
           </div>
-
-          {/* Phone + Verification */}
-          <div>
-            <label className="block text-xs uppercase tracking-wide mb-1.5 font-semibold text-gray-600">
-              {schema.phone.title || L.phoneLabel} <span className="text-primary-women">{L.required}</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type={schema.phone.inputType || 'tel'}
-                value={phone}
-                onChange={e => { setPhone(e.target.value); setError(''); }}
-                placeholder={schema.phone.placeholder || L.phonePlaceholder}
-                autoComplete={schema.phone.autoComplete || 'tel'}
-                data-mask={schema.phone.mask || undefined}
-                className="flex-1 px-4 py-3 text-sm outline-none border border-gray-300 focus:border-black transition-colors duration-200"
-              />
-              <button
-                onClick={handleSendCode}
-                disabled={sendingCode || codeSent}
-                className={`px-4 py-3 text-xs tracking-wider uppercase font-semibold text-white whitespace-nowrap transition-colors duration-200 focus-visible:outline-none disabled:opacity-60 disabled:pointer-events-none ${
-                  codeSent ? 'bg-green-600' : 'bg-black hover:bg-primary-women'
-                }`}
-              >
-                {sendingCode ? L.sendingCode : codeSent ? L.codeSent : L.getCode}
-              </button>
-            </div>
-            {schema.phone.helperText && <p className="text-xs text-gray-400 mt-1">{schema.phone.helperText}</p>}
-          </div>
-
-          {/* Verification Code */}
-          {codeSent && (
-            <div>
-              <label className="block text-xs uppercase tracking-wide mb-1.5 font-semibold text-gray-600">
-                {L.verificationCodeLabel}
-              </label>
-              <input
-                type="text"
-                value={code}
-                onChange={e => setCode(e.target.value)}
-                placeholder={L.verificationCodePlaceholder}
-                maxLength={6}
-                className="w-full px-4 py-3 text-sm outline-none tracking-[0.3em] border border-gray-300 focus:border-black transition-colors duration-200"
-              />
-              <p className="text-xs text-gray-400 mt-1">{L.verificationHint}</p>
-            </div>
-          )}
 
           {/* Marketing checkboxes */}
           <div className="space-y-3 pt-4 border-t border-gray-100">

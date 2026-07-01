@@ -11,10 +11,16 @@ interface UserState {
  * Initial user state. Includes mock dataset so UI renders without a
  * loading flash, plus null auth fields — populated after successful
  * Platform login via `setAuth` (see `AuthContext.login`).
+ *
+ * `addresses` is forced to an empty array so the demo Jane Smith entries
+ * from USER_DATASET don't leak into a guest's Redux state (and from there
+ * into localStorage via the `userAddresses` persistence key). Real
+ * addresses arrive from OE via `AuthContext.user.addresses`.
  */
 const initialState: UserState = {
   data: {
     ...USER_DATASET,
+    addresses: [],
     authToken: null,
     refreshToken: null,
     userIdentifier: null,

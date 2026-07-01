@@ -56,7 +56,6 @@ export const registerSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string().min(1, M.passwordConfirm),
-    phone: phoneSchema,
     acceptsTerms: z.literal(true, { error: () => ({ message: M.acceptTerms }) }),
   })
   .refine(data => data.password === data.confirmPassword, {

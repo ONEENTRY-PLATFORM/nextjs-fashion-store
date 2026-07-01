@@ -8,6 +8,7 @@ import { fmt } from '../../utils/formatPrice';
 import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
 import { CART_ROW_LABELS as L } from '../../data/cartLabels';
 import { CART_LINE_LABELS as CLL } from '../../data/commonLabels';
+import { hexToColorName } from '../../utils/colorNames';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 
@@ -55,7 +56,7 @@ export function CartItemRow({
           <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
           <p className="text-sm mb-1 leading-snug font-semibold">{item.name}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-2">
-            <span>{CLL.colorPrefix} {item.color}</span>
+            <span>{CLL.colorPrefix} {hexToColorName(item.color)}</span>
             <span>·</span>
             <span>{CLL.skuPrefix} {item.sku}</span>
           </div>
