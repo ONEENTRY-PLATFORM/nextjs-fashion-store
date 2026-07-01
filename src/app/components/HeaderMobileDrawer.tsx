@@ -2,7 +2,7 @@
 import { ChevronDown, X, User, MapPin, Phone } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import logoImage from '../../assets/7c70b286b76a27fc8823e415f8b933158bef9863.png';
+import logoImage from '../../assets/kekimoro-logo-black.png';
 import { SUB_CATEGORIES, MEGA_DATA, type Gender } from '../data/categories';
 import {
   LOGO_ALT, SUPPORT_PHONE, GENDER_NAV_HREFS,
@@ -45,7 +45,7 @@ export function HeaderMobileDrawer({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="absolute left-0 top-0 bottom-0 w-80 bg-white flex flex-col overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <Image src={logoImage} alt={LOGO_ALT} height={28} className="w-auto" priority />
+          <Image src={logoImage} alt={LOGO_ALT} width={128} height={28} className="object-contain" priority />
           <button onClick={onClose} className="p-1" aria-label={HEADER_ARIA_LABELS.closeMenu}>
             <X size={22} />
           </button>

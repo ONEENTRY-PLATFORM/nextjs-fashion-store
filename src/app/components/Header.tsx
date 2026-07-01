@@ -5,7 +5,7 @@ import { Search, User, Heart, ShoppingBag, Menu } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import logoImage from '../../assets/7c70b286b76a27fc8823e415f8b933158bef9863.png';
+import logoImage from '../../assets/kekimoro-logo-black.png';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -135,7 +135,7 @@ export function Header() {
                 <Menu size={22} />
               </button>
               <Link href="/" className="flex-shrink-0">
-                <Image src={logoImage} alt={LOGO_ALT} height={32} className="w-auto object-contain" priority />
+                <Image src={logoImage} alt={LOGO_ALT} width={146} height={32} className="object-contain" priority />
               </Link>
             </div>
 

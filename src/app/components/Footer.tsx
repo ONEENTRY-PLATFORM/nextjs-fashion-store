@@ -5,7 +5,7 @@ import { LOGO_ALT } from '../data/headerConfig';
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import logoImage from '../../assets/7c70b286b76a27fc8823e415f8b933158bef9863.png';
+import logoImage from '../../assets/kekimoro-logo-white.png';
 import { NewsletterForm } from './NewsletterForm';
 import { useFooterMenu } from '../../lib/oneentry/menus/FooterMenuContext';
 import {
@@ -73,7 +73,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 lg:col-span-2">
-            <Image src={logoImage} alt={LOGO_ALT} height={40} className="w-auto mb-4 invert" />
+            <Image src={logoImage} alt={LOGO_ALT} width={183} height={40} className="object-contain mb-4" />
             <p className="text-xs text-white/50 mb-4 max-w-xs leading-relaxed">
               {COMPANY_INFO.description}
             </p>
