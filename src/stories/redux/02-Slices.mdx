@@ -1,0 +1,176 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Redux/Slices" />
+
+# Redux — Slices
+
+---
+
+## catalogSlice
+
+Per-catalog UI state (filters, sort, pagination, view mode). Key = catalog identifier string.
+
+**State shape per catalog key:**
+
+```ts
+interface CatalogUIState {
+  selectedFilters: Record<string, string[]>; // filterKey → selected values
+  sortBy: string;        // default: 'featured'
+  currentPage: number;   // default: 1
+  viewCols: 3 | 4;       // grid columns, default: 4
+  listMode: boolean;     // list vs grid, default: false
+  activeChip: string;    // quick filter chip, default: ''
+}
+// Full state: Record<catalogKey, CatalogUIState>
+// Access: useAppSelector(s => s.catalog['women-clothing'])
+```
+
+**Imports:** Actions are exported as **named exports**, not a grouped object:
+```ts
+import { setSort, toggleFilter, clearFilters, setPage } from '../store/catalogSlice';
+```
+
+**Catalog keys:** `women-clothing` · `men-clothing` · `women-bags` · `men-bags` · `women-shoes` · `men-shoes` · `women-accessories` · `men-accessories` · `sale` · `new-arrivals`
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Payload</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>toggleFilter</code></td><td><code>{'{ catalogKey, filterKey, value }'}</code></td><td>Toggle one filter value, resets page to 1</td></tr>
+    <tr><td><code>setFilters</code></td><td><code>{'{ catalogKey, filters }'}</code></td><td>Replace all filters, reset page to 1</td></tr>
+    <tr><td><code>clearFilters</code></td><td><code>catalogKey</code></td><td>Clear filters + activeChip + page</td></tr>
+    <tr><td><code>setSort</code></td><td><code>{'{ catalogKey, sortBy }'}</code></td><td>Set sort, reset page</td></tr>
+    <tr><td><code>setPage</code></td><td><code>{'{ catalogKey, page }'}</code></td><td>Pagination</td></tr>
+    <tr><td><code>setViewCols</code></td><td><code>{'{ catalogKey, cols: 3|4 }'}</code></td><td>Grid columns</td></tr>
+    <tr><td><code>setListMode</code></td><td><code>{'{ catalogKey, listMode }'}</code></td><td>List vs grid (ShoesCatalog)</td></tr>
+    <tr><td><code>setActiveChip</code></td><td><code>{'{ catalogKey, chip }'}</code></td><td>Set quick filter chip, reset page to 1</td></tr>
+    <tr><td><code>hydrateCatalogs</code></td><td><code>CatalogsState</code></td><td>Rehydrate from localStorage on client mount — avoids SSR hydration mismatch</td></tr>
+  </tbody>
+</table>
+
+> `hydrateCatalogs` is called once from `Providers.tsx` after client mount.
+> Storybook coverage: CatalogTemplate, ShoesCatalog, AccessoriesCatalog ✅
+
+---
+
+## uiSlice
+
+**Imports:** Actions are also named exports (same pattern as catalogSlice):
+```ts
+import { openQuickView, closeQuickView, clearQuickViewProduct } from '../store/uiSlice';
+```
+In practice — prefer `useQuickView()` from `QuickViewContext` in components.
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>openQuickView({'{ product, initialColorIndex }'})</code></td><td>Open QuickView modal with optional pre-selected color index</td></tr>
+    <tr><td><code>closeQuickView()</code></td><td>Close (product kept for exit animation)</td></tr>
+    <tr><td><code>clearQuickViewProduct()</code></td><td>Clear product after animation ends</td></tr>
+    <tr><td><code>openMobileMenu()</code></td><td>⚠️ Defined but <strong>not wired</strong> — Header uses local <code>useState</code></td></tr>
+    <tr><td><code>closeMobileMenu()</code></td><td>⚠️ Same</td></tr>
+    <tr><td><code>toggleMobileMenu()</code></td><td>⚠️ Same</td></tr>
+  </tbody>
+</table>
+
+> Storybook coverage: QuickViewModal stories — dispatches `openQuickView` ✅
+
+---
+
+## cartSlice
+
+Persisted to `localStorage['oe_store'].cart`. Context wrapper: `useCart()` from `CartContext`.
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>cartActions.addItem(item)</code></td><td>Add or increment quantity. Dedup by <strong>id + size</strong> — same product in different sizes = separate items</td></tr>
+    <tr><td><code>cartActions.addBundle(items)</code></td><td>Add bundle (special offers)</td></tr>
+    <tr><td><code>cartActions.removeItem(id)</code></td><td>Remove one item</td></tr>
+    <tr><td><code>cartActions.removeBundle(bundleId)</code></td><td>Remove whole bundle</td></tr>
+    <tr><td><code>cartActions.updateQuantity({'({ id, delta })'})</code></td><td>±quantity. Bundles: applies delta to all items sharing the same <code>bundleId</code></td></tr>
+    <tr><td><code>cartActions.updateSize({'({ id, size })'})</code></td><td>Change size of one item</td></tr>
+    <tr><td><code>cartActions.clearCart()</code></td><td>Empty cart</td></tr>
+    <tr><td><code>cartActions.openMiniCart()</code></td><td>Show slide-in mini cart</td></tr>
+    <tr><td><code>cartActions.closeMiniCart()</code></td><td>Hide mini cart</td></tr>
+  </tbody>
+</table>
+
+> Storybook coverage: MiniCart — `WithItems`, `Empty`, `Closed` ✅
+
+---
+
+## wishlistSlice
+
+Persisted to `localStorage['oe_store'].wishlist`. Context wrapper: `useWishlist()` from `WishlistContext`.
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>wishlistActions.addItem(item)</code></td><td>Add (dedup by id)</td></tr>
+    <tr><td><code>wishlistActions.removeItem(id)</code></td><td>Remove</td></tr>
+    <tr><td><code>wishlistActions.toggleItem(item)</code></td><td>Add if absent, remove if present</td></tr>
+    <tr><td><code>wishlistActions.updateSelection({'({ id, selectedColor?, selectedSize? })'})</code></td><td>Update selected variant (persisted). Prefer <code>updateSelection()</code> from <code>useWishlist()</code> in components — it wraps this payload automatically.</td></tr>
+    <tr><td><code>wishlistActions.clearAll()</code></td><td>Empty wishlist</td></tr>
+    <tr><td><code>wishlistActions.mergeUserWishlist({'({ wishlist, waitingList })'}</code></td><td>Merge server wishlist on login</td></tr>
+  </tbody>
+</table>
+
+**WishlistSyncEffect** (inside `Providers.tsx`): when `isLoggedIn` becomes `true`, automatically dispatches `mergeUserWishlist` — merges the server wishlist with any guest items added before login.
+
+> Storybook coverage: ProductCard `Wishlisted` story — dispatches `addItem`, shows filled heart ✅
+
+---
+
+## recentlyViewedSlice
+
+Persisted to `localStorage['oe_store'].recentlyViewed`. Circular buffer, max 100 items, 30-day TTL.
+
+**Stored type:** `RecentlyViewedItem = Product & { viewedAt: number }`
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>recentlyViewedActions.addProduct(product)</code></td><td>Insert at front, deduplicate, evict items older than 30 days</td></tr>
+  </tbody>
+</table>
+
+> Used in `ProductDetailPage` — adds on mount, renders "Recently Viewed" block.
+> Storybook coverage: ❌ No story (page-level component)
+
+---
+
+## userSlice
+
+Mock data from `USER_DATASET` in `data/userData.ts`. Addresses persisted separately as `userAddresses`. **Auth tokens (`authToken`, `refreshToken`, `userIdentifier`) live on `state.user.data` and feed `cartApi` / `wishlistApi` via `prepareHeaders` — but they are NEVER persisted to localStorage** (the persistence layer strips them on load/save; see `04-Persistence`).
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Payload</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>patchUserData</code></td><td><code>{'Partial<UserDataset>'}</code></td><td>Save profile changes</td></tr>
+    <tr><td><code>addAddress</code></td><td><code>UserAddress</code></td><td>Append address</td></tr>
+    <tr><td><code>setAuth</code></td><td><code>{'{ accessToken, refreshToken, userIdentifier }'}</code></td><td>Stamp Platform-issued JWT pair on <code>user.data</code> after successful login. Triggers <code>cartApi</code> / <code>wishlistApi</code> refetch via Bearer header.</td></tr>
+    <tr><td><code>clearAuth</code></td><td>—</td><td>Reset <code>authToken</code> / <code>refreshToken</code> / <code>userIdentifier</code> to <code>null</code> on logout.</td></tr>
+    <tr><td><code>fetchUserData</code> (thunk)</td><td>—</td><td>Returns <code>USER_DATASET</code> directly — no HTTP call. Placeholder for future <code>GET /api/user/me</code>. The thunk's <code>fulfilled</code> handler preserves the existing auth fields.</td></tr>
+  </tbody>
+</table>
+
+**Imports:** named exports, same pattern as `catalogSlice` / `uiSlice`.
+```ts
+import { patchUserData, addAddress, setAuth, clearAuth, fetchUserData } from '../store/userSlice';
+```
+
+> Wiring: `AuthContext.login()` dispatches `setAuth` on a successful Platform response; `AuthContext.logout()` dispatches `clearAuth`. See `05-Contexts` for the full integration.
+>
+> Storybook coverage: ❌ No story (full-page account views)

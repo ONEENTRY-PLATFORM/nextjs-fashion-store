@@ -1,0 +1,219 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { MermaidDiagram } from '../MermaidDiagram';
+
+<Meta title="Diagrams/Cart" />
+
+# Cart & Checkout — Feature Overview
+
+Full flow from adding an item to order confirmation. Data sources, state, validation, and bugs.
+
+---
+
+## 1. Checkout Flow — 4 Steps
+
+<MermaidDiagram chart={`flowchart LR
+    A([Product / Catalog]) -->|addToCart| B["cartSlice.addItem\\nRedux store"]
+    B --> C["/cart\\nCartPage\\nstep 0"]
+    C -->|"Proceed to Checkout"| D["/checkout/delivery\\nDeliveryPage\\nstep 1"]
+    D -->|"Continue to Payment"| D2{"Home delivery?\\nAddress validated?"}
+    D2 -->|"NO — empty fields"| D3["addressSchema.safeParse\\nsetAddrErrors\\nblock navigation"]
+    D2 -->|"YES or Store/Locker"| E["/checkout/payment\\nPaymentPage\\nstep 2"]
+    E -->|"Place Order"| F["/checkout/confirmation\\nConfirmationPage\\nstep 3"]
+    F -->|"clearCart after 200ms"| G["Cart empty\\norder ID generated"]`} />
+
+---
+
+## 2. Adding Items to Cart
+
+Entry points: ProductCard, ProductDetailPage, QuickView, FavoriteCard, BundleOffer.
+
+<MermaidDiagram chart={`flowchart TD
+    A{Entry point} -->|"ProductCard\\nAdd to Cart button"| B["addToCart\\nwith id+'-card' suffix\\nsize: sizes-0 or M\\ncolor: active color"]
+    A -->|"ProductDetailPage\\nAdd to Cart"| C["addToCart\\nselectedSize required\\nselectedColor required"]
+    A -->|"QuickView modal"| D["addToCart\\nsize + color from modal state\\nView Details → PDP with ?color=#hex"]
+    A -->|"FavoriteCard hover"| E["addToCart\\nsize: selectedSize or sizes-0 or M\\ncolor: active color"]
+    A -->|"Bundle offer"| F["cartActions.addBundle\\nbundleId assigned\\nall items linked"]
+    B --> G["cartSlice.addItem\\nif same id exists: qty++\\nelse: push new item"]
+    C --> G
+    D --> G
+    F --> H["cartSlice.addBundle\\nitems get shared bundleId"]
+    G --> I["saveToStorage\\nlocalStorage oe_store.cart"]
+    H --> I
+    E --> G`} />
+
+---
+
+## 3. Cart Page — Item Management
+
+Data source: `state.cart.items` (Redux). `subtotal`, `discount`, `total` computed in `useCart()`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["/cart"]) --> B{"mounted?"}
+    B -->|NO| C["Skeleton UI\\n3 placeholder rows"]
+    B -->|YES| D{"items.length > 0?"}
+    D -->|NO| E["Empty state\\nStart Shopping button"]
+    D -->|YES| F["Item list + Order Summary"]
+    F --> G{"Action on item"}
+    G -->|"Change size (dropdown)"| H["dispatch updateSize\\nitem.id + newSize"]
+    G -->|"Qty minus"| I["dispatch updateQuantity\\ndelta -1\\nif qty=1: stays at 1"]
+    G -->|"Qty plus"| J["dispatch updateQuantity\\ndelta +1"]
+    G -->|"Wishlist heart"| K["local wishlist Set\\ntoggle only\\nnot saved to wishlist slice"]
+    G -->|"Remove (trash)"| L["dispatch removeItem\\nitem.id"]
+    G -->|"Select checkbox"| M["local selectedIds Set"]
+    M --> N{"Remove Selected button"}
+    N --> O["removeItem for each\\nin selectedIds"]
+    style K fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 4. Cart — Bundle Items
+
+<MermaidDiagram chart={`flowchart TD
+    A["Bundle in cart\\n(bundleId set)"] --> B["Grouped under\\nSpecial Offer Bundle header"]
+    B --> C["No individual checkboxes\\nfor bundle items"]
+    B --> D["Qty control on last item\\nchanges qty for entire bundle"]
+    B --> E{"Remove Bundle button"}
+    E --> F["dispatch removeBundle\\nbundleId\\nall linked items removed"]
+    B --> G["Bundle total footer:\\nshows save amount\\nvs original prices"]`} />
+
+---
+
+## 5. Cart — Promo Code
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Tick: I have a promo code"]) --> B["Show code input field"]
+    B --> C{"Apply / Enter key"}
+    C --> D["code.toUpperCase\\nlookup in CHECKOUT_COUPONS"]
+    D -->|valid code| E["promoDiscount =\\nsubtotal x pct / 100\\npromoApplied = true"]
+    D -->|invalid| F["promoError: Invalid promo code\\npromoDiscount = 0"]
+    E --> G["finalTotal = total - promoDiscount\\ndisplayed in Order Summary"]
+    G --> H["NOTE: promoDiscount\\nnot passed to DeliveryPage\\ncalculated independently there"]
+    style H fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+Valid codes: `ONEENTRY10` (10%), `SAVE10` (10%), `ONEENTRY20` (20%), `SUMMER15` (15%), `WELCOME25` (25%).
+
+---
+
+## 6. Delivery Page — Guest vs Logged-in
+
+<MermaidDiagram chart={`flowchart TD
+    A(["/checkout/delivery"]) --> B{"isLoggedIn?"}
+    B -->|NO| C["Guest modal appears\\nover delivery form"]
+    C --> D{"Modal choice"}
+    D -->|"Sign In"| E["openLoginModal()\\nclose guest modal"]
+    D -->|"Create Account"| F["openRegisterModal()\\nclose guest modal"]
+    D -->|"Continue as Guest"| G["close modal\\nshow delivery form\\nno address autofill"]
+    B -->|YES| H["Skip modal\\ngo to delivery form"]
+    E --> I{"Login success?"}
+    I -->|YES| H
+    I -->|NO| C`} />
+
+---
+
+## 7. Delivery Page — Delivery Methods
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Delivery form"]) --> B{"method"}
+    B -->|home| C["Home Delivery\\nselect from saved addresses\\nor enter new address"]
+    B -->|store| D["Store Pickup\\ndropdown: 3 London stores\\nhours shown"]
+    B -->|locker| E["Parcel Locker\\ndropdown: 4 locations"]
+    C --> F{"Logged-in with saved addresses?"}
+    F -->|YES| G["Radio list of saved addresses\\n+ Enter New Address option"]
+    F -->|NO| H["New address form\\nfields: fullName phone\\nline1 city postcode\\ninstructions"]
+    G -->|"Enter New Address"| H
+    H --> I{"Confirm Address"}
+    I -->|invalid| J["Zod addressSchema errors\\nshown per field"]
+    I -->|valid + saveNewAddr| K["dispatch addAddress\\nsaved to Redux + localStorage"]
+    I -->|valid| L["newAddrConfirmed = true"]
+    C --> M["Date picker: next 7 days\\nno Sundays\\n3 time slots: morning\\nafternoon evening"]`} />
+
+---
+
+## 8. Delivery Page — Coupon (second application)
+
+<MermaidDiagram chart={`flowchart LR
+    A(["Coupon field on Delivery page"]) --> B["900ms fake loading"]
+    B --> C{"Code valid?"}
+    C -->|YES| D["appliedCoupon = code\\nfinalTotal = total - discount\\ncouponStatus: success"]
+    C -->|NO| E["couponStatus: error\\nclear appliedCoupon"]
+    D --> F{"Remove coupon"}
+    F --> G["appliedCoupon = null\\nback to full total"]`} />
+
+---
+
+## 9. Payment Page — Methods
+
+<MermaidDiagram chart={`flowchart TD
+    A(["/checkout/payment"]) --> B{"Select payment method"}
+    B -->|cash| C["Cash on Delivery\\nno extra fields"]
+    B -->|card-delivery| D["Card on Delivery\\nno extra fields"]
+    B -->|qr| E["QR Code\\nstatic mock QR shown"]
+    B -->|apple-pay| F["Apple Pay\\nno extra fields"]
+    B -->|google-pay| G["Google Pay\\nno extra fields"]
+    B -->|card-online| H["Card Online\\nCardForm expands:\\ncardNumber nameOnCard\\nexpiry CVV"]
+    B -->|installment| I["Installment Plan\\nCardForm expands\\n+ 3 or 6 month options"]
+    H --> J{"Place Order"}
+    I --> J
+    J -->|"card fields invalid"| K["Zod paymentSchema\\nshow field errors\\ndo NOT navigate"]
+    J -->|valid| L["router.push\\n/checkout/confirmation"]
+    C --> M{"Place Order (no validation)"}
+    D --> M
+    E --> M
+    F --> M
+    G --> M
+    M --> L`} />
+
+---
+
+## 10. Confirmation Page
+
+<MermaidDiagram chart={`flowchart TD
+    A(["/checkout/confirmation"]) --> B["orderId = OE-randomUUID\\ngenerated once on mount"]
+    B --> C["setTimeout 200ms\\nclearCart()\\ncartSlice.clearCart\\nlocalStorage updated"]
+    C --> D["Display: order ID\\nConfirmation Sent card\\nPreparing Order card\\nTrack Order card"]
+    D --> E{"User action"}
+    E -->|"Continue Shopping"| F["router.push /women/clothing"]
+    E -->|"Track Your Order"| G["router.push /account?tab=orders"]
+    D --> H["BUG: order NOT saved\\nto Redux or userData\\nonly generated orderId string"]
+    style H fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 11. Cart Persistence
+
+<MermaidDiagram chart={`flowchart LR
+    A["Any cart action\\naddItem removeItem\\nupdateQty clearCart"] --> B["store.subscribe\\nsaveToStorage"]
+    B --> C["localStorage\\noe_store.cart\\n= state.cart"]
+    D([Open site]) --> E["makeStore\\nloadFromStorage"]
+    E --> F{"oe_store exists?"}
+    F -->|NO| G["Empty cart"]
+    F -->|YES| H["preloadedState.cart\\n= saved items"]
+    H --> I["Cart restored\\nwith all items\\nquantities sizes colors"]
+    subgraph nosave ["NOT persisted"]
+        N1["selectedIds (checkboxes)"]
+        N2["wishlist Set in CartPage"]
+        N3["promoCode / promoDiscount"]
+    end`} />
+
+---
+
+## 12. Cart — Full State Map
+
+<MermaidDiagram chart={`flowchart TD
+    START([Item]) --> A{"In cart?"}
+    A -->|NO| B["Not in cart"]
+    A -->|YES| C["In cart\\nqty qty price size color"]
+    B -->|addItem| C
+    C -->|removeItem| B
+    C -->|updateQuantity +1| D["qty increases"]
+    C -->|updateQuantity -1| E{"qty > 1?"}
+    E -->|YES| F["qty decreases"]
+    E -->|NO| G["stays at 1\\nno auto-remove"]
+    C -->|updateSize| H["size updated\\nother fields unchanged"]
+    C -->|clearCart| B
+    D --> C
+    F --> C
+    H --> C
+    C --> I{"bundleId set?"}
+    I -->|YES| J["Bundle item\\nno individual remove\\nremoveBundle only"]
+    I -->|NO| K["Regular item\\ncan select + remove individually"]`} />

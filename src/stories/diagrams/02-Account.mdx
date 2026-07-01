@@ -1,0 +1,262 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { MermaidDiagram } from '../MermaidDiagram';
+
+<Meta title="Diagrams/Account" />
+
+# Account — Feature Overview
+
+All tabs and user behavior variations in `/account`. Data sources, state, actions, and bugs.
+
+---
+
+## 1. Account Page — Tab Navigation
+
+<MermaidDiagram chart={`flowchart LR
+    A(["/account"]) --> B{"isLoggedIn?"}
+    B -->|NO| C["Redirect to /\nor show login"]
+    B -->|YES| D{"?tab= param"}
+    D -->|no tab| E["my-data tab"]
+    D -->|my-data| E["My Data\\nMyDataSection"]
+    D -->|orders| F["My Orders\\nMyOrdersSection"]
+    D -->|history| G["Purchase History\\nHistorySection"]
+    D -->|bonuses| H["Bonuses\\nBonusesSection"]
+    D -->|wishlist| I["Wishlist\\nWishlistSection"]
+    D -->|waiting-list| J["Waiting List\\nWaitingListSection"]
+    D -->|subscriptions| K["Subscriptions\\nSubscriptionsSection"]
+    D -->|service| L["Service\\nServiceMaintenanceSection"]
+    D -->|feedback| M["Feedback\\nFeedbackSection"]
+    D -->|refer| N["Refer a Friend\\nReferSection"]`} />
+
+---
+
+## 2. My Data — Personal Information
+
+Data source: `AuthContext.user` (read) + `dispatch(patchUserData)` (write).
+
+<MermaidDiagram chart={`flowchart TD
+    A(["My Data tab"]) --> B["Display: LoyaltyCard\\n+ Personal Info\\n+ Password\\n+ Addresses\\n+ Socials\\n+ Consent\\n+ Delete Account"]
+    B --> C{"User clicks Edit\\n(Personal Info)"}
+    C -->|Edit| D["Form: firstName\\nemail phone dob\\nshoeSize clothingSize\\ngender"]
+    D --> E{"Save Changes"}
+    E -->|validation fails| F["Zod profileSchema\\nshow field errors"]
+    E -->|valid| G["updateUser()\\nAuthContext\\nupdates user state"]
+    G --> H["setEditingInfo false\\nshow read-only view"]
+    C -->|Cancel| H`} />
+
+---
+
+## 3. My Data — Password Change
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Click Edit Password"]) --> B["Form: currentPw\\nnewPw confirmPw"]
+    B --> C{"Save"}
+    C -->|newPw != confirmPw| D["Error: Passwords\\ndo not match"]
+    C -->|newPw < 8 chars| E["Error: min\\n8 characters"]
+    C -->|valid| F["setPwMsg: Password\\nupdated successfully"]
+    F --> G["setTimeout 1500ms\\nclear form\\nclose edit mode"]
+    D --> B
+    E --> B`} />
+
+---
+
+## 4. My Data — Addresses (CRUD)
+
+Data source: `state.user.data.addresses` (Redux). Changes via `dispatch(patchUserData)` or `dispatch(addAddress)`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Addresses section"]) --> B["List of saved addresses\\nfrom Redux store"]
+    B --> C{"Action"}
+    C -->|"Click Add Address"| D["Form: label fullName\\nphone line1 city\\npostcode instructions"]
+    D --> E{"Save"}
+    E -->|invalid| F["Show field errors\\nRequired / bad phone"]
+    E -->|valid| G["dispatch addAddress\\nnew id = crypto.randomUUID"]
+    G --> H["Address added\\nto Redux + localStorage"]
+    C -->|"Click Edit (pencil)"| I["Same form prefilled\\nwith existing values"]
+    I --> E2{"Save"}
+    E2 -->|valid| J["dispatch patchUserData\\naddresses.map replace"]
+    J --> H
+    C -->|"Click Delete (trash)"| K["dispatch patchUserData\\naddresses.filter remove"]
+    K --> H`} />
+
+---
+
+## 5. My Data — Socials, Consent, Delete Account
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Socials section"]) --> B["List from userData.socials\\nlocal useState"]
+    B --> C{"Connect / Disconnect"}
+    C --> D["setSocials toggle connected\\nlocal state only\\nnot persisted to Redux"]
+    style D fill:#fffbeb,stroke:#fde68a,color:#92400e
+
+    E(["Consent section"]) --> F["dataProcessing toggle\\ncrossBorder toggle\\nlocal useState"]
+    F --> G{"Toggle"}
+    G --> H["Local state only\\nnot dispatched"]
+    style H fill:#fffbeb,stroke:#fde68a,color:#92400e
+
+    I(["Delete Account"]) --> J{"Click Delete Account"}
+    J -->|first click| K["Show confirmation dialog"]
+    K -->|Cancel| L["Hide dialog"]
+    K -->|"Yes, Delete"| M["logout()\\nrouter.push /"]`} />
+
+---
+
+## 6. My Orders
+
+Data source: `state.user.data.orders` (Redux, from `USER_DATASET`).
+
+<MermaidDiagram chart={`flowchart TD
+    A(["My Orders tab"]) --> B["List of orders\\nstatus: Delivered\\nProcessing Cancelled"]
+    B --> C{"Click View Order Details"}
+    C --> D["Expand accordion\\nshow: metadata\\nitem rows\\ntotal + actions"]
+    D --> E{"Action in expanded row"}
+    E -->|"Full History"| F["router.push\\n/account?tab=history"]
+    E -->|Reorder| G{"status != Processing?"}
+    G -->|YES| H["Animation only\\nno real dispatch"]
+    style H fill:#fffbeb,stroke:#fde68a,color:#92400e
+    G -->|NO| I["Button disabled"]
+    C -->|"Click Hide Details"| J["Collapse accordion"]`} />
+
+---
+
+## 7. Purchase History
+
+Data source: `state.user.data.purchaseHistory`. Statuses: `delivered / shipped / processing / cancelled / returned`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["History tab"]) --> B["Stats banner:\\ntotal orders\\ndelivered count\\ntotal spent"]
+    B --> C["Filter chips:\\nAll + per-status\\n(hidden if count=0)"]
+    C --> D{"Select filter"}
+    D --> E["filtered = orders\\nwhere status=filter"]
+    E --> F["Order list rows"]
+    F --> G{"Click expand chevron"}
+    G --> H["Show: tracking no\\nitem rows\\norder total"]
+    H --> I{"Reorder button"}
+    I -->|"status = processing"| J["Disabled\\ncursor not-allowed"]
+    I -->|other status| K["setReorderedIds\\nanimation 2s\\nno real reorder"]
+    style K fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 8. Bonuses
+
+Data source: `AuthContext.user.bonuses` + `state.user.data.bonusHistory`.
+
+<MermaidDiagram chart={`flowchart LR
+    A(["Bonuses tab"]) --> B["Stat cards:\\nAvailable Bonuses\\nDiscount Level %"]
+    B --> C["Transaction history list\\nbonusHistory from Redux"]
+    C --> D["Each tx: desc date pts\\ngreen if pts > 0\\nred if pts < 0"]`} />
+
+---
+
+## 9. Wishlist (in Account)
+
+Data source: `useWishlist().items` (Redux wishlist slice). Filter: `inStock = true` only.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Wishlist tab"]) --> B{"inStock items > 0?"}
+    B -->|NO| C["Empty state\\nheart icon"]
+    B -->|YES| D["WishlistCard grid\\n2-3 columns"]
+    D --> E{"Action"}
+    E -->|Hover| F["Overlay:\\nAdd to Cart\\nQuick View"]
+    E -->|Click card| G["router.push\\n/product/id\\ncolor+size in URL"]
+    E -->|Heart button| H["removeItem(id)\\nfrom wishlist"]
+    F -->|Add to Cart| I["addToCart\\nitem added to cart"]
+    F -->|Quick View| G`} />
+
+---
+
+## 10. Waiting List
+
+Data source: `state.user.data.waitingList` filtered by `wishlistIds` (items that are also in wishlist).
+Statuses: `back_in_stock / low_stock / out_of_stock`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Waiting List tab"]) --> B["items = useMemo\\nwaitingList filtered\\nby wishlistIds"]
+    B --> C{"items.length > 0?"}
+    C -->|NO| D["Empty state\\nbell icon"]
+    C -->|YES| E["Waiting list rows\\nwith status badge"]
+    E --> F{"Action"}
+    F -->|"Click row"| G["router.push\\n/product/id"]
+    F -->|"Bell button"| H["toggleNotify\\nlocal notifyOverrides\\nnot persisted to Redux"]
+    style H fill:#fffbeb,stroke:#fde68a,color:#92400e
+    F -->|"Trash button"| I["setRemovingId\\nopacity 0 animation 350ms"]
+    I --> J["setTimeout 350ms\\nremoveItem(id)\\nfrom wishlist slice"]
+    J --> K["item removed\\nfrom waiting list too\\n(filtered by wishlistIds)"]
+    F -->|"Add to Cart"| L{"status != out_of_stock?"}
+    L -->|YES| M["addToCart called\\nanimation 2s"]
+    style M fill:#fffbeb,stroke:#fde68a,color:#92400e
+    L -->|NO| N["Disabled\\nshows Unavailable"]`} />
+
+---
+
+## 11. Subscriptions
+
+Data source: `state.user.data.subscriptions` (Redux). Changes persisted via `dispatch(patchUserData)`.
+
+<MermaidDiagram chart={`flowchart LR
+    A(["Subscriptions tab"]) --> B["7 toggle switches:\\nemailNewsletter\\nsmsNotifications\\npushNotifications\\norderUpdates\\nnewArrivals\\nsaleAlerts\\nloyaltyUpdates"]
+    B --> C{"Toggle switch"}
+    C --> D["dispatch patchUserData\\nsubscriptions key flipped\\nsaved to Redux + localStorage"]`} />
+
+---
+
+## 12. Service Maintenance
+
+Data source: `SERVICE_REQUESTS` from `serviceData.ts` (static, not Redux).
+Statuses: `open / in-progress / ready / completed / cancelled`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Service tab"]) --> B["Stats: Active\\nCompleted\\nTotal Spent"]
+    B --> C["Filter chips by status"]
+    C --> D["Request list rows"]
+    D --> E{"Click expand"}
+    E --> F["Progress timeline\\n4 steps: Open\\nIn Progress\\nReady\\nCompleted"]
+    F --> G["Detail grid:\\nDrop-off date\\nEst. ready\\nService type\\nCost TBC or price"]
+    A --> H{"Click New Request"}
+    H --> I["Form: item name\\nservice type\\ndrop-off date\\ndescription"]
+    I --> J{"Submit"}
+    J -->|"item or description empty"| K["HTML5 required\\nvalidation"]
+    J -->|valid| L["setSubmitted true\\nsuccess message 2.5s\\nform resets"]
+    L --> M["BUG: form data\\nnot added to list\\nstate-only mock"]
+    style M fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 13. Feedback
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Feedback tab"]) --> B["Star rating 1-5\\nCategory chips\\nRelated order select\\nMessage textarea"]
+    B --> C{"Submit Feedback"}
+    C -->|"rating = 0\\nor message < 20 chars"| D["Button disabled\\ngray color"]
+    C -->|valid| E["setSubmitted true\\nThank You screen"]
+    E --> F["Click Submit Another\\nreset all fields"]
+    E --> G["BUG: feedback not\\nsent anywhere\\nUI-only mock"]
+    style G fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 14. Refer a Friend
+
+Data source: `state.user.data.referral` (stats + link base). Code generated from `user.firstName`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Refer tab"]) --> B["referralCode =\\nOE-JANE2026"]
+    B --> C["referralLink =\\nlinkBase + code"]
+    C --> D{"Action"}
+    D -->|"Copy Link"| E["navigator.clipboard\\nwriteText referralLink\\ncopied 2s animation"]
+    D -->|"Copy Code"| F["navigator.clipboard\\nwriteText code\\ncopied 2s animation"]
+    D -->|"Send Invitations"| G{"emails field empty?"}
+    G -->|YES| H["Nothing happens"]
+    G -->|NO| I["setSent true\\n3s animation\\nBUG: emails not\\nactually sent"]
+    style I fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 15. Loyalty Card
+
+Displayed at top of **My Data** tab. Data from `AuthContext.user`.
+
+<MermaidDiagram chart={`flowchart LR
+    A(["LoyaltyCard component"]) --> B["Reads: user.firstName\\nuser.loyaltyTier\\nuser.bonuses\\nuser.discount\\nuser.loyaltyCardNo"]
+    B --> C["Display tier badge:\\nBronze / Silver / Gold"]
+    C --> D["Show card number\\nbonuses balance\\ndiscount %\\nexpiry date"]`} />

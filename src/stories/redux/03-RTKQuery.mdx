@@ -1,0 +1,193 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Redux/RTK Query" />
+
+# Redux — RTK Query
+
+There are **5 RTK Query APIs**. Three use `fakeBaseQuery()` + `queryFn` — data
+comes from local dataset files via dynamic `import()`; in Storybook these
+hooks **work without any mocking**, no network requests are made. The other
+two (`cartApi`, `wishlistApi`) use `fetchBaseQuery()` against the real
+OneEntry Platform Content API; in Storybook they are auto-disabled because
+`NEXT_PUBLIC_API_URL` is empty (`isCartApiEnabled()` / `isWishlistApiEnabled()`
+return `false`).
+
+---
+
+## productsApi · `store/api/productsApi.ts`
+
+8 endpoints — one per catalog section.
+
+<table>
+  <thead>
+    <tr><th>Hook</th><th>Returns</th><th>Dataset file</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>useGetWomenClothingQuery()</code></td><td><code>Product[]</code></td><td><code>women-clothing.ts</code></td></tr>
+    <tr><td><code>useGetMenClothingQuery()</code></td><td><code>Product[]</code></td><td><code>men-clothing.ts</code></td></tr>
+    <tr><td><code>useGetWomenBagsQuery()</code></td><td><code>Product[]</code></td><td><code>women-bags.ts</code></td></tr>
+    <tr><td><code>useGetMenBagsQuery()</code></td><td><code>Product[]</code></td><td><code>men-bags.ts</code></td></tr>
+    <tr><td><code>useGetWomenShoesQuery()</code></td><td><code>Product[]</code></td><td><code>women-shoes.ts</code></td></tr>
+    <tr><td><code>useGetMenShoesQuery()</code></td><td><code>Product[]</code></td><td><code>men-shoes.ts</code></td></tr>
+    <tr><td><code>useGetWomenAccessoriesQuery()</code></td><td><code>Product[]</code></td><td><code>women-accessories.ts</code></td></tr>
+    <tr><td><code>useGetMenAccessoriesQuery()</code></td><td><code>Product[]</code></td><td><code>men-accessories.ts</code></td></tr>
+  </tbody>
+</table>
+
+**Fallback pattern** (used in catalog pages):
+
+```tsx
+const { data: products = WOMEN_CLOTHING_PRODUCTS } = useGetWomenClothingQuery();
+// fallback = static dataset — page renders immediately before query resolves
+```
+
+---
+
+## homepageApi · `store/api/homepageApi.ts`
+
+6 endpoints — homepage section blocks.
+
+<table>
+  <thead>
+    <tr><th>Hook</th><th>Returns</th><th>Used in</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>useGetHeroSlidesQuery()</code></td><td><code>HeroSlide[]</code></td><td><code>HeroSlider</code> ✅</td></tr>
+    <tr><td><code>useGetPromoItemsQuery()</code></td><td><code>PromoItem[]</code></td><td><code>PromoBlock</code> ✅</td></tr>
+    <tr><td><code>useGetDiscountBannerQuery()</code></td><td><code>DiscountBannerData</code></td><td><code>DiscountBanner</code> ✅</td></tr>
+    <tr><td><code>useGetBestSellersQuery()</code></td><td><code>Product[]</code></td><td><code>MenCollection</code> ✅</td></tr>
+    <tr><td><code>useGetHomepageNewArrivalsQuery()</code></td><td><code>Product[]</code></td><td><code>WomenCollection</code> ✅</td></tr>
+    <tr><td><code>useGetHomepageSaleProductsQuery()</code></td><td><code>Product[]</code></td><td><code>NewArrivals</code> ✅</td></tr>
+  </tbody>
+</table>
+
+---
+
+## catalogConfigApi · `store/api/catalogConfigApi.ts`
+
+10 endpoints — catalog config, recommendations, special offers.
+
+<table>
+  <thead>
+    <tr><th>Hook</th><th>Returns</th><th>Used in</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>useGetShopCategoriesQuery()</code></td><td><code>ShopCategory[]</code></td><td><code>CategorySection</code> ✅</td></tr>
+    <tr><td><code>useGetCategoryFilterChipsQuery()</code></td><td><code>string[]</code></td><td><code>CategorySection</code> ✅</td></tr>
+    <tr><td><code>useGetTrendBlocksQuery(catalogKey)</code></td><td><code>TrendBlock[]</code></td><td>⚠️ Hook not called — <code>CatalogTrendBlocks</code> receives data via props from parent</td></tr>
+    <tr><td><code>useGetStoresQuery()</code></td><td><code>Store[]</code></td><td>⚠️ Hook not called — <code>StoreLocationsPage</code> uses data directly</td></tr>
+    <tr><td><code>useGetRecommendedQuery(catalogKey)</code></td><td><code>RecommendedBlock</code></td><td><code>ProductDetailPage</code> (with skip)</td></tr>
+    <tr><td><code>useGetSpecialOffersQuery(catalogKey)</code></td><td><code>SpecialOffer[]</code></td><td><code>ProductDetailPage</code> (with skip)</td></tr>
+    <tr><td><code>useGetSaleConfigQuery()</code></td><td><code>SaleConfig</code></td><td>⚠️ Hook not called — <code>SalePage</code> uses data directly</td></tr>
+    <tr><td><code>useGetNewArrivalsConfigQuery()</code></td><td><code>NewArrivalsConfig</code></td><td>⚠️ Hook not called — <code>NewArrivalsPage</code> uses data directly</td></tr>
+    <tr><td><code>useGetSalePageProductsQuery()</code></td><td><code>{'(Product & { category: string })[]'}</code></td><td><code>SalePage</code> ✅</td></tr>
+    <tr><td><code>useGetNewArrivalsPageProductsQuery()</code></td><td><code>{'(Product & { category: NewArrivalCategory })[]'}</code></td><td><code>NewArrivalsPage</code> ✅</td></tr>
+  </tbody>
+</table>
+
+**Skip pattern** (used in ProductDetailPage):
+
+```tsx
+const { data } = useGetRecommendedQuery(
+  catalogProduct?.recommendedId ?? '',
+  { skip: !catalogProduct?.recommendedId }
+);
+```
+
+---
+
+## Handling loading and error states
+
+All RTK Query hooks return `{ data, isLoading, isError, error }`.
+
+**With fallback (recommended in this project):**
+
+```tsx
+// Page renders immediately with static data; silently upgrades when query resolves.
+const { data: products = WOMEN_CLOTHING_PRODUCTS } = useGetWomenClothingQuery();
+```
+
+**With explicit loading/error UI:**
+
+```tsx
+const { data: slides, isLoading, isError } = useGetHeroSlidesQuery();
+
+if (isLoading) return <Spinner />;
+if (isError)   return <ErrorBanner />;
+return <HeroSlider slides={slides!} />;
+```
+
+**With skip + conditional rendering:**
+
+```tsx
+const { data: recommended, isLoading } = useGetRecommendedQuery(
+  product?.recommendedId ?? '',
+  { skip: !product?.recommendedId }
+);
+
+// isLoading is false when skipped — safe to check
+if (!recommended) return null;
+return <RecommendedBlock data={recommended} />;
+```
+
+> In Storybook, all queries resolve synchronously (fakeBaseQuery + local data).
+> `isLoading` will be `false` immediately — no need to handle loading states in stories.
+
+---
+
+## cartApi · `store/api/cartApi.ts`
+
+Real OneEntry Platform REST under `{NEXT_PUBLIC_API_URL}/users/me/cart`. Uses
+`fetchBaseQuery()` with `prepareHeaders` that injects the JWT pulled from
+`state.user.data.authToken`. Cache tag: `Cart`.
+
+<table>
+  <thead>
+    <tr><th>Hook</th><th>Verb</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>useGetCartQuery()</code></td><td><code>GET</code></td><td>Skip with <code>{ skip: !authToken }</code> — anonymous → 401.</td></tr>
+    <tr><td><code>useAddCartItemMutation()</code></td><td><code>POST</code></td><td>Body accepts <strong>absolute</strong> <code>qty</code>, NOT a delta — <code>CartContext</code> computes the resulting total client-side first.</td></tr>
+    <tr><td><code>useRemoveCartItemMutation()</code></td><td><code>DELETE</code></td><td>Remove a single line.</td></tr>
+    <tr><td><code>useSetCartMutation()</code></td><td><code>PUT</code></td><td>Replace the whole <code>items</code> list. Used by <code>clearCart()</code> with an empty list (no single-call wipe endpoint).</td></tr>
+  </tbody>
+</table>
+
+`isCartApiEnabled()` returns `false` when `NEXT_PUBLIC_API_URL` is empty —
+`CartContext` falls back to the local `cartSlice` only.
+
+---
+
+## wishlistApi · `store/api/wishlistApi.ts`
+
+Real OneEntry Platform REST under `{NEXT_PUBLIC_API_URL}/users/me/wishlist`.
+Same auth pattern as `cartApi`. Cache tag: `Wishlist`.
+
+<table>
+  <thead>
+    <tr><th>Hook</th><th>Verb</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>useGetWishlistQuery()</code></td><td><code>GET</code></td><td>Skip with <code>{ skip: !authToken }</code>.</td></tr>
+    <tr><td><code>useAddWishlistItemMutation()</code></td><td><code>POST</code></td><td>Add one product.</td></tr>
+    <tr><td><code>useRemoveWishlistItemMutation()</code></td><td><code>DELETE</code></td><td>Remove one product.</td></tr>
+    <tr><td><code>useSetWishlistMutation()</code></td><td><code>PUT</code></td><td>Bulk-merge on login (see <code>mergeUserWishlist</code> in <code>02-Slices</code>).</td></tr>
+  </tbody>
+</table>
+
+> See `docs/ONEENTRY_INTEGRATION.md` §5.1–§5.2 for the exact request / response
+> shapes, marker map and demo credentials.
+
+---
+
+## Storybook environment
+
+`cartApi` and `wishlistApi` are imported in `makeStore()` regardless. In the
+Storybook decorator (`preview.ts`) no `NEXT_PUBLIC_API_URL` is set, so:
+
+- their hooks return `{ data: undefined, isError: true }` if you call them without `skip`,
+- BUT the `CartContext` and `WishlistContext` consult `isCartApiEnabled()` / `isWishlistApiEnabled()` before dispatching anything — so stories that use `useCart()` / `useWishlist()` just work against the local slice.
+
+If you need to demonstrate Platform-backed behaviour in a story, set
+`process.env.NEXT_PUBLIC_API_URL` at build time and authenticate via
+`AuthContext` first; otherwise prefer the local slice.

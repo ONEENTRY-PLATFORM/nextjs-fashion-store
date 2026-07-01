@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>No Internet Connection — ONEENTRY Fashion</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100svh;
+      background: #fff;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    .brand {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 3rem;
+    }
+    .icon { margin-bottom: 2rem; color: #ccc; }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #111;
+      margin-bottom: 0.75rem;
+    }
+    .subtitle {
+      font-size: 0.875rem;
+      color: #666;
+      max-width: 320px;
+      line-height: 1.6;
+      margin-bottom: 3rem;
+    }
+    .status {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .status-text {
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+    .status-text.checking { color: #999; }
+    .status-text.waiting  { color: #bbb; }
+    .status-text .countdown { color: #111; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .progress-track {
+      width: 160px;
+      height: 1px;
+      background: #eee;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #111;
+      width: 0%;
+      transition: width 1s linear;
+    }
+    .progress-bar.checking {
+      width: 100%;
+      transition: width 0.3s ease;
+    }
+    button {
+      padding: 0.75rem 2.5rem;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+    button:disabled {
+      background: #eee;
+      color: #999;
+      cursor: not-allowed;
+    }
+    .footer-note {
+      position: fixed;
+      bottom: 2rem;
+      font-size: 10px;
+      color: #ccc;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+  <p class="brand">ONEENTRY FASHION</p>
+
+  <div class="icon">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="31" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M14 28a25.4 25.4 0 0 1 36 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+      <path d="M20 34a17 17 0 0 1 24 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+      <path d="M26 40a8.5 8.5 0 0 1 12 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+      <circle cx="32" cy="46" r="2.5" fill="currentColor" opacity="0.3"/>
+      <line x1="16" y1="16" x2="48" y2="48" stroke="#111" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <h1>No Internet Connection</h1>
+  <p class="subtitle">Check your Wi-Fi or mobile data and we'll get you back to shopping.</p>
+
+  <div class="status">
+    <p class="status-text waiting" id="status-text">
+      Next check in <span class="countdown" id="countdown">10</span>s
+    </p>
+    <div class="progress-track">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+  </div>
+
+  <button id="retry-btn" onclick="checkNow()">Try Now</button>
+
+  <p class="footer-note">Previously visited pages are available offline</p>
+
+  <script>
+    const CHECK_INTERVAL = 10;
+    let countdown = CHECK_INTERVAL;
+    let checking = false;
+    let tickId = null;
+    let dotsId = null;
+    let dots = '';
+
+    const statusEl = document.getElementById('status-text');
+    const countdownEl = document.getElementById('countdown');
+    const progressEl = document.getElementById('progress-bar');
+    const btn = document.getElementById('retry-btn');
+
+    function setChecking(val) {
+      checking = val;
+      btn.disabled = val;
+      btn.textContent = val ? 'Checking\u2026' : 'Try Now';
+      statusEl.className = 'status-text ' + (val ? 'checking' : 'waiting');
+      progressEl.className = 'progress-bar' + (val ? ' checking' : '');
+      if (val) {
+        statusEl.textContent = 'Checking connection';
+        if (!dotsId) dotsId = setInterval(animateDots, 500);
+      } else {
+        clearInterval(dotsId);
+        dotsId = null;
+        dots = '';
+        updateWaiting();
+      }
+    }
+
+    function animateDots() {
+      dots = dots.length >= 3 ? '' : dots + '.';
+      statusEl.textContent = 'Checking connection' + dots;
+    }
+
+    function updateWaiting() {
+      statusEl.innerHTML = 'Next check in <span class="countdown">' +
+        String(countdown).padStart(2, '0') + 's</span>';
+      const pct = ((CHECK_INTERVAL - countdown) / CHECK_INTERVAL) * 100;
+      progressEl.style.width = pct + '%';
+    }
+
+    async function checkNow() {
+      if (checking) return;
+      setChecking(true);
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 5000);
+        const res = await fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store', signal: ctrl.signal });
+        clearTimeout(t);
+        if (res.ok) { window.location.reload(); return; }
+      } catch (_) {}
+      setChecking(false);
+      countdown = CHECK_INTERVAL;
+      updateWaiting();
+    }
+
+    function startTick() {
+      tickId = setInterval(() => {
+        if (checking) return;
+        countdown--;
+        if (countdown <= 0) {
+          countdown = CHECK_INTERVAL;
+          checkNow();
+        } else {
+          updateWaiting();
+        }
+      }, 1000);
+    }
+
+    window.addEventListener('online', checkNow);
+    updateWaiting();
+    startTick();
+  </script>
+</body>
+</html>

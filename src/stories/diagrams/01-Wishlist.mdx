@@ -1,0 +1,156 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { MermaidDiagram } from '../MermaidDiagram';
+
+<Meta title="Diagrams/Wishlist" />
+
+# Wishlist — Feature Overview
+
+Complete description of all user behavior variations: where data comes from, where it is saved, and what happens under which conditions.
+
+---
+
+## 1. Add and Remove from Wishlist
+
+Entry points: heart button in the **catalog card** and on the **product page**.
+
+<MermaidDiagram chart={`flowchart LR
+    U([Click heart button]) --> B{Where from?}
+    B -->|Catalog| C["ProductCard\\nhandleWishlist"]
+    B -->|Product page| D["ProductDetailPage\\ntoggleItem onClick"]
+    C --> E["toggleItem\\nuseWishlist"]
+    D --> E
+    E --> F{Already\\nin wishlist?}
+    F -->|NO| G["addItem\\nadd to store"]
+    F -->|YES| H["removeItem\\nremove from store"]
+    G --> I["saveToStorage\\nlocalStorage"]
+    H --> I
+    G --> J["Heart: empty\\nbecomes filled"]
+    H --> K["Heart: filled\\nbecomes empty"]`} />
+
+**What is passed on add:** `id`, `name`, `brand`, `price`, `salePrice`, `image` (active color), `colors[]`, `colorStock[]`, `sizes[]`, `badge`, `inStock`, `selectedColor` (hex).
+
+---
+
+## 2. Heart Icon — SSR Protection
+
+<MermaidDiagram chart={`flowchart LR
+    A([Component mounts]) --> B["mounted = false\\nwishlisted = false"]
+    B --> C["useEffect\\nsetMounted true"]
+    C --> D["wishlisted =\\nmounted AND isWishlisted"]
+    D --> E{In wishlist?}
+    E -->|YES| F["Heart filled\\ncolor pink"]
+    E -->|NO| G["Heart empty\\ncolor gray"]
+    B --> H["BUG: without mounted\\nSSR != client\\nhydration error"]
+    style H fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 3. /favorites Page — Main Scenarios
+
+<MermaidDiagram chart={`flowchart TD
+    A([/favorites]) --> B{items.length > 0?}
+    B -->|NO| C["EmptyState\\nBrowse / Home"]
+    B -->|YES| D["FavoriteCard grid"]
+    D --> E{"inStock?\\n(re-checked from\\nPRODUCT_CATALOG)"}
+    E -->|NO| F["Photo grayscale\\nOut of Stock badge\\nAdd to Cart hidden"]
+    E -->|YES| G["Full card"]
+    G --> H{Action}
+    H -->|Hover| I["Overlay:\\nAdd to Cart\\nQuick View"]
+    H -->|Click card| J["Navigate\\n/product/id\\ncolor+size in URL"]
+    H -->|Click heart| K["Animation 250ms\\nremoveItem"]
+    H -->|Color swatch| L{Color available?}
+    I -->|Add to Cart| M["addToCart\\nsize: selectedSize\\nor sizes-0 or M"]
+    I -->|Quick View| N["openQuickView\\nwith selectedColor\\nModal"]
+    L -->|YES| O["setSelectedColor\\n+ updateSelection\\nsaved to localStorage"]
+    L -->|NO| P["Nothing\\nSwatch crossed out"]`} />
+
+---
+
+## 4. Color Change in Favorite Card
+
+<MermaidDiagram chart={`flowchart TD
+    A([Click swatch]) --> B{"Color OOS\\nor no inStock?"}
+    B -->|YES| C["Nothing\\nopacity 60%\\ncrossed out"]
+    B -->|NO| D["setSelectedColor\\nlocal useState"]
+    D --> E["Swatch highlighted\\nscale 125%"]
+    D --> F["updateSelection\\ncalled after setSelectedColor"]
+    F --> G["wishlistSlice\\nupdateSelection"]
+    G --> H2["localStorage\\ncolor persisted"]`} />
+
+---
+
+## 5. Sync After Login
+
+<MermaidDiagram chart={`flowchart TD
+    A([Login]) --> B["validateCredentials"]
+    B --> C{Credentials valid?}
+    C -->|NO| D["Error"]
+    C -->|YES| E["isLoggedIn = true"]
+    E --> F["WishlistSyncEffect\\nProviders.tsx"]
+    F --> G["mergeUserWishlist\\nwishlist + waitingList"]
+    G --> H["fromDataWishlist\\nconvert wishlist items"]
+    G --> I["fromWaitingItem\\nconvert waiting items"]
+    H --> J["serverItems"]
+    I --> J
+    J --> K["guestOnly = guest items\\nnot found on server"]
+    K --> L["items = serverItems\\n+ guestOnly\\nserver takes priority"]
+    L --> M["saveToStorage\\nlocalStorage"]`} />
+
+---
+
+## 6. Wishlist in Account (/account?tab=wishlist)
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Account\\nWishlist tab"]) --> B["WishlistSection\\nuseWishlist items"]
+    B --> C["Filter:\\ninStock = true only"]
+    C --> D{Items exist?}
+    D -->|NO| E["Empty state"]
+    D -->|YES| F["WishlistCard grid"]
+    F --> G{Action}
+    G -->|Hover| H["Add to Cart\\nQuick View"]
+    G -->|Click| I["/product/id\\ncolor+size in URL"]
+    G -->|Heart| J["removeItem"]
+    H -->|Add to Cart| K["addToCart\\nitem added to cart"]
+`} />
+
+---
+
+## 7. Persistence — Save and Load
+
+<MermaidDiagram chart={`flowchart LR
+    A["dispatch wishlistSlice"] --> B["store.subscribe\\nsaveToStorage"]
+    B --> C["localStorage\\noe_store.wishlist"]
+    D([Open site]) --> E["makeStore\\nloadFromStorage"]
+    E --> F{"oe_store\\nexists?"}
+    F -->|NO| G["Empty wishlist"]
+    F -->|YES| H["Check version\\nRun migrations"]
+    H --> I["preloadedState\\n.wishlist"]
+    I --> J["Wishlist visible\\nwithout server request"]
+    subgraph nosave ["NOT persisted"]
+        N1["ui - QuickView"]
+        N2["RTK Query cache"]
+        N3["user - user data"]
+    end`} />
+
+---
+
+## 8. Full Item State Map
+
+<MermaidDiagram chart={`flowchart TD
+    START([Product]) --> A{In wishlist?}
+    A -->|NO| B["Not in wishlist\\nheart empty"]
+    A -->|YES| C["In wishlist\\nheart filled"]
+    B -->|addItem| C
+    C -->|removeItem| B
+    C --> D{inStock?}
+    D -->|true| E["In stock\\nfull card"]
+    D -->|false| F["Out of stock\\nOut of Stock badge"]
+    E -->|Add to Cart| G["In cart\\nanimation 1.5s"]
+    E -->|change swatch| H["Color changed\\nsaved via updateSelection"]
+    E -->|remove| B
+    F -->|remove| B
+    F -->|click| I["Product page"]
+    G --> E
+    C -->|mergeUserWishlist after login| J["Updated from server"]
+    J --> C
+`} />

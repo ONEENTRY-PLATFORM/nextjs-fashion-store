@@ -1,0 +1,267 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Redux/Overview" />
+
+# Redux — Overview
+
+> Stack: **Redux Toolkit** + **RTK Query** · Files: `src/app/store/`
+
+---
+
+## Data flow
+
+```
+User interaction
+      │
+      ▼
+Context hook  (useCart, useWishlist, useQuickView)
+      │  calls
+      ▼
+dispatch(action)
+      │
+      ▼
+Redux Reducer  (cartSlice, wishlistSlice, uiSlice …)
+      │  updates
+      ▼
+Redux Store  ──► saveToStorage() ──► localStorage['oe_store']
+      │
+      ▼
+useAppSelector / selector
+      │
+      ▼
+Component re-renders
+```
+
+**RTK Query** sits alongside this flow. Three local-data slices (`productsApi`,
+`homepageApi`, `catalogConfigApi`) use `fakeBaseQuery()` + `queryFn` to import
+TS datasets directly — no HTTP. Two slices (`cartApi`, `wishlistApi`) use
+`fetchBaseQuery()` against the OneEntry Platform Content API at
+`NEXT_PUBLIC_API_URL` with a Bearer JWT pulled from `state.user.data.authToken`.
+Responses (or local data) are cached in the matching RTK Query slice of the store.
+
+---
+
+## Architecture layers
+
+```
+┌─────────────────────────────────────────────────┐
+│  Components  (ProductCard, MiniCart, FavoritesPage …)
+│     ↕  call context hooks, never dispatch directly
+├─────────────────────────────────────────────────┤
+│  Context layer  (CartContext, WishlistContext …)
+│     ↕  thin wrappers — call dispatch internally
+├─────────────────────────────────────────────────┤
+│  Redux Store  (6 slices + 5 RTK Query APIs)
+│     ↕  persisted to localStorage (cart, wishlist, recentlyViewed, catalog, userAddresses)
+├─────────────────────────────────────────────────┤
+│  Dataset files (src/app/data/*.ts)  ↑ consumed by productsApi/homepageApi/catalogConfigApi via queryFn
+│  OneEntry Platform Content API      ↑ consumed by cartApi/wishlistApi via fetchBaseQuery
+└─────────────────────────────────────────────────┘
+```
+
+**Rule:** For cart, wishlist and quick view — always use context hooks, not dispatch directly.
+`catalogSlice` and `userSlice` have no context wrappers — use `useAppDispatch` directly for those.
+
+---
+
+## File structure
+
+```
+src/app/store/
+├── index.ts                  ← makeStore(), RootState, AppDispatch, loadFromStorage
+├── hooks.ts                  ← useAppDispatch, useAppSelector
+├── selectors.ts              ← all memoized selectors
+├── catalogSlice.ts
+├── uiSlice.ts
+├── cartSlice.ts
+├── wishlistSlice.ts
+├── recentlyViewedSlice.ts
+├── userSlice.ts
+└── api/
+    ├── productsApi.ts        ← 8 endpoints (fakeBaseQuery → local data)
+    ├── homepageApi.ts        ← 6 endpoints (fakeBaseQuery → local data)
+    ├── catalogConfigApi.ts   ← 10 endpoints (fakeBaseQuery → local data)
+    ├── cartApi.ts            ← real OneEntry Platform REST (fetchBaseQuery + Bearer)
+    ├── wishlistApi.ts        ← real OneEntry Platform REST (fetchBaseQuery + Bearer)
+    └── types/                ← cart + wishlist DTO shapes
+
+src/app/context/
+├── CartContext.tsx            ← wraps cartSlice
+├── WishlistContext.tsx        ← wraps wishlistSlice
+├── QuickViewContext.tsx       ← wraps uiSlice (openQuickView)
+├── AuthContext.tsx            ← independent React state (login modal + auth)
+└── CatalogAccentContext.tsx   ← simple string context (accent hex color)
+```
+
+---
+
+## RootState shape
+
+```ts
+{
+  cart:             CartState             // src/app/store/cartSlice.ts
+  wishlist:         WishlistState         // src/app/store/wishlistSlice.ts
+  recentlyViewed:   RecentlyViewedState   // src/app/store/recentlyViewedSlice.ts
+  catalog:          Record<string, CatalogUIState>  // src/app/store/catalogSlice.ts
+  ui:               UIState               // src/app/store/uiSlice.ts
+  user:             UserState             // src/app/store/userSlice.ts
+  productsApi:      RTK Query cache  // local data via queryFn
+  homepageApi:      RTK Query cache  // local data via queryFn
+  catalogConfigApi: RTK Query cache  // local data via queryFn
+  cartApi:          RTK Query cache  // real OneEntry Platform REST
+  wishlistApi:      RTK Query cache  // real OneEntry Platform REST
+}
+```
+
+> `cartApi` / `wishlistApi` are gated by `NEXT_PUBLIC_API_URL` — when empty
+> (the default Storybook environment) the slices are still registered but
+> `isCartApiEnabled()` / `isWishlistApiEnabled()` return `false` and the
+> `CartContext` / `WishlistContext` skip the network layer, falling back to
+> the local `cartSlice` / `wishlistSlice` only.
+
+---
+
+## Typed hooks
+
+Always use these — never raw `useDispatch` / `useSelector`:
+
+```ts
+// Import paths from a component inside src/app/
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+
+// Import paths from a Storybook story file
+import { useAppDispatch, useAppSelector } from '../app/store/hooks';
+
+const dispatch = useAppDispatch();             // typed AppDispatch
+const items    = useAppSelector(s => s.cart.items);  // typed RootState
+```
+
+---
+
+## Key selectors (`store/selectors.ts`)
+
+Import: `import { selectCartItems } from '../store/selectors';`
+
+```ts
+// Cart
+selectCartItems              → CartItem[]
+selectMiniCartOpen           → boolean
+selectCartTotalItems         → number
+selectCartSubtotal           → number         // sum of price × qty
+selectCartOriginalSubtotal   → number         // before discounts
+selectCartDiscount           → number         // originalSubtotal − subtotal
+
+// Wishlist
+selectWishlistItems          → WishlistItem[]
+selectWishlistCount          → number
+selectIsWishlisted(s, id)    → boolean        // parametric selector
+
+// Recently Viewed
+selectRecentlyViewed         → RecentlyViewedItem[]  // RecentlyViewedItem = Product & { viewedAt: number }
+
+// User
+selectUserProfile            → UserProfile
+selectUserLoyalty            → LoyaltyCard
+selectUserAddresses          → UserAddress[]
+selectUserData               → UserDataset
+selectUserStatus             → 'idle' | 'loading' | 'succeeded' | 'failed'
+
+// UI
+selectQuickViewProduct       → Product | null
+```
+
+---
+
+## Using Redux in components
+
+**Preferred: via context hook** (most components)
+
+```tsx
+import { useCart } from '../context/CartContext';
+
+function BuyButton({ product }) {
+  const { addItem } = useCart();
+
+  return (
+    <button onClick={() => addItem({
+      id: product.id,
+      name: product.name,
+      brand: product.brand ?? '',
+      color: 'Black',
+      sku: product.id,
+      size: 'M',
+      quantity: 1,
+      price: parseFloat(product.price.replace('$', '')),
+      image: product.image,
+    })}>
+      Add to Cart
+    </button>
+  );
+}
+```
+
+**Direct dispatch** (use only when no context wrapper exists)
+
+`catalogSlice` and `userSlice` export named action creators directly, not a grouped object:
+
+```tsx
+// ✅ correct — named export
+import { useAppDispatch } from '../store/hooks';
+import { setSort, toggleFilter } from '../store/catalogSlice';
+
+function SortDropdown({ catalogKey }) {
+  const dispatch = useAppDispatch();
+  return (
+    <select onChange={e => dispatch(setSort({ catalogKey, sortBy: e.target.value }))}>
+      ...
+    </select>
+  );
+}
+
+// ✅ correct — uiSlice also uses named exports
+import { openQuickView } from '../store/uiSlice';
+dispatch(openQuickView(product));
+
+// ❌ wrong — catalogActions does not exist
+import { catalogActions } from '../store/catalogSlice'; // undefined
+```
+
+---
+
+## Using Redux in Storybook stories
+
+The global decorator in `preview.ts` already provides all required providers.
+No need to wrap stories manually.
+
+```tsx
+// stories/MiniCart.stories.tsx
+import React, { useEffect } from 'react';
+import { useAppDispatch } from '../app/store/hooks';  // note: ../app/store
+import { cartActions } from '../app/store/cartSlice';
+import { MOCK_CART_ITEM } from './mockData';
+
+function WithCartItems() {
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    dispatch(cartActions.addItem(MOCK_CART_ITEM));
+    dispatch(cartActions.openMiniCart());
+  }, [dispatch]);
+  return <MiniCart />;
+}
+
+export const WithItems: Story = { render: () => <WithCartItems /> };
+```
+
+**Provided by global decorator:**
+
+<table>
+  <thead>
+    <tr><th>Provider</th><th>Value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>Provider</code> (Redux)</td><td>Fresh store per story. <code>localStorage</code> wiped on each mount.</td></tr>
+    <tr><td><code>AuthProvider</code></td><td><code>isLoggedIn: false</code> initially</td></tr>
+    <tr><td><code>CatalogAccentContext</code></td><td><code>'#F88A8A'</code> (women's pink)</td></tr>
+    <tr><td><code>nextjs.appDirectory</code></td><td><code>true</code> — <code>useRouter</code> / <code>usePathname</code> work in stories</td></tr>
+  </tbody>
+</table>

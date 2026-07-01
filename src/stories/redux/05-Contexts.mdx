@@ -1,0 +1,235 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Redux/Contexts" />
+
+# Redux — Contexts
+
+There are **5 hook modules** in `context/`. Three are hook-only modules (no `createContext`) that call Redux directly.
+Only `AuthContext` has a Provider component; `CatalogAccentContext` exports the context object and its Provider is used inline.
+
+<table>
+  <thead>
+    <tr><th>Module</th><th>Hook</th><th>Backed by</th><th>Has Provider?</th><th>File</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>CartContext</code></td><td><code>useCart()</code></td><td>Redux <code>cartSlice</code></td><td>❌ Hook-only module</td><td><code>context/CartContext.tsx</code></td></tr>
+    <tr><td><code>WishlistContext</code></td><td><code>useWishlist()</code></td><td>Redux <code>wishlistSlice</code></td><td>❌ Hook-only module</td><td><code>context/WishlistContext.tsx</code></td></tr>
+    <tr><td><code>QuickViewContext</code></td><td><code>useQuickView()</code></td><td>Redux <code>uiSlice</code></td><td>❌ Hook-only module</td><td><code>context/QuickViewContext.tsx</code></td></tr>
+    <tr><td><code>AuthContext</code></td><td><code>useAuth()</code></td><td>React <code>useState</code> (modal + isLoggedIn) <strong>+</strong> Redux <code>userSlice</code> (auth tokens via <code>setAuth</code> / <code>clearAuth</code>)</td><td>✅ <code>{'<AuthProvider>'}</code></td><td><code>context/AuthContext.tsx</code></td></tr>
+    <tr><td><code>CatalogAccentContext</code></td><td><code>useCatalogAccent()</code></td><td>Plain string value</td><td>✅ <code>CatalogAccentContext.Provider</code> (inline)</td><td><code>context/CatalogAccentContext.tsx</code></td></tr>
+  </tbody>
+</table>
+
+**Why the context layer exists:** Components import from these hooks, not from Redux slices directly.
+If the underlying state implementation changes, only the hook file needs updating — all components stay untouched.
+
+> **Note on Cart & Wishlist:** Despite the naming, `CartContext.tsx` and `WishlistContext.tsx` do **not** use `createContext`.
+> They are plain hook modules — `useCart()` and `useWishlist()` call `useSelector` / `useDispatch` directly.
+> No Provider wrapping is needed; they work anywhere inside the Redux `<Provider>`.
+
+---
+
+## CartContext · `useCart()`
+
+Wraps `cartSlice`. Import: `import { useCart } from '../context/CartContext';`
+
+```ts
+interface CartItem {
+  id: string;
+  name: string;
+  brand: string;
+  color: string;
+  sku: string;
+  size: string;
+  quantity: number;
+  price: number;           // numeric, not string
+  originalPrice?: number;  // for discount display
+  image: string;
+  bundleId?: string;       // groups bundle items for removeBundle
+}
+
+interface CartContextType {
+  items: CartItem[];
+  totalItems: number;      // total quantity across all items
+  subtotal: number;
+  discount: number;
+  total: number;
+  miniCartOpen: boolean;
+  addItem: (item: CartItem) => void;
+  addBundle: (items: Omit<CartItem, 'bundleId'>[]) => void;
+  removeItem: (id: string) => void;
+  removeBundle: (bundleId: string) => void;
+  updateQuantity: (id: string, delta: number) => void;
+  updateSize: (id: string, size: string) => void;
+  clearCart: () => void;
+  openMiniCart: () => void;
+  closeMiniCart: () => void;
+}
+```
+
+**Deduplication:** `addItem` matches by **`id + size`**. The same product in two different sizes
+creates two separate cart items.
+
+---
+
+## WishlistContext · `useWishlist()`
+
+Wraps `wishlistSlice`. Import: `import { useWishlist } from '../context/WishlistContext';`
+
+```ts
+interface WishlistItem {
+  id: string;
+  name: string;
+  brand: string;
+  price: string;           // formatted string, e.g. "$89.99"
+  salePrice?: string;      // if on sale
+  image: string;
+  colors: string[];        // hex values
+  colorStock?: boolean[];  // per-color stock (same index as colors)
+  sizes: string[];
+  badge?: string;
+  inStock: boolean;
+  priceAlert?: boolean;
+  selectedColor?: string;  // hex of currently selected color
+  selectedSize?: string;
+}
+
+interface WishlistContextType {
+  items: WishlistItem[];
+  count: number;
+  isWishlisted: (id: string) => boolean;
+  addItem: (item: WishlistItem) => void;
+  removeItem: (id: string) => void;
+  toggleItem: (item: WishlistItem) => void;
+  updateSelection: (id: string, selectedColor?: string, selectedSize?: string) => void;
+  clearAll: () => void;
+}
+```
+
+**`toggleItem` vs `addItem`:** Use `toggleItem` for heart buttons (add if absent, remove if present).
+Use `addItem` when you need to guarantee the item is in the list regardless.
+
+**`updateSelection`:** Call this when the user changes the selected color or size on an already-wishlisted item
+so the change persists to localStorage.
+
+---
+
+## QuickViewContext · `useQuickView()`
+
+**Not a true React context** — no `createContext`, no Provider required. It is a plain hook module
+that calls `useAppSelector` and `useAppDispatch` directly. Works anywhere inside the Redux `Provider`.
+
+Import: `import { useQuickView } from '../context/QuickViewContext';`
+
+```ts
+interface QuickViewContextValue {
+  isOpen: boolean;
+  product: Product | null;
+  initialColorIndex: number | null;
+  openQuickView: (product: Product, initialColorIndex?: number) => void;
+  closeQuickView: () => void;
+}
+```
+
+**`initialColorIndex`:** When the user selects a color in the catalog card and opens Quick View,
+the selected color index is passed through so the modal opens with that color pre-selected.
+`ProductCard` passes its `selectedColor` state; other callers (e.g. `FavoritesPage`) can omit it.
+
+**"View Full Details" navigation:** When the user clicks "View Full Details" in the modal,
+the selected color is passed as `?color=#hex` in the URL — `ProductDetailPage` reads it
+from `searchParams` and initializes the correct swatch.
+
+**Close animation detail:** `closeQuickView()` dispatches `closeQuickView` immediately (sets `isOpen: false`),
+then calls `clearQuickViewProduct()` after a **300 ms timeout** — lets the exit animation finish
+before the product is removed from state.
+
+---
+
+## AuthContext · `useAuth()`
+
+**Hybrid state.** UI-only fields (`isLoggedIn`, `user`, `loginModalOpen`, `registerModalOpen`) live in local React `useState`. On successful login, `AuthContext.login()` also dispatches `setAuth({ accessToken, refreshToken, userIdentifier })` into `userSlice` so `cartApi` / `wishlistApi` can pick up the Bearer token through `prepareHeaders`. `logout()` dispatches `clearAuth()`.
+
+Import: `import { useAuth } from '../context/AuthContext';`
+
+```ts
+interface AuthContextType {
+  isLoggedIn: boolean;
+  user: User | null;
+  loginModalOpen: boolean;
+  registerModalOpen: boolean;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
+  openRegisterModal: () => void;
+  closeRegisterModal: () => void;
+  login: (emailOrPhone: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  updateUser: (data: Partial<User>) => void;
+}
+```
+
+**Relationship with Redux:** two side-effects fire on a successful login.
+
+```
+AuthContext.login(emailOrPhone, password)
+        │
+        ├─→ dispatch(setAuth({ accessToken, refreshToken, userIdentifier }))
+        │       │   stamps tokens onto userSlice.data
+        │       ▼
+        │   cartApi / wishlistApi prepareHeaders pick up Bearer token,
+        │   cached queries automatically refetch under the new auth.
+        │
+        ▼
+AuthContext.isLoggedIn → true
+        │
+        ▼
+WishlistSyncEffect (Providers.tsx)
+        │
+        ▼
+dispatch(wishlistActions.mergeUserWishlist({ wishlist, waitingList }))
+        │
+        ▼
+wishlistSlice.mergeUserWishlist reducer
+        │  server items take precedence, guest-only items appended
+        ▼
+Redux wishlist state updated + persisted to localStorage
+```
+
+`logout()` mirrors this: `clearAuth()` strips tokens from `userSlice.data`,
+which invalidates `cartApi` / `wishlistApi` cached queries (they will 401
+without a Bearer header — callers gate them with `skip: !authToken`).
+
+---
+
+## CatalogAccentContext · `useCatalogAccent()`
+
+A simple string context providing the accent hex color for catalog pages.
+
+Import: `import { useCatalogAccent } from '../context/CatalogAccentContext';`
+
+```ts
+// Returns: string  (hex color, e.g. '#F88A8A' or '#8B9EB7')
+const accent = useCatalogAccent();
+```
+
+<table>
+  <thead>
+    <tr><th>Page / Component</th><th>Accent color</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Women's catalog pages</td><td><code>#F88A8A</code> (pink) — <code>ACCENT_WOMEN</code></td></tr>
+    <tr><td>Men's catalog pages</td><td><code>#DA1E1E</code> (red) — <code>ACCENT_MEN</code></td></tr>
+    <tr><td>Storybook global decorator</td><td><code>#F88A8A</code> (default)</td></tr>
+  </tbody>
+</table>
+
+To override in a story:
+
+```tsx
+export const MensVersion: Story = {
+  render: () => (
+    <CatalogAccentContext.Provider value="#DA1E1E">
+      <ProductCard product={MOCK_PRODUCT} />
+    </CatalogAccentContext.Provider>
+  ),
+};
+```

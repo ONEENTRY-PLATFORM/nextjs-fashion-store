@@ -1,0 +1,282 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { MermaidDiagram } from '../MermaidDiagram';
+
+<Meta title="Diagrams/Site" />
+
+# Site — Full Functionality Overview
+
+All remaining features: auth, navigation, catalog, product page, QuickView, homepage, search.
+
+---
+
+## 1. Authentication — Login Flow
+
+Data source: `validateCredentials` (server action) + `MOCK_USER` from `userData.ts`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Click Sign In\\n(Header or Guest Modal)"]) --> B["LoginModal opens\\nfocus trap active\\nbody scroll locked"]
+    B --> C{"Fill email/phone\\n+ password"}
+    C --> D["Zod loginSchema\\nclient-side check"]
+    D -->|invalid| E["Show field error\\ndo not submit"]
+    D -->|valid| F["setLoading true\\ncall validateCredentials\\nserver action 500ms delay"]
+    F -->|wrong creds| G["error: Invalid email\\nor password"]
+    F -->|correct| H["setUser MOCK_USER\\nsetIsLoggedIn true"]
+    H --> I["closeLoginModal\\nif on /checkout: stay\\nelse: no redirect"]
+    H --> J["WishlistSyncEffect fires\\nmergeUserWishlist"]
+    H --> K["userSlice loads\\nUSER_DATASET into Redux"]
+    B --> L{"Social login buttons"}
+    L -->|Google / Apple / Facebook| M["BUG: UI only\\nno OAuth implemented"]
+    style M fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+Valid credentials: `jane@oneentry.com` / `password123` (or phone `+44 20 7946 0958`).
+
+---
+
+## 2. Authentication — Register Flow
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Click Create Account"]) --> B["RegisterModal opens"]
+    B --> C["Fill: firstName email\\nphone password confirmPw"]
+    C --> D["Zod registerSchema\\nclient check"]
+    D -->|invalid| E["Per-field errors shown"]
+    D -->|valid| F["BUG: no real registration\\nsetIsLoggedIn true\\nwith MOCK_USER data"]
+    F --> G["closeRegisterModal\\n+ same post-login effects\\nas login flow"]
+    style F fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 3. Authentication — Logout
+
+<MermaidDiagram chart={`flowchart LR
+    A(["Click Logout\\n(Account dropdown)"]) --> B["logout()\\nsetUser null\\nsetIsLoggedIn false"]
+    B --> C["User data cleared\\nfrom AuthContext"]
+    B --> D["NOTE: wishlist stays\\nin Redux/localStorage\\nnot cleared on logout"]
+    B --> E["NOTE: cart stays\\nin Redux/localStorage\\nnot cleared on logout"]`} />
+
+---
+
+## 4. Header — Navigation Structure
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Header"]) --> B["Top bar:\\nRegion / Language\\nPhone Store Locations"]
+    A --> C["Main nav:\\nWomen / Men tabs"]
+    C --> D{"Hover subcategory"}
+    D -->|Clothing / Shoes\\nBags / Accessories| E["MegaMenu dropdown\\nappears after 0ms\\nhides after 150ms delay"]
+    E --> F["Grid of category links\\nby gender + subcategory"]
+    A --> G["Search icon\\ntoggle searchOpen"]
+    G --> H["Search input expands\\nEnter key: search not\\nimplemented — BUG"]
+    style H fill:#fffbeb,stroke:#fde68a,color:#92400e
+    A --> I["Wishlist icon\\nbadge = wishlist count"]
+    I --> J["router.push /favorites"]
+    A --> K["Bag icon\\nbadge = cart totalItems"]
+    K --> L["openMiniCart()"]
+    A --> M{"User icon"}
+    M -->|not logged in| N["openLoginModal()"]
+    M -->|logged in| O["router.push /account"]
+    A --> P["Hamburger (mobile)\\nHeaderMobileDrawer"]`} />
+
+---
+
+## 5. MiniCart
+
+Data source: `state.cart.items` via `useCart()`.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["openMiniCart()\\nafter addToCart"]) --> B["Slide-in drawer\\nright side\\nbody scroll locked"]
+    B --> C{"items.length > 0?"}
+    C -->|NO| D["Empty state\\nStart Shopping"]
+    C -->|YES| E["Item list:\\nimage name size color\\nprice + qty"]
+    E --> F{"Action"}
+    F -->|"Qty minus"| G["dispatch updateQuantity -1"]
+    F -->|"Qty plus"| H["dispatch updateQuantity +1"]
+    F -->|"Remove (X)"| I["dispatch removeItem"]
+    F -->|"View Cart"| J["router.push /cart\\ncloseMiniCart"]
+    F -->|"Checkout"| K["router.push /checkout/delivery\\ncloseMiniCart"]
+    B --> L["Click backdrop\\nor X button"]
+    L --> M["closeMiniCart()"]`} />
+
+---
+
+## 6. Catalog — Filtering System
+
+Data source: `state.catalog[catalogKey]` (Redux). Filter state persists in Redux but NOT in localStorage.
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Catalog page\\ne.g. /women/clothing"]) --> B["RTK Query fetches products\\nfallback: static WOMEN_CLOTHING_PRODUCTS"]
+    B --> C["filterProducts()\\napply selectedFilters"]
+    C --> D["Sort filtered products\\nby: Recommended / Price asc/desc\\n/ Newest / Rating"]
+    D --> E["Paginate: 16 per page\\nshow page N"]
+    E --> F["Render ProductCards\\nor list view"]
+    F --> G{"Filter interaction"}
+    G -->|"Checkbox filter"| H["dispatch toggleFilter\\ncatalogKey + key + label"]
+    G -->|"Clear all"| I["dispatch clearFilters\\ncatalogKey"]
+    G -->|"Quick chip"| J["dispatch setActiveChip\\ncatalogKey + chip\\npage resets to 1"]
+    G -->|"Sort change"| K["dispatch setSort\\npage resets to 1"]
+    G -->|"Page change"| L["dispatch setPage\\ncatalogKey + page"]
+    G -->|"Grid 3/4 cols"| M["dispatch setViewCols\\ncatalogKey + cols"]
+    G -->|"List mode toggle"| N["dispatch setListMode\\ncatalogKey + bool"]
+    H --> C
+    I --> C`} />
+
+---
+
+## 7. Catalog — ProductCard Actions
+
+<MermaidDiagram chart={`flowchart TD
+    A(["ProductCard"]) --> B{"inStock?"}
+    B -->|NO| C["Out of Stock badge\\nAdd to Cart hidden\\ncolor swatches shown"]
+    B -->|YES| D["Full card with hover"]
+    D --> E{"Hover"}
+    E --> F["Overlay: Add to Cart\\n+ Quick View buttons"]
+    E --> G["Image zoom scale 1.05"]
+    F -->|"Add to Cart"| H["addItem with sizes-0\\nor M as default size\\nopen MiniCart"]
+    F -->|"Quick View"| I["openQuickView(product, selectedColor)\\nQuickViewModal opens with color pre-selected"]
+    D --> J{"Heart button"}
+    J --> K["toggleItem\\nuseWishlist\\nadd or remove"]
+    D --> L{"Color swatch"}
+    L --> M["setActiveColor local state\\nimage changes\\nnot saved to wishlist"]
+    D --> N{"Click card"}
+    N --> O["router.push\\n/product/id\\n?color=hex"]`} />
+
+---
+
+## 8. Product Detail Page
+
+<MermaidDiagram chart={`flowchart TD
+    A(["/product/id"]) --> B{"PRODUCT_CATALOG has id?"}
+    B -->|NO| C["notFound()\\n404 page"]
+    B -->|YES| D["Load product data\\ngallery colors sizes\\nspecs reviews offers"]
+    D --> E["Read ?color= and ?size=\\nfrom URL searchParams"]
+    E --> F["Set initial selectedColor\\nand selectedSize"]
+    D --> G["dispatch recentlyViewedActions\\n.addProduct — track view"]
+    F --> H{"User actions"}
+    H -->|"Gallery thumbnail click"| I["setActiveImage\\nscroll into view"]
+    H -->|"Color swatch click"| J{"colorStock available?"}
+    J -->|YES| K["setSelectedColor\\nimage updates\\nif wishlisted: updateSelection"]
+    J -->|NO| L["Nothing\\nswatch crossed out"]
+    H -->|"Size chip click"| M{"available?"}
+    M -->|YES| N["setSelectedSize\\nclear sizeError"]
+    M -->|NO| O["Nothing\\nsize grayed out"]
+    H -->|"Add to Cart"| P{"selectedSize set?"}
+    P -->|NO| Q["sizeError = true\\n2s highlight\\nscroll to sizes"]
+    P -->|YES| R["cart.addItem\\nopenMiniCart\\nannounce to screen reader"]
+    H -->|"Heart button"| S["toggleItem\\nuseWishlist"]
+    H -->|"Bundle offer"| T["cart.addBundle\\nall offer products\\nwith bundleId"]`} />
+
+---
+
+## 9. Product Detail Page — Extra Panels
+
+<MermaidDiagram chart={`flowchart TD
+    A(["Product page panels"]) --> B{"Share button"}
+    B --> C["Dropdown: Facebook\\nX Pinterest WhatsApp\\nCopy Link"]
+    C -->|"Social link"| D["Open in new tab\\nwith encoded page URL"]
+    C -->|"Copy Link"| E["navigator.clipboard\\ncopied state 2s"]
+    A --> F{"Size Guide"}
+    F --> G["SizeGuideModal opens\\nXS-XXL measurements table"]
+    A --> H{"Reserve in Store"}
+    H --> I["ReserveInStoreModal\\nselect city + store\\nBUG: UI only\\nno real reservation"]
+    style I fill:#fffbeb,stroke:#fde68a,color:#92400e
+    A --> J{"Reviews section"}
+    J --> K["Show 3 reviews\\nrating bars"]
+    K -->|"Show All Reviews"| L["Expand all reviews"]
+    K -->|"Write a Review"| M["WriteReviewModal\\nBUG: UI only\\nnot saved anywhere"]
+    style M fill:#fffbeb,stroke:#fde68a,color:#92400e
+    A --> N["Recommendations carousel\\nfrom RECOMMENDED_CATALOG"]
+    A --> O["Special Offers\\nbundle deals\\nfrom SPECIAL_OFFERS_CATALOG"]
+    A --> P["Recently Viewed\\nfrom recentlyViewedSlice\\nscroll-triggered load more"]`} />
+
+---
+
+## 10. QuickView Modal
+
+<MermaidDiagram chart={`flowchart TD
+    A(["openQuickView(product, selectedColor?)"]) --> B["QuickViewModal opens\\ncolor pre-selected from catalog\\nbody scroll locked\\nfocus trap active"]
+    B --> C["Show: gallery images\\ncolor swatches\\nsize chips\\nprice + badges"]
+    C --> D{"User actions"}
+    D -->|"Color swatch"| E["setSelectedColor\\nimage updates"]
+    D -->|"Size chip"| F["setSelectedSize"]
+    D -->|"Add to Cart"| G{"color + size selected?"}
+    G -->|NO| H["setErrors\\nhighlight missing fields"]
+    G -->|YES| I["addItem to cart\\nclosing modal\\nopenMiniCart"]
+    D -->|"Heart button"| J["toggleItem\\nuseWishlist"]
+    D -->|"View Full Details"| K["router.push /product/id?color=#hex\\ncloseQuickView"]
+    D -->|"Backdrop click or X"| L["closeQuickView\\nbody scroll restored"]
+    D -->|"Size Guide link"| M["showSizeGuide = true\\nsize table shown"]`} />
+
+---
+
+## 11. Homepage
+
+<MermaidDiagram chart={`flowchart LR
+    A(["/ HomePage"]) --> B["HeroSlider\\n3 slides auto-rotate\\npause on hover"]
+    A --> C["CategorySection\\ncategory image grid\\nlinks to catalogs"]
+    A --> D["MenCollection\\nstatic product rows\\nAdd to Cart buttons"]
+    A --> E["WomenCollection\\nstatic product rows"]
+    A --> F["PromoBlock\\nbanner with CTA"]
+    A --> G["NewArrivals\\nproduct carousel"]
+    A --> H["DiscountBanner\\nsale CTA"]
+    B --> I["AnimatedSection\\nIntersectionObserver\\nfade-in on scroll\\nskipped on back nav\\n(sessionStorage flag)"]
+    C --> I
+    D --> I
+    E --> I
+    F --> I
+    G --> I
+    H --> I`} />
+
+---
+
+## 12. Recently Viewed
+
+Data source: `state.recentlyViewed.items` (Redux). Max 20 items, persisted in localStorage.
+
+<MermaidDiagram chart={`flowchart LR
+    A(["Open any product page"]) --> B["dispatch recentlyViewedActions\\n.addProduct"]
+    B --> C["If product already in list:\\nremove old entry\\nadd to front"]
+    B --> D["Slice to max 20 items"]
+    C --> E["saveToStorage\\nlocalStorage"]
+    D --> E
+    E --> F["Shown at bottom of\\nProductDetailPage\\nexcluding current product"]
+    F --> G["Load more rows via\\nIntersectionObserver\\nsentinel at bottom"]`} />
+
+---
+
+## 13. Sale & New Arrivals Pages
+
+<MermaidDiagram chart={`flowchart LR
+    A(["/sale"]) --> B["SalePage\\nCatalogTemplate\\nwith SALE products\\nfiltered: salePrice exists"]
+    C(["/new-arrivals"]) --> D["NewArrivalsPage\\nCatalogTemplate\\nbadge = NEW filter"]
+    B --> E["Same filter/sort/pagination\\nlogic as catalog pages"]
+    D --> E`} />
+
+---
+
+## 14. Store Locations Page
+
+<MermaidDiagram chart={`flowchart TD
+    A(["/stores"]) --> B["StoreLocationsPage\\nstatic store data"]
+    B --> C["3 London stores list:\\nOxford St\\nCovent Garden\\nCanary Wharf"]
+    C --> D{"Click store"}
+    D --> E["Show store details:\\naddress hours phone\\nmap placeholder"]
+    D --> F["BUG: map is static image\\nno real Google Maps\\nintegration"]
+    style F fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+
+---
+
+## 15. Global State Architecture
+
+<MermaidDiagram chart={`flowchart TD
+    A["Redux Store"] --> B["cartSlice\\nitems qty prices"]
+    A --> C["wishlistSlice\\nitems colors sizes"]
+    A --> D["catalogSlice\\nfilters sort page view\\nper catalogKey"]
+    A --> E["userSlice\\norders addresses\\nbonuses subscriptions"]
+    A --> F["recentlyViewedSlice\\nlast 20 viewed products"]
+    A --> G["uiSlice\\nquickView miniCart\\nmodal state"]
+    B --> H["localStorage\\noe_store.cart"]
+    C --> H
+    F --> H
+    E --> H
+    D --> I["NOT persisted\\nresets on page reload"]
+    G --> I
+    J["AuthContext"] --> K["React state only\\nuser isLoggedIn\\nmodal open flags"]
+    L["QuickViewContext"] --> M["React state only\\nopen product data"]`} />

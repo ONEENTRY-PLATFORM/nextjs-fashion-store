@@ -1,0 +1,76 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Redux/Persistence" />
+
+# Redux — Persistence
+
+Key: `localStorage['oe_store']` · Version: `STORAGE_VERSION = 4`
+
+---
+
+## What is persisted
+
+<table>
+  <thead>
+    <tr><th>Slice</th><th>Persisted</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>cart</code></td><td>✅</td><td>Loaded in <code>makeStore()</code></td></tr>
+    <tr><td><code>wishlist</code></td><td>✅</td><td>Loaded in <code>makeStore()</code></td></tr>
+    <tr><td><code>recentlyViewed</code></td><td>✅</td><td>Loaded in <code>makeStore()</code></td></tr>
+    <tr><td><code>catalog</code></td><td>✅</td><td>Saved via <code>saveToStorage</code>, but loaded separately — <code>loadCatalogFromStorage()</code> + <code>hydrateCatalogs</code> dispatched in <code>Providers.tsx</code> after client mount to avoid SSR hydration mismatch</td></tr>
+    <tr><td><code>ui</code></td><td>❌</td><td>Not persisted</td></tr>
+    <tr><td><code>user</code> (full)</td><td>❌</td><td>Not persisted</td></tr>
+    <tr><td><code>user.data.addresses</code></td><td>✅</td><td>Saved as a top-level <code>userAddresses</code> key, reconstructed into <code>user.data.addresses</code> on load</td></tr>
+    <tr><td>RTK Query cache</td><td>❌</td><td>Not persisted</td></tr>
+  </tbody>
+</table>
+
+---
+
+## Migrations
+
+Version is incremented when the state shape changes. Migrations run automatically on load.
+
+<table>
+  <thead>
+    <tr><th>Version</th><th>Change</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>v2</td><td>No-op — <code>userAddresses</code> moved out of <code>user.data</code> into a top-level key (handled by the loader, not the migration)</td></tr>
+    <tr><td>v3</td><td>Adds <code>viewedAt: number</code> to existing <code>recentlyViewed</code> items</td></tr>
+    <tr><td>v4</td><td>Defensive bump for auth-token fields on <code>user.data</code>. Token is NOT persisted, so no state-shape change — kept for traceability.</td></tr>
+  </tbody>
+</table>
+
+If the version in localStorage is **higher** than `STORAGE_VERSION`, the data is wiped to prevent corruption on downgrade.
+
+---
+
+## Storybook isolation
+
+`preview.ts` clears `localStorage['oe_store']` on every story mount — state does not bleed between stories.
+
+`Providers.tsx` is **not used** in Storybook — the global decorator in `preview.ts` provides the store directly:
+
+```ts
+// .storybook/preview.ts (simplified)
+const withProviders: Decorator = (Story) => {
+  // React.useState with a lazy initializer — runs ONCE per story mount, not on every re-render.
+  // localStorage is wiped and a fresh store is created only when the story mounts.
+  const [store] = React.useState(() => {
+    localStorage.removeItem('oe_store');
+    return makeStore();
+  });
+
+  return (
+    <Provider store={store}>
+      <AuthProvider>
+        <CatalogAccentContext.Provider value="#F88A8A">
+          <Story />
+        </CatalogAccentContext.Provider>
+      </AuthProvider>
+    </Provider>
+  );
+};
+```
