@@ -1,10 +1,11 @@
 import { getSystemSet, readSystemValue, type Lang } from '../system-text';
 import { YOUR_BAG_SET_MARKER, type YourBagDict } from './your-bag-types';
+import { DEFAULT_LOCALE } from '../locale';
 export { YOUR_BAG_SET_MARKER } from './your-bag-types';
 export type { YourBagDict } from './your-bag-types';
 
 export async function loadYourBagSystemTexts(
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<YourBagDict> {
   const schema = await getSystemSet(YOUR_BAG_SET_MARKER, lang);
   const dict: YourBagDict = {};

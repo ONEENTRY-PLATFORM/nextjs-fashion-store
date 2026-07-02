@@ -117,6 +117,21 @@ export interface Product {
    *  doesn't tag the product. Used by Recently Viewed / You May Also Like /
    *  trending carousels to keep recommendations gender-consistent. */
   gender?: 'W' | 'M' | 'U' | '';
+  /** All linked variants in the same title-group. When present, clicking a
+   *  color / size swatch in the card or QuickView swaps the displayed image,
+   *  price, SKU, and stock to the matching variant. */
+  variants?: ProductVariant[];
+}
+
+export interface ProductVariant {
+  id: string;
+  colors: string[];
+  sizes: string[];
+  price: string;
+  sku: string;
+  image: string;
+  images: string[];
+  inStock: boolean;
 }
 
 interface ProductCardProps {
@@ -142,13 +157,28 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const wishlisted = mounted && isWishlisted(product.id);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedColor, setSelectedColor] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+
+  // Pick the variant whose color matches the current swatch, and — if a size
+  // is chosen — also matches that size. Falls back to a colors-only match, so
+  // clicking a color always finds *some* linked variant when one exists.
+  const activeVariant = product.variants?.find((v) => {
+    const colorHex = product.colors?.[selectedColor];
+    if (!colorHex) return false;
+    const hasColor = v.colors.includes(colorHex);
+    if (!hasColor) return false;
+    return selectedSize ? v.sizes.includes(selectedSize) : true;
+  }) ?? product.variants?.find((v) => v.colors.includes(product.colors?.[selectedColor] ?? ''));
 
   // Per-color image & stock — guard against out-of-bounds index. Also coerce
   // any empty-string sources to the placeholder fallback below; an empty `src`
   // on <img> triggers a Next.js console error and reloads the document URL.
   const safeColorIdx = selectedColor < (product.colors?.length ?? 0) ? selectedColor : 0;
-  const candidateImage = product.colorImages?.[safeColorIdx] || product.image;
+  const variantImage = activeVariant?.image;
+  const candidateImage = variantImage || product.colorImages?.[safeColorIdx] || product.image;
   const activeImage = candidateImage || '/icons/ui/bag-placeholder.svg';
+  const activePrice = activeVariant?.price ?? product.price;
+  const activeSku = activeVariant?.sku || product.id;
   // When OE returns no picture for the product we skip Next/Image entirely
   // and render the placeholder directly — Next/Image with `fill` on a small
   // local SVG doesn't reliably fire onLoad, leaving the card stuck in the
@@ -181,16 +211,16 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
     // Parse the display-formatted price (e.g. "$35") into a number for cart
     // math. When there's a sale price, keep the original as `originalPrice`.
     const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^\d.]/g, '')) || 0;
-    const priceNumber = parsePrice(product.salePrice ?? product.price);
+    const priceNumber = parsePrice(activeVariant?.price ?? product.salePrice ?? product.price);
     const originalPriceNumber = product.salePrice ? parsePrice(product.price) : undefined;
     const activeColorHex = product.colors?.[safeColorIdx];
     addToCart({
-      id: product.id,
+      id: activeVariant?.id ?? product.id,
       name: product.name,
       brand: product.brand ?? '',
       color: activeColorHex ? colorName(activeColorHex) : '',
-      sku: product.id,
-      size: product.sizes?.[0] ?? '',
+      sku: activeSku,
+      size: selectedSize ?? product.sizes?.[0] ?? '',
       quantity: 1,
       price: priceNumber,
       ...(originalPriceNumber !== undefined && { originalPrice: originalPriceNumber }),
@@ -204,6 +234,15 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Per-colour thumbnail: prefer the linked variant's image, then the
+    // parallel `colorImages` array, then the current active image as a last
+    // resort. Without this the favourites card is stuck showing the picture
+    // of whichever colour was open when the shopper hit the heart icon.
+    const colorImages = product.colors.map((c, i) =>
+      product.variants?.find((v) => v.colors.includes(c))?.image
+      || product.colorImages?.[i]
+      || activeImage,
+    );
     toggleItem({
       id: product.id,
       name: product.name,
@@ -212,6 +251,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
       salePrice: product.salePrice,
       image: activeImage,
       colors: product.colors,
+      colorImages,
       colorStock: product.colorStock,
       sizes: product.sizes ?? [...SIZE_DROPDOWN_LABELS.clothingSizes].slice(0, 5),
       badge: product.badge ?? product.label,
@@ -239,9 +279,20 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
     tooltipHideTimerRef.current = setTimeout(() => setShowTooltip(false), TIMINGS.TOOLTIP_HIDE);
   }, []);
 
+  // Carry the shopper's picked colour/size into the PDP URL so it opens on
+  // the same variant they were previewing on the card.
+  const cardHref = (() => {
+    const params = new URLSearchParams();
+    const hex = product.colors?.[safeColorIdx];
+    if (hex) params.set('color', hex);
+    if (selectedSize) params.set('size', selectedSize);
+    const qs = params.toString();
+    return `/product/${product.id}${qs ? `?${qs}` : ''}`;
+  })();
+
   return (
     <Link
-      href={`/product/${product.id}`}
+      href={cardHref}
       className="relative flex flex-col bg-white group cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -338,8 +389,9 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         </div>}
       </div>
 
-      {/* Product Info — fixed 96px panel */}
-      <div className="flex flex-col px-4 pt-4 pb-4 h-24 overflow-hidden">
+      {/* Product Info — flexible height so the size row can render without
+          clipping when a product has multiple linked variants. */}
+      <div className="flex flex-col px-4 pt-4 pb-4 min-h-24 overflow-hidden">
 
         {/* Title with tooltip */}
         <div className="relative mb-1">
@@ -377,10 +429,10 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
           {product.salePrice ? (
             <>
               <span className="text-sm font-medium text-primary-men">{stripTrailingZeros(product.salePrice)}</span>
-              <span className="text-xs text-gray-400 line-through">{stripTrailingZeros(product.price)}</span>
+              <span className="text-xs text-gray-400 line-through">{stripTrailingZeros(activePrice)}</span>
             </>
           ) : (
-            <span className="text-sm text-black font-medium">{stripTrailingZeros(product.price)}</span>
+            <span className="text-sm text-black font-medium">{stripTrailingZeros(activePrice)}</span>
           )}
         </div>
 
@@ -397,12 +449,50 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
                   active={isActive}
                   outOfStock={isOOS}
                   label={`${colorName(color)}${isOOS ? CVL.colorSwatchOutOfStockSuffix : ''}`}
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isOOS) setSelectedColor(idx); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isOOS) { setSelectedColor(idx); setSelectedSize(null); } }}
                 />
               );
             })}
             {product.colors.length > 4 && (
               <span className="text-xs text-gray-500 ml-1">+{product.colors.length - 4}</span>
+            )}
+          </div>
+        )}
+
+        {/* Size chips — only for products with linked variants; picking a
+            size flips the card to the matching variant (image / price / SKU). */}
+        {product.variants && product.variants.length > 1 && product.sizes && product.sizes.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 mt-2">
+            {product.sizes.slice(0, 6).map((size) => {
+              const active = selectedSize === size;
+              const currentColorHex = product.colors?.[selectedColor];
+              const isAvailable = product.variants?.some(
+                (v) => v.sizes.includes(size) && (currentColorHex ? v.colors.includes(currentColorHex) : true) && v.inStock !== false,
+              );
+              return (
+                <button
+                  key={size}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isAvailable) return;
+                    setSelectedSize(active ? null : size);
+                  }}
+                  disabled={!isAvailable}
+                  className={`min-w-[28px] px-1.5 py-0.5 text-[10px] leading-none tracking-wide uppercase border transition-colors ${
+                    active
+                      ? 'bg-black text-white border-black'
+                      : isAvailable
+                      ? 'bg-white text-gray-700 border-gray-300 hover:border-black'
+                      : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed line-through'
+                  }`}
+                >
+                  {size}
+                </button>
+              );
+            })}
+            {product.sizes.length > 6 && (
+              <span className="text-[10px] text-gray-500 ml-1">+{product.sizes.length - 6}</span>
             )}
           </div>
         )}

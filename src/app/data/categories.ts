@@ -3,7 +3,8 @@
 ════════════════════════════════════════════ */
 export type Gender = 'women' | 'men';
 export type SubCat = 'shoes' | 'clothing' | 'bags' | 'accessories' | null;
-export interface MegaSection { title: string; items: string[] }
+export interface MegaSectionItem { label: string; pageUrl: string }
+export interface MegaSection { title: string; items: MegaSectionItem[] }
 
 export const MEGA_DATA: Record<Gender, Record<string, { title: string; items: string[] }[]>> = {
   women: {

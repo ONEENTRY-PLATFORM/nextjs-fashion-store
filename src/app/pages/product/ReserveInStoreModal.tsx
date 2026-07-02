@@ -192,9 +192,8 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions }: P
                           </div>
                         </div>
                         <div className="flex-shrink-0 text-right">
-                          <p className={`text-xs ${active ? 'text-[#c4c4c4]' : 'text-gray-400'}`}>{s.distance}</p>
                           <p
-                            className="text-xs mt-0.5 font-semibold"
+                            className="text-xs font-semibold"
                             style={{ color: active ? '#fff' : badge.color }}
                           >
                             {badge.label}

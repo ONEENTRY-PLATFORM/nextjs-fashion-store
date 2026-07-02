@@ -1,7 +1,8 @@
 'use server';
 import { cookies } from 'next/headers';
-import { oneentry, isOneEntryEnabled } from '../index';
+import { oneentry, isOneEntryEnabled, isError, type OeError } from '../index';
 import { loadProductsByIds } from '../catalog/products';
+import { DEFAULT_LOCALE } from '../locale';
 
 const AUTH_MARKER = 'email';
 const SIGNUP_FORM_IDENTIFIER = 'signin';
@@ -153,13 +154,6 @@ interface OeAuthEntity {
   accessToken: string;
   refreshToken: string;
 }
-interface OeError {
-  statusCode: number;
-  message?: string;
-  timestamp?: string;
-}
-const isError = (v: unknown): v is OeError =>
-  typeof v === 'object' && v !== null && 'statusCode' in v;
 
 interface CookieJar {
   set(name: string, value: string, opts: Record<string, unknown>): void;
@@ -474,7 +468,7 @@ interface RawFormRecord {
   formData?: FormDataField[] | Record<string, FormDataField[]>;
 }
 
-const formDataArray = (rec: RawFormRecord, lang: string = 'en_US'): FormDataField[] => {
+const formDataArray = (rec: RawFormRecord, lang: string = DEFAULT_LOCALE): FormDataField[] => {
   const fd = rec.formData;
   if (Array.isArray(fd)) return fd;
   if (fd && typeof fd === 'object') return fd[lang] ?? [];
@@ -544,7 +538,7 @@ async function postUserAddress(
       moduleEntityIdentifier: userIdentifier,
       replayTo: null,
       status: 'sent',
-      langCode: 'en_US',
+      langCode: DEFAULT_LOCALE,
       formData: { en_US: addressToFormData(address) },
     }),
   });
@@ -566,7 +560,7 @@ async function putUserAddress(
   const result = await formDataRequest<unknown>(accessToken, `/${recordId}`, {
     method: 'PUT',
     body: JSON.stringify({
-      langCode: 'en_US',
+      langCode: DEFAULT_LOCALE,
       formData: addressToFormData(address),
     }),
   });
@@ -642,7 +636,7 @@ async function upsertUserDataRecord(
   if (current.recordId) {
     const result = await formDataRequest<unknown>(accessToken, `/${current.recordId}`, {
       method: 'PUT',
-      body: JSON.stringify({ langCode: 'en_US', formData }),
+      body: JSON.stringify({ langCode: DEFAULT_LOCALE, formData }),
     });
     return result !== null;
   }
@@ -663,7 +657,7 @@ async function upsertUserDataRecord(
       moduleEntityIdentifier: userIdentifier,
       replayTo: null,
       status: 'sent',
-      langCode: 'en_US',
+      langCode: DEFAULT_LOCALE,
       formData: { en_US: postData },
     }),
   });
@@ -675,7 +669,7 @@ async function upsertUserDataRecord(
   if (merged.dob) {
     const result = await formDataRequest<unknown>(accessToken, `/${newId}`, {
       method: 'PUT',
-      body: JSON.stringify({ langCode: 'en_US', formData }),
+      body: JSON.stringify({ langCode: DEFAULT_LOCALE, formData }),
     });
     return result !== null;
   }
@@ -752,7 +746,7 @@ async function upsertSubsRecord(
   if (current.recordId) {
     const result = await formDataRequest<unknown>(accessToken, `/${current.recordId}`, {
       method: 'PUT',
-      body: JSON.stringify({ langCode: 'en_US', formData }),
+      body: JSON.stringify({ langCode: DEFAULT_LOCALE, formData }),
     });
     return result !== null;
   }
@@ -764,7 +758,7 @@ async function upsertSubsRecord(
       moduleEntityIdentifier: userIdentifier,
       replayTo: null,
       status: 'sent',
-      langCode: 'en_US',
+      langCode: DEFAULT_LOCALE,
       formData: { en_US: formData },
     }),
   });
@@ -775,7 +769,7 @@ async function putUser(accessToken: string, body: Record<string, unknown>): Prom
   // PUT /me wants langCode at the top level and formData wrapped by locale
   // (e.g. `formData: { en_US: [...] }`) — opposite of POST sign-up which
   // takes a flat array.
-  const normalized: Record<string, unknown> = { langCode: 'en_US', ...body };
+  const normalized: Record<string, unknown> = { langCode: DEFAULT_LOCALE, ...body };
   if (Array.isArray(normalized.formData)) {
     normalized.formData = { en_US: normalized.formData };
   }
@@ -1348,7 +1342,7 @@ export async function createOrderAction(
 
   try {
     const body = {
-      langCode: 'en_US',
+      langCode: DEFAULT_LOCALE,
       formIdentifier,
       paymentAccountIdentifier: input.paymentAccount,
       // OE order endpoint wants formData wrapped by locale, like /me PUT and

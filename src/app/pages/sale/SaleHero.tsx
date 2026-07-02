@@ -7,9 +7,21 @@ import { useSalePageT } from '../../../lib/oneentry/labels/SalePageLabelsContext
 
 interface SaleHeroProps {
   countdown: { days: number; hours: number; minutes: number; seconds: number };
+  /** Countdown target as an epoch ms — used to build the "Ends …" caption
+   *  under the numbers so the banner reflects whatever the OE admin set. */
+  endsAt?: number;
 }
 
-export function SaleHero({ countdown }: SaleHeroProps) {
+const ENDS_AT_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
+export function SaleHero({ countdown, endsAt }: SaleHeroProps) {
   const lDays    = useSalePageT('sale_page_top_banner_days',  L.countdownDays);
   const lHours   = useSalePageT('sale_page_top_banner_hours', L.countdownHours);
   const lMinutes = useSalePageT('sale_page_top_banner_min',   L.countdownMinutes);
@@ -66,7 +78,9 @@ export function SaleHero({ countdown }: SaleHeroProps) {
             <span className="text-white mb-3.5 text-xl font-bold opacity-40">:</span>
             <CountdownUnit value={countdown.seconds} label={lSeconds} />
           </div>
-          <p className="text-white text-xs mt-3 opacity-45">{L.countdownEndsAt}</p>
+          <p className="text-white text-xs mt-3 opacity-45" suppressHydrationWarning>
+            {endsAt ? `Ends ${ENDS_AT_FORMATTER.format(new Date(endsAt))}` : L.countdownEndsAt}
+          </p>
         </div>
       </div>
 

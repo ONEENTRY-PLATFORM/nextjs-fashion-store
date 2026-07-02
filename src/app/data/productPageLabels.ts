@@ -29,7 +29,7 @@ export const PRODUCT_BREADCRUMB_LABELS = {
 
 export const PRODUCT_DEFAULTS = {
   fallbackName: 'Ribbed Cashmere Blend Knit Top',
-  fallbackBrand: 'ONEENTRY',
+  fallbackBrand: 'Kekimoro',
   fallbackPrice: 62.99,
   fallbackOriginalPrice: 89.99,
   fallbackColorName: 'Default',
@@ -47,13 +47,16 @@ export const PRODUCT_ACTION_LABELS = {
   outOfStock: 'Out of Stock',
   reserveInStore: 'Reserve in Store',
   inStock: 'In Stock',
+  preOrder: 'Pre-order',
+  preOrderButton: 'Pre-order',
+  comingSoon: 'Coming soon',
   reviewsSuffix: 'reviews',
   skuLabel: 'SKU:',
   articleLabel: 'Article:',
   defaultSku: '2024-156-1',
   defaultArticle: 'OF-KW-156-BRG',
   bonusHeading: 'Earn 630 bonus points',
-  bonusBody: 'Redeemable on your next order. Join ONEENTRY Rewards for free.',
+  bonusBody: 'Redeemable on your next order. Join Kekimoro Rewards for free.',
   colorLabel: 'Color:',
   outOfStockTitle: ' — Out of stock',
   sizeLabel: 'Size',
@@ -74,11 +77,11 @@ export const RESERVE_MODAL_LABELS = {
     out: 'Out of Stock',
   } as const,
   stores: [
-    { id: 1, name: 'ONEENTRY – Oxford Street',  address: '312 Oxford St, London W1C 1JF',  distance: '0.3 mi', stock: 'in'  as const },
-    { id: 2, name: 'ONEENTRY – Covent Garden',  address: '14 Long Acre, London WC2E 9LH',  distance: '0.9 mi', stock: 'low' as const },
-    { id: 3, name: 'ONEENTRY – Westfield',      address: 'Ariel Way, London W12 7GF',      distance: '2.1 mi', stock: 'in'  as const },
-    { id: 4, name: 'ONEENTRY – Canary Wharf',   address: 'Canada Square, London E14 5AH', distance: '3.7 mi', stock: 'out' as const },
-    { id: 5, name: "ONEENTRY – King's Road",    address: "145 King's Rd, London SW3 5TX", distance: '4.2 mi', stock: 'low' as const },
+    { id: 1, name: 'Kekimoro – Oxford Street',  address: '312 Oxford St, London W1C 1JF',  stock: 'in'  as const },
+    { id: 2, name: 'Kekimoro – Covent Garden',  address: '14 Long Acre, London WC2E 9LH',  stock: 'low' as const },
+    { id: 3, name: 'Kekimoro – Westfield',      address: 'Ariel Way, London W12 7GF',      stock: 'in'  as const },
+    { id: 4, name: 'Kekimoro – Canary Wharf',   address: 'Canada Square, London E14 5AH', stock: 'out' as const },
+    { id: 5, name: "Kekimoro – King's Road",    address: "145 King's Rd, London SW3 5TX", stock: 'low' as const },
   ] as const,
   // Top blurb under header
   blurbPrefix: 'Reserve your item at a nearby store — free of charge. Your reservation is held for',
@@ -240,7 +243,7 @@ export const SIZE_GUIDE_MODAL_LABELS = {
  */
 export const QUICK_VIEW_LABELS = {
   closeLabel: 'Close',
-  defaultBrand: 'ONEENTRY',
+  defaultBrand: 'Kekimoro',
   reviewsSuffix: 'reviews',
   badgeNewIn: 'NEW IN',
   badgeLowStock: 'LOW IN STOCK',

@@ -73,5 +73,5 @@ export const BOTTOM_LINKS: BottomLink[] = [
 export const COMPANY_INFO = {
   description: 'Premium fashion for men and women. Curated collections with fast worldwide delivery.',
   phone: '+44 20 7946 0958',
-  copyright: '© 2026 ONEENTRY FASHION. All rights reserved.',
+  copyright: '© 2026 KEKIMORO. All rights reserved.',
 };

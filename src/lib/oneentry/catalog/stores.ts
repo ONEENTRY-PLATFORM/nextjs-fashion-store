@@ -1,8 +1,9 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
 import type { Store } from '../../../app/data/stores';
 import { STORES as MOCK_STORES } from '../../../app/data/stores';
+import { DEFAULT_LOCALE } from '../locale';
 
 type RawAttrValue = { value?: unknown };
 type RawPage = {
@@ -122,13 +123,14 @@ const normalize = (raw: RawPage, lang: Lang, mockFallback?: Store): Store => {
 };
 
 export const loadStores = cache(
-  async (lang: Lang = 'en_US'): Promise<Store[]> => {
+  async (lang: Lang = DEFAULT_LOCALE): Promise<Store[]> => {
     // Mock fallback so all stores render even while a few OE store pages
     // remain partially filled. When every store page has full attributes
     // the MOCK_STORES fallback can be dropped.
     if (!oneentry) return MOCK_STORES;
     try {
       const result = await oneentry.Pages.getChildPagesByParentUrl('stores', lang);
+      if (isError(result)) return MOCK_STORES;
       const items = (Array.isArray(result) ? result : (result as { items?: RawPage[] } | null)?.items ?? []) as RawPage[];
       const sorted = items.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
       if (sorted.length === 0) return MOCK_STORES;

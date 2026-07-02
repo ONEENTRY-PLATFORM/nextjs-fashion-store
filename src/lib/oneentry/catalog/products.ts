@@ -2,6 +2,8 @@ import { cache } from 'react';
 import { oneentry } from '../index';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
+import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_CATALOG } from '../../isr';
 
 /**
  * Normalized OneEntry product for the storefront. Mirrors the actual
@@ -44,6 +46,34 @@ export interface CatalogProduct {
   /** Care symbols / instructions (`careinstructions_18` list). Empty array when
    *  the attribute isn't set or the values are blank. */
   careInstructions: string[];
+  /** All variant products in the same title-group (same product, different
+   *  color/size combinations). Present only on the aggregated representative
+   *  returned by `aggregateByName` — raw catalog rows have this undefined. */
+  variants?: CatalogProductVariant[];
+  /** Product ids explicitly linked in OE admin ("related products"). Merged
+   *  into `variants` alongside title-group siblings. */
+  relatedIds: number[];
+}
+
+/**
+ * Slim descriptor of one variant inside a product's title-group. Used by the
+ * storefront to swap card / quick-view context when the shopper picks a color
+ * or size — carries just enough to update image, price, SKU, and stock without
+ * shipping the full CatalogProduct payload for every sibling row.
+ */
+export interface CatalogProductVariant {
+  id: number;
+  colors: string[];
+  sizes: string[];
+  price: number;
+  sku: string;
+  preview: string;
+  images: string[];
+  stock: number;
+  /** Copied from the raw product so the storefront can fall back to the
+   *  status flag when the merchant doesn't track the numeric stock field. */
+  statusIdentifier: string;
+  descriptionHtml: string;
 }
 
 /** Convert an OE category path like `/women/women_clothing/costumes` to a
@@ -104,6 +134,10 @@ type RawProduct = {
   statusIdentifier?: string;
   localizeInfos?: Record<string, { title?: string }> | { title?: string };
   attributeValues?: Record<string, Record<string, RawAttr>> | Record<string, RawAttr>;
+  /** OneEntry admin lets a merchant link products together as siblings (colour
+   *  or size variants of the same model). Populated on the raw payload; we
+   *  copy it onto `CatalogProduct` and use it downstream to build `variants`. */
+  relatedIds?: number[];
 };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -271,6 +305,9 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
     liningMaterial,
     insulation,
     productDetails,
+    relatedIds: Array.isArray(raw.relatedIds)
+      ? raw.relatedIds.filter((n): n is number => typeof n === 'number' && n > 0)
+      : [],
   };
 };
 
@@ -328,7 +365,10 @@ async function rawProductList(
         'content-type': 'application/json',
       },
       body: JSON.stringify(body),
-      cache: 'no-store',
+      // Catalog list is the hottest OE endpoint — cache per URL for the ISR
+      // window. `REVALIDATE_CATALOG = 0` in dev bypasses the cache so content
+      // updates show up immediately.
+      next: { revalidate: REVALIDATE_CATALOG },
     });
     if (!res.ok) return null;
     return (await res.json()) as ListResponse | AggregateResponse;
@@ -391,7 +431,7 @@ const loadFullCatalog = cache(async (lang: Lang): Promise<CatalogProduct[]> => {
  * different categories in this tenant, so server-side aggregation would
  * collapse rows across categories and the wrong representative may surface.
  */
-function aggregateByName(items: CatalogProduct[]): CatalogProduct[] {
+function aggregateByName(items: CatalogProduct[], allById: Map<number, CatalogProduct>): CatalogProduct[] {
   const groups = new Map<string, CatalogProduct[]>();
   for (const p of items) {
     const key = p.title || `id:${p.id}`;
@@ -400,15 +440,63 @@ function aggregateByName(items: CatalogProduct[]): CatalogProduct[] {
     else groups.set(key, [p]);
   }
   const out: CatalogProduct[] = [];
+  const isVariantBuyable = (v: { stock: number; statusIdentifier: string }) =>
+    v.stock > 0 || v.statusIdentifier !== 'out_of_stock';
   for (const group of groups.values()) {
-    const rep = group[0];
+    // Two variant sources: (1) title-group siblings (already in `group`),
+    // (2) products the OE admin explicitly linked via `relatedIds`. Merge
+    // them into a single deduplicated set so the storefront sees one
+    // "family" of colours/sizes per product.
+    const seen = new Set<number>();
+    const family: CatalogProduct[] = [];
+    const push = (p: CatalogProduct | undefined) => {
+      if (!p || seen.has(p.id)) return;
+      seen.add(p.id);
+      family.push(p);
+    };
+    for (const p of group) push(p);
+    for (const p of group) for (const rid of p.relatedIds) push(allById.get(rid));
+
+    // Prefer a buyable variant as the card's representative so its image,
+    // colour swatch, and price come from something the shopper can actually
+    // add to cart. Falls back to the first variant when the whole family is
+    // sold out (then the card correctly renders as OUT OF STOCK).
+    const rep = family.find(isVariantBuyable) ?? family[0];
+
     const colors = new Set<string>();
     const sizes = new Set<string>();
-    for (const v of group) {
+    let familyStock = 0;
+    let anyBuyable = false;
+    for (const v of family) {
       for (const c of v.colors) colors.add(c);
       for (const s of v.sizes) sizes.add(s);
+      familyStock = Math.max(familyStock, v.stock);
+      if (isVariantBuyable(v)) anyBuyable = true;
     }
-    out.push({ ...rep, colors: [...colors], sizes: [...sizes] });
+    const variants: CatalogProductVariant[] = family.map((v) => ({
+      id: v.id,
+      colors: v.colors,
+      sizes: v.sizes,
+      price: v.price,
+      sku: v.sku,
+      preview: v.preview,
+      images: v.images,
+      stock: v.stock,
+      statusIdentifier: v.statusIdentifier,
+      descriptionHtml: v.descriptionHtml,
+    }));
+    // Aggregate stock/status so the card treats the whole family as
+    // in-stock when any variant is buyable. The card would otherwise render
+    // greyed out on `rep.statusIdentifier === 'out_of_stock'` even though
+    // siblings still have stock.
+    out.push({
+      ...rep,
+      colors: [...colors],
+      sizes: [...sizes],
+      variants,
+      stock: familyStock,
+      statusIdentifier: anyBuyable ? 'in_stock' : rep.statusIdentifier,
+    });
   }
   return out;
 }
@@ -416,7 +504,7 @@ function aggregateByName(items: CatalogProduct[]): CatalogProduct[] {
 export const loadProducts = cache(
   async (opts: LoadProductsOptions = {}): Promise<LoadProductsResult> => {
     if (!oneentry) return { total: 0, items: [], fromCms: false };
-    const lang = opts.lang ?? 'en_US';
+    const lang = opts.lang ?? DEFAULT_LOCALE;
     const limit = opts.limit ?? 30;
     const offset = opts.offset ?? 0;
     const unique = opts.unique ?? true;
@@ -439,7 +527,9 @@ export const loadProducts = cache(
       all = all.filter((p) => tagSet.has(p.tag.toLowerCase()));
     }
     if (unique) {
-      all = aggregateByName(all);
+      const fullCatalog = await loadFullCatalog(lang);
+      const byId = new Map(fullCatalog.map((p) => [p.id, p]));
+      all = aggregateByName(all, byId);
     }
     return {
       total: all.length,
@@ -450,14 +540,66 @@ export const loadProducts = cache(
 );
 
 export const loadProductById = cache(
-  async (id: number, lang: Lang = 'en_US'): Promise<CatalogProduct | null> => {
+  async (id: number, lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct | null> => {
     const all = await loadFullCatalog(lang);
-    return all.find((p) => p.id === id) ?? null;
+    const target = all.find((p) => p.id === id);
+    if (!target) return null;
+
+    // Pull siblings from the same title group AND from OE's explicit
+    // `relatedIds` list, then merge colors/sizes/variants so the PDP sees
+    // the whole product family. Without this expansion the PDP only shows
+    // the picked variant's own colour / size, hiding everything the admin
+    // linked as related.
+    const byId = new Map(all.map((p) => [p.id, p]));
+    const seen = new Set<number>();
+    const family: CatalogProduct[] = [];
+    const push = (p: CatalogProduct | undefined) => {
+      if (!p || seen.has(p.id)) return;
+      seen.add(p.id);
+      family.push(p);
+    };
+    push(target);
+    for (const rid of target.relatedIds) push(byId.get(rid));
+    for (const p of all) if (p.title && p.title === target.title) push(p);
+    for (const p of family.slice()) for (const rid of p.relatedIds) push(byId.get(rid));
+
+    if (family.length === 1) return target;
+
+    const colors = new Set<string>();
+    const sizes = new Set<string>();
+    let familyStock = 0;
+    let anyInStock = false;
+    for (const v of family) {
+      for (const c of v.colors) colors.add(c);
+      for (const s of v.sizes) sizes.add(s);
+      familyStock = Math.max(familyStock, v.stock);
+      // Some tenants track availability only through `statusIdentifier` and
+      // never populate the numeric stock field. Accept either as evidence
+      // of a buyable variant.
+      if (v.stock > 0 || v.statusIdentifier !== 'out_of_stock') anyInStock = true;
+    }
+    const variants: CatalogProductVariant[] = family.map((v) => ({
+      id: v.id, colors: v.colors, sizes: v.sizes, price: v.price, sku: v.sku,
+      preview: v.preview, images: v.images, stock: v.stock,
+      statusIdentifier: v.statusIdentifier,
+      descriptionHtml: v.descriptionHtml,
+    }));
+    // Aggregate stock/status so the PDP treats the whole family as in-stock
+    // when at least one variant is buyable. Without this the opened variant's
+    // OOS flag would grey out every swatch even though siblings have stock.
+    return {
+      ...target,
+      colors: [...colors],
+      sizes: [...sizes],
+      variants,
+      stock: familyStock,
+      statusIdentifier: anyInStock ? 'in_stock' : target.statusIdentifier,
+    };
   },
 );
 
 export const loadProductsByIds = cache(
-  async (ids: number[], lang: Lang = 'en_US'): Promise<CatalogProduct[]> => {
+  async (ids: number[], lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct[]> => {
     const all = await loadFullCatalog(lang);
     const set = new Set(ids);
     return all.filter((p) => set.has(p.id));
@@ -517,7 +659,7 @@ export async function searchProducts(
 ): Promise<CatalogProduct[]> {
   const text = queryText.trim();
   if (text.length < 2) return [];
-  const lang = opts.lang ?? 'en_US';
+  const lang = opts.lang ?? DEFAULT_LOCALE;
   const limit = opts.limit ?? 30;
 
   const [vectorIds, quickIds] = await Promise.all([
@@ -545,7 +687,7 @@ export async function searchProducts(
     return p ? [p] : [];
   });
 
-  return aggregateByName(enriched).slice(0, limit);
+  return aggregateByName(enriched, byId).slice(0, limit);
 }
 
 /** @deprecated use `searchProducts` — kept for backwards compatibility. */
@@ -619,6 +761,17 @@ const anyMatchCI = (selected: string[], values: string[]): boolean =>
  * runs against ~2000 in-memory rows — fast enough for SSR.
  */
 function matchesCatalogFilters(p: CatalogProduct, f: CatalogFilters): boolean {
+  if (f.category) {
+    // OE `pageUrl` is stored on the category page and duplicated into
+    // `p.categories[]` as the trailing path segment. Match against every
+    // segment so we work whether the merchant nested the leaf deeply
+    // (`/women/women_clothing/outerwear/coats`) or flat.
+    const needle = f.category.toLowerCase();
+    const hit = p.categories.some((path) =>
+      path.toLowerCase().split('/').filter(Boolean).includes(needle),
+    );
+    if (!hit) return false;
+  }
   if (f.minPrice !== undefined && p.price < f.minPrice) return false;
   if (f.maxPrice !== undefined && p.price > f.maxPrice) return false;
   if (f.inStockOnly) {
@@ -645,7 +798,7 @@ function matchesCatalogFilters(p: CatalogProduct, f: CatalogFilters): boolean {
 export async function loadFilteredProducts(
   opts: LoadFilteredProductsOptions,
 ): Promise<LoadFilteredProductsResult> {
-  const lang = opts.lang ?? 'en_US';
+  const lang = opts.lang ?? DEFAULT_LOCALE;
   const limit = Math.max(1, opts.limit ?? 24);
   const page = Math.max(1, Math.floor(opts.page ?? opts.filters.page ?? 1));
 
@@ -653,7 +806,9 @@ export async function loadFilteredProducts(
     return { total: 0, items: [], page, limit, fromCms: false };
   }
 
-  let all = await loadFullCatalog(lang);
+  const fullCatalog = await loadFullCatalog(lang);
+  const byId = new Map(fullCatalog.map((p) => [p.id, p]));
+  let all = fullCatalog;
 
   if (opts.categoryPath) {
     const needle = opts.categoryPath.toLowerCase();
@@ -662,7 +817,7 @@ export async function loadFilteredProducts(
 
   all = all.filter((p) => matchesCatalogFilters(p, opts.filters));
 
-  all = aggregateByName(all);
+  all = aggregateByName(all, byId);
 
   if (opts.filters.sort === 'price_asc')  all = [...all].sort((a, b) => a.price - b.price);
   if (opts.filters.sort === 'price_desc') all = [...all].sort((a, b) => b.price - a.price);

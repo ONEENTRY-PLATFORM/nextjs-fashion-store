@@ -18,8 +18,8 @@ export const INFO_PAGE_SCHEMA = {
 export const INFO_PAGE_HERO = {
   breadcrumbHome: 'Home',
   breadcrumbCurrent: 'Info',
-  heroImageAlt: 'ONEENTRY Fashion editorial',
-  heading: 'About ONEENTRY',
+  heroImageAlt: 'Kekimoro editorial',
+  heading: 'About Kekimoro',
   subtitle: 'Our story, our values, delivery, returns, sizing and more — everything you need to know.',
 } as const;
 
@@ -27,7 +27,7 @@ export const INFO_PAGE_CTA = {
   exploreOneEntryShort: 'Explore OneEntry →',
   exploreOneEntryHref: 'https://oneentry.cloud',
   leadParagraph:
-    'ONEENTRY Fashion was born from a simple belief: great style should never come at the expense of quality or conscience. ' +
+    'Kekimoro was born from a simple belief: great style should never come at the expense of quality or conscience. ' +
     "Below you'll find everything about who we are, how we work, and how we can help — all managed and updated in real time through the OneEntry Platform.",
   ctaEyebrow: 'Powered by OneEntry Platform',
   ctaHeading: 'This entire page is editable from the dashboard',
@@ -43,7 +43,7 @@ export const INFO_PAGE_SECTIONS = [
   {
     eyebrow: 'About Us',
     heading: 'Fashion Crafted with Purpose',
-    body: "Founded in London in 2015, ONEENTRY started as a small boutique with a curated edit of contemporary European designers. A decade later, we've grown into a global platform serving customers in over 40 countries — our obsession with quality and fit has never wavered.\n\nEvery piece in our collection is hand-selected by our in-house buying team, who travel to fashion weeks in Paris, Milan, Copenhagen and New York to discover the most forward-thinking designers alongside our own ONEENTRY label.",
+    body: "Founded in London in 2015, Kekimoro started as a small boutique with a curated edit of contemporary European designers. A decade later, we've grown into a global platform serving customers in over 40 countries — our obsession with quality and fit has never wavered.\n\nEvery piece in our collection is hand-selected by our in-house buying team, who travel to fashion weeks in Paris, Milan, Copenhagen and New York to discover the most forward-thinking designers alongside our own Kekimoro label.",
     image: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=900&q=80',
     imageAlt: 'Fashion boutique with curated clothing',
     imageRight: false,

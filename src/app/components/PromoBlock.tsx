@@ -73,7 +73,7 @@ export function PromoBlock({ initialItems }: { initialItems?: HomepageCollection
           {[0, 1].map((i) => (
             <div
               key={i}
-              className="bg-accent animate-pulse aspect-[4/5] [animation-delay:var(--delay)]"
+              className="bg-gray-100 animate-pulse aspect-[4/5] [animation-delay:var(--delay)]"
               style={{ '--delay': `${i * 100}ms` } as React.CSSProperties}
             />
           ))}

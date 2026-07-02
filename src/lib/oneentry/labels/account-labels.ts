@@ -1,10 +1,11 @@
 import { getSystemSet, readSystemValue, type Lang } from '../system-text';
 import { ACCOUNT_SET_MARKERS, type AccountSystemTexts } from './account-types';
+import { DEFAULT_LOCALE } from '../locale';
 export { ACCOUNT_SET_MARKERS } from './account-types';
 export type { AccountSetMarker, AccountSystemTexts } from './account-types';
 
 export async function loadAccountSystemTexts(
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<AccountSystemTexts> {
   const entries = await Promise.all(
     ACCOUNT_SET_MARKERS.map(async (marker) => {

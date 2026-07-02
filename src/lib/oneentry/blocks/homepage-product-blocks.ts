@@ -2,6 +2,8 @@ import { cache } from 'react';
 import { loadProducts } from '../catalog/products';
 import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
 import type { Product } from '../../../app/components/ProductCard';
+import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_HOME } from '../../isr';
 
 interface RawSimilarRule {
   attributeMarker?: string;
@@ -64,7 +66,7 @@ export const loadHomepageProductBlock = cache(
     const url = process.env.ONEENTRY_URL;
     const appToken = process.env.ONEENTRY_TOKEN;
     if (!url || !appToken) return null;
-    const lang = options.lang ?? 'en_US';
+    const lang = options.lang ?? DEFAULT_LOCALE;
 
     let block: RawBlock | null = null;
     try {
@@ -72,7 +74,7 @@ export const loadHomepageProductBlock = cache(
         `${url}/api/content/blocks/marker/${encodeURIComponent(marker)}?langCode=${lang}`,
         {
           headers: { 'x-app-token': appToken, accept: 'application/json' },
-          cache: 'no-store',
+          next: { revalidate: REVALIDATE_HOME },
         },
       );
       const txt = await res.text();
@@ -95,7 +97,7 @@ export const loadHomepageProductBlock = cache(
         `${url}/api/content/blocks/${encodeURIComponent(marker)}/similar-products?langCode=${lang}&offset=0&limit=${limit}`,
         {
           headers: { 'x-app-token': appToken, accept: 'application/json' },
-          cache: 'no-store',
+          next: { revalidate: REVALIDATE_HOME },
         },
       );
       const txt = await res.text();

@@ -1,4 +1,4 @@
-export const FILTER_SYSTEM_MARKDOWN = `# ONEENTRY FASHION — Filter System Documentation
+export const FILTER_SYSTEM_MARKDOWN = `# KEKIMORO — Filter System Documentation
 
 ## Overview
 
@@ -160,7 +160,7 @@ Clothing Type options:
 Pants · Outerwear · Jeans · Loungewear · Vests · Suits · Swimwear · Tank Tops · Lingerie · Blazers · Shirts · Sweaters / Turtlenecks / Jumpers · Sportswear · T-Shirts / Polo Shirts · Hoodies / Sweatshirts · Shorts · Dresses · Skirts
 
 Brand options:
-ONEENTRY · & Other Stories · Arket · COS · Mango · Massimo Dutti · Weekday · H&M Studio · Zara Studio
+Kekimoro · & Other Stories · Arket · COS · Mango · Massimo Dutti · Weekday · H&M Studio · Zara Studio
 
 Size options:
 US 0–20 (numeric) · XS/S · S/M · M/L · L/XL · XS · S · M · L · XL · XXL · XXS · ONE SIZE

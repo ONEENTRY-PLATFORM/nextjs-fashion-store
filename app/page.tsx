@@ -19,7 +19,8 @@ export const metadata: Metadata = SEO.home;
 
 // Homepage pulls product-list blocks via `loadPageBlocksById`
 // (uses `cache: 'no-store'`). Without `force-dynamic` Next 16 throws
-// FUNCTION_INVOCATION_FAILED at runtime.
+// FUNCTION_INVOCATION_FAILED at runtime. Cannot switch to ISR without
+// dropping the no-store hints inside blocks/page-blocks.ts.
 export const dynamic = 'force-dynamic';
 
 function buildOrganizationSchema(flagship: Store | undefined) {

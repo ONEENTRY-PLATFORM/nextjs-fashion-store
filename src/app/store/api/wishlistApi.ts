@@ -42,6 +42,13 @@ export function isWishlistApiEnabled(): boolean {
 export const wishlistApi = createApi({
   reducerPath: 'wishlistApi',
   tagTypes: ['Wishlist'],
+  // Wishlist changes are relatively rare (user opens their favourites, occasionally
+  // toggles). Keep cache warm for 5 min after last subscriber unmounts — MCP-recommended
+  // TTL for "user-owned collections". Adjust in `performance-rtk.md` guidance.
+  keepUnusedDataFor: 300,
+  refetchOnMountOrArgChange: 60,
+  refetchOnFocus: false,
+  refetchOnReconnect: true,
   baseQuery: fetchBaseQuery({
     baseUrl: API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {

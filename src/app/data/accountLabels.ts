@@ -273,7 +273,7 @@ export const SERVICE_LABELS = {
   howItWorks: 'How It Works',
   howSteps: [
     { step: '01', title: 'Submit Request', body: 'Tell us what your item needs — alteration, repair, cleaning or restoration.' },
-    { step: '02', title: 'Drop Off', body: 'Bring your item to any ONEENTRY store with your confirmation reference.' },
+    { step: '02', title: 'Drop Off', body: 'Bring your item to any Kekimoro store with your confirmation reference.' },
     { step: '03', title: 'We Get to Work', body: 'Our specialist technicians assess and complete your service request.' },
     { step: '04', title: 'Collect', body: "You'll be notified when ready. Collect in-store or request delivery." },
   ] as const,
@@ -337,7 +337,7 @@ export const REFER_LABELS = {
   title: 'Refer a Friend',
   eyebrow: 'Exclusive Offer',
   bannerHeadingTpl: (amount: string) => `Give ${amount}, Get ${amount}`,
-  bannerBodyPrefix: 'Invite a friend to ONEENTRY FASHION. When they place their first order, you both receive a ',
+  bannerBodyPrefix: 'Invite a friend to KEKIMORO. When they place their first order, you both receive a ',
   bannerBodyCreditPrefix: CURRENCY.symbol,
   bannerBodyCreditSuffix: ' store credit',
   bannerBodySuffix: '.',

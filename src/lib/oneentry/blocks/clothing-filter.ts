@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { DEFAULT_LOCALE } from '../locale';
 
 // Local copy of the hex→name map. Importing the canonical map from
 // `src/app/utils/colorNames` indirectly pulls a client-tagged module into
@@ -244,7 +245,7 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[]): Clot
 export const loadClothingFilter = cache(
   async (
     products: CountableProduct[],
-    lang: string = 'en_US',
+    lang: string = DEFAULT_LOCALE,
   ): Promise<ClothingFilterGroup[] | null> => {
     const url = process.env.ONEENTRY_URL;
     const appToken = process.env.ONEENTRY_TOKEN;

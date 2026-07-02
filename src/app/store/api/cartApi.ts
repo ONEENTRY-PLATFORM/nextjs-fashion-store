@@ -29,6 +29,13 @@ export function isCartApiEnabled(): boolean {
 export const cartApi = createApi({
   reducerPath: 'cartApi',
   tagTypes: ['Cart'],
+  // Cart shape changes frequently (add/remove/qty) but is highly interactive —
+  // keep in cache 60 s after unmount so the mini-cart / cart page re-open without
+  // refetching. Mutations invalidate `Cart` anyway.
+  keepUnusedDataFor: 60,
+  refetchOnMountOrArgChange: 30,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
   baseQuery: fetchBaseQuery({
     baseUrl: API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {

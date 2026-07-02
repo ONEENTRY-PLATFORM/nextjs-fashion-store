@@ -3,7 +3,7 @@
  */
 export const NEW_ARRIVALS_HERO_LABELS = {
   imageAlt: 'New Arrivals editorial',
-  eyebrow: 'ONEENTRY FASHION',
+  eyebrow: 'KEKIMORO',
   heading: 'NEW ARRIVALS',
   subheading: 'Latest fashion drops',
 } as const;

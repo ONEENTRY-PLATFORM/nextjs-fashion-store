@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface StoreLocationsPageFromCms {
   hero: {
@@ -31,7 +32,7 @@ const extractImage = (v: unknown): string => {
 };
 
 export const loadStoreLocationsPage = cache(
-  async (lang: Lang = 'en_US'): Promise<StoreLocationsPageFromCms | null> => {
+  async (lang: Lang = DEFAULT_LOCALE): Promise<StoreLocationsPageFromCms | null> => {
     const url = process.env.ONEENTRY_URL;
     const token = process.env.ONEENTRY_TOKEN;
     if (!url || !token) return null;

@@ -1,6 +1,7 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface CategoryItemFromCms {
   id: string;
@@ -39,10 +40,12 @@ const slugify = (s: string): string =>
   s.toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 export const loadCategorySection = cache(
-  async (_lang: Lang = 'en_US'): Promise<CategorySectionFromCms> => {
+  async (_lang: Lang = DEFAULT_LOCALE): Promise<CategorySectionFromCms> => {
     if (!oneentry) return { chips: [], categories: [] };
     try {
-      const result = (await oneentry.Blocks.getSlides('category_section')) as RawSlides;
+      const raw = await oneentry.Blocks.getSlides('category_section');
+      if (isError(raw)) return { chips: [], categories: [] };
+      const result = raw as RawSlides;
       const items = Array.isArray(result) ? result : result?.items ?? [];
       const parents = items.filter((it) => it.parentId === null);
       const chipById = new Map<number, string>();

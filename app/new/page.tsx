@@ -20,13 +20,34 @@ const breadcrumb = {
   ],
 };
 
-export default async function Page() {
+interface Props { searchParams: Promise<{ gender?: string }> }
+
+export default async function Page({ searchParams }: Props) {
+  const { gender } = await searchParams;
+  const genderFilter: 'W' | 'M' | null =
+    gender === 'men' ? 'M' : gender === 'women' ? 'W' : null;
   const [labels, products] = await Promise.all([
     loadNewArrivalsPageSystemTexts(),
     loadProducts({ tags: ['New'], limit: 200 }),
   ]);
-  const initialProducts = products.items.length > 0
-    ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: newArrivalCategoryFor(p) }))
+  // Scope to the currently active gender (from `?gender=` in the header).
+  // Prefer the OE `gender` attribute when set; fall back to the OE category
+  // path (`/women/...` vs `/men/...`) because some tenants leave the flag
+  // blank but still root products under a gendered category. Unisex (`U` in
+  // OE, or a top-level `/home2/` path) stays visible in both feeds.
+  const matchGender = (p: typeof products.items[number]) => {
+    if (!genderFilter) return true;
+    if (p.gender === 'U') return true;
+    if (p.gender === genderFilter) return true;
+    if (!p.gender) {
+      const catToken = genderFilter === 'W' ? '/women/' : '/men/';
+      return p.categories.some((c) => c.toLowerCase().includes(catToken));
+    }
+    return false;
+  };
+  const filteredItems = products.items.filter(matchGender);
+  const initialProducts = filteredItems.length > 0
+    ? filteredItems.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: newArrivalCategoryFor(p) }))
     : undefined;
   return (
     <>

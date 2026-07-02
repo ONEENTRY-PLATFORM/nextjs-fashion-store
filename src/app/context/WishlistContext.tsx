@@ -18,6 +18,10 @@ export interface WishlistItem {
   price: string;
   salePrice?: string;
   image: string;
+  /** Parallel to `colors[]` — thumbnail to show per swatch. Callers set it
+   *  from the OE variant list so the favourite card can flip its image when
+   *  the shopper picks another colour inline. */
+  colorImages?: string[];
   colors: string[];
   colorStock?: boolean[];
   sizes: string[];

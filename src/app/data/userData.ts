@@ -310,7 +310,7 @@ export const USER_DATASET: UserDataset = {
     {
       id: 'wc-4',
       name: 'Oversized Double-Breasted Blazer',
-      brand: 'ONEENTRY',
+      brand: 'Kekimoro',
       price: 129.99,
       image: 'https://images.unsplash.com/photo-1752794674474-c0bf53a1ece0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGJsYXplciUyMGNvYXQlMjBvdXRlcndlYXIlMjBmYXNoaW9ufGVufDF8fHx8MTc3MTQ5MzA2OXww&ixlib=rb-4.1.0&q=80&w=1080',
       colors: ['#000000', '#808080', '#C4A882'],
@@ -319,7 +319,7 @@ export const USER_DATASET: UserDataset = {
     {
       id: 'wc-12',
       name: 'Floral Print Wrap Dress',
-      brand: 'ONEENTRY',
+      brand: 'Kekimoro',
       price: 55.00,
       image: 'https://images.unsplash.com/photo-1762777777722-3242a1f1c575?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGZsb3JhbCUyMGRyZXNzJTIwc3ByaW5nJTIwZmFzaGlvbnxlbnwxfHx8fDE3NzE0OTMwNzV8MA&ixlib=rb-4.1.0&q=80&w=1080',
       colors: ['#FF6B6B', '#4169E1', '#2E8B57'],
@@ -372,10 +372,10 @@ export const USER_DATASET: UserDataset = {
   ],
 
   waitingList: [
-    { id: 'wc-oos-1', name: 'Velvet Midi Skirt',            brand: 'ONEENTRY', price: 79.99,  img: 'https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',  size: 'S',  color: 'Burgundy', status: 'out_of_stock',  notify: true,  addedDate: '12 Jan 2026' },
-    { id: 'wc-oos-2', name: 'Sheer Organza Blouse',         brand: 'ONEENTRY', price: 54.99,  img: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',  size: 'XS', color: 'White',    status: 'out_of_stock',  notify: true,  addedDate: '28 Jan 2026' },
-    { id: 'wc-7',     name: 'Pleated Midi Skirt',           brand: 'ONEENTRY', price: 49.99,  img: 'https://images.unsplash.com/photo-1685953851497-9b67b25f0ed7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMHNraXJ0JTIwZmxvd3klMjBmYXNoaW9uJTIwbW9kZWx8ZW58MXx8fHwxNzcxNDkzMDcwfDA&ixlib=rb-4.1.0&q=80&w=1080',  size: 'M',  color: 'Black',    status: 'back_in_stock', notify: false, addedDate: '3 Feb 2026'  },
-    { id: 'wc-11',    name: 'Wide Leg Linen Trousers',      brand: 'ONEENTRY', price: 69.99,  img: 'https://images.unsplash.com/photo-1758543144593-95061a3f418a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGxpbmVuJTIwcGFudHMlMjB3aWRlJTIwbGVnJTIwbWluaW1hbGlzdHxlbnwxfHx8fDE3NzE0OTMwNzV8MA&ixlib=rb-4.1.0&q=80&w=1080',  size: 'S',  color: 'Ivory',    status: 'back_in_stock', notify: true,  addedDate: '14 Feb 2026' },
+    { id: 'wc-oos-1', name: 'Velvet Midi Skirt',            brand: 'Kekimoro', price: 79.99,  img: 'https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',  size: 'S',  color: 'Burgundy', status: 'out_of_stock',  notify: true,  addedDate: '12 Jan 2026' },
+    { id: 'wc-oos-2', name: 'Sheer Organza Blouse',         brand: 'Kekimoro', price: 54.99,  img: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',  size: 'XS', color: 'White',    status: 'out_of_stock',  notify: true,  addedDate: '28 Jan 2026' },
+    { id: 'wc-7',     name: 'Pleated Midi Skirt',           brand: 'Kekimoro', price: 49.99,  img: 'https://images.unsplash.com/photo-1685953851497-9b67b25f0ed7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMHNraXJ0JTIwZmxvd3klMjBmYXNoaW9uJTIwbW9kZWx8ZW58MXx8fHwxNzcxNDkzMDcwfDA&ixlib=rb-4.1.0&q=80&w=1080',  size: 'M',  color: 'Black',    status: 'back_in_stock', notify: false, addedDate: '3 Feb 2026'  },
+    { id: 'wc-11',    name: 'Wide Leg Linen Trousers',      brand: 'Kekimoro', price: 69.99,  img: 'https://images.unsplash.com/photo-1758543144593-95061a3f418a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGxpbmVuJTIwcGFudHMlMjB3aWRlJTIwbGVnJTIwbWluaW1hbGlzdHxlbnwxfHx8fDE3NzE0OTMwNzV8MA&ixlib=rb-4.1.0&q=80&w=1080',  size: 'S',  color: 'Ivory',    status: 'back_in_stock', notify: true,  addedDate: '14 Feb 2026' },
   ],
 
   referral: {

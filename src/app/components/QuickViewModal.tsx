@@ -49,13 +49,39 @@ export function QuickViewModal() {
 
   if (!isOpen || !product) return null;
 
-  const productImages = product.galleryImages?.length
+  // Find the linked variant matching the current color + (optional) size. When
+  // no exact match is available we fall back to a colors-only match so the
+  // shopper always sees the picked colour reflected in image + price.
+  const activeVariant = product.variants?.find((v) => {
+    const colorHex = selectedColor !== null ? product.colors[selectedColor] : undefined;
+    if (!colorHex) return false;
+    const hasColor = v.colors.includes(colorHex);
+    if (!hasColor) return false;
+    return selectedSize ? v.sizes.includes(selectedSize) : true;
+  }) ?? (
+    selectedColor !== null
+      ? product.variants?.find((v) => v.colors.includes(product.colors[selectedColor]))
+      : undefined
+  );
+
+  const activePrice = activeVariant?.price ?? product.price;
+  // Prefer the variant's own gallery so the picked colour matches the images.
+  const productImages = activeVariant?.images?.length
+    ? activeVariant.images
+    : product.galleryImages?.length
     ? product.galleryImages
     : [product.image];
 
   const wishlisted = isWishlisted(product.id);
 
   const handleWishlist = () => {
+    // Per-colour thumbnail: prefer the variant image, then the parallel
+    // colorImages array, then the parent image.
+    const colorImages = product.colors.map((c, i) =>
+      product.variants?.find((v) => v.colors.includes(c))?.image
+      || product.colorImages?.[i]
+      || product.image,
+    );
     toggleItem({
       id: product.id,
       name: product.name,
@@ -64,6 +90,7 @@ export function QuickViewModal() {
       salePrice: product.salePrice,
       image: product.colorImages?.[selectedColor ?? 0] ?? product.image,
       colors: product.colors,
+      colorImages,
       colorStock: product.colorStock,
       sizes: product.sizes ?? [...SIZE_DROPDOWN_LABELS.clothingSizes].slice(0, 5),
       badge: product.badge ?? product.label,
@@ -75,10 +102,14 @@ export function QuickViewModal() {
 
   const handleViewFullDetails = () => {
     closeQuickView();
-    const colorParam = selectedColor !== null && product.colors[selectedColor]
-      ? `?color=${encodeURIComponent(product.colors[selectedColor])}`
-      : '';
-    router.push(`/product/${product.id}${colorParam}`);
+    // Preserve both colour and size on the PDP URL so the shopper lands
+    // exactly on the variant they were previewing here.
+    const params = new URLSearchParams();
+    const hex = selectedColor !== null ? product.colors[selectedColor] : undefined;
+    if (hex) params.set('color', hex);
+    if (selectedSize) params.set('size', selectedSize);
+    const qs = params.toString();
+    router.push(`/product/${product.id}${qs ? `?${qs}` : ''}`);
   };
 
   const toggleSection = (section: string) => {
@@ -191,10 +222,10 @@ export function QuickViewModal() {
               {product.salePrice ? (
                 <>
                   <span className="text-2xl font-semibold text-primary-men">{product.salePrice}</span>
-                  <span className="text-lg text-gray-400 line-through">{product.price}</span>
+                  <span className="text-lg text-gray-400 line-through">{activePrice}</span>
                 </>
               ) : (
-                <span className="text-2xl font-semibold">{product.price}</span>
+                <span className="text-2xl font-semibold">{activePrice}</span>
               )}
             </div>
 
@@ -227,10 +258,10 @@ export function QuickViewModal() {
                   return (
                     <button
                       key={color}
-                      onClick={() => { if (!isColorOOS) { setSelectedColor(idx); setErrors(e => ({ ...e, color: false })); } }}
+                      onClick={() => { if (!isColorOOS) { setSelectedColor(idx); setSelectedSize(null); setSelectedImage(0); setErrors(e => ({ ...e, color: false })); } }}
                       disabled={isColorOOS}
                       aria-disabled={isColorOOS}
-                      className={`relative w-8 h-8 transition-all ${
+                      className={`relative w-8 h-8 transition-all border border-gray-300 ${
                         isColorOOS
                           ? 'opacity-40 cursor-not-allowed'
                           : selectedColor === idx
@@ -271,7 +302,18 @@ export function QuickViewModal() {
                 }`}
               >
                 {sizes.map((size) => {
-                  const isSizeOOS = product.inStock === false;
+                  const currentColorHex = selectedColor !== null ? product.colors[selectedColor] : undefined;
+                  const variantForSize = product.variants?.some(
+                    (v) => v.sizes.includes(size)
+                      && (currentColorHex ? v.colors.includes(currentColorHex) : true)
+                      && v.inStock !== false,
+                  );
+                  // When the product ships variant metadata, drive per-size
+                  // availability off it. Otherwise fall back to the global
+                  // stock flag so legacy products still render sensibly.
+                  const isSizeOOS = product.variants && product.variants.length > 0
+                    ? !variantForSize
+                    : product.inStock === false;
                   return (
                     <button
                       key={size}
@@ -311,17 +353,19 @@ export function QuickViewModal() {
                       setErrors({ color: colorErr, size: sizeErr });
                       return;
                     }
+                    const cartPrice = parseFloat((product.salePrice ?? activePrice).match(/[\d.]+/)?.[0] ?? '0') || 0;
+                    const originalPriceRaw = product.salePrice ? parseFloat(activePrice.match(/[\d.]+/)?.[0] ?? '0') || 0 : undefined;
                     addItem({
-                      id: `${product.id}-quick`,
+                      id: activeVariant?.id ?? `${product.id}-quick`,
                       name: product.name,
                       brand: product.brand ?? '',
-                      sku: product.id,
+                      sku: activeVariant?.sku || product.id,
                       color: product.colors?.[selectedColor!] ?? '',
                       size: selectedSize!,
                       quantity: 1,
-                      price: parseFloat((product.salePrice ?? product.price).match(/[\d.]+/)?.[0] ?? '0') || 0,
-                      ...(product.salePrice ? { originalPrice: parseFloat(product.price.match(/[\d.]+/)?.[0] ?? '0') || 0 } : {}),
-                      image: product.image,
+                      price: cartPrice,
+                      ...(originalPriceRaw !== undefined && { originalPrice: originalPriceRaw }),
+                      image: productImages[selectedImage] ?? product.image,
                     });
                     closeQuickView();
                     // Used to jump straight to /checkout/delivery, but with

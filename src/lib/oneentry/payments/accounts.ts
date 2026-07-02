@@ -1,5 +1,5 @@
 'use server';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 
 export interface PaymentAccount {
   id: number;
@@ -18,7 +18,7 @@ export async function getPaymentAccountsAction(): Promise<PaymentAccount[]> {
   if (!oneentry) return [];
   try {
     const raw = await oneentry.Payments.getAccounts();
-    if (!Array.isArray(raw)) return [];
+    if (isError(raw) || !Array.isArray(raw)) return [];
     return raw
       .filter((acc) => acc.isVisible !== false)
       .map((acc) => ({

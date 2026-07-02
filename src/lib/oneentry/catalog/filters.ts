@@ -44,6 +44,10 @@ export interface CatalogFilters {
   sort?: string;
   page?: number;
   chip?: string;
+  /** OE category `pageUrl` — a specific leaf inside the current section
+   *  (e.g. `dresses_skirts`). When present, only products whose category
+   *  path ends with this segment are shown. */
+  category?: string;
 }
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -116,6 +120,9 @@ export function parseCatalogSearchParams(sp: RawSearchParams): CatalogFilters {
   const chip = firstString(sp.chip);
   if (chip) out.chip = chip;
 
+  const category = firstString(sp.category);
+  if (category) out.category = category;
+
   return out;
 }
 
@@ -136,6 +143,7 @@ export function serializeCatalogSearchParams(filters: CatalogFilters): string {
   if (filters.sort) params.set('sort', filters.sort);
   if (filters.page !== undefined && filters.page > 1) params.set('page', String(filters.page));
   if (filters.chip) params.set('chip', filters.chip);
+  if (filters.category) params.set('category', filters.category);
 
   return params.toString();
 }

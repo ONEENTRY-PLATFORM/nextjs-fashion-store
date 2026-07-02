@@ -15,7 +15,7 @@ export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBann
 
   if (!mounted) {
     return (
-      <section className="relative w-full bg-accent animate-pulse h-[480px]" aria-hidden="true" />
+      <section className="relative w-full bg-gray-100 animate-pulse h-[480px]" aria-hidden="true" />
     );
   }
 

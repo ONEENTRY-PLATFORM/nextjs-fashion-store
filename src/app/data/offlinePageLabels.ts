@@ -2,7 +2,7 @@
  * Offline page UI copy (app/offline/page.tsx).
  */
 export const OFFLINE_PAGE_LABELS = {
-  brand: 'ONEENTRY FASHION',
+  brand: 'KEKIMORO',
   heading: 'No Internet Connection',
   subtitle: "Check your Wi-Fi or mobile data and we'll get you back to shopping.",
   checking: 'Checking connection',

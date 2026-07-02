@@ -1,4 +1,4 @@
-# ONEENTRY FASHION — Filter System Documentation
+# KEKIMORO — Filter System Documentation
 
 ## Overview
 
@@ -165,7 +165,7 @@ Pants · Outerwear · Jeans · Loungewear · Vests · Suits · Swimwear · Tank 
 <details>
 <summary>Brand options</summary>
 
-ONEENTRY · & Other Stories · Arket · COS · Mango · Massimo Dutti · Weekday · H&M Studio · Zara Studio
+Kekimoro · & Other Stories · Arket · COS · Mango · Massimo Dutti · Weekday · H&M Studio · Zara Studio
 </details>
 
 <details>

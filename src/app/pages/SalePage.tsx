@@ -32,8 +32,11 @@ import { useSalePageT } from '../../lib/oneentry/labels/SalePageLabelsContext';
 const SALE_KEY = 'sale';
 
 type SaleProduct = Product & { category?: string };
-export function SalePage({ initialProducts }: { initialProducts?: SaleProduct[] } = {}) {
-  const countdown = useCountdown(SALE_END_DATE);
+export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: SaleProduct[]; saleEndsAt?: number } = {}) {
+  // Countdown target: OE-driven `page_sale_top_banner_timer` first, then the
+  // hardcoded fallback so the banner still runs if the admin hasn't set it.
+  const countdown = useCountdown(saleEndsAt ?? SALE_END_DATE);
+  const saleEndsAtDate = saleEndsAt ?? SALE_END_DATE;
   const lView         = useSalePageT('sale_page_view',         L.viewLabel);
   const lItemsOnSale  = useSalePageT('sale_page_item_on_sale', L.itemsOnSaleSuffix);
 
@@ -157,7 +160,7 @@ export function SalePage({ initialProducts }: { initialProducts?: SaleProduct[] 
     >
       <Header />
 
-      <SaleHero countdown={countdown} />
+      <SaleHero countdown={countdown} endsAt={saleEndsAtDate} />
 
       {/* ── Breadcrumb ── */}
       <div className="px-4 lg:px-8 py-3 border-b border-gray-100">

@@ -1,10 +1,11 @@
 import { getSystemSet, readSystemValue, type Lang } from '../system-text';
 import { CHECKOUT_SET_MARKERS, type CheckoutSystemTexts } from './checkout-types';
+import { DEFAULT_LOCALE } from '../locale';
 export { CHECKOUT_SET_MARKERS } from './checkout-types';
 export type { CheckoutSetMarker, CheckoutSystemTexts } from './checkout-types';
 
 export async function loadCheckoutSystemTexts(
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<CheckoutSystemTexts> {
   const entries = await Promise.all(
     CHECKOUT_SET_MARKERS.map(async (marker) => {

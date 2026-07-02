@@ -126,12 +126,12 @@ export function FavoritesPage({
                 className="flex flex-col bg-white [animation-delay:var(--delay)]"
                 style={{ '--delay': `${i * 60}ms` } as React.CSSProperties}
               >
-                <div className="aspect-[3/4] bg-accent animate-pulse" />
+                <div className="aspect-[3/4] bg-gray-100 animate-pulse" />
                 <div className="p-3 flex flex-col gap-2">
-                  <div className="h-3 bg-accent animate-pulse rounded w-1/3" />
-                  <div className="h-3 bg-accent animate-pulse rounded w-2/3" />
-                  <div className="h-4 bg-accent animate-pulse rounded w-1/4" />
-                  <div className="h-9 bg-accent animate-pulse rounded mt-1" />
+                  <div className="h-3 bg-gray-100 animate-pulse rounded w-1/3" />
+                  <div className="h-3 bg-gray-100 animate-pulse rounded w-2/3" />
+                  <div className="h-4 bg-gray-100 animate-pulse rounded w-1/4" />
+                  <div className="h-9 bg-gray-100 animate-pulse rounded mt-1" />
                 </div>
               </div>
             ))}

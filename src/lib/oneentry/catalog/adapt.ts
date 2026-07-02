@@ -32,7 +32,28 @@ const TAG_TO_LABEL: Record<string, string> = {
 export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
   const formatPrice = (n: number): string => CURRENCY.format(n);
   const label = TAG_TO_LABEL[p.tag] ?? p.tag;
-  const inStock = p.statusIdentifier === 'out_of_stock' ? false : p.stock > 0 || p.statusIdentifier === '' ? true : true;
+  const variantHasStock = (v: { stock: number; statusIdentifier: string }) =>
+    v.stock > 0 || v.statusIdentifier !== 'out_of_stock';
+  const inStock = p.statusIdentifier !== 'out_of_stock';
+  // Slim variant descriptors — carry only the fields ProductCard / QuickView
+  // need to swap when the shopper flips through colors or sizes.
+  const variants = p.variants?.map((v) => ({
+    id: String(v.id),
+    colors: v.colors,
+    sizes: v.sizes,
+    price: formatPrice(v.price),
+    sku: v.sku,
+    image: v.preview,
+    images: v.images,
+    inStock: variantHasStock(v),
+  }));
+  // Per-swatch availability: a colour is buyable when at least one linked
+  // variant carrying it has stock. Without this every swatch is clickable and
+  // the shopper only learns a colour is sold out after opening the PDP.
+  const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+  const colorStock = hasVariants
+    ? p.colors.map((c) => p.variants!.some((v) => v.colors.includes(c) && variantHasStock(v)))
+    : undefined;
   return {
     id: String(p.id),
     name: p.title,
@@ -42,6 +63,7 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     colorImages: p.images.slice(0, p.colors.length || 1),
     label: label || undefined,
     colors: p.colors,
+    colorStock,
     sizes: p.sizes,
     inStock,
     season: p.season || undefined,
@@ -54,6 +76,7 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     productDetails: p.productDetails.length > 0 ? p.productDetails : undefined,
     careInstructions: p.careInstructions.length > 0 ? p.careInstructions : undefined,
     gender: p.gender || undefined,
+    ...(variants && variants.length > 0 && { variants }),
   };
 }
 
@@ -85,6 +108,40 @@ export function newArrivalCategoryFor(p: CatalogProduct): 'Clothing' | 'Shoes' |
  */
 export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogProduct {
   const specs = buildProductSpecs(p);
+  // Per-colour / per-size availability derived from the variant family. A
+  // colour is available if at least one linked variant carrying it has
+  // stock. Per-size availability is refined client-side by PDP based on the
+  // currently selected colour — here we compute the colour-agnostic default.
+  const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+  // Many OE tenants track availability through `statusIdentifier` alone and
+  // never write to the numeric `stock` field. Treat a variant as buyable
+  // whenever either the count is positive OR the status flag isn't
+  // explicitly `out_of_stock`.
+  const variantHasStock = (v: { stock: number; statusIdentifier: string }) =>
+    v.stock > 0 || v.statusIdentifier !== 'out_of_stock';
+  const colorStock = hasVariants
+    ? p.colors.map((c) => p.variants!.some((v) => v.colors.includes(c) && variantHasStock(v)))
+    : undefined;
+  const sizeAvailability = hasVariants
+    ? new Map(p.sizes.map((s) => [s, p.variants!.some((v) => v.sizes.includes(s) && variantHasStock(v))]))
+    : null;
+  // Slim variant list for PDP so it can recompute size availability per the
+  // currently selected colour. `hex` mapping happens here so the client
+  // matches against the same colour representation the swatches render.
+  const pdpVariants = hasVariants
+    ? p.variants!.map((v) => ({
+        id: String(v.id),
+        colors: v.colors.map(colorToHex),
+        sizes: v.sizes,
+        inStock: variantHasStock(v),
+        price: v.price,
+        sku: v.sku,
+        image: v.preview,
+        images: v.images,
+        descriptionHtml: v.descriptionHtml,
+        statusIdentifier: v.statusIdentifier,
+      }))
+    : undefined;
   return {
     id: String(p.id),
     name: p.title,
@@ -93,9 +150,13 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
     image: p.preview,
     colors: p.colors.map(colorToHex),
     colorImages: p.images.length >= p.colors.length ? p.images.slice(0, p.colors.length) : undefined,
-    inStock: p.stock > 0 && p.statusIdentifier !== 'out_of_stock',
+    colorStock,
+    // OE tenants often track availability through `statusIdentifier` alone
+    // and leave the numeric stock field at 0. Accept either signal so a
+    // status-only product doesn't render as universally out-of-stock.
+    inStock: p.stock > 0 || p.statusIdentifier !== 'out_of_stock',
     galleryImages: p.images.length > 0 ? p.images : undefined,
-    sizeOptions: p.sizes.map((s) => ({ label: s, available: true })),
+    sizeOptions: p.sizes.map((s) => ({ label: s, available: sizeAvailability ? sizeAvailability.get(s) ?? true : true })),
     // The detail accordion expects an array of short bullets — `productDetails`
     // already comes from the OE `details_5` list. The long description is
     // separately surfaced as `descriptionHtml` so the PDP can render its full
@@ -105,6 +166,7 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
     careInstructions: p.careInstructions.length > 0 ? p.careInstructions : undefined,
     specs: specs.length > 0 ? specs : undefined,
     material: p.materials[0],
+    variants: pdpVariants,
   };
 }
 

@@ -1,10 +1,11 @@
 import { getSystemSet, readSystemValue, type Lang } from '../system-text';
 import { SALE_PAGE_SET_MARKER, type SalePageDict } from './sale-page-types';
+import { DEFAULT_LOCALE } from '../locale';
 export { SALE_PAGE_SET_MARKER } from './sale-page-types';
 export type { SalePageDict } from './sale-page-types';
 
 export async function loadSalePageSystemTexts(
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<SalePageDict> {
   const schema = await getSystemSet(SALE_PAGE_SET_MARKER, lang);
   const dict: SalePageDict = {};

@@ -1,6 +1,7 @@
 'use server';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface FormField {
   marker: string;
@@ -15,11 +16,11 @@ export type SubmitFormResult =
 export async function submitForm(
   marker: string,
   fields: FormField[],
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<SubmitFormResult> {
   if (!oneentry) return { ok: false, error: 'OneEntry SDK is not configured on the server.' };
   try {
-    await oneentry.FormData.postFormsData(
+    const result = await oneentry.FormData.postFormsData(
       {
         formIdentifier: marker,
         formModuleConfigId: 0,
@@ -34,6 +35,7 @@ export async function submitForm(
       },
       lang,
     );
+    if (isError(result)) return { ok: false, error: result.message ?? `HTTP ${result.statusCode}` };
     return { ok: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';

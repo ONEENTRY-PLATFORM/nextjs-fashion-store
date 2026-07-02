@@ -17,6 +17,7 @@ interface HeaderMegaMenuProps {
   onSubCatLeave: () => void;
   onDropdownEnter: () => void;
   onDropdownLeave: () => void;
+  onCloseDropdown: () => void;
   getNavHref: (gender: Gender, subcat: string, item?: string) => string;
 }
 
@@ -31,6 +32,7 @@ export function HeaderMegaMenu({
   onSubCatLeave,
   onDropdownEnter,
   onDropdownLeave,
+  onCloseDropdown,
   getNavHref,
 }: HeaderMegaMenuProps) {
   const router = useRouter();
@@ -46,9 +48,13 @@ export function HeaderMegaMenu({
           {SUB_CATEGORIES.map((cat) => {
             const key = cat.toLowerCase();
             const hasDropdown = ['shoes', 'clothing', 'bags', 'accessories'].includes(key);
+            // Carry the currently active gender onto the flat /new and /sale
+            // pages so their product list is scoped to that gender (matches the
+            // menu context the shopper is in).
+            const genderQs = `?gender=${activeGender}`;
             const catalogHref = hasDropdown
               ? getNavHref(activeGender, key)
-              : key === 'new' ? '/new' : null;
+              : key === 'new' ? `/new${genderQs}` : null;
             const isSale = key === 'sale';
             const isActive = activeDropdown === key || urlSubCat === key;
             return (
@@ -58,7 +64,7 @@ export function HeaderMegaMenu({
                 onMouseEnter={() => onSubCatEnter(cat)}
                 onClick={() => {
                   if (catalogHref) router.push(catalogHref);
-                  else if (isSale) router.push('/sale');
+                  else if (isSale) router.push(`/sale${genderQs}`);
                 }}
                 className={`relative px-5 py-3 text-xs tracking-widest uppercase transition-all duration-100 ${
                   isSale
@@ -99,19 +105,20 @@ export function HeaderMegaMenu({
         >
           <div className="max-w-screen-2xl mx-auto px-8 py-8">
             <div className="flex gap-16">
-              {currentDropdownData.map((section) => (
-                <div key={section.title} className="flex-1 min-w-[160px]">
+              {currentDropdownData.map((section, idx) => (
+                <div key={`${section.title}-${idx}`} className="flex-1 min-w-[160px]">
                   <h4 className="text-xs tracking-widest uppercase mb-4 pb-2 border-b border-gray-200 text-[var(--accent)]">
                     {section.title}
                   </h4>
                   <ul className="space-y-2">
                     {section.items.map((item) => (
-                      <li key={item}>
+                      <li key={`${item.pageUrl || item.label}`}>
                         <Link
-                          href={activeDropdown ? getNavHref(activeGender, activeDropdown, item) : '/'}
+                          href={activeDropdown ? getNavHref(activeGender, activeDropdown, item.pageUrl || item.label) : '/'}
+                          onClick={onCloseDropdown}
                           className="text-sm text-gray-700 hover:text-black hover:underline transition-colors block"
                         >
-                          {item}
+                          {item.label}
                         </Link>
                       </li>
                     ))}

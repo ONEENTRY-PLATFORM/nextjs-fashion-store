@@ -3,7 +3,7 @@
  */
 export const FILTER_SYSTEM_DOWNLOAD_LABELS = {
   filename: 'FILTER_SYSTEM.md',
-  brand: 'ONEENTRY FASHION · Documentation',
+  brand: 'KEKIMORO · Documentation',
   headingDownloaded: 'Download Started',
   headingPreparing: 'Preparing File…',
   bodyDownloaded: 'FILTER_SYSTEM.md has been saved to your Downloads folder.',

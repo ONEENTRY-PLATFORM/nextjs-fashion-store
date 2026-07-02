@@ -1,10 +1,11 @@
 import { t, type Lang } from './system-text';
+import { DEFAULT_LOCALE } from './locale';
 
 export async function SystemText({
   set,
   k,
   fallback,
-  lang = 'en_US',
+  lang = DEFAULT_LOCALE,
 }: {
   set: string;
   k: string;

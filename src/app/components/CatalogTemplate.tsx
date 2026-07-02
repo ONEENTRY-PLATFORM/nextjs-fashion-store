@@ -178,7 +178,7 @@ export function CatalogTemplate({
     // Preserve unrelated query params (e.g. analytics).
     const all = new URLSearchParams(searchParams.toString());
     const knownKeys = [
-      'minPrice', 'maxPrice', 'inStock', 'sort', 'page', 'chip',
+      'minPrice', 'maxPrice', 'inStock', 'sort', 'page', 'chip', 'category',
       'color', 'size', 'brand', 'style', 'material', 'season',
       'fit', 'liningMaterial', 'brandCountry', 'label',
       'details', 'careInstructions', 'insulation',
@@ -662,7 +662,7 @@ export function CatalogTemplate({
           <div className="max-w-xs mx-auto text-center mb-8">
             <p className="text-xs text-gray-500 mb-3">
               {CVL.youveViewedPrefix}
-              <span className="text-black font-semibold">{PRODUCTS_PER_PAGE}</span>
+              <span className="text-black font-semibold">{Math.min(currentPage * PRODUCTS_PER_PAGE, totalForPagination)}</span>
               {CVL.youveViewedMid}
               <span className="text-black font-semibold">{totalForPagination.toLocaleString()}</span>
               {CVL.youveViewedSuffix}

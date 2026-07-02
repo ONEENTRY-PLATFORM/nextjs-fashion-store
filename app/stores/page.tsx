@@ -8,9 +8,12 @@ import { StoresLabelsProvider } from '../../src/lib/oneentry/labels/StoresLabels
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';
 import { loadStoreLocationsPage } from '../../src/lib/oneentry/catalog/store-locations-page';
 
+import { REVALIDATE_STORES } from '../../src/lib/isr';
+
 export const metadata: Metadata = SEO.stores;
 
-export const dynamic = 'force-dynamic';
+// ISR — stores barely change. Set `ISR_DISABLED=1` in `.env.local` for dev.
+export const revalidate = REVALIDATE_STORES;
 
 function buildStoreSchema(store: Store) {
   return {

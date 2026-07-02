@@ -108,7 +108,7 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
     >
       <div className="relative overflow-hidden aspect-[3/4]">
         <ImageWithFallback
-          src={item.image}
+          src={item.colorImages?.[selectedColor] || item.image}
           alt={item.name}
           fill
           sizes="(max-width: 640px) 50vw, 25vw"

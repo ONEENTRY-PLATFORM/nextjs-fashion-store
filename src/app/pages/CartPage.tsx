@@ -149,7 +149,7 @@ export function CartPage() {
           /* Skeleton — shown before JS hydration */
           <div className="flex flex-col lg:flex-row gap-8 pt-8">
             <div className="flex-1 min-w-0">
-              <div className="h-12 bg-accent animate-pulse mb-4" />
+              <div className="h-12 bg-gray-100 animate-pulse mb-4" />
               <div className="flex flex-col border border-[#e5e7eb]">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div
@@ -157,17 +157,17 @@ export function CartPage() {
                     className={`flex gap-4 p-5 ${i < 2 ? 'border-b border-[#e5e7eb]' : ''}`}
                     style={{ '--delay': `${i * 80}ms` } as React.CSSProperties}
                   >
-                    <div className="w-4 h-4 bg-accent animate-pulse flex-shrink-0 mt-1 [animation-delay:var(--delay)]" />
-                    <div className="flex-shrink-0 bg-accent animate-pulse w-[110px] h-[140px] [animation-delay:var(--delay)]" />
+                    <div className="w-4 h-4 bg-gray-100 animate-pulse flex-shrink-0 mt-1 [animation-delay:var(--delay)]" />
+                    <div className="flex-shrink-0 bg-gray-100 animate-pulse w-[110px] h-[140px] [animation-delay:var(--delay)]" />
                     <div className="flex-1 flex flex-col gap-2.5 pt-1">
-                      <div className="h-3 bg-accent animate-pulse rounded w-1/4 [animation-delay:var(--delay)]" />
-                      <div className="h-4 bg-accent animate-pulse rounded w-3/4 [animation-delay:var(--delay)]" />
-                      <div className="h-3 bg-accent animate-pulse rounded w-2/5 [animation-delay:var(--delay)]" />
-                      <div className="h-8 bg-accent animate-pulse rounded w-1/3 mt-1 [animation-delay:var(--delay)]" />
-                      <div className="h-8 bg-accent animate-pulse rounded w-1/4 mt-auto [animation-delay:var(--delay)]" />
+                      <div className="h-3 bg-gray-100 animate-pulse rounded w-1/4 [animation-delay:var(--delay)]" />
+                      <div className="h-4 bg-gray-100 animate-pulse rounded w-3/4 [animation-delay:var(--delay)]" />
+                      <div className="h-3 bg-gray-100 animate-pulse rounded w-2/5 [animation-delay:var(--delay)]" />
+                      <div className="h-8 bg-gray-100 animate-pulse rounded w-1/3 mt-1 [animation-delay:var(--delay)]" />
+                      <div className="h-8 bg-gray-100 animate-pulse rounded w-1/4 mt-auto [animation-delay:var(--delay)]" />
                     </div>
                     <div className="flex-shrink-0 w-14 flex flex-col gap-1 items-end">
-                      <div className="h-5 bg-accent animate-pulse rounded w-full [animation-delay:var(--delay)]" />
+                      <div className="h-5 bg-gray-100 animate-pulse rounded w-full [animation-delay:var(--delay)]" />
                     </div>
                   </div>
                 ))}
@@ -175,16 +175,16 @@ export function CartPage() {
             </div>
             {/* Order summary skeleton */}
             <div className="lg:w-80 flex-shrink-0">
-              <div className="h-6 bg-accent animate-pulse rounded mb-4 w-2/3" />
+              <div className="h-6 bg-gray-100 animate-pulse rounded mb-4 w-2/3" />
               <div className="flex flex-col gap-3 p-4 border border-[#e5e7eb]">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="flex justify-between">
-                    <div className="h-3 bg-accent animate-pulse rounded w-1/3" />
-                    <div className="h-3 bg-accent animate-pulse rounded w-1/4" />
+                    <div className="h-3 bg-gray-100 animate-pulse rounded w-1/3" />
+                    <div className="h-3 bg-gray-100 animate-pulse rounded w-1/4" />
                   </div>
                 ))}
-                <div className="h-px bg-accent mt-1" />
-                <div className="h-10 bg-accent animate-pulse rounded mt-1" />
+                <div className="h-px bg-gray-200 mt-1" />
+                <div className="h-10 bg-gray-100 animate-pulse rounded mt-1" />
               </div>
             </div>
           </div>

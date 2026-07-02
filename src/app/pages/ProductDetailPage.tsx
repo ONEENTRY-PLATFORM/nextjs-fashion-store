@@ -106,6 +106,9 @@ export function ProductDetailPage({
   const lOutOfStock         = useProductCardT('product-card-out_of_stock',         PRODUCT_ACTION_LABELS.outOfStock);
   const lOutOfStockTitle    = useProductCardT('product-card-color_oos_title',      PRODUCT_ACTION_LABELS.outOfStockTitle);
   const lInStock            = useProductCardT('product-card-in_stock',             PRODUCT_ACTION_LABELS.inStock);
+  const lPreOrder           = useProductCardT('product-card-pre_order',            PRODUCT_ACTION_LABELS.preOrder);
+  const lPreOrderButton     = useProductCardT('product-card-pre_order_button',     PRODUCT_ACTION_LABELS.preOrderButton);
+  const lComingSoon         = useProductCardT('product-card-coming_soon',          PRODUCT_ACTION_LABELS.comingSoon);
   const lSkuPrefix          = useProductCardT('product-card-sku_label',            PRODUCT_ACTION_LABELS.skuLabel);
   const lArticlePrefix      = useProductCardT('product-card-article_label',        PRODUCT_ACTION_LABELS.articleLabel);
   const lSpecsTitle         = useProductCardT('product-card-accordion_specs',      PA.specificationsTitle);
@@ -172,10 +175,7 @@ export function ProductDetailPage({
   // so by this point catalogProduct is always defined. The `?.` is kept solely
   // for the TS narrowing — runtime never falls back.
   const dynamicName = catalogProduct?.name ?? PD.fallbackName;
-  const dynamicPrice = catalogProduct?.salePrice ?? catalogProduct?.price ?? 0;
-  const dynamicOriginalPrice = catalogProduct?.salePrice ? catalogProduct.price : null;
   const dynamicImage = catalogProduct?.image ?? '';
-  const dynamicGallery = catalogProduct?.galleryImages ?? (catalogProduct ? Array(5).fill(catalogProduct.image) : []);
   const dynamicColors = useMemo(() => (
     (catalogProduct?.colors ?? []).map((hex, idx) => ({
       name: hexToColorName(hex),
@@ -185,7 +185,6 @@ export function ProductDetailPage({
   ), [catalogProduct, productIsOOS]);
 
   const productSizeOptions = catalogProduct?.sizeOptions ?? [];
-  const dynamicSizeOptions = productSizeOptions.map(s => ({ ...s, available: productIsOOS ? false : s.available }));
   const productSpecs = catalogProduct?.specs ?? [];
   // Reviews now stream in as a slot (`reviewsSlot`) rendered by a Suspense
   // boundary higher up. The page-level component only needs the bundled
@@ -201,20 +200,99 @@ export function ProductDetailPage({
 
   const searchParams = useSearchParams();
   const rawColor = searchParams?.get('color');
-  const initColorHex = rawColor && /^#[0-9A-Fa-f]{6}$/.test(rawColor) ? rawColor : null;
   const initSize = searchParams?.get('size') ?? null;
-  const initColorIdx = initColorHex
-    ? Math.max(0, dynamicColors.findIndex(c => c.hex === initColorHex))
-    : 0;
+  // Accept either hex (`#FFC0CB`) or OE colour name (`Pink`) so links coming
+  // from either the PDP (writes hex) or ProductCard/QuickView (writes OE name)
+  // both resolve to the intended swatch.
+  const initColorIdx = (() => {
+    if (!rawColor) return 0;
+    const norm = rawColor.toLowerCase().trim();
+    const idx = dynamicColors.findIndex(
+      (c) => c.hex.toLowerCase() === norm || c.name.toLowerCase() === norm,
+    );
+    return idx >= 0 ? idx : 0;
+  })();
 
   const [selectedColor, setSelectedColor] = useState(initColorIdx);
   const [selectedSize, setSelectedSize] = useState<string | null>(initSize);
   const [sizeError, setSizeError] = useState(false);
 
-  const activeColorImage = catalogProduct?.colorImages?.[selectedColor] ?? dynamicImage;
+  // Refine each size's availability against the currently selected colour:
+  // OE may have `Red / 2XS` in stock but `Blue / 2XS` sold out. When the
+  // shopper picks Blue, 2XS should render as line-through even though the
+  // colour-agnostic flag from the adapter says it's globally available.
+  const dynamicSizeOptions = useMemo(() => {
+    const selectedHex = dynamicColors[selectedColor]?.hex;
+    const variants = catalogProduct?.variants;
+    return productSizeOptions.map((s) => {
+      if (productIsOOS) return { ...s, available: false };
+      if (variants && selectedHex) {
+        const combo = variants.some((v) => v.colors.includes(selectedHex) && v.sizes.includes(s.label) && v.inStock);
+        return { ...s, available: combo };
+      }
+      return { ...s, available: s.available };
+    });
+  }, [productSizeOptions, catalogProduct?.variants, dynamicColors, selectedColor, productIsOOS]);
+
+  // Active variant follows selected colour first; when a size is also picked
+  // we look for the exact combo (some variants share a colour but differ by
+  // size / price / SKU). Falls back to the colour-first match so the shopper
+  // always sees the swatch's data reflected in the page.
+  const activeVariant = useMemo(() => {
+    const variants = catalogProduct?.variants;
+    if (!variants || variants.length === 0) return null;
+    const hex = dynamicColors[selectedColor]?.hex;
+    if (!hex) return null;
+    if (selectedSize) {
+      const exact = variants.find((v) => v.colors.includes(hex) && v.sizes.includes(selectedSize));
+      if (exact) return exact;
+    }
+    return variants.find((v) => v.colors.includes(hex)) ?? null;
+  }, [catalogProduct?.variants, dynamicColors, selectedColor, selectedSize]);
+
+  const activeColorImage = activeVariant?.image
+    || catalogProduct?.colorImages?.[selectedColor]
+    || dynamicImage;
+
+  // Price / gallery / SKU follow the active variant when the linked product
+  // carries its own copy; otherwise we fall back to the parent product
+  // (mirrors how the shopper sees the swatch as picking a whole variant).
+  const dynamicPrice = activeVariant?.price
+    ?? catalogProduct?.salePrice
+    ?? catalogProduct?.price
+    ?? 0;
+  const dynamicOriginalPrice = catalogProduct?.salePrice ? catalogProduct.price : null;
+  const dynamicGallery = (activeVariant?.images && activeVariant.images.length > 0)
+    ? activeVariant.images
+    : catalogProduct?.galleryImages
+      ?? (catalogProduct ? Array(5).fill(catalogProduct.image) : []);
+  const variantSku = activeVariant?.sku ?? catalogProduct?.specs?.find(s => s.label === 'SKU')?.value ?? PRODUCT_ACTION_LABELS.defaultSku;
+  const activeDescriptionHtml = (activeVariant?.descriptionHtml && activeVariant.descriptionHtml.trim())
+    ? activeVariant.descriptionHtml
+    : catalogProduct?.descriptionHtml;
+
+  // OE distinguishes four availability signals:
+  //   - `in_stock`     — regular purchase
+  //   - `preorder`     — pre-launch stock, the shopper can commit to buying
+  //   - `coming_soon`  — announced but not orderable yet; swatch stays
+  //                     selectable so the shopper can see the variant, but the
+  //                     CTA turns into a status-only label
+  //   - `out_of_stock` — greyed out entirely
+  const activeVariantStatus = activeVariant?.statusIdentifier;
+  const isPreOrder = !productIsOOS && activeVariantStatus === 'preorder';
+  const isComingSoon = !productIsOOS && activeVariantStatus === 'coming_soon';
 
   const isFirstMount = useRef(true);
   const { toggleItem, isWishlisted, updateSelection } = useWishlist();
+
+  // Clear the picked size when the new colour doesn't stock it — otherwise
+  // the "size selected" state persists over a struck-through size (e.g. the
+  // shopper picked Pink/M, then flipped to a colour that has no M in stock).
+  useEffect(() => {
+    if (!selectedSize) return;
+    const stillAvailable = dynamicSizeOptions.find((s) => s.label === selectedSize)?.available;
+    if (!stillAvailable) setSelectedSize(null);
+  }, [selectedColor, dynamicSizeOptions, selectedSize]);
 
   useEffect(() => {
     if (isFirstMount.current) { isFirstMount.current = false; return; }
@@ -225,6 +303,25 @@ export function ProductDetailPage({
       selectedSize ?? undefined,
     );
   }, [selectedColor, selectedSize, productId, isWishlisted, updateSelection, dynamicColors]);
+
+  // Reflect the current colour+size choice in the URL so a full-page reload
+  // (or a shared link) restores exactly what the shopper was looking at.
+  // `history.replaceState` sidesteps Next.js router — no re-render, no scroll,
+  // no server round-trip — while `useSearchParams()` still picks up the value
+  // on the next mount because it reads from `window.location`.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hex = dynamicColors[selectedColor]?.hex;
+    const url = new URL(window.location.href);
+    if (hex) url.searchParams.set('color', hex);
+    else url.searchParams.delete('color');
+    if (selectedSize) url.searchParams.set('size', selectedSize);
+    else url.searchParams.delete('size');
+    const next = url.pathname + (url.search ? url.search : '') + url.hash;
+    if (next !== window.location.pathname + window.location.search + window.location.hash) {
+      window.history.replaceState(window.history.state, '', next);
+    }
+  }, [selectedColor, selectedSize, dynamicColors]);
 
   const cart = useCart();
   const dispatch = useDispatch<AppDispatch>();
@@ -447,12 +544,14 @@ export function ProductDetailPage({
                   {productReviews.length} {lReviewsSuffix}
                 </button>
                 <span className="text-xs text-gray-300">|</span>
-                <span className="text-xs font-medium text-[#2E8B57]">{lInStock}</span>
+                <span className={`text-xs font-medium ${isComingSoon ? 'text-[#8B8B8B]' : isPreOrder ? 'text-[#B8860B]' : 'text-[#2E8B57]'}`}>
+                  {isComingSoon ? lComingSoon : isPreOrder ? lPreOrder : lInStock}
+                </span>
               </div>
 
               {/* SKU */}
               <p className="text-xs text-gray-400 mb-4">
-                {lSkuPrefix} <span className="text-gray-600">{catalogProduct?.specs?.find(s => s.label === 'SKU')?.value ?? PRODUCT_ACTION_LABELS.defaultSku}</span>
+                {lSkuPrefix} <span className="text-gray-600">{variantSku}</span>
                 &nbsp;·&nbsp; {lArticlePrefix} <span className="text-gray-600">{catalogProduct?.specs?.find(s => s.label === 'Article')?.value ?? PRODUCT_ACTION_LABELS.defaultArticle}</span>
               </p>
 
@@ -491,7 +590,7 @@ export function ProductDetailPage({
                 <div className="flex items-center gap-2 flex-wrap">
                   {dynamicColors.map((c, i) => (
                     <button
-                      key={c.name}
+                      key={`${c.hex}-${i}`}
                       onClick={() => setSelectedColor(i)}
                       disabled={!c.available}
                       className={`relative group w-8 h-8 rounded-none outline-offset-2 ${
@@ -531,9 +630,9 @@ export function ProductDetailPage({
                   </button>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {dynamicSizeOptions.map(s => (
+                  {dynamicSizeOptions.map((s, i) => (
                     <button
-                      key={s.label}
+                      key={`${s.label}-${i}`}
                       onClick={() => s.available && setSelectedSize(s.label)}
                       disabled={!s.available}
                       className={`transition-all duration-150 text-xs w-[52px] h-11 rounded-md ${
@@ -575,6 +674,10 @@ export function ProductDetailPage({
                   <div className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-white cursor-not-allowed select-none bg-[#999] rounded-lg">
                     {lOutOfStock}
                   </div>
+                ) : isComingSoon ? (
+                  <div className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-white cursor-not-allowed select-none bg-[#999] rounded-lg">
+                    {lComingSoon}
+                  </div>
                 ) : (
                   <button
                     onMouseEnter={() => setCartHovered(true)}
@@ -586,7 +689,7 @@ export function ProductDetailPage({
                   >
                     {addedToCart
                       ? <><Check size={15} /> {PRODUCT_ACTION_LABELS.addedToCart}</>
-                      : <><ShoppingBag size={15} /> {lAddToCart}</>}
+                      : <><ShoppingBag size={15} /> {isPreOrder ? lPreOrderButton : lAddToCart}</>}
                   </button>
                 )}
 
@@ -598,7 +701,26 @@ export function ProductDetailPage({
                 </button>
 
                 <button
-                  onClick={() => toggleItem({ id: productId || 'pdp-ribbed-cashmere-knit', name: dynamicName, brand: 'ONEENTRY', price: CURRENCY.format(dynamicPrice), image: activeColorImage, colors: dynamicColors.map(c => c.hex), colorStock: dynamicColors.map(c => c.available), sizes: dynamicSizeOptions.map(s => s.label), inStock: !productIsOOS, selectedColor: dynamicColors[selectedColor]?.hex, selectedSize: selectedSize ?? undefined })}
+                  onClick={() => toggleItem({
+                    id: productId || 'pdp-ribbed-cashmere-knit',
+                    name: dynamicName,
+                    brand: 'Kekimoro',
+                    price: CURRENCY.format(dynamicPrice),
+                    image: activeColorImage,
+                    colors: dynamicColors.map(c => c.hex),
+                    // First variant that carries each colour is the thumbnail
+                    // for that swatch on the favourites card.
+                    colorImages: dynamicColors.map(c =>
+                      catalogProduct?.variants?.find(v => v.colors.includes(c.hex))?.image
+                      || catalogProduct?.colorImages?.[dynamicColors.indexOf(c)]
+                      || dynamicImage,
+                    ),
+                    colorStock: dynamicColors.map(c => c.available),
+                    sizes: dynamicSizeOptions.map(s => s.label),
+                    inStock: !productIsOOS,
+                    selectedColor: dynamicColors[selectedColor]?.hex,
+                    selectedSize: selectedSize ?? undefined,
+                  })}
                   className="w-full py-3 flex items-center justify-center gap-2 text-xs tracking-widest uppercase border border-gray-200 hover:border-black transition-colors rounded-lg"
                 >
                   <Heart size={14} fill={wishlisted ? ACCENT : 'none'} stroke={wishlisted ? ACCENT : '#000'} />
@@ -636,16 +758,13 @@ export function ProductDetailPage({
                   </div>
                 </AccordionSection>
 
-                {(catalogProduct?.descriptionHtml || (catalogProduct?.productDetails?.length ?? 0) > 0) && (
+                {(activeDescriptionHtml || (catalogProduct?.productDetails?.length ?? 0) > 0) && (
                   <AccordionSection title={lDescriptionTitle}>
                     <div className="text-sm text-gray-700 leading-relaxed space-y-3">
-                      {/* Rich-text description from OE (`productdescription_6`). */}
-                      {catalogProduct?.descriptionHtml && (
+                      {activeDescriptionHtml && (
                         <div
                           className="oe-rich-text"
-                          // OE HTML is authored in the trusted admin; render as-is so
-                          // <p>/<ul>/<strong>/etc. styles come through.
-                          dangerouslySetInnerHTML={{ __html: catalogProduct.descriptionHtml }}
+                          dangerouslySetInnerHTML={{ __html: activeDescriptionHtml }}
                         />
                       )}
                       {(catalogProduct?.productDetails?.length ?? 0) > 0 && (

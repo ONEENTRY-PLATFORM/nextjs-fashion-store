@@ -68,7 +68,7 @@ export function CategorySection({
           {!mounted ? Array.from({ length: 6 }).map((_, i) => (
             <div
               key={`category-skeleton-${i}`}
-              className="bg-accent animate-pulse aspect-[2/3]"
+              className="bg-gray-100 animate-pulse aspect-[2/3]"
               style={{ animationDelay: `${i * 55}ms` }}
               aria-hidden="true"
             />

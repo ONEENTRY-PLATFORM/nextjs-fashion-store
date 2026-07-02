@@ -166,16 +166,16 @@ export function buildPageMetadata(entry: PageEntry): Metadata {
   }
   if (entry.slug === '__hub') {
     return {
-      title: 'Content Hub | ONEENTRY Fashion',
+      title: 'Content Hub | Kekimoro',
       description:
-        'Discover everything about ONEENTRY Fashion — delivery, returns, sizing, care, careers, sustainability and more.',
+        'Discover everything about Kekimoro — delivery, returns, sizing, care, careers, sustainability and more.',
       alternates: { canonical: `${SITE_URL}/info` },
     };
   }
   const meta = INFO_PAGE_META[entry.slug];
   if (!meta) return {};
   return {
-    title: `${meta.title} | ONEENTRY Fashion`,
+    title: `${meta.title} | Kekimoro`,
     description: meta.description,
     keywords: meta.keywords,
     alternates: { canonical: `${SITE_URL}/${entry.slug}` },

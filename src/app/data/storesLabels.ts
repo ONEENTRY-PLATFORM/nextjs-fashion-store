@@ -5,8 +5,8 @@ export const STORE_LOCATIONS_LABELS = {
   // Hero
   heroEyebrow: 'Visit Us In Store',
   heroTitle: 'Our Stores',
-  heroSubtitleSuffix: 'locations across the UK — discover ONEENTRY FASHION in person.',
-  heroImageAlt: 'ONEENTRY Fashion Store',
+  heroSubtitleSuffix: 'locations across the UK — discover KEKIMORO in person.',
+  heroImageAlt: 'Kekimoro Store',
   // Breadcrumb
   breadcrumbHome: 'Home',
   breadcrumbCurrent: 'Store Locations',
@@ -33,7 +33,7 @@ export const STORE_LOCATIONS_LABELS = {
   flagshipImageAlt: 'Oxford Street Flagship',
   flagshipBody:
     'Our largest store across 3 floors. Book a free personal styling session with one of our expert stylists ' +
-    "and discover the full ONEENTRY FASHION collection — women's, men's, and exclusive in-store edits.",
+    "and discover the full KEKIMORO collection — women's, men's, and exclusive in-store edits.",
   flagshipDirections: 'Get Directions',
   flagshipBookStyling: 'Book Styling',
   // Bottom CTA

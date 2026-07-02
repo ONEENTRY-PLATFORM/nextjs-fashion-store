@@ -1,5 +1,6 @@
 import { cache } from 'react';
-import { oneentry } from './index';
+import { oneentry, isError } from './index';
+import { DEFAULT_LOCALE } from './locale';
 
 export type Lang = 'en_US';
 
@@ -26,7 +27,7 @@ export type SystemSchema = Record<string, SystemAttrItem>;
  *  both the language-keyed shape and the already-flattened SDK shape. */
 export function readSystemValue(
   item: SystemAttrItem | undefined,
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): string | null {
   if (!item) return null;
   const iv = item.initialValue;
@@ -52,10 +53,9 @@ const systemSetInflight = new Map<string, Promise<SystemSchema>>();
 async function fetchSystemSet(marker: string, lang: Lang): Promise<SystemSchema> {
   if (!oneentry) return {};
   try {
-    const set = (await oneentry.AttributesSets.getAttributeSetByMarker(
-      marker,
-      lang,
-    )) as AttributeSet;
+    const raw = await oneentry.AttributesSets.getAttributeSetByMarker(marker, lang);
+    if (isError(raw)) return {};
+    const set = raw as AttributeSet;
     const schema = set?.schema;
     if (schema && typeof schema === 'object' && !Array.isArray(schema)) {
       return schema as SystemSchema;
@@ -67,7 +67,7 @@ async function fetchSystemSet(marker: string, lang: Lang): Promise<SystemSchema>
 }
 
 export const getSystemSet = cache(
-  async (marker: string, lang: Lang = 'en_US'): Promise<SystemSchema> => {
+  async (marker: string, lang: Lang = DEFAULT_LOCALE): Promise<SystemSchema> => {
     const key = `${marker}|${lang}`;
     const now = Date.now();
     const cached = systemSetCache.get(key);
@@ -91,7 +91,7 @@ export async function t(
   marker: string,
   key: string,
   fallback: string,
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<string> {
   const schema = await getSystemSet(marker, lang);
   const value = readSystemValue(schema?.[key], lang);

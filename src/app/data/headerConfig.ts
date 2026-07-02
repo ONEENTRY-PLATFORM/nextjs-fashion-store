@@ -12,7 +12,7 @@ export const DEFAULT_LANGUAGE_LABEL = 'EN';
 export { ACCENT_WOMEN as WOMEN_COLOR, ACCENT_MEN as MEN_COLOR } from '../constants/colors';
 
 // ── Logo ─────────────────────────────────────────────────────────────────────
-export const LOGO_ALT = 'ONEENTRY FASHION';
+export const LOGO_ALT = 'KEKIMORO';
 
 // ── Search ───────────────────────────────────────────────────────────────────
 export const SEARCH_PLACEHOLDER = 'Search';

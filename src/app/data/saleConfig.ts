@@ -44,7 +44,7 @@ export const SALE_COLOR_OPTIONS = [
 ];
 
 export const SALE_BRAND_OPTIONS = [
-  'ONEENTRY', 'Vagabond', 'Sam Edelman',
+  'Kekimoro', 'Vagabond', 'Sam Edelman',
   'Common Projects', 'Clarks', 'Tommy Hilfiger',
 ];
 

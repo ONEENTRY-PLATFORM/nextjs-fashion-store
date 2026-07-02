@@ -1,6 +1,7 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface DiscountBannerFromCms {
   image: string;
@@ -24,10 +25,11 @@ const extractImage = (v: unknown): string => {
 };
 
 export const loadDiscountBanner = cache(
-  async (lang: Lang = 'en_US'): Promise<DiscountBannerFromCms | null> => {
+  async (lang: Lang = DEFAULT_LOCALE): Promise<DiscountBannerFromCms | null> => {
     if (!oneentry) return null;
     try {
       const result = await oneentry.Blocks.getBlockByMarker('discount_banner', lang);
+      if (isError(result)) return null;
       const raw = result as unknown as {
         // SDK normalises by locale → `attributeValues` is already a flat
         // `Record<marker, AttrValue>`. We keep the legacy `[lang]` wrapped

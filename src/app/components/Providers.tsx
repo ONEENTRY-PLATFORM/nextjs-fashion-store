@@ -20,6 +20,7 @@ import type { InterfaceControlsDict } from '../../lib/oneentry/labels/interface-
 import { YourBagLabelsProvider } from '../../lib/oneentry/labels/YourBagLabelsContext'
 import type { YourBagDict } from '../../lib/oneentry/labels/your-bag-types'
 import { FooterMenuProvider } from '../../lib/oneentry/menus/FooterMenuContext'
+import { HeaderMenuProvider } from '../../lib/oneentry/menus/HeaderMenuContext'
 import type { MenuPageNode } from '../../lib/oneentry/menus/menus'
 import { SignUpFormSchemaProvider } from '../../lib/oneentry/auth/SignUpFormSchemaContext'
 import type { SignUpFormSchema } from '../../lib/oneentry/auth/sign-up-form'
@@ -45,6 +46,7 @@ export function Providers({
   interfaceControlsLabels = {},
   yourBagLabels = {},
   footerMenu = [],
+  headerMenu = [],
   signUpFormSchema,
 }: {
   children: React.ReactNode;
@@ -54,6 +56,7 @@ export function Providers({
   interfaceControlsLabels?: InterfaceControlsDict;
   yourBagLabels?: YourBagDict;
   footerMenu?: MenuPageNode[];
+  headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
 }) {
   const storeRef = useRef<AppStore | null>(null);
@@ -93,9 +96,11 @@ export function Providers({
               <InterfaceControlsLabelsProvider data={interfaceControlsLabels}>
                 <YourBagLabelsProvider data={yourBagLabels}>
                   <FooterMenuProvider data={footerMenu}>
-                    <SignUpFormSchemaProvider data={signUpFormSchema}>
-                      <ErrorBoundary>{children}</ErrorBoundary>
-                    </SignUpFormSchemaProvider>
+                    <HeaderMenuProvider data={headerMenu}>
+                      <SignUpFormSchemaProvider data={signUpFormSchema}>
+                        <ErrorBoundary>{children}</ErrorBoundary>
+                      </SignUpFormSchemaProvider>
+                    </HeaderMenuProvider>
                   </FooterMenuProvider>
                 </YourBagLabelsProvider>
               </InterfaceControlsLabelsProvider>

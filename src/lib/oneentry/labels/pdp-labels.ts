@@ -1,10 +1,11 @@
 import { getSystemSet, readSystemValue, type Lang } from '../system-text';
 import { PDP_SET_MARKERS, type PdpSystemTexts } from './pdp-types';
+import { DEFAULT_LOCALE } from '../locale';
 export { PDP_SET_MARKERS } from './pdp-types';
 export type { PdpSetMarker, PdpSystemTexts } from './pdp-types';
 
 export async function loadPdpSystemTexts(
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<PdpSystemTexts> {
   const entries = await Promise.all(
     PDP_SET_MARKERS.map(async (marker) => {

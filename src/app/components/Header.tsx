@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, User, Heart, ShoppingBag, Menu } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -19,7 +19,9 @@ const LoginModal     = dynamic(() => import('./LoginModal').then(m => ({ default
 const RegisterModal  = dynamic(() => import('./RegisterModal').then(m => ({ default: m.RegisterModal })));
 const QuickViewModal = dynamic(() => import('./QuickViewModal').then(m => ({ default: m.QuickViewModal })));
 
-import { MEGA_DATA, type Gender, type SubCat } from '../data/categories';
+import { type Gender, type SubCat } from '../data/categories';
+import { useHeaderMenu } from '../../lib/oneentry/menus/HeaderMenuContext';
+import { adaptHeaderMenuToMega } from '../../lib/oneentry/menus/adapt-header';
 import { HEADER_ARIA } from '../data/commonLabels';
 import {
   LOGO_ALT,
@@ -45,8 +47,18 @@ export function Header() {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const urlGender: Gender = pathname.startsWith('/men') ? 'men' : 'women';
+  // On category pages the gender is in the path (`/women/...`, `/men/...`).
+  // On flat pages (`/new`, `/sale`) it comes from the `?gender=` query so the
+  // shopper's context sticks across those unrouted screens.
+  const urlGender: Gender = (() => {
+    if (pathname.startsWith('/men')) return 'men';
+    if (pathname.startsWith('/women')) return 'women';
+    const q = searchParams?.get('gender');
+    if (q === 'men') return 'men';
+    return 'women';
+  })();
   const urlSubCat: string | null = (() => {
     if (pathname.includes('/clothing')) return 'clothing';
     if (pathname.includes('/shoes')) return 'shoes';
@@ -96,17 +108,27 @@ export function Header() {
     hideTimer.current = setTimeout(() => setActiveDropdown(null), 150);
   }, []);
 
-  const currentDropdownData = activeDropdown ? MEGA_DATA[activeGender][activeDropdown] : null;
+  // Mega menu is sourced exclusively from the OE `header` menu — no static
+  // fallback. When OE returns nothing the dropdown simply doesn't render.
+  const cmsHeaderMenu = useHeaderMenu();
+  const mega = adaptHeaderMenuToMega(cmsHeaderMenu);
+  const currentDropdownData = activeDropdown && mega ? mega[activeGender][activeDropdown] : null;
 
   const getNavHref = useCallback(
-    (gender: Gender, subcat: string, _item?: string): string => {
+    (gender: Gender, subcat: string, item?: string): string => {
+      let base: string;
       switch (subcat) {
-        case 'clothing': return gender === 'women' ? '/women/clothing' : '/men/clothing';
-        case 'bags': return gender === 'men' ? '/men/bags' : '/women/bags';
-        case 'shoes': return gender === 'women' ? '/women/shoes' : '/men/shoes';
-        case 'accessories': return gender === 'women' ? '/women/accessories' : '/men/accessories';
+        case 'clothing': base = gender === 'women' ? '/women/clothing' : '/men/clothing'; break;
+        case 'bags': base = gender === 'men' ? '/men/bags' : '/women/bags'; break;
+        case 'shoes': base = gender === 'women' ? '/women/shoes' : '/men/shoes'; break;
+        case 'accessories': base = gender === 'women' ? '/women/accessories' : '/men/accessories'; break;
         default: return '#';
       }
+      // Menu items carry the OE `pageUrl` of the underlying category — the
+      // catalog page then filters `p.categories[]` down to that exact leaf,
+      // so clicking "Dresses & Skirts" actually shows dresses & skirts.
+      if (item) return `${base}?category=${encodeURIComponent(item)}`;
+      return base;
     },
     []
   );
@@ -146,7 +168,14 @@ export function Header() {
                     key={g}
                     onClick={() => {
                       setActiveGender(g);
-                      router.push(GENDER_NAV_HREFS[g]);
+                      // Stay on /new or /sale when the shopper swaps
+                      // gender — just re-scope the current page instead of
+                      // yanking them into `/women/clothing`.
+                      if (pathname === '/new' || pathname === '/sale') {
+                        router.push(`${pathname}?gender=${g}`);
+                      } else {
+                        router.push(GENDER_NAV_HREFS[g]);
+                      }
                     }}
                     className={`relative flex items-center h-10 text-sm tracking-widest uppercase font-medium transition-all duration-150 ease-in-out ${
                       urlGender === g ? (g === 'women' ? 'text-[var(--women)]' : 'text-[var(--men)]') : 'text-black'
@@ -239,6 +268,7 @@ export function Header() {
         onSubCatLeave={handleSubCatLeave}
         onDropdownEnter={handleDropdownEnter}
         onDropdownLeave={handleDropdownLeave}
+        onCloseDropdown={() => setActiveDropdown(null)}
         getNavHref={getNavHref}
       />
 

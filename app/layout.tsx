@@ -80,6 +80,7 @@ export default async function RootLayout({
     interfaceControlsLabels,
     yourBagLabels,
     footerMenu,
+    headerMenu,
     signUpFormSchema,
   ] = await Promise.all([
     loadProductCardSystemTexts(),
@@ -88,6 +89,7 @@ export default async function RootLayout({
     loadInterfaceControlsSystemTexts(),
     loadYourBagSystemTexts(),
     loadMenu('footer'),
+    loadMenu('header'),
     loadSignUpFormSchema(),
   ]);
   return (
@@ -128,6 +130,7 @@ export default async function RootLayout({
           interfaceControlsLabels={interfaceControlsLabels}
           yourBagLabels={yourBagLabels}
           footerMenu={footerMenu?.pages ?? []}
+          headerMenu={headerMenu?.pages ?? []}
           signUpFormSchema={signUpFormSchema}
         >
           {children}

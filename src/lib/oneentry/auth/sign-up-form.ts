@@ -1,6 +1,7 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface SignUpFieldString {
   title: string;
@@ -123,13 +124,15 @@ const agreeField = (attr: RawAttribute | undefined, lang: Lang): SignUpFieldAgre
 };
 
 export const loadSignUpFormSchema = cache(
-  async (lang: Lang = 'en_US'): Promise<SignUpFormSchema> => {
+  async (lang: Lang = DEFAULT_LOCALE): Promise<SignUpFormSchema> => {
     if (!oneentry) return EMPTY_SIGN_UP_FORM_SCHEMA;
     try {
-      const set = (await oneentry.AttributesSets.getAttributeSetByMarker(
+      const raw = await oneentry.AttributesSets.getAttributeSetByMarker(
         'users_sign_in_sign_up',
         lang,
-      )) as unknown as RawSet;
+      );
+      if (isError(raw)) return EMPTY_SIGN_UP_FORM_SCHEMA;
+      const set = raw as unknown as RawSet;
       const schema = set?.schema ?? {};
       return {
         email: stringField(schema.email, lang),

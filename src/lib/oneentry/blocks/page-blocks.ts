@@ -2,6 +2,8 @@ import { cache } from 'react';
 import { loadProducts } from '../catalog/products';
 import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
 import type { Product } from '../../../app/components/ProductCard';
+import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_HOME } from '../../isr';
 
 /** Block descriptor returned by `loadPageBlocks`. Generic enough that the
  *  consumer (HomePage) can switch on `type` + `marker` to pick the right
@@ -63,7 +65,9 @@ async function fetchJson<T>(url: string, appToken: string): Promise<T | null> {
   try {
     const res = await fetch(url, {
       headers: { 'x-app-token': appToken, accept: 'application/json' },
-      cache: 'no-store',
+      // Homepage blocks cache per URL for the ISR window (`REVALIDATE_HOME`).
+      // Set `ISR_DISABLED=1` in dev to bypass.
+      next: { revalidate: REVALIDATE_HOME },
     });
     const txt = await res.text();
     if (!res.ok || !txt.trim().startsWith('{')) return null;
@@ -85,7 +89,7 @@ export async function loadBlockWithProducts(
   const url = process.env.ONEENTRY_URL;
   const appToken = process.env.ONEENTRY_TOKEN;
   if (!url || !appToken) return null;
-  const lang = options.lang ?? 'en_US';
+  const lang = options.lang ?? DEFAULT_LOCALE;
 
   const block = await fetchJson<RawBlock>(
     `${url}/api/content/blocks/marker/${encodeURIComponent(marker)}?langCode=${lang}`,
@@ -136,7 +140,7 @@ export async function loadBlockWithProducts(
  * product-list blocks) resolved products, in admin-defined order.
  */
 export const loadPageBlocksById = cache(
-  async (pageId: number, lang: string = 'en_US'): Promise<PageBlock[]> => {
+  async (pageId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
     const url = process.env.ONEENTRY_URL;
     const appToken = process.env.ONEENTRY_TOKEN;
     if (!url || !appToken) return [];
@@ -169,7 +173,7 @@ export const HOME_PAGE_ID = 1;
 export async function loadFrequentlyOrderedBlock(
   marker: string,
   productId: number,
-  lang: string = 'en_US',
+  lang: string = DEFAULT_LOCALE,
 ): Promise<PageBlock | null> {
   const url = process.env.ONEENTRY_URL;
   const appToken = process.env.ONEENTRY_TOKEN;

@@ -1,10 +1,11 @@
 import { getSystemSet, readSystemValue, type Lang } from '../system-text';
 import { STORES_SET_MARKERS, type StoresSystemTexts } from './stores-types';
+import { DEFAULT_LOCALE } from '../locale';
 export { STORES_SET_MARKERS } from './stores-types';
 export type { StoresSetMarker, StoresSystemTexts } from './stores-types';
 
 export async function loadStoresSystemTexts(
-  lang: Lang = 'en_US',
+  lang: Lang = DEFAULT_LOCALE,
 ): Promise<StoresSystemTexts> {
   const entries = await Promise.all(
     STORES_SET_MARKERS.map(async (marker) => {

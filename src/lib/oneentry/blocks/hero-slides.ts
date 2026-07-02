@@ -1,6 +1,7 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface HeroSlideFromCms {
   id: number;
@@ -52,10 +53,12 @@ const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
 };
 
 export const loadHeroSlides = cache(
-  async (_lang: Lang = 'en_US'): Promise<HeroSlideFromCms[]> => {
+  async (_lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
     if (!oneentry) return [];
     try {
-      const result = (await oneentry.Blocks.getSlides('hero_slider')) as RawSlidesResponse;
+      const raw = await oneentry.Blocks.getSlides('hero_slider');
+      if (isError(raw)) return [];
+      const result = raw as RawSlidesResponse;
       const items = Array.isArray(result) ? result : result?.items ?? [];
       return items.map((s, i) => normalize(s, i)).filter((s) => s.image.length > 0);
     } catch {

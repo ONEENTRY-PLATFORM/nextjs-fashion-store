@@ -166,12 +166,12 @@ export const FILTER_CITIES = [
 
 /** Store names — same set used across all catalog pages */
 export const FILTER_STORE_NAMES = {
-  fifthAve: 'ONEENTRY Fifth Ave',
-  beverlyHills: 'ONEENTRY Beverly Hills',
-  magnificentMile: 'ONEENTRY Magnificent Mile',
-  brickell: 'ONEENTRY Brickell',
-  forumShops: 'ONEENTRY Forum Shops',
-  newburySt: 'ONEENTRY Newbury St',
-  lincolnRoad: 'ONEENTRY Lincoln Road',
-  lasVegasStrip: 'ONEENTRY Las Vegas Strip',
+  fifthAve: 'Kekimoro Fifth Ave',
+  beverlyHills: 'Kekimoro Beverly Hills',
+  magnificentMile: 'Kekimoro Magnificent Mile',
+  brickell: 'Kekimoro Brickell',
+  forumShops: 'Kekimoro Forum Shops',
+  newburySt: 'Kekimoro Newbury St',
+  lincolnRoad: 'Kekimoro Lincoln Road',
+  lasVegasStrip: 'Kekimoro Las Vegas Strip',
 } as const;

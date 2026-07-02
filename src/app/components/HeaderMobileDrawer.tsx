@@ -3,7 +3,9 @@ import { ChevronDown, X, User, MapPin, Phone } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import logoImage from '../../assets/kekimoro-logo-black.png';
-import { SUB_CATEGORIES, MEGA_DATA, type Gender } from '../data/categories';
+import { SUB_CATEGORIES, type Gender } from '../data/categories';
+import { useHeaderMenu } from '../../lib/oneentry/menus/HeaderMenuContext';
+import { adaptHeaderMenuToMega } from '../../lib/oneentry/menus/adapt-header';
 import {
   LOGO_ALT, SUPPORT_PHONE, GENDER_NAV_HREFS,
   MOBILE_FOOTER_LINKS, HEADER_ARIA_LABELS,
@@ -34,6 +36,8 @@ export function HeaderMobileDrawer({
   getNavHref,
 }: HeaderMobileDrawerProps) {
   const router = useRouter();
+  const cmsHeaderMenu = useHeaderMenu();
+  const mega = adaptHeaderMenuToMega(cmsHeaderMenu);
 
   if (!isOpen) return null;
 
@@ -75,7 +79,7 @@ export function HeaderMobileDrawer({
           {SUB_CATEGORIES.map((cat) => {
             const key = cat.toLowerCase();
             const hasDropdown = ['shoes', 'clothing', 'bags', 'accessories'].includes(key);
-            const sections = hasDropdown ? MEGA_DATA[mobileGender][key] : null;
+            const sections = hasDropdown && mega ? mega[mobileGender][key as 'shoes' | 'clothing' | 'bags' | 'accessories'] : null;
             return (
               <div key={cat} className="border-b border-gray-100">
                 <button
@@ -101,20 +105,20 @@ export function HeaderMobileDrawer({
                 </button>
                 {mobileExpandedCat === key && sections && (
                   <div className="pb-4">
-                    {sections.map((section) => (
-                      <div key={section.title} className="px-4 mb-4">
+                    {sections.map((section, idx) => (
+                      <div key={`${section.title}-${idx}`} className="px-4 mb-4">
                         <p className="text-xs tracking-widest uppercase mb-2 text-[var(--accent)]">
                           {section.title}
                         </p>
                         <ul className="space-y-1">
                           {section.items.map((item) => (
-                            <li key={item}>
+                            <li key={item.pageUrl || item.label}>
                               <Link
-                                href={getNavHref(mobileGender, key, item)}
+                                href={getNavHref(mobileGender, key, item.pageUrl || item.label)}
                                 onClick={onClose}
                                 className="text-sm text-gray-600 block py-1 hover:text-black transition-colors"
                               >
-                                {item}
+                                {item.label}
                               </Link>
                             </li>
                           ))}

@@ -1,6 +1,7 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface HomepageCollectionItem {
   id: number;
@@ -43,10 +44,12 @@ const normalize = (raw: RawSlide): HomepageCollectionItem => {
 };
 
 export const loadHomepageCollections = cache(
-  async (_lang: Lang = 'en_US'): Promise<HomepageCollectionItem[]> => {
+  async (_lang: Lang = DEFAULT_LOCALE): Promise<HomepageCollectionItem[]> => {
     if (!oneentry) return [];
     try {
-      const result = (await oneentry.Blocks.getSlides('homepage_collections')) as RawSlidesResponse;
+      const raw = await oneentry.Blocks.getSlides('homepage_collections');
+      if (isError(raw)) return [];
+      const result = raw as RawSlidesResponse;
       const items = Array.isArray(result) ? result : result?.items ?? [];
       return items.map(normalize).filter((s) => s.image.length > 0);
     } catch {

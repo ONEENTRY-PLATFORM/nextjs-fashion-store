@@ -1,6 +1,7 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 export interface CmsPage {
   id: number;
@@ -29,10 +30,11 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
 };
 
 export const loadPageByUrl = cache(
-  async (pageUrl: string, lang: Lang = 'en_US'): Promise<CmsPage | null> => {
+  async (pageUrl: string, lang: Lang = DEFAULT_LOCALE): Promise<CmsPage | null> => {
     if (!oneentry) return null;
     try {
       const result = await oneentry.Pages.getPageByUrl(pageUrl, lang);
+      if (isError(result)) return null;
       const raw = result as unknown as Record<string, unknown> | null;
       if (!raw || raw.statusCode) return null;
       return normalize(raw, lang);

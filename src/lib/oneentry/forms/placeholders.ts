@@ -1,6 +1,7 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
+import { DEFAULT_LOCALE } from '../locale';
 
 /**
  * Placeholders pulled from a OE form's attribute `additionalFields`.
@@ -32,7 +33,9 @@ async function fetchFormPlaceholders(
 ): Promise<FormPlaceholders> {
   if (!oneentry) return {};
   try {
-    const form = (await oneentry.Forms.getFormByMarker(marker, lang)) as RawForm;
+    const raw = await oneentry.Forms.getFormByMarker(marker, lang);
+    if (isError(raw)) return {};
+    const form = raw as RawForm;
     if (!form || !Array.isArray(form.attributes)) return {};
     const out: FormPlaceholders = {};
     for (const attr of form.attributes) {
@@ -54,7 +57,7 @@ async function fetchFormPlaceholders(
 }
 
 export const loadFormPlaceholders = cache(
-  async (marker: string, lang: Lang = 'en_US'): Promise<FormPlaceholders> => {
+  async (marker: string, lang: Lang = DEFAULT_LOCALE): Promise<FormPlaceholders> => {
     const key = `${marker}|${lang}`;
     const now = Date.now();
     const cached = formCache.get(key);

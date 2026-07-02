@@ -32,7 +32,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'How do I track my order?',
     answer:
-      'Once your order has been dispatched, you will receive a shipping confirmation email with a tracking number and a link to the courier\'s website. You can also track your order at any time from your ONEENTRY account under "My Orders".',
+      'Once your order has been dispatched, you will receive a shipping confirmation email with a tracking number and a link to the courier\'s website. You can also track your order at any time from your Kekimoro account under "My Orders".',
   },
   {
     question: 'What payment methods do you accept?',

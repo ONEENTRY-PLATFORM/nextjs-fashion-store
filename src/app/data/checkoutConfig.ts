@@ -1,17 +1,17 @@
 /* ── Checkout configuration data ── */
 
 export const CHECKOUT_COUPONS: Record<string, { label: string; pct: number }> = {
-  ONEENTRY10: { label: '10% off', pct: 10 },
+  Kekimoro10: { label: '10% off', pct: 10 },
   SAVE10:     { label: '10% off', pct: 10 },
-  ONEENTRY20: { label: '20% off', pct: 20 },
+  Kekimoro20: { label: '20% off', pct: 20 },
   SUMMER15:   { label: '15% off', pct: 15 },
   WELCOME25:  { label: '25% off', pct: 25 },
 };
 
 export const PICKUP_STORES = [
-  { id: 's1', name: 'ONEENTRY Oxford Street',  address: '234 Oxford St, London W1C 1AP',    hours: 'Mon–Sat 09:00–21:00, Sun 11:00–18:00' },
-  { id: 's2', name: 'ONEENTRY Covent Garden',  address: '14 James St, London WC2E 8BT',     hours: 'Mon–Sat 10:00–20:00, Sun 11:00–18:00' },
-  { id: 's3', name: 'ONEENTRY Canary Wharf',   address: 'Jubilee Place, London E14 5NY',    hours: 'Mon–Fri 08:00–21:00, Sat–Sun 10:00–19:00' },
+  { id: 's1', name: 'Kekimoro Oxford Street',  address: '234 Oxford St, London W1C 1AP',    hours: 'Mon–Sat 09:00–21:00, Sun 11:00–18:00' },
+  { id: 's2', name: 'Kekimoro Covent Garden',  address: '14 James St, London WC2E 8BT',     hours: 'Mon–Sat 10:00–20:00, Sun 11:00–18:00' },
+  { id: 's3', name: 'Kekimoro Canary Wharf',   address: 'Jubilee Place, London E14 5NY',    hours: 'Mon–Fri 08:00–21:00, Sat–Sun 10:00–19:00' },
 ];
 
 export const PARCEL_LOCKERS = [
