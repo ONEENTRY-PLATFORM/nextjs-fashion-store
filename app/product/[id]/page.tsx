@@ -95,16 +95,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export async function generateStaticParams() {
-  // No pre-render of product pages — OneEntry catalog is dynamic; the route
-  // is rendered on demand and cached by Next.js per request.
-  return [];
-}
-
 // Server-fetchers (`loadBlockWithProducts`, `loadFrequentlyOrderedBlock`,
 // `loadProductReviews`) use `cache: 'no-store'` so OE edits surface
-// immediately. Next 16 forbids switching a static page to dynamic mid-render
-// (FUNCTION_INVOCATION_FAILED), so we mark the route dynamic explicitly.
+// immediately. Next.js 16 rejects combining `generateStaticParams` (empty or
+// not) with `dynamic = 'force-dynamic'`, so we keep only the segment flag.
 export const dynamic = 'force-dynamic';
 
 export default async function Page({ params }: Props) {

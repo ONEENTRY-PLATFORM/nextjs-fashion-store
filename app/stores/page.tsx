@@ -8,12 +8,12 @@ import { StoresLabelsProvider } from '../../src/lib/oneentry/labels/StoresLabels
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';
 import { loadStoreLocationsPage } from '../../src/lib/oneentry/catalog/store-locations-page';
 
-import { REVALIDATE_STORES } from '../../src/lib/isr';
-
 export const metadata: Metadata = SEO.stores;
 
-// ISR — stores barely change. Set `ISR_DISABLED=1` in `.env.local` for dev.
-export const revalidate = REVALIDATE_STORES;
+// ISR — stores barely change. Next.js 16 requires a literal for segment
+// config exports (it AST-parses the file and refuses imported identifiers),
+// so we can't use the shared `REVALIDATE_STORES` constant here.
+export const revalidate = 3600;
 
 function buildStoreSchema(store: Store) {
   return {

@@ -62,19 +62,12 @@ type Props = {
  *  `CatalogTemplate`. Per-catalog overrides can be added here later. */
 const PRODUCTS_PER_PAGE = 16;
 
-/* ─── generateStaticParams ─── */
-// Pre-renders all known pages at build time.
-// When API is ready: replace PAGE_REGISTRY keys with data from OneEntry.
-export function generateStaticParams() {
-  return Object.keys(PAGE_REGISTRY).map(path => ({
-    slug: path.split('/'),
-  }));
-}
-
 // Catalog pages use URL `searchParams` (filters/sort/page) + OE-fetchers with
 // `cache: 'no-store'` — both require runtime rendering. Static prerender of
 // the routes from `generateStaticParams` would crash with
-// FUNCTION_INVOCATION_FAILED on the first OE block call.
+// FUNCTION_INVOCATION_FAILED on the first OE block call. Next.js 16 rejects
+// combining `generateStaticParams` with `dynamic = 'force-dynamic'` — since
+// we render dynamically, keep only the segment flag.
 export const dynamic = 'force-dynamic';
 
 /* ─── generateMetadata ─── */
