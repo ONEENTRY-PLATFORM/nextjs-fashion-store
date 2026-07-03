@@ -1,384 +1,492 @@
 # ONEENTRY_INTEGRATION.md — OneEntry Platform integration
 
-> Audit of how `apps/new-shop-nextjs` (Next.js 16 / React 19 / Redux Toolkit) talks to the OneEntry Platform. Audience: LLM agents that need to know which OneEntry calls are wired, which markers are referenced, and where the boundary between the OneEntry-backed code paths and the local-mock fallbacks sits.
+> Audit of how `apps/new-shop-nextjs` (Next.js 16 / React 19 / Redux Toolkit) talks to the OneEntry Platform. Audience: LLM agents that need to know which OneEntry calls are wired, which markers are referenced, which env vars must be set, and where the boundary sits between server-side loaders and client-side state.
 
 ---
 
 ## 1. Overview — TL;DR
 
-> ⚠ **No SDK in dependencies.** The `oneentry` NPM package is **NOT** listed in `package.json` (verified — only `@reduxjs/toolkit`, `next`, `react`, `react-redux`, `zod`, etc.). There is no `getApi()` / `defineOneEntry()` / `oneentry/dist/api` bootstrap anywhere under `src/`. The project talks to OneEntry **through plain `fetch` against the Content REST API** (`/api/content/...`), wrapped either in RTK Query slices or in inline `fetch()` calls.
-
-OneEntry's role in this project is **partial backend** for two domains:
-
-- **Authentication** — `POST /users-auth-providers/marker/email/users/auth` exchanges credentials for a JWT pair.
-- **User activity** — `GET/POST/PUT/DELETE /users/me/wishlist` and `/users/me/cart` persist per-user wishlist / cart state.
-
-Everything else (product catalog, pages, blocks, forms beyond signin, menus, filters, integration collections) is served from **local TS mocks** under `src/app/data/*.ts`. The RTK Query slices that look like a catalog API (`productsApi`, `homepageApi`, `catalogConfigApi`) all use `fakeBaseQuery()` and import the same local mocks via `queryFn` — they are wire-ready scaffolding, not live calls.
+The storefront is **fully wired** to OneEntry through the official SDK (`oneentry ^1.0.154`, `package.json:24`). Server-authoritative data — products, pages, blocks, menus, labels, user profile, orders, reviews, payment accounts — is fetched via `getApi()` from `src/lib/oneentry/`. Mutations (auth, sync-cart, sync-wishlist, submit-form, create-order, update-profile) run through Server Actions and manage `oe_access` / `oe_refresh` / `oe_user` cookies. Client state (cart / wishlist / recently-viewed / filters) stays in Redux and mirrors the CMS through debounced sync.
 
 Position in the stack:
 
 ```
-┌─ Local TS mocks (data/*.ts) ─────────────┐    ┌─ OneEntry Platform ─────────────────────┐
-│  women-clothing.ts, heroSlides.ts, ...   │    │  /api/content/users-auth-providers/...  │
-│  ↓                                       │    │  /api/content/users/me/wishlist         │
-│  RTK Query (fakeBaseQuery)               │    │  /api/content/users/me/cart             │
-│  productsApi / homepageApi /             │    │  ↑                                       │
-│  catalogConfigApi                        │    │  RTK Query (fetchBaseQuery + Bearer)    │
-│                                          │    │  wishlistApi / cartApi                  │
-│                                          │    │  ↑                                       │
-│                                          │    │  AuthContext fetch (POST /auth)         │
-└──────────────────────────────────────────┘    └─────────────────────────────────────────┘
-                              ↓                                    ↓
-                              Redux store (catalog / ui state)   user.data.authToken (JWT)
+┌─────────────────── Next.js App Router ──────────────────┐
+│  RSC route shells (app/**/page.tsx)                     │
+│  Client components (src/app/{components,pages,context}) │
+│  Redux store + slices (src/app/store)                   │
+└───────────┬────────────────────┬────────────────────────┘
+            │                    │
+            │ RSC async fetch    │ Server Actions ('use server')
+            │                    │
+            ▼                    ▼
+┌───────────────────────────────────────────────────────────┐
+│  src/lib/oneentry/  (server-only integration layer)       │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │ index.ts     → getApi() = defineOneEntry singleton   │ │
+│  │ auth/        → signIn / signUp / OAuth / me / order  │ │
+│  │ activity/    → trackActivity                         │ │
+│  │ blocks/      → hero, discount, collections, page-b.  │ │
+│  │ catalog/     → products, filters, pages, reviews…    │ │
+│  │ forms/       → placeholders, submit                  │ │
+│  │ labels/      → 12 CMS-managed label sets             │ │
+│  │ menus/       → header + footer                       │ │
+│  │ payments/    → getAccounts                           │ │
+│  └──────────────────────────────────────────────────────┘ │
+└───────────┬───────────────────────────────────────────────┘
+            │ HTTPS + Bearer <app-token> (+ session cookie)
+            ▼
+     OneEntry Platform (Content API)
 ```
 
-When `NEXT_PUBLIC_API_URL` is empty or the Platform is unreachable, every Platform-bound code path silently degrades to `localStorage` + mocks.
+When `ONEENTRY_URL` / `ONEENTRY_TOKEN` are missing at server startup, `getApi()` **throws** — deliberate loud failure to prevent silent degradation.
 
 ---
 
 ## 2. Environment variables
 
-The project reads exactly **one** OneEntry-relevant env var.
+The integration reads three env vars.
 
-| Variable | Inlined? | Where read | Purpose |
+| Variable | Scope | Where read | Purpose |
 |---|---|---|---|
-| `NEXT_PUBLIC_API_URL` | yes (build-time) | `cartApi.ts:22`, `wishlistApi.ts:32`, `AuthContext.tsx:45` | Base URL for the OneEntry Platform Content API. Must already include the `/api/content` prefix. Empty string → local-only mode. |
+| `ONEENTRY_URL` | server | `src/lib/oneentry/index.ts:4` | Platform base URL, e.g. `http://localhost:3013`. **Do not** append `/api/content` — the SDK adds it. |
+| `ONEENTRY_TOKEN` | server | `src/lib/oneentry/index.ts:5` | App token issued in OneEntry admin (`Marketplace → Applications`). Sent to the SDK as `token`. |
+| `NEXT_PUBLIC_DEFAULT_LOCALE` | build-time | `src/lib/oneentry/locale.ts:11` | Default `langCode` for every SDK call (default `en_US`). |
 
-There are **NO** env vars named `NEXT_PUBLIC_ONEENTRY_PROJECT_URL`, `NEXT_PUBLIC_ONEENTRY_APP_TOKEN`, `NEXT_PUBLIC_ONEENTRY_TOKEN`, etc. — those typically belong to the OneEntry SDK initialization (`defineOneEntry({ project, token })`) which is **not used here**.
+Optional:
 
-Example values (from `./DEMO_LOGIN.md`):
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Enables the "Continue with Google" button (GIS ID token → `signInWithGoogle`) |
 
-```bash
-# .env.local — local OneEntry CMS via docker
-NEXT_PUBLIC_API_URL=http://localhost:3013/api/content
-```
+Notes:
 
-`.env.example` / `.env.local.example` exist at the repo root but are outside the agent's allowed read paths in this audit — verified by reachable grep on `src/`, which confirms `NEXT_PUBLIC_API_URL` is the only consumer.
-
-Because the project uses `process.env.NEXT_PUBLIC_*`, the value is **baked at build time** — change requires a rebuild of the Next.js bundle, not just a restart.
+- **`NEXT_PUBLIC_API_URL` is no longer on the live cart/wishlist path** — sync goes through Server Actions (`syncCartAction` / `syncWishlistAction`) that read `oe_access` server-side. The variable is still *referenced* by the RTK Query scaffolding `cartApi` / `wishlistApi` (`fetchBaseQuery({baseUrl: process.env.NEXT_PUBLIC_API_URL})`) — it stays empty in production, `isCartApiEnabled()` / `isWishlistApiEnabled()` return `false`, and the query hooks are not called. Setting it enables the legacy client-side sync path; leaving it unset (the recommended state) has no effect on any user-visible feature.
+- `ONEENTRY_URL` / `ONEENTRY_TOKEN` are **server-only** — they are never inlined into the client bundle. This is intentional: the storefront never opens a direct connection from the browser to OneEntry.
+- Both `ONEENTRY_URL` and `ONEENTRY_TOKEN` are checked once at module load; a rebuild is not strictly required, but a dev-server restart is.
 
 ---
 
-## 3. SDK initialization
+## 3. SDK bootstrap
 
-**There is none.** The `oneentry` package is not installed (`package.json:19-29`), no module imports from `'oneentry'` (verified by recursive grep over `src/` — only string matches are brand-name occurrences in `seoData.ts`, `productCatalog.ts` etc.).
-
-The two integration points instead use direct `fetch`:
-
-### 3.1 Auth — inline `fetch` in a Client Component context
-
-`src/app/context/AuthContext.tsx:80-105` — `cmsLogin(emailOrPhone, password)`:
+`src/lib/oneentry/index.ts`:
 
 ```ts
-const url = `${API_BASE_URL}/users-auth-providers/marker/email/users/auth`;
-const res = await fetch(url, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-Device-Metadata': DEVICE_METADATA,
-  },
-  body: JSON.stringify({
-    authData: [
-      { marker: 'login',    value: emailOrPhone },
-      { marker: 'password', value: password },
-    ],
-  }),
-});
-```
+import { defineOneEntry } from 'oneentry';
+import type { IError } from 'oneentry/dist/base/utils';
 
-Runs in the browser (`'use client'` at the top of the file). Returns a `CmsLoginResponse` (`{ accessToken, refreshToken, userIdentifier, authProviderIdentifier }`) mirroring `UserTokenType` from the CMS.
+const url = process.env.ONEENTRY_URL ?? '';
+const token = process.env.ONEENTRY_TOKEN ?? '';
 
-### 3.2 RTK Query slices — `fetchBaseQuery` with Bearer header
+export const isOneEntryEnabled = Boolean(url && token);
 
-`src/app/store/api/wishlistApi.ts:42-54` and `src/app/store/api/cartApi.ts:29-41` both build a `fetchBaseQuery` from `NEXT_PUBLIC_API_URL` and inject the JWT via `prepareHeaders`:
+export const oneentry = isOneEntryEnabled ? defineOneEntry(url, { token }) : null;
 
-```ts
-baseQuery: fetchBaseQuery({
-  baseUrl: API_BASE_URL,
-  prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).user.data.authToken;
-    if (token) headers.set('Authorization', `Bearer ${token}`);
-    return headers;
-  },
-}),
-```
+export type OneEntryClient = NonNullable<typeof oneentry>;
 
-Both slices export an `isXxxApiEnabled()` helper that returns `API_BASE_URL.length > 0` so consumers can short-circuit when the Platform isn't configured.
+export function getApi(): OneEntryClient {
+  if (!oneentry) {
+    throw new Error('OneEntry SDK is not configured. Set ONEENTRY_URL and ONEENTRY_TOKEN.');
+  }
+  return oneentry;
+}
 
-There is **no server-side helper** (no `getApi()` invoked inside `generateMetadata`, no Server Action that hits OneEntry). The only Server Action (`src/app/actions/auth.ts`) validates against the local `USER_DATASET` mock — it does not call the Platform.
-
----
-
-## 4. Marker registry
-
-Only the **email auth provider** and its `{login, password}` attribute markers are referenced in source. There are **no other OneEntry markers** wired into the codebase.
-
-### 4.1 Auth provider markers
-
-| Marker | Used in | API path |
-|---|---|---|
-| `email` | `AuthContext.tsx:87` | `POST /users-auth-providers/marker/email/users/auth` |
-
-### 4.2 Form / attribute markers used in the auth body
-
-| Marker | Role | Source |
-|---|---|---|
-| `login` | `isLogin` attribute (accepts email, phone, or Platform identifier) | `AuthContext.tsx:96` |
-| `password` | `isPassword` attribute | `AuthContext.tsx:97` |
-
-These are the attribute markers inside the email auth provider's attribute set — provisioned by `scripts/setup-demo-passwords.sh` together with the `auth_email_form` form, `auth_email_set` attribute set, and `users_auth_providers (identifier='email')`.
-
-### 4.3 Page markers (`pageUrl`)
-
-**None.** The project does not call `getApi().Pages.getPageByUrl(...)` or `/api/content/pages/url/:url`. All pages render from Next.js file-based routing (`src/app/pages/*.tsx`), and per-page content comes from the local mocks (`heroSlides.ts`, `categories.ts`, `infoPages.ts`, etc.).
-
-### 4.4 Form markers (beyond signin)
-
-**None.** No call to `/api/content/forms/marker/:marker` or `getApi().Forms.*`. The checkout, feedback, refer-a-friend, and reserve-in-store forms are validated client-side with Zod (`src/app/utils/schemas.ts`) and submitted to local Redux state only.
-
-### 4.5 Block markers
-
-**None.** Blocks (hero, trending, special offers, etc.) are pulled from `homepageApi` / `catalogConfigApi` queryFns that read TS files — not from `/api/content/blocks/marker/:marker`.
-
-### 4.6 Product status markers
-
-**None.** Product status / `status_id` is irrelevant client-side: the playground uses string identifiers (`wc-1`, `mc-3`, etc.) mapped to Platform integer IDs via `src/app/data/cms-product-id-map.ts`.
-
-### 4.7 Menu / IntegrationCollection / Filter markers
-
-**None.** Header / footer menus come from `headerConfig.ts` / `footerConfig.ts`. FAQ / stores / brands are TS arrays. The filter UI in catalog pages operates over local product data via Redux `catalogSlice`.
-
----
-
-## 5. RTK Query endpoints
-
-The store assembles four `createApi` slices. **Only two talk to OneEntry.**
-
-### 5.1 `wishlistApi` — OneEntry-backed (real)
-
-`src/app/store/api/wishlistApi.ts`, `reducerPath: 'wishlistApi'`, `tagTypes: ['Wishlist']`.
-
-| Endpoint | Hook | HTTP | OneEntry path |
-|---|---|---|---|
-| `getWishlist` | `useGetWishlistQuery()` | GET | `/users/me/wishlist` |
-| `addWishlistItem` | `useAddWishlistItemMutation()` | POST | `/users/me/wishlist/items` |
-| `removeWishlistItem` | `useRemoveWishlistItemMutation()` | DELETE | `/users/me/wishlist/items/:productId` |
-| `setWishlist` | `useSetWishlistMutation()` | PUT | `/users/me/wishlist` |
-
-Cache tag: `'Wishlist'` (every mutation invalidates it). Wire-types are in `store/api/types/wishlist.ts` and mirror `WishlistItemDto` / `WishlistResponseDto` from `cms/src/modules/user-activity/dto/wishlist.dto.ts`.
-
-### 5.2 `cartApi` — OneEntry-backed (real)
-
-`src/app/store/api/cartApi.ts`, `reducerPath: 'cartApi'`, `tagTypes: ['Cart']`.
-
-| Endpoint | Hook | HTTP | OneEntry path |
-|---|---|---|---|
-| `getCart` | `useGetCartQuery()` | GET | `/users/me/cart` |
-| `addCartItem` | `useAddCartItemMutation()` | POST | `/users/me/cart/items` |
-| `removeCartItem` | `useRemoveCartItemMutation()` | DELETE | `/users/me/cart/items/:productId` |
-| `setCart` | `useSetCartMutation()` | PUT | `/users/me/cart` (used by `clearCart()` since no DELETE-all exists) |
-
-`addCartItem.qty` is **absolute**, not a delta — `CartContext` computes the resulting total client-side. Wire-types in `store/api/types/cart.ts`.
-
-### 5.3 `productsApi` — fakeBaseQuery (NOT OneEntry)
-
-`src/app/store/api/productsApi.ts` — 8 endpoints (`getWomenClothing`, `getMenClothing`, `getWomenBags`, `getMenBags`, `getWomenShoes`, `getMenShoes`, `getWomenAccessories`, `getMenAccessories`) all using `queryFn` to dynamic-import a TS module. No OneEntry calls.
-
-### 5.4 `homepageApi` — fakeBaseQuery (NOT OneEntry)
-
-`src/app/store/api/homepageApi.ts` — 6 endpoints (`getHeroSlides`, `getPromoItems`, `getDiscountBanner`, `getBestSellers`, `getHomepageNewArrivals`, `getHomepageSaleProducts`). All `queryFn` over local data. No OneEntry calls.
-
-### 5.5 `catalogConfigApi` — fakeBaseQuery (NOT OneEntry)
-
-`src/app/store/api/catalogConfigApi.ts` — 10 endpoints (`getShopCategories`, `getCategoryFilterChips`, `getTrendBlocks`, `getStores`, `getRecommended`, `getSpecialOffers`, `getSaleConfig`, `getNewArrivalsConfig`, `getSalePageProducts`, `getNewArrivalsPageProducts`). All `queryFn` over local data. No OneEntry calls.
-
----
-
-## 6. Server Actions
-
-`src/app/actions/` contains exactly one file:
-
-### 6.1 `actions/auth.ts` — `validateCredentials(emailOrPhone, password)`
-
-```ts
-'use server'
-import { USER_DATASET } from '../data/userData';
-
-export async function validateCredentials(emailOrPhone: string, password: string): Promise<boolean> {
-  const { email, password: validPassword } = USER_DATASET.credentials;
-  const emailMatch = emailOrPhone.trim().toLowerCase() === email.toLowerCase();
-  return emailMatch && password === validPassword;
+export type OeError = IError;
+export function isError<T>(value: T | IError): value is IError {
+  return typeof value === 'object' && value !== null && 'statusCode' in value
+      && typeof (value as { statusCode: unknown }).statusCode === 'number';
 }
 ```
 
-This Server Action does **NOT** call OneEntry. It compares the input against the hardcoded `USER_DATASET.credentials` (the `test@test.com` / `111` mock). Used as a fallback in `AuthContext.login()` (`AuthContext.tsx:163-172`) for two cases:
+Consumers always import `getApi()` — never `oneentry` directly. That way we have one call site for future refactors (e.g. swapping in `reDefine()` after authorization).
 
-1. `NEXT_PUBLIC_API_URL` is empty.
-2. The Platform login at step 2 threw a network error (not a 4xx — only true network failures fall through).
-
-There are no other Server Actions. There is no Server Action for order creation, form submissions, page lookups, etc. — all of those either stay client-side (Redux) or are not wired up.
-
-### 6.2 Login flow summary (where the Platform comes in)
-
-`AuthContext.login(emailOrPhone, password)` (`AuthContext.tsx:128-173`):
-
-1. If `password === 'social'` → bypass everything, set the mock user (used by the Google/Apple/Facebook buttons).
-2. If `API_BASE_URL` is set → `await cmsLogin(...)`:
-   - 200 + token payload → `dispatch(setAuth({ accessToken, refreshToken, userIdentifier }))`, mount `MOCK_USER`, return true.
-   - 4xx → return false (do **not** fall through to the mock validator — that would mask wrong-password errors).
-   - Network error → log warn, fall through to step 3.
-3. `await validateCredentials(...)` (the Server Action) — local mock check.
+**Locale:** `src/lib/oneentry/locale.ts` exports `DEFAULT_LOCALE`. Every fetcher already accepts `lang: Lang = DEFAULT_LOCALE`, so multi-locale routing (`app/[locale]/…`) becomes a mechanical swap.
 
 ---
 
-## 7. `attributeValues` access pattern
+## 4. Server Actions
 
-The codebase does NOT consume entities with `attributeValues` payloads — neither pages nor products nor blocks are fetched from OneEntry, so there is no concrete reader in source. The auth response (`CmsLoginResponse`, `AuthContext.tsx:67-72`) is the only OneEntry payload actually parsed, and it carries flat fields, not `attributeValues`.
+All mutations live under `src/lib/oneentry/**/*.ts` and are marked `'use server'`. Grouped by domain:
 
-If/when the project starts consuming `Pages` / `Products` / `Forms` / `Blocks` from OneEntry, the canonical safe-access template (per SDK conventions documented under `.claude/rules/attribute-values.md` in this repo's agent ruleset) is:
+### 4.1 Auth + user state (`src/lib/oneentry/auth/actions.ts`)
+
+The file is the largest Server Action module (~1420 lines) and exposes **18 Server Actions** plus the shared types (`OeUser`, `OeAddress`, `OeSubscriptions`, `OeConsent`, `OeCartItem`, `OeWishlistItem`, `OeOrder`, `OeRecentlyViewedItem`, `ProfileUpdate`, `CheckoutMethod`, `CreateOrderInput`).
+
+**Auth & session**
+
+| Action | OneEntry call | Purpose |
+|---|---|---|
+| `signInAction(loginOrEmail, password)` | `AuthProvider.auth('email', {authData:[{marker:'login',value},{marker:'password',value}]})` | Email/password sign-in. On success, writes `oe_access` / `oe_refresh` / `oe_user` cookies and returns `{ok:true, user, userIdentifier}`. |
+| `signInWithGoogleAction(accessToken)` | `AuthProvider.oauth('google', {accessToken})` (with fallback field-name variants — `idToken` etc.) | Exchanges a Google `access_token` (obtained via GIS token client — see `src/lib/google-auth.ts`) for an OE session. |
+| `connectGoogleAccountAction(accessToken)` | `AuthProvider.oauth('google', …)` invoked against the already-authenticated user | Links a Google account to the current user (called from `SocialNetworksSection` in Account → My Data). Requires `oe_access`. |
+| `signUpAction(input)` | `AuthProvider.signUp('signin', formData)` | Creates a new account. `input` follows the sign-up-form attribute-set schema (see 4.2). |
+| `signOutAction()` | `AuthProvider.logout(refreshToken)` | Server-side logout, clears cookies. |
+| `getCurrentUserAction()` | `Users.getUser(langCode)` + form-data reads (see below) | Bootstrap `/me`. Composes profile + addresses + subscriptions + consent + cart + wishlist + recently-viewed + orders. Called from `AuthContext` on mount and after every mutation. |
+
+**Form-data module-config IDs used by `getCurrentUserAction` / `update*Action`:**
 
 ```ts
-// Generic helpers — recommended when wiring up real fetches.
-function attr<T = unknown>(entity: { attributeValues?: Record<string, { value?: unknown }> }, marker: string): T | undefined {
-  return entity.attributeValues?.[marker]?.value as T | undefined;
-}
-
-// string / textarea
-const title = attr<string>(page, 'title') ?? '';
-
-// text (rich) — value is an object { htmlValue, plainValue, mdValue, params }
-const body = attr<{ htmlValue: string; plainValue: string }>(page, 'body');
-const html = body?.htmlValue ?? '';
-
-// integer / real — stored as STRING in admin shape
-const price = Number(attr<string>(product, 'price') ?? 0);
-
-// list (single or multi) — array of { value }
-const sizes = (attr<Array<{ value: string }>>(product, 'sizes') ?? []).map(o => o.value);
-
-// radioButton — object { value }
-const flag = attr<{ value: string }>(product, 'is_featured')?.value === 'YES';
-
-// image / groupOfImages — array of file descriptors with previewLink tuples
-const cover = attr<Array<{ filename: string; downloadLink: string }>>(product, 'preview')?.[0]?.downloadLink;
-
-// entity — array of { id, type }
-const refs = attr<Array<{ id: number; type: string }>>(product, 'related') ?? [];
+const USER_ADDRESSES_MODULE_CONFIG_ID = 24;      // user_addresses form
+const USER_DATA_MODULE_CONFIG_ID = 3;             // user_data form (consent, extra profile bits)
+const SUBSCRIPTION_MGMT_MODULE_CONFIG_ID = 32;    // subscription_management form
 ```
 
-The per-type shape contract is enforced by the admin UI renderers — see `agents_datasets/rules/attribute-shapes-reference.md` in this repo for the full table (text → `{htmlValue, plainValue, mdValue, params}`, integer/real → string, list → `[{value}]`, image.previewLink → `{1: [url, url]}` tuples, etc.).
+**Profile mutations**
+
+| Action | Effect |
+|---|---|
+| `updateProfileAction(patch: ProfileUpdate)` | Persists a partial profile update. Fields (each optional): `firstName`, `lastName`, `email`, `phone`, `gender`, `dob`, `shoeSize`, `clothingSize`. Updates `Users` core fields + writes extras (dob/sizes) into `user_data` form-data. |
+| `updateAddressesAction(addresses: OeAddress[])` | Full-replace upsert of the user's saved delivery addresses. Each `OeAddress` carries `recordId` once persisted — used to route inserts vs updates. Returns the canonical list from OE (mapped back to local UI shape). |
+| `updateSubscriptionsAction(subs: OeSubscriptions)` | Upsert into `subscription_management` form-data. Fields: `emailNewsletter`, `smsNotifications`, `pushNotifications`, `orderUpdates`, `newArrivals`, `saleAlerts`, `loyaltyUpdates`. |
+| `updateConsentAction(consent: OeConsent)` | Upsert into `user_data` form-data. Fields: `dataProcessing`, `crossBorder`. |
+
+**Cart / wishlist / recently-viewed state**
+
+| Action | Effect |
+|---|---|
+| `syncCartAction(items: OeCartItem[])` | Full-replace push of the client's cart snapshot into the user's OE state blob. Called from `CartContext` debounced 400 ms. |
+| `getCartAction()` | Reads `OeCartItem[]` from the user state. Used by e2e tests and future warm-up refreshers. |
+| `syncWishlistAction(items: OeWishlistItem[])` | Full-replace push for wishlist. |
+| `getWishlistAction()` | Reads `OeWishlistItem[]` from the user state. |
+| `pushRecentlyViewedAction(item: OeRecentlyViewedItem)` | Appends a single product view (`{productId, viewedAt}`) to the user state trail — used by `RecentlyViewedSection` when a signed-in user opens a PDP. |
+| `getRecentlyViewedAction()` | Reads the server-side trail. Used to seed Redux `recentlyViewedSlice` after `/me` bootstrap. |
+| `mergeRecentlyViewedAction(local: OeRecentlyViewedItem[])` | On login, combines the guest's local `recentlyViewed` list with the server trail (dedupe by `productId`, keep most recent `viewedAt`), pushes the merged list back, and returns it. |
+
+**Checkout**
+
+| Action | Effect |
+|---|---|
+| `createOrderAction(input: CreateOrderInput)` | `POST /api/content/orders-storage/marker/{storage}/orders` where `storage ∈ {home, store_pickup, locker}` (typed as `CheckoutMethod`). Returns `{ok:true, orderId, paymentUrl, paymentSessionError?}`. For Stripe accounts, a secondary `POST /api/content/payments/sessions` provisions the hosted-checkout URL. |
+| `cancelOrderAction(orderId: number, storage: string)` | Cancels an order from the account UI. Discovers the tenant's cancelled status marker dynamically via `getApi().Orders.getAllStatusesByStorageMarker(storage)` (regex `/cancel/i` on `identifier` or `localizeInfos.title`), falls back to `${storage}_cancelled` if the SDK returns nothing. Because `updateOrderByMarkerAndId` treats its `body` as a **full `IOrderData` replacement** (not a partial patch — sending only `{ statusIdentifier }` trips OE validators like `"Order must have a payment"`), the action first fetches the existing order via `getOrderByMarkerAndId(storage, orderId)` and round-trips `formIdentifier`, `paymentAccountIdentifier`, `formData`, `products`, and optional `currency` / `couponCode` / `bonusAmount` verbatim, swapping only `statusIdentifier` for the discovered cancellation marker. **Shape mismatch caveat:** the two SDK methods disagree on the product entry shape — `getOrderByMarkerAndId` returns `IOrderProducts` (`{ id, quantity, title, price, sku, previewImage }`), while `updateOrderByMarkerAndId` requires `IOrderProductData` (`{ productId, quantity }`). Passing the fetched products through verbatim yields `"products.0.productId must be a number conforming to the specified constraints"`. The action remaps `p.id → productId` (falling back to any already-set `productId`), coerces to `Number`, and filters entries where the resulting `productId` isn't a positive finite number. Returns `{ok:true}` or `{ok:false, error}`. Consumed by `MyOrdersSection`. |
+
+Cookie policy:
+
+| Cookie | Scope | Purpose |
+|---|---|---|
+| `oe_access` | httpOnly, secure, sameSite=lax | Short-lived access token (Bearer for authenticated OE calls) |
+| `oe_refresh` | httpOnly, secure, sameSite=lax | Refresh token used by `signOutAction` |
+| `oe_user` | non-httpOnly | User identifier — read by the client to render a user badge before the `/me` bootstrap resolves |
+
+### 4.2 Sign-up form schema (`src/lib/oneentry/auth/sign-up-form.ts`)
+
+Loads the attribute set `users_sign_in_sign_up` and exposes a typed schema for the registration form: email, password, first_name, phone, gender, promotional subscriptions, terms agreement. Consumed by `SignUpFormSchemaProvider` (`auth/SignUpFormSchemaContext.tsx`) and rendered by `RegisterModal`.
+
+### 4.3 Activity tracking (`src/lib/oneentry/activity/actions.ts`)
+
+Server Action: `trackActivityAction(input: TrackActivityInput)` — POSTs to `/api/content/user-activity/track`. Consumed via the client wrapper `src/app/utils/track-activity.ts::trackActivity(input)` (fire-and-forget, never throws). Ten event types:
+
+`product_view`, `page_view`, `category_view`, `search`, `product_add_to_cart`, `product_remove_from_cart`, `product_add_to_wishlist`, `product_remove_from_wishlist`, `product_purchase`, `product_rating`.
+
+Auth: signed users authenticate with `oe_access`; anonymous users are identified by an `x-guest-id` header (see 6.1).
+
+Client wrapper: `src/app/utils/track-activity.ts` — fire-and-forget, never throws.
+
+### 4.4 Catalog (`src/lib/oneentry/catalog/*-action.ts`)
+
+- `getProductsByIdsAction(ids)` — resolves numeric OE product IDs to UI-ready `Product[]` (used by cart / wishlist enrichment).
+- `searchProductsAction(query)` — thin wrapper around vector + quick search.
+- `submitServiceRequestAction(...)` — posts to form `service_request` (moduleConfigId=4).
+- `getServiceRequestsAction()` — lists the current user's service requests.
+- `getWaitingListAction()` — combines the user's wishlist with product stock inference.
+
+### 4.5 Forms (`src/lib/oneentry/forms/`)
+
+Three files:
+
+- `submit.ts` — `submitForm(marker, fields, binding?, lang?)` Server Action. Calls `getApi().FormData.postFormsData({formIdentifier: marker, formModuleConfigId, moduleEntityIdentifier, replayTo: null, status: 'sent', formData: fields}, lang)`. `binding` is optional `{moduleConfigId?, moduleEntityIdentifier?}` and defaults to `{0, ''}`. When a form is bound to a page in the OE admin, both values must match one of the form's `moduleFormConfigs` entries — otherwise OE rejects with `Incorrect formIdentifier for provided config`. Find the pair via `getApi().Pages.getPageByUrl('<page>', lang)` → `page.moduleFormConfigs[N].id` (the numeric `moduleConfigId`) and `page.moduleFormConfigs[N].entityIdentifiers[0].id` (the `moduleEntityIdentifier`, usually the page's `pageUrl`). Returns `{ok:true}` or `{ok:false, error}`.
+- `placeholders.ts` — `loadFormPlaceholders(marker, lang)` cached loader (5 min TTL, dedupes inflight). Reads placeholders from `Forms.getFormByMarker` and returns a nested map `attribute → additionalField → string`.
+- `FormPlaceholdersContext.tsx` — client-side `FormPlaceholdersProvider` + `useFormPlaceholder(formMarker, attrMarker, fieldMarker, fallback)` hook.
+
+**Active `submitForm` call sites and their markers:**
+
+| Consumer | Form marker | Page binding (`moduleConfigId` / `moduleEntityIdentifier`) | Fields |
+|---|---|---|---|
+| `NewsletterForm.tsx` | `subscribe_new_drops` | `52` / `'subscribe'` | `subscribe_new_drops_email` |
+| `WriteReviewModal.tsx` (PDP) | `review_rating` + `review_feedback` (two calls in sequence) | — (unbound) | `rating` (rating form); `headline`, `body`, `name`, `email`, `occasions` (feedback form) |
+| `ReserveInStoreModal.tsx` (PDP) | `reserve_in_store` | — (unbound) | `size`, `first_name`, `last_name`, `phone`, `email`, `pickup_date`, `agreed_terms`, `reserve_in_store_form_select_store` |
+| `FeedbackSection.tsx` (Account) | `user_account_feedback` (planned — currently local-only in UI) | — | rating, category, orderId, message |
+
+Live verification: `NewsletterForm.tsx` submissions return `{id: 30196, actionMessage: 'Success'}` and render the green "Subscribed!" state. If the binding pair drifts in OE admin, look it up with `getApi().Pages.getPageByUrl('subscribe', lang)` → `page.moduleFormConfigs[0]` and update the `{ moduleConfigId, moduleEntityIdentifier }` object passed to `submitForm`.
+
+Server Actions for domain-specific forms (`service_request`, `checkout_home_delivery`, `signin`) do NOT go through `submitForm` — they have dedicated actions in `catalog/service-request-submit-action.ts`, `auth/actions.ts::createOrderAction`, and `auth/actions.ts::signUpAction` respectively.
+
+### 4.6 Payments (`src/lib/oneentry/payments/accounts.ts`)
+
+`getPaymentAccountsAction()` returns visible `PaymentAccount[]` (`{id, identifier, type: 'stripe'|'custom', title, description}`) from `Payments.getAccounts()`. Consumed by `PaymentPage`.
 
 ---
 
-## 8. Locale propagation
+## 5. Read-side loaders (cached, no side effects)
 
-The application is **single-locale (en-GB)** — see `./I18N.md`. There is no locale segment in the URL, no `locale` parameter passed into Platform calls, and no `langCode=` query parameter on any OneEntry request.
+All loaders wrap the SDK, add React `cache()` for request-scoped memoisation, and often a 5-minute process-wide TTL for high-traffic reads.
 
-The auth call body (`AuthContext.tsx:88-100`) sends no language hint; the response is taken at face value. The Platform's `Accept-Language` header is not set.
+### 5.1 Blocks (`src/lib/oneentry/blocks/`)
 
-If multi-locale support is added later, the natural insertion points are:
+| File | Marker | Loader | Consumer |
+|---|---|---|---|
+| `hero-slides.ts` | `hero_slider` | `loadHeroSlides(lang)` | `HeroSlider` on Home |
+| `homepage-collections.ts` | `homepage_collections` | `loadHomepageCollections(lang)` | Home "Shop Collections" grid |
+| `discount-banner.ts` | `discount_banner` | `loadDiscountBanner(lang)` | `DiscountBanner` on Home |
+| `homepage-product-blocks.ts` | Multiple (`best_sellers`, `new_arrivals_home`, `sale_home`) | `loadHomepageProductBlock(lang)` (**singular** name in code — the plural form used in earlier revisions was renamed) | Home product carousels |
+| `category-section.ts` | `category_section` | `loadCategorySection(lang)` | Home "Shop by Category" tabs |
+| `page-blocks.ts` | Any page id | `loadPageBlocksById`, `loadBlockWithProducts`, `loadFrequentlyOrderedBlock` + `PageBlock` type + constant `HOME_PAGE_ID = 1` (used by the homepage RSC shell). Home-page `similar_products_block` markers `homepage_new_arrivals` / `homepage_best_sellers` / `homepage_sale` have no seed product for OE's similarity engine, so `loadBlockWithProducts` falls back through `loadHomepageBlockFallback` to `loadProducts({ tags: ['NEW' | 'BESTSELLER' | 'SALE'] })`; unknown markers stay empty (block hides silently). | PDP "You may also like", PDP "Special Offers" (`bought_together`), homepage `pageBlocks`, account tab blocks |
+| `clothing-filter.ts` | `clothing` filter marker | `loadClothingFilter(products, lang)` | `CatalogTemplate` — normalises OE filter attribute metadata into the UI `ClothingFilterGroup[]` shape (color / size_chips / checkbox / price_range / search_checkbox), maps OE color names to hex via `OE_COLOR_HEX`, computes per-option counts against the current product page |
 
-- Read `locale` from `app/[locale]/...` route params.
-- Thread `locale` into RTK Query args (`useGetWishlistQuery({ locale })`).
-- Append `?langCode={locale}` to every wishlist / cart / future page-content endpoint URL inside `prepareHeaders` or the `query` factory.
-- Pass the same `locale` as `langCode` whenever consuming `Pages` / `Products` / `Blocks` from the SDK or REST.
+Block types actually consumed on the PDP:
 
-None of this is wired today.
+- `frequently_ordered_block` (marker `pdp_you_may_also_like`) — stats-driven cross-sell. `FrequentlyOrderedAsync` backfills with category shelf products when the block returns fewer than 8 items, walking up the category tree and de-duping by product id + gender.
+- `bought_together` (marker `special_offers`) — manually curated bundle set. Rendered by `ProductSpecialOffers`.
+
+### 5.2 Catalog (`src/lib/oneentry/catalog/`)
+
+| File | SDK / endpoint | Exports |
+|---|---|---|
+| `products.ts` (833 loc) | `POST /products/all`, `POST /products/vector/search`, `POST /products/quick/search` | `loadProducts`, `loadProductById`, `loadProductsByIds`, `searchProducts` (+ alias `searchProductsByVector`), `loadFilteredProducts` (filter-body variant used by `app/[...slug]/page.tsx`), plus pure helpers `categoryPathToBreadcrumbs(path)` and `catalogKeyToPageUrl(catalogKey)`. Exports 6 types (`CatalogProduct`, `CatalogProductVariant`, `LoadProductsOptions`, `LoadProductsResult`, `LoadFilteredProductsOptions`, `LoadFilteredProductsResult`). |
+| `pages.ts` | `Pages.getPageByUrl(pageMarker, lang)` | `loadPageByUrl` — **exported but not currently consumed by any RSC or component** (dead code, retained for future info-page CMS wiring; today `InfoPage` reads from local `INFO_PAGE_LABELS` instead) |
+| `stores.ts` | `Pages.getChildPagesByParentUrl('stores', lang)` | `loadStores` |
+| `store-locations-page.ts` | `Pages` raw list | `loadStoreLocationsPage` |
+| `reviews.ts` | Form-data for markers `review_feedback` (moduleConfigId=13) and `review_rating` (moduleConfigId=12) | `loadProductReviews` |
+| `filters.ts` | Pure module — URL ↔ OE filter payload | Attribute markers: `color_9`, `size_10`, `brand_7`, `style_3`, `material_15`, `season_19`, `fitrise_4`, `lining_16`, `country_20`, `lable_23`, `details_5`, `careinstructions_18`, `insulation_17`, `price_14`. Exports: `parseCatalogSearchParams`, `serializeCatalogSearchParams`, `isFilterGroupSupported`, `toggleFilterOption`, `getSelectedOptionsForGroup`, `countActiveFilters`. `matchesCatalogFilters` is a private in-memory matcher used by `loadFilteredProducts` (not exported). ⚠ **`buildOEFilterBody` is exported but has 0 consumers** — dead code left over from an earlier attempt to push the filter payload to OneEntry. |
+| `adapt.ts` | Pure — maps `ProductEntity` → UI `Product` | Shared by every product consumer |
+
+### 5.3 Menus (`src/lib/oneentry/menus/`)
+
+| File | Marker | Loader / Adapter |
+|---|---|---|
+| `menus.ts` | Any menu marker | `loadMenu(marker, lang)` calling `Menus.getMenusByMarker` |
+| `adapt-header.ts` | — | `adaptHeaderMenuToMega()` — OE tree → storefront mega-menu shape with keyword + positional fallback for `women/men` and `shoes/clothing/bags/accessories` |
+| `adapt-footer.ts` | — | Footer column grouping |
+
+Both are consumed on the client via `HeaderMenuContext` / `FooterMenuContext`.
+
+### 5.4 Labels (`src/lib/oneentry/labels/`)
+
+Twelve CMS-managed label sets. Each pair is `{name}-labels.ts` (loader) + `{name}-types.ts` (typed dict); each has a matching client `{Name}LabelsContext.tsx`.
+
+| Label set | Attribute set marker |
+|---|---|
+| product-card | `product_card_set` |
+| sign-in | `sign_in_set` |
+| create-account | `create_account_set` |
+| checkout | multiple markers under `CHECKOUT_SET_MARKERS` |
+| your-bag | `your_bag_set` |
+| pdp | `pdp_set` |
+| favorites-page | `favorites_page_set` |
+| new-arrivals-page | `new_arrivals_page_set` |
+| sale-page | `sale_page_set` |
+| stores | `stores_set` |
+| account | `account_set` |
+| interface-controls | `interface_controls_set` |
+
+Each label loader uses `system-text.ts::getSystemSet(marker, lang)` → 5 min TTL + React request cache.
+
+### 5.5 Forms placeholders (`src/lib/oneentry/forms/placeholders.ts`)
+
+`loadFormPlaceholders(marker, lang)` returns a nested map `attribute → additionalField → string`. Consumed by `FormPlaceholdersContext` and shared by all form components.
+
+### 5.6 System text (`src/lib/oneentry/system-text.ts` + `SystemText.tsx`)
+
+Exports: `Lang` type (currently `'en_US'`), `SystemSchema` type, `readSystemValue(set, path)` (untyped accessor), `getSystemSet(marker, lang)` (cached attribute-set loader — 5-minute TTL + React cache), `t(set, path)` (dot-path accessor with safe fallback), plus `<SystemText>` RSC component in `SystemText.tsx` that renders a label directly.
+
+---
+
+## 6. Guest / authenticated dispatch
+
+### 6.1 Guest identifier (`src/app/utils/guest-id.ts`)
+
+`getOrCreateGuestId()` mints a UUID and stores it in `localStorage` under `oe_guest_id`. It is attached to Server Actions that support anonymous users:
+
+- `trackActivity` — as `x-guest-id` header.
+- `createOrderAction` (guest checkout) — as `x-guest-id` header plus the `_guest` form-identifier suffix.
+
+### 6.2 Authenticated dispatch
+
+Signed-in requests use the `oe_access` cookie (Bearer forwarded server-side). Refresh is handled inside `signOutAction`; no client-side refresh loop exists — the current session lasts as long as `oe_access` remains valid, then requires a manual re-sign-in.
+
+---
+
+## 7. Marker registry
+
+Every marker referenced in the codebase. Grouped by domain.
+
+### 7.1 Auth
+- Provider: `email`, `google`
+- Sign-up form / attribute set: `signin` (form marker), `users_sign_in_sign_up` (attribute set)
+
+### 7.2 Users / profile / preferences
+- Form-data records: `user_addresses`, `user_data`, `subscription_management`
+
+### 7.3 Pages
+- Every route resolves to a page marker via `PAGE_REGISTRY` (`src/app/data/pageRegistry.ts`). Info pages: `about-us`, `careers`, `rewards`, `gift-certificates`, `refer-a-friend`, `corporate`, `faq`, `track-order`, `delivery`, `exchange`, `sizing-guide`, `care-guide`, `help-center`, `contact`, `privacy-policy`, `terms`, `terms-of-sale`, `terms-of-use`, `security`, `accessibility`, `user-content-policy`, `promo-terms`, `sitemap`. Hub: `info`.
+- Store parent page: `stores`.
+
+### 7.4 Blocks
+- `hero_slider`, `homepage_collections`, `discount_banner`, `category_section`
+- Homepage product blocks: `best_sellers`, `new_arrivals_home`, `sale_home` (names may drift — verify in the admin)
+
+### 7.5 Products — attribute markers (used in filter / adapter)
+- Mandatory: `gallery` / `pictures`, `brand`, `colors` / `color`, `sizes` / `size`, `material`, `style`, `label` / `lable`, `season`, `brand_country` / `country`, `price`, `sku`, `title`, `currency`
+- Optional: `fit` / `fitrise`, `lining_material` / `lining`, `insulation`, `details`, `careinstructions`, `stockqty` / `units`, `description` / `productdescription`
+
+Filter body markers (URL param ↔ marker in `src/lib/oneentry/catalog/filters.ts`): `color_9`, `size_10`, `brand_7`, `style_3`, `material_15`, `season_19`, `fitrise_4`, `lining_16`, `country_20`, `lable_23`, `details_5`, `careinstructions_18`, `insulation_17`, `price_14`.
+
+### 7.6 Forms
+- Auth: `signin`
+- Reviews: `review_feedback` (moduleConfigId=13), `review_rating` (moduleConfigId=12)
+- Service: `service_request` (moduleConfigId=4)
+- Checkout: `checkout_home_delivery`, `checkout_store_pickup`, `checkout_locker` (+ `_guest` variants)
+
+### 7.7 Orders storage
+- `home`, `store_pickup`, `locker` — passed as `{storage}` in `POST /orders-storage/marker/{storage}/orders`
+
+### 7.8 Payments
+- Accounts identified by `identifier` returned from `Payments.getAccounts()`. Type: `stripe` or `custom`.
+
+### 7.9 Menus
+- Header + footer menu markers (site-specific — read via the admin `Menus` module)
+
+### 7.10 Labels / attribute sets
+See §5.4 for the full list.
+
+---
+
+## 8. Consumption on the client
+
+### 8.1 In RSCs
+
+RSC route shells / page components import loaders and pass results to client components as props. Example:
+
+```tsx
+// app/[...slug]/page.tsx (simplified — real route uses loadFilteredProducts + adapters)
+export default async function Page({ params, searchParams }: {
+  params: Promise<{ slug: string[] }>,
+  searchParams: Promise<Record<string, string | string[]>>,
+}) {
+  const { slug } = await params;
+  const entry = PAGE_REGISTRY[slug.join('/')];
+  const filters = parseCatalogSearchParams(await searchParams);
+  const { products, total } = await loadFilteredProducts({ pageUrl: entry.pageMarker, filters });
+  return <CatalogTemplate initialProducts={products} total={total} currentFilters={filters} />;
+}
+```
+
+Note: `loadPageByUrl` is **not** called by the current `app/[...slug]/page.tsx` — info pages read their content from local static tables (`INFO_PAGE_LABELS` etc.). See §5.2 for the dead-code caveat.
+
+### 8.2 In client components
+
+Server Actions are imported directly:
+
+```tsx
+'use client';
+import { signInAction } from '@/lib/oneentry/auth/actions';
+
+const res = await signInAction(email, password);
+```
+
+The Auth Server Actions are wrapped by `AuthContext` — components consume `useAuth().login()` / `.updateProfile()` / etc.
 
 ---
 
 ## 9. Error handling conventions
 
-### 9.1 Auth (`AuthContext.cmsLogin`)
+### 9.1 SDK-level errors
 
-- 4xx → `cmsLogin` returns `null`. `login()` returns `false` (rendered as "wrong credentials" by the modal).
-- Network error → `cmsLogin` throws, `login()` catches, logs `console.warn('[AuthContext] Platform login network failure, falling back to mock', err)`, and falls through to the Server Action mock.
+`isError(value)` (`src/lib/oneentry/index.ts:45`) narrows the SDK's union of `IError` vs the expected entity type. Pattern:
 
-### 9.2 wishlist / cart RTK Query mutations
+```ts
+const res = await getApi().Products.getProductById(id);
+if (isError(res)) {
+  // handle 4xx / 5xx
+  return null;
+}
+return res; // narrowed to IProductEntity
+```
 
-`WishlistContext.tsx:134-145` and the analogous `CartContext.tsx` paths follow the same pattern:
+### 9.2 Server Action returns
 
-1. **Optimistic Redux update** before the network call.
-2. `.unwrap().catch(err => ...)` rolls back the Redux change and calls `emitSyncWarning(...)`.
+Every Server Action returns a discriminated result: `{ok: true, ...}` or `{ok: false, error: string}`. Client callers never receive raw HTTP status codes.
 
-`emitSyncWarning(kind, message, context)` (`src/app/utils/syncWarnings.ts`):
+### 9.3 Cart / wishlist sync
 
-- `kind='unmapped'` — playground product has no `cmsProductId` (mapping missing in `cms-product-id-map.ts`). Mutation stays local-only.
-- `kind='mutation'` — server returned an error; optimistic state has been rolled back.
-- `kind='connectivity'` — fetch itself failed; local state preserved.
+`syncCart` / `syncWishlist` are fire-and-forget from the client. Failures are logged; local Redux state is not rolled back (the debounced effect will re-push on the next change).
 
-Implementation: `console.warn` + `window.dispatchEvent(new CustomEvent('oe:sync-warning', { detail }))`. A toast container could subscribe to that event; none exists today.
+### 9.4 `emitSyncWarning` (`src/app/utils/syncWarnings.ts`)
 
-Helper `isFetchBaseQueryError(error)` in `wishlistApi.ts:101-107` narrows RTK Query errors to the `{ status, data }` shape for catch-block handling.
-
-### 9.3 Read queries
-
-`useGetWishlistQuery` / `useGetCartQuery` are gated by `skip: !apiOn` where `apiOn = isXxxApiEnabled() && Boolean(authToken)`. Without a token, no GET fires.
-
-When the GET returns, `WishlistContext` merges server items into Redux on first arrival (via `useRef` to avoid re-merging on every render — see `WishlistContext.tsx:86-106`). Server items win on conflict (deduped by id), local-only items are kept.
+Legacy hook — logs `console.warn` + dispatches a `CustomEvent('oe:sync-warning', {detail})`. Retained for a future toast subscriber; no listener exists today.
 
 ---
 
 ## 10. Caching / revalidation
 
-- **No Next.js `revalidate`** is set anywhere for OneEntry data — there are no Server Components that fetch from the Platform.
-- **No `unstable_cache`** wrappers, no `tag` invalidation via `revalidateTag()`. Server Action `validateCredentials` does not call `revalidatePath()`.
-- **RTK Query cache** is configured per slice:
-  - `wishlistApi` — `tagTypes: ['Wishlist']`. Every mutation calls `invalidatesTags: ['Wishlist']`, refetching `getWishlist`.
-  - `cartApi` — `tagTypes: ['Cart']`. Same pattern.
-- **localStorage persistence** (`'oe_store'`, schema version 4, see `./REDUX.md` §7) writes `cart`, `wishlist`, `recentlyViewed`, `catalog` UI state, and `userAddresses` on every Redux change via `store.subscribe`. Auth tokens are **intentionally excluded** from localStorage.
+- **React `cache()`** — every read loader wraps its work in `cache()` so multiple RSCs on the same request share a single fetch.
+- **Process-wide TTL** — high-traffic reads (attribute sets, product lists, hero slides…) additionally memoise with a 5-minute TTL keyed by `(marker, lang)` inside `system-text.ts` and `catalog/products.ts`.
+- **Next.js ISR** — `src/lib/isr.ts` exports revalidate constants used by RSC `export const revalidate` and by block loaders. Turn ISR off in dev by setting `ISR_DISABLED=1`.
+
+  | Constant | Prod TTL | Consumers |
+  |---|---|---|
+  | `REVALIDATE_HOME` | 300 s | Homepage blocks |
+  | `REVALIDATE_PRODUCT` | 600 s | PDP loaders |
+  | `REVALIDATE_CATALOG` | 300 s | `/women/*` and `/men/*` catalogs |
+  | `REVALIDATE_SALE` | 60 s | `/sale` — time-sensitive countdown |
+  | `REVALIDATE_NEW` | 600 s | `/new` |
+  | `REVALIDATE_STORES` | 3600 s | `/stores` locator |
+  | `REVALIDATE_INFO` | 3600 s | `/[...slug]` info pages |
+
+- **RTK Query tag invalidation** — `cartApi` / `wishlistApi` still declare `['Cart']` / `['Wishlist']` tags, but with the sync path having moved to Server Actions their query hooks are effectively unused.
+- **`localStorage`** — `oe_store` v5 persists client-only Redux slices (cart minus `miniCartOpen`, wishlist, recentlyViewed, catalog). Auth tokens are **never** written to `localStorage`.
 
 ---
 
 ## 11. File map — every file touching OneEntry
 
-| File | Lines | Role |
-|---|---|---|
-| `src/app/context/AuthContext.tsx` | 45, 80-105, 128-173 | `cmsLogin()` and the 3-tier login flow (social → Platform → mock Server Action). Reads `NEXT_PUBLIC_API_URL`, dispatches `setAuth`/`clearAuth`. |
-| `src/app/store/api/wishlistApi.ts` | full file (107 lines) | `createApi` for `/users/me/wishlist*`. Exports `isWishlistApiEnabled()`, `useGetWishlistQuery`, `useAddWishlistItemMutation`, `useRemoveWishlistItemMutation`, `useSetWishlistMutation`, `isFetchBaseQueryError`. |
-| `src/app/store/api/cartApi.ts` | full file (79 lines) | `createApi` for `/users/me/cart*`. Exports `isCartApiEnabled()` plus the four query/mutation hooks. |
-| `src/app/store/api/types/wishlist.ts` | full file (33 lines) | Wire types: `WishlistApiItem`, `WishlistApiResponse`, `WishlistAddItemArgs`, `WishlistRemoveItemArgs`, `WishlistSetArgs`. |
-| `src/app/store/api/types/cart.ts` | full file (35 lines) | Wire types for the cart endpoint family. |
-| `src/app/store/userSlice.ts` | 15-24, 45-49, 68-78, 102 | Stores `authToken` / `refreshToken` / `userIdentifier` on `user.data`. Action creators `setAuth`, `clearAuth`. |
-| `src/app/context/WishlistContext.tsx` | 47-65 (`placeholderFromCmsId`), 67-106 (server merge), 118-172 (sync logic) | Optimistic-update + rollback wrapping over `wishlistApi`. Uses `CMS_PRODUCT_ID_MAP` for playground↔Platform id resolution. |
-| `src/app/context/CartContext.tsx` | analogous structure | Optimistic-update + rollback wrapping over `cartApi`. Handles cart bundles by syncing each constituent item individually. |
-| `src/app/data/cms-product-id-map.ts` | full file (103 lines) | Static `playgroundId → Platform products.id` mapping plus `getCmsProductId(id)` / `getPlaygroundProductId(id)`. 25 entries covering the `seed-demo-prod-*` seed. |
-| `src/app/utils/syncWarnings.ts` | full file (50 lines) | `emitSyncWarning(kind, message, context)` for unmapped / mutation / connectivity issues. CustomEvent name: `'oe:sync-warning'`. |
-| `src/app/actions/auth.ts` | full file (18 lines) | Server Action `validateCredentials(emailOrPhone, password)` — local mock fallback. Does NOT call OneEntry. |
-| `src/app/utils/schemas.ts` | full file (157 lines) | Zod schemas — `loginSchema` accepts email/phone/Platform identifier (`AuthContext.tsx` consumes this implicitly). |
-| `scripts/setup-demo-passwords.sh` | full file | Provisions `users_auth_providers(identifier='email')`, the `auth_email_set` attribute set with `isLogin`/`isPassword` markers on `login`/`password`, the `auth_email_form` form, and bcrypts `demo123` for every `seed-demo-user-*`. Idempotent. |
-| `./DEMO_LOGIN.md` | full file | Demo accounts (`seed-demo-user-active-1` etc.), all sharing `demo123` after running the setup script. |
-| `package.json` | 19-29 | **Confirms** the `oneentry` SDK is NOT a dependency. |
+Under `src/lib/oneentry/` (100+ files including tests). Top-level:
+
+- `index.ts` — SDK singleton
+- `locale.ts` — DEFAULT_LOCALE
+- `system-text.ts` + `SystemText.tsx` + `system-text.test.ts`
+- `auth/actions.ts`, `auth/sign-up-form.ts`, `auth/SignUpFormSchemaContext.tsx`
+- `activity/actions.ts`
+- `blocks/*.ts` (6 loaders + tests)
+- `catalog/*.ts` (~14 files — see §5.2)
+- `forms/*.ts` (3 files — placeholders, submit, context)
+- `labels/*.ts` (12 pairs of loader/types + 12 contexts + tests)
+- `menus/*.ts` (menu loader, header adapter, footer adapter, 2 contexts)
+- `payments/accounts.ts`
+
+Files elsewhere that call into the integration:
+
+| File | Role |
+|---|---|
+| `src/app/context/AuthContext.tsx` | Bootstraps `/me` on mount, drives `authReady`. Exposes **11 mutation methods** through the `useAuth()` hook — of which 10 wrap Server Actions (`login`, `loginWithGoogle`, `signUp`, `logout`, `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist`) and 1 is a local optimistic merge (`updateUser` — does not touch OneEntry). Plus `openLoginModal` / `openRegisterModal` state helpers. |
+| `src/app/context/CartContext.tsx` | Debounced 400 ms `syncCart`, one-shot server merge, product enrichment via `getProductsByIdsAction` |
+| `src/app/context/WishlistContext.tsx` | Same pattern for wishlist |
+| `src/app/pages/checkout/PaymentPage.tsx` | Calls `getPaymentAccountsAction` + `createOrderAction` |
+| `src/app/pages/checkout/DeliveryPage.tsx` | Persists new addresses via `updateAddressesAction` |
+| `src/app/utils/track-activity.ts` | Client wrapper over `trackActivityAction` |
+| `src/app/utils/guest-id.ts` | Guest UUID; passed to activity + guest-order Server Actions |
+| `src/app/components/HeaderSearch.tsx` | Calls `searchProductsAction` (vector + quick) |
+| `src/app/data/cms-product-id-map.ts` | Playground SKU (`wc-1`) ↔ OneEntry integer id bridge — kept only for the legacy CMS_PRODUCT_ID_MAP path, most product data now uses the integer id directly |
 
 ---
 
-## 12. What is NOT wired (gaps & intentional non-integrations)
+## 12. What is NOT wired (intentional gaps)
 
-For LLM agents that may be tempted to assume a feature exists:
-
-- **No `Pages` API consumer** — page content comes from Next.js routes + TS data files, not `/api/content/pages/url/...`.
-- **No `Products` API consumer** — catalog comes from `src/app/data/{women,men}-{clothing,shoes,bags,accessories}.ts`. The `cms-product-id-map.ts` only maps **synthetic IDs** for the wishlist/cart sync — it does not fetch product details from the Platform.
-- **No `Forms` API consumer** beyond signin (which goes through `users-auth-providers`, not `/forms/marker/...`).
-- **No `Menus` API consumer** — `headerConfig.ts` / `footerConfig.ts` / `MEGA_DATA` in `data/categories.ts` are static.
-- **No `Filters` API consumer** — filtering happens client-side over the Redux `catalog` slice.
-- **No `IntegrationCollections` consumer** — FAQ, stores, brands, partners come from `faqData.ts`, `stores.ts`, etc.
-- **No `Orders` API consumer** — checkout writes only into Redux (`cart` + `userAddresses`); order persistence to OneEntry is not implemented.
-- **No `Categories` API consumer** — `SHOP_CATEGORIES` is a TS constant.
-- **No SDK package** — `oneentry` is absent from `package.json` (confirmed line 19-29).
-- **No bootstrap module** — there is no equivalent of `lib/oneentry.ts` exporting `getApi()` / `defineOneEntry({ project, token })`.
-
-If a future task is to "add OneEntry SDK calls for X", the first step is `yarn add oneentry`, then create the bootstrap helper, then add new RTK Query slices following the `wishlistApi` / `cartApi` template.
+- **FCM / push notifications.** The backend exposes `POST /api/content/users/me/fcm-token/{token}`, but no client hook is registered. Adding push would mean a `firebase/messaging` bootstrap + a permission prompt + calling that endpoint.
+- **Real-time updates.** No websocket / SSE consumer. All catalog / cart data is HTTP-only.
+- **Multi-tenant / per-locale routing.** `DEFAULT_LOCALE` is currently a constant. Adding `app/[locale]/…` would require threading `lang` through every loader (already accepted as a parameter) and updating `PAGE_REGISTRY`.
+- **Third-party analytics.** No `gtag` / GTM / Segment / Amplitude / Posthog / Mixpanel — the `user-activity/track` endpoint is the sole telemetry sink.
 
 ---
 
 ## 13. Cross-references
 
-- `./DEMO_LOGIN.md` — demo accounts + one-time `scripts/setup-demo-passwords.sh` provisioning.
-- `./REDUX.md` — full Redux store layout, persistence schema (`'oe_store'` v4), RTK Query swap recipe (§9 of that doc explains step-by-step how to migrate the fake-baseQuery slices to real fetches).
-- `./DATASETS.md` — the inventory of `src/app/data/*.ts` files that currently substitute for OneEntry Products / Pages / Blocks / Forms / Menus / Collections.
-- `./I18N.md` — confirms single-locale; relevant context for understanding why no `langCode` is threaded into Platform calls.
-- `./ARCHITECTURE.md` — overall project layout.
-- `./E2E-TESTS.md` — Playwright E2E that exercises the login modal (touches the auth flow, but does not require a running Platform).
-- `./AUTH.md` — login / signup / token model (the single real Platform call lives here).
-- `./CHECKOUT.md` — three-step checkout funnel (entirely client-side; no Platform order persistence).
-- `./FILTER_SYSTEM.md`, `./SEO_OPTIMIZATION.md`, `./DESIGN_REQUESTS.md` — domain notes, no OneEntry touchpoints.
+- [`./DEMO_LOGIN.md`](./DEMO_LOGIN.md) — demo accounts + `scripts/setup-demo-passwords.sh` bootstrap
+- [`./REDUX.md`](./REDUX.md) — full Redux store layout, persistence schema (`'oe_store'` v5)
+- [`./AUTH.md`](./AUTH.md) — login / signup / OAuth / cookie session model
+- [`./CART_WISHLIST.md`](./CART_WISHLIST.md) — sync semantics, merge on login, product enrichment
+- [`./CHECKOUT.md`](./CHECKOUT.md) — three-step funnel, real order creation, Stripe redirect
+- [`./CATALOG_FILTERS.md`](./CATALOG_FILTERS.md) — filter markers, sort, URL sync
+- [`./DATASETS.md`](./DATASETS.md) — remaining static datasets and their consumers
+- [`./I18N.md`](./I18N.md) — single-locale (en_US), how `DEFAULT_LOCALE` is propagated
+- [`./ARCHITECTURE.md`](./ARCHITECTURE.md) — overall project layout
+- [`./E2E-TESTS.md`](./E2E-TESTS.md) — Playwright suite

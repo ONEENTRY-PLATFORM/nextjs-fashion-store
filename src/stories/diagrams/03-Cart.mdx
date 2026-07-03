@@ -83,14 +83,14 @@ Data source: `state.cart.items` (Redux). `subtotal`, `discount`, `total` compute
 <MermaidDiagram chart={`flowchart TD
     A(["Tick: I have a promo code"]) --> B["Show code input field"]
     B --> C{"Apply / Enter key"}
-    C --> D["code.toUpperCase\\nlookup in CHECKOUT_COUPONS"]
-    D -->|valid code| E["promoDiscount =\\nsubtotal x pct / 100\\npromoApplied = true"]
-    D -->|invalid| F["promoError: Invalid promo code\\npromoDiscount = 0"]
-    E --> G["finalTotal = total - promoDiscount\\ndisplayed in Order Summary"]
-    G --> H["NOTE: promoDiscount\\nnot passed to DeliveryPage\\ncalculated independently there"]
+    C --> D["cart store applyCoupon(code)\\nvalidated server-side"]
+    D -->|valid code| E["couponCode + couponDiscount\\nreturned from preview"]
+    D -->|invalid| F["couponError displayed\\ncouponDiscount = 0"]
+    E --> G["finalTotal from preview totalDue\\nshown in Order Summary"]
+    G --> H["Applied coupon persists into\\nDeliveryPage via cart store"]
     style H fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
 
-Valid codes: `ONEENTRY10` (10%), `SAVE10` (10%), `ONEENTRY20` (20%), `SUMMER15` (15%), `WELCOME25` (25%).
+Coupons are validated on the server (OneEntry preview endpoint) and applied via `applyCoupon` / `removeCoupon` on the cart store. The client no longer ships a list of hardcoded codes.
 
 ---
 
@@ -144,24 +144,22 @@ Valid codes: `ONEENTRY10` (10%), `SAVE10` (10%), `ONEENTRY20` (20%), `SUMMER15` 
 ## 9. Payment Page — Methods
 
 <MermaidDiagram chart={`flowchart TD
-    A(["/checkout/payment"]) --> B{"Select payment method"}
-    B -->|cash| C["Cash on Delivery\\nno extra fields"]
-    B -->|card-delivery| D["Card on Delivery\\nno extra fields"]
-    B -->|qr| E["QR Code\\nstatic mock QR shown"]
-    B -->|apple-pay| F["Apple Pay\\nno extra fields"]
-    B -->|google-pay| G["Google Pay\\nno extra fields"]
-    B -->|card-online| H["Card Online\\nCardForm expands:\\ncardNumber nameOnCard\\nexpiry CVV"]
-    B -->|installment| I["Installment Plan\\nCardForm expands\\n+ 3 or 6 month options"]
-    H --> J{"Place Order"}
-    I --> J
-    J -->|"card fields invalid"| K["Zod paymentSchema\\nshow field errors\\ndo NOT navigate"]
-    J -->|valid| L["router.push\\n/checkout/confirmation"]
-    C --> M{"Place Order (no validation)"}
-    D --> M
-    E --> M
-    F --> M
-    G --> M
-    M --> L`} />
+    A(["/checkout/payment"]) --> A2["getPaymentAccountsAction\\nServer Action reads\\nOneEntry Payments.getAccounts"]
+    A2 --> B{"Select payment method\\ntype: stripe or custom"}
+    B -->|"custom (cash, card-on-delivery,\\nQR, Apple Pay, Google Pay)"| C["No redirect\\nAccount selected"]
+    B -->|stripe| H["Online prepayment\\nHosted checkout"]
+    C --> J{"Place Order"}
+    H --> J
+    J --> K["createOrderAction\\nServer Action"]
+    K --> K2["POST /orders-storage/marker/\\n{home|store_pickup|locker}/orders"]
+    K2 -->|"Guest"| K3["x-guest-id header +\\n{form}_guest markers"]
+    K2 -->|"Signed in"| K4["oe_access cookie Bearer"]
+    K3 --> L2{"Stripe account?"}
+    K4 --> L2
+    L2 -->|NO| M["router.push\\n/checkout/confirmation"]
+    L2 -->|YES| N["POST /payments/sessions\\nreturns paymentUrl"]
+    N --> O["window.location.href\\n= paymentUrl\\n(Stripe hosted checkout)"]
+    O --> P["On success:\\nStripe redirects to\\nsuccessUrl → /confirmation"]`} />
 
 ---
 
@@ -174,7 +172,7 @@ Valid codes: `ONEENTRY10` (10%), `SAVE10` (10%), `ONEENTRY20` (20%), `SUMMER15` 
     D --> E{"User action"}
     E -->|"Continue Shopping"| F["router.push /women/clothing"]
     E -->|"Track Your Order"| G["router.push /account?tab=orders"]
-    D --> H["BUG: order NOT saved\\nto Redux or userData\\nonly generated orderId string"]
+    D --> H["Note: real OneEntry order ID\\nreturned by createOrderAction\\nis not surfaced to the client —\\nthe OE-XXXXXXXX shown is a\\ncosmetic display id\\n(follow-up: pass real orderId\\nvia URL query)"]
     style H fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
 
 ---

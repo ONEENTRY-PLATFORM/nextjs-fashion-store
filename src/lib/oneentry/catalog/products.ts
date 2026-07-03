@@ -1,5 +1,6 @@
 import { cache } from 'react';
-import { oneentry } from '../index';
+import { unstable_cache } from 'next/cache';
+import { getApi, isError, oneentry } from '../index';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
 import { DEFAULT_LOCALE } from '../locale';
@@ -316,17 +317,6 @@ interface ListResponse {
   items?: RawProduct[];
 }
 
-interface AggregateGroup {
-  attrValue?: string;
-  total?: number;
-  productIds?: number[];
-  items?: RawProduct[];
-}
-
-interface AggregateResponse {
-  total?: number;
-  items?: AggregateGroup[];
-}
 
 interface RawListOpts {
   lang: Lang;
@@ -334,53 +324,50 @@ interface RawListOpts {
   limit: number;
   sortKey?: string;
   sortOrder?: string;
-  /** Set to e.g. "productname_2" to collapse variants into one row per attr value. */
-  aggregateAttr?: string;
 }
+
+/** Underlying SDK-backed fetch. Server-side `aggregate` isn't reachable
+ *  through `Products.getProducts` (only `filter` is sent), which is fine
+ *  because the codebase aggregates locally in `aggregateByName`. */
+const cachedProductList = unstable_cache(
+  async (filterKey: string, lang: Lang, offset: number, limit: number, sortKey: string, sortOrder: string): Promise<ListResponse | null> => {
+    // Deserialise the filter passed via a cacheable string key.
+    const filter = JSON.parse(filterKey) as unknown[];
+    const userQuery: Record<string, unknown> = { offset, limit };
+    if (sortKey) userQuery.sortKey = sortKey;
+    if (sortOrder) userQuery.sortOrder = sortOrder;
+    const result = await getApi().Products.getProducts(
+      // The typed `IFilterParams[]` shape is stricter than what this codebase
+      // synthesises upstream — cast at the boundary.
+      filter as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[0],
+      lang,
+      userQuery as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[2],
+    );
+    if (isError(result)) return null;
+    // SDK's `IProductsResponse.items` is `IProductsEntity[]`, but downstream
+    // `normalize()` only reads `id`, `sku`, `price`, `categories`,
+    // `statusIdentifier`, `localizeInfos`, `attributeValues`, `relatedIds`.
+    // Cast to the local narrow shape.
+    return result as unknown as ListResponse;
+  },
+  ['oe-products-getProducts'],
+  { revalidate: REVALIDATE_CATALOG, tags: ['oe-products'] },
+);
 
 async function rawProductList(
   filter: unknown[],
   opts: RawListOpts,
-): Promise<ListResponse | AggregateResponse | null> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return null;
-  const params = new URLSearchParams({
-    langCode: opts.lang,
-    offset: String(opts.offset),
-    limit: String(opts.limit),
-  });
-  if (opts.sortKey) params.set('sortKey', opts.sortKey);
-  if (opts.sortOrder) params.set('sortOrder', opts.sortOrder);
-  const body: { filter: unknown[]; aggregate?: { aggregateBy: string; aggregateAttr: string } } = { filter };
-  if (opts.aggregateAttr) {
-    body.aggregate = { aggregateBy: 'attribute', aggregateAttr: opts.aggregateAttr };
-  }
-  try {
-    const res = await fetch(`${url}/api/content/products/all?${params.toString()}`, {
-      method: 'POST',
-      headers: {
-        'x-app-token': appToken,
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      // Catalog list is the hottest OE endpoint — cache per URL for the ISR
-      // window. `REVALIDATE_CATALOG = 0` in dev bypasses the cache so content
-      // updates show up immediately.
-      next: { revalidate: REVALIDATE_CATALOG },
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as ListResponse | AggregateResponse;
-  } catch {
-    return null;
-  }
+): Promise<ListResponse | null> {
+  if (!oneentry) return null;
+  return cachedProductList(
+    JSON.stringify(filter),
+    opts.lang,
+    opts.offset,
+    opts.limit,
+    opts.sortKey ?? '',
+    opts.sortOrder ?? '',
+  );
 }
-
-const isAggregated = (
-  r: ListResponse | AggregateResponse | null,
-): r is AggregateResponse =>
-  !!r?.items?.[0] && typeof (r.items[0] as AggregateGroup).attrValue === 'string';
 
 /**
  * Pull every product variant in one POST and cache it for the request. We
@@ -401,9 +388,20 @@ const fullCatalogInflight = new Map<Lang, Promise<CatalogProduct[]>>();
 
 async function fetchFullCatalog(lang: Lang): Promise<CatalogProduct[]> {
   if (!oneentry) return [];
-  const result = await rawProductList([], { lang, offset: 0, limit: 2000 });
-  if (!result?.items || isAggregated(result)) return [];
-  return result.items.map((r) => normalize(r, lang));
+  // Bypass `unstable_cache` here — Next.js caps a single entry at 2 MB, and
+  // the full catalog dump (2000 products with all their attributes) is
+  // ~30 MB, which makes `unstable_cache` reject the write with
+  // "items over 2MB can not be cached". The in-memory `fullCatalogCache`
+  // below already covers this call with a 5-min TTL per Node process, so
+  // an extra ISR layer isn't needed anyway.
+  const result = await getApi().Products.getProducts(
+    [] as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[0],
+    lang,
+    { offset: 0, limit: 2000 } as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[2],
+  );
+  if (isError(result)) return [];
+  const items = (result as unknown as ListResponse).items ?? [];
+  return items.map((r) => normalize(r, lang));
 }
 
 const loadFullCatalog = cache(async (lang: Lang): Promise<CatalogProduct[]> => {
@@ -607,22 +605,17 @@ export const loadProductsByIds = cache(
 );
 
 async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise<number[]> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return [];
+  if (!oneentry) return [];
   try {
-    const res = await fetch(
-      `${url}/api/content/products/vector/search?langCode=${encodeURIComponent(lang)}&offset=0&limit=${limit}`,
-      {
-        method: 'POST',
-        headers: { 'x-app-token': appToken, 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ queryText: text }),
-        cache: 'no-store',
-      },
+    const result = await getApi().Products.getProductsByVectorSearch(
+      { queryText: text },
+      lang,
+      0,
+      limit,
     );
-    if (!res.ok) return [];
-    const data = await res.json();
-    const items: Array<{ id?: number }> = Array.isArray(data) ? data : (data?.items ?? []);
+    if (isError(result)) return [];
+    // SDK types the result as `IProductsEntity[]`; we only sample `id`.
+    const items = result as unknown as Array<{ id?: number }>;
     return items.map((p) => p.id ?? 0).filter((n) => n > 0);
   } catch {
     return [];
@@ -630,17 +623,14 @@ async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise
 }
 
 async function quickSearchIds(text: string, lang: Lang): Promise<number[]> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return [];
+  if (!oneentry) return [];
   try {
-    const res = await fetch(
-      `${url}/api/content/products/quick/search?langCode=${encodeURIComponent(lang)}&name=${encodeURIComponent(text)}`,
-      { headers: { 'x-app-token': appToken, accept: 'application/json' }, cache: 'no-store' },
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    const items: Array<{ id?: number }> = Array.isArray(data) ? data : (data?.items ?? []);
+    const result = await getApi().Products.searchProduct(text, lang);
+    if (isError(result)) return [];
+    // `searchProduct` returns `IProductsEntity[]` — but the SDK's own quick
+    // search post-processing pipes through /ids to reorder. We only need
+    // ids in whatever order it returned.
+    const items = result as unknown as Array<{ id?: number }>;
     return items.map((p) => p.id ?? 0).filter((n) => n > 0);
   } catch {
     return [];
@@ -766,10 +756,20 @@ function matchesCatalogFilters(p: CatalogProduct, f: CatalogFilters): boolean {
     // `p.categories[]` as the trailing path segment. Match against every
     // segment so we work whether the merchant nested the leaf deeply
     // (`/women/women_clothing/outerwear/coats`) or flat.
-    const needle = f.category.toLowerCase();
-    const hit = p.categories.some((path) =>
-      path.toLowerCase().split('/').filter(Boolean).includes(needle),
-    );
+    //
+    // Also tolerate a "display name" needle — SEASONAL TRENDS pages let the
+    // merchant put a human-readable value like `"T-Shirts & Polos"` in the
+    // `st_trends` attribute. `p.categories` still stores slugs
+    // (`t-shirts-polos`), so slugify the needle and try that too.
+    const raw = f.category.toLowerCase();
+    const slug = raw
+      .replace(/&/g, ' ')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const hit = p.categories.some((path) => {
+      const segs = path.toLowerCase().split('/').filter(Boolean);
+      return segs.includes(raw) || (slug && slug !== raw && segs.includes(slug));
+    });
     if (!hit) return false;
   }
   if (f.minPrice !== undefined && p.price < f.minPrice) return false;

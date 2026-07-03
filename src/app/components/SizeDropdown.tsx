@@ -7,13 +7,32 @@ interface SizeDropdownProps {
   value: string;
   onChange: (s: string) => void;
   isShoe: boolean;
+  /** Actual sizes for THIS product, loaded from OE. When provided, overrides
+   *  the hardcoded clothing/shoe fallback. Single-item arrays render as
+   *  static text (no dropdown). Empty array hides the widget entirely. */
+  availableSizes?: string[];
 }
 
-export function SizeDropdown({ value, onChange, isShoe }: SizeDropdownProps) {
+export function SizeDropdown({ value, onChange, isShoe, availableSizes }: SizeDropdownProps) {
   const [open, setOpen] = useState(false);
-  const options = isShoe
-    ? L.shoeSizes
-    : value === L.oneSize ? [L.oneSize] : L.clothingSizes;
+
+  if (availableSizes && availableSizes.length === 0) return null;
+
+  const options: readonly string[] = availableSizes && availableSizes.length > 0
+    ? availableSizes
+    : isShoe
+      ? L.shoeSizes
+      : value === L.oneSize ? [L.oneSize] : L.clothingSizes;
+
+  const displayValue = value || options[0] || '';
+
+  if (options.length <= 1) {
+    return (
+      <div className="inline-flex items-center px-3 py-1.5 text-xs border border-[#d1d5db] rounded-none min-w-[90px]">
+        <span className="font-medium">{L.sizeLabel} {displayValue}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
@@ -21,7 +40,7 @@ export function SizeDropdown({ value, onChange, isShoe }: SizeDropdownProps) {
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs focus-visible:outline-none border border-[#d1d5db] rounded-none min-w-[90px]"
       >
-        <span className="font-medium">{L.sizeLabel} {value}</span>
+        <span className="font-medium">{L.sizeLabel} {displayValue}</span>
         <ChevronDown
           size={11}
           className={`ml-auto transition-transform duration-200 ${open ? 'rotate-180' : 'rotate-0'}`}

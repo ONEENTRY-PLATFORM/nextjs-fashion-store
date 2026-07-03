@@ -5,6 +5,8 @@ const postFormsData = vi.fn();
 vi.mock('../index', () => ({
   oneentry: { FormData: { postFormsData } },
   isOneEntryEnabled: true,
+  isError: (v: unknown): v is { message?: string; statusCode?: number } =>
+    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -27,9 +29,29 @@ describe('submitForm', () => {
     expect(postFormsData).toHaveBeenCalledWith(
       expect.objectContaining({
         formIdentifier: 'subscribe_new_drops',
+        formModuleConfigId: 0,
+        moduleEntityIdentifier: '',
         formData: [
           { marker: 'subscribe_new_drops_email', value: 'jane@example.com', type: 'string' },
         ],
+      }),
+      'en_US',
+    );
+  });
+
+  it('forwards binding.moduleConfigId and moduleEntityIdentifier when provided', async () => {
+    postFormsData.mockResolvedValue({});
+    const { submitForm } = await importFresh();
+    await submitForm(
+      'subscribe_new_drops',
+      [{ marker: 'subscribe_new_drops_email', value: 'jane@example.com' }],
+      { moduleConfigId: 52, moduleEntityIdentifier: 'subscribe' },
+    );
+    expect(postFormsData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formIdentifier: 'subscribe_new_drops',
+        formModuleConfigId: 52,
+        moduleEntityIdentifier: 'subscribe',
       }),
       'en_US',
     );
@@ -56,7 +78,7 @@ describe('submitForm', () => {
 describe('submitForm — disabled', () => {
   it('returns ok:false when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false, isError: () => false }));
     const { submitForm } = await import('./submit');
     const result = await submitForm('subscribe_new_drops', []);
     expect(result.ok).toBe(false);

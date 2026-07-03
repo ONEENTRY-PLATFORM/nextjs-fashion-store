@@ -280,12 +280,17 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   }, []);
 
   // Carry the shopper's picked colour/size into the PDP URL so it opens on
-  // the same variant they were previewing on the card.
+  // the same variant they were previewing on the card. Also carry `gender`
+  // so the header's WOMEN/MEN toggle stays highlighted on the product page —
+  // PDP paths (`/product/{id}`) don't include gender segment, so without
+  // this hint the header falls back to its default (WOMEN).
   const cardHref = (() => {
     const params = new URLSearchParams();
     const hex = product.colors?.[safeColorIdx];
     if (hex) params.set('color', hex);
     if (selectedSize) params.set('size', selectedSize);
+    if (product.gender === 'M') params.set('gender', 'men');
+    else if (product.gender === 'W') params.set('gender', 'women');
     const qs = params.toString();
     return `/product/${product.id}${qs ? `?${qs}` : ''}`;
   })();

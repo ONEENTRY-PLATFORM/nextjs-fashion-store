@@ -1,22 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { SectionTitle } from '../shared';
 import { SOCIAL_NETWORKS_LABELS as L } from '../../../data/accountLabels';
 import { requestGoogleIdToken } from '../../../../lib/google-auth';
 import { connectGoogleAccountAction } from '../../../../lib/oneentry/auth/actions';
-
-interface OAuthProvider {
-  id: 'google' | 'apple' | 'facebook';
-  name: string;
-  /** Disabled until OE wires the provider on this tenant. */
-  enabled: boolean;
-}
-
-const OAUTH_PROVIDERS: OAuthProvider[] = [
-  { id: 'google',   name: 'Google',   enabled: true },
-  { id: 'apple',    name: 'Apple',    enabled: false },
-  { id: 'facebook', name: 'Facebook', enabled: false },
-];
+import { useAuthProviders } from '../../../hooks/useAuthProviders';
+import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../../data/socialProviderRegistry';
 
 // Local persistence key for the "connected" badge. OE doesn't expose a
 // per-user `linkedProviders` field on this tenant, so we remember the link
@@ -45,6 +35,8 @@ function writeLinkedProviders(providers: string[]): void {
 }
 
 export function SocialNetworksSection() {
+  const { providers, loading } = useAuthProviders();
+  const socialProviders = providers.filter((p) => !isFormBasedProvider(p.identifier, p.type));
   const [linked, setLinked] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +53,10 @@ export function SocialNetworksSection() {
     writeLinkedProviders(next);
   };
 
-  const handleConnect = async (id: OAuthProvider['id']) => {
+  const handleConnect = async (id: string) => {
     setError(null);
+    // Only Google is wired client-side today. For everything else we render
+    // the button as disabled, so this guard is defence-in-depth.
     if (id !== 'google') return;
     setBusy(id);
     try {
@@ -80,7 +74,7 @@ export function SocialNetworksSection() {
     }
   };
 
-  const handleDisconnect = (id: OAuthProvider['id']) => {
+  const handleDisconnect = (id: string) => {
     setProviderLinked(id, false);
   };
 
@@ -88,36 +82,48 @@ export function SocialNetworksSection() {
     <div>
       <SectionTitle title={L.title} />
       <div className="space-y-3">
-        {OAUTH_PROVIDERS.map((s) => {
-          const isLinked = linked.includes(s.id);
-          const isBusy = busy === s.id;
+        {loading && socialProviders.length === 0 && (
+          <p className="text-xs text-gray-400">Loading…</p>
+        )}
+        {!loading && socialProviders.length === 0 && (
+          <p className="text-xs text-gray-400">No social sign-in providers configured.</p>
+        )}
+        {socialProviders.map((p) => {
+          const meta = SOCIAL_PROVIDER_REGISTRY[p.identifier];
+          const wired = meta?.wired ?? false;
+          const isLinked = linked.includes(p.identifier);
+          const isBusy = busy === p.identifier;
           return (
-            <div key={s.id} className="flex items-center justify-between p-4 border border-[#e5e7eb]">
+            <div key={p.identifier} className="flex items-center justify-between p-4 border border-[#e5e7eb]">
               <div className="flex items-center gap-3">
-                <span className="text-xs uppercase tracking-wide font-semibold">{s.name}</span>
+                {meta?.iconPath && (
+                  <Image src={meta.iconPath} alt="" width={18} height={18} className="w-[18px] h-[18px]" unoptimized />
+                )}
+                <span className="text-xs uppercase tracking-wide font-semibold">{p.title}</span>
                 {isLinked && (
                   <span className="text-[10px] tracking-widest uppercase text-green-700 bg-green-50 border border-green-200 px-2 py-0.5">
                     Connected
                   </span>
                 )}
               </div>
-              {!s.enabled ? (
+              {!wired ? (
                 <button
                   className="text-xs tracking-wide uppercase font-semibold text-gray-400 cursor-not-allowed"
                   disabled
+                  title="Coming soon"
                 >
                   {L.connect}
                 </button>
               ) : isLinked ? (
                 <button
-                  onClick={() => handleDisconnect(s.id)}
+                  onClick={() => handleDisconnect(p.identifier)}
                   className="text-xs tracking-wide uppercase focus-visible:outline-none hover:opacity-70 transition-opacity font-semibold text-black"
                 >
                   Disconnect
                 </button>
               ) : (
                 <button
-                  onClick={() => handleConnect(s.id)}
+                  onClick={() => handleConnect(p.identifier)}
                   disabled={isBusy}
                   className="text-xs tracking-wide uppercase focus-visible:outline-none hover:opacity-70 transition-opacity font-semibold text-black disabled:opacity-50"
                 >

@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { cartActions } from '../store/cartSlice';
@@ -9,7 +9,9 @@ import {
 } from '../data/cms-product-id-map';
 import { useAuth } from './AuthContext';
 import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
+import { previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
 import { trackActivity } from '../utils/track-activity';
+import { getOrCreateGuestId } from '../utils/guest-id';
 
 export interface CartItem {
   id: string;
@@ -41,6 +43,35 @@ interface CartContextType {
   subtotal: number;
   discount: number;
   total: number;
+  /** OE `previewOrder` snapshot for the current cart. Applies the shopper's
+   *  personal discount (Bronze / …), plus any coupon or bonus that a
+   *  caller passes in later. `null` while pending or for guests / empty cart. */
+  preview: PreviewOrderResult | null;
+  /** `true` while `previewOrder` is in flight for the current cart state.
+   *  UI uses this to show a skeleton for discount/total lines instead of
+   *  flashing outdated values or nothing. */
+  previewLoading: boolean;
+  /** Amount OE knocks off the order thanks to personal / coupon / promo
+   *  discounts (excludes bonuses — those show as a separate line). */
+  personalDiscount: number;
+  /** Final total to charge after every discount + bonus applied. Falls back
+   *  to the client-computed `total` when preview isn't available. */
+  totalDue: number;
+  /** Currently applied OE coupon code (uppercased), `null` when none. */
+  couponCode: string | null;
+  /** How much the currently applied coupon takes off the order. Zero when
+   *  no coupon is active or OE accepted the code but conditions aren't met. */
+  couponDiscount: number;
+  /** Validation error from the last `applyCoupon` attempt — `null` after a
+   *  successful apply or clear. Rendered under the promo input. */
+  couponError: string | null;
+  /** Send a coupon to OE via `previewOrder`. On success (OE accepted the
+   *  code AND it produced a discount) the code is stored and subsequent
+   *  `previewOrder`/`createOrder` calls include it. On failure the caller
+   *  reads `couponError`. */
+  applyCoupon: (code: string) => Promise<void>;
+  /** Drop the current coupon and refresh the preview without it. */
+  removeCoupon: () => void;
 }
 
 /**
@@ -207,7 +238,135 @@ export function useCart(): CartContextType {
 
   const clearCart = useCallback(() => {
     dispatch(cartActions.clearCart());
+    // A cleared cart signals a completed checkout (or explicit reset) — the
+    // applied coupon shouldn't quietly ride along into the next order.
+    // Drop both the in-memory code and its sessionStorage backing so the
+    // next `previewOrder` fires without a `couponCode`.
+    setCouponCode(null);
+    setCouponError(null);
+    try { sessionStorage.removeItem(COUPON_STORAGE_KEY); } catch { /* ignore */ }
   }, [dispatch]);
+
+  // OE `previewOrder` — reruns whenever the cart or applied coupon changes
+  // so every screen that shows totals (cart, mini-cart, delivery, payment)
+  // renders the real numbers OE will apply. Only useful for logged-in
+  // shoppers because personal discounts and bonuses are gated by user + group.
+  const [preview, setPreview] = useState<PreviewOrderResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  // Coupon persisted in sessionStorage so it survives page navigation inside
+  // the checkout flow (cart → delivery → payment).
+  const COUPON_STORAGE_KEY = 'oe_coupon_code';
+  const [couponCode, setCouponCode] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem(COUPON_STORAGE_KEY);
+  });
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const productsForPreview = items.flatMap((it) => {
+    const match = /\d+/.exec(it.id);
+    if (!match) return [];
+    return [{ productId: Number(match[0]), quantity: it.quantity }];
+  });
+  const productsKey = JSON.stringify(productsForPreview);
+  useEffect(() => {
+    if (productsForPreview.length === 0) {
+      setPreview(null);
+      setPreviewLoading(false);
+      return;
+    }
+    setPreviewLoading(true);
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      // Guests get their session id from `localStorage` so OE can validate
+      // guest-eligible coupons (SUMMER2026 etc.). For logged-in users the
+      // server action reads the access cookie and ignores `guestId`.
+      const guestId = isLoggedIn ? undefined : getOrCreateGuestId();
+      const r = await previewOrderAction({
+        products: productsForPreview,
+        ...(couponCode ? { couponCode } : {}),
+        ...(guestId ? { guestId } : {}),
+      });
+      if (cancelled) return;
+      if (r.ok) setPreview(r);
+      setPreviewLoading(false);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+    // productsKey covers the array; effect re-fires on cart / login / coupon.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, productsKey, couponCode]);
+
+  const personalDiscount = preview?.discountAmount ?? 0;
+  const totalDue = preview?.totalDue ?? total;
+  const couponDiscount = preview?.couponDiscountAmount ?? 0;
+
+  const applyCoupon = useCallback(async (raw: string) => {
+    const code = raw.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Enter a promo code');
+      return;
+    }
+    if (productsForPreview.length === 0) {
+      setCouponError('Add items to cart first');
+      return;
+    }
+    // Clear the previous preview so the summary rows render as skeletons
+    // while OE recomputes with the new coupon. Otherwise the shopper stares
+    // at the pre-coupon numbers for ~500ms which reads as "nothing changed".
+    setPreview(null);
+    setPreviewLoading(true);
+    // Validate via `previewOrder` — OE returns IError for unknown/expired
+    // codes and `discountConfig.coupon = null` when the code is valid but
+    // conditions (cart total, applicability, expiry) aren't met.
+    const guestId = isLoggedIn ? undefined : getOrCreateGuestId();
+    const r = await previewOrderAction({
+      products: productsForPreview,
+      couponCode: code,
+      ...(guestId ? { guestId } : {}),
+    });
+    const setFailure = async (message: string) => {
+      setCouponError(message);
+      // OE rejected the code — restore a preview WITHOUT the coupon so the
+      // summary stops showing a skeleton. `couponCode` never changed here,
+      // so the useEffect won't refire on its own.
+      const restored = await previewOrderAction({
+        products: productsForPreview,
+        ...(couponCode ? { couponCode } : {}),
+        ...(guestId ? { guestId } : {}),
+      });
+      if (restored.ok) setPreview(restored);
+      setPreviewLoading(false);
+    };
+    if (!r.ok) {
+      await setFailure(r.error || 'Invalid promo code');
+      return;
+    }
+    if (!r.couponApplied) {
+      // Prefer the condition-specific message from OE ("Add $X more to
+      // unlock", "unlocks after $Y in lifetime purchases", etc.) — falls
+      // back to a generic hint when we couldn't parse a reason.
+      await setFailure(r.couponReason
+        ?? (r.couponValidButNotApplied
+          ? 'Promo code accepted, but conditions are not met for this cart'
+          : 'Invalid promo code'));
+      return;
+    }
+    setCouponError(null);
+    setCouponCode(code);
+    setPreview(r);
+    setPreviewLoading(false);
+    try { sessionStorage.setItem(COUPON_STORAGE_KEY, code); } catch { /* quota */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productsKey]);
+
+  const removeCoupon = useCallback(() => {
+    // Clear preview so the summary rows render as skeletons while OE
+    // recomputes without the coupon — otherwise the shopper briefly sees
+    // the pre-remove totals and thinks nothing happened.
+    setPreview(null);
+    setPreviewLoading(true);
+    setCouponCode(null);
+    setCouponError(null);
+    try { sessionStorage.removeItem(COUPON_STORAGE_KEY); } catch { /* ignore */ }
+  }, []);
 
   return useMemo(() => ({
     items,
@@ -225,10 +384,22 @@ export function useCart(): CartContextType {
     subtotal,
     discount,
     total,
+    preview,
+    previewLoading,
+    personalDiscount,
+    totalDue,
+    couponCode,
+    couponDiscount,
+    couponError,
+    applyCoupon,
+    removeCoupon,
   }), [
     items, miniCartOpen, openMiniCart, closeMiniCart,
     addItem, addBundle, removeItem, removeBundle,
     updateQuantity, updateSize, clearCart,
     totalItems, subtotal, discount, total,
+    preview, previewLoading, personalDiscount, totalDue,
+    couponCode, couponDiscount, couponError,
+    applyCoupon, removeCoupon,
   ]);
 }

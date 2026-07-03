@@ -238,6 +238,22 @@ export default async function Page({ params }: Props) {
     if (gender && top) return `/${gender}/${top}`;
     return '/women/clothing';
   })();
+  // Full OE category path (e.g. `/women/women_clothing/outerwear`) — used by
+  // the recommendations carousel to backfill from the same shelf when the
+  // stats-driven `frequently_ordered_block` has too few products.
+  const productCategoryPath = oeProductRaw?.categories?.[0];
+  // Effective gender for the recommendations filter. OE's `gender` attribute
+  // is left blank on many products, but the category path (`/women/...` vs
+  // `/men/...`) is authoritative — use it as a fallback so a women's product
+  // never surfaces men's items in the carousel.
+  const effectiveGender: 'W' | 'M' | 'U' | '' = (() => {
+    const g = oeProductRaw?.gender;
+    if (g) return g;
+    const p = (productCategoryPath ?? '').toLowerCase();
+    if (p.startsWith('/women')) return 'W';
+    if (p.startsWith('/men')) return 'M';
+    return '';
+  })();
   const reviewsSlot = numericId !== null ? (
     <Suspense fallback={<ReviewsSkeleton />}>
       <ReviewsAsync productId={numericId} />
@@ -245,7 +261,7 @@ export default async function Page({ params }: Props) {
   ) : null;
   const recommendationsSlot = numericId !== null ? (
     <Suspense fallback={<RecommendationsSkeleton />}>
-      <FrequentlyOrderedAsync productId={numericId} categoryViewAllHref={categoryViewAllHref} productGender={oeProductRaw?.gender} />
+      <FrequentlyOrderedAsync productId={numericId} categoryViewAllHref={categoryViewAllHref} productGender={effectiveGender} categoryPath={productCategoryPath} />
     </Suspense>
   ) : null;
 

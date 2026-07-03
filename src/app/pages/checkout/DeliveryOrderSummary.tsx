@@ -2,7 +2,6 @@
 import Image from 'next/image';
 import { CheckCircle, ChevronDown, X, Tag } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import { CHECKOUT_COUPONS } from '../../data/checkoutConfig';
 import { DELIVERY_SUMMARY_LABELS as L } from '../../data/checkoutLabels';
 import { SALE_COLOR } from '../../constants/colors';
 import { fmt } from '../../utils/formatPrice';
@@ -11,16 +10,26 @@ import { useT } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
 interface Props {
   summaryOpen: boolean;
   setSummaryOpen: (fn: (o: boolean) => boolean) => void;
+  /** Currently applied coupon code (uppercased) from CartContext, `null` when none. */
   appliedCoupon: string | null;
   couponInput: string;
   setCouponInput: (v: string) => void;
+  /** Derived: `success` when a code is applied, `error` when applyCoupon returned an error. */
   couponStatus: 'idle' | 'success' | 'error';
-  setCouponStatus: (s: 'idle' | 'success' | 'error') => void;
+  /** Human-readable error from OE (`Add $X more to unlock …`, etc.) — shown under the input. */
+  couponError: string | null;
   couponLoading: boolean;
   handleApplyCoupon: () => void;
   handleRemoveCoupon: () => void;
+  /** Amount OE deducted for the coupon (from `previewOrder.couponDiscountAmount`). */
   couponDiscount: number;
+  /** Loyalty tier discount, EXCLUDING the coupon slice (parent should pass `discountAmount - couponDiscountAmount`). */
+  personalDiscount: number;
   finalTotal: number;
+  /** `previewOrder` is in flight and we don't yet know the discounts — show skeleton. */
+  previewLoading: boolean;
+  /** `true` once the first preview has arrived; suppresses skeleton for subsequent refetches. */
+  hasPreview: boolean;
 }
 
 export function DeliveryOrderSummary({
@@ -30,12 +39,15 @@ export function DeliveryOrderSummary({
   couponInput,
   setCouponInput,
   couponStatus,
-  setCouponStatus,
+  couponError,
   couponLoading,
   handleApplyCoupon,
   handleRemoveCoupon,
   couponDiscount,
+  personalDiscount,
   finalTotal,
+  previewLoading,
+  hasPreview,
 }: Props) {
   const { items, discount } = useCart();
   const lHeading      = useT('checkout_delivery', 'checkout_delivery_order_summary_title',          L.heading);
@@ -106,7 +118,6 @@ export function DeliveryOrderSummary({
                 <div className="flex items-center gap-2">
                   <CheckCircle size={13} className="text-green-600 flex-shrink-0" />
                   <span className="text-xs font-mono tracking-widest font-bold text-green-600">{appliedCoupon}</span>
-                  <span className="text-xs text-gray-500">— {CHECKOUT_COUPONS[appliedCoupon].label}</span>
                 </div>
                 <button onClick={handleRemoveCoupon} className="focus-visible:outline-none hover:opacity-60 transition-opacity ml-2 flex-shrink-0">
                   <X size={13} className="text-gray-500" />
@@ -118,7 +129,7 @@ export function DeliveryOrderSummary({
                   <input
                     type="text"
                     value={couponInput}
-                    onChange={e => { setCouponInput(e.target.value); setCouponStatus('idle'); }}
+                    onChange={e => { setCouponInput(e.target.value); }}
                     onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
                     placeholder={lPromoPh}
                     className={`flex-1 px-3 py-2 text-xs outline-none font-mono tracking-widest uppercase min-w-0 border rounded-none ${
@@ -142,7 +153,7 @@ export function DeliveryOrderSummary({
                 </div>
                 {couponStatus === 'error' && (
                   <p className="text-xs mt-1.5 flex items-center gap-1 text-[var(--sale)]">
-                    <X size={11} /> {L.promoInvalid}
+                    <X size={11} /> {couponError ?? L.promoInvalid}
                   </p>
                 )}
               </>
@@ -156,11 +167,26 @@ export function DeliveryOrderSummary({
                 <span className="font-semibold">−{fmt(discount)}</span>
               </div>
             )}
-            {couponDiscount > 0 && appliedCoupon && (
-              <div className="flex justify-between text-xs text-[var(--sale)]">
-                <span>{L.promo} ({CHECKOUT_COUPONS[appliedCoupon].label})</span>
-                <span className="font-semibold">−{fmt(couponDiscount)}</span>
+            {previewLoading && !hasPreview ? (
+              <div className="flex justify-between text-xs" aria-busy="true">
+                <div className="h-3 w-24 bg-gray-100 animate-pulse" />
+                <div className="h-3 w-12 bg-gray-100 animate-pulse" />
               </div>
+            ) : (
+              <>
+                {personalDiscount > 0 && (
+                  <div className="flex justify-between text-xs text-[var(--sale)]">
+                    <span>Loyalty discount</span>
+                    <span className="font-semibold">−{fmt(personalDiscount)}</span>
+                  </div>
+                )}
+                {couponDiscount > 0 && appliedCoupon && (
+                  <div className="flex justify-between text-xs text-[var(--sale)]">
+                    <span>{L.promo} ({appliedCoupon})</span>
+                    <span className="font-semibold">−{fmt(couponDiscount)}</span>
+                  </div>
+                )}
+              </>
             )}
             <div className="flex justify-between text-xs">
               <span className="text-gray-500">{lDelivery}</span>
@@ -168,7 +194,11 @@ export function DeliveryOrderSummary({
             </div>
             <div className="flex justify-between items-baseline pt-1 border-t border-[#e5e7eb]">
               <span className="text-sm font-bold">{lTotal}</span>
-              <span className="text-lg font-bold">{fmt(finalTotal)}</span>
+              {previewLoading && !hasPreview ? (
+                <div className="h-5 w-20 bg-gray-100 animate-pulse" aria-busy="true" />
+              ) : (
+                <span className="text-lg font-bold">{fmt(finalTotal)}</span>
+              )}
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 'use server';
 import { cookies } from 'next/headers';
+import { getApi, isError, isOneEntryEnabled } from '../index';
 import type {
   ServiceRequest,
   ServiceCategory,
@@ -32,9 +33,13 @@ type FormDataAttr = { marker: string; type: string; value: unknown };
 type FormDataRecord = {
   id: number;
   createdDate?: string;
+  time?: string;
   statusIdentifier?: string;
+  status?: string;
   formData?: FormDataAttr[];
 };
+
+const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
 
 /**
  * Read the service-maintenance requests the current user has submitted via the
@@ -47,31 +52,27 @@ type FormDataRecord = {
  * out in the OE form definition later without breaking the page.
  */
 export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return [];
+  if (!isOneEntryEnabled) return [];
   const jar = await cookies();
   const cookieUser = jar.get(IDENTIFIER_COOKIE)?.value;
   if (!cookieUser) return [];
   const userIdentifier = decodeURIComponent(cookieUser);
 
   try {
-    const res = await fetch(
-      `${url}/api/content/form-data/marker/service_request?formModuleConfigId=4&isExtended=0&langCode=en_US&offset=0&limit=30`,
-      {
-        method: 'POST',
-        headers: {
-          'x-app-token': appToken,
-          'content-type': 'application/json',
-          accept: 'application/json',
-        },
-        body: JSON.stringify({ userIdentifier }),
-        cache: 'no-store',
-      },
+    const result = await getApi().FormData.getFormsDataByMarker(
+      'service_request',
+      SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
+      { userIdentifier },
+      0,
+      'en_US',
+      0,
+      30,
     );
-    if (!res.ok) return [];
-    const data = (await res.json()) as { items?: FormDataRecord[] };
-    const items = Array.isArray(data.items) ? data.items : [];
+    if (isError(result)) return [];
+    // SDK typing uses `IFormByMarkerDataEntity` with a stricter formData
+    // shape than what OE actually returns for a mixed form (list/date/text
+    // fields). Narrow to the local `FormDataRecord` we already parse.
+    const items = (result.items ?? []) as unknown as FormDataRecord[];
 
     return items.map((r): ServiceRequest => {
       const fd = Array.isArray(r.formData) ? r.formData : [];
@@ -95,6 +96,7 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
       const dateRaw = get('date') as
         | { fullDate?: string; formattedValue?: string }
         | undefined;
+      const createdRaw = r.createdDate ?? r.time;
       const droppedOff = dateRaw?.formattedValue
         ? dateRaw.formattedValue
         : dateRaw?.fullDate
@@ -103,13 +105,14 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
               month: 'short',
               year: 'numeric',
             })
-          : r.createdDate
-            ? new Date(r.createdDate).toLocaleDateString('en-GB', {
+          : createdRaw
+            ? new Date(createdRaw).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',
               })
             : '';
+      const statusRaw = r.statusIdentifier ?? r.status ?? 'new';
       return {
         id: `srv-${r.id}`,
         ref: `SVC-${String(r.id).padStart(5, '0')}`,
@@ -118,7 +121,7 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
         description,
         droppedOff,
         estimatedReady: null,
-        status: STATUS_MAP[r.statusIdentifier ?? 'new'] ?? 'open',
+        status: STATUS_MAP[statusRaw] ?? 'open',
         cost: null,
         notes: '',
         img: '/placeholder.svg',

@@ -17,6 +17,8 @@ interface CartItemRowProps {
   isLast: boolean;
   isSelected: boolean;
   inWishlist: boolean;
+  /** Real sizes for this product from OE — overrides SizeDropdown fallback. */
+  availableSizes?: string[];
   onToggleSelect: () => void;
   onToggleWishlist: () => void;
   onUpdateSize: (size: string) => void;
@@ -25,7 +27,7 @@ interface CartItemRowProps {
 }
 
 export function CartItemRow({
-  item, isLast, isSelected, inWishlist,
+  item, isLast, isSelected, inWishlist, availableSizes,
   onToggleSelect, onToggleWishlist, onUpdateSize, onUpdateQuantity, onRemove,
 }: CartItemRowProps) {
   const isShoe = item.sku.includes('-SH-');
@@ -60,7 +62,7 @@ export function CartItemRow({
             <span>·</span>
             <span>{CLL.skuPrefix} {item.sku}</span>
           </div>
-          <SizeDropdown value={item.size} onChange={onUpdateSize} isShoe={isShoe} />
+          <SizeDropdown value={item.size} onChange={onUpdateSize} isShoe={isShoe} availableSizes={availableSizes} />
         </div>
         <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
           <QtyControl value={item.quantity} onMinus={() => onUpdateQuantity(-1)} onPlus={() => onUpdateQuantity(+1)} />

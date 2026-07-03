@@ -1,5 +1,6 @@
 'use server';
 import { cookies } from 'next/headers';
+import { getGuestApi, getUserApi, isError, isOneEntryEnabled } from '../index';
 
 const ACCESS_COOKIE = 'oe_access';
 
@@ -25,40 +26,39 @@ export interface TrackActivityInput {
 }
 
 // Records an event for the current visitor — signed-in users authenticate via
-// the `oe_access` cookie, guests pass an `x-guest-id` that we mint client-side.
+// the `oe_access` cookie, guests pass an `x-guest-id` that we mint client-side
+// and thread through `getGuestApi(guestId)` (fresh SDK instance) so the
+// header rides along on the SDK's own outgoing request.
 // Fire-and-forget on the caller side: this returns ok/error but never throws.
 export async function trackActivityAction(
   input: TrackActivityInput,
   guestId?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return { ok: false, error: 'OneEntry env not configured' };
+  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
 
   const jar = await cookies();
   const access = jar.get(ACCESS_COOKIE)?.value ?? null;
 
-  const headers: Record<string, string> = {
-    'x-app-token': appToken,
-    'content-type': 'application/json',
-    accept: 'application/json',
-  };
-  if (access) headers.Authorization = `Bearer ${access}`;
-  else if (guestId) headers['x-guest-id'] = guestId;
-  else return { ok: false, error: 'No auth or guest id' };
-
   try {
-    const res = await fetch(`${url}/api/content/user-activity/track`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(input),
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      return { ok: false, error: `HTTP ${res.status}${txt ? `: ${txt.slice(0, 200)}` : ''}` };
+    if (access) {
+      const api = getUserApi(access);
+      if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
+      const result = await api.UserActivity.trackUserActivity(input);
+      if (isError(result)) {
+        return { ok: false, error: result.message ?? 'Track failed' };
+      }
+      return { ok: true };
     }
-    return { ok: true };
+    if (guestId) {
+      const api = getGuestApi(guestId);
+      if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
+      const result = await api.UserActivity.trackUserActivity(input);
+      if (isError(result)) {
+        return { ok: false, error: result.message ?? 'Track failed' };
+      }
+      return { ok: true };
+    }
+    return { ok: false, error: 'No auth or guest id' };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
   }

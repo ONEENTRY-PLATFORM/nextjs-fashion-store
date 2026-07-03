@@ -23,10 +23,14 @@ const SERVICE_FILTER_KEYS: ServiceStatus[] = ['open', 'in-progress', 'ready', 'c
 
 export function ServiceMaintenanceSection() {
   const [services, setServices] = useState<ServiceRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     void getServiceRequestsAction().then((items) => {
-      if (!cancelled) setServices(items);
+      if (cancelled) return;
+      setServices(items);
+      setLoading(false);
     });
     return () => { cancelled = true; };
   }, []);
@@ -155,7 +159,21 @@ export function ServiceMaintenanceSection() {
       </div>
 
       {/* Request list */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="space-y-px bg-black" aria-busy="true" aria-label="Loading service requests">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-4 p-4 bg-white h-[112px]">
+              <div className="w-20 h-24 bg-gray-100 animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-56 bg-gray-100 animate-pulse" />
+                <div className="h-3 w-32 bg-gray-100 animate-pulse" />
+                <div className="h-3 w-24 bg-gray-100 animate-pulse" />
+              </div>
+              <div className="h-6 w-20 bg-gray-100 animate-pulse" />
+            </div>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[var(--banner-bg)]">
           <p className="text-sm text-gray-400 text-center">{L.emptyFiltered}</p>
         </div>

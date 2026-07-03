@@ -31,7 +31,7 @@ All tabs and user behavior variations in `/account`. Data sources, state, action
 
 ## 2. My Data — Personal Information
 
-Data source: `AuthContext.user` (read) + `dispatch(patchUserData)` (write).
+Data source: `AuthContext.user` (read) + `updateProfileAction` (write, Server Action → OneEntry).
 
 <MermaidDiagram chart={`flowchart TD
     A(["My Data tab"]) --> B["Display: LoyaltyCard\\n+ Personal Info\\n+ Password\\n+ Addresses\\n+ Socials\\n+ Consent\\n+ Delete Account"]
@@ -39,8 +39,10 @@ Data source: `AuthContext.user` (read) + `dispatch(patchUserData)` (write).
     C -->|Edit| D["Form: firstName\\nemail phone dob\\nshoeSize clothingSize\\ngender"]
     D --> E{"Save Changes"}
     E -->|validation fails| F["Zod profileSchema\\nshow field errors"]
-    E -->|valid| G["updateUser()\\nAuthContext\\nupdates user state"]
-    G --> H["setEditingInfo false\\nshow read-only view"]
+    E -->|valid| G["AuthContext.updateProfile\\ncalls updateProfileAction"]
+    G --> G2["OneEntry Users.updateUser +\\nuser_data form-data"]
+    G2 --> G3["getCurrentUserAction\\nrefreshes AuthContext.user"]
+    G3 --> H["setEditingInfo false\\nshow read-only view"]
     C -->|Cancel| H`} />
 
 ---
@@ -102,7 +104,7 @@ Data source: `state.user.data.addresses` (Redux). Changes via `dispatch(patchUse
 
 ## 6. My Orders
 
-Data source: `state.user.data.orders` (Redux, from `USER_DATASET`).
+Data source: `AuthContext.user.oeOrders` — populated by `getCurrentUserAction` on mount, adapted via private `adaptOeOrder()` inside `src/app/pages/account/MyOrdersSection.tsx`. Adapter now carries optional `productId / oeId / oeStorage` on each item (from `UserOrderItem` in `src/app/data/userData.ts`) so real Reorder can restage cart lines. Legacy `state.user.data.orders` is a fallback for signed-out preview mode.
 
 <MermaidDiagram chart={`flowchart TD
     A(["My Orders tab"]) --> B["List of orders\\nstatus: Delivered\\nProcessing Cancelled"]
@@ -111,9 +113,14 @@ Data source: `state.user.data.orders` (Redux, from `USER_DATASET`).
     D --> E{"Action in expanded row"}
     E -->|"Full History"| F["router.push\\n/account?tab=history"]
     E -->|Reorder| G{"status != Processing?"}
-    G -->|YES| H["Animation only\\nno real dispatch"]
-    style H fill:#fffbeb,stroke:#fde68a,color:#92400e
+    G -->|YES| H["useCart addItem\\nper item (productId/oeId)\\n2s success animation"]
     G -->|NO| I["Button disabled"]
+    E -->|Cancel| K{"status = Processing?"}
+    K -->|YES| L["Open local confirm modal"]
+    L -->|Confirm| M["cancelOrderAction\\n(server action → OneEntry)"]
+    M --> N["refresh AuthContext.user\\nstatus flips to Cancelled"]
+    L -->|Dismiss| D
+    K -->|NO| O["Cancel button hidden"]
     C -->|"Click Hide Details"| J["Collapse accordion"]`} />
 
 ---

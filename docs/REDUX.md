@@ -2,6 +2,8 @@
 
 Stack: **Redux Toolkit** + **RTK Query**. Source: `src/app/store/`.
 
+The Redux store is the client-side optimistic-state layer. Server-authoritative data (products, pages, blocks, labels, user profile, orders) does NOT live in Redux — it comes from OneEntry Server Actions and RSC loaders (`src/lib/oneentry/**`). Redux carries the cart, wishlist, recently-viewed products, catalog UI state, quick-view / mobile-menu flags, and the user identifier.
+
 ## 1. Store layout
 
 ```
@@ -11,18 +13,18 @@ src/app/store/
 ├── selectors.ts              — memoised selectors
 ├── catalogSlice.ts           — catalog UI state per catalogKey
 ├── uiSlice.ts                — QuickView + mobile menu
-├── cartSlice.ts              — cart
-├── wishlistSlice.ts          — wishlist
-├── recentlyViewedSlice.ts    — recently viewed
-├── userSlice.ts              — user dataset
+├── cartSlice.ts              — cart items + miniCartOpen flag
+├── wishlistSlice.ts          — wishlist items
+├── recentlyViewedSlice.ts    — recently viewed (TTL 30d, cap 100)
+├── userSlice.ts              — loyalty defaults + auth identifier
+├── __tests__/                — vitest unit tests
 └── api/
-    ├── productsApi.ts        — RTK Query: catalog products (fakeBaseQuery → local TS data)
-    ├── homepageApi.ts        — RTK Query: homepage blocks (fakeBaseQuery → local TS data)
-    ├── catalogConfigApi.ts   — RTK Query: configs, trends, stores, recommendations (fakeBaseQuery → local TS data)
-    ├── cartApi.ts            — RTK Query: real OneEntry Platform REST (`{NEXT_PUBLIC_API_URL}/users/me/cart`, fetchBaseQuery + Bearer)
-    ├── wishlistApi.ts        — RTK Query: real OneEntry Platform REST (`{NEXT_PUBLIC_API_URL}/users/me/wishlist`, fetchBaseQuery + Bearer)
+    ├── cartApi.ts            — RTK Query scaffolding for /users/me/cart (fetchBaseQuery, Bearer). NOT on the live path.
+    ├── wishlistApi.ts        — RTK Query scaffolding for /users/me/wishlist. NOT on the live path.
     └── types/                — shared cart + wishlist DTO shapes
 ```
+
+The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) that previous docs described have been **removed**. Product / catalog / homepage data now flow from `src/lib/oneentry/**` loaders directly to RSC page shells, then down to client components as props.
 
 ### `RootState`
 
@@ -33,498 +35,249 @@ src/app/store/
   recentlyViewed:    RecentlyViewedState
   catalog:           CatalogsState          // Record<catalogKey, CatalogUIState>
   ui:                UIState
-  user:              UserState               // includes auth tokens (NOT persisted)
-  productsApi:       RTK Query cache         // local data via queryFn
-  homepageApi:       RTK Query cache         // local data via queryFn
-  catalogConfigApi:  RTK Query cache         // local data via queryFn
-  cartApi:           RTK Query cache         // real OneEntry Platform REST
-  wishlistApi:       RTK Query cache         // real OneEntry Platform REST
+  user:              UserState              // authToken kept empty — session in cookies
+  cartApi:           RTK Query cache        // scaffolding
+  wishlistApi:       RTK Query cache        // scaffolding
 }
 ```
-
-> `cartApi` / `wishlistApi` are gated by `NEXT_PUBLIC_API_URL`: when empty, `isCartApiEnabled()` / `isWishlistApiEnabled()` return `false` and `CartContext` / `WishlistContext` fall back to the local `cartSlice` / `wishlistSlice` only (Storybook + offline mode).
 
 ## 2. Slices
 
-### `catalogSlice`
+### 2.1 `cartSlice` (`src/app/store/cartSlice.ts`)
 
-UI state for every catalog page, keyed by `catalogKey`.
+**State:** `{ items: CartItem[], miniCartOpen: boolean }`.
 
-| `catalogKey` | Page |
-|---|---|
-| `women-clothing` | `WomenCatalogPage` |
-| `men-clothing` | `MenCatalogPage` |
-| `women-bags` | `WomenBagsPage` |
-| `men-bags` | `MenBagsPage` |
-| `women-shoes` | `ShoesCatalog` (via `WomenShoesPage`) |
-| `men-shoes` | `ShoesCatalog` (via `MenShoesPage`) |
-| `women-accessories` | `AccessoriesCatalog` (via `WomenAccessoriesPage`) |
-| `men-accessories` | `AccessoriesCatalog` (via `MenAccessoriesPage`) |
-| `sale` | `SalePage` |
-| `new-arrivals` | `NewArrivalsPage` |
-
-State per catalog:
-
-```ts
-interface CatalogUIState {
-  selectedFilters: Record<string, string[]>   // { color: ['Black'], size: ['M'] }
-  sortBy:          string                     // 'featured' | 'price_asc' | 'newest' | …
-  currentPage:     number                     // 1-based
-  viewCols:        3 | 4
-  listMode:        boolean                    // list vs grid (ShoesCatalog only)
-  activeChip:      string
-}
-```
-
-Defaults: `selectedFilters: {}`, `sortBy: 'featured'`, `currentPage: 1`, `viewCols: 4`, `listMode: false`, `activeChip: ''`.
-
-Actions:
-
-| Action | Payload | Notes |
-|---|---|---|
-| `toggleFilter` | `{ catalogKey, filterKey, value }` | Toggles one filter value, resets `currentPage` to 1. |
-| `setFilters` | `{ catalogKey, filters }` | Replaces the whole filter map (used by category chips on Sale / NewArrivals). |
-| `clearFilters` | `catalogKey` | Clears filters + `activeChip` + `currentPage`. |
-| `setSort` | `{ catalogKey, sortBy }` | Resets `currentPage`. |
-| `setPage` | `{ catalogKey, page }` | Pagination. |
-| `setViewCols` | `{ catalogKey, cols }` | 3 or 4 columns. |
-| `setListMode` | `{ catalogKey, listMode }` | List/grid (ShoesCatalog). |
-| `setActiveChip` | `{ catalogKey, chip }` | Quick-filter chip, resets `currentPage`. |
-| `hydrateCatalogs` | `CatalogsState` | Replaces the entire `catalog` slice. Dispatched from `Providers.tsx` after client mount to restore from localStorage without an SSR hydration mismatch. |
-
-### `uiSlice`
-
-```ts
-interface UIState {
-  quickView: {
-    isOpen:             boolean
-    product:            Product | null
-    initialColorIndex:  number | null
-  }
-  mobileMenuOpen: boolean
-}
-```
-
-| Action | Notes |
-|---|---|
-| `openQuickView({ product, initialColorIndex })` | Pre-selects the color when provided. |
-| `closeQuickView` | Does **not** clear `product` immediately — `QuickViewContext` schedules `clearQuickViewProduct` after a 300 ms animation. |
-| `clearQuickViewProduct` | Empties `product` (called via `setTimeout`). |
-| `openMobileMenu` / `closeMobileMenu` / `toggleMobileMenu` | ⚠ Not consumed — `Header.tsx` still owns a local `useState(mobileOpen)`. |
-
-### `cartSlice`
-
-Persisted in `localStorage['oe_store'].cart`. Consumed via `useCart()` (`CartContext`).
-
-```ts
-interface CartItem {
-  id:             string
-  name:           string
-  brand:          string
-  color:          string
-  sku:            string
-  size:           string
-  quantity:       number
-  price:          number
-  originalPrice?: number
-  image:          string
-  bundleId?:      string
-}
-
-interface CartState {
-  items:        CartItem[]
-  miniCartOpen: boolean
-}
-```
-
-`useCart()` exposes: `items`, `miniCartOpen`, `openMiniCart()`, `closeMiniCart()`, `addItem(item)`, `addBundle(items)`, `removeItem(id)`, `removeBundle(bundleId)`, `updateQuantity(id, delta)`, `updateSize(id, size)`, `clearCart()`, `totalItems`, `subtotal`, `discount`, `total`.
-
-### `wishlistSlice`
-
-Persisted in `localStorage['oe_store'].wishlist`. Consumed via `useWishlist()` (`WishlistContext`).
-
-```ts
-interface WishlistItem {
-  id:             string
-  name:           string
-  brand:          string
-  price:          string
-  salePrice?:     string
-  image:          string
-  colors:         string[]
-  colorStock?:    boolean[]
-  sizes:          string[]
-  badge?:         string
-  inStock:        boolean
-  priceAlert?:    boolean
-  selectedColor?: string
-  selectedSize?:  string
-}
-```
-
-`useWishlist()` exposes: `items`, `count`, `addItem(item)`, `removeItem(id)`, `toggleItem(item)`, `isWishlisted(id)`, `updateSelection(id, color?, size?)`, `clearAll()`.
-
-**Login-time sync (`WishlistSyncEffect` in `Providers.tsx`).** When `isLoggedIn` flips to `true`, it dispatches `wishlistActions.mergeUserWishlist({ wishlist, waitingList })`. Server items win on conflict (deduped by `id`); guest-only items are appended.
-
-### `recentlyViewedSlice`
-
-Persisted in `localStorage['oe_store'].recentlyViewed`. Ring buffer, max 100 items; newest first, duplicates removed.
-
-| Action | Payload |
-|---|---|
-| `recentlyViewedActions.addProduct` | `Product` |
-
-Exported only via the `recentlyViewedActions` object (no named exports for individual actions). Written on `ProductDetailPage` open; rendered in the "Recently viewed" block.
-
-### `userSlice`
-
-```ts
-interface UserState {
-  data:   UserDataset
-  status: 'idle' | 'loading' | 'succeeded' | 'failed'
-  error:  string | null
-}
-```
-
-`UserDataset` (from `data/userData.ts`; the full per-field breakdown is in `./DATASETS.md` §13):
-
-```ts
-interface UserDataset {
-  credentials:     UserCredentials     // mock email + password
-  profile:         UserProfile         // firstName, email, phone, dob, gender, shoeSize, clothingSize
-  loyalty:         LoyaltyCard         // cardNumber, status, discount, bonuses, totalPurchases, nextLevelAmount
-  addresses:       UserAddress[]
-  socials:         SocialConnection[]
-  orders:          UserOrder[]
-  bonusHistory:    BonusTransaction[]
-  purchaseHistory: HistoryOrder[]
-  wishlist:        WishlistItem[]      // distinct type from wishlistSlice.WishlistItem
-  waitingList:     WaitingItem[]
-  referral:        ReferralData
-  subscriptions:   UserSubscriptions
-  consent:         { dataProcessing: boolean; crossBorder: boolean }
-  authToken?:      string | null       // JWT access token, set after Platform login
-  refreshToken?:   string | null       // reserved for future refresh-on-401
-  userIdentifier?: string | null       // Platform identifier of the logged-in user
-}
-```
-
-Initial state is `USER_DATASET` (mock data) so account pages render instantly without a loading flash.
-
-Sync actions:
-
-| Action | Payload |
-|---|---|
-| `patchUserData` | `Partial<UserDataset>` — persisted on the Save button. |
-| `addAddress` | `UserAddress` — append to `data.addresses`. |
-| `setAuth` | `{ accessToken, refreshToken, userIdentifier }` — stamp Platform-issued JWT pair on `user.data` after `AuthContext.login()` succeeds. Triggers `cartApi` / `wishlistApi` refetch via Bearer header. |
-| `clearAuth` | — — reset `authToken` / `refreshToken` / `userIdentifier` to `null` on `AuthContext.logout()`. |
-
-Async thunk:
-
-```ts
-export const fetchUserData = createAsyncThunk<UserDataset>(
-  'user/fetchUserData',
-  async () => USER_DATASET   // TODO: replace with real fetch
-);
-```
-
-`user.status` / `user.error` track the thunk lifecycle. To wire the real API, replace the thunk body with `fetch('/api/user/me')` and drop `USER_DATASET` from `initialState`.
-
-⚠ `authToken` / `refreshToken` / `userIdentifier` live on `user.data` but **are not persisted to localStorage** (see §7).
-
-## 3. RTK Query
-
-There are **5 RTK Query APIs**. Three (`productsApi`, `homepageApi`, `catalogConfigApi`) use `fakeBaseQuery()` with `queryFn` — data is loaded from `data/*.ts` via dynamic `import()`. The other two (`cartApi`, `wishlistApi`) are already wired to the real OneEntry Platform Content API via `fetchBaseQuery()` with `prepareHeaders` injecting the Bearer JWT from `state.user.data.authToken`. Switching one of the three local APIs to a real backend = swap `fakeBaseQuery` for `fetchBaseQuery` and `queryFn` for `query` (see §9).
-
-### `productsApi` (`reducerPath: 'productsApi'`)
-
-| Endpoint | Hook | Returns | Source |
-|---|---|---|---|
-| `getWomenClothing` | `useGetWomenClothingQuery()` | `Product[]` | `women-clothing.ts` |
-| `getMenClothing` | `useGetMenClothingQuery()` | `Product[]` | `men-clothing.ts` |
-| `getWomenBags` | `useGetWomenBagsQuery()` | `Product[]` | `women-bags.ts` |
-| `getMenBags` | `useGetMenBagsQuery()` | `Product[]` | `men-bags.ts` |
-| `getWomenShoes` | `useGetWomenShoesQuery()` | `Product[]` | `women-shoes.ts` |
-| `getMenShoes` | `useGetMenShoesQuery()` | `Product[]` | `men-shoes.ts` |
-| `getWomenAccessories` | `useGetWomenAccessoriesQuery()` | `Product[]` | `women-accessories.ts` |
-| `getMenAccessories` | `useGetMenAccessoriesQuery()` | `Product[]` | `men-accessories.ts` |
-
-```tsx
-const { data: allProducts = WOMEN_CLOTHING_PRODUCTS } = useGetWomenClothingQuery();
-```
-
-### `homepageApi` (`reducerPath: 'homepageApi'`)
-
-| Endpoint | Hook | Returns | Consumer |
-|---|---|---|---|
-| `getHeroSlides` | `useGetHeroSlidesQuery()` | `HeroSlide[]` | `HeroSlider` |
-| `getPromoItems` | `useGetPromoItemsQuery()` | `PromoItem[]` | `PromoBlock` |
-| `getDiscountBanner` | `useGetDiscountBannerQuery()` | `DiscountBannerData` | `DiscountBanner` |
-| `getBestSellers` | `useGetBestSellersQuery()` | `Product[]` | `MenCollection` |
-| `getHomepageNewArrivals` | `useGetHomepageNewArrivalsQuery()` | `Product[]` | `WomenCollection` |
-| `getHomepageSaleProducts` | `useGetHomepageSaleProductsQuery()` | `Product[]` | `NewArrivals` component |
-
-### `catalogConfigApi` (`reducerPath: 'catalogConfigApi'`)
-
-| Endpoint | Hook | Arg | Returns | Consumer |
-|---|---|---|---|---|
-| `getShopCategories` | `useGetShopCategoriesQuery()` | — | `ShopCategory[]` | `CategorySection` |
-| `getCategoryFilterChips` | `useGetCategoryFilterChipsQuery()` | — | `string[]` | `CategorySection` |
-| `getTrendBlocks` | `useGetTrendBlocksQuery(key)` | `catalogKey` | `TrendBlock[]` | ⚠ endpoint exists, pages still import directly |
-| `getStores` | `useGetStoresQuery()` | — | `Store[]` | ⚠ endpoint exists, `StoreLocationsPage` imports directly |
-| `getRecommended` | `useGetRecommendedQuery(key)` | `catalogKey` | `RecommendedBlock` | `ProductDetailPage` |
-| `getSpecialOffers` | `useGetSpecialOffersQuery(key)` | `catalogKey` | `SpecialOffer[]` | `ProductDetailPage` |
-| `getSaleConfig` | `useGetSaleConfigQuery()` | — | `SaleConfig` | ⚠ endpoint exists, `SalePage` imports directly |
-| `getNewArrivalsConfig` | `useGetNewArrivalsConfigQuery()` | — | `NewArrivalsConfig` | ⚠ endpoint exists, `NewArrivalsPage` imports directly |
-| `getSalePageProducts` | `useGetSalePageProductsQuery()` | — | `(Product & { category: string })[]` | `SalePage` |
-| `getNewArrivalsPageProducts` | `useGetNewArrivalsPageProductsQuery()` | — | `(Product & { category: NewArrivalCategory })[]` | `NewArrivalsPage` |
-
-### `cartApi` (`reducerPath: 'cartApi'`) — real OneEntry REST
-
-Talks to `{NEXT_PUBLIC_API_URL}/users/me/cart`. Bearer JWT injected via `prepareHeaders` from `state.user.data.authToken`. Cache tag: `Cart`. Gated by `isCartApiEnabled()` — when `NEXT_PUBLIC_API_URL` is empty (Storybook / offline), callers fall back to local `cartSlice`.
-
-| Endpoint | Hook | Verb | Notes |
-|---|---|---|---|
-| `getCart` | `useGetCartQuery()` | `GET` | Skip with `{ skip: !authToken }` — anonymous → 401. |
-| `addCartItem` | `useAddCartItemMutation()` | `POST` | Body accepts **absolute** `qty`, NOT a delta — `CartContext.updateQuantity` computes the resulting total client-side first. |
-| `removeCartItem` | `useRemoveCartItemMutation()` | `DELETE` | Remove one line. |
-| `setCart` | `useSetCartMutation()` | `PUT` | Replace the whole `items` list. Used by `clearCart()` (no single-call wipe endpoint). |
-
-### `wishlistApi` (`reducerPath: 'wishlistApi'`) — real OneEntry REST
-
-Talks to `{NEXT_PUBLIC_API_URL}/users/me/wishlist`. Same auth + gate pattern as `cartApi`. Cache tag: `Wishlist`.
-
-| Endpoint | Hook | Verb | Notes |
-|---|---|---|---|
-| `getWishlist` | `useGetWishlistQuery()` | `GET` | Skip with `{ skip: !authToken }`. |
-| `addWishlistItem` | `useAddWishlistItemMutation()` | `POST` | Add one product. |
-| `removeWishlistItem` | `useRemoveWishlistItemMutation()` | `DELETE` | Remove one product. |
-| `setWishlist` | `useSetWishlistMutation()` | `PUT` | Bulk-merge on login (see `mergeUserWishlist` reducer in `wishlistSlice`). |
-
-> Exact request / response shapes, marker map and demo credentials: see [`./ONEENTRY_INTEGRATION.md`](./ONEENTRY_INTEGRATION.md) §5.1–§5.2.
-
-## 4. Typed hooks (`store/hooks.ts`)
-
-```ts
-export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
-export const useAppSelector = useSelector.withTypes<RootState>();
-```
-
-Always use these instead of the bare `react-redux` hooks.
-
-## 5. Selectors (`store/selectors.ts`)
-
-Single entry point for derived state. Use these instead of inline reducers in components.
-
-**Cart**: `selectCartItems`, `selectMiniCartOpen`, `selectCartTotalItems`, `selectCartSubtotal`, `selectCartOriginalSubtotal`, `selectCartDiscount`.
-
-**Wishlist**: `selectWishlistItems`, `selectWishlistCount`, `selectIsWishlisted` (parametric — accepts an `id`).
-
-**Recently viewed**: `selectRecentlyViewed`.
-
-**User**: `selectUserData`, `selectUserStatus`, `selectUserAddresses`, `selectUserProfile`, `selectUserLoyalty`.
-
-**UI**: `selectQuickViewProduct`.
-
-```tsx
-const wishlisted = useAppSelector(s => selectIsWishlisted(s, product.id));
-const totalItems = useAppSelector(selectCartTotalItems);
-const profile    = useAppSelector(selectUserProfile);
-```
-
-## 6. React contexts
-
-Five contexts in `src/app/context/`. Two kinds: thin wrappers over slices and independent React state.
-
-| Context | File | Kind | Hook |
-|---|---|---|---|
-| `CartContext` | `CartContext.tsx` | wraps `cartSlice` | `useCart()` |
-| `WishlistContext` | `WishlistContext.tsx` | wraps `wishlistSlice` | `useWishlist()` |
-| `QuickViewContext` | `QuickViewContext.tsx` | wraps `uiSlice.quickView` | `useQuickView()` |
-| `AuthContext` | `AuthContext.tsx` | independent React state | `useAuth()` |
-| `CatalogAccentContext` | `CatalogAccentContext.tsx` | independent React state | `useCatalogAccent()` |
-
-**Wrappers.** `useCart()`, `useWishlist()`, `useQuickView()` only `dispatch` the underlying slice actions; components never touch slices directly. `closeQuickView()` internally schedules `setTimeout(() => dispatch(clearQuickViewProduct()), 300)` for the close animation.
-
-**`AuthContext` / `useAuth()`.** Plain React state, not Redux:
-
-```ts
-interface AuthContextType {
-  isLoggedIn:           boolean
-  user:                 User | null      // flat profile + loyalty
-  loginModalOpen:       boolean
-  registerModalOpen:    boolean
-  openLoginModal():     void
-  closeLoginModal():    void
-  openRegisterModal():  void
-  closeRegisterModal(): void
-  login(emailOrPhone, password): Promise<boolean>   // currently calls validateCredentials()
-  logout():             void
-  updateUser(data):     void
-}
-```
-
-On login the `user` is set to `MOCK_USER_DATA` from `userData.ts`. Replace `validateCredentials` with the real `POST /api/auth/login` to migrate.
-
-**`CatalogAccentContext` / `useCatalogAccent()`.** Holds the hex accent of the current section (`'#F88A8A'` for women, `'#8B9EB7'` for men). Catalog pages provide the value via `<CatalogAccentContext.Provider value={accentColor}>`. Default: `'#000000'`.
-
-## 7. Persistence (localStorage)
-
-Key: `'oe_store'`. Schema version: `STORAGE_VERSION = 4`.
-
-Persisted shape:
-
+**CartItem shape:**
 ```ts
 {
-  __version:      4,
-  cart:           CartState,
-  wishlist:       WishlistState,
-  recentlyViewed: RecentlyViewedState,
-  catalog:        CatalogsState,    // saved, but hydrated separately
-  userAddresses:  UserAddress[],    // only addresses, not the whole user
+  id: string;              // playground SKU (e.g. 'wc-1') OR stringified OE id
+  name: string;
+  brand: string;
+  color: string;
+  sku: string;
+  size: string;
+  quantity: number;
+  price: number;
+  originalPrice?: number;
+  image: string;
+  bundleId?: string;
 }
 ```
 
-**Catalog hydration.** `catalog` is **not** part of `preloadedState`. After client mount, `Providers.tsx` calls `loadCatalogFromStorage()` and dispatches `hydrateCatalogs(...)` — this avoids an SSR/CSR mismatch.
+**Actions:**
+- `addItem(item)` — merge or append by id + size, accumulating quantity.
+- `addBundle(items)` — bulk add with shared `bundleId`.
+- `removeItem(id)`, `removeBundle(bundleId)`.
+- `updateQuantity({id, delta})` — deltas can be negative; min 1.
+- `updateSize({id, size})`.
+- `clearCart()`.
+- `openMiniCart()`, `closeMiniCart()`.
 
-**Not persisted**: `ui` (QuickView, mobile menu), the RTK Query cache, the rest of `user` (only `addresses`), and `user.data.authToken` / `refreshToken` / `userIdentifier` (auth tokens are intentionally kept out of localStorage).
+**Persistence:** ✅ persisted, minus `miniCartOpen` (stripped in `saveToStorage` to avoid re-opening the drawer on every navigation).
 
-**Migrations** (`MIGRATIONS` in `store/index.ts`):
+### 2.2 `wishlistSlice` (`src/app/store/wishlistSlice.ts`)
 
-| Step | Behaviour |
+**State:** `{ items: WishlistItem[] }`.
+
+**Actions:**
+- `addItem(item)` — upsert by id, merging richer data while preserving user selections (color / size).
+- `removeItem(id)`.
+- `toggleItem(item)` — add if missing, remove if present.
+- `updateSelection({id, selectedColor?, selectedSize?})`.
+- `clearAll()`.
+- `mergeUserWishlist(payload)` — on login: combine server items + waiting list + guest-only items; server wins on dedupe.
+
+**Persistence:** ✅ persisted.
+
+### 2.3 `recentlyViewedSlice` (`src/app/store/recentlyViewedSlice.ts`)
+
+**State:** `{ items: (Product & {viewedAt: number})[] }`.
+
+**Actions:**
+- `addProduct(product)` — prepend with `viewedAt`, evict items older than 30 days (`RECENTLY_VIEWED_MAX_AGE_MS`), enforce circular buffer of `LIMITS.RECENTLY_VIEWED_MAX = 100`.
+- `hydrate(items)` — replace from server-enriched trail after AuthContext bootstrap.
+
+**Persistence:** ✅ persisted.
+
+### 2.4 `catalogSlice` (`src/app/store/catalogSlice.ts`)
+
+**State:** `Record<catalogKey, CatalogUIState>` where
+```ts
+{
+  selectedFilters: Record<string, string[]>;
+  sortBy: string;
+  currentPage: number;
+  viewCols: 3 | 4;
+  listMode: boolean;
+  activeChip: string;
+}
+```
+`catalogKey` is one of `women-clothing`, `women-shoes`, `women-bags`, `women-accessories`, `men-clothing`, `men-shoes`, `men-bags`, `men-accessories`, plus `sale` / `new` / etc.
+
+**Actions:**
+- `toggleFilter({catalogKey, group, value})` — reset to page 1.
+- `setFilters({catalogKey, filters})` — replace all from URL, reset page.
+- `clearFilters({catalogKey})` — wipe filters + `activeChip`, reset page.
+- `setSort({catalogKey, sortBy})` — reset page.
+- `setPage({catalogKey, page})`.
+- `setViewCols({catalogKey, cols})`.
+- `setListMode({catalogKey, listMode})`.
+- `setActiveChip({catalogKey, chip})` — reset page.
+- `hydrateCatalogs(state)` — load persisted catalog state on client mount.
+
+**Persistence:** ✅ persisted, but hydrated **after client mount** to avoid SSR mismatch (see §4).
+
+### 2.5 `uiSlice` (`src/app/store/uiSlice.ts`)
+
+**State:**
+```ts
+{
+  quickView: { isOpen: boolean; product: Product | null; initialColorIndex: number | null };
+  mobileMenuOpen: boolean;
+}
+```
+
+**Actions:** `openQuickView(payload)`, `closeQuickView()`, `clearQuickViewProduct()`, `openMobileMenu()`, `closeMobileMenu()`, `toggleMobileMenu()`.
+
+**Persistence:** ❌ not persisted.
+
+### 2.6 `userSlice` (`src/app/store/userSlice.ts`)
+
+**State:**
+```ts
+{
+  data: {
+    ...USER_DATASET,            // loyalty defaults from src/app/data/userData.ts
+    addresses: [],
+    authToken: null,             // kept for backward compat; always empty on the live path
+    refreshToken: null,          // same
+    userIdentifier: null,
+  };
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+```
+
+**Actions:**
+- `patchUserData(patch)` — merge partial fields.
+- `addAddress(address)`.
+- `setAuth({accessToken, refreshToken, userIdentifier})` — dispatched after successful Server Action sign-in. Tokens are usually empty strings; only `userIdentifier` matters.
+- `clearAuth()` — reset auth fields on logout.
+
+**Async thunk:** `fetchUserData()` — legacy simulated fetch returning `USER_DATASET`. Retained so Storybook stories keep compiling; not used by any live UI. Real profile data comes from `AuthContext.user` (populated by `getCurrentUserAction`).
+
+**Persistence:** ❌ not persisted. Session lives in httpOnly cookies (`oe_access`, `oe_refresh`, `oe_user`). See [AUTH.md](./AUTH.md) §3.
+
+## 3. RTK Query APIs
+
+Two API slices remain: `cartApi` and `wishlistApi`. Both use `fetchBaseQuery` with `NEXT_PUBLIC_API_URL` and a Bearer header pulled from `state.user.data.authToken`. **On the current live path these hooks are not called** — cart and wishlist sync run through the `syncCart` / `syncWishlist` Server Actions in `AuthContext`. The RTK Query slices are kept as compiled scaffolding so a future refactor back to client-side fetching would only need to swap `NEXT_PUBLIC_API_URL` (currently empty) and start calling the hooks.
+
+### 3.1 `cartApi` (`src/app/store/api/cartApi.ts`)
+
+- `reducerPath: 'cartApi'`.
+- `tagTypes: ['Cart']`.
+- Base URL: `process.env.NEXT_PUBLIC_API_URL` (empty by default — `isCartApiEnabled()` returns `false`).
+- Endpoints: `getCart` (GET `/users/me/cart`, provides `Cart`), `addCartItem` (POST `/users/me/cart/items`, invalidates `Cart`), `removeCartItem` (DELETE `/users/me/cart/items/:productId`), `setCart` (PUT `/users/me/cart`).
+- Wire types in `api/types/cart.ts`.
+
+### 3.2 `wishlistApi` (`src/app/store/api/wishlistApi.ts`)
+
+- `reducerPath: 'wishlistApi'`.
+- `tagTypes: ['Wishlist']`.
+- Same base-URL / gate pattern as `cartApi`.
+- Endpoints: `getWishlist`, `addWishlistItem`, `removeWishlistItem`, `setWishlist`.
+- Helper `isFetchBaseQueryError(err)` narrows RTK Query errors to `{status, data}`.
+
+Both middlewares are still concatenated in `makeStore()` — removing them would be a small future cleanup.
+
+## 4. Persistence
+
+`saveToStorage` / `loadFromStorage` / `loadCatalogFromStorage` in `src/app/store/index.ts`.
+
+- **Key:** `oe_store` in `localStorage`.
+- **Schema version:** **5** (`STORAGE_VERSION = 5`).
+- **Persisted slices:** `cart` (minus `miniCartOpen`), `wishlist`, `recentlyViewed`, `catalog`.
+- **Not persisted:** `ui`, `user` (session lives in cookies).
+
+### Migrations
+
+| From → To | Effect |
 |---|---|
-| v1 → v2 | No-op (backwards compat). |
-| v2 → v3 | Adds `viewedAt: Date.now()` to existing `recentlyViewed` items. |
-| v3 → v4 | Defensive bump for the auth-token fields on `user.data`. They are not persisted, so no shape change — kept for traceability. |
+| `v1 → v2` | No-op — legacy `userAddresses` moved out of `user.data`. |
+| `v2 → v3` | Adds `viewedAt` timestamp to every `recentlyViewed` item. |
+| `v3 → v4` | Defensive bump — auth-token fields were added to `user.data` at this time but are explicitly not persisted. |
+| `v4 → v5` | Drops the top-level `userAddresses` key entirely. Real addresses now live in `AuthContext.user.addresses`. |
 
-Mechanism: `store.subscribe(() => saveToStorage(...))` — synchronous write on every state change.
+Unknown future versions (`__version > STORAGE_VERSION`) wipe the store to prevent corruption.
 
-## 8. Usage patterns
+`catalogSlice` is deliberately excluded from the main `preloadedState` load and injected via `loadCatalogFromStorage()` on client mount — otherwise SSR would render page 1 while the client's localStorage reports page 3, causing a hydration mismatch.
 
-### Catalog page
+## 5. Hooks
 
-```tsx
-const CATALOG_KEY = 'women-clothing';
+`src/app/store/hooks.ts`:
 
-export function WomenCatalogPage() {
-  const { data: allProducts = WOMEN_CLOTHING_PRODUCTS } = useGetWomenClothingQuery();
+- `useAppDispatch()` — typed `useDispatch<AppDispatch>()`.
+- `useAppSelector` — typed `useSelector<RootState>`.
 
-  const dispatch = useAppDispatch();
-  const catalogState     = useAppSelector(s => s.catalog[CATALOG_KEY]);
-  const selectedFilters  = catalogState?.selectedFilters ?? {};
-  const sortBy           = catalogState?.sortBy ?? 'featured';
-  const viewCols         = (catalogState?.viewCols ?? 4) as 3 | 4;
+Consumers should prefer these over untyped `useDispatch` / `useSelector`.
 
-  // Local UI state stays out of Redux
-  const [sortOpen, setSortOpen] = useState(false);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+## 6. Selectors
 
-  const handleToggleFilter = (key: string, val: string) =>
-    dispatch(toggleFilter({ catalogKey: CATALOG_KEY, filterKey: key, value: val }));
+`src/app/store/selectors.ts` — memoised selectors (`createSelector`) for hot paths:
 
-  const handleSort = (value: string) =>
-    dispatch(setSort({ catalogKey: CATALOG_KEY, sortBy: value }));
-}
-```
+**Cart:**
+- `selectCartItems` — items array
+- `selectMiniCartOpen`
+- `selectCartTotalItems` — sum of quantities
+- `selectCartSubtotal` — sale/current total
+- `selectCartOriginalSubtotal` — full total
+- `selectCartDiscount` — `originalSubtotal − subtotal`
 
-### Shared component with `catalogKey`
+**Wishlist:**
+- `selectWishlistItems`
+- `selectWishlistCount`
+- `selectIsWishlisted(id)`
 
-```tsx
-<ShoesCatalog
-  catalogKey="women-shoes"
-  gender="women"
-  accentColor="#C4A882"
-  totalStyles={4218}
-  totalPages={211}
-  quickChips={QUICK_CHIPS}
-  filterGroups={FILTER_GROUPS}
-  products={products}
-  trendBlocks={TREND_BLOCKS}
-/>
+**Recently viewed:**
+- `selectRecentlyViewed`
 
-// inside
-const catalogState = useAppSelector(s => s.catalog[catalogKey]);
-```
+**User:**
+- `selectUserData`, `selectUserStatus`, `selectUserAddresses`, `selectUserProfile`, `selectUserLoyalty`
 
-### Conditional RTK Query (`skip`)
+**UI:**
+- `selectQuickViewProduct`
 
-```tsx
-const { data: specialOffersData } = useGetSpecialOffersQuery(
-  catalogProduct?.specialOffersId ?? '',
-  { skip: !catalogProduct?.specialOffersId }
-);
-```
+## 7. Middleware
 
-### QuickView
+`makeStore()` composes:
 
-```tsx
-const { openQuickView, closeQuickView, isOpen, product, initialColorIndex } = useQuickView();
-// openQuickView(product, colorIndex?) — second arg sets the pre-selected color.
-// closeQuickView() internally schedules clearQuickViewProduct after 300 ms.
-```
+1. RTK Toolkit default middleware.
+2. `wishlistApi.middleware`.
+3. `cartApi.middleware`.
 
-## 9. Switching to a real API
+`store.subscribe(saveToStorage)` writes on every dispatched action.
 
-The architecture is set up so a real backend swap is mechanical. The recipe below applies to the three **local-data** APIs (`productsApi`, `homepageApi`, `catalogConfigApi`); `cartApi` and `wishlistApi` are already wired to the OneEntry Platform Content API and serve as a working template — copy their `fetchBaseQuery` + `prepareHeaders` setup if a slice needs the Bearer JWT.
+## 8. Testing
 
-**Step 1 — swap `baseQuery`** in every API file:
+Vitest unit tests live in `src/app/store/__tests__/`. Each slice has a `*.test.ts` that exercises the reducers with synthetic actions. RTK Query slices are tested via mocked `fetch`.
 
-```ts
-baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_URL })
-```
+## 9. Consumption pattern
 
-**Step 2 — replace `queryFn` with `query`**:
+- **Read state:** `useAppSelector(selectX)` where `X` is a memoised selector.
+- **Write state:** `useAppDispatch()` + slice action creators. `cartActions`, `wishlistActions`, `uiActions`, `catalogActions`, `userActions`, `recentlyViewedActions` are re-exported from each slice.
+- **Cross-slice mutations:** wrap in a React Context hook (`useCart`, `useWishlist`, `useAuth`) so the mutation coordinates the Server Action too. Never call `syncCart` from a random component — use `useCart().addItem` and let `CartContext` handle the debounced sync.
 
-```ts
-// Before
-getWomenClothing: builder.query<Product[], void>({
-  queryFn: async () => {
-    const { WOMEN_CLOTHING_PRODUCTS } = await import('../../data/women-clothing');
-    return { data: WOMEN_CLOTHING_PRODUCTS };
-  },
-}),
+## 10. What is NOT in Redux (intentional)
 
-// After
-getWomenClothing: builder.query<Product[], void>({
-  query: () => '/products/women/clothing',
-}),
-```
+- Products, pages, blocks, menus, labels, orders, payment accounts — all server-fetched via `src/lib/oneentry/**`.
+- Auth tokens — httpOnly cookies.
+- Form state (checkout, register) — local `useState` inside the page component.
+- Modal open/close for auth modals — lives in `AuthContext` state (not `uiSlice`).
 
-**Step 3 — drop fallback defaults in components** (handle `isLoading` / `isError` instead of relying on the static fallback):
+## 11. Cross-references
 
-```tsx
-const { data: allProducts, isLoading, isError } = useGetWomenClothingQuery();
-if (isLoading) return <Skeleton />;
-```
-
-**Step 4 — SEO** (server-side, not Redux):
-
-```ts
-export async function generateMetadata(): Promise<Metadata> {
-  const res = await fetch(`${process.env.API_URL}/seo/women-clothing`);
-  return res.json();
-}
-```
-
-After the full swap, `data/*.ts` files can be deleted or kept as dev-time fallbacks.
-
-## 10. Tests
-
-Directory: `src/app/store/__tests__/`. Framework: Vitest.
-
-| File | Scope |
-|---|---|
-| `cartSlice.test.ts` | `cartSlice` reducer — initial state, `addItem` (new / duplicate → qty++ / sale price), `removeItem`, `updateQuantity`, `clearCart`, `miniCartOpen`. |
-| `wishlistSlice.test.ts` | `wishlistSlice` reducer — analogous coverage. |
-
-Tests run against the reducer directly, without mounting components:
-
-```ts
-import cartReducer, { cartActions } from '../cartSlice';
-
-const state = cartReducer(undefined, cartActions.addItem(item));
-expect(state.items).toHaveLength(1);
-```
-
-Run with `npx vitest run` (CI) or `npx vitest` (watch).
+- [ARCHITECTURE.md](./ARCHITECTURE.md) §4 — state layers overview
+- [CART_WISHLIST.md](./CART_WISHLIST.md) — how CartContext / WishlistContext wrap the slices
+- [AUTH.md](./AUTH.md) — why auth tokens don't live here
+- [CATALOG_FILTERS.md](./CATALOG_FILTERS.md) — how `catalogSlice` is consumed
+- [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) — the Server Actions that replaced the fake RTK Query slices

@@ -9,6 +9,8 @@ import { useCart, type CartItem } from '../context/CartContext';
 import { Tag, ShoppingBag, Trash2 } from 'lucide-react';
 import { CartItemRow } from './cart/CartItemRow';
 import { CartBundleRow } from './cart/CartBundleRow';
+import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
+import { getCmsProductId } from '../data/cms-product-id-map';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 
@@ -18,12 +20,16 @@ type RenderRow =
 
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
 import { fmt } from '../utils/formatPrice';
-import { CHECKOUT_COUPONS } from '../data/checkoutConfig';
 import { CART_PAGE_LABELS as L } from '../data/cartLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
 
 export function CartPage() {
-  const { items, removeItem, removeBundle, updateQuantity, updateSize, subtotal, discount, total } = useCart();
+  const {
+    items, removeItem, removeBundle, updateQuantity, updateSize,
+    subtotal, discount, total, personalDiscount, totalDue,
+    couponCode, couponDiscount, couponError, applyCoupon, removeCoupon,
+    preview, previewLoading,
+  } = useCart();
   const router = useRouter();
 
   const lSelectAll        = useT('checkout_cart', 'checkout_delivery_select_all',              L.selectAll);
@@ -43,15 +49,64 @@ export function CartPage() {
   const lItemCount        = useT('checkout_cart', 'checkout_delivery_item_count',              L.itemPlural);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Promo section opens by default if a coupon is already applied on mount
+  // (user navigated back from checkout with an applied code).
   const [promoChecked, setPromoChecked] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [promoDiscount, setPromoDiscount] = useState(0);
-  const [promoError, setPromoError] = useState('');
+  const [promoInput, setPromoInput] = useState('');
+  const [promoBusy, setPromoBusy] = useState(false);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
+  // Per-item real sizes loaded from OE. Keyed by cart item id. The fetcher
+  // only queries ids that haven't been resolved yet, so navigating within the
+  // cart won't re-fetch every time.
+  const [sizesById, setSizesById] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    if (couponCode && !promoChecked) {
+      setPromoChecked(true);
+      setPromoInput(couponCode);
+    }
+  }, [couponCode, promoChecked]);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Load real product sizes from OE for each cart item so the Size dropdown
+  // renders the actual variants (e.g. a jewelry item shows just "One",
+  // not the hardcoded XS/S/M/L/XL/XXL). We fetch by the CMS product id
+  // (mapping ui.id → cmsId) and store the result under the cart item id
+  // that the row will look up.
+  useEffect(() => {
+    const unresolved = items.filter(i => !(i.id in sizesById));
+    if (unresolved.length === 0) return;
+    const idPairs = unresolved.flatMap((it) => {
+      const cmsId = getCmsProductId(it.id);
+      return cmsId !== null ? [{ localId: it.id, cmsId }] : [];
+    });
+    if (idPairs.length === 0) {
+      // Nothing mappable — mark as empty so we don't loop.
+      setSizesById(prev => {
+        const next = { ...prev };
+        for (const it of unresolved) if (!(it.id in next)) next[it.id] = [];
+        return next;
+      });
+      return;
+    }
+    const cmsIds = idPairs.map(p => p.cmsId);
+    let cancelled = false;
+    void getProductsByIdsAction(cmsIds).then((products) => {
+      if (cancelled) return;
+      // Adapter returns products keyed by ui.id (playgroundId ?? String(cmsId)),
+      // which is the same value we stored as pair.localId, so match on that.
+      const byLocalId = new Map(products.map(p => [p.id, p.sizes ?? []]));
+      setSizesById(prev => {
+        const next = { ...prev };
+        for (const pair of idPairs) {
+          next[pair.localId] = byLocalId.get(pair.localId) ?? [];
+        }
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [items, sizesById]);
 
   const rows = useMemo<RenderRow[]>(() => {
     const bundleMap = new Map<string, CartItem[]>();
@@ -104,21 +159,22 @@ export function CartPage() {
     });
   };
 
-  const applyPromo = () => {
-    const code = promoCode.trim().toUpperCase();
-    const coupon = CHECKOUT_COUPONS[code];
-    if (coupon) {
-      setPromoDiscount(subtotal * coupon.pct / 100);
-      setPromoApplied(true);
-      setPromoError('');
-    } else {
-      setPromoDiscount(0);
-      setPromoApplied(false);
-      setPromoError(L.promoInvalidError);
-    }
+  const handleApplyPromo = async () => {
+    if (promoBusy) return;
+    setPromoBusy(true);
+    await applyCoupon(promoInput);
+    setPromoBusy(false);
+  };
+  const handleRemovePromo = () => {
+    removeCoupon();
+    setPromoInput('');
   };
 
-  const finalTotal = total - promoDiscount;
+  // Preview already includes coupon + personal loyalty discount + bonuses,
+  // so `totalDue` is the single source of truth. Falls back to the naive
+  // client-computed `total` only when the preview isn't available yet
+  // (guest / empty cart / in-flight request).
+  const finalTotal = personalDiscount > 0 || couponDiscount > 0 ? totalDue : total;
 
   return (
     <div
@@ -242,6 +298,7 @@ export function CartPage() {
                         isLast={isLast}
                         isSelected={selectedIds.has(row.item.id)}
                         inWishlist={wishlist.has(row.item.id)}
+                        availableSizes={sizesById[row.item.id]}
                         onToggleSelect={() => toggleSelect(row.item.id)}
                         onToggleWishlist={() => toggleWishlist(row.item.id)}
                         onUpdateSize={(s) => updateSize(row.item.id, s)}
@@ -286,11 +343,29 @@ export function CartPage() {
                         <span className="font-semibold">−{fmt(discount)}</span>
                       </div>
                     )}
-                    {promoDiscount > 0 && (
-                      <div className="flex justify-between text-sm text-[var(--sale)]">
-                        <span>{L.promo} ({promoCode.trim().toUpperCase()})</span>
-                        <span className="font-semibold">−{fmt(promoDiscount)}</span>
+                    {/* Preview skeleton — only on the very first load. Once
+                        `preview` is set, refetches don't flash: we keep the
+                        old numbers visible. */}
+                    {previewLoading && !preview ? (
+                      <div className="flex justify-between text-sm" aria-busy="true">
+                        <div className="h-3.5 w-32 bg-gray-100 animate-pulse" />
+                        <div className="h-3.5 w-16 bg-gray-100 animate-pulse" />
                       </div>
+                    ) : (
+                      <>
+                        {personalDiscount - couponDiscount > 0 && (
+                          <div className="flex justify-between text-sm text-[var(--sale)]">
+                            <span>Loyalty discount</span>
+                            <span className="font-semibold">−{fmt(personalDiscount - couponDiscount)}</span>
+                          </div>
+                        )}
+                        {couponDiscount > 0 && couponCode && (
+                          <div className="flex justify-between text-sm text-[var(--sale)]">
+                            <span>{L.promo} ({couponCode})</span>
+                            <span className="font-semibold">−{fmt(couponDiscount)}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">{lDelivery}</span>
@@ -301,10 +376,16 @@ export function CartPage() {
                   {/* Divider */}
                   <div className="border-t border-[#e5e7eb]" />
 
-                  {/* Total */}
+                  {/* Total — skeleton on first preview load so the shopper
+                      doesn't see a subtotal-shaped "Total" that jumps down
+                      the moment discounts arrive. */}
                   <div className="flex justify-between items-baseline">
                     <span className="text-sm tracking-wide uppercase font-bold">{lTotal}</span>
-                    <span className="text-xl font-semibold">{fmt(finalTotal)}</span>
+                    {previewLoading && !preview ? (
+                      <div className="h-6 w-24 bg-gray-100 animate-pulse" aria-busy="true" />
+                    ) : (
+                      <span className="text-xl font-semibold">{fmt(finalTotal)}</span>
+                    )}
                   </div>
 
                   {/* Loyalty bonus */}
@@ -330,32 +411,42 @@ export function CartPage() {
                       <span className="font-medium">{lPromoCheckbox}</span>
                     </label>
 
-                    {promoChecked && (
+                    {promoChecked && !couponCode && (
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          value={promoCode}
-                          onChange={e => { setPromoCode(e.target.value); setPromoError(''); }}
+                          value={promoInput}
+                          onChange={e => setPromoInput(e.target.value)}
                           placeholder={lPromoPlaceholder}
-                          className="flex-1 px-3 py-2 text-xs outline-none border border-[#d1d5db] rounded-md"
-                          onKeyDown={e => e.key === 'Enter' && applyPromo()}
+                          disabled={promoBusy}
+                          className="flex-1 px-3 py-2 text-xs outline-none border border-[#d1d5db] rounded-md disabled:opacity-60"
+                          onKeyDown={e => e.key === 'Enter' && handleApplyPromo()}
                         />
                         <button
-                          onClick={applyPromo}
-                          className="px-4 py-2 text-xs tracking-wider uppercase text-white focus-visible:outline-none bg-black rounded-md font-semibold"
+                          onClick={handleApplyPromo}
+                          disabled={promoBusy}
+                          className="px-4 py-2 text-xs tracking-wider uppercase text-white focus-visible:outline-none bg-black rounded-md font-semibold disabled:opacity-60"
                         >
-                          {lPromoApply}
+                          {promoBusy ? '…' : lPromoApply}
                         </button>
                       </div>
                     )}
-                    {promoApplied && (
-                      <p className="text-xs mt-1.5 text-green-600">
-                        {L.promoAppliedPrefix} — {CHECKOUT_COUPONS[promoCode.trim().toUpperCase()]?.label ?? L.promoAppliedFallback}!
-                      </p>
+                    {couponCode && (
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 border border-green-200 bg-green-50 rounded-md">
+                        <span className="text-xs text-green-700">
+                          {L.promoAppliedPrefix} — <strong>{couponCode}</strong>
+                        </span>
+                        <button
+                          onClick={handleRemovePromo}
+                          className="text-[10px] tracking-wider uppercase text-gray-500 hover:text-black focus-visible:outline-none"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     )}
-                    {promoError && (
+                    {couponError && !couponCode && (
                       <p className="text-xs mt-1.5 text-[var(--sale)]" role="alert">
-                        {promoError}
+                        {couponError}
                       </p>
                     )}
                   </div>

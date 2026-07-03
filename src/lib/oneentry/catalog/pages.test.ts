@@ -5,6 +5,8 @@ const getPageByUrl = vi.fn();
 vi.mock('../index', () => ({
   oneentry: { Pages: { getPageByUrl } },
   isOneEntryEnabled: true,
+  isError: (v: unknown) =>
+    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -31,6 +33,29 @@ describe('loadPageByUrl', () => {
       pageUrl: 'about-us',
       title: 'About Us',
     });
+  });
+
+  it('reads flat attributeValues when the SDK unwrapped the per-locale slice', async () => {
+    getPageByUrl.mockResolvedValue({
+      id: 8,
+      identifier: 'flat-page',
+      pageUrl: 'flat-page',
+      localizeInfos: { en_US: { title: 'Flat Page' } },
+      // No `en_US` wrapper — attributes sit directly on `attributeValues`.
+      attributeValues: {
+        body_id1: { value: 'hi' },
+        marker_x: { value: 'y' },
+      },
+    });
+    const { loadPageByUrl } = await importFresh();
+    const page = await loadPageByUrl('flat-page');
+    expect(page).not.toBeNull();
+    expect(page!.attributeValues).toMatchObject({
+      body_id1: { value: 'hi' },
+      marker_x: { value: 'y' },
+    });
+    // No leftover locale wrapper leaked into the attrs map.
+    expect(page!.attributeValues.en_US).toBeUndefined();
   });
 
   it('returns null when response is an error object', async () => {

@@ -16,7 +16,9 @@ async function openLoginModal(page: any) {
 
 async function openRegisterModal(page: any) {
   await openLoginModal(page);
-  await page.locator('button:has-text("Create one")').click();
+  // Switch CTA text comes from OE (sign_in_create_one) with fallback "Create one".
+  // Match by role + regex so OE label variants ("Sign up", "Register") still work.
+  await page.getByRole('button', { name: /create one|sign up|register/i }).first().click();
   await page.waitForTimeout(500);
 }
 
@@ -88,7 +90,7 @@ test.describe('Input Validation — Register Form', () => {
   test('rejects empty first name', async ({ page }) => {
     await openRegisterModal(page);
     // Leave first name empty, fill rest
-    await page.getByPlaceholder('you@example.com').fill('test@test.com');
+    await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
     if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
     const submitBtn = page.locator('button:has-text("Register")').first();
@@ -98,8 +100,8 @@ test.describe('Input Validation — Register Form', () => {
 
   test('rejects first name longer than 60 chars', async ({ page }) => {
     await openRegisterModal(page);
-    await page.getByPlaceholder('Jane').fill('A'.repeat(61));
-    await page.getByPlaceholder('you@example.com').fill('test@test.com');
+    await page.locator('input[autocomplete="given-name"]').first().fill('A'.repeat(61));
+    await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
     if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
     const submitBtn = page.locator('button:has-text("Register")').first();
@@ -110,8 +112,8 @@ test.describe('Input Validation — Register Form', () => {
 
   test('rejects invalid email in register', async ({ page }) => {
     await openRegisterModal(page);
-    await page.getByPlaceholder('Jane').fill('Test');
-    await page.getByPlaceholder('you@example.com').fill('not-an-email');
+    await page.locator('input[autocomplete="given-name"]').first().fill('Test');
+    await page.locator('input[placeholder*="example.com"]').first().fill('not-an-email');
     const pwInputs = page.locator('input[type="password"]');
     if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
     const submitBtn = page.locator('button:has-text("Register")').first();
@@ -121,8 +123,8 @@ test.describe('Input Validation — Register Form', () => {
 
   test('rejects password shorter than 8 chars in register', async ({ page }) => {
     await openRegisterModal(page);
-    await page.getByPlaceholder('Jane').fill('Test');
-    await page.getByPlaceholder('you@example.com').fill('test@test.com');
+    await page.locator('input[autocomplete="given-name"]').first().fill('Test');
+    await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
     if (await pwInputs.count() > 0) await pwInputs.first().fill('123');
     const phoneInput = page.getByPlaceholder(/\+44/i).first();
@@ -134,8 +136,8 @@ test.describe('Input Validation — Register Form', () => {
 
   test('rejects phone with special characters in register', async ({ page }) => {
     await openRegisterModal(page);
-    await page.getByPlaceholder('Jane').fill('Test');
-    await page.getByPlaceholder('you@example.com').fill('test@test.com');
+    await page.locator('input[autocomplete="given-name"]').first().fill('Test');
+    await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
     if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
     const phoneInput = page.getByPlaceholder(/\+44/i).first();
@@ -497,8 +499,8 @@ test.describe('Input Validation — Register Terms', () => {
 
   test('register without accepting terms shows error', async ({ page }) => {
     await openRegisterModal(page);
-    await page.getByPlaceholder('Jane').fill('Test');
-    await page.getByPlaceholder('you@example.com').fill('new@test.com');
+    await page.locator('input[autocomplete="given-name"]').first().fill('Test');
+    await page.locator('input[placeholder*="example.com"]').first().fill('new@test.com');
     const pwInputs = page.locator('input[type="password"]');
     if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
     const phoneInput = page.getByPlaceholder(/\+44/i).first();

@@ -1,634 +1,366 @@
 # Checkout Pipeline
 
-> Reference for the three-step checkout funnel in `apps/new-shop-nextjs`.
-> Audience: LLM agents that need a faithful, code-level picture of how the
-> Delivery → Payment → Confirmation flow is implemented.
+> Reference for the three-step checkout funnel. Audience: LLM agents that need a code-level picture of Delivery → Payment → Confirmation and the OneEntry order-creation contract.
 
 ---
 
 ## 1. Overview
 
-The checkout is a three-segment funnel rendered through Next.js App Router:
+Checkout is a three-segment funnel rendered through the App Router:
 
 ```
 /cart  ──►  /checkout/delivery  ──►  /checkout/payment  ──►  /checkout/confirmation
             (CheckoutStepper 1)      (CheckoutStepper 2)     (CheckoutStepper 3)
 ```
 
-The App Router route segments are thin wrappers — each `page.tsx` under
-`app/checkout/<step>/` re-exports the SEO metadata from
-`src/app/data/seoData.ts` and renders one of three client components:
+Each `app/checkout/<step>/page.tsx` is a thin route shell that re-exports SEO metadata from `src/app/data/seoData.ts` and renders one of three client components:
 
-| Route | App Router file | Page component |
-|---|---|---|
-| `/checkout/delivery` | `app/checkout/delivery/page.tsx` | `src/app/pages/DeliveryPage.tsx` |
-| `/checkout/payment` | `app/checkout/payment/page.tsx` | `src/app/pages/PaymentPage.tsx` |
-| `/checkout/confirmation` | `app/checkout/confirmation/page.tsx` | `src/app/pages/ConfirmationPage.tsx` |
+- `src/app/pages/DeliveryPage.tsx` — address + shipping method + time slot + coupon
+- `src/app/pages/PaymentPage.tsx` — loads payment accounts from OneEntry, submits `createOrderAction`, redirects to Stripe if needed
+- `src/app/pages/ConfirmationPage.tsx` — receipt view + `clearCart()` on mount
 
-The stepper (`src/app/components/CheckoutStepper.tsx`) is rendered at the top
-of every step. Its `STEPS` array hard-codes `Cart → Delivery → Payment →
-Confirmation`. Only completed steps (`idx < currentStep`) are clickable;
-the current and upcoming steps are render-disabled (`disabled={!done &&
-!active}`).
+Two client-side handoff channels move state between steps:
 
-### Success path
+- `sessionStorage['oe_checkout_payload']` — Delivery → Payment (JSON of address / delivery method / date / slot / coupon / guest contact).
+- Redux `cartSlice` — same across all three steps (until `clearCart()` fires on Confirmation).
 
-`DeliveryPage.handleContinueToPayment` (line 154) validates inputs and
-navigates to `/checkout/payment` via `router.push`. `PaymentPage.handlePlaceOrder`
-(line 26) optionally validates a card form, then `router.push('/checkout/confirmation')`.
-`ConfirmationPage` mounts, **generates a synthetic order id client-side after mount**
-(`crypto.randomUUID` inside `useEffect`, lines 22 + 31-32 — the generation is
-deferred to client-only to avoid Next.js hydration mismatch), and schedules
-`clearCart()` 200 ms after mount.
+Order placement **hits OneEntry for real** — `createOrderAction` writes to `orders-storage`, and Stripe accounts trigger a hosted-checkout session redirect.
 
-### Abandonment paths
-
-- "Back to Cart" button on Delivery (line 273) — `router.push('/cart')`.
-- "Back to Delivery" link on Payment (line 187).
-- `PaymentPage.handlePlaceOrder` redirects to `/` (line 27) if the cart is
-  empty when the place-order button is clicked.
-- No persisted "abandoned-cart" event is dispatched. Cart state lives in
-  Redux + `localStorage` (`src/app/store/cartSlice.ts`) and survives
-  reloads until `clearCart()` runs on Confirmation mount.
-
-### Important: no OneEntry order persistence
-
-Grep across `src/` finds **no** `Orders.create*`, no `orders_storage`, no
-`form_data` POST, no `ordersApi.ts`, and the only server action in
-`src/app/actions/auth.ts` is a credential check. The checkout is a UI
-mock — order placement does not call the OneEntry SDK or any backend.
-The only OneEntry-backed REST endpoint touched anywhere along the path
-is the cart sync (`src/app/store/api/cartApi.ts`) which runs while the
-user browses the cart, **not at checkout submission**.
+Section error boundary: `app/checkout/error.tsx` catches any unhandled throw in the segment.
 
 ---
 
-## 2. Order Data Model
+## 2. Delivery step (`DeliveryPage.tsx`)
 
-There is no DTO sent to OneEntry. The "order" exists only as Redux state
-plus three client-only variables on the Confirmation page:
+### 2.1 Auth gate
 
-| Concept | Where it lives | Persisted? |
-|---|---|---|
-| Cart items | `state.cart.items` (Redux, persisted to `localStorage`) | yes — local |
-| Delivery method + address | `DeliveryPage.tsx` local `useState` | no |
-| Saved address | `state.user.data.addresses` via `userSlice.addAddress` | yes — local |
-| Payment method + card details | `PaymentPage.tsx` local `useState` + `CardForm` ref state | no |
-| Coupon (`appliedCoupon`) | `DeliveryPage.tsx` local `useState` | no — lost on navigation |
-| Order id | `ConfirmationPage.tsx` `useState<string\|null>(null)` + `setOrderId(randomOrderId())` in `useEffect` | no — random per visit, generated client-only (post-hydration) |
+If `!isLoggedIn`, `<GuestCheckoutModal>` renders on mount with three options:
 
-If/when the project moves to real OneEntry order persistence, the form
-marker is expected to be `checkout` (`forForms_checkout` attribute set —
-see `agents_datasets/rules/users-architecture.md` §"forForms_checkout —
-NARROW: order-specific fields only") with the order written to
-`orders_storage` marker `default`. None of that is wired today.
+- **Sign In** → `openLoginModal()`.
+- **Register** → `openRegisterModal()`.
+- **Continue as Guest** → closes the modal; page unlocks.
 
----
+Guest users need to fill contact fields inline; logged-in users pick from saved addresses (`user.addresses` seeded by `AuthContext`).
 
-## 3. Step 1: Delivery (`/checkout/delivery`)
+### 2.2 Delivery methods
 
-Page component: `src/app/pages/DeliveryPage.tsx` (310 lines).
+Three methods, selected via radio cards:
 
-### 3.1 Auth gate
+| Method | Consumer requirements |
+|---|---|
+| `home` | Full address (saved or new) + delivery date + time slot |
+| `store` | Pickup store id (from `PICKUP_STORES` in `src/app/data/checkoutConfig.ts`) + guest contact if not logged in |
+| `locker` | Locker id (from `PARCEL_LOCKERS`) + guest contact if not logged in |
 
-`useEffect` (line 187) opens `GuestCheckoutModal` automatically when the
-user is not logged in. The modal
-(`src/app/pages/checkout/GuestCheckoutModal.tsx`) offers three options:
-
-- **Sign In** — closes the modal, opens `LoginModal` via `useAuth().openLoginModal`.
-- **Create Account** — opens `RegisterModal` via `openRegisterModal`.
-- **Continue as Guest** — simply closes the modal; the user proceeds without auth.
-
-### 3.2 Delivery methods
-
-Three mutually exclusive radio-cards (`DeliveryMethod = 'home' | 'store' | 'locker'`,
-default `'home'`):
-
-#### Home / Office (`DeliveryMethodHome.tsx`)
-
-- Logged-in user with saved addresses → list of `RadioCard` rows from
-  `state.user.data.addresses` plus an "Use a different address" entry
-  that expands a new-address form (line 111).
-- Anonymous user or empty address book → the new-address form is rendered
-  inline (line 154).
-- Address form fields (matching `addressSchema` in `src/app/utils/schemas.ts`):
-
-  | Field | Type | Validation (Zod) |
-  |---|---|---|
-  | `fullName` | text | `min(1)`, `max(100)` |
-  | `phone` | tel | `min(1)`, regex `/^\+?[\d\s\-()\[\]]{7,20}$/` |
-  | `line1` | text | `min(1)`, `max(200)` |
-  | `city` | text | `min(1)`, `max(100)` |
-  | `postcode` | text | `min(1)`, regex `/^[A-Z0-9\s\-]{3,10}$/i` |
-  | `instructions` | text | optional, `max(500)` |
-
-- Optional checkbox "Save this address to my profile" (`saveNewAddr`,
-  default `true`). When checked, on Confirm the address is dispatched
-  via `addAddress` (line 148) — generating an id with
-  `crypto.randomUUID().slice(0, 8)` prefixed `'a'`.
-- Delivery date selector — `getDeliveryDates(7)` (DeliveryPage line 35)
-  returns the next 7 calendar days starting tomorrow, **skipping Sundays**.
-- Time-slot selector — `DELIVERY_TIME_SLOTS` from `checkoutConfig.ts`:
-  `morning` (09:00–13:00), `afternoon` (13:00–17:00), `evening` (17:00–21:00).
-
-#### Store Pickup (`DeliveryMethodStore.tsx`)
-
-- Selects a store from `PICKUP_STORES` (3 hardcoded London stores in
-  `src/app/data/checkoutConfig.ts:11`).
-- Anonymous user must additionally fill `GuestContactForm` (full name,
-  phone, email) — validated by `guestContactSchema` (`fullName` min 1,
-  `email` rfc, `phone` same regex as address).
-
-#### Parcel Locker (`DeliveryMethodLocker.tsx`)
-
-- Selects from `PARCEL_LOCKERS` string list (4 hardcoded locations).
-- Same anonymous → `GuestContactForm` rule applies.
-
-### 3.3 Continue-to-payment guard
-
-`handleContinueToPayment` (line 154):
-
-1. If method = `'home'`:
-   - If logged-in **and** the user picked a saved address (not `'new'`) →
-     allow.
-   - Else if `newAddrConfirmed === false` → parse `newAddrForm` against
-     `addressSchema`. On failure, set per-field errors and return.
-2. If method = `'store' | 'locker'` and `!isLoggedIn` → parse
-   `guestContact` against `guestContactSchema`; on failure set errors
-   and return.
-3. On success → `router.push('/checkout/payment')`.
-
-There is no validation of the saved address itself (it was validated at
-add time) and no per-slot enforcement.
-
----
-
-## 4. Step 2: Payment (`/checkout/payment`)
-
-Page component: `src/app/pages/PaymentPage.tsx` (249 lines).
-
-### 4.1 Payment methods (`paymentMethodsConfig.ts`)
-
-The `PayMethod` union (`PaymentPage.parts.tsx:7`) enumerates seven
-options, grouped in the UI into two sections:
-
-#### "Pay on Delivery" (COD)
-- `cash` — Cash Payment, badge `COD`. Description-only, no extra inputs.
-- `card-delivery` — Bank Card on Delivery, badge `COD`. POS terminal
-  description only, no extra inputs.
-
-#### "Online Prepayment"
-- `qr` — QR / Faster Payment System. Renders a static decorative QR
-  grid (`QRPanel`, no real payment session).
-- `apple-pay` — renders an `<WalletButton>` (decorative — no
-  `ApplePaySession` wiring; the SVG is a static asset under
-  `/icons/wallet/apple-pay.svg`).
-- `google-pay` — same pattern, blue button. Decorative.
-- `card-online` — renders the `CardForm` (see §4.2). Subtitle text says
-  "Visa, Mastercard, Amex — powered by CloudPayments" but the form
-  doesn't tokenize: it validates and stays in component state.
-- `installment` — picks 3/6/12 months, then renders `CardForm` inside
-  `InstallmentPanel`. Monthly price hardcoded against `368.99`
-  (`PaymentPage.parts.tsx:237`) — display only.
-
-Default selected method: `'card-online'` (`PaymentPage.tsx:23`).
-
-### 4.2 Card form (`CardForm`, `PaymentPage.parts.tsx:72`)
-
-Fields and validation (`paymentSchema` in `src/app/utils/schemas.ts:106`):
-
-| Field | Mask / Max | Validation |
-|---|---|---|
-| `cardNumber` | `maxLength={19}` | regex `/^[\d\s]{13,19}$/` **and** Luhn-10 (`luhn` helper at line 93) |
-| `nameOnCard` | — | `min(1)`, `max(100)` |
-| `expiry` | `maxLength={5}` | regex `/^(0[1-9]|1[0-2])\/\d{2}$/` and `refine` that `MM/YY` is in the future |
-| `cvv` | `maxLength={4}`, type=password | regex `/^\d{3,4}$/` |
-
-The card form is exposed via `useImperativeHandle` so the parent page
-can call `cardRef.current?.validate()` (line 28) before navigating.
-
-### 4.3 PCI / tokenization
-
-**There is no tokenization layer.** `CardForm` stores the raw PAN and CVV
-in React `useState` (line 73) and never POSTs them anywhere — the data
-exists only for as long as the page is mounted. No CloudPayments script,
-no Stripe Elements, no PSP iframe. The "SSL Encrypted / PCI DSS Compliant
-/ 3D Secure" badges shown at line 177 are marketing copy from
-`PAYMENT_PAGE_LABELS.securityBadges`.
-
-If the playground is ever wired to a real PSP, the CardForm must be
-replaced with a hosted iframe / SDK Element so card data never reaches
-the React tree.
-
-### 4.4 Place Order
-
-`handlePlaceOrder` (line 26):
+Static resources in `src/app/data/checkoutConfig.ts`:
 
 ```ts
-if (items.length === 0) { router.push('/'); return; }
-if ((method === 'card-online' || method === 'installment') && !cardRef.current?.validate()) return;
-router.push('/checkout/confirmation');
+PICKUP_STORES = [
+  { id: '...', name: 'Oxford Street Flagship', address: '...', hours: '...' },
+  ...
+]
+PARCEL_LOCKERS = [
+  'Paddington Station — Platform 8 Locker Hub',
+  ...
+]
+DELIVERY_TIME_SLOTS = [
+  { id: 'morning',   label: '09:00 – 13:00' },
+  { id: 'afternoon', label: '13:00 – 17:00' },
+  { id: 'evening',   label: '17:00 – 21:00' },
+]
 ```
 
-That's the entire submission. No coupon is re-applied here, no order is
-written to a backend, no payment session is created. The button label
-is `"Place Order · {fmt(total)}"` (line 197) — note `total` here is the
-**raw cart total ignoring the coupon** (see §7).
+Delivery dates are computed client-side by `getDeliveryDates(count=7)` — earliest is tomorrow, Sundays skipped, up to 60 iteration guard for safety.
 
----
+`<DeliveryOrderSummary>` is loaded via `next/dynamic({ssr:false})` — its content reads from the Redux cart slice that hydrates from `localStorage` **after** client mount, so SSR would produce an empty snapshot that conflicts with the post-hydration tree.
 
-## 5. Step 3: Confirmation (`/checkout/confirmation`)
+### 2.3 New address flow
 
-Page component: `src/app/pages/ConfirmationPage.tsx` (151 lines).
+- Fields validated with `addressSchema` (Zod, `src/app/utils/schemas.ts`).
+- On "Confirm New Address", client optimistically appends the address to local state.
+- On "Continue to Payment", if the user is logged in and chose to save the address, `updateAddresses(nextAddresses)` fires — hits `updateAddressesAction` Server Action → OE form-data `user_addresses`. On success, the returned canonical list replaces local state.
 
-### 5.1 Order id generation
+### 2.4 Coupons (§7)
+
+Validated server-side via OE `previewOrder`. The Delivery page pulls `couponCode`, `couponDiscount`, `couponError`, `applyCoupon`, `removeCoupon`, and `previewLoading` from `useCart()` (see [CART_WISHLIST.md §4a](./CART_WISHLIST.md#4a-checkout-preview--coupons)). On "Apply", `applyCoupon(code)` calls `previewOrderAction` with the code — success sets `couponCode` (persisted in the cart context so subsequent `previewOrder`/`createOrder` calls include it); an `IError` response populates `couponError` with the server's message (e.g. "Add $61 more to unlock SUMMER2026").
+
+Discount math: `couponDiscount = preview.couponDiscountAmount` (whatever OE actually deducted). Not stored in Redux — the applied code lives in `CartContext` state and is included in the Delivery → Payment handoff payload.
+
+While a `previewOrder` is in flight and no preview is present (`previewLoading && !hasPreview`), `<DeliveryOrderSummary>` renders **skeleton** placeholders for the discount rows and the Total. `applyCoupon`/`removeCoupon` both clear `preview` and set `previewLoading=true` before firing, so the skeleton now also runs during apply/remove (and on `applyCoupon` failure the context re-fetches without the code to release the skeleton). The applied-coupon panel shows the raw code (no local label lookup).
+
+### 2.5 Handoff to Payment
+
+On "Continue to Payment", the page writes to `sessionStorage['oe_checkout_payload']`:
 
 ```ts
-function randomOrderId() {
-  return 'OE-' + crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+{
+  method: 'home' | 'store' | 'locker',
+  address?: { fullName, phone, line1, city, postcode, instructions },
+  addressId?: string,               // for saved addresses
+  deliveryDateISO?: string,
+  timeSlotId?: 'morning' | 'afternoon' | 'evening',
+  storeId?: string,
+  lockerIndex?: number,
+  couponCode?: string,
+  guestContact?: { fullName, email, phone },  // guest store / locker
 }
 ```
 
-Generated client-only after mount: `useState<string | null>(null)` (line 29)
-+ `setOrderId(randomOrderId())` inside `useEffect` (line 32). The deferred
-generation avoids Next.js hydration mismatch (server renders an empty `<strong></strong>`,
-the client fills it post-mount). The id is therefore **ephemeral, not persisted,
-and not unique across users or sessions**. There is no lookup endpoint backing
-it.
-
-### 5.2 What the user sees
-
-1. Large success icon + `CONFIRMATION_LABELS.heading` ("Order Confirmed!").
-2. The synthetic order id box.
-3. Three "what happens next" cards (`CONFIRMATION_INFO_CARDS` in
-   `src/app/data/confirmationLabels.ts:33`):
-   - **Confirmation Sent** — "A receipt has been sent to your email address."
-   - **Processing** — "Your order is being picked and packed right now."
-   - **Estimated Delivery** — "2–5 business days to your chosen address."
-4. Itemised summary — read straight from `useCart().items` (rendered
-   before the 200 ms `clearCart()` effect fires).
-5. A loyalty-points line:
-   `${Math.floor(total * 10)} bonus points` — display-only, not posted anywhere.
-   ⚠ **Formula divergence between pages:** `CartPage.tsx:295` computes
-   loyalty as `Math.floor(finalTotal * 10)` (post-coupon), while
-   `ConfirmationPage.tsx:125` uses `Math.floor(total * 10)` (pre-coupon,
-   because Confirmation reads `useCart().total` and the coupon was held
-   in `DeliveryPage` local state, not Redux). Result: same order can
-   advertise different bonus numbers across Cart → Confirmation when a
-   coupon was applied. No bonus is ever written to a real ledger
-   (`bonusHistory` in `userData.ts:368` is a static mock).
-6. Two CTAs: `Continue Shopping` → `/`, `New Arrivals` → `/women/clothing`.
-
-### 5.3 Email pathway
-
-**No email is sent.** The "A receipt has been sent" copy is informational
-only — there is no email service wired in, no SMTP/transactional provider
-integration, no OneEntry event/notification trigger. Real wiring would
-flow through OneEntry `events` (see `agents_datasets/rules/oneentry-invariants.md` §10).
+Then `router.push('/checkout/payment')`.
 
 ---
 
-## 6. Coupon Flow
+## 3. Payment step (`PaymentPage.tsx`)
 
-### 6.1 Coupon dictionary
+### 3.1 Payment accounts
 
-Hardcoded in `src/app/data/checkoutConfig.ts:3`:
+On mount, calls `getPaymentAccountsAction()` (Server Action → `getApi().Payments.getAccounts()`) with an `accountsLoading` loading state. On resolve, **auto-selects the first visible account** so "Place Order" is pre-filled (though the CTA itself is still gated by the preview fetch — see §3.5). Returns `PaymentAccount[]`:
 
 ```ts
-export const CHECKOUT_COUPONS: Record<string, { label: string; pct: number }> = {
-  ONEENTRY10: { label: '10% off', pct: 10 },
-  SAVE10:     { label: '10% off', pct: 10 },
-  ONEENTRY20: { label: '20% off', pct: 20 },
-  SUMMER15:   { label: '15% off', pct: 15 },
-  WELCOME25:  { label: '25% off', pct: 25 },
-};
+interface PaymentAccount {
+  id: number;
+  identifier: string;
+  type: 'stripe' | 'custom';
+  title: string;
+  description: string;
+  // isVisible: filtered server-side
+}
 ```
 
-Note `pct` here is the **integer percent** (e.g. `10` means 10%), and
-the discount calculation divides by 100 — see §7.
+Rendered in two groups:
 
-### 6.2 Entry point
+- **`type: 'custom'`** — pay-on-delivery / offline (cash, card-on-delivery, QR, Apple Pay, Google Pay). No redirect; the order is created and Confirmation renders immediately.
+- **`type: 'stripe'`** — online prepayment. After the order is created, a secondary call to `POST /api/content/payments/sessions` provisions a hosted-checkout URL. The browser is redirected there.
 
-A `Tag`-iconed "Promo Code" input + "Apply" button lives in the
-right-column `DeliveryOrderSummary` on the Delivery step
-(`src/app/pages/checkout/DeliveryOrderSummary.tsx:90`). There is **no
-coupon field on the Payment step** — the user must apply the code on
-Delivery and the value travels via Redux/component state.
+The list is fully CMS-driven; UI copy (title / description / badges) comes from either the OneEntry account fields or, as a stylistic fallback, `PAYMENT_METHODS_COPY` in `src/app/data/paymentMethodsConfig.ts`.
 
-Actually inspecting `PaymentPage.tsx`: the right-column "Order Summary"
-on Payment ignores `appliedCoupon` entirely (line 222 uses raw `total`
-from `useCart()`). This is a **known inconsistency**: a coupon applied
-on Delivery is not visible on Payment, and the "Place Order · ${total}"
-total on Payment shows the pre-coupon amount.
+### 3.2 Order creation — `createOrderAction`
 
-### 6.3 Apply logic
-
-`DeliveryPage.handleApplyCoupon` (line 76):
-
-1. Trim + uppercase the input → `code`.
-2. Set `couponLoading = true` and start a 900 ms `setTimeout` to mimic
-   a network call.
-3. If `CHECKOUT_COUPONS[code]` exists → store it in `appliedCoupon`,
-   show success state, clear the input.
-4. Else → clear `appliedCoupon`, show "Invalid or expired code" error.
-
-`handleRemoveCoupon` clears state to idle. The timeout ref is cleaned
-up on unmount (line 95).
-
-### 6.4 Discount math
-
-`DeliveryPage.tsx:73`:
+Located in `src/lib/oneentry/auth/actions.ts`. Signature:
 
 ```ts
-const couponDiscount = appliedCoupon
-  ? Math.round(total * CHECKOUT_COUPONS[appliedCoupon].pct) / 100
-  : 0;
-const finalTotal = Math.round((total - couponDiscount) * 100) / 100;
+createOrderAction(input): Promise<
+  | { ok: true; orderId: number; paymentUrl: string | null; paymentSessionError?: string }
+  | { ok: false; error: string }
+>
 ```
 
-`total` here is `useCart().total` = the cart subtotal (no delivery, no
-tax). The coupon is applied at the **cart level** (`applicability: TO_ORDER`
-in OneEntry discount terminology — see `agents_datasets/rules/discounts-setup.md` §3),
-not per-item. There is no stacking limit and no order-of-application
-question because only one coupon may be active at a time.
+Flow:
 
-### 6.5 Coupon state per page — at-a-glance ⚠
+1. Client reads `sessionStorage['oe_checkout_payload']` and Redux cart.
+2. Builds `products: [{productId, quantity}]` mapping playground SKUs → OE numeric ids via `getCmsProductId`.
+3. Constructs `formData` per delivery method (see §3.3).
+4. Calls `createOrderAction({storageMarker, formIdentifier, paymentAccountIdentifier, formData, products, currency: 'USD', langCode: 'en_US'})`.
 
-The coupon is held in **page-local `useState`**, never in Redux. This
-produces three independent slates and well-defined zeroing points. An
-LLM auditing this code should understand the table below before
-suggesting "fix the coupon math":
+Server Action:
 
-| Page | Coupon field exists? | Math used | Reflected in displayed total? | Persisted across navigation? |
-|---|---|---|---|---|
-| Cart (`/cart`) | ✅ yes — `CartPage.tsx:32` `promoDiscount` `useState(0)` | `finalTotal = total - promoDiscount` (line 104, no rounding) | yes — summary shows `finalTotal` | ❌ no — discarded on route change |
-| Delivery (`/checkout/delivery`) | ✅ yes — `DeliveryPage.tsx:67` `appliedCoupon` `useState<string \| null>` | `couponDiscount = Math.round(total * pct) / 100`; `finalTotal = round((total - couponDiscount) * 100) / 100` (line 73) | yes — summary shows `finalTotal` | ❌ no — discarded on route change |
-| Payment (`/checkout/payment`) | ❌ no input field, no `appliedCoupon` state | none — uses raw `useCart().total` (line 197, 236) | ❌ **no** — Place Order button shows `total` ignoring whatever coupon was applied on Delivery | n/a |
-| Confirmation (`/checkout/confirmation`) | ❌ no input | none — synthetic order id; itemised summary from `useCart().items` | n/a — order recap, not a total to pay | n/a |
+- Chooses HTTP endpoint: `POST /api/content/orders-storage/marker/{storageMarker}/orders`
+- `storageMarker`:
+  - `home` for home delivery
+  - `store_pickup` for store pickup
+  - `locker` for parcel locker
+- `formIdentifier`:
+  - `checkout_home_delivery` (guest: `checkout_home_delivery_guest`)
+  - `checkout_store_pickup` (guest: `checkout_store_pickup_guest`)
+  - `checkout_locker` (guest: `checkout_locker_guest`)
+- Authentication:
+  - Logged in → `Authorization: Bearer <oe_access>` cookie.
+  - Guest → `x-guest-id: <oe_guest_id>` header.
+- On success returns `orderId` (numeric OE record) + optional `paymentUrl` from Stripe.
 
-**Consequences:**
+### 3.3 Form data payloads
 
-- A coupon entered on Cart is invisible to Delivery (and vice versa). User must re-enter the same code on each page that supports it.
-- The Payment page's "Place Order · $X" button shows the **pre-coupon** total, even after a successful Apply on Delivery. The user is charged the un-couponed amount as far as the UI is concerned (and since there is no PSP integration — see §4.3 — nothing is actually charged either way).
-- Math precision differs: Cart subtracts `promoDiscount` as-is (raw `setState` value); Delivery rounds to cents twice. For a 25% coupon on a $99.95 cart Cart could show `$74.96` vs Delivery `$74.96` — usually the same, but a hand-set `promoDiscount` could diverge.
+The caller passes `formData` to `createOrderAction` as a **plain array** `[{marker, type, value}, ...]`. The OneEntry SDK's `Orders.createOrder` wraps it into `{ [langCode]: [...] }` internally — do **not** pre-wrap on the client (double nesting causes `formData's marker 'undefined' marker is required`). Excerpts:
 
-**To fix properly:** lift the coupon into Redux (a new `checkoutSlice.appliedCoupon`) and have all three pages read from it. Documented but not done.
+Home delivery (authenticated):
+```
+delivery_method              type=string     value=['courier']
+delivery_date-time           type=timeInterval value=[[fromISO, toISO]]
+user_addresses_recipient_name / phone / line_1 / city / postcode / special_instructions
+```
+
+Home delivery (guest): identical structure but with `_guest` suffixes on the marker names.
+
+Store pickup:
+```
+checkout_store_pickup_select_store   type=entity   value=[storeId]
+# guest only:
+checkout_store_pickup_guest_full_name / _phone / _email
+```
+
+Locker:
+```
+checkout_locker_pickup_point   type=integer   value=lockerIndex + 1  # 0-based → 1-based
+# guest only:
+checkout_locker_guest_pickup_point / _guest_contact_*
+```
+
+### 3.4 Stripe redirect
+
+For `account.type === 'stripe'`:
+
+1. After `createOrderAction` returns `orderId`, the same action calls `POST /api/content/payments/sessions` with:
+   ```json
+   { "orderId": 123, "type": "session", "automaticTaxEnabled": false, "successUrl": "...", "cancelUrl": "..." }
+   ```
+2. Response: `{ paymentUrl: string }`.
+3. Client `window.location.href = paymentUrl`. Stripe hosted checkout takes over. On success, Stripe redirects to the storefront `successUrl` (`/checkout/confirmation`). Currently `ConfirmationPage` does not read the real OE `orderId` from the URL — it generates its own display-only random id (see §4.1). Wiring the real id through `?orderId=` would need a `ConfirmationPage` update plus a Stripe `successUrl` template that appends the OE-side id.
+
+If Stripe session creation fails, `paymentSessionError` surfaces on the returned object; the client shows an error inline without redirecting.
+
+### 3.5 Place Order CTA gating
+
+A local `previewInFlight` boolean tracks the debounced `previewOrder` fetch: set `true` when the effect fires, cleared on response (or on the empty-cart early exit). The **Place Order** button is `disabled` while any of `placing` (order in flight), `previewInFlight` (preview still loading), or `!preview` (first fetch hasn't landed) is true, and renders a small `animate-spin` circle inside the label while gated. `handlePlaceOrder` also early-returns on `previewInFlight || !preview`, so a stale total can never reach `createOrderAction` even if the button state races. This prevents the pre-fix bug where a shopper could submit before OneEntry finished computing discounts / bonuses, causing a mismatch between shown total and charged amount.
+
+### 3.6 SSR hydration guard
+
+`PaymentPage` mounts with an internal `mounted` flag to avoid rendering cart-dependent UI on the server pass. This eliminates a hydration mismatch that used to appear when the Redux cart differed from the SSR fallback.
 
 ---
 
-## 7. Pricing Math
+## 4. Confirmation step (`ConfirmationPage.tsx`)
 
-`src/app/context/CartContext.tsx:122-126`:
+### 4.1 Display id
+
+The page generates a display-only order id:
 
 ```ts
-const totalItems    = items.reduce((s, i) => s + i.quantity, 0);
-const subtotal      = items.reduce((s, i) => s + i.price * i.quantity, 0);
-const originalTotal = items.reduce((s, i) => s + (i.originalPrice ?? i.price) * i.quantity, 0);
-const discount      = Math.max(0, originalTotal - subtotal);
-const total         = subtotal;
+'OE-' + crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()
+// e.g. 'OE-A1B2C3D4'
 ```
 
-Notes:
+This is a **cosmetic** number for the receipt. The real OneEntry `orderId` returned by `createOrderAction` is not currently persisted to the client — a follow-up refactor should surface it via the URL query so refresh preserves the number.
 
-- **Per-item "sale" discount** = `originalPrice − price` accumulated
-  across the cart. It is purely a display artifact (the cart already
-  has discounted prices in `items[].price`); `discount` is shown on the
-  summary as a strike-through-style line.
-- **`total` ≡ `subtotal`** — they're aliases. The cart context does
-  **not** subtract the coupon discount; that's done in the Delivery
-  page as a derived `finalTotal` (§6.4).
-- **Delivery cost** is always rendered as "Free" — see `OS.deliveryFree`
-  in `checkoutLabels.ts:75` and `:86`. There is no shipping calculator,
-  no postcode-based rate lookup, no carrier integration.
-- **Taxes** — not computed anywhere. Prices in the data files are
-  assumed to be tax-inclusive (Western EU-style).
+### 4.2 Cart cleanup
 
-Computation order: `subtotal → (display) discount → coupon discount →
-finalTotal`. Free shipping is added as a zero. Total payable shown to
-the user on the Delivery summary is `finalTotal`; on the Payment page
-"Place Order" button it is `total` (the un-couponed value).
+200 ms after mount, `useCart().clearCart()` fires. The delay lets the receipt render with the last item snapshot before the cart is wiped. `clearCart()` also resets the applied coupon (`couponCode=null`, clears `couponError`, and removes `sessionStorage['oe_coupon_code']`) so the shopper's next order requires an explicit `applyCoupon` call instead of silently reusing the previous code.
 
-### 7.1 SEO-only shipping & return constants ⚠
+Server cart is NOT wiped by this call — the `syncCart` sync effect will push the empty cart on the next tick. If OneEntry order creation happens outside the sync window (e.g. Stripe success redirect), the server cart is only cleared when the user returns to a page mounted `useCart()`.
 
-`src/app/data/seoData.ts:15-19` exports five shipping/return constants:
+### 4.3 Loyalty points
 
-```ts
-export const FREE_SHIPPING_THRESHOLD = 50;   // £50+ = free UK delivery
-export const RETURN_WINDOW_DAYS       = 28;
-export const DELIVERY_COUNTRY         = 'GB';
-export const DELIVERY_MIN_DAYS        = 2;
-export const DELIVERY_MAX_DAYS        = 5;
+Rendered as `Math.floor(total * 10)` points earned. This is a static marketing calculation — it does not credit the user's OE loyalty balance.
+
+---
+
+## 5. Data flow diagram
+
+```
+Cart Redux ──────────────────────────┐
+                                     │
+sessionStorage['oe_checkout_payload']─┼──► createOrderAction (Server Action)
+                                     │        │
+Payment accounts (OE Payments) ──────┘        ├──► OE orders-storage/marker/{home|store_pickup|locker}
+                                              │
+                                              ├── Stripe? ──► POST /payments/sessions ──► paymentUrl
+                                              │
+                                              └──► onSuccess: router.push('/checkout/confirmation')
+                                                                          │
+                                                                          └──► clearCart() 200ms after mount
 ```
 
-**None of these affect runtime behaviour.** They are consumed only by
-JSON-LD `shippingDetails` / `hasMerchantReturnPolicy` builders in
-`app/product/[id]/page.tsx` and `app/[...slug]/page.tsx`. The checkout
-UI itself:
+---
 
-- Always shows "Free delivery" regardless of cart total (no
-  `if (total < FREE_SHIPPING_THRESHOLD) charge_shipping_fee` branch
-  anywhere — grep confirms zero call sites for `FREE_SHIPPING_THRESHOLD`
-  outside `seoData.ts` and JSON-LD scripts).
-- Has no min-cart-amount gate on the Continue button.
-- Hard-codes the delivery estimate "2–5 business days" in
-  `confirmationLabels.ts:33` rather than reading `DELIVERY_MIN_DAYS` /
-  `DELIVERY_MAX_DAYS`.
-- Has no `/returns` flow; the 28-day return window is a marketing claim
-  only.
+## 6. Guest checkout
 
-**Implication for an LLM:** do **not** read these constants as business
-rules and do **not** assume a discount/threshold engine wires through
-them. They are SEO copy that happens to live in TypeScript instead of a
-CMS field. When OneEntry comes online they should move to
-`forForms_checkout` / `discounts` config and be removed from
-`seoData.ts`. See also `./I18N.md` §6 "Currency authority conflict"
-for the related USD-vs-GBP divergence and `./SEO_OPTIMIZATION.md` for the
-JSON-LD shape that consumes them.
+The `x-guest-id` header (from `src/app/utils/guest-id.ts`) turns anonymous checkout into a first-class flow:
+
+- `GuestCheckoutModal` unlocks the page after "Continue as Guest".
+- Delivery page collects `guestContact = {fullName, email, phone}` when the method is store or locker (home already asks for full address).
+- All guest form-identifier markers use the `_guest` suffix (see §3.3).
+- Orders are still persisted on the Platform side, associated with the guest UUID instead of a user identifier.
+
+Guest cart persists in `localStorage`; if the guest signs in later, `CartContext` performs the login-time merge (see [CART_WISHLIST.md](./CART_WISHLIST.md) §6).
 
 ---
 
-## 8. Form Submission via OneEntry
+## 7. Coupons
 
-Not implemented. The blueprint pipeline would expect this checkout flow
-to map to the `checkout` form (`type: order`, `forForms_checkout`
-attribute set) with submissions written to `form_data` and an order
-row in `orders_storage` (marker `default`, `general_type_id: 21`).
-The recommended attribute schema is documented in
-`agents_datasets/rules/users-architecture.md` §"forForms_checkout —
-NARROW".
+Coupons on the Delivery step are validated and priced by OneEntry via `previewOrderAction`. `CartContext` owns the applied code and derives `couponDiscount` from `preview.couponDiscountAmount` (see §2.4 and [CART_WISHLIST.md §4a](./CART_WISHLIST.md#4a-checkout-preview--coupons)).
 
-The currently-collected client-side fields map to those attributes as
-follows (when wiring is added later):
-
-| Client state | Source | OneEntry form attribute |
-|---|---|---|
-| `method` | `DeliveryPage.tsx:55` | `delivery_method` (list) |
-| `selectedStore.id` / `selectedLocker` | DeliveryPage state | `delivery_pickup_point` |
-| Address (logged-in saved or new-addr form) | `userSlice.addresses` or `newAddrForm` | `address_line1` / `city` / `postcode` + identity copied from `forUsers` |
-| `selectedDate` + `selectedSlot` | DeliveryPage state | `delivery_slot` (dateTime) |
-| `instructions` | `newAddrForm.instructions` | `delivery_instructions` |
-| `method` (PayMethod) | `PaymentPage.tsx:23` | `payment_method` (list) |
-| `appliedCoupon` | DeliveryPage state | `promo_code` |
-| Card fields | `CardForm` state | **never** — these go through a PSP iframe, not the form |
-| `guestContact.*` | DeliveryPage state | `guest_full_name` / `guest_email` / `guest_phone` (Pattern A guest checkout) |
+The `/cart` promo entry (§11) uses the same OE-backed flow via `CartContext.applyCoupon`. The former local `CHECKOUT_COUPONS` mock in `src/app/data/checkoutConfig.ts` has been removed; there is no client-side coupon validation left.
 
 ---
 
-## 9. Order Persistence
+## 8. Validations
 
-Not implemented. The `orders_storage` marker `default` does not get a
-new row — the `randomOrderId()` value is not reachable by any backend
-query. Account → My Orders (`src/app/pages/account/MyOrdersSection.tsx`)
-reads from a hardcoded `USER_DATASET.orders` fixture
-(`src/app/data/userData.ts`), not from anything created during checkout.
+Zod schemas in `src/app/utils/schemas.ts`:
 
-When real persistence is added, the expected flow is:
+| Schema | Fields |
+|---|---|
+| `loginSchema` | email/phone/identifier + password |
+| `registerSchema` | Sign-up form fields |
+| `addressSchema` | `fullName` (1-100), `phone` (regex), `line1` (1-200), `city` (1-100), `postcode` ([A-Z0-9\s-]{3,10}) |
+| `guestContactSchema` | `fullName`, `email`, `phone` |
+| `paymentSchema` | not currently used — Stripe hosts the card UI |
+| `profileSchema` | Account "My Data" form |
+| `promoSchema` | Refer-a-friend, gift certificate promo codes |
 
-1. Build a `form_data` payload from the captured fields above.
-2. POST to `/api/content/form-data` against form marker `checkout`.
-3. Response carries the order id (numeric) from `orders_storage`.
-4. Persist `orderId` and pass it as a URL param to
-   `/checkout/confirmation?id=…` so refreshing the page keeps showing
-   the same order.
-5. Optionally fetch order detail via OneEntry order content APIs for
-   the confirmation summary instead of the local cart snapshot.
+Client validation runs on the DeliveryPage "Continue to Payment" click. Server validation happens inside OneEntry when the order is POSTed — its errors surface in `createOrderAction`'s `{ok: false, error}` return.
 
 ---
 
-## 10. Authenticated vs Guest Checkout
+## 9. Session-scoped state
 
-`useAuth().isLoggedIn` drives all auth-conditional behavior:
-
-| Aspect | Logged in | Guest |
-|---|---|---|
-| Modal on Delivery mount | not shown (line 189) | `GuestCheckoutModal` shown (line 188) |
-| Saved address list | rendered if `savedAddresses.length > 0` | not rendered |
-| "Save address to profile" checkbox | shown (`saveNewAddr` default `true`) | n/a — addresses can't persist anonymously |
-| Store / Locker contact form | name/phone pulled from profile elsewhere | `GuestContactForm` required, validated by `guestContactSchema` |
-| Cart sync | `cartApi.ts` sync runs when `authToken` present | local-only Redux |
-| Order persistence | n/a (no backend) | n/a (no backend) |
-
-Pattern A guest checkout (single form, `guest_*` fields) per
-`agents_datasets/rules/users-architecture.md` §"Guest checkout — two
-acceptable patterns" is the appropriate target shape; the playground
-already captures `guestContact = { fullName, email, phone }` at the
-right moment.
+| Key | Scope | Lifetime | Purpose |
+|---|---|---|---|
+| `oe_checkout_payload` | `sessionStorage` | Until Payment redirects / order created | Delivery → Payment handoff |
+| `oe_cart_merged` / `oe_wishlist_merged` | `sessionStorage` | Session | Prevent re-merge on tree remounts |
+| `oe_guest_id` | `localStorage` | Persistent | Link guest orders / activity |
+| `oe_access` / `oe_refresh` / `oe_user` | Cookies | Server-managed | Auth session |
+| `oe_store` | `localStorage` | Persistent | Redux persisted slices (cart, wishlist, recentlyViewed, catalog) |
 
 ---
 
-## 11. Error Handling
+## 10. What the checkout does NOT do
 
-### Validation errors
-
-Each Zod schema produces per-field error messages bubbled through the
-`setErrors` reducers:
-
-- `addrErrors` / `guestContactErrors` on Delivery — rendered inline via
-  `FormField`'s `error` prop.
-- `errors` inside `CardForm` — rendered via per-input red border + a
-  small `<p className="text-xs text-red-500">` (line 124, 136, 150, 163).
-- `couponStatus === 'error'` on Delivery — shows
-  `L.promoInvalid = "Invalid or expired code"` (line 136 of
-  `DeliveryOrderSummary.tsx`).
-
-### Payment failures
-
-Cannot happen — there is no payment provider. The card form only blocks
-submission with client-side validation; once Luhn + expiry pass,
-`handlePlaceOrder` always navigates to `/checkout/confirmation`.
-
-### Network errors
-
-The only network calls in the flow are the optional cart-sync mutations
-from `cartApi.ts` (add/remove/setCart). They are wrapped in
-`.catch((err) => …)` blocks in `CartContext.tsx` (lines 154, 207, 263,
-282) that emit a `syncWarning` and roll the optimistic change back —
-the checkout itself does not surface these errors on the Delivery /
-Payment pages.
-
-### Empty-cart guard
-
-`PaymentPage.handlePlaceOrder` (line 27) redirects to `/` when
-`items.length === 0` is detected at click time. There is no equivalent
-guard on the Delivery or Confirmation pages (a directly-entered URL on
-an empty cart will render an empty summary).
+- No **PSP integration inside the storefront** — card fields never touch React state; Stripe hosts them.
+- No **email confirmations** — the OE side may send them, but the storefront does not trigger any.
+- No **order-status polling** — after Stripe redirect the storefront simply lands on Confirmation.
+- No **inventory reservation** — the cart is snapshot at order placement; stock is enforced by OneEntry on submit (400 back if OOS).
+- No **shipment tracking sync** — displayed tracking on the account page uses OE order state, but there is no polling loop.
 
 ---
 
-## 12. Cart Cleanup
+## 11. Cart page — promo + selection
 
-`ConfirmationPage.tsx:31`:
+`/cart` (`src/app/pages/CartPage.tsx`) has its own promo entry, independent of the Delivery-step promo. Behaviour:
 
-```ts
-useEffect(() => {
-  const timer = setTimeout(() => clearCart(), 200);
-  return () => clearTimeout(timer);
-}, [clearCart]);
-```
+- Cart items appear grouped as `RenderRow[]` — singles + bundles (bundles rendered by `CartBundleRow`).
+- `selectedIds: Set<string>` tracks which lines are ticked for checkout (currently informational; checkout still uses the whole cart).
+- Promo entry has three local UI states (`promoChecked`, `promoInput`, `promoBusy`); the applied code, discount and error live on `CartContext` (`couponCode`, `couponDiscount`, `couponError`). `handleApplyPromo()` calls `applyCoupon(promoInput)` — OE `previewOrder` validates and prices the code; `handleRemovePromo()` calls `removeCoupon()`.
+- A local `wishlist: Set<string>` state mirrors the wishlist for the row's "heart" toggle (the actual mutation still goes through `useWishlist()`).
+- `mounted` flag suppresses the SSR pass to avoid hydration mismatch when the persisted cart differs from `[]`.
 
-The 200 ms delay exists so the page can render the just-purchased items
-in the "Your Items" summary before they vanish from `useCart()`. After
-the timer fires:
+The applied promo now persists across `/cart` → Delivery because both surfaces read it from `CartContext` (see [CART_WISHLIST.md §4a](./CART_WISHLIST.md#4a-checkout-preview--coupons)).
 
-- `cartActions.clearCart()` empties `state.cart.items` in Redux.
-- If `isCartApiEnabled() && authToken` are both truthy, `triggerSet({
-  items: [] })` is fired against OneEntry to mirror the empty cart on
-  the server (`CartContext.tsx:281`).
-- No order-saved acknowledgement is awaited — the cart is cleared
-  unconditionally because there is nothing to acknowledge.
+## 12. Files touched
 
-Reloading the Confirmation page **regenerates a new order id** (the
-`useState` initialiser runs again) and shows an empty items summary
-because the cart has already been cleared.
-
----
-
-## 13. File Map
-
-| Path | Lines | Role |
-|---|---|---|
-| `app/checkout/delivery/page.tsx` | 1–10 | App Router shim: SEO + render `<DeliveryPage />` |
-| `app/checkout/payment/page.tsx` | 1–10 | App Router shim: SEO + render `<PaymentPage />` |
-| `app/checkout/confirmation/page.tsx` | 1–10 | App Router shim: SEO + render `<ConfirmationPage />` |
-| `src/app/pages/DeliveryPage.tsx` | 1–310 | Delivery step orchestrator: methods, guards, coupon |
-| `src/app/pages/PaymentPage.tsx` | 1–249 | Payment step: method selection, place-order |
-| `src/app/pages/ConfirmationPage.tsx` | 1–151 | Success view, random order id, `clearCart` |
-| `src/app/components/CheckoutStepper.tsx` | 1–88 | Stepper UI; `STEPS` array defines flow paths |
-| `src/app/pages/checkout/DeliveryMethodHome.tsx` | 1–231 | Home/Office: saved-address list + new-addr form |
-| `src/app/pages/checkout/DeliveryMethodStore.tsx` | 1–104 | Store pickup: store dropdown + perks + guest form |
-| `src/app/pages/checkout/DeliveryMethodLocker.tsx` | — | Parcel locker variant of Store |
-| `src/app/pages/checkout/DeliveryOrderSummary.tsx` | 1–171 | Right-column summary + coupon input |
-| `src/app/pages/checkout/GuestCheckoutModal.tsx` | 1–77 | Sign-in / Register / Guest fork |
-| `src/app/pages/checkout/GuestContactForm.tsx` | 1–62 | Anonymous user contact triplet |
-| `src/app/pages/checkout/PaymentPage.parts.tsx` | 1–244 | `OptionCard`, `CardForm`, `QRPanel`, `WalletButton`, `InstallmentPanel`, `PayMethod` union |
-| `src/app/data/checkoutConfig.ts` | 1–41 | `CHECKOUT_COUPONS`, `PICKUP_STORES`, `PARCEL_LOCKERS`, `DELIVERY_TIME_SLOTS`, `DELIVERY_PERKS`, `PICKUP_PERKS` |
-| `src/app/data/checkoutLabels.ts` | 1–114 | All UI strings for Delivery + Payment + Stepper |
-| `src/app/data/paymentMethodsConfig.ts` | 1–66 | `PAYMENT_METHODS_COPY`, `PAYMENT_PAGE_LABELS`, `WALLET_BUTTON_LABELS` |
-| `src/app/data/confirmationLabels.ts` | 1–53 | Confirmation copy + 3 info cards |
-| `src/app/utils/schemas.ts` | 1–157 | Zod: `addressSchema`, `guestContactSchema`, `paymentSchema` (+ Luhn), `promoSchema` |
-| `src/app/context/CartContext.tsx` | 1–313 | `useCart` hook: items, subtotal, discount, total, `clearCart` |
-| `src/app/store/userSlice.ts` | 59–61, 102 | `addAddress` reducer used when "Save to profile" is checked |
+| File | Role |
+|---|---|
+| `app/checkout/{delivery,payment,confirmation}/page.tsx` | Route shells (SEO metadata + client component) |
+| `app/checkout/error.tsx` | Segment error boundary |
+| `src/app/pages/DeliveryPage.tsx` | Delivery step client component |
+| `src/app/pages/PaymentPage.tsx` | Payment step client component |
+| `src/app/pages/ConfirmationPage.tsx` | Confirmation step client component |
+| `src/app/pages/checkout/DeliveryMethodHome.tsx` / `Locker.tsx` / `Store.tsx` | Method-specific sub-forms |
+| `src/app/pages/checkout/DeliveryOrderSummary.tsx` | Right-rail order summary |
+| `src/app/pages/checkout/PaymentMethodsList.tsx` | Renders the OE payment accounts list |
+| `src/app/pages/checkout/GuestCheckoutModal.tsx` | Auth gate modal |
+| `src/app/pages/checkout/GuestContactForm.tsx` | Guest contact inputs |
+| `src/app/components/CheckoutStepper.tsx` | Step indicator |
+| `src/app/data/checkoutConfig.ts` | Pickup stores, lockers, time slots, coupon dict, delivery perks |
+| `src/app/data/paymentMethodsConfig.ts` | Stylistic copy for payment badges |
+| `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction` |
+| `src/lib/oneentry/payments/accounts.ts` | `getPaymentAccountsAction` |
+| `src/app/utils/guest-id.ts` | `getOrCreateGuestId()` |
+| `src/app/utils/schemas.ts` | Zod schemas |
 
 ---
 
-## 14. Cross-References
+## 13. Cross-references
 
-- [`./CART_WISHLIST.md`](./CART_WISHLIST.md) — cart state, optimistic sync to OneEntry,
-  the `cartApi.ts` RTK Query endpoints used pre-checkout.
-- [`./AUTH.md`](./AUTH.md) — `useAuth` context, login/register modals invoked
-  from `GuestCheckoutModal`.
-- [`./ONEENTRY_INTEGRATION.md`](./ONEENTRY_INTEGRATION.md) — where the OneEntry SDK is/isn't
-  used. The checkout flow is currently in the "not yet wired" bucket.
-- `./pages/checkout-delivery.md` — original spec doc (UI-level) for the
-  Delivery step.
-- `./pages/checkout-payment.md` — original spec doc for the Payment step.
-- `./pages/checkout-confirmation.md` — original spec doc for the
-  Confirmation step.
-- `agents_datasets/rules/users-architecture.md` §"forForms_checkout" —
-  target OneEntry attribute schema when the form is wired.
-- `agents_datasets/rules/discounts-setup.md` — how the `CHECKOUT_COUPONS`
-  dictionary should map to OneEntry `discounts` + `discount_coupons`
-  after import.
-- `agents_datasets/rules/standard-entities.md` §"orders_storage +
-  order_statuses" — required entities for the persistence layer that
-  is not yet built.
+- [CART_WISHLIST.md](./CART_WISHLIST.md) — cart snapshot / sync semantics
+- [AUTH.md](./AUTH.md) — the auth gate on the Delivery step
+- [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) — `createOrderAction`, `getPaymentAccountsAction`, `updateAddressesAction`
+- [pages/checkout-delivery.md](./pages/checkout-delivery.md), [pages/checkout-payment.md](./pages/checkout-payment.md), [pages/checkout-confirmation.md](./pages/checkout-confirmation.md) — per-page UI specs

@@ -16,7 +16,7 @@ type RenderRow =
   | { kind: 'bundle'; bundleId: string; items: CartItem[] };
 
 export function MiniCart() {
-  const { items, miniCartOpen, closeMiniCart, removeItem, removeBundle, updateQuantity, subtotal, totalItems } = useCart();
+  const { items, miniCartOpen, closeMiniCart, removeItem, removeBundle, updateQuantity, subtotal, totalItems, personalDiscount, totalDue, couponCode, couponDiscount, preview, previewLoading } = useCart();
   const router = useRouter();
   const trapRef = useFocusTrap(miniCartOpen, closeMiniCart);
   const lHeading      = useYourBagT('your_bag_title',          L.heading);
@@ -195,10 +195,48 @@ export function MiniCart() {
         {items.length > 0 && (
           <div className="flex-shrink-0 px-6 py-5 border-t border-gray-200 bg-white">
             {/* Subtotal */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-500 tracking-wide">{lSubtotal}</span>
               <span className="text-base font-semibold">{fmt(subtotal)}</span>
             </div>
+            {/* Skeleton for first preview — user sees SOMETHING is loading
+                instead of a jumpy layout when the discount lines appear a
+                moment later. Only fires when preview is truly pending
+                (`previewLoading && !preview`). Subsequent refetches keep the
+                old preview visible so numbers don't flash. */}
+            {previewLoading && !preview ? (
+              <>
+                <div className="flex items-center justify-between mb-2" aria-busy="true">
+                  <div className="h-3 w-24 bg-gray-100 animate-pulse" />
+                  <div className="h-3 w-14 bg-gray-100 animate-pulse" />
+                </div>
+                <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100" aria-busy="true">
+                  <div className="h-3.5 w-14 bg-gray-100 animate-pulse" />
+                  <div className="h-4 w-20 bg-gray-100 animate-pulse" />
+                </div>
+              </>
+            ) : (
+              <>
+                {personalDiscount - couponDiscount > 0 && (
+                  <div className="flex items-center justify-between mb-2 text-sm text-[var(--sale)]">
+                    <span>Loyalty discount</span>
+                    <span className="font-semibold">−{fmt(personalDiscount - couponDiscount)}</span>
+                  </div>
+                )}
+                {couponDiscount > 0 && couponCode && (
+                  <div className="flex items-center justify-between mb-2 text-sm text-[var(--sale)]">
+                    <span>Promo ({couponCode})</span>
+                    <span className="font-semibold">−{fmt(couponDiscount)}</span>
+                  </div>
+                )}
+                {(personalDiscount > 0 || couponDiscount > 0) && (
+                  <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
+                    <span className="text-sm font-bold">Total</span>
+                    <span className="text-base font-bold">{fmt(totalDue)}</span>
+                  </div>
+                )}
+              </>
+            )}
             <p className="text-xs text-gray-400 mb-4">{lShippingNote}</p>
             {/* CTA buttons */}
             <div className="flex flex-col gap-2">

@@ -12,16 +12,30 @@ export function NewsletterForm() {
     e.preventDefault();
     if (!email.trim()) return;
     startTransition(async () => {
-      const result = await submitForm('subscribe_new_drops', [
-        { marker: 'subscribe_new_drops_email', value: email.trim(), type: 'string' },
-      ]);
+      // The `subscribe_new_drops` form lives on the OE `subscribe` page.
+      // OE needs both `formModuleConfigId` (the id from the page's
+      // `moduleFormConfigs`) and `moduleEntityIdentifier` (the page's
+      // `pageUrl`) — without them OE rejects with "Incorrect formIdentifier
+      // for provided config". Look these up with `Pages.getPageByUrl('subscribe')`
+      // → `page.moduleFormConfigs[0]` if they ever change in OE admin.
+      const result = await submitForm(
+        'subscribe_new_drops',
+        [{ marker: 'subscribe_new_drops_email', value: email.trim(), type: 'string' }],
+        { moduleConfigId: 52, moduleEntityIdentifier: 'subscribe' },
+      );
       if (result.ok) {
         setStatus('success');
         setEmail('');
         setError('');
       } else {
         setStatus('error');
-        setError(result.error);
+        // OE returns "Incorrect formIdentifier for provided config" when the
+        // form isn't set up in the admin panel. Show a friendlier message
+        // to the shopper — the raw error only helps developers.
+        const friendly = /formidentifier|form identifier/i.test(result.error)
+          ? "Newsletter isn't set up yet — please check back soon."
+          : result.error;
+        setError(friendly);
       }
     });
   };

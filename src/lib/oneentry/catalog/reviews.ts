@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { getApi, isError, isOneEntryEnabled } from '../index';
 import { loadProductById } from './products';
 import type { ProductReview } from '../../../app/data/productCatalog';
 
@@ -25,25 +26,23 @@ async function fetchFormData(
   productId: number,
   limit: number,
 ): Promise<RawFormDataItem[]> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return [];
+  if (!isOneEntryEnabled) return [];
   try {
-    const res = await fetch(
-      `${url}/api/content/form-data/marker/${marker}?formModuleConfigId=${configId}&isExtended=1&langCode=en_US&offset=0&limit=${limit}`,
-      {
-        method: 'POST',
-        headers: {
-          'x-app-token': appToken,
-          'content-type': 'application/json',
-          accept: 'application/json',
-        },
-        body: JSON.stringify({ entityIdentifier: productId }),
-        cache: 'no-store',
-      },
+    const result = await getApi().FormData.getFormsDataByMarker(
+      marker,
+      configId,
+      { entityIdentifier: productId },
+      1,
+      'en_US',
+      0,
+      limit,
     );
-    if (!res.ok) return [];
-    const data = (await res.json()) as RawFormDataResp;
+    if (isError(result)) return [];
+    // SDK typings for `IFormByMarkerDataEntity` narrow `formData` to
+    // `FormDataType[]` (flat array), but the review endpoints ship the
+    // wrapped `{ en_US: [...] }` shape. Cast to the local RawFormDataResp
+    // that already tolerates both.
+    const data = result as unknown as RawFormDataResp;
     return Array.isArray(data.items) ? data.items : [];
   } catch {
     return [];

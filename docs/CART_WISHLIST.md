@@ -1,469 +1,328 @@
 # Cart & Wishlist State
 
-> Source-of-truth review for the cart, wishlist (favorites) and
-> recently-viewed subsystems. Cross-cuts Redux Toolkit, RTK Query,
-> custom localStorage persistence and the Platform user-activity REST
-> API. Written for LLM consumption — exact paths, function names and
-> data shapes.
+> Source-of-truth review for cart, wishlist (favorites), and recently-viewed subsystems. Cuts across Redux Toolkit slices, the `CartContext` / `WishlistContext` hook facades, and the `syncCart` / `syncWishlist` Server Actions that mirror local state into OneEntry `users/me`.
 
 ---
 
-## 1. Overview — why "Context AND Redux"
+## 1. Overview
 
-There is **no actual React Context** for cart or wishlist. The files
-`src/app/context/CartContext.tsx` and `src/app/context/WishlistContext.tsx`
-are **mis-named**: they neither call `createContext()` nor expose a
-`Provider`. Confirmed: `createContext` is used only in
-`CatalogAccentContext.tsx` and `AuthContext.tsx`.
+The storefront treats cart and wishlist as **client-optimistic** state:
 
-What each file actually is:
+1. Every mutation dispatches to a Redux slice immediately — the UI reacts on the next render.
+2. A debounced effect (400 ms) pushes the resulting snapshot to OneEntry via a Server Action.
+3. On login, the server snapshot is merged into Redux once per browser session (guarded by a `sessionStorage` flag).
+4. Placeholder items pulled from `users/me` are enriched with real product data via `getProductsByIdsAction`.
 
-* `context/CartContext.tsx` — public hook `useCart()` wrapping
-  `cartSlice` + `cartApi` + id-map + sync-warning. Also defines
-  the `CartItem` TS interface that the slice imports.
-* `context/WishlistContext.tsx` — same shape around `wishlistSlice`
-  + `wishlistApi`, also defines `WishlistItem`.
-* `store/cartSlice.ts` / `store/wishlistSlice.ts` — the actual
-  single source of truth for client state. The hooks dispatch into
-  them.
+There is **no** RTK Query client hook on the live path — the two API slices (`cartApi`, `wishlistApi`) are compiled scaffolding, not consumers.
 
-So the duality is **a layering convention, not a duplication**:
+Guest carts / wishlists stay in Redux + `localStorage` (`oe_store`, v5). They are not synced anywhere. On sign-in, they are merged with the server list before the sync effect starts pushing.
 
 ```
-Component ──► useCart() / useWishlist()  (context/*.tsx — hooks)
-                       │
-       ┌───────────────┼──────────────────────┐
-       ▼               ▼                      ▼
-   Redux slice    RTK-Query API         id-map + sync-warning
-   (cartSlice)    (cartApi)             (cms-product-id-map,
-   = client state = server I/O          syncWarnings)
+Component
+   │  dispatch(cartActions.addItem)   (optimistic)
+   ▼
+cartSlice.items          ── saveToStorage ──► localStorage['oe_store'].cart
+   │
+   │  400 ms debounce (CartContext effect)
+   ▼
+syncCartAction({items})  (Server Action, requires oe_access cookie)
+   │
+   ▼
+OneEntry `users/me/cart` (canonical)
 ```
 
-The hook fans each action out to (a) an optimistic Redux update and
-(b) a best-effort Platform mutation. Components never import the
-slice or the API directly. The folder name `context/` is a historical
-artefact — treat it as "the public facade", not as a React context.
+The `context/` filenames are legacy: `CartContext.tsx` and `WishlistContext.tsx` do not call `createContext()` — they expose hook facades (`useCart()`, `useWishlist()`) that wrap Redux + Server Actions. Only `AuthContext.tsx` and `QuickViewContext.tsx` and `CatalogAccentContext.tsx` are actual React Contexts. This is a layering convention, not a duplication.
 
 ---
 
-## 2. Data model
+## 2. Files at a glance
 
-### 2.1 `CartItem` — `context/CartContext.tsx:19-31`
+| File | Role |
+|---|---|
+| `src/app/store/cartSlice.ts` | Reducers + selectors for cart items and `miniCartOpen` |
+| `src/app/store/wishlistSlice.ts` | Reducers + selectors for wishlist items |
+| `src/app/store/recentlyViewedSlice.ts` | Reducers for the recently-viewed trail (TTL 30d, cap 100) |
+| `src/app/context/CartContext.tsx` | `useCart()` — hook facade; hydrates from `user.cartItems`, debounced sync, activity tracking |
+| `src/app/context/WishlistContext.tsx` | `useWishlist()` — same pattern |
+| `src/lib/oneentry/auth/actions.ts` | `syncCartAction`, `syncWishlistAction`, `getCurrentUserAction` (returns `cart[]` and `wishlist[]`) |
+| `src/lib/oneentry/catalog/products-action.ts` | `getProductsByIdsAction` — used to enrich server placeholders |
+| `src/app/data/cms-product-id-map.ts` | `getCmsProductId` / `getPlaygroundProductId` — legacy id bridge |
+| `src/app/utils/track-activity.ts` | `trackActivity()` — fire-and-forget analytics wrapper |
+| `src/app/store/api/cartApi.ts` + `wishlistApi.ts` | RTK Query scaffolding — not on the live path |
+
+---
+
+## 3. CartItem / WishlistItem shape
 
 ```ts
+// src/app/context/CartContext.tsx
 interface CartItem {
-  id: string;            // playground sku, e.g. 'wc-1'
+  id: string;              // playground SKU ('wc-1') OR stringified OE product id
   name: string;
   brand: string;
-  color: string;         // display name; not the hex
+  color: string;
   sku: string;
-  size: string;          // 'S' | 'M' | … or '' for placeholders
+  size: string;
   quantity: number;
-  price: number;         // unit price in display currency
-  originalPrice?: number; // crossed-out price; drives `discount`
-  image: string;         // URL or '/placeholder.svg'
-  bundleId?: string;     // groups rows added together via addBundle()
+  price: number;
+  originalPrice?: number;
+  image: string;
+  bundleId?: string;
 }
-```
 
-Composite identity for de-duplication is `(id, size)` — adding the
-same product in a different size produces a second row
-(`cartSlice.addItem`, line 31-38).
-
-### 2.2 `WishlistItem` — `context/WishlistContext.tsx:18-33`
-
-```ts
+// src/app/context/WishlistContext.tsx
 interface WishlistItem {
   id: string;
   name: string;
   brand: string;
-  price: string;         // pre-formatted, e.g. '$199.00'
-  salePrice?: string;    // pre-formatted
+  price: string;              // formatted string (e.g. "$89.99"), not number
+  salePrice?: string;         // formatted string, not number
   image: string;
-  colors: string[];      // hex codes
-  colorStock?: boolean[]; // parallel to colors[]
-  sizes: string[];
+  colorImages?: string[];
+  colors?: string[];
+  colorStock?: boolean[];     // per-color availability flags, not stock counts
+  sizes?: string[];
   badge?: string;
   inStock: boolean;
   priceAlert?: boolean;
-  selectedColor?: string; // hex of the chosen color
+  selectedColor?: string;
   selectedSize?: string;
 }
 ```
 
-Identity is `id` only — wishing for the same product in two colours
-just updates `selectedColor`.
-
-### 2.3 `RecentlyViewedItem` — `store/recentlyViewedSlice.ts:8-10`
-
-`extends Product` (the card prop from `components/ProductCard.tsx`)
-with an added `viewedAt: number` (unix ms).
-
-### 2.4 Wire types — `store/api/types/{cart,wishlist}.ts`
-
-`CartApiItem = { productId: number; qty: number; addedAt?: string }`
-and `WishlistApiItem = { productId: number; addedAt?: string }`.
-The string playground id (`'wc-1'`) ↔ integer Platform id (`1`)
-bridge is `data/cms-product-id-map.ts` (25 hand-mapped rows; see §10).
+The Platform payload is minimal (`{productId: number, qty: number}` for cart, `{productId: number}` for wishlist). Cosmetic fields (name / price / image) come from either the local Redux state (guest additions) or the enrichment fetch (post-login hydration).
 
 ---
 
-## 3. Cart lifecycle
+## 4. Optimistic mutations (`useCart()`)
 
-All paths go through `useCart()` (`CartContext.tsx:72-312`). The hook
-is composed of three things: the slice action, an optional Platform
-mutation, and a sync-warning emitter. Optimistic-update pattern
-everywhere.
+`src/app/context/CartContext.tsx`:
 
-### 3.1 Add — `addItem(item)` (line 131-164)
+```ts
+const addItem = useCallback((item: CartItem) => {
+  dispatch(cartActions.addItem(item));                  // 1. optimistic Redux
+  const cmsId = getCmsProductId(item.id);
+  if (cmsId !== null) {
+    trackActivity({                                     // 2. fire-and-forget analytics
+      type: 'product_add_to_cart',
+      productId: cmsId,
+      meta: { quantity: item.quantity },
+    });
+  }
+}, [dispatch]);
+```
 
-Redux merge by `(id, size)` first. If `!apiOn` → done. Otherwise
-resolve `getCmsProductId(item.id)`; `null` ⇒ `unmapped` warning and
-stop. Compute **absolute qty** (current matching row qty + delta),
-then `POST /users/me/cart/items` via `triggerAdd`. Failure ⇒
-`removeItem` rollback + `mutation` sync-warning.
+The sync to OneEntry is NOT triggered inline — it comes from a debounced effect (§5). This means many quick clicks on `+`/`-` collapse into a single `syncCart` call.
 
-⚠ The Platform `POST /items` takes an **absolute** qty, not a delta
-(`cartApi.ts:11`).
+Mutations exposed by `useCart()`:
 
-### 3.2 Update qty — `updateQuantity(id, delta)` (line 241-272)
-
-Same pattern. `newQty = max(1, current + delta)`, dispatched to Redux,
-then POSTed as the absolute value to the same endpoint. Rollback
-dispatches the inverse delta.
-
-### 3.3 Update size — `updateSize(id, size)` (line 274)
-
-**Local only** — Platform has no size on a cart row.
-
-### 3.4 Remove — `removeItem(id)` (line 196-218)
-
-Snapshot the item, optimistic Redux remove,
-`DELETE /users/me/cart/items/:productId`. Failure ⇒ re-add snapshot
-via `addItem`.
-
-### 3.5 Bundles — `addBundle` / `removeBundle` (line 166-239)
-
-Bundles are a **playground-only** abstraction. `addBundle` generates
-`bundle-<uuid>` and tags every row. Sync happens per constituent
-item via the same `/cart/items` endpoint.
-
-### 3.6 Clear — `clearCart()` (line 276-288)
-
-Redux wipe + `PUT /users/me/cart { items: [] }` (the `setCart`
-mutation in `cartApi.ts:62-69`) — the Platform has no single-call
-wipe. `ConfirmationPage:31-34` calls `clearCart()` 200 ms after mount
-when an order is placed.
-
-### 3.7 Mini-cart UI flag
-
-`miniCartOpen: boolean` lives in `cartSlice` (not `uiSlice`). Toggled
-by `openMiniCart`/`closeMiniCart`. Persisted along with cart items.
-
-### 3.8 Guest vs authenticated
-
-* **Guest** — `apiOn = false`; only Redux + localStorage. Guards
-  (lines 135, 199, 249, 278) skip every API path; no warnings.
-* **Authenticated** — `apiOn = true`. Each mutation is optimistic in
-  Redux + best-effort sync. Failures roll back +
-  `emitSyncWarning('mutation', …)`.
-
-### 3.9 Merge on login
-
-`useGetCartQuery` fires the moment `authToken` is set
-(`CartContext.tsx:80-82`). On snapshot arrival the hook (lines 83-110)
-hashes the snapshot into `lastMergedRef` to prevent loops, then for
-each server item: if the playground already has the same id, **remove
-first and re-add** (because `cartSlice.addItem` *increments*; we want
-server qty to be absolute). Logout (`authToken: null`) resets
-`lastMergedRef` so the next login re-merges (lines 112-116).
-
-⚠ The merge is **server-wins** for products in the id map; unmapped
-server items render as `cms-<id>` placeholders.
-
----
-
-## 4. Wishlist lifecycle
-
-Same shape as cart but no qty, no size, no bundles. All paths go
-through `useWishlist()` (`WishlistContext.tsx:67-222`).
-
-| Action | Redux | Platform | Notes |
-|---|---|---|---|
-| `addItem(item)` | `wishlistActions.addItem` (no-op if dup) | `POST /users/me/wishlist/items { productId }` | Rollback `removeItem` on failure |
-| `removeItem(id)` | filter out | `DELETE /users/me/wishlist/items/:productId` | Rollback re-add from snapshot |
-| `toggleItem(item)` | derived (if exists → remove else add) | same | UI sugar |
-| `updateSelection(id, color?, size?)` | local-only mutation | — | Selected variant for "move to cart" |
-| `isWishlisted(id)` | derived selector | — | Boolean lookup |
-| `clearAll()` | wipe | per-item DELETE loop | No bulk endpoint on Platform |
-
-### 4.1 Login merge — TWO paths run in parallel
-
-Both paths dispatch `wishlistActions.addItem`, which de-dupes by id,
-so the result is correct — but the duplication is worth noting:
-
-1. **`WishlistSyncEffect`** (`components/Providers.tsx:15-29`) —
-   listens to `useAuth().isLoggedIn` and dispatches
-   `wishlistActions.mergeUserWishlist({ wishlist, waitingList })`
-   with the **hardcoded `USER_DATASET` mock** from `data/userData.ts`
-   (a UX demo from before the Platform wishlist endpoint existed).
-2. **`useGetWishlistQuery`** (`WishlistContext.tsx:78-106`) — fires
-   the real `GET /users/me/wishlist` when `apiOn && authToken`.
-   Each server `productId` becomes a `placeholderFromCmsId(...)` and
-   is dispatched as `addItem`. Guarded by `lastMergedRef`.
-
-So a fully wired-up logged-in user gets
-`(server snapshot) ∪ (USER_DATASET mock) ∪ (existing guest items)`,
-de-duped by `id`. Without `NEXT_PUBLIC_API_URL` only the mock +
-guest items remain.
-
-### 4.2 `mergeUserWishlist` semantics — `wishlistSlice.ts:80-92`
-
-Helpers `fromDataWishlist` and `fromWaitingItem` (lines 7-36)
-translate the mock shapes to `WishlistItem`. Quirk: when a mock entry
-has `originalPrice`, that high "was" price ends up in
-`WishlistItem.price` and the current price ends up in `salePrice`.
-`WaitingItem` produces `inStock: false` with pre-filled
-`selectedColor`/`selectedSize` (rendered with an OOS badge in
-`account/WishlistSection.tsx:214`). Server items take precedence;
-guest-only items are appended.
-
----
-
-## 5. Recently viewed
-
-Single-reducer slice (`recentlyViewedSlice.ts:29-49`):
-`addProduct(product)`.
-
-* **Capacity:** `LIMITS.RECENTLY_VIEWED_MAX = 100`
-  (`constants/timings.ts:24`).
-* **TTL:** 30 days (`TTL_MS`, line 6). Eviction runs on **every
-  add**, not at hydration — stale items vanish next view.
-* **Order:** most-recent-first. Existing entries are removed and
-  re-inserted at index 0 (sliding window). Over-cap rows are sliced
-  off the tail.
-* **Single writer:** `ProductDetailPage.tsx:149-160`. **Readers:**
-  same page (filters out the current product) +
-  `selectRecentlyViewed` (`store/selectors.ts:47`).
-* **No server sync** — entirely local.
-
----
-
-## 6. Persistence — handwritten, not redux-persist
-
-`redux-persist` is not used. Persistence is inline in `store/index.ts`.
-
-* **Key:** `oe_store` (line 15). **Version:** `STORAGE_VERSION = 4`
-  with `MIGRATIONS` map (line 30-51); unknown future versions wipe.
-* **Persisted** (`saveToStorage`, line 107-120): `cart`, `wishlist`,
-  `recentlyViewed`, `catalog`, `user.data.addresses`.
-* **Not persisted:** `user.data.authToken` (security), `ui`,
-  RTK-Query caches.
-* **Save trigger:** `store.subscribe(saveToStorage)` (line 151) —
-  fires on every action.
-* **SSR rehydration order** (`makeStore`, line 136-153): (1) sync
-  `loadFromStorage()` used as `preloadedState`, with `catalog`
-  intentionally excluded (line 77) to avoid hydration mismatches on
-  the home page; (2) after mount, `Providers.tsx:37-42` calls
-  `loadCatalogFromStorage()` and dispatches `hydrateCatalogs(...)`.
-* **`userAddresses` schema** — historical. Pre-v2 stored at top
-  level; the loader (line 79-84) re-wraps it into
-  `user.data.addresses` for the slice.
-* SSR safety: `window === undefined` ⇒ load/save no-op
-  (line 66, 109).
-
----
-
-## 7. Public hook surface
-
-Both hooks return memoised objects.
-
-`useCart()` (`CartContext.tsx:290-311`):
-`{ items, miniCartOpen, openMiniCart, closeMiniCart, addItem,
-addBundle, removeItem, removeBundle, updateQuantity, updateSize,
-clearCart, totalItems, subtotal, discount, total }`
-
-`useWishlist()` (`WishlistContext.tsx:212-221`):
-`{ items, addItem, removeItem, toggleItem, updateSelection,
-isWishlisted, clearAll, count }`
-
-Equivalent values are also reachable via `store/selectors.ts`
-(lines 6-43) for components that prefer a selector pattern.
-
----
-
-## 8. Server sync
-
-| Concern | Endpoint | When |
+| Callback | Redux action | Activity event |
 |---|---|---|
-| Cart GET | `/users/me/cart` | RTK-Query auto-fetch when `apiOn && authToken` |
-| Cart add | `POST /users/me/cart/items` | After each `addItem` / `updateQuantity` |
-| Cart remove | `DELETE /users/me/cart/items/:id` | After each `removeItem` |
-| Cart wipe | `PUT /users/me/cart` body `{items: []}` | `clearCart()` on order confirmation |
-| Wishlist GET | `/users/me/wishlist` | Same gating |
-| Wishlist add | `POST /users/me/wishlist/items` | `addItem` |
-| Wishlist remove | `DELETE /users/me/wishlist/items/:id` | `removeItem`, per-item loop in `clearAll` |
-| Wishlist PUT | `PUT /users/me/wishlist` | **Exported but never imported** (`useSetWishlistMutation`, `wishlistApi.ts:93`) — dead code. |
-| Recently viewed | — | None. Local-only. |
+| `addItem(item)` | `cartActions.addItem` | `product_add_to_cart` |
+| `addBundle(items)` | `cartActions.addBundle` | one `product_add_to_cart` per item (with `bundle: true`) |
+| `removeItem(id)` | `cartActions.removeItem` | `product_remove_from_cart` |
+| `removeBundle(id)` | `cartActions.removeBundle` | one `product_remove_from_cart` per removed item |
+| `updateQuantity(id, delta)` | `cartActions.updateQuantity` | none (would spam the endpoint) |
+| `updateSize(id, size)` | `cartActions.updateSize` | none |
+| `clearCart()` | `cartActions.clearCart` + resets coupon state (`couponCode=null`, `couponError=null`, drops `sessionStorage['oe_coupon_code']`) | none |
+| `openMiniCart()` / `closeMiniCart()` | `cartActions.openMiniCart` / `closeMiniCart` | — |
 
-Both APIs are RTK-Query slices with `tagTypes: ['Cart']` / `['Wishlist']`
-so mutations invalidate the query and trigger a refetch.
+Derived values also exposed: `totalItems`, `subtotal`, `discount` (= `originalTotal − subtotal`), `total` (= `subtotal`).
 
-`prepareHeaders` (`cartApi.ts:34-40`, `wishlistApi.ts:46-52`) pulls
-the bearer token from `state.user.data.authToken`. If no token →
-no header → server returns 401. Callers gate queries with
-`skip: !apiOn` (i.e. `skip: !authToken`).
+`useWishlist()` follows the same pattern with `addItem`, `removeItem`, `toggleItem(item)`, `updateSelection(id, color?, size?)`, `isWishlisted(id)`, `clearAll()`, plus a memoised `count`.
 
-Backend reference: these endpoints map to the OneEntry
-`user-activity` module (`cart.dto.ts`, `wishlist.dto.ts`, named in
-the type comments). The Platform stores them on
-`user_activity_events`, which is **out of the 24-table blueprint
-whitelist** — they exist at runtime but cannot be seeded via
-blueprint.
+### 4a. Checkout preview + coupons
 
----
+`useCart()` also owns the OE `previewOrder` snapshot used by the Delivery step:
 
-## 9. Discount / coupon flow
+| Field / callback | Meaning |
+|---|---|
+| `preview` | Latest `PreviewOrderResult` for the current cart (+ applied coupon). |
+| `previewLoading` | `true` while a `previewOrder` request is in flight. |
+| `personalDiscount`, `totalDue` | Derived from `preview` — loyalty tier discount and final amount. |
+| `couponCode` | Currently applied coupon (survives cart mutations and page navigation via `sessionStorage['oe_coupon_code']`; re-sent on every `previewOrder`/`createOrder`). Wiped by `clearCart()` so the next order starts without an implicit coupon. |
+| `couponDiscount` | `preview.couponDiscountAmount` — what OE actually deducted. |
+| `couponError` | Server-provided rejection message from the last `applyCoupon` attempt (e.g. "Add $61 more to unlock SUMMER2026"); `null` after a successful apply or `removeCoupon()`. |
+| `applyCoupon(code)` | Clears `preview` and flips `previewLoading=true` before calling `previewOrderAction`. Success → sets the new `preview` and `couponCode`. Failure → sets `couponError` and re-fetches `previewOrder` without the code so the summary doesn't get stuck showing the discount-row skeleton (the `useEffect` doesn't rerun on failure because `couponCode` never changed). |
+| `removeCoupon()` | Clears `preview` and flips `previewLoading=true` before setting `couponCode=null`. The `productsKey`/`couponCode` `useEffect` then re-fetches without the coupon; the discount-row skeleton fires during recompute instead of momentarily showing the stale coupon discount. |
 
-The cart slice tracks **product-level** discounts only —
-`useCart().discount` is `Σ(originalPrice - price)` across rows
-(`CartContext.tsx:124-126`, mirrored in `selectors.ts:24-28`).
-
-**Coupons are page-local `useState`**, never written to Redux:
-
-* `CartPage.tsx:29-33` keeps `promoCode`, `promoApplied`,
-  `promoDiscount`, `promoError` as local state.
-* `CartPage.tsx:90-102` `applyPromo()` reads
-  `data/checkoutConfig.ts::CHECKOUT_COUPONS` (`ONEENTRY10`,
-  `SAVE10`, `SUMMER15`, `WELCOME25`, etc.).
-* `CartPage.tsx:104` `finalTotal = total - promoDiscount` is inline.
-* `DeliveryPage.tsx:66-96` is a debounced clone against the same
-  dict. The two pages do **not** share coupon state — switching
-  pages re-prompts.
+A `useEffect` reruns `previewOrder` whenever the cart's `productsKey` or `couponCode` changes.
 
 ---
 
-## 10. Edge cases
+## 5. Debounced sync to OneEntry
 
-* **Unmapped product** — playground id absent from
-  `CMS_PRODUCT_ID_MAP` (`cms-product-id-map.ts:34`) never syncs;
-  the hook emits `emitSyncWarning('unmapped', …)` which logs and
-  fires an `oe:sync-warning` `CustomEvent`. No toast UI exists yet.
-* **Platform-only product** — server returns a `productId` the
-  playground doesn't recognise: `placeholderFromCmsId()`
-  (`CartContext.tsx:57-70`, `WishlistContext.tsx:53-65`) fabricates
-  a card (`id: 'cms-<id>'`, `name: 'Platform product #<id>'`,
-  `/placeholder.svg`). Subsequent actions hit
-  `getCmsProductId(...) === null` and stay local.
-* **Out-of-stock wishlist item** — `inStock: false` rows still
-  render; `account/WishlistSection.tsx:17` filters them out for the
-  account summary; `FavoritesPage.tsx:34`'s bulk move-to-cart
-  excludes them.
-* **Deleted product** — no detection; stale snapshot until the user
-  removes the row manually.
-* **Currency change** — `WishlistItem.price`/`salePrice` are
-  pre-formatted **strings**, so they retain the original currency
-  format. `CartItem.price` is numeric and reformatted on render →
-  cart is currency-safe, wishlist is not.
-* **Locale change** — wishlist colour/size labels are stored as
-  strings in the slice → not re-translated on language switch.
-  Cart labels live in `data/cartLabels.ts` and render-side.
-* **Storage quota / version skew / multi-tab** —
-  `saveToStorage` swallows quota errors (`store/index.ts:117-119`);
-  unknown future `__version` wipes the cache (line 72-75); no
-  `storage` event subscription, so concurrent tabs drift until
-  reload.
-* **No max-quantity per item** — `cartSlice.ts:35` does
-  `existing.quantity += item.quantity` and `:59,64` does
-  `Math.max(1, i.quantity + delta)`. Only a lower bound of 1 is
-  enforced; there is no upper bound. A user can set qty to 999 (or
-  paste any positive integer) and the cart will accept it. No
-  per-product stock check (`Product.stock` / `colorStock[idx]`) is
-  consulted at add time — out-of-stock detection happens only on
-  catalog filter rendering, not in cart writes.
-* **No stale-cart / price-change detection** — when the store
-  rehydrates from `localStorage` on next visit
-  (`store/index.ts:loadCatalogFromStorage`), cart `price` /
-  `salePrice` are restored verbatim. If the product's price has
-  changed in the catalog since the last visit, the cart keeps the
-  old number — there is no diff-check against the live catalog and
-  no "price has changed" UI prompt. Same applies if a product was
-  marked out-of-stock between visits.
-* **No deleted-product backfill** — see above; if a product is
-  removed from the catalog data, the cart still shows the cached
-  row with `/placeholder.svg` fallback on image errors but no
-  "this product is no longer available" banner.
+Both contexts run an identical effect:
+
+```ts
+// src/app/context/CartContext.tsx (excerpt)
+const lastPushedRef = useRef<string>('');
+useEffect(() => {
+  if (!isLoggedIn) return;
+  const oeItems = items.flatMap((it) => {
+    const cmsId = getCmsProductId(it.id);
+    return cmsId !== null ? [{ productId: cmsId, qty: it.quantity }] : [];
+  });
+  const key = JSON.stringify(oeItems);
+  if (key === lastPushedRef.current) return;
+  lastPushedRef.current = key;
+  const t = setTimeout(() => { void syncCart(oeItems); }, 400);
+  return () => clearTimeout(t);
+}, [items, isLoggedIn, syncCart]);
+```
+
+Behaviour:
+
+- **400 ms debounce** — quick sequences collapse into a single push.
+- **Payload dedupe** — `lastPushedRef` prevents replaying the same snapshot.
+- **Guest gate** — no sync until `isLoggedIn === true`.
+- **CMS id gate** — items without a mapped `cmsProductId` are silently dropped from the payload (see §7).
+
+The `syncCart` / `syncWishlist` Server Actions (`src/lib/oneentry/auth/actions.ts`) both perform an **absolute PUT** — the payload replaces the server list. No add/remove deltas.
 
 ---
 
-## 11. File map
+## 6. Login-time server merge
 
-Core (writers):
+When `isLoggedIn` flips to `true`, the effect that hydrates from `user.cartItems` fires once per session:
 
-* `src/app/context/CartContext.tsx` (312) — `useCart()` hook +
-  `CartItem` type + sync orchestration.
-* `src/app/context/WishlistContext.tsx` (222) — `useWishlist()` hook +
-  `WishlistItem` type.
-* `src/app/store/cartSlice.ts` (84) — reducer: `addItem`, `addBundle`,
-  `removeItem`, `removeBundle`, `updateQuantity`, `updateSize`,
-  `clearCart`, `openMiniCart`, `closeMiniCart`.
-* `src/app/store/wishlistSlice.ts` (98) — reducer +
-  `mergeUserWishlist` + `fromDataWishlist`/`fromWaitingItem` helpers.
-* `src/app/store/recentlyViewedSlice.ts` (54) — sliding window
-  (cap 100, TTL 30 d).
-* `src/app/store/selectors.ts` (60) — `selectCart*`, `selectWishlist*`,
-  `selectRecentlyViewed`.
-* `src/app/store/api/cartApi.ts` (78) — RTK-Query for `/users/me/cart*`.
-* `src/app/store/api/wishlistApi.ts` (107) — RTK-Query for
-  `/users/me/wishlist*`.
-* `src/app/store/api/types/cart.ts` (35), `…/types/wishlist.ts` (32) —
-  wire types.
-* `src/app/store/index.ts` (159) — store factory + localStorage
-  versioning + migrations.
-* `src/app/data/cms-product-id-map.ts` (103) — playground↔Platform id
-  map + helpers.
-* `src/app/data/checkoutConfig.ts` — `CHECKOUT_COUPONS` promo dict.
-* `src/app/utils/syncWarnings.ts` (50) — `emitSyncWarning(kind, msg,
-  ctx)` (console + `oe:sync-warning` `CustomEvent`).
-* `src/app/components/Providers.tsx` (67) — `Provider`,
-  `WishlistSyncEffect`, catalog rehydration.
+```ts
+// src/app/context/CartContext.tsx (excerpt)
+const hydratedRef = useRef(false);
+useEffect(() => {
+  if (!isLoggedIn || !user?.cartItems) return;
+  if (hydratedRef.current) return;
+  if (sessionStorage.getItem('oe_cart_merged') === '1') { hydratedRef.current = true; return; }
+  hydratedRef.current = true;
+  sessionStorage.setItem('oe_cart_merged', '1');
+  // ... place server placeholders that aren't already in the local cart
+  // ... call getProductsByIdsAction(placeholderProductIds)
+  // ... swap each placeholder for the enriched product
+  // ... drop stale server-only items whose id didn't come back
+}, [isLoggedIn, user, dispatch]);
+```
 
-Consumers (read-only):
-`Header.tsx` (`totalItems`, `openMiniCart`, `wishlistCount`),
-`MiniCart.tsx` (drawer; `items`, `removeItem`, `updateQuantity`,
-`subtotal`, `totalItems`), `ProductCard.tsx`/`QuickViewModal.tsx`
-(`toggleItem`, `isWishlisted`, `addItem`), `pages/CartPage.tsx` (full
-cart + local promo), `pages/ConfirmationPage.tsx` (`clearCart()` 200 ms
-after mount), `pages/DeliveryPage.tsx` (`total`),
-`pages/PaymentPage.tsx` (`items`, `discount`, `total`),
-`pages/FavoritesPage.tsx` (wishlist + "Move all to cart"),
-`pages/ProductDetailPage.tsx` (`recentlyViewedActions.addProduct` +
-cart + wishlist), `pages/favorites/FavoriteCard.tsx`,
-`pages/account/WishlistSection.tsx`.
+Logic:
 
-### 11.1 Known unused / dead code
+1. If a `sessionStorage.oe_cart_merged === '1'` flag is present, the effect is a no-op — this prevents re-merging on every remount as Next.js App Router bounces the tree between navigations.
+2. Otherwise, for each server item not already in the local cart:
+   - Insert a placeholder (`name: 'Platform product #N'`, `price: 0`, `image: '/placeholder.svg'`).
+3. Call `getProductsByIdsAction(productIds)` — a Server Action that maps OE product IDs to `Product` shape.
+4. Swap each placeholder for the enriched product.
+5. Drop any server placeholder whose id did NOT come back from the catalog fetch — that indicates a deleted product on the OE side, and leaving it in the cart would raise a `$0` line and break order placement.
 
-* `useSetWishlistMutation` (`store/api/wishlistApi.ts:93`) — exported,
-  never imported. The wishlist has no `PUT` analogue of `clearCart`.
-* `mergeUserWishlist` (`store/wishlistSlice.ts:80`) and the
-  associated `WishlistSyncEffect` consume `USER_DATASET` (a static
-  mock). They're not strictly dead — they fire on every login — but
-  they will become so when the mock dataset is removed.
+On logout, `hydratedRef` and the sessionStorage flag are cleared so the next login re-merges.
+
+Wishlist follows the same pattern with `oe_wishlist_merged`.
 
 ---
 
-## 12. Cross-references
+## 7. Playground id bridge
 
-* [`REDUX.md`](./REDUX.md) — store layout, slice catalogue, persistence
-  contract.
-* [`ARCHITECTURE.md`](./ARCHITECTURE.md) — overall folder layout and
-  the role of `src/app/context/`.
-* [`CHECKOUT.md`](./CHECKOUT.md) — payment flow, order placement, the
-  `clearCart()` hand-off.
-* [`AUTH.md`](./AUTH.md) — `AuthProvider`, `authToken` lifecycle,
-  the `apiOn` gate.
-* `agents_datasets/ClaudeInfos/use-cases.md` case 12 — Platform-side
-  description of `user_activity_events`.
-* Upstream Platform DTOs referenced inline:
-  `cms/src/modules/user-activity/dto/cart.dto.ts`,
-  `…/wishlist.dto.ts` (per the type-file comments).
+`src/app/data/cms-product-id-map.ts` maps ~25 playground SKUs (`wc-1`, `mc-3`, …) to numeric OneEntry product IDs. Two helpers:
+
+- `getCmsProductId(playgroundId): number | null` — used when the client needs to push to OE (`syncCart`, `syncWishlist`, `trackActivity`).
+- `getPlaygroundProductId(cmsId): string | null` — used when hydrating server items to match against `localStorage`-persisted playground data.
+
+Items without a mapping are:
+
+- Silently dropped from the `syncCart` / `syncWishlist` payload.
+- Untracked (no `trackActivity` fires for them).
+
+The map is a **transitional artefact** — as more storefront components adopt integer OE ids directly, the map's role shrinks.
+
+---
+
+## 8. Recently viewed
+
+`recentlyViewedSlice.ts`:
+
+- Prepended by `addProduct(product)` — the slice attaches `viewedAt: Date.now()`.
+- Evicts items older than `RECENTLY_VIEWED_MAX_AGE_MS` (30 days) on every insert.
+- Circular buffer capped at `LIMITS.RECENTLY_VIEWED_MAX = 100`.
+- Persisted to `oe_store.recentlyViewed` in `localStorage`.
+
+### 8.1 Server sync
+
+The trail is also mirrored to OneEntry for signed-in users via three Server Actions in `src/lib/oneentry/auth/actions.ts`:
+
+| Action | Trigger | Effect |
+|---|---|---|
+| `pushRecentlyViewedAction({productId, viewedAt})` | `RecentlyViewedSection` on PDP mount when `isLoggedIn` | Appends one view to `user.recentlyViewedItems` on the OE side. |
+| `getRecentlyViewedAction()` | `AuthContext` after `/me` bootstrap | Reads the server trail. |
+| `mergeRecentlyViewedAction(local)` | `AuthContext` on the first login after guest browsing | Combines the guest's `oe_store.recentlyViewed` items with the server trail — dedupes by `productId`, keeps the most recent `viewedAt`, pushes the merged list back to OE, returns it to the client. |
+
+After merge, `AuthContext` dispatches `recentlyViewedActions.hydrate(items)` to replace the Redux slice with the merged trail. Subsequent PDP mounts fire `addProduct` locally and `pushRecentlyViewedAction` in parallel.
+
+Guest views never leave the browser — no `x-guest-id` push endpoint exists for recently-viewed.
+
+The recently-viewed section on the PDP (`src/app/pages/product/RecentlyViewedSection.tsx`) is lazy-loaded via `IntersectionObserver`; the account-page history tab reads the same slice.
+
+---
+
+## 9. Persistence to `localStorage`
+
+`saveToStorage(state)` in `src/app/store/index.ts` writes `cart` (minus `miniCartOpen`), `wishlist`, `recentlyViewed`, and `catalog` on every dispatched action.
+
+- **Key:** `oe_store`.
+- **Version:** 5.
+- **Auth tokens are NEVER persisted** — the session lives in httpOnly cookies (see [AUTH.md](./AUTH.md) §3).
+
+If the persisted schema version is unknown (future), the store is wiped to prevent corruption.
+
+---
+
+## 10. Legacy RTK Query scaffolding
+
+`src/app/store/api/cartApi.ts` and `wishlistApi.ts` are `createApi` slices with `fetchBaseQuery({baseUrl: process.env.NEXT_PUBLIC_API_URL})`. Their query hooks are NOT called from any component — the live sync goes through Server Actions. Both middlewares remain registered in `makeStore()` so any future migration back to client-side fetching would only need to swap the base URL and start calling the hooks.
+
+`isCartApiEnabled()` / `isWishlistApiEnabled()` both return `false` in the current production config (`NEXT_PUBLIC_API_URL` unset).
+
+---
+
+## 11. Error handling
+
+- **Failed `syncCart` / `syncWishlist`** — the Server Action swallows the error (fire-and-forget). Redux state is NOT rolled back; the next mutation will re-attempt. Look for `console.warn('[…] sync failed')` on the server logs.
+- **Failed `getCurrentUserAction`** — `AuthContext` sets `authReady = true` but leaves `user = null`; login prompts render.
+- **Failed `getProductsByIdsAction` during merge** — placeholders remain in the cart with `$0` price. This is a symptom of stale server state (deleted products) — the merge effect explicitly drops those items.
+- **Guest bounce** — logging out while items are in the cart clears the `oe_cart_merged` flag but leaves Redux items intact. Guest continues to see the same cart; sign-in triggers a fresh merge.
+
+Legacy helper `emitSyncWarning(kind, message)` in `src/app/utils/syncWarnings.ts` dispatches a `CustomEvent('oe:sync-warning')` for future toast subscribers — currently no listener is attached.
+
+---
+
+## 12. Selectors (`src/app/store/selectors.ts`)
+
+Memoised via `createSelector`:
+
+- `selectCartItems`, `selectMiniCartOpen`
+- `selectCartTotalItems`, `selectCartSubtotal`, `selectCartOriginalSubtotal`, `selectCartDiscount`
+- `selectWishlistItems`, `selectWishlistCount`, `selectIsWishlisted(id)`
+- `selectRecentlyViewed`
+
+Selectors are the preferred read path — direct `useSelector((s) => s.cart.items)` is fine for one-off reads but should be avoided in hot components.
+
+---
+
+## 13. Bundles
+
+Bundle items are cart lines that share a synthetic `bundleId` (e.g. `bundle-x8f2a1`, generated by `cartSlice::addBundle`). Rules:
+
+- `addBundle(items)` — pushes all items into `state.items`, stamping each with the same fresh `bundleId`. Bundle-scoped ids collide with normal SKUs safely because they include the `bundle-` prefix.
+- `updateQuantity({id, delta})` — if the target item has a `bundleId`, ALL siblings in the same bundle are updated by the same `delta`. The UI shows a single quantity control per bundle, not one per line.
+- `removeBundle(bundleId)` — removes every item whose `bundleId` matches.
+- `removeItem(id)` on a bundle line only removes that line (allowing partial breakage), but the current UI never does this — it always dispatches `removeBundle`.
+
+Persisted normally through `oe_store`. Server sync via `syncCart` flattens the bundle into individual `{productId, qty}` entries — OneEntry has no bundle concept, only line items. If the bundle is re-hydrated from the server after a re-login, it is NOT re-bundled — items appear as independent lines. This is a known limitation; carrying the `bundleId` through OE requires an `OeCartItem.bundleId` field on the server side.
+
+Bundle sources:
+- **PDP Special Offers** (`ProductSpecialOffers`) — "Buy this bundle" CTA calls `useCart().addBundle(bundleItems)`.
+- **CartBundleRow** in `/cart` renders the aggregated bundle row.
+- **MiniCart** renders bundle rows collapsed with the same shared control.
+
+## 14. Cross-references
+
+- [REDUX.md](./REDUX.md) — full store layout, migrations
+- [AUTH.md](./AUTH.md) — how session cookies gate `syncCart` / `syncWishlist`
+- [CHECKOUT.md](./CHECKOUT.md) — how the cart is snapshotted at order placement
+- [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) — `syncCart` / `syncWishlist` / `getCurrentUserAction` internals

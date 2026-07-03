@@ -74,8 +74,9 @@ test.describe('Authentication', () => {
       await page.locator('button[aria-label="My account"]').click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.locator('button:has-text("Create one")').click();
-      // Register form has placeholder "Jane" for first name
-      await expect(page.getByPlaceholder('Jane')).toBeVisible({ timeout: 5000 });
+      // Register form has placeholder "Jane" for first name (exact match — the
+      // email placeholder "jane.doe@example.com" also contains "Jane").
+      await expect(page.getByPlaceholder('Jane', { exact: true })).toBeVisible({ timeout: 5000 });
     });
 
     test('register form validates required fields', async ({ page }) => {

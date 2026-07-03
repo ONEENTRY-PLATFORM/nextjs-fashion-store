@@ -13,9 +13,13 @@ import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
 import { FavoriteCard } from './favorites/FavoriteCard';
 import { FavoritesCarousel } from './favorites/FavoritesCarousel';
 import { FavoritesEmptyState } from './favorites/FavoritesEmptyState';
+import { RecentlyViewedSection } from './product/RecentlyViewedSection';
 import { FAVORITES_PAGE_LABELS as L } from '../data/favoritesLabels';
 import { useFavoritesPageT } from '../../lib/oneentry/labels/FavoritesPageLabelsContext';
 import type { Product } from '../components/ProductCard';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store';
+import { useAuth } from '../context/AuthContext';
 
 
 /* ─── Main Page ─── */
@@ -38,6 +42,69 @@ export function FavoritesPage({
   const lClearAll = useFavoritesPageT('favorites_page_clear_all',       L.clearAll);
   const lBottom   = useFavoritesPageT('favorites_page_bottom_link',     L.ctaContinue);
   useEffect(() => { setMounted(true); }, []);
+
+  // Live Recently-Viewed trail from Redux (shared with PDP). Dedupe by title
+  // so different variants of the same product (Pink XL / White M / …) don't
+  // each surface as separate tiles.
+  const recentlyViewed = useSelector((s: RootState) => s.recentlyViewed.items);
+  const recentlyViewedUnique = (() => {
+    const seen = new Set<string>();
+    const out: Product[] = [];
+    for (const p of recentlyViewed) {
+      const key = (p.name || p.id).toLowerCase().trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+    }
+    return out;
+  })();
+
+  // Gender preference for the recommended / trending carousels:
+  //   1. Logged-in user with an explicit `gender` — use it.
+  //   2. Guest (or user without gender): infer from the Redux Recently-Viewed
+  //      trail — pick the majority side. Older items may have blank `gender`
+  //      (pushed before the adapter fallback existed), so we also parse the
+  //      product name (`Men ...` / `Women ...`) as a last-resort hint.
+  //   3. Nothing to go on — leave both feeds unfiltered.
+  const { isLoggedIn, user } = useAuth();
+  const genderOf = (p: Product): 'W' | 'M' | 'U' | '' => {
+    if (p.gender === 'W' || p.gender === 'M' || p.gender === 'U') return p.gender;
+    const name = (p.name || '').toLowerCase();
+    if (/\bmen('s)?\b/.test(name)) return 'M';
+    if (/\bwomen('s)?\b/.test(name)) return 'W';
+    // Older Redux entries persisted before the adapter carried gender don't
+    // have anything on the `Product` object — fall back to OE's file-code
+    // convention baked into image URLs: `SO-W-…`, `O-W-…`, `OE-W-…` mark
+    // women, `-M-` marks men.
+    const img = (p.image || '').toLowerCase();
+    const m = img.match(/\/[a-z]+-([wm])-[a-z0-9]/);
+    if (m?.[1] === 'w') return 'W';
+    if (m?.[1] === 'm') return 'M';
+    return '';
+  };
+  const preferredGender: 'W' | 'M' | null = (() => {
+    if (isLoggedIn && user?.gender === 'female') return 'W';
+    if (isLoggedIn && user?.gender === 'male') return 'M';
+    let w = 0;
+    let m = 0;
+    for (const p of recentlyViewed) {
+      const g = genderOf(p);
+      if (g === 'W') w++;
+      else if (g === 'M') m++;
+    }
+    if (w > m) return 'W';
+    if (m > w) return 'M';
+    return null;
+  })();
+  const matchesPreferredGender = (p: Product) => {
+    if (!preferredGender) return true;
+    const g = genderOf(p);
+    // Unisex or truly unknown items always show.
+    if (!g || g === 'U') return true;
+    return g === preferredGender;
+  };
+  const RECOMMENDATION_PRODUCTS_SCOPED = recommended.filter(matchesPreferredGender);
+  const TRENDING_PRODUCTS_SCOPED = trending.filter(matchesPreferredGender);
 
   const handleMoveAllToCart = () => {
     items.filter(i => i.inStock).forEach(item => {
@@ -162,20 +229,16 @@ export function FavoritesPage({
 
         {/* Recommendations */}
         <div className="space-y-12 pt-12 px-4 lg:px-8 border-t border-gray-200">
-          <FavoritesCarousel title={L.recommendedHeading} products={RECOMMENDATION_PRODUCTS} />
-          <FavoritesCarousel title={L.trendingHeading} products={TRENDING_PRODUCTS} />
+          <FavoritesCarousel title={L.recommendedHeading} products={RECOMMENDATION_PRODUCTS_SCOPED} />
+          <FavoritesCarousel title={L.trendingHeading} products={TRENDING_PRODUCTS_SCOPED} />
         </div>
 
-        {/* Recently Viewed — TRENDING NOW style */}
-        <div className="border-t border-gray-100 py-12 px-4 lg:px-8 bg-gray-50">
-          <div className="max-w-screen-2xl mx-auto">
-            <div className="mb-6">
-              <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{L.recentlyViewedEyebrow}</p>
-              <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.25rem)] font-bold">{L.recentlyViewedHeading}</h2>
-            </div>
-            <FavoritesCarousel title="" products={[...RECOMMENDATION_PRODUCTS].reverse()} />
-          </div>
-        </div>
+        {/* Recently Viewed — reads the live Redux trail so what the shopper
+            actually browsed on PDPs surfaces here (matches the PDP block
+            visually and in content, deduped by title). */}
+        {recentlyViewedUnique.length > 0 && (
+          <RecentlyViewedSection products={recentlyViewedUnique} accentColor={ACCENT} />
+        )}
 
         {/* Back to Catalog CTA */}
         <div className="mt-16 text-center px-4 lg:px-8">

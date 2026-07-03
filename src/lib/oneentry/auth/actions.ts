@@ -1,6 +1,6 @@
 'use server';
 import { cookies } from 'next/headers';
-import { oneentry, isOneEntryEnabled, isError, type OeError } from '../index';
+import { oneentry, isOneEntryEnabled, isError, getUserApi, getGuestApi } from '../index';
 import { loadProductsByIds } from '../catalog/products';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -79,6 +79,10 @@ export interface OeOrder {
   id: number;
   storage: string;
   statusIdentifier: string;
+  /** Human-readable status title from OE `statusLocalizeInfos.title`
+   *  (admin-panel display name — e.g. "In Progress", "Shipped"). Prefer
+   *  this over `statusIdentifier` when rendering. */
+  statusTitle: string;
   totalSum: string;
   currency: string;
   createdDate?: string;
@@ -146,6 +150,36 @@ export interface OeUser {
   recentlyViewed: OeRecentlyViewedItem[];
   /** orders from all user storages */
   orders: OeOrder[];
+  /** loyalty state resolved from OE `Discounts` on `/me` bootstrap. `null`
+   *  when nothing is configured for this tenant (or the user isn't in any
+   *  discount user-group yet). */
+  loyalty: OeLoyalty | null;
+}
+
+/** One rung of the OE loyalty ladder — `getDiscountByMarker(marker)` returns
+ *  the config regardless of the user's group membership, so we pass the raw
+ *  set to the client and let it pick the highest tier the shopper actually
+ *  qualifies for (based on LTV). */
+export interface OeLoyaltyTier {
+  tier: string;
+  tierTitle: string;
+  discountPct: number;
+  discountMaxAmount: number | null;
+  applicability: string;
+  /** LTV threshold to qualify (from `conditions[type=USER_LTV].value.amount`).
+   *  `null` when the tier isn't gated by LTV — treat as always-available. */
+  ltvThreshold: number | null;
+  /** OE user-group ids the tier belongs to (`userGroups[].id`). Reserved for
+   *  a future group-based selector; today we still pick by LTV. */
+  userGroupIds: number[];
+}
+
+export interface OeLoyalty {
+  /** All tier configs OE knows about (sorted ascending by LTV threshold).
+   *  Client mergeOeUser picks the highest tier where `user.LTV ≥ ltvThreshold`. */
+  tiers: OeLoyaltyTier[];
+  /** Aggregate bonus balance across all bonus types. */
+  bonusBalance: number;
 }
 
 interface OeAuthEntity {
@@ -198,10 +232,8 @@ const DEFAULT_CONSENT: OeConsent = { dataProcessing: false, crossBorder: false }
 const USER_ORDER_STORAGE_MARKERS = ['home', 'store_pickup', 'locker'] as const;
 
 async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return [];
-  const headers = { 'x-app-token': appToken, Authorization: `Bearer ${accessToken}`, accept: 'application/json' };
+  const api = getUserApi(accessToken);
+  if (!api) return [];
   type RawProduct = {
     id?: number;
     title?: string;
@@ -213,6 +245,10 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
   type RawOrder = {
     id?: number;
     statusIdentifier?: string;
+    /** OE ships the status display name per-locale here. Payload shape can
+     *  be either a flat `{ title }` (already-localised) or the wrapped
+     *  `{ en_US: { title } }` variant — the extractor below handles both. */
+    statusLocalizeInfos?: { title?: string } | Record<string, { title?: string }>;
     totalSum?: string;
     currency?: string;
     createdDate?: string;
@@ -223,21 +259,35 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
   await Promise.all(
     USER_ORDER_STORAGE_MARKERS.map(async (marker) => {
       try {
-        const res = await fetch(
-          `${url}/api/content/orders-storage/marker/${marker}/orders?langCode=en_US&limit=100&offset=0`,
-          { headers, cache: 'no-store' },
-        );
-        if (!res.ok) return;
-        const data = (await res.json()) as { items?: RawOrder[]; total?: number };
+        const result = await api.Orders.getAllOrdersByMarker(marker, 'en_US', 0, 100);
+        if (isError(result)) return;
+        // SDK's `IOrderByMarkerEntity` types are stricter than what actually
+        // ships (e.g. `previewImage` may be a bare `{ downloadLink }` object
+        // even though the SDK types it as `IPicture` with mandatory
+        // `filename`/`size` fields). Cast to the local RawOrder shape.
+        const data = result as unknown as { items?: RawOrder[]; total?: number };
         for (const o of data.items ?? []) {
           const formDataMap: Record<string, unknown> = {};
           for (const f of o.formData ?? []) {
             if (f.marker) formDataMap[f.marker] = f.value;
           }
+          // Extract status title from either shape OE ships:
+          //   flat: `{ title: "In Progress" }`
+          //   wrapped: `{ en_US: { title: "In Progress" } }`
+          const sli = o.statusLocalizeInfos;
+          const flatTitle = sli && typeof (sli as { title?: unknown }).title === 'string'
+            ? (sli as { title: string }).title
+            : '';
+          const wrappedTitle = sli && !flatTitle
+            ? String(((sli as Record<string, { title?: unknown }>)['en_US']?.title
+                ?? Object.values(sli as Record<string, { title?: unknown }>)[0]?.title
+                ?? '') || '')
+            : '';
           all.push({
             id: o.id ?? 0,
             storage: marker,
             statusIdentifier: o.statusIdentifier ?? '',
+            statusTitle: flatTitle || wrappedTitle,
             totalSum: o.totalSum ?? '0',
             currency: o.currency ?? 'USD',
             createdDate: o.createdDate,
@@ -289,27 +339,77 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
   return all;
 }
 
-async function meRequest<T>(accessToken: string, path: string, init?: RequestInit): Promise<T | null> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return null;
-  try {
-    const res = await fetch(`${url}/api/content/users${path}`, {
-      ...init,
-      headers: {
-        'x-app-token': appToken,
-        Authorization: `Bearer ${accessToken}`,
-        accept: 'application/json',
-        'content-type': 'application/json',
-        ...(init?.headers ?? {}),
-      },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
+
+/** Resolve the current tier + bonus balance for the authenticated user.
+ *  Tier is a marker guess (`bronze` → `silver` → …) — walked in order and
+ *  the first non-404 hit wins. Returns `null` when none of the markers
+ *  resolve or the tenant has no discounts configured. */
+async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
+  const api = getUserApi(accessToken);
+  if (!api) return null;
+
+  const TIER_MARKERS = ['bronze', 'silver', 'gold', 'platinum'];
+  // Fetch every tier in parallel via SDK `Discounts.getDiscountByMarker` and
+  // the bonus balance via `Discounts.getBonusBalance`. The SDK normalises
+  // localizeInfos + fields for us, so downstream code sees a clean shape.
+  const [rawTiers, bonusResult] = await Promise.all([
+    Promise.all(TIER_MARKERS.map((m) => api.Discounts.getDiscountByMarker(m, 'en_US'))),
+    api.Discounts.getBonusBalance(),
+  ]);
+
+  // SDK typings claim `IDiscountCondition.value` is a string, but the real
+  // API returns `{ amount: 100 }` for USER_LTV — cast to a local shape so
+  // downstream code stays honest about what's actually there.
+  type RawDiscount = {
+    identifier?: string;
+    localizeInfos?: { en_US?: { title?: string }; title?: string } & Record<string, { title?: string }>;
+    discountValue?: { value?: number; maxAmount?: number | null; discountType?: string; applicability?: string };
+    conditions?: Array<{ conditionType?: string; type?: string; value?: { amount?: number } | string }>;
+    userGroups?: Array<{ id?: number }> | Record<string, unknown> | null;
+  };
+
+  const tiers: OeLoyaltyTier[] = rawTiers
+    .filter((r) => !isError(r))
+    .map((r) => r as unknown as RawDiscount)
+    .filter((r) => !!r.identifier)
+    .map((r): OeLoyaltyTier => {
+      const dv = r.discountValue ?? {};
+      const isPercent = (dv.discountType ?? '').toUpperCase() === 'PERCENTAGE'
+        || (dv.discountType ?? '').toUpperCase() === 'PERCENT';
+      const ltvCond = (r.conditions ?? []).find(
+        (c) => c.conditionType === 'USER_LTV' || c.type === 'USER_LTV',
+      );
+      const ltvValue = typeof ltvCond?.value === 'object' && ltvCond.value !== null
+        ? (ltvCond.value as { amount?: number }).amount ?? null
+        : (typeof ltvCond?.value === 'string' ? Number(ltvCond.value) || null : null);
+      const groupsRaw = Array.isArray(r.userGroups) ? r.userGroups : [];
+      return {
+        tier: r.identifier ?? '',
+        tierTitle: r.localizeInfos?.en_US?.title ?? r.localizeInfos?.title ?? '',
+        discountPct: isPercent ? Number(dv.value ?? 0) : 0,
+        discountMaxAmount: dv.maxAmount ?? null,
+        applicability: dv.applicability ?? '',
+        ltvThreshold: ltvValue,
+        userGroupIds: groupsRaw.map((g) => Number(g?.id ?? 0)).filter((n) => n > 0),
+      };
+    })
+    .sort((a, b) => (a.ltvThreshold ?? -1) - (b.ltvThreshold ?? -1));
+
+  if (tiers.length === 0) return null;
+
+  // SDK returns bonus balance as either `{ balance }` or `[{ balance }, ...]`
+  // depending on how the tenant sliced things. Sum whatever comes back.
+  let balance = 0;
+  if (!isError(bonusResult)) {
+    const raw = bonusResult as unknown as { balance?: number | string } | Array<{ balance?: number | string }>;
+    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    balance = list.reduce((sum, b) => sum + Number(b?.balance ?? 0), 0);
   }
+
+  return {
+    tiers,
+    bonusBalance: Number.isFinite(balance) ? balance : 0,
+  };
 }
 
 async function fetchMe(accessToken: string): Promise<OeUser | null> {
@@ -322,16 +422,27 @@ async function fetchMe(accessToken: string): Promise<OeUser | null> {
   type RawCart = { items?: OeCartItem[]; total?: number };
   type RawWishlist = { items?: OeWishlistItem[]; total?: number };
 
-  const [data, cart, wishlist, addrRecords, userDataRec, subsRec, orders] = await Promise.all([
-    meRequest<RawMe>(accessToken, '/me?langCode=en_US'),
-    meRequest<RawCart>(accessToken, '/me/cart'),
-    meRequest<RawWishlist>(accessToken, '/me/wishlist'),
+  const api = getUserApi(accessToken);
+  if (!api) return null;
+
+  const [meResult, cartResult, wishlistResult, addrRecords, userDataRec, subsRec, orders, loyalty] = await Promise.all([
+    api.Users.getUser('en_US'),
+    api.Users.getCart(),
+    api.Users.getWishlist(),
     fetchUserAddresses(accessToken),
     fetchUserDataRecord(accessToken),
     fetchSubsRecord(accessToken),
     fetchUserOrders(accessToken),
+    fetchLoyalty(accessToken),
   ]);
-  if (!data) return null;
+  if (isError(meResult)) return null;
+  // SDK `IUserEntity.formData` is strictly `FormDataType[]` but OE's raw
+  // /me response may ship either a flat array or `{ en_US: [...] }`
+  // depending on locale slicing — cast to the local RawMe shape that
+  // handles both.
+  const data = meResult as unknown as RawMe;
+  const cart = isError(cartResult) ? null : (cartResult as unknown as RawCart);
+  const wishlist = isError(wishlistResult) ? null : (wishlistResult as unknown as RawWishlist);
 
   // formData may be flat array or { lang: array }
   const arr = Array.isArray(data.formData)
@@ -365,8 +476,6 @@ async function fetchMe(accessToken: string): Promise<OeUser | null> {
 
   // Profile extras: prefer user_data form record, fallback to legacy state.profile.
   const userExtras = userDataRec.extras;
-  const userDataSource = userDataRec.recordId ? 'form-data' : (state.profile || state.consent ? 'state (legacy)' : 'empty');
-  console.log(`[OE] user_data for ${data.identifier}: from ${userDataSource}` + (userDataRec.recordId ? ` (record id=${userDataRec.recordId})` : ''));
   const consent: OeConsent = {
     dataProcessing: userExtras.consentDataProcessing ?? state.consent?.dataProcessing ?? false,
     crossBorder: userExtras.consentCrossBorder ?? state.consent?.crossBorder ?? false,
@@ -384,17 +493,14 @@ async function fetchMe(accessToken: string): Promise<OeUser | null> {
     dob: userExtras.dob || state.profile?.dob,
     shoeSize: userExtras.shoeSize || state.profile?.shoeSize,
     clothingSize: userExtras.clothingSize || state.profile?.clothingSize,
-    addresses: (() => {
-      const source = addrRecords.length > 0 ? 'form-data' : (state.addresses?.length ? 'state.addresses (legacy)' : 'empty');
-      console.log(`[OE] addresses for ${data.identifier}: ${addrRecords.length || state.addresses?.length || 0} from ${source}`);
-      return addrRecords.length > 0 ? addrRecords : (state.addresses ?? []);
-    })(),
+    addresses: addrRecords.length > 0 ? addrRecords : (state.addresses ?? []),
     subscriptions,
     consent,
     cart: cart?.items ?? [],
     wishlist: wishlist?.items ?? [],
     recentlyViewed: Array.isArray(state.recentlyViewed) ? state.recentlyViewed : [],
     orders,
+    loyalty,
   };
 }
 
@@ -404,58 +510,123 @@ async function readAccessFromCookies(): Promise<string | null> {
 }
 
 async function readStateFromMe(accessToken: string): Promise<OeUserState> {
-  const data = await meRequest<{ state?: OeUserState }>(accessToken, '/me?langCode=en_US');
-  return data?.state ?? {};
+  const api = getUserApi(accessToken);
+  if (!api) return {};
+  const result = await api.Users.getUser('en_US');
+  if (isError(result)) return {};
+  // SDK `IUserEntity.state` is `Record<string, unknown>`; our narrower
+  // OeUserState is structurally compatible for the read path.
+  const raw = result as unknown as { state?: OeUserState };
+  return raw.state ?? {};
 }
 
-// ── Form-data helpers (raw fetch under user accessToken) ────────────────────
+// ── Form-data helpers (SDK-backed under user accessToken) ────────────────────
 
-const FORM_DATA_BASE = '/api/content/form-data';
-
-async function formDataRequest<T>(
+/** SDK-backed GET-list for a form marker. Uses `FormData.getFormsDataByMarker`
+ *  which the SDK exposes; body carries the extra filter (`userIdentifier`,
+ *  `entityIdentifier`, ...) OE expects. */
+async function formDataGetByMarker(
   accessToken: string,
-  path: string,
-  init?: RequestInit,
-): Promise<T | null> {
-  const result = await formDataRequestVerbose<T>(accessToken, path, init);
-  return result.ok ? result.data : null;
+  marker: string,
+  formModuleConfigId: number,
+  body: object,
+  limit = 100,
+): Promise<{ items?: RawFormRecord[]; total?: number } | null> {
+  const api = getUserApi(accessToken);
+  if (!api) return null;
+  try {
+    const result = await api.FormData.getFormsDataByMarker(
+      marker,
+      formModuleConfigId,
+      body,
+      0,
+      DEFAULT_LOCALE,
+      0,
+      limit,
+    );
+    if (isError(result)) return null;
+    // SDK typing narrows formData; the raw response tolerates both wrapped
+    // and flat variants and our RawFormRecord shape reflects that.
+    return result as unknown as { items?: RawFormRecord[]; total?: number };
+  } catch {
+    return null;
+  }
 }
 
 interface FdSuccess<T> { ok: true; data: T }
 interface FdError { ok: false; status: number; message: string }
-async function formDataRequestVerbose<T>(
+
+/** SDK-backed POST of a new form-data record. */
+async function formDataPost<T>(
   accessToken: string,
-  path: string,
-  init?: RequestInit,
+  body: {
+    formIdentifier: string;
+    formModuleConfigId: number;
+    moduleEntityIdentifier: string;
+    replayTo: string | null;
+    status: string;
+    formData: unknown;
+  },
 ): Promise<FdSuccess<T> | FdError> {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return { ok: false, status: 0, message: 'OneEntry env not configured' };
+  const api = getUserApi(accessToken);
+  if (!api) return { ok: false, status: 0, message: 'OneEntry SDK not initialised' };
   try {
-    const res = await fetch(`${url}${FORM_DATA_BASE}${path}`, {
-      ...init,
-      headers: {
-        'x-app-token': appToken,
-        Authorization: `Bearer ${accessToken}`,
-        accept: 'application/json',
-        'content-type': 'application/json',
-        ...(init?.headers ?? {}),
-      },
-      cache: 'no-store',
-    });
-    const text = await res.text();
-    let body: unknown;
-    try { body = text ? JSON.parse(text) : null; } catch { body = text; }
-    if (!res.ok) {
-      const message =
-        body && typeof body === 'object' && 'message' in body && typeof (body as { message: unknown }).message === 'string'
-          ? (body as { message: string }).message
-          : `HTTP ${res.status}`;
-      return { ok: false, status: res.status, message };
+    // SDK's postFormsData internally wraps `formData` in { [langCode]: [...] }
+    // if given a flat array. But some of our callers already pass the wrapped
+    // shape `{ en_US: [...] }`. Unwrap in that case so the SDK does the wrap
+    // correctly.
+    const raw = body.formData;
+    const flat = (
+      raw
+      && !Array.isArray(raw)
+      && typeof raw === 'object'
+      && 'en_US' in (raw as Record<string, unknown>)
+    )
+      ? (raw as Record<string, unknown>).en_US
+      : raw;
+    const result = await api.FormData.postFormsData({
+      ...body,
+      formData: flat as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
+    }, DEFAULT_LOCALE);
+    if (isError(result)) {
+      return { ok: false, status: 0, message: result.message ?? 'postFormsData failed' };
     }
-    return { ok: true, data: body as T };
+    return { ok: true, data: result as unknown as T };
   } catch (err) {
     return { ok: false, status: 0, message: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
+/** SDK-backed PUT of an existing form-data record by id. */
+async function formDataPut<T>(
+  accessToken: string,
+  id: number,
+  body: object,
+): Promise<T | null> {
+  const api = getUserApi(accessToken);
+  if (!api) return null;
+  try {
+    const result = await api.FormData.updateFormsDataByid(id, body);
+    if (isError(result)) return null;
+    return result as unknown as T;
+  } catch {
+    return null;
+  }
+}
+
+/** SDK-backed DELETE of a form-data record by id. */
+async function formDataDelete(
+  accessToken: string,
+  id: number,
+): Promise<boolean> {
+  const api = getUserApi(accessToken);
+  if (!api) return false;
+  try {
+    const result = await api.FormData.deleteFormsDataByid(id);
+    if (isError(result)) return false;
+    return result === true;
+  } catch {
+    return false;
   }
 }
 
@@ -516,10 +687,12 @@ function addressToFormData(address: OeAddress): Array<{ marker: string; type: st
 }
 
 async function fetchUserAddresses(accessToken: string): Promise<OeAddress[]> {
-  const result = await formDataRequest<{ items?: RawFormRecord[]; total?: number }>(
+  const result = await formDataGetByMarker(
     accessToken,
-    `/marker/user_addresses?formModuleConfigId=${USER_ADDRESSES_MODULE_CONFIG_ID}&isExtended=0&langCode=en_US&offset=0&limit=100`,
-    { method: 'POST', body: JSON.stringify({}) },
+    'user_addresses',
+    USER_ADDRESSES_MODULE_CONFIG_ID,
+    {},
+    100,
   );
   return (result?.items ?? []).map(recordToAddress);
 }
@@ -530,17 +703,13 @@ async function postUserAddress(
   address: OeAddress,
 ): Promise<{ ok: true; record: RawFormRecord } | { ok: false; message: string }> {
   type PostResponse = RawFormRecord & { formData?: RawFormRecord; actionMessage?: string };
-  const res = await formDataRequestVerbose<PostResponse>(accessToken, '', {
-    method: 'POST',
-    body: JSON.stringify({
-      formIdentifier: 'user_addresses',
-      formModuleConfigId: USER_ADDRESSES_MODULE_CONFIG_ID,
-      moduleEntityIdentifier: userIdentifier,
-      replayTo: null,
-      status: 'sent',
-      langCode: DEFAULT_LOCALE,
-      formData: { en_US: addressToFormData(address) },
-    }),
+  const res = await formDataPost<PostResponse>(accessToken, {
+    formIdentifier: 'user_addresses',
+    formModuleConfigId: USER_ADDRESSES_MODULE_CONFIG_ID,
+    moduleEntityIdentifier: userIdentifier,
+    replayTo: null,
+    status: 'sent',
+    formData: { en_US: addressToFormData(address) },
   });
   if (!res.ok) return { ok: false, message: res.message };
   // POST may respond either as a flat record `{id, formData[], ...}` or wrapped
@@ -557,19 +726,15 @@ async function putUserAddress(
   recordId: number,
   address: OeAddress,
 ): Promise<boolean> {
-  const result = await formDataRequest<unknown>(accessToken, `/${recordId}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      langCode: DEFAULT_LOCALE,
-      formData: addressToFormData(address),
-    }),
+  const result = await formDataPut<unknown>(accessToken, recordId, {
+    langCode: DEFAULT_LOCALE,
+    formData: addressToFormData(address),
   });
   return result !== null;
 }
 
 async function deleteUserAddress(accessToken: string, recordId: number): Promise<boolean> {
-  const result = await formDataRequest<unknown>(accessToken, `/${recordId}`, { method: 'DELETE' });
-  return result !== null;
+  return formDataDelete(accessToken, recordId);
 }
 
 // ── user_data form (one record per user — upsert) ───────────────────────────
@@ -586,10 +751,12 @@ interface UserDataExtras {
 async function fetchUserDataRecord(
   accessToken: string,
 ): Promise<{ recordId: number | null; extras: UserDataExtras }> {
-  const result = await formDataRequest<{ items?: RawFormRecord[] }>(
+  const result = await formDataGetByMarker(
     accessToken,
-    `/marker/user_data?formModuleConfigId=${USER_DATA_MODULE_CONFIG_ID}&isExtended=0&langCode=en_US&offset=0&limit=10`,
-    { method: 'POST', body: JSON.stringify({}) },
+    'user_data',
+    USER_DATA_MODULE_CONFIG_ID,
+    {},
+    10,
   );
   const rec = result?.items?.[0];
   if (!rec) return { recordId: null, extras: {} };
@@ -634,10 +801,11 @@ async function upsertUserDataRecord(
   const formData = userDataToFormData(merged);
 
   if (current.recordId) {
-    const result = await formDataRequest<unknown>(accessToken, `/${current.recordId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ langCode: DEFAULT_LOCALE, formData }),
-    });
+    const result = await formDataPut<unknown>(
+      accessToken,
+      current.recordId,
+      { langCode: DEFAULT_LOCALE, formData },
+    );
     return result !== null;
   }
 
@@ -649,28 +817,26 @@ async function upsertUserDataRecord(
   void _dropDob;
   const postData = userDataToFormData(patchWithoutDob);
   type PostResponse = RawFormRecord & { formData?: RawFormRecord };
-  const created = await formDataRequest<PostResponse>(accessToken, '', {
-    method: 'POST',
-    body: JSON.stringify({
-      formIdentifier: 'user_data',
-      formModuleConfigId: USER_DATA_MODULE_CONFIG_ID,
-      moduleEntityIdentifier: userIdentifier,
-      replayTo: null,
-      status: 'sent',
-      langCode: DEFAULT_LOCALE,
-      formData: { en_US: postData },
-    }),
+  const created = await formDataPost<PostResponse>(accessToken, {
+    formIdentifier: 'user_data',
+    formModuleConfigId: USER_DATA_MODULE_CONFIG_ID,
+    moduleEntityIdentifier: userIdentifier,
+    replayTo: null,
+    status: 'sent',
+    formData: { en_US: postData },
   });
-  if (!created) return false;
-  const newId = (created.formData && typeof created.formData === 'object' && !Array.isArray(created.formData)
-    ? (created.formData as RawFormRecord).id
-    : created.id);
+  if (!created.ok) return false;
+  const rec = created.data;
+  const newId = (rec.formData && typeof rec.formData === 'object' && !Array.isArray(rec.formData)
+    ? (rec.formData as RawFormRecord).id
+    : rec.id);
   if (!newId) return true;
   if (merged.dob) {
-    const result = await formDataRequest<unknown>(accessToken, `/${newId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ langCode: DEFAULT_LOCALE, formData }),
-    });
+    const result = await formDataPut<unknown>(
+      accessToken,
+      newId,
+      { langCode: DEFAULT_LOCALE, formData },
+    );
     return result !== null;
   }
   return true;
@@ -692,10 +858,12 @@ interface SubsExtras {
 async function fetchSubsRecord(
   accessToken: string,
 ): Promise<{ recordId: number | null; extras: SubsExtras }> {
-  const result = await formDataRequest<{ items?: RawFormRecord[] }>(
+  const result = await formDataGetByMarker(
     accessToken,
-    `/marker/subscription_management?formModuleConfigId=${SUBSCRIPTION_MGMT_MODULE_CONFIG_ID}&isExtended=0&langCode=en_US&offset=0&limit=10`,
-    { method: 'POST', body: JSON.stringify({}) },
+    'subscription_management',
+    SUBSCRIPTION_MGMT_MODULE_CONFIG_ID,
+    {},
+    10,
   );
   const rec = result?.items?.[0];
   if (!rec) return { recordId: null, extras: {} };
@@ -744,42 +912,113 @@ async function upsertSubsRecord(
     loyaltyUpdates: subs.loyaltyUpdates,
   });
   if (current.recordId) {
-    const result = await formDataRequest<unknown>(accessToken, `/${current.recordId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ langCode: DEFAULT_LOCALE, formData }),
-    });
+    const result = await formDataPut<unknown>(
+      accessToken,
+      current.recordId,
+      { langCode: DEFAULT_LOCALE, formData },
+    );
     return result !== null;
   }
-  const result = await formDataRequest<RawFormRecord>(accessToken, '', {
-    method: 'POST',
-    body: JSON.stringify({
-      formIdentifier: 'subscription_management',
-      formModuleConfigId: SUBSCRIPTION_MGMT_MODULE_CONFIG_ID,
-      moduleEntityIdentifier: userIdentifier,
-      replayTo: null,
-      status: 'sent',
-      langCode: DEFAULT_LOCALE,
-      formData: { en_US: formData },
-    }),
+  const result = await formDataPost<RawFormRecord>(accessToken, {
+    formIdentifier: 'subscription_management',
+    formModuleConfigId: SUBSCRIPTION_MGMT_MODULE_CONFIG_ID,
+    moduleEntityIdentifier: userIdentifier,
+    replayTo: null,
+    status: 'sent',
+    formData: { en_US: formData },
   });
-  return result !== null;
+  return result.ok;
 }
 
 async function putUser(accessToken: string, body: Record<string, unknown>): Promise<boolean> {
-  // PUT /me wants langCode at the top level and formData wrapped by locale
-  // (e.g. `formData: { en_US: [...] }`) — opposite of POST sign-up which
-  // takes a flat array.
-  const normalized: Record<string, unknown> = { langCode: DEFAULT_LOCALE, ...body };
-  if (Array.isArray(normalized.formData)) {
-    normalized.formData = { en_US: normalized.formData };
+  const api = getUserApi(accessToken);
+  if (!api) return false;
+  // The SDK's `updateUser` takes `IUserBody` which itself allows `formData`
+  // as either a single `IAuthFormData` or an array — we pass the array form
+  // and the SDK layer handles serialisation. langCode is passed as the 2nd
+  // argument to updateUser (not inside body).
+  const normalized: Record<string, unknown> = { ...body };
+  // If caller passed formData already wrapped as `{ en_US: [...] }`, unwrap
+  // so we can hand a flat array to the SDK — updateUser writes the current
+  // locale slot.
+  if (
+    normalized.formData
+    && !Array.isArray(normalized.formData)
+    && typeof normalized.formData === 'object'
+    && 'en_US' in (normalized.formData as Record<string, unknown>)
+  ) {
+    normalized.formData = (normalized.formData as Record<string, unknown>).en_US;
   }
-  const result = await meRequest<true | OeError>(accessToken, '/me', {
-    method: 'PUT',
-    body: JSON.stringify(normalized),
-  });
+  const result = await api.Users.updateUser(
+    normalized as unknown as Parameters<typeof api.Users.updateUser>[0],
+    DEFAULT_LOCALE,
+  );
   return result === true;
 }
 void DEFAULT_SUBSCRIPTIONS;
+
+/**
+ * Auth provider descriptor pulled from OE. Consumed by LoginModal /
+ * RegisterModal (to render the social-button row) and by the
+ * "Connected Social Accounts" section in the account page (which filters
+ * out `email`). Only the fields the UI actually needs are exposed.
+ */
+export interface AuthProviderInfo {
+  /** Provider marker — `'email'`, `'google'`, `'apple'`, `'facebook'`, … */
+  identifier: string;
+  /** Provider kind — matches identifier for most social providers; useful
+   *  for distinguishing form-based (`email`, `phone`) from OAuth (`oauth`). */
+  type: string;
+  /** Human title from OE localizeInfos.en_US.title, falls back to identifier. */
+  title: string;
+  /** Form marker to load field schema (only meaningful for form-based auth). */
+  formIdentifier?: string;
+  /** Whether OE requires post-signup activation via `activateUser()`. */
+  isCheckCode: boolean;
+}
+
+interface RawAuthProvider {
+  identifier?: string;
+  type?: string;
+  formIdentifier?: string;
+  isCheckCode?: boolean;
+  localizeInfos?: Record<string, { title?: string } | undefined> | { title?: string };
+}
+
+/**
+ * Return the list of authorization providers configured for the tenant.
+ * The UI uses this to render social buttons + the connected-accounts row,
+ * so the source of truth stays in OE (no hardcoded `['google', 'facebook']`).
+ * Returns `[]` on any failure — social buttons simply won't render.
+ */
+export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
+  if (!isOneEntryEnabled || !oneentry) return [];
+  try {
+    const result = await oneentry.AuthProvider.getAuthProviders();
+    if (isError(result)) return [];
+    const list = Array.isArray(result) ? (result as RawAuthProvider[]) : [];
+    return list
+      .filter((p): p is RawAuthProvider & { identifier: string } =>
+        typeof p?.identifier === 'string' && p.identifier.length > 0)
+      .map((p) => {
+        const info = p.localizeInfos ?? {};
+        // OE returns either { en_US: { title } } or a flat { title }.
+        const localized = (info as Record<string, { title?: string } | undefined>).en_US;
+        const title = (typeof localized === 'object' && localized?.title)
+          || (info as { title?: string }).title
+          || p.identifier;
+        return {
+          identifier: p.identifier,
+          type: typeof p.type === 'string' ? p.type : p.identifier,
+          title,
+          formIdentifier: typeof p.formIdentifier === 'string' ? p.formIdentifier : undefined,
+          isCheckCode: p.isCheckCode === true,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
 
 export async function signInAction(
   login: string,
@@ -923,10 +1162,14 @@ export async function signInWithGoogleAction(accessToken: string): Promise<AuthR
   try {
     const attempt = await tryOauthVariants(accessToken);
     if (!attempt.ok) {
-      const detail = attempt.attempts
-        .map(a => `${a.field}: ${a.error}`)
-        .join(' | ');
-      return { ok: false, error: `OE rejected every body variant — ${detail}` };
+      // OE tries multiple body-field variants and often returns the same
+      // generic error for each. Dedupe so the UI shows a single readable
+      // message instead of a concatenated wall of the same text. Keep the
+      // per-field detail in the server log for debugging.
+      const uniqueErrors = Array.from(new Set(attempt.attempts.map(a => a.error)));
+      console.warn('[OE Google OAuth] all variants failed:', attempt.attempts);
+      const detail = uniqueErrors.join(' | ');
+      return { ok: false, error: `Google sign-in rejected by OneEntry — ${detail}` };
     }
     const jar = (await cookies()) as unknown as CookieJar;
     await setSessionCookies(jar, attempt.entity);
@@ -957,8 +1200,10 @@ export async function connectGoogleAccountAction(
   try {
     const attempt = await tryOauthVariants(accessToken);
     if (!attempt.ok) {
-      const detail = attempt.attempts.map(a => `${a.field}: ${a.error}`).join(' | ');
-      return { ok: false, error: `OE rejected every body variant — ${detail}` };
+      const uniqueErrors = Array.from(new Set(attempt.attempts.map(a => a.error)));
+      console.warn('[OE Google OAuth] connect: all variants failed:', attempt.attempts);
+      const detail = uniqueErrors.join(' | ');
+      return { ok: false, error: `Google verification rejected by OneEntry — ${detail}` };
     }
     return { ok: true, matchedField: attempt.matchedField };
   } catch (err) {
@@ -978,6 +1223,152 @@ export async function signOutAction(): Promise<{ ok: boolean }> {
   }
   await clearSessionCookies(jar);
   return { ok: true };
+}
+
+/**
+ * Move an order into the tenant's cancellation status. Looks up the storage's
+ * status list and picks the one whose identifier or title matches "cancel"
+ * (case-insensitive) — the tenant's actual marker (`home_cancelled`,
+ * `store_pickup_cancelled`, `homeCancelled`, `home_cancel`, …) is discovered
+ * dynamically. Falls back to `<storage>_cancelled` when the list can't be
+ * fetched but the pattern is common enough that OE usually still accepts it.
+ */
+export async function cancelOrderAction(
+  orderId: number,
+  storage: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry is not configured' };
+  if (!orderId || !storage) return { ok: false, error: 'Missing order id or storage' };
+  const access = await readAccessFromCookies();
+  if (!access) return { ok: false, error: 'Not signed in' };
+  const api = getUserApi(access);
+  if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
+  try {
+    // 1. Load the existing order — `updateOrderByMarkerAndId` demands the
+    //    full `IOrderData` (formIdentifier + paymentAccountIdentifier +
+    //    formData + products), NOT a partial patch. Sending only
+    //    `{ statusIdentifier }` triggers OE's "Order must have a payment"
+    //    (and similar) validators.
+    const existing = await api.Orders.getOrderByMarkerAndId(storage, orderId, DEFAULT_LOCALE);
+    if (isError(existing)) return { ok: false, error: existing.message ?? `HTTP ${existing.statusCode}` };
+    const cur = existing as unknown as {
+      formIdentifier?: string;
+      paymentAccountIdentifier?: string;
+      formData?: unknown;
+      // OE's `getOrderByMarkerAndId` returns products with the shape
+      // `{ id, quantity, title, price, sku, previewImage }`, but
+      // `updateOrderByMarkerAndId` expects `{ productId, quantity }` per
+      // `IOrderProductData`. We remap below so the update passes the
+      // strict-typed schema check ("productId must be a number").
+      products?: Array<{ id?: number; productId?: number; quantity?: number }>;
+      currency?: string;
+      couponCode?: string;
+      bonusAmount?: number;
+    };
+    const productsForUpdate = Array.isArray(cur.products)
+      ? cur.products
+          .map((p) => ({
+            productId: Number(p.productId ?? p.id ?? 0),
+            quantity: Number(p.quantity ?? 1),
+          }))
+          .filter((p) => Number.isFinite(p.productId) && p.productId > 0)
+      : [];
+
+    // 2. Discover the cancellation status marker — regex match on the
+    //    tenant's status list, fall back to `${storage}_cancelled`.
+    let cancelledMarker = '';
+    const statuses = await api.Orders.getAllStatusesByStorageMarker(storage, DEFAULT_LOCALE, 0, 100);
+    if (!isError(statuses) && Array.isArray(statuses)) {
+      const match = statuses.find((s) => {
+        const info = s as { identifier?: string; localizeInfos?: { title?: string } };
+        return /cancel/i.test(info.identifier ?? '') || /cancel/i.test(info.localizeInfos?.title ?? '');
+      });
+      if (match) cancelledMarker = (match as { identifier?: string }).identifier ?? '';
+    }
+    if (!cancelledMarker) cancelledMarker = `${storage}_cancelled`;
+
+    // 3. Send back the full order body with just `statusIdentifier` swapped.
+    //    Empty-string fallbacks on required fields let OE's schema pass —
+    //    they'll be echoed back unchanged since we're not really editing them.
+    const body: Record<string, unknown> = {
+      formIdentifier: cur.formIdentifier ?? '',
+      paymentAccountIdentifier: cur.paymentAccountIdentifier ?? '',
+      formData: cur.formData ?? [],
+      products: productsForUpdate,
+      statusIdentifier: cancelledMarker,
+    };
+    if (cur.currency) body.currency = cur.currency;
+    if (cur.couponCode) body.couponCode = cur.couponCode;
+    if (typeof cur.bonusAmount === 'number') body.bonusAmount = cur.bonusAmount;
+
+    const result = await api.Orders.updateOrderByMarkerAndId(
+      storage,
+      orderId,
+      body as unknown as Parameters<typeof api.Orders.updateOrderByMarkerAndId>[2],
+      DEFAULT_LOCALE,
+    );
+    if (isError(result)) return { ok: false, error: result.message ?? `HTTP ${result.statusCode}` };
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
+/**
+ * Bonus-programme transaction. Mirrors OE's `IBonusTransactionEntity` from
+ * `oneentry/dist/discounts/discountsInterfaces` — we only surface the fields
+ * the account UI actually renders. `sign` is a derived convenience: `+1` for
+ * accruals and reversal-of-usage (bonuses coming back), `-1` for spending,
+ * expirations and admin reductions.
+ */
+export interface OeBonusTransaction {
+  amount: number;
+  /** OE marker — `ACCRUAL` | `USAGE` | `REDUCE` | `REVERSAL_ACCRUAL` |
+   *  `REVERSAL_USAGE` | `EXPIRATION`. */
+  type: string;
+  createdAt: string | null;
+  comment: string | null;
+  sign: 1 | -1;
+}
+
+const POSITIVE_BONUS_TYPES = new Set(['ACCRUAL', 'REVERSAL_USAGE']);
+
+export async function fetchBonusHistoryAction(): Promise<OeBonusTransaction[]> {
+  if (!isOneEntryEnabled) return [];
+  const access = await readAccessFromCookies();
+  if (!access) return [];
+  const api = getUserApi(access);
+  if (!api) return [];
+  try {
+    const result = await api.Discounts.getBonusHistory();
+    if (isError(result)) return [];
+    // OE returns `{ items, total }` (paginated), not a bare array as the
+    // SDK types suggest. Unwrap both shapes so the section renders whether
+    // OE swaps the response format in a future SDK.
+    const list: unknown[] = Array.isArray(result)
+      ? (result as unknown[])
+      : Array.isArray((result as { items?: unknown[] })?.items)
+        ? ((result as { items: unknown[] }).items)
+        : [];
+    return list.map((raw): OeBonusTransaction => {
+      const r = raw as {
+        amount?: number;
+        type?: string;
+        createdAt?: string;
+        comment?: string | null;
+      };
+      const type = String(r.type ?? '').toUpperCase();
+      return {
+        amount: Number(r.amount ?? 0),
+        type,
+        createdAt: r.createdAt ?? null,
+        comment: r.comment ?? null,
+        sign: POSITIVE_BONUS_TYPES.has(type) ? 1 : -1,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function getCurrentUserAction(): Promise<OeUser | null> {
@@ -1176,19 +1567,21 @@ export async function syncCartAction(
 ): Promise<{ ok: boolean; items: OeCartItem[] }> {
   const access = await readAccessFromCookies();
   if (!access) return { ok: false, items: [] };
-  const result = await meRequest<{ items?: OeCartItem[]; total?: number }>(
-    access,
-    '/me/cart',
-    { method: 'PUT', body: JSON.stringify({ items }) },
-  );
-  return { ok: !!result, items: result?.items ?? [] };
+  const api = getUserApi(access);
+  if (!api) return { ok: false, items: [] };
+  const result = await api.Users.setCart({ items });
+  if (isError(result)) return { ok: false, items: [] };
+  return { ok: true, items: result.items ?? [] };
 }
 
 export async function getCartAction(): Promise<OeCartItem[]> {
   const access = await readAccessFromCookies();
   if (!access) return [];
-  const result = await meRequest<{ items?: OeCartItem[] }>(access, '/me/cart');
-  return result?.items ?? [];
+  const api = getUserApi(access);
+  if (!api) return [];
+  const result = await api.Users.getCart();
+  if (isError(result)) return [];
+  return result.items ?? [];
 }
 
 export async function syncWishlistAction(
@@ -1196,19 +1589,21 @@ export async function syncWishlistAction(
 ): Promise<{ ok: boolean; items: OeWishlistItem[] }> {
   const access = await readAccessFromCookies();
   if (!access) return { ok: false, items: [] };
-  const result = await meRequest<{ items?: OeWishlistItem[]; total?: number }>(
-    access,
-    '/me/wishlist',
-    { method: 'PUT', body: JSON.stringify({ items }) },
-  );
-  return { ok: !!result, items: result?.items ?? [] };
+  const api = getUserApi(access);
+  if (!api) return { ok: false, items: [] };
+  const result = await api.Users.setWishlist({ items });
+  if (isError(result)) return { ok: false, items: [] };
+  return { ok: true, items: result.items ?? [] };
 }
 
 export async function getWishlistAction(): Promise<OeWishlistItem[]> {
   const access = await readAccessFromCookies();
   if (!access) return [];
-  const result = await meRequest<{ items?: OeWishlistItem[] }>(access, '/me/wishlist');
-  return result?.items ?? [];
+  const api = getUserApi(access);
+  if (!api) return [];
+  const result = await api.Users.getWishlist();
+  if (isError(result)) return [];
+  return result.items ?? [];
 }
 
 // ── Recently viewed (stored on the user `state` blob) ────────────────────────
@@ -1287,6 +1682,295 @@ export async function mergeRecentlyViewedAction(
 
 export type CheckoutMethod = 'home' | 'store_pickup' | 'locker';
 
+/** Preview-only order calculation. Server applies all active discounts
+ *  (personal PERSONAL_DISCOUNT gated by user-group + LTV, plus the optional
+ *  coupon), and honours a `bonusAmount` deduction. Nothing is persisted. */
+export interface PreviewOrderInput {
+  products: Array<{ productId: number; quantity: number }>;
+  couponCode?: string;
+  /** How many bonus points the shopper wants to burn on this order. Server
+   *  clamps it to `min(balance, maxBonusPaymentPercent × total)`. */
+  bonusAmount?: number;
+  currency?: string;
+  /** Anonymous session identifier for guest checkout. When present (and no
+   *  access cookie is set), we call OE via `getGuestApi(guestId)` so guest
+   *  coupons (`SUMMER2026`, …) still validate + apply. Auth cookies take
+   *  precedence when both are present. */
+  guestId?: string;
+}
+/**
+ * Bonus-programme constraints echoed by OE's `previewOrder`. Sourced from
+ * `preview.discountConfig.bonus` (per-order values) and `.settings`
+ * (tenant-wide caps). Used by the checkout UI to clamp the "use N bonuses"
+ * input and to show hints when the cart doesn't qualify.
+ */
+export interface PreviewBonusConfig {
+  /** User's total bonus balance (across all bonus types). */
+  availableBalance: number;
+  /** Maximum bonus deduction allowed on this specific order, computed by
+   *  OE from `maxBonusPaymentPercent × totalSum` and per-account rules.
+   *  `0` when bonuses can't reduce this order at all. */
+  maxAmount: number;
+  /** Minimum bonuses the shopper must redeem in one go (from admin panel).
+   *  `null` when unset — no lower bound. */
+  minAmount: number | null;
+  /** Minimum cart total required to unlock the bonus feature.
+   *  `null` when unset — no gate. */
+  minOrderAmount: number | null;
+}
+
+export interface PreviewOrderResult {
+  ok: true;
+  /** Subtotal before any discounts / bonuses (in currency units). */
+  totalSum: number;
+  /** Total after coupon + personal discount, before bonuses are burned. */
+  totalSumWithDiscount: number;
+  /** Bonus points OE actually deducted (may be less than requested). */
+  bonusApplied: number;
+  /** Cash amount to charge after discounts + bonuses. */
+  totalDue: number;
+  /** Aggregate discount ($) so the UI can show a single "Discount −$X" line. */
+  discountAmount: number;
+  currency: string;
+  /** Bonus constraints for this order — see `PreviewBonusConfig`. */
+  bonus: PreviewBonusConfig;
+  /** `true` when a `couponCode` was passed AND OE actually applied it to the
+   *  order (`discountConfig.coupon.applied === true`). Callers use this to
+   *  tell "code applied" from "code valid but conditions not met" vs. the
+   *  tier-fallback we add server-side. */
+  couponApplied: boolean;
+  /** `true` when OE recognised the code (`coupon.valid`) but refused to apply
+   *  it (`applied === false`) — usually because of unmet conditions
+   *  (min cart, applicability, expiry). Callers use this for a specific
+   *  error message instead of the generic "invalid code" one. */
+  couponValidButNotApplied: boolean;
+  /** Human-readable reason the coupon was rejected. Filled by a follow-up
+   *  `Discounts.getDiscountByMarker` fetch when OE returns `applied: false`
+   *  with a known `discountIdentifier`. Examples:
+   *   • `"Add $61.00 more to unlock SUMMER2026 (minimum $100.00)"` — MIN_CART_AMOUNT
+   *   • `"SUMMER2026 unlocks after $100.00 in lifetime purchases"` — USER_LTV
+   *   • `"SUMMER2026 doesn't apply to items in your cart"` — PRODUCT/CATEGORY
+   *  `null` when we can't infer a reason. */
+  couponReason: string | null;
+  /** How much the coupon alone knocked off (before tier fallback). Zero when
+   *  no code was passed or OE didn't apply it. */
+  couponDiscountAmount: number;
+}
+export type PreviewOrderResponse = PreviewOrderResult | { ok: false; error: string };
+
+export async function previewOrderAction(input: PreviewOrderInput): Promise<PreviewOrderResponse> {
+  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
+
+  const access = await readAccessFromCookies();
+  // Auth wins when both are present. For guests we still call OE via
+  // `getGuestApi(guestId)` so guest-eligible coupons (SUMMER2026 etc.) can
+  // validate and the shopper sees the same discount line the logged-in one
+  // would. Only the "no access, no guest id" path short-circuits — nothing
+  // to identify the request with.
+  const api = access ? getUserApi(access) : (input.guestId ? getGuestApi(input.guestId) : null);
+  if (!api) {
+    return {
+      ok: true, totalSum: 0, totalSumWithDiscount: 0, bonusApplied: 0,
+      totalDue: 0, discountAmount: 0, currency: input.currency ?? 'USD',
+      bonus: { availableBalance: 0, maxAmount: 0, minAmount: null, minOrderAmount: null },
+      couponApplied: false, couponValidButNotApplied: false,
+      couponReason: null, couponDiscountAmount: 0,
+    };
+  }
+
+  try {
+    // OE's `previewOrder` does not auto-apply `PERSONAL_DISCOUNT` for the
+    // authenticated user. The SDK's `ICreateOrderPreview` exposes
+    // `additionalDiscountsMarkers` — we pass the tier marker(s) explicitly
+    // for LOGGED-IN shoppers only. OE still validates each marker's
+    // `USER_LTV`/`USER_GROUP` conditions server-side, so passing all four
+    // tiers is safe: the shopper only gets the discount they qualify for.
+    // Skipped for guests because personal tiers are user-gated and passing
+    // them alongside a `couponCode` empirically prevents OE from applying
+    // the coupon (observed with `SUMMER2026` on this tenant).
+    const TIER_MARKERS = ['bronze', 'silver', 'gold', 'platinum'];
+    const body = {
+      products: input.products,
+      ...(access ? { additionalDiscountsMarkers: TIER_MARKERS } : {}),
+      ...(input.couponCode ? { couponCode: input.couponCode } : {}),
+      ...(typeof input.bonusAmount === 'number' && input.bonusAmount > 0
+        ? { bonusAmount: input.bonusAmount } : {}),
+    } as unknown as Parameters<typeof api.Orders.previewOrder>[0];
+    const result = await api.Orders.previewOrder(body, DEFAULT_LOCALE);
+    if (isError(result)) return { ok: false, error: result.message ?? 'previewOrder failed' };
+    const obj = result as unknown as Record<string, unknown>;
+    const totalSum = Number(obj.totalSum ?? 0);
+    let totalSumWithDiscount = Number(obj.totalSumWithDiscount ?? totalSum);
+    const bonusApplied = Number(obj.bonusApplied ?? 0);
+    let totalDue = Number(obj.totalDue ?? Math.max(0, totalSumWithDiscount - bonusApplied));
+    let discountAmount = Math.max(0, totalSum - totalSumWithDiscount);
+    // OE's response for a coupon is `discountConfig.coupon = { code, valid,
+    // applied, ... }`. `valid` means the code exists in the admin panel;
+    // `applied` means it actually reduced this order. We need `applied` —
+    // a valid-but-not-applied code (min cart, applicability, expiry) is a
+    // user-visible failure, not a success.
+    const rawDiscountConfig = (obj.discountConfig ?? {}) as {
+      coupon?: {
+        code?: string;
+        valid?: boolean;
+        applied?: boolean;
+        discountId?: number;
+        discountIdentifier?: string;
+      } | null;
+    };
+    const rawCoupon = rawDiscountConfig.coupon ?? null;
+    const couponApplied = input.couponCode != null && rawCoupon?.applied === true;
+    // OE tells us `valid` separately — `valid && !applied` = conditions
+    // aren't met. Distinguish so we can surface the right error message.
+    const couponValidButNotApplied = input.couponCode != null
+      && rawCoupon?.valid === true && rawCoupon?.applied !== true;
+    const couponDiscountAmount = couponApplied ? discountAmount : 0;
+
+    // When OE says "valid but not applied", follow up with a
+    // `getDiscountByMarker` call so we can tell the shopper WHY. Costs one
+    // extra request but only fires on the failure path (typically once when
+    // the user hits "Apply"). Skipped on success — no reason needed.
+    let couponReason: string | null = null;
+    if (couponValidButNotApplied && rawCoupon?.discountIdentifier) {
+      try {
+        // Use the app-token singleton for the config lookup — for guests
+        // the user-scoped call returns 403 "Permission data not found"
+        // because there's no user session, but the app-token client can
+        // read the public discount config just fine.
+        const cfg = await oneentry!.Discounts.getDiscountByMarker(rawCoupon.discountIdentifier, DEFAULT_LOCALE);
+        if (!isError(cfg)) {
+          const cfgObj = cfg as unknown as {
+            // OE returns `conditionType` on the wire but the SDK typing
+            // (`IDiscountCondition.type`) uses a different key — support both
+            // so we survive either shape.
+            conditions?: Array<{ type?: string; conditionType?: string; value?: unknown }>;
+            endDate?: string | null;
+          };
+          const codeLabel = input.couponCode ?? rawCoupon.discountIdentifier;
+          const conditions = Array.isArray(cfgObj.conditions) ? cfgObj.conditions : [];
+          // Order matters: check gates the shopper can actually resolve first.
+          for (const c of conditions) {
+            const type = String(c.conditionType ?? c.type ?? '').toUpperCase();
+            const val = c.value;
+            if (type === 'MIN_CART_AMOUNT') {
+              const min = typeof val === 'object' && val !== null
+                ? Number((val as { amount?: number }).amount ?? 0)
+                : Number(val ?? 0);
+              if (min > 0 && totalSum < min) {
+                const remaining = min - totalSum;
+                couponReason = `Add $${remaining.toFixed(2)} more to unlock ${codeLabel} (minimum $${min.toFixed(2)})`;
+                break;
+              }
+            } else if (type === 'USER_LTV') {
+              const threshold = typeof val === 'object' && val !== null
+                ? Number((val as { amount?: number }).amount ?? 0)
+                : Number(val ?? 0);
+              if (threshold > 0) {
+                couponReason = `${codeLabel} unlocks after $${threshold.toFixed(2)} in lifetime purchases`;
+                break;
+              }
+            } else if (type === 'PRODUCT' || type === 'PRODUCT_IN_CART'
+              || type === 'CATEGORY' || type === 'CATEGORY_IN_CART' || type === 'ATTRIBUTE') {
+              couponReason = `${codeLabel} doesn't apply to items in your cart`;
+              break;
+            }
+          }
+          if (!couponReason && cfgObj.endDate) {
+            const end = new Date(cfgObj.endDate).getTime();
+            if (Number.isFinite(end) && end < Date.now()) {
+              couponReason = `${codeLabel} has expired`;
+            }
+          }
+        }
+      } catch {
+        /* config lookup failed — fall back to generic message on client */
+      }
+    }
+
+    // Fallback: when OE returns no discount despite the shopper qualifying
+    // for a personal tier (Bronze/Silver/…) we compute it ourselves from
+    // the tier config. Root cause: on this tenant OE's server-side LTV
+    // counter appears not to match what `fetchLoyalty` reads from the
+    // `USER_LTV` condition, so `previewOrder` skips the `PERSONAL_DISCOUNT`
+    // even when `additionalDiscountsMarkers` includes the tier. Keeps the
+    // UI honest with what the account page advertises. Skips for guests —
+    // tiers are LTV-gated so there's nothing to fall back to.
+    if (discountAmount === 0 && totalSum > 0 && access) {
+      const [me, loyalty] = await Promise.all([
+        fetchMe(access),
+        fetchLoyalty(access),
+      ]);
+      const orders = me?.orders ?? [];
+      const REVENUE = /paid|complete|deliver|done|closed|finish/i;
+      const REVERSAL = /cancel|refund|reject|void|fail|declin|return/i;
+      const ltv = orders.reduce((sum, o) => {
+        const status = (o.statusIdentifier ?? '').toLowerCase();
+        if (REVERSAL.test(status)) return sum;
+        if (!REVENUE.test(status)) return sum;
+        const n = Number(o.totalSum);
+        return Number.isFinite(n) ? sum + n : sum;
+      }, 0);
+      const gated = (loyalty?.tiers ?? []).filter((t) => typeof t.ltvThreshold === 'number');
+      let activeTier: typeof gated[number] | null = null;
+      for (let i = gated.length - 1; i >= 0; i--) {
+        if (ltv >= (gated[i].ltvThreshold ?? Infinity)) { activeTier = gated[i]; break; }
+      }
+      if (activeTier && activeTier.discountPct > 0) {
+        let d = totalSum * (activeTier.discountPct / 100);
+        if (activeTier.discountMaxAmount != null && d > activeTier.discountMaxAmount) {
+          d = activeTier.discountMaxAmount;
+        }
+        discountAmount = Math.round(d * 100) / 100;
+        totalSumWithDiscount = Math.max(0, totalSum - discountAmount);
+        totalDue = Math.max(0, totalSumWithDiscount - bonusApplied);
+      }
+    }
+
+    // Pull bonus constraints from OE's response so the UI can clamp the
+    // "use N bonuses" input and hide the field when the cart doesn't
+    // qualify. `discountConfig.bonus` holds per-order figures; the tenant
+    // defaults in `.settings` are used as a fallback when OE omits a
+    // specific field on this response.
+    const dc = (obj.discountConfig ?? {}) as {
+      bonus?: {
+        availableBalance?: number;
+        maxBonusDiscount?: number;
+        minBonusAmount?: number | null;
+        minOrderAmountForBonus?: number | null;
+      };
+      settings?: {
+        minBonusAmount?: number | null;
+        minOrderAmountForBonus?: number | null;
+      };
+    };
+    const bonusCfg = dc.bonus ?? {};
+    const bonusSettings = dc.settings ?? {};
+    const bonus: PreviewBonusConfig = {
+      availableBalance: Number(bonusCfg.availableBalance ?? 0),
+      maxAmount: Number(bonusCfg.maxBonusDiscount ?? 0),
+      minAmount: (typeof bonusCfg.minBonusAmount === 'number' ? bonusCfg.minBonusAmount
+        : typeof bonusSettings.minBonusAmount === 'number' ? bonusSettings.minBonusAmount
+        : null),
+      minOrderAmount: (typeof bonusCfg.minOrderAmountForBonus === 'number' ? bonusCfg.minOrderAmountForBonus
+        : typeof bonusSettings.minOrderAmountForBonus === 'number' ? bonusSettings.minOrderAmountForBonus
+        : null),
+    };
+
+    return {
+      ok: true, totalSum, totalSumWithDiscount, bonusApplied, totalDue,
+      discountAmount,
+      currency: String(obj.currency ?? input.currency ?? 'USD'),
+      bonus,
+      couponApplied,
+      couponValidButNotApplied,
+      couponReason,
+      couponDiscountAmount,
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
 export interface CreateOrderInput {
   /** Logical delivery method — actual storage marker is derived (suffixed
    *  with `_guest` when no session cookie is present). */
@@ -1299,6 +1983,11 @@ export interface CreateOrderInput {
   products: Array<{ productId: number; quantity: number }>;
   formData?: Array<{ marker: string; type: string; value: unknown }>;
   currency?: string;
+  /** Coupon code to apply. OE validates it server-side and folds the
+   *  discount into `totalSumWithDiscount`. */
+  couponCode?: string;
+  /** Bonus points to burn — OE clamps to `min(balance, cap)`. */
+  bonusAmount?: number;
   /** Required for guest checkout — uniquely identifies the anonymous visitor
    *  so OE attaches the order to a guest session. Generate once per browser
    *  via localStorage and pass through unchanged. */
@@ -1321,9 +2010,7 @@ export async function createOrderAction(
   | { ok: true; orderId: number; paymentUrl: string | null; paymentSessionError?: string }
   | { ok: false; error: string }
 > {
-  const url = process.env.ONEENTRY_URL;
-  const appToken = process.env.ONEENTRY_TOKEN;
-  if (!url || !appToken) return { ok: false, error: 'OneEntry env not configured' };
+  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
 
   const access = await readAccessFromCookies();
   const isGuest = !access;
@@ -1332,81 +2019,71 @@ export async function createOrderAction(
     ? `${FORM_IDENTIFIER_MAP[input.storage]}_guest`
     : FORM_IDENTIFIER_MAP[input.storage];
 
-  const headers: Record<string, string> = {
-    'x-app-token': appToken,
-    'content-type': 'application/json',
-    accept: 'application/json',
-  };
-  if (access) headers.Authorization = `Bearer ${access}`;
-  else if (input.guestId) headers['x-guest-id'] = input.guestId;
+  // Mint a request-scoped SDK: user-authed if we have `access`, otherwise a
+  // fresh guest instance with the guestId wired in via `getGuestApi`.
+  let api: ReturnType<typeof getUserApi> = null;
+  if (access) {
+    api = getUserApi(access);
+  } else if (input.guestId) {
+    api = getGuestApi(input.guestId);
+  } else {
+    // Even a guest checkout needs a guestId — orders can't be attached to
+    // an anonymous browser without one.
+    api = getUserApi('');
+  }
+  if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
 
   try {
-    const body = {
-      langCode: DEFAULT_LOCALE,
+    // SDK expects `IOrderData` = { formIdentifier, paymentAccountIdentifier,
+    // formData: IOrdersFormData | IOrdersFormData[], products, couponCode?,
+    // additionalDiscountsMarkers?, bonusAmount? }. The SDK's `createOrder`
+    // wraps the array in `{ [langCode]: [...] }` itself — pre-wrapping here
+    // caused double-nesting and OE responded with "formData's marker
+    // 'undefined' marker is required". Passing the plain array lets the SDK
+    // do its single wrap correctly.
+    const body: Record<string, unknown> = {
       formIdentifier,
       paymentAccountIdentifier: input.paymentAccount,
-      // OE order endpoint wants formData wrapped by locale, like /me PUT and
-      // /form-data POST. A flat array triggers `"formData" must be of type object`.
-      formData: { en_US: input.formData ?? [] },
+      formData: input.formData ?? [],
       products: input.products,
       currency: input.currency ?? 'USD',
     };
-    const res = await fetch(`${url}/api/content/orders-storage/marker/${storageMarker}/orders`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      cache: 'no-store',
-    });
-    const txt = await res.text();
-    let data: unknown;
-    try { data = txt ? JSON.parse(txt) : null; } catch { data = txt; }
-    if (!res.ok) {
-      const msg = data && typeof data === 'object' && 'message' in data
-        ? String((data as { message: unknown }).message)
-        : `HTTP ${res.status}`;
-      return { ok: false, error: msg };
+    if (input.couponCode) body.couponCode = input.couponCode;
+    if (typeof input.bonusAmount === 'number' && input.bonusAmount > 0) body.bonusAmount = input.bonusAmount;
+    // Mirror `previewOrderAction` — pass tier markers so OE has a chance to
+    // apply the shopper's `PERSONAL_DISCOUNT` at order-creation time. OE
+    // still validates conditions server-side; markers the shopper doesn't
+    // qualify for are ignored.
+    body.additionalDiscountsMarkers = ['bronze', 'silver', 'gold', 'platinum'];
+    const result = await api.Orders.createOrder(
+      storageMarker,
+      body as unknown as Parameters<typeof api.Orders.createOrder>[1],
+      DEFAULT_LOCALE,
+    );
+    if (isError(result)) {
+      return { ok: false, error: result.message ?? 'createOrder failed' };
     }
-    const obj = (data && typeof data === 'object') ? (data as { id?: unknown; paymentUrl?: unknown }) : {};
-    const orderId = typeof obj.id === 'number' ? obj.id : Number(obj.id ?? 0);
-    // OE returns paymentUrl only for legacy provider configurations. For
-    // Stripe-backed accounts the URL lives behind a separate /payments/sessions
-    // POST that must be called with the freshly minted orderId.
-    let paymentUrl = typeof obj.paymentUrl === 'string' ? obj.paymentUrl : null;
+    // SDK returns `IBaseOrdersEntity` which doesn't include `paymentUrl` in
+    // typings — the real API adds it on legacy provider configs.
+    const raw = result as unknown as { id?: number; paymentUrl?: string | null };
+    const orderId = typeof raw.id === 'number' ? raw.id : Number(raw.id ?? 0);
+    let paymentUrl = typeof raw.paymentUrl === 'string' ? raw.paymentUrl : null;
     let paymentSessionError: string | undefined;
+
     if (!paymentUrl && orderId && input.paymentAccountType === 'stripe') {
+      // Stripe-backed accounts: mint a Checkout session via SDK. The SDK's
+      // `createSession` signature is `(orderId, type, automaticTaxEnabled)` —
+      // it does not forward `successUrl` / `cancelUrl` to OE. The merchant's
+      // default URL configured in OE admin is used. See SDK gap note in the
+      // refactor report.
       try {
-        // Tell Stripe where to send the user back. Without these the OE
-        // merchant's default URL (often a placeholder like google.com) wins,
-        // leaving the buyer stranded after a successful payment.
-        const successUrl = input.origin
-          ? `${input.origin}/checkout/confirmation?order_id=${orderId}&status=success`
-          : undefined;
-        const cancelUrl = input.origin
-          ? `${input.origin}/checkout/payment?order_id=${orderId}&status=cancelled`
-          : undefined;
-        const sessionRes = await fetch(`${url}/api/content/payments/sessions`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            orderId,
-            type: 'session',
-            automaticTaxEnabled: false,
-            ...(successUrl ? { successUrl } : {}),
-            ...(cancelUrl ? { cancelUrl } : {}),
-          }),
-          cache: 'no-store',
-        });
-        const sessionTxt = await sessionRes.text();
-        let sessionData: { paymentUrl?: unknown; message?: unknown } | null = null;
-        try { sessionData = sessionTxt ? JSON.parse(sessionTxt) : null; } catch { /* keep null */ }
-        if (sessionRes.ok && sessionData && typeof sessionData.paymentUrl === 'string') {
-          paymentUrl = sessionData.paymentUrl;
+        const sessionResult = await api.Payments.createSession(orderId, 'session', false);
+        if (isError(sessionResult)) {
+          paymentSessionError = sessionResult.message ?? 'createSession failed';
+          console.error('[createOrderAction] Stripe session creation failed:', paymentSessionError);
         } else {
-          const reason = sessionData && typeof sessionData.message === 'string'
-            ? sessionData.message
-            : `HTTP ${sessionRes.status}${sessionTxt ? `: ${sessionTxt.slice(0, 200)}` : ''}`;
-          paymentSessionError = reason;
-          console.error('[createOrderAction] Stripe session creation failed:', reason);
+          const raw = sessionResult as unknown as { paymentUrl?: unknown };
+          if (typeof raw.paymentUrl === 'string') paymentUrl = raw.paymentUrl;
         }
       } catch (err) {
         paymentSessionError = err instanceof Error ? err.message : 'Network error';

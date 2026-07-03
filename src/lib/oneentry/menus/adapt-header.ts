@@ -98,11 +98,25 @@ export function adaptHeaderMenuToMega(pages: MenuPageNode[]): HeaderMega | null 
     for (const key of SUBCAT_KEYS) {
       const subNode = subNodes[key];
       if (!subNode) continue;
-      // Each level-3 node (child of the subcategory) becomes its OWN mega-menu
-      // column, but only when it has its own children (level 4) that become
-      // the actual items. Leaves without children are skipped entirely —
-      // rendering a column with just its title as a link was confusing.
-      for (const columnNode of subNode.children ?? []) {
+      // Two shapes of subcategory tree in OE:
+      //   1. Wrapped — level-3 nodes are section headers (OUTERWEAR, SEASONAL
+      //      TRENDS), their level-4 children are the actual items.
+      //   2. Flat — level-3 nodes ARE the items themselves (accessories tree:
+      //      women_accessories > [headwear, scarves, belts, …]).
+      // Detect the flat shape when none of the level-3 nodes have children —
+      // then wrap them into a single synthetic column named after the subcat.
+      const level3 = subNode.children ?? [];
+      const isFlat = level3.length > 0 && level3.every((n) => (n.children ?? []).length === 0);
+      if (isFlat) {
+        const items: HeaderMegaItem[] = level3
+          .map((n) => ({ label: (n.menuTitle || n.title || '').trim(), pageUrl: (n.pageUrl || '').trim() }))
+          .filter((it) => it.label.length > 0);
+        if (items.length > 0) {
+          out[g][key].push({ title: key.toUpperCase(), items });
+        }
+        continue;
+      }
+      for (const columnNode of level3) {
         const title = (columnNode.menuTitle || columnNode.title || '').trim();
         if (!title) continue;
         const items: HeaderMegaItem[] = (columnNode.children ?? [])

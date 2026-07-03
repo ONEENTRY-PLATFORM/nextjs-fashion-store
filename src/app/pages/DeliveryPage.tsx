@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
@@ -17,7 +17,7 @@ const DeliveryOrderSummary = dynamic(
 );
 import { useAuth } from '../context/AuthContext';
 import type { OeAddress } from '../../lib/oneentry/auth/actions';
-import { CHECKOUT_COUPONS, PICKUP_STORES, PARCEL_LOCKERS, DELIVERY_TIME_SLOTS } from '../data/checkoutConfig';
+import { PICKUP_STORES, PARCEL_LOCKERS, DELIVERY_TIME_SLOTS } from '../data/checkoutConfig';
 import { addressSchema, guestContactSchema } from '../utils/schemas';
 
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
@@ -47,7 +47,11 @@ function getDeliveryDates(count = 7): Date[] {
 export function DeliveryPage() {
   const router = useRouter();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
-  const { total } = useCart();
+  const {
+    total, personalDiscount, totalDue,
+    couponCode, couponDiscount, couponError, applyCoupon, removeCoupon,
+    preview, previewLoading,
+  } = useCart();
   const lBackToCart  = useT('checkout_delivery', 'checkout_delivery_back_to_cart',        L.backToCart);
   const lContinue    = useT('checkout_delivery', 'checkout_delivery_continue_to_payment', L.continueToPayment);
   // Saved addresses come straight from OE for the signed-in user.
@@ -64,42 +68,28 @@ export function DeliveryPage() {
   const [selectedSlot, setSelectedSlot] = useState<string>(DELIVERY_TIME_SLOTS[0].id);
   const [showGuestModal, setShowGuestModal] = useState(false);
 
+  // Coupon UI is a thin wrapper over CartContext — same code powers the
+  // cart, delivery, and payment summaries. Local state only tracks the input
+  // buffer and the busy flag while `applyCoupon` awaits `previewOrder`.
   const [couponInput, setCouponInput] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
-  const [couponStatus, setCouponStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [couponLoading, setCouponLoading] = useState(false);
-  const couponTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const couponStatus: 'idle' | 'success' | 'error' =
+    couponCode ? 'success' : couponError ? 'error' : 'idle';
 
+  // `couponDiscount` is what OE actually deducted (from `previewOrder`).
+  // Falls back to `totalDue` when only the personal tier is in play.
+  const baseTotal = personalDiscount > 0 || couponDiscount > 0 ? totalDue : total;
+  const finalTotal = baseTotal;
 
-  const couponDiscount = appliedCoupon ? Math.round(total * CHECKOUT_COUPONS[appliedCoupon].pct) / 100 : 0;
-  const finalTotal = Math.round((total - couponDiscount) * 100) / 100;
-
-  const handleApplyCoupon = () => {
-    const code = couponInput.trim().toUpperCase();
-    if (!code) return;
-    if (couponTimerRef.current) clearTimeout(couponTimerRef.current);
+  const handleApplyCoupon = async () => {
+    if (couponLoading) return;
     setCouponLoading(true);
-    setCouponStatus('idle');
-    couponTimerRef.current = setTimeout(() => {
-      if (CHECKOUT_COUPONS[code]) {
-        setAppliedCoupon(code);
-        setCouponStatus('success');
-        setCouponInput('');
-      } else {
-        setAppliedCoupon(null);
-        setCouponStatus('error');
-      }
-      setCouponLoading(false);
-    }, 900);
+    await applyCoupon(couponInput);
+    setCouponLoading(false);
   };
 
-  useEffect(() => {
-    return () => { if (couponTimerRef.current) clearTimeout(couponTimerRef.current); };
-  }, []);
-
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponStatus('idle');
+    removeCoupon();
     setCouponInput('');
   };
 
@@ -219,7 +209,7 @@ export function DeliveryPage() {
       lockerId: method === 'locker' ? PARCEL_LOCKERS.indexOf(selectedLocker) : null,
       deliveryDate: selectedDate.toISOString(),
       deliverySlot: selectedSlot,
-      couponCode: appliedCoupon,
+      couponCode: couponCode,
     };
     try {
       sessionStorage.setItem('oe_checkout_payload', JSON.stringify(payload));
@@ -332,16 +322,19 @@ export function DeliveryPage() {
           <DeliveryOrderSummary
             summaryOpen={summaryOpen}
             setSummaryOpen={setSummaryOpen}
-            appliedCoupon={appliedCoupon}
+            appliedCoupon={couponCode}
             couponInput={couponInput}
             setCouponInput={setCouponInput}
             couponStatus={couponStatus}
-            setCouponStatus={setCouponStatus}
+            couponError={couponError}
             couponLoading={couponLoading}
             handleApplyCoupon={handleApplyCoupon}
             handleRemoveCoupon={handleRemoveCoupon}
             couponDiscount={couponDiscount}
+            personalDiscount={personalDiscount - couponDiscount}
             finalTotal={finalTotal}
+            previewLoading={previewLoading}
+            hasPreview={preview !== null}
           />
         </div>
       </main>

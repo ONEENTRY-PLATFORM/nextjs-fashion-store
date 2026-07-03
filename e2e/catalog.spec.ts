@@ -42,9 +42,11 @@ test.describe('Catalog — Women Clothing', () => {
   });
 
   test('product card click navigates to PDP', async ({ page }) => {
-    const card = page.locator('a[href*="/product/wc-"]').first();
+    const card = page.locator('a[href*="/product/"]').first();
     const href = await card.getAttribute('href');
-    await card.click();
+    // Click the anchor programmatically to bypass the hover-overlay button
+    // that reveals on pointer-enter and intercepts the outer click.
+    await card.evaluate((el) => (el as HTMLAnchorElement).click());
     await expect(page).toHaveURL(new RegExp(href!.split('?')[0].replace(/\//g, '\\/')));
   });
 

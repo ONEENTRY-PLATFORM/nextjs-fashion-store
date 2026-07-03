@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../src/app/data/seoData';
 import { SalePage } from '../../src/app/pages/SalePage';
 import { JsonLd } from '../../src/app/components/JsonLd';
@@ -6,27 +7,35 @@ import { loadSalePageSystemTexts } from '../../src/lib/oneentry/labels/sale-page
 import { SalePageLabelsProvider } from '../../src/lib/oneentry/labels/SalePageLabelsContext';
 import { loadProducts } from '../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToUiProduct, saleCategoryFor } from '../../src/lib/oneentry/catalog/adapt';
+import { getApi, isError, isOneEntryEnabled } from '../../src/lib/oneentry';
 
-async function loadSaleTimerFromOE(): Promise<number | null> {
-  const url = process.env.ONEENTRY_URL;
-  const token = process.env.ONEENTRY_TOKEN;
-  if (!url || !token) return null;
-  const res = await fetch(`${url}/api/content/pages/url/sale?langCode=en_US`, {
-    headers: { 'x-app-token': token, accept: 'application/json' },
-    // Refresh every 60s so admin edits to the timer surface without a
-    // manual redeploy.
-    next: { revalidate: 60 },
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as {
-    attributeValues?: Record<string, Record<string, { value?: { fullDate?: string } }>>;
-  };
-  const attrs = data.attributeValues?.['en_US'] ?? {};
-  const iso = attrs.page_sale_top_banner_timer?.value?.fullDate;
-  if (!iso) return null;
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? t : null;
-}
+const loadSaleTimerFromOE = unstable_cache(
+  async (): Promise<number | null> => {
+    if (!isOneEntryEnabled) return null;
+    const result = await getApi().Pages.getPageByUrl('sale', 'en_US');
+    if (isError(result)) return null;
+    // SDK types `attributeValues` loosely — narrow to the shape we need.
+    const raw = result as unknown as {
+      attributeValues?: Record<string, Record<string, { value?: { fullDate?: string } } | undefined>>
+        | Record<string, { value?: { fullDate?: string } } | undefined>;
+    };
+    const av = raw.attributeValues ?? {};
+    // Handle both wrapped (`{ en_US: {...} }`) and flat (`{ marker: {...} }`).
+    const wrapped = (av as Record<string, Record<string, { value?: { fullDate?: string } } | undefined>>).en_US;
+    const attrs: Record<string, { value?: { fullDate?: string } } | undefined> =
+      wrapped && typeof wrapped === 'object'
+        ? wrapped
+        : (av as Record<string, { value?: { fullDate?: string } } | undefined>);
+    const iso = attrs.page_sale_top_banner_timer?.value?.fullDate;
+    if (!iso) return null;
+    const t = Date.parse(iso);
+    return Number.isFinite(t) ? t : null;
+  },
+  ['oe-sale-timer'],
+  // Refresh every 60s so admin edits to the timer surface without a
+  // manual redeploy.
+  { revalidate: 60, tags: ['oe-page'] },
+);
 
 export const metadata: Metadata = SEO.sale;
 

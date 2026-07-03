@@ -15,13 +15,29 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
   const lBonuses       = useT('user_account_silver_status',  'my_data_top_banner_bonuses',                  L.bonuses);
   const lPurchases     = useT('user_account_silver_status',  'my_data_top_banner_purchases',                L.purchasesPrefix);
   const lNextLevel     = useT('user_account_silver_status',  'my_data_top_banner_next_level_at',            L.nextLevelPrefix);
-  const progress = Math.min((user.totalPurchases / user.nextLevelAmount) * 100, 100);
-  const statusColors: Record<string, string> = { Bronze: '#cd7f32', Silver: '#C0C0C0', Gold: '#FFD700', Platinum: '#E5E4E2' };
+  // Show the next-tier target whenever there's a positive threshold to
+  // aim at, even if the shopper is already past it (edge case where LTV
+  // caught up mid-session). AuthContext computes the target via OE first,
+  // fallback ladder second — so a Bronze shopper always sees "$X more to
+  // Silver" even before Silver exists in OE.
+  const hasNextTier = user.nextLevelAmount > 0;
+  const remainingToNext = Math.max(0, user.nextLevelAmount - user.totalPurchases);
+  const progress = hasNextTier
+    ? Math.min((user.totalPurchases / user.nextLevelAmount) * 100, 100)
+    : 100;
+  const statusColors: Record<string, string> = {
+    Member: '#9ca3af', Bronze: '#cd7f32', Silver: '#C0C0C0', Gold: '#FFD700', Platinum: '#E5E4E2',
+  };
   const bgColor = statusColors[user.status] ?? '#C0C0C0';
   const nextTierIdx = L.tierOrder.indexOf(user.status as typeof L.tierOrder[number]) + 1;
-  const nextTierName = nextTierIdx < L.tierOrder.length ? L.tierOrder[nextTierIdx] : null;
-  const rawPerks = L.perks[user.status] ?? L.perks.Silver;
+  const nextTierName = hasNextTier && nextTierIdx > 0 && nextTierIdx < L.tierOrder.length
+    ? L.tierOrder[nextTierIdx]
+    : null;
+  const rawPerks = L.perks[user.status] ?? L.perks.Member ?? L.perks.Silver;
   const perks = rawPerks.map(p => p === L.perkPlaceholder ? L.perkDiscountTpl(user.discount) : p);
+  // No discount block for Member — hide the "0%" card so the top-right column
+  // doesn't scream "you get nothing"; just show bonuses which stay meaningful.
+  const showDiscount = user.status !== 'Member' && user.discount > 0;
 
   return (
     <div
@@ -51,10 +67,15 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
         </div>
 
         <div className="flex sm:flex-col gap-6 sm:gap-3 sm:text-right">
-          <div>
-            <p className="text-2xl font-bold text-[var(--accent)]">{user.discount}%</p>
-            <p className="text-xs opacity-50 uppercase tracking-wide">{lDiscount}</p>
-          </div>
+          {showDiscount && (
+            <div>
+              <p className="text-2xl font-bold text-[var(--accent)]">{user.discount}%</p>
+              <p className="text-xs opacity-50 uppercase tracking-wide">{lDiscount}</p>
+              {user.discountMaxAmount != null && user.discountMaxAmount > 0 && (
+                <p className="text-[10px] opacity-40 mt-0.5">max −${user.discountMaxAmount}</p>
+              )}
+            </div>
+          )}
           <div>
             <p className="text-2xl font-bold">{user.bonuses.toLocaleString()}</p>
             <p className="text-xs opacity-50 uppercase tracking-wide">{lBonuses}</p>
@@ -66,7 +87,7 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
       <div className="relative z-10 mt-5">
         <div className="flex justify-between text-xs opacity-60 mb-1.5">
           <span>{lPurchases} {fmt(user.totalPurchases)}</span>
-          <span>{lNextLevel} {fmt(user.nextLevelAmount)}</span>
+          {hasNextTier && <span>{lNextLevel} {fmt(user.nextLevelAmount)}</span>}
         </div>
         <div className="w-full h-1.5 bg-white/20">
           <div
@@ -76,7 +97,7 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
         </div>
         <p className="text-xs opacity-50 mt-1">
           {nextTierName
-            ? L.moreToTierTpl(fmt(user.nextLevelAmount - user.totalPurchases), nextTierName)
+            ? L.moreToTierTpl(fmt(remainingToNext), nextTierName)
             : L.highestTier}
         </p>
       </div>

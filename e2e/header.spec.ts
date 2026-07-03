@@ -8,7 +8,8 @@ test.describe('Header — Desktop', () => {
 
   test('logo navigates to homepage', async ({ page }) => {
     await page.goto('/women/clothing');
-    await page.getByRole('link', { name: /oneentry|fashion|logo/i }).first().click();
+    // Logo alt text is 'KEKIMORO' (see src/app/data/headerConfig.ts LOGO_ALT).
+    await page.getByRole('link', { name: /kekimoro/i }).first().click();
     await expect(page).toHaveURL('/');
   });
 

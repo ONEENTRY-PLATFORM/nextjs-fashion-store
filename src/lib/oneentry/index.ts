@@ -32,6 +32,36 @@ export function getApi(): OneEntryClient {
 }
 
 /**
+ * User-scoped SDK instance. Because the SDK is stateful, calling
+ * `setAccessToken` on the singleton would race across concurrent server
+ * actions — so we mint a fresh instance per call, wire the user's Bearer
+ * token onto it, and let it garbage-collect after the request finishes.
+ *
+ * Callers pass the freshly-read cookie access token. The instance carries
+ * both the app token (for tenant routing) and the user token (for auth).
+ * Returns `null` if the SDK isn't configured (parity with `getApi()`
+ * behaviour when the env vars are absent).
+ */
+export function getUserApi(accessToken: string, refreshToken?: string): OneEntryClient | null {
+  if (!url || !token) return null;
+  const api = defineOneEntry(url, { token });
+  api.AuthProvider.setAccessToken(accessToken);
+  if (refreshToken) api.AuthProvider.setRefreshToken(refreshToken);
+  return api;
+}
+
+/**
+ * Guest-scoped SDK instance. Same rationale as `getUserApi` — a fresh
+ * per-request instance so `setGuestId` doesn't leak between visitors on a
+ * shared singleton. The `x-guest-id` header rides along on unauthenticated
+ * requests (cart / wishlist / activity / guest checkout).
+ */
+export function getGuestApi(guestId: string): OneEntryClient | null {
+  if (!url || !token) return null;
+  return defineOneEntry(url, { token, guestId });
+}
+
+/**
  * Alias for the SDK's `IError`. Re-exported so app code can `import { OeError }
  * from '@/lib/oneentry'` without reaching into `oneentry/dist/base/utils`.
  */

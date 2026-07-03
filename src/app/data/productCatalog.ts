@@ -58,6 +58,9 @@ export interface CatalogProduct {
   bagType?: string;
   accessoryType?: string;
   material?: string;
+  /** OE gender bucket (`W`/`M`/`U`) — used to stamp Recently-Viewed items so
+   *  downstream gender-aware carousels can score them without re-fetching. */
+  gender?: string;
   /** Linked variants from OE (colour/size siblings). PDP consumes this to
    *  compute per-swatch availability that respects the currently picked
    *  colour (e.g. `2XS` may be in stock for Red but not for Blue). */

@@ -16,6 +16,7 @@ import { JsonLd } from '../../src/app/components/JsonLd';
 import { loadProducts, loadFilteredProducts } from '../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../src/lib/oneentry/catalog/adapt';
 import { parseCatalogSearchParams, type CatalogFilters } from '../../src/lib/oneentry/catalog/filters';
+import { resolveSeasonalTrend, applySeasonalTrend } from '../../src/lib/oneentry/catalog/seasonal-trend';
 import type { Product } from '../../src/app/components/ProductCard';
 import { loadClothingFilter, type ClothingFilterGroup } from '../../src/lib/oneentry/blocks/clothing-filter';
 import { loadBlockWithProducts, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';
@@ -132,7 +133,16 @@ export default async function Page({ params, searchParams }: Props) {
     // Parse the URL filters once on the server so we can issue a filtered OE
     // request and seed the client with the resolved state.
     const sp = await searchParams;
-    const filters: CatalogFilters = parseCatalogSearchParams(sp);
+    let filters: CatalogFilters = parseCatalogSearchParams(sp);
+    // SEASONAL TRENDS redirect: when the mega-menu clicked a leaf whose OE page
+    // carries `st_type-of-trends` + `st_trends`, swap the raw `?category=`
+    // filter for the real intent — either match a different category or an
+    // attribute value (Material/Style/Brand/…). Pages without those attributes
+    // fall through unchanged.
+    if (filters.category) {
+      const trend = await resolveSeasonalTrend(filters.category);
+      if (trend) filters = applySeasonalTrend(filters, trend);
+    }
     const currentPage = filters.page ?? 1;
 
     const categoryPath = catalogKeyToCategoryPath(entry.catalogKey) ?? undefined;

@@ -18,8 +18,17 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
   type Localize = Record<string, { title?: string }>;
   const localize = (raw.localizeInfos ?? {}) as Localize;
   const langInfo = localize[lang] ?? Object.values(localize)[0] ?? {};
-  const attrs =
-    ((raw.attributeValues as Record<string, Record<string, unknown>>)?.[lang] ?? {}) as Record<string, unknown>;
+  // OE returns `attributeValues` either wrapped per-locale
+  // (`{ en_US: { marker: {...} } }`) or flat (`{ marker: {...} }`) depending
+  // on how the SDK unwrapped the response for `langCode`. Support both —
+  // the flat form is detected by a value that is itself an object with a
+  // `type`/`value` field (an attribute payload) rather than a locale-code
+  // wrapper (whose values would be objects keyed by attribute markers).
+  const rawAttrs = (raw.attributeValues ?? {}) as Record<string, unknown>;
+  const localeSlice = rawAttrs[lang];
+  const attrs: Record<string, unknown> = (localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice))
+    ? (localeSlice as Record<string, unknown>)
+    : rawAttrs;
   return {
     id: asNumber(raw.id),
     identifier: asString(raw.identifier),

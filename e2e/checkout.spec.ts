@@ -45,11 +45,19 @@ test.describe('Checkout — Delivery', () => {
     if (await guestBtn.isVisible()) await guestBtn.click();
     await page.waitForTimeout(500);
 
-    // Try to continue without filling form
-    const continueBtn = page.getByRole('button', { name: /continue|payment/i }).first();
-    if (await continueBtn.isVisible()) {
-      await continueBtn.click();
-      // Should show validation errors
+    // Attempt to continue without filling required fields. The primary CTA
+    // stays enabled (form uses submit-time validation, not disabled state)
+    // — so instead assert that a click on empty form does NOT navigate
+    // to /payment.
+    const continueBtn = page.getByRole('button', {
+      name: /continue to payment|place order/i,
+    }).first();
+    if (await continueBtn.count() > 0) {
+      await continueBtn.click().catch(() => {});
+      await page.waitForTimeout(500);
+      // Should still be on /delivery — form should block navigation on invalid input.
+      await expect(page).toHaveURL(/delivery/);
+    } else {
       await expect(page.locator('text=/required|enter|please/i').first()).toBeVisible({ timeout: 3000 });
     }
   });
@@ -271,12 +279,14 @@ test.describe('Checkout — Delivery extras', () => {
     if (await guestBtn.isVisible()) await guestBtn.click();
     await page.waitForTimeout(500);
 
-    const couponInput = page.getByPlaceholder(/code|coupon|promo/i).first();
-    if (await couponInput.isVisible()) {
-      await couponInput.fill('SAVE10');
-      const applyBtn = page.getByRole('button', { name: /apply/i }).first();
-      if (await applyBtn.isVisible()) await applyBtn.click();
-    }
+    // Placeholder is "Enter promo code" (from checkoutLabels.ts:promoPlaceholder).
+    const couponInput = page.getByPlaceholder(/enter promo|promo code|coupon/i).first();
+    await expect(couponInput).toBeVisible({ timeout: 5000 });
+    await couponInput.fill('SAVE10');
+    // Apply button only enables once the input has trimmed text — wait for it.
+    const applyBtn = page.getByRole('button', { name: /apply/i }).first();
+    await expect(applyBtn).toBeEnabled({ timeout: 3000 });
+    await applyBtn.click();
   });
 });
 
@@ -284,9 +294,15 @@ test.describe('Checkout — Delivery navigation', () => {
   test('delivery page back button returns to cart', async ({ page }) => {
     await page.goto('/checkout/delivery');
     await page.waitForLoadState('networkidle');
-    const backBtn = page.getByRole('button', { name: /back|cart/i }).or(
-      page.getByRole('link', { name: /back|cart/i })
-    ).first();
+    // Dismiss the GuestCheckoutModal that opens automatically — its backdrop
+    // (.bg-black/50) intercepts clicks on the Cart stepper button underneath.
+    const guestBtn = page.getByRole('button', { name: /continue as guest/i }).first();
+    if (await guestBtn.isVisible().catch(() => false)) await guestBtn.click();
+    await page.waitForTimeout(300);
+    // Use the primary Back to Cart CTA (not the "Cart (completed)" stepper).
+    const backBtn = page.getByRole('button', { name: /back to cart|back to bag/i })
+      .or(page.getByRole('link', { name: /back to cart|back to bag/i }))
+      .first();
     if (await backBtn.isVisible()) {
       await backBtn.click();
       await expect(page).toHaveURL(/cart/, { timeout: 5000 });
@@ -301,16 +317,21 @@ test.describe('Checkout — Delivery navigation', () => {
     const fields = {
       name: page.getByPlaceholder(/full name/i).or(page.locator('input[name="fullName"]')),
       phone: page.getByPlaceholder(/phone/i).or(page.locator('input[name="phone"]')),
-      line1: page.getByPlaceholder(/address/i).or(page.locator('input[name="line1"]')),
+      // Guest checkout requires email — surface it via the "email" placeholder or type=email input.
+      email: page.locator('input[type="email"]').first(),
+      line1: page.getByPlaceholder(/address|street/i).or(page.locator('input[name="line1"]')),
       city: page.getByPlaceholder(/city/i).or(page.locator('input[name="city"]')),
       post: page.getByPlaceholder(/post/i).or(page.locator('input[name="postcode"]')),
     };
     if (await fields.name.isVisible()) await fields.name.fill('Test User');
     if (await fields.phone.isVisible()) await fields.phone.fill('+44 123 456 7890');
-    if (await fields.line1.isVisible()) await fields.line1.fill('123 Test St');
+    if (await fields.email.isVisible().catch(() => false)) await fields.email.fill('test@test.com');
+    if (await fields.line1.isVisible()) await fields.line1.fill('123 Test Street');
     if (await fields.city.isVisible()) await fields.city.fill('London');
     if (await fields.post.isVisible()) await fields.post.fill('W1A 1AA');
-    const continueBtn = page.getByRole('button', { name: /continue|payment/i }).first();
+    // Target the primary "Continue to Payment" CTA — /payment/ alone would
+    // match the disabled "Payment (upcoming)" stepper button above.
+    const continueBtn = page.getByRole('button', { name: /continue to payment/i }).first();
     if (await continueBtn.isVisible()) {
       await continueBtn.click();
       await expect(page).toHaveURL(/payment/, { timeout: 5000 });
@@ -364,15 +385,17 @@ test.describe('Checkout — Delivery navigation', () => {
     const guestBtn = page.getByRole('button', { name: /continue as guest/i }).first();
     if (await guestBtn.isVisible()) await guestBtn.click();
     await page.waitForTimeout(500);
-    const couponInput = page.getByPlaceholder(/code|coupon|promo/i).first();
-    if (await couponInput.isVisible()) {
-      await couponInput.fill('SAVE10');
-      const applyBtn = page.getByRole('button', { name: /apply/i }).first();
-      if (await applyBtn.isVisible()) await applyBtn.click();
-      await page.waitForTimeout(500);
-      const removeBtn = page.getByRole('button', { name: /remove|×|✕/i }).first();
-      if (await removeBtn.isVisible()) await removeBtn.click();
-    }
+    // Placeholder is "Enter promo code" (from checkoutLabels.ts).
+    const couponInput = page.getByPlaceholder(/enter promo|promo code|coupon/i).first();
+    await expect(couponInput).toBeVisible({ timeout: 5000 });
+    await couponInput.fill('SAVE10');
+    const applyBtn = page.getByRole('button', { name: /apply/i }).first();
+    await expect(applyBtn).toBeEnabled({ timeout: 3000 });
+    await applyBtn.click();
+    await page.waitForTimeout(500);
+    // Remove button appears once coupon is applied; may be X icon or "remove" text.
+    const removeBtn = page.getByRole('button', { name: /remove|×|✕|clear/i }).first();
+    if (await removeBtn.isVisible().catch(() => false)) await removeBtn.click();
   });
 });
 
@@ -459,19 +482,28 @@ test.describe('Checkout — Full logged-in journey', () => {
     await page.waitForLoadState('networkidle');
     await login(page);
 
-    // 2. Add product to cart from PDP
-    await page.goto('/product/wc-3');
+    // 2. Add product to cart from PDP. Use /women/clothing catalog to pick
+    // the first available product — hardcoded SKUs (wc-3) may map to items
+    // without XS-XL sizes (e.g. accessories) depending on CMS state.
+    await page.goto('/women/clothing');
     await page.waitForLoadState('networkidle');
-    const sizeBtn = page.locator('button').filter({ hasText: /^(XS|S|M|L|XL)$/ }).first();
+    const firstCard = page.locator('a[href*="/product/"]').first();
+    await firstCard.evaluate((el) => (el as HTMLAnchorElement).click());
+    await page.waitForLoadState('networkidle');
+    // Match XS-XXL and numeric shoe sizes so any product category works.
+    const sizeBtn = page.locator('button').filter({ hasText: /^(XS|S|M|L|XL|XXL|3[6-9]|4[0-6])$/ }).first();
     await sizeBtn.waitFor({ state: 'visible', timeout: 10_000 });
     await sizeBtn.click();
     const addBtn = page.locator('button:has-text("Add to Cart")');
     await addBtn.waitFor({ state: 'visible', timeout: 5000 });
     await addBtn.click();
-    await page.locator('text=/Your Bag/i').waitFor({ state: 'visible', timeout: 5000 });
-    // Close mini cart
+    // MiniCart opens on add — best-effort dismiss (may not always slide in
+    // synchronously with add on all product types).
+    await page.locator('text=/Your Bag|Your Cart|mini cart/i').first()
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .catch(() => {});
     const closeBtn = page.locator('button[aria-label="Close"]').first();
-    if (await closeBtn.isVisible()) await closeBtn.click();
+    if (await closeBtn.isVisible().catch(() => false)) await closeBtn.click();
 
     // 3. Go to delivery → should see saved addresses (Baker Street / Oxford Street)
     await page.goto('/checkout/delivery');

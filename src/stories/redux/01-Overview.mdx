@@ -6,6 +6,9 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 > Stack: **Redux Toolkit** + **RTK Query** · Files: `src/app/store/`
 
+Redux carries **client-side optimistic state only** — cart, wishlist, recently-viewed, catalog UI (filters / sort / view), quick-view / mobile-menu flags, and the user identifier.
+**Server-authoritative data** (products, pages, blocks, menus, labels, user profile, orders, reviews, payment accounts) lives in OneEntry and is fetched by **Server Actions + RSC loaders** under `src/lib/oneentry/**` — those results are passed as props into client components; they never enter the Redux store.
+
 ---
 
 ## Data flow
@@ -14,49 +17,55 @@ import { Meta } from '@storybook/addon-docs/blocks';
 User interaction
       │
       ▼
-Context hook  (useCart, useWishlist, useQuickView)
+Context hook  (useCart, useWishlist, useQuickView, useAuth)
       │  calls
       ▼
-dispatch(action)
+dispatch(action)                              (optimistic)
       │
       ▼
 Redux Reducer  (cartSlice, wishlistSlice, uiSlice …)
       │  updates
       ▼
-Redux Store  ──► saveToStorage() ──► localStorage['oe_store']
+Redux Store  ──► saveToStorage() ──► localStorage['oe_store']  (v5)
       │
       ▼
-useAppSelector / selector
+useAppSelector / memoised selector
       │
       ▼
 Component re-renders
 ```
 
-**RTK Query** sits alongside this flow. Three local-data slices (`productsApi`,
-`homepageApi`, `catalogConfigApi`) use `fakeBaseQuery()` + `queryFn` to import
-TS datasets directly — no HTTP. Two slices (`cartApi`, `wishlistApi`) use
-`fetchBaseQuery()` against the OneEntry Platform Content API at
-`NEXT_PUBLIC_API_URL` with a Bearer JWT pulled from `state.user.data.authToken`.
-Responses (or local data) are cached in the matching RTK Query slice of the store.
+**Server sync (signed-in users only):** a debounced 400 ms effect in `CartContext` / `WishlistContext` pushes the Redux snapshot to OneEntry via `syncCartAction` / `syncWishlistAction` Server Actions. On login, `getCurrentUserAction` seeds `AuthContext.user`, and a one-shot sessionStorage-gated merge folds the server snapshot back into Redux. See `docs/CART_WISHLIST.md` and `06-ServerActions`.
+
+**Server-side reads** (products, blocks, pages, labels, menus) do NOT go through Redux — they are awaited inside RSC (`app/**/page.tsx` and `app/layout.tsx`) and threaded down to client components as props.
 
 ---
 
 ## Architecture layers
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Components  (ProductCard, MiniCart, FavoritesPage …)
-│     ↕  call context hooks, never dispatch directly
-├─────────────────────────────────────────────────┤
-│  Context layer  (CartContext, WishlistContext …)
-│     ↕  thin wrappers — call dispatch internally
-├─────────────────────────────────────────────────┤
-│  Redux Store  (6 slices + 5 RTK Query APIs)
-│     ↕  persisted to localStorage (cart, wishlist, recentlyViewed, catalog, userAddresses)
-├─────────────────────────────────────────────────┤
-│  Dataset files (src/app/data/*.ts)  ↑ consumed by productsApi/homepageApi/catalogConfigApi via queryFn
-│  OneEntry Platform Content API      ↑ consumed by cartApi/wishlistApi via fetchBaseQuery
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  RSC route shells  (app/**/page.tsx, app/layout.tsx)         │
+│     ↕  await loaders in src/lib/oneentry/**                  │
+│                                                              │
+│  Client components (ProductCard, MiniCart, CatalogTemplate …) │
+│     ↕  call context hooks; useAppSelector for reads          │
+├─────────────────────────────────────────────────────────────┤
+│  Context layer  (CartContext, WishlistContext, AuthContext,  │
+│                  QuickViewContext, CatalogAccentContext)     │
+│     ↕  thin wrappers — dispatch to slices + call Server Actions
+├─────────────────────────────────────────────────────────────┤
+│  Redux Store  (6 slices + 2 RTK Query APIs = scaffolding)    │
+│     ↕  persisted (cart, wishlist, recentlyViewed, catalog)   │
+├─────────────────────────────────────────────────────────────┤
+│  OneEntry integration layer  (src/lib/oneentry/**)           │
+│  ├── auth/actions.ts       — 18 Server Actions               │
+│  ├── activity/actions.ts   — trackActivity                   │
+│  ├── blocks/*, catalog/*   — cached loaders (RSC)            │
+│  ├── labels/*, menus/*     — cached loaders + React contexts │
+│  ├── forms/submit.ts       — submitForm Server Action        │
+│  └── payments/accounts.ts  — Payments.getAccounts            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Rule:** For cart, wishlist and quick view — always use context hooks, not dispatch directly.
@@ -64,33 +73,50 @@ Responses (or local data) are cached in the matching RTK Query slice of the stor
 
 ---
 
+## What is NOT in Redux (intentional)
+
+- Products, pages, blocks, menus, labels, orders, payment accounts — server-fetched via `src/lib/oneentry/**`.
+- Auth tokens — httpOnly cookies (`oe_access` / `oe_refresh` / `oe_user`), managed by Server Actions.
+- Form state (register, checkout, review, reserve) — local `useState` inside each page/modal.
+- Modal open / close for the sign-in / sign-up modal — lives in `AuthContext` React state, not `uiSlice`.
+
+---
+
 ## File structure
 
 ```
 src/app/store/
-├── index.ts                  ← makeStore(), RootState, AppDispatch, loadFromStorage
+├── index.ts                  ← makeStore(), RootState, AppDispatch, loadFromStorage, migrations (v1→v5)
 ├── hooks.ts                  ← useAppDispatch, useAppSelector
-├── selectors.ts              ← all memoized selectors
+├── selectors.ts              ← memoised selectors
 ├── catalogSlice.ts
 ├── uiSlice.ts
 ├── cartSlice.ts
 ├── wishlistSlice.ts
 ├── recentlyViewedSlice.ts
 ├── userSlice.ts
+├── __tests__/                ← vitest specs per slice
 └── api/
-    ├── productsApi.ts        ← 8 endpoints (fakeBaseQuery → local data)
-    ├── homepageApi.ts        ← 6 endpoints (fakeBaseQuery → local data)
-    ├── catalogConfigApi.ts   ← 10 endpoints (fakeBaseQuery → local data)
-    ├── cartApi.ts            ← real OneEntry Platform REST (fetchBaseQuery + Bearer)
-    ├── wishlistApi.ts        ← real OneEntry Platform REST (fetchBaseQuery + Bearer)
+    ├── cartApi.ts            ← fetchBaseQuery scaffolding — NOT on the live path
+    ├── wishlistApi.ts        ← same
     └── types/                ← cart + wishlist DTO shapes
 
 src/app/context/
-├── CartContext.tsx            ← wraps cartSlice
-├── WishlistContext.tsx        ← wraps wishlistSlice
-├── QuickViewContext.tsx       ← wraps uiSlice (openQuickView)
-├── AuthContext.tsx            ← independent React state (login modal + auth)
-└── CatalogAccentContext.tsx   ← simple string context (accent hex color)
+├── CartContext.tsx           ← useCart() — wraps cartSlice + debounced syncCartAction
+├── WishlistContext.tsx       ← useWishlist() — wraps wishlistSlice + debounced syncWishlistAction
+├── QuickViewContext.tsx      ← useQuickView() — wraps uiSlice.quickView
+├── AuthContext.tsx           ← full React Context — 11 mutation methods (+ modal helpers) wrapping Server Actions
+└── CatalogAccentContext.tsx  ← plain string context (accent hex)
+
+src/lib/oneentry/
+├── auth/actions.ts           ← 18 Server Actions (sign-in, /me, sync-cart, create-order, …)
+├── activity/actions.ts       ← trackActivity
+├── blocks/*                  ← hero-slides, homepage-collections, discount-banner, category-section, page-blocks, clothing-filter
+├── catalog/*                 ← products (list + vector + quick search), pages, reviews, stores, filters, adapt, service-requests, waiting-list
+├── forms/submit.ts           ← submitForm (review + reserve + newsletter)
+├── labels/*                  ← 12 CMS label sets + client contexts
+├── menus/*                   ← header + footer menus + adapters + contexts
+└── payments/accounts.ts      ← getPaymentAccountsAction
 ```
 
 ---
@@ -99,25 +125,34 @@ src/app/context/
 
 ```ts
 {
-  cart:             CartState             // src/app/store/cartSlice.ts
-  wishlist:         WishlistState         // src/app/store/wishlistSlice.ts
-  recentlyViewed:   RecentlyViewedState   // src/app/store/recentlyViewedSlice.ts
-  catalog:          Record<string, CatalogUIState>  // src/app/store/catalogSlice.ts
-  ui:               UIState               // src/app/store/uiSlice.ts
-  user:             UserState             // src/app/store/userSlice.ts
-  productsApi:      RTK Query cache  // local data via queryFn
-  homepageApi:      RTK Query cache  // local data via queryFn
-  catalogConfigApi: RTK Query cache  // local data via queryFn
-  cartApi:          RTK Query cache  // real OneEntry Platform REST
-  wishlistApi:      RTK Query cache  // real OneEntry Platform REST
+  cart:           CartState             // src/app/store/cartSlice.ts
+  wishlist:       WishlistState         // src/app/store/wishlistSlice.ts
+  recentlyViewed: RecentlyViewedState   // src/app/store/recentlyViewedSlice.ts
+  catalog:        Record<string, CatalogUIState>  // src/app/store/catalogSlice.ts
+  ui:             UIState               // src/app/store/uiSlice.ts
+  user:           UserState             // src/app/store/userSlice.ts — authToken/refreshToken kept empty (session in cookies)
+  cartApi:        RTK Query cache       // scaffolding — not called by live UI
+  wishlistApi:    RTK Query cache       // scaffolding — not called by live UI
 }
 ```
 
-> `cartApi` / `wishlistApi` are gated by `NEXT_PUBLIC_API_URL` — when empty
-> (the default Storybook environment) the slices are still registered but
-> `isCartApiEnabled()` / `isWishlistApiEnabled()` return `false` and the
-> `CartContext` / `WishlistContext` skip the network layer, falling back to
-> the local `cartSlice` / `wishlistSlice` only.
+> `cartApi` / `wishlistApi` remain registered in `makeStore()` so any future rollback to a client-side sync path (from Server Actions back to client mutations) would just need `NEXT_PUBLIC_API_URL` and hook calls — no store surgery required.
+
+---
+
+## Environment
+
+Server-side (required for the SDK to boot):
+
+- `ONEENTRY_URL` — Platform base URL (e.g. `http://localhost:3013`).
+- `ONEENTRY_TOKEN` — App token.
+- `NEXT_PUBLIC_DEFAULT_LOCALE` — build-time `langCode` (default `en_US`).
+
+Client-side (optional):
+
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` — enables the Google Identity Services sign-in button.
+
+`NEXT_PUBLIC_API_URL` from earlier revisions has been **retired** — the SDK now handles all Platform reads/writes server-side.
 
 ---
 
@@ -126,14 +161,14 @@ src/app/context/
 Always use these — never raw `useDispatch` / `useSelector`:
 
 ```ts
-// Import paths from a component inside src/app/
+// From a component inside src/app/
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-// Import paths from a Storybook story file
+// From a Storybook story
 import { useAppDispatch, useAppSelector } from '../app/store/hooks';
 
-const dispatch = useAppDispatch();             // typed AppDispatch
-const items    = useAppSelector(s => s.cart.items);  // typed RootState
+const dispatch = useAppDispatch();                        // typed AppDispatch
+const items    = useAppSelector(s => s.cart.items);       // typed RootState
 ```
 
 ---
@@ -148,16 +183,16 @@ selectCartItems              → CartItem[]
 selectMiniCartOpen           → boolean
 selectCartTotalItems         → number
 selectCartSubtotal           → number         // sum of price × qty
-selectCartOriginalSubtotal   → number         // before discounts
+selectCartOriginalSubtotal   → number         // sum of originalPrice × qty
 selectCartDiscount           → number         // originalSubtotal − subtotal
 
 // Wishlist
 selectWishlistItems          → WishlistItem[]
 selectWishlistCount          → number
-selectIsWishlisted(s, id)    → boolean        // parametric selector
+selectIsWishlisted(s, id)    → boolean
 
 // Recently Viewed
-selectRecentlyViewed         → RecentlyViewedItem[]  // RecentlyViewedItem = Product & { viewedAt: number }
+selectRecentlyViewed         → RecentlyViewedItem[]  // Product & { viewedAt: number }
 
 // User
 selectUserProfile            → UserProfile
@@ -181,17 +216,16 @@ import { useCart } from '../context/CartContext';
 
 function BuyButton({ product }) {
   const { addItem } = useCart();
-
   return (
     <button onClick={() => addItem({
       id: product.id,
       name: product.name,
       brand: product.brand ?? '',
-      color: 'Black',
+      color: '#000000',
       sku: product.id,
       size: 'M',
       quantity: 1,
-      price: parseFloat(product.price.replace('$', '')),
+      price: parseFloat(String(product.price).replace(/[^\d.]/g, '')),
       image: product.image,
     })}>
       Add to Cart
@@ -200,12 +234,11 @@ function BuyButton({ product }) {
 }
 ```
 
-**Direct dispatch** (use only when no context wrapper exists)
+**Direct dispatch** (only when no context wrapper exists — `catalogSlice`, `userSlice`, `uiSlice`)
 
-`catalogSlice` and `userSlice` export named action creators directly, not a grouped object:
+Actions are exported as **named exports**, not a grouped object:
 
 ```tsx
-// ✅ correct — named export
 import { useAppDispatch } from '../store/hooks';
 import { setSort, toggleFilter } from '../store/catalogSlice';
 
@@ -213,32 +246,32 @@ function SortDropdown({ catalogKey }) {
   const dispatch = useAppDispatch();
   return (
     <select onChange={e => dispatch(setSort({ catalogKey, sortBy: e.target.value }))}>
-      ...
+      …
     </select>
   );
 }
 
-// ✅ correct — uiSlice also uses named exports
+// ✅ correct — uiSlice / userSlice also use named exports
 import { openQuickView } from '../store/uiSlice';
-dispatch(openQuickView(product));
+dispatch(openQuickView({ product, initialColorIndex: null }));
 
 // ❌ wrong — catalogActions does not exist
-import { catalogActions } from '../store/catalogSlice'; // undefined
+import { catalogActions } from '../store/catalogSlice';  // undefined
 ```
 
 ---
 
 ## Using Redux in Storybook stories
 
-The global decorator in `preview.ts` already provides all required providers.
-No need to wrap stories manually.
+The global decorator in `preview.ts` already provides all required providers (Redux, AuthProvider, CatalogAccentContext). No manual wrapping needed.
 
 ```tsx
 // stories/MiniCart.stories.tsx
 import React, { useEffect } from 'react';
-import { useAppDispatch } from '../app/store/hooks';  // note: ../app/store
+import { useAppDispatch } from '../app/store/hooks';
 import { cartActions } from '../app/store/cartSlice';
 import { MOCK_CART_ITEM } from './mockData';
+import { MiniCart } from '../app/components/MiniCart';
 
 function WithCartItems() {
   const dispatch = useAppDispatch();
@@ -252,16 +285,18 @@ function WithCartItems() {
 export const WithItems: Story = { render: () => <WithCartItems /> };
 ```
 
-**Provided by global decorator:**
+**Provided by the global decorator:**
 
 <table>
   <thead>
     <tr><th>Provider</th><th>Value</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>Provider</code> (Redux)</td><td>Fresh store per story. <code>localStorage</code> wiped on each mount.</td></tr>
-    <tr><td><code>AuthProvider</code></td><td><code>isLoggedIn: false</code> initially</td></tr>
+    <tr><td><code>Provider</code> (Redux)</td><td>Fresh store per story. <code>localStorage['oe_store']</code> wiped on each mount.</td></tr>
+    <tr><td><code>AuthProvider</code></td><td><code>isLoggedIn: false</code> — <code>getCurrentUserAction</code> returns <code>null</code> because Storybook runs without OneEntry env vars.</td></tr>
     <tr><td><code>CatalogAccentContext</code></td><td><code>'#F88A8A'</code> (women's pink)</td></tr>
     <tr><td><code>nextjs.appDirectory</code></td><td><code>true</code> — <code>useRouter</code> / <code>usePathname</code> work in stories</td></tr>
   </tbody>
 </table>
+
+Stories that need to demonstrate a live OneEntry mutation (e.g. `syncCart`) should stub the Server Action rather than pointing at a real Platform — those calls throw during story mount if `ONEENTRY_URL` / `ONEENTRY_TOKEN` are absent.

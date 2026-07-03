@@ -11,47 +11,65 @@ All remaining features: auth, navigation, catalog, product page, QuickView, home
 
 ## 1. Authentication — Login Flow
 
-Data source: `validateCredentials` (server action) + `MOCK_USER` from `userData.ts`.
+Data source: `signInAction` (Server Action) → OneEntry Platform `AuthProvider.auth('email', …)`. Session lives in httpOnly cookies (`oe_access`, `oe_refresh`, `oe_user`) — nothing sensitive in Redux or localStorage.
 
 <MermaidDiagram chart={`flowchart TD
     A(["Click Sign In\\n(Header or Guest Modal)"]) --> B["LoginModal opens\\nfocus trap active\\nbody scroll locked"]
     B --> C{"Fill email/phone\\n+ password"}
     C --> D["Zod loginSchema\\nclient-side check"]
     D -->|invalid| E["Show field error\\ndo not submit"]
-    D -->|valid| F["setLoading true\\ncall validateCredentials\\nserver action 500ms delay"]
-    F -->|wrong creds| G["error: Invalid email\\nor password"]
-    F -->|correct| H["setUser MOCK_USER\\nsetIsLoggedIn true"]
-    H --> I["closeLoginModal\\nif on /checkout: stay\\nelse: no redirect"]
-    H --> J["WishlistSyncEffect fires\\nmergeUserWishlist"]
-    H --> K["userSlice loads\\nUSER_DATASET into Redux"]
-    B --> L{"Social login buttons"}
-    L -->|Google / Apple / Facebook| M["BUG: UI only\\nno OAuth implemented"]
-    style M fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+    D -->|valid| F["AuthContext.login\\ncalls signInAction"]
+    F --> F2["OneEntry\\nAuthProvider.auth\\nmarker email"]
+    F2 -->|"4xx"| G["error: Wrong credentials"]
+    F2 -->|"200"| G2["Server sets oe_access,\\noe_refresh, oe_user cookies"]
+    G2 --> H["AuthContext seeds user\\nfrom getCurrentUserAction\\nsetIsLoggedIn true"]
+    H --> I["closeLoginModal\\nno redirect"]
+    H --> J["CartContext + WishlistContext\\ndebounced 400 ms sync effects\\nunlock"]
+    H --> K["dispatch setAuth\\nuserIdentifier only\\ntokens stay empty"]
+    B --> L{"Continue with Google"}
+    L -->|"NEXT_PUBLIC_GOOGLE_CLIENT_ID set"| M["requestGoogleAccessToken\\nGIS token client popup"]
+    L -->|"unset"| N["Button hidden"]
+    M --> O["signInWithGoogleAction\\naccessToken"]
+    O --> F2
+    B --> P{"Apple / Facebook"}
+    P --> Q["Stub — password=social\\nsets empty user session"]
+    style Q fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
 
-Valid credentials: `jane@oneentry.com` / `password123` (or phone `+44 20 7946 0958`).
+Demo credentials: run `./scripts/setup-demo-passwords.sh` once; every `seed-demo-user-*` identifier accepts `demo123`.
 
 ---
 
 ## 2. Authentication — Register Flow
 
+Sign-up form is CMS-driven — fields, placeholders, and validators come from the `users_sign_in_sign_up` attribute set loaded by `loadSignUpFormSchema` and exposed via `SignUpFormSchemaProvider`.
+
 <MermaidDiagram chart={`flowchart TD
-    A(["Click Create Account"]) --> B["RegisterModal opens"]
-    B --> C["Fill: firstName email\\nphone password confirmPw"]
+    A(["Click Create Account"]) --> B["RegisterModal reads\\nSignUpFormSchemaContext"]
+    B --> C["Fill: email, password,\\nfirst_name, phone, gender,\\nsubscriptions, terms"]
     C --> D["Zod registerSchema\\nclient check"]
     D -->|invalid| E["Per-field errors shown"]
-    D -->|valid| F["BUG: no real registration\\nsetIsLoggedIn true\\nwith MOCK_USER data"]
-    F --> G["closeRegisterModal\\n+ same post-login effects\\nas login flow"]
-    style F fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+    D -->|valid| F["AuthContext.signUp\\ncalls signUpAction"]
+    F --> G["OneEntry\\nAuthProvider.signUp\\nform=signin"]
+    G -->|"4xx"| H["Error surfaced verbatim"]
+    G -->|"200"| I["Cookies set +\\nuser seeded +\\nsetIsLoggedIn true"]
+    I --> J["closeRegisterModal"]`} />
+
+No email verification step is wired on this tenant.
 
 ---
 
 ## 3. Authentication — Logout
 
 <MermaidDiagram chart={`flowchart LR
-    A(["Click Logout\\n(Account dropdown)"]) --> B["logout()\\nsetUser null\\nsetIsLoggedIn false"]
-    B --> C["User data cleared\\nfrom AuthContext"]
-    B --> D["NOTE: wishlist stays\\nin Redux/localStorage\\nnot cleared on logout"]
-    B --> E["NOTE: cart stays\\nin Redux/localStorage\\nnot cleared on logout"]`} />
+    A(["Click Logout\\n(Account sidebar)"]) --> B["AuthContext.logout\\noptimistic:\\nsetUser null,\\nsetIsLoggedIn false"]
+    B --> C["dispatch clearAuth"]
+    B --> D["signOutAction\\nbackground call"]
+    D --> E["OneEntry AuthProvider.logout\\n+ clear 3 cookies"]
+    B --> F["NOTE: wishlist stays\\nin Redux/localStorage\\nnot cleared on logout"]
+    B --> G["NOTE: cart stays\\nin Redux/localStorage\\nnot cleared on logout"]
+    B --> H["NOTE: sessionStorage flags\\noe_cart_merged /\\noe_wishlist_merged\\ncleared for next login"]`} />
+
+Logout is optimistic — the UI reflects the change immediately, and the cookies are best-effort cleared even if OE is unreachable.
 
 ---
 
@@ -64,8 +82,8 @@ Valid credentials: `jane@oneentry.com` / `password123` (or phone `+44 20 7946 09
     D -->|Clothing / Shoes\\nBags / Accessories| E["MegaMenu dropdown\\nappears after 0ms\\nhides after 150ms delay"]
     E --> F["Grid of category links\\nby gender + subcategory"]
     A --> G["Search icon\\ntoggle searchOpen"]
-    G --> H["Search input expands\\nEnter key: search not\\nimplemented — BUG"]
-    style H fill:#fffbeb,stroke:#fde68a,color:#92400e
+    G --> H["HeaderSearch — debounced 350ms\\nsearchProductsAction\\nvector + quick search on OE\\nsequence guarded"]
+    H --> H2["Dropdown with results:\\nimage + brand + name + price"]
     A --> I["Wishlist icon\\nbadge = wishlist count"]
     I --> J["router.push /favorites"]
     A --> K["Bag icon\\nbadge = cart totalItems"]
@@ -99,11 +117,11 @@ Data source: `state.cart.items` via `useCart()`.
 
 ## 6. Catalog — Filtering System
 
-Data source: `state.catalog[catalogKey]` (Redux). Filter state persists in Redux but NOT in localStorage.
+Data source: `state.catalog[catalogKey]` (Redux) — **persisted to `localStorage['oe_store'].catalog`** but hydrated after client mount via `loadCatalogFromStorage()` + `hydrateCatalogs` to avoid SSR mismatch.
 
 <MermaidDiagram chart={`flowchart TD
-    A(["Catalog page\\ne.g. /women/clothing"]) --> B["RTK Query fetches products\\nfallback: static WOMEN_CLOTHING_PRODUCTS"]
-    B --> C["filterProducts()\\napply selectedFilters"]
+    A(["Catalog page\\ne.g. /women/clothing"]) --> B["RSC awaits loadProducts\\nfrom OneEntry\\nfilters passed to conditions"]
+    B --> C["Client CatalogTemplate\\nreads Redux state\\napplies view/sort locally"]
     C --> D["Sort filtered products\\nby: Recommended / Price asc/desc\\n/ Newest / Rating"]
     D --> E["Paginate: 16 per page\\nshow page N"]
     E --> F["Render ProductCards\\nor list view"]
@@ -143,9 +161,10 @@ Data source: `state.catalog[catalogKey]` (Redux). Filter state persists in Redux
 ## 8. Product Detail Page
 
 <MermaidDiagram chart={`flowchart TD
-    A(["/product/id"]) --> B{"PRODUCT_CATALOG has id?"}
+    A(["/product/id"]) --> A2["RSC loadProductById\\nOneEntry Products.getProductById\\nadapt to CatalogProduct"]
+    A2 --> B{"Product found?"}
     B -->|NO| C["notFound()\\n404 page"]
-    B -->|YES| D["Load product data\\ngallery colors sizes\\nspecs reviews offers"]
+    B -->|YES| D["Client: ProductDetailPage\\ngallery colors sizes\\nspecs (from OE attributes)\\nreviews (streamed via Suspense)\\noffers (special_offers block)"]
     D --> E["Read ?color= and ?size=\\nfrom URL searchParams"]
     E --> F["Set initial selectedColor\\nand selectedSize"]
     D --> G["dispatch recentlyViewedActions\\n.addProduct — track view"]
@@ -175,16 +194,15 @@ Data source: `state.catalog[catalogKey]` (Redux). Filter state persists in Redux
     A --> F{"Size Guide"}
     F --> G["SizeGuideModal opens\\nXS-XXL measurements table"]
     A --> H{"Reserve in Store"}
-    H --> I["ReserveInStoreModal\\nselect city + store\\nBUG: UI only\\nno real reservation"]
-    style I fill:#fffbeb,stroke:#fde68a,color:#92400e
-    A --> J{"Reviews section"}
-    J --> K["Show 3 reviews\\nrating bars"]
+    H --> I["ReserveInStoreModal\\nsubmitForm reserve_in_store\\nSaved as form-data on OE\\n(no inventory hold)"]
+    A --> J{"Reviews section (Suspense)"}
+    J --> J2["loadProductReviews\\njoins review_feedback\\n+ review_rating forms"]
+    J2 --> K["Show initial reviews\\nrating histogram"]
     K -->|"Show All Reviews"| L["Expand all reviews"]
-    K -->|"Write a Review"| M["WriteReviewModal\\nBUG: UI only\\nnot saved anywhere"]
-    style M fill:#fffbeb,stroke:#fde68a,color:#92400e
-    A --> N["Recommendations carousel\\nfrom RECOMMENDED_CATALOG"]
-    A --> O["Special Offers\\nbundle deals\\nfrom SPECIAL_OFFERS_CATALOG"]
-    A --> P["Recently Viewed\\nfrom recentlyViewedSlice\\nscroll-triggered load more"]`} />
+    K -->|"Write a Review"| M["WriteReviewModal\\nsubmitForm review_rating\\n+ submitForm review_feedback\\n(two sequential calls)"]
+    A --> N["Frequently Ordered block (Suspense)\\nloadFrequentlyOrderedBlock\\npdp_you_may_also_like\\nbackfill from category shelf"]
+    A --> O["Special Offers\\nbought_together block\\ncurated by admin"]
+    A --> P["Recently Viewed\\nfrom recentlyViewedSlice +\\npushRecentlyViewedAction\\nwhen signed in"]`} />
 
 ---
 
@@ -209,35 +227,41 @@ Data source: `state.catalog[catalogKey]` (Redux). Filter state persists in Redux
 ## 11. Homepage
 
 <MermaidDiagram chart={`flowchart LR
-    A(["/ HomePage"]) --> B["HeroSlider\\n3 slides auto-rotate\\npause on hover"]
-    A --> C["CategorySection\\ncategory image grid\\nlinks to catalogs"]
-    A --> D["MenCollection\\nstatic product rows\\nAdd to Cart buttons"]
-    A --> E["WomenCollection\\nstatic product rows"]
-    A --> F["PromoBlock\\nbanner with CTA"]
-    A --> G["NewArrivals\\nproduct carousel"]
-    A --> H["DiscountBanner\\nsale CTA"]
-    B --> I["AnimatedSection\\nIntersectionObserver\\nfade-in on scroll\\nskipped on back nav\\n(sessionStorage flag)"]
+    A(["/ HomePage — RSC awaits"]) --> A1["loadHeroSlides marker=hero_slider"]
+    A --> A2["loadCategorySection marker=category_section"]
+    A --> A3["loadHomepageCollections marker=homepage_collections"]
+    A --> A4["loadHomepageProductBlocks (best_sellers, new_arrivals_home, sale_home)"]
+    A --> A5["loadDiscountBanner marker=discount_banner"]
+    A --> A6["loadPageBlocksById HOME_PAGE_ID"]
+    A1 --> B["HeroSlider — auto-rotate 5s"]
+    A2 --> C["CategorySection tabs + cards"]
+    A3 --> D["WomenCollection / MenCollection"]
+    A3 --> E["PromoBlock"]
+    A4 --> F["NewArrivals product carousel"]
+    A5 --> G["DiscountBanner"]
+    B --> I["AnimatedSection wrapper\\nIntersectionObserver fade-up ~650ms\\nsessionStorage flag HOMEPAGE_ANIMATED\\nsuppresses on revisit"]
     C --> I
     D --> I
     E --> I
     F --> I
-    G --> I
-    H --> I`} />
+    G --> I`} />
 
 ---
 
 ## 12. Recently Viewed
 
-Data source: `state.recentlyViewed.items` (Redux). Max 20 items, persisted in localStorage.
+Data source: `state.recentlyViewed.items` (Redux). Max **100** items (`LIMITS.RECENTLY_VIEWED_MAX`), 30-day TTL, persisted in localStorage. Signed-in users mirror the trail to OneEntry via three Server Actions.
 
 <MermaidDiagram chart={`flowchart LR
-    A(["Open any product page"]) --> B["dispatch recentlyViewedActions\\n.addProduct"]
-    B --> C["If product already in list:\\nremove old entry\\nadd to front"]
-    B --> D["Slice to max 20 items"]
-    C --> E["saveToStorage\\nlocalStorage"]
-    D --> E
-    E --> F["Shown at bottom of\\nProductDetailPage\\nexcluding current product"]
-    F --> G["Load more rows via\\nIntersectionObserver\\nsentinel at bottom"]`} />
+    A(["Open any product page"]) --> B["dispatch recentlyViewedActions.addProduct\\nviewedAt = Date.now()"]
+    B --> C["Dedup by product name\\nevict items older than 30 days"]
+    C --> D["Circular buffer, cap 100"]
+    D --> E["saveToStorage\\nlocalStorage oe_store.recentlyViewed"]
+    B -->|"if isLoggedIn"| F["pushRecentlyViewedAction\\n(fire-and-forget)"]
+    F --> G["Server trail updated"]
+    H(["Bootstrap on login"]) --> I["mergeRecentlyViewedAction\\nguest + server → deduped list"]
+    I --> J["dispatch recentlyViewedActions.hydrate"]
+    E --> K["RecentlyViewedSection\\nlazy-loaded via IntersectionObserver\\nshown below PDP, excluding current"]`} />
 
 ---
 
@@ -254,29 +278,29 @@ Data source: `state.recentlyViewed.items` (Redux). Max 20 items, persisted in lo
 ## 14. Store Locations Page
 
 <MermaidDiagram chart={`flowchart TD
-    A(["/stores"]) --> B["StoreLocationsPage\\nstatic store data"]
-    B --> C["3 London stores list:\\nOxford St\\nCovent Garden\\nCanary Wharf"]
-    C --> D{"Click store"}
-    D --> E["Show store details:\\naddress hours phone\\nmap placeholder"]
-    D --> F["BUG: map is static image\\nno real Google Maps\\nintegration"]
-    style F fill:#fffbeb,stroke:#fde68a,color:#92400e`} />
+    A(["/stores"]) --> B["RSC: loadStores +\\nloadStoreLocationsPage"]
+    B --> C["OneEntry Pages.getChildPagesByParentUrl\\n('stores', lang) — ISR revalidate 3600s"]
+    C --> D["StoreLocationsPage\\nfilterable list of stores"]
+    D --> E{"Click store"}
+    E --> F["StoreCard shows details:\\naddress, hours, services,\\nphotos, flagship badge,\\nmapUrl deep-link"]
+    D --> G["Note: map is a static deep-link\\nto Google Maps —\\nno interactive map embed"]`} />
 
 ---
 
 ## 15. Global State Architecture
 
 <MermaidDiagram chart={`flowchart TD
-    A["Redux Store"] --> B["cartSlice\\nitems qty prices"]
+    A["Redux Store — 6 slices + 2 RTK Query APIs (scaffolding)"] --> B["cartSlice\\nitems qty prices\\nminiCartOpen"]
     A --> C["wishlistSlice\\nitems colors sizes"]
     A --> D["catalogSlice\\nfilters sort page view\\nper catalogKey"]
-    A --> E["userSlice\\norders addresses\\nbonuses subscriptions"]
-    A --> F["recentlyViewedSlice\\nlast 20 viewed products"]
-    A --> G["uiSlice\\nquickView miniCart\\nmodal state"]
-    B --> H["localStorage\\noe_store.cart"]
+    A --> E["userSlice\\nseeded from USER_DATASET\\n(loyalty defaults only)"]
+    A --> F["recentlyViewedSlice\\nmax 100, 30-day TTL"]
+    A --> G["uiSlice\\nquickView + mobileMenu"]
+    B --> H["localStorage\\noe_store v5\\n(cart minus miniCartOpen)"]
     C --> H
     F --> H
-    E --> H
-    D --> I["NOT persisted\\nresets on page reload"]
+    D --> H2["Persisted, but hydrated\\nafter client mount\\n(loadCatalogFromStorage)"]
+    E --> I["NOT persisted\\nreal profile from AuthContext"]
     G --> I
-    J["AuthContext"] --> K["React state only\\nuser isLoggedIn\\nmodal open flags"]
+    J["AuthContext (React Context)"] --> K["18 methods, authReady flag\\nuser from getCurrentUserAction\\nSession lives in httpOnly cookies\\noe_access / oe_refresh / oe_user"]
     L["QuickViewContext"] --> M["React state only\\nopen product data"]`} />

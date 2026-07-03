@@ -7,7 +7,7 @@ import { Footer } from '../components/Footer';
 import { CheckoutStepper } from '../components/CheckoutStepper';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { createOrderAction } from '../../lib/oneentry/auth/actions';
+import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
 import { trackActivity } from '../utils/track-activity';
 import { getOrCreateGuestId } from '../utils/guest-id';
 import { Lock, Shield } from 'lucide-react';
@@ -22,7 +22,7 @@ import { PaymentMethodsList } from './checkout/PaymentMethodsList';
 
 export function PaymentPage() {
   const router = useRouter();
-  const { items, discount, total } = useCart();
+  const { items, discount, total, clearCart, couponCode, couponDiscount, previewLoading: cartPreviewLoading } = useCart();
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [method, setMethod] = useState<string>('');
@@ -40,9 +40,29 @@ export function PaymentPage() {
   );
   const securityBadges = [lSsl, lPci, l3d].filter(Boolean);
 
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const [submitError, setSubmitError] = useState('');
   const [placing, setPlacing] = useState(false);
+  // OE `previewOrder` — recalculates the order server-side with the active
+  // personal discount (Bronze / …) and, if the shopper asks, a bonus
+  // deduction. Refreshed whenever the cart or bonusAmount changes.
+  const [preview, setPreview] = useState<PreviewOrderResult | null>(null);
+  const [bonusInput, setBonusInput] = useState<string>('');
+  // Prefer OE's per-request bonus figures (from `previewOrder.discountConfig.bonus`)
+  // over the client-cached balance from `fetchLoyalty`. Falls back to the
+  // cached value while the first preview is still in flight.
+  const bonusBalance = preview?.bonus.availableBalance ?? user?.bonuses ?? 0;
+  const bonusMaxAmount = preview?.bonus.maxAmount ?? 0;
+  const bonusMinAmount = preview?.bonus.minAmount ?? null;
+  const bonusMinOrderAmount = preview?.bonus.minOrderAmount ?? null;
+  const totalSumForGate = preview?.totalSum ?? 0;
+  const bonusUnlocked = bonusBalance > 0
+    && (bonusMinOrderAmount == null || totalSumForGate >= bonusMinOrderAmount);
+  // Hard cap: min(balance, per-order OE max). Falls back to balance alone
+  // when OE hasn't reported a per-order cap yet (first render / no preview).
+  const bonusCap = bonusMaxAmount > 0
+    ? Math.min(bonusBalance, bonusMaxAmount)
+    : bonusBalance;
 
   // Redux cart hydrates from localStorage inside makeStore(), so the client's
   // first paint already has the real items while SSR HTML has an empty cart.
@@ -66,12 +86,67 @@ export function PaymentPage() {
 
   const selectedAccount = accounts.find((a) => a.identifier === method);
 
+  // Cart → OE products list. Preview endpoint takes the same shape as
+  // createOrder — quantity + numeric productId.
+  const productsForPreview = items.flatMap((it) => {
+    const match = /\d+/.exec(it.id);
+    if (!match) return [];
+    return [{ productId: Number(match[0]), quantity: it.quantity }];
+  });
+  // Requested vs. sendable amount:
+  //   - `bonusRequested` is what the shopper typed (used for the "you need
+  //     at least N" hint below the input).
+  //   - `bonusAmount` is what we actually send to previewOrder / createOrder:
+  //     0 when the request is under the `minBonusAmount` gate, otherwise
+  //     clamped to `bonusCap`. That way OE never rejects the request for
+  //     under-min and we don't over-promise on the summary line.
+  const bonusRequested = Math.max(0, Number(bonusInput) || 0);
+  const bonusUnderMin = bonusMinAmount != null && bonusRequested > 0
+    && bonusRequested < bonusMinAmount;
+  const bonusAmount = bonusUnlocked && !bonusUnderMin
+    ? Math.min(bonusRequested, bonusCap)
+    : 0;
+
+  // Debounce previewOrder so typing into the bonus field doesn't spam OE.
+  // `previewInFlight` gates the Place Order button so the shopper can't
+  // submit a stale total — see the button block below.
+  const [previewInFlight, setPreviewInFlight] = useState(false);
+  const productsKey = JSON.stringify(productsForPreview);
+  useEffect(() => {
+    if (productsForPreview.length === 0) {
+      setPreview(null);
+      setPreviewInFlight(false);
+      return;
+    }
+    setPreviewInFlight(true);
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const guestId = isLoggedIn ? undefined : getOrCreateGuestId();
+      const r = await previewOrderAction({
+        products: productsForPreview,
+        bonusAmount,
+        ...(couponCode ? { couponCode } : {}),
+        ...(guestId ? { guestId } : {}),
+      });
+      if (cancelled) return;
+      if (r.ok) setPreview(r);
+      setPreviewInFlight(false);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+    // productsKey covers the array; bonusAmount and couponCode are scalars.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, productsKey, bonusAmount, couponCode]);
+
   const handlePlaceOrder = async () => {
     if (items.length === 0) { router.push('/'); return; }
     if (!selectedAccount) {
       setSubmitError('Please choose a payment method.');
       return;
     }
+    // Preview is still in flight — the totals on screen might not yet
+    // reflect the applied coupon / bonuses. Don't submit an order that
+    // could get charged a different amount than the shopper saw.
+    if (previewInFlight || !preview) return;
 
     let payload: {
       storage: 'home' | 'store_pickup' | 'locker';
@@ -186,6 +261,10 @@ export function PaymentPage() {
       formData,
       guestId,
       origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+      // Preview echoed OE's clamp; we forward the same requested amount so
+      // the created order gets the exact deduction the shopper saw.
+      ...(bonusAmount > 0 ? { bonusAmount } : {}),
+      ...(couponCode ? { couponCode } : {}),
     });
     setPlacing(false);
     if (!res.ok) {
@@ -202,6 +281,11 @@ export function PaymentPage() {
         meta: { orderId: res.orderId, quantity: p.quantity, paymentMethod: paymentAccountIdentifier },
       });
     }
+    // Order is created — wipe the cart NOW instead of waiting for the
+    // shopper to land on /checkout/confirmation. Otherwise a closed tab
+    // during Stripe redirect (or a cancelled Stripe session) leaves the
+    // just-ordered items sitting in their bag next time they open the site.
+    clearCart();
     // Stripe / online payment methods: OE returns a hosted checkout URL.
     // Redirect to it; the user finishes the payment on Stripe and OE marks
     // the order completed via webhook. Cash / card-on-delivery have no URL —
@@ -290,10 +374,18 @@ export function PaymentPage() {
                 )}
                 <button
                   onClick={handlePlaceOrder}
-                  disabled={placing}
-                  className="px-10 py-4 text-white text-sm tracking-[0.2em] uppercase focus-visible:outline-none hover:opacity-90 transition-opacity bg-black rounded-lg font-semibold disabled:opacity-60 disabled:pointer-events-none"
+                  disabled={placing || previewInFlight || !preview}
+                  className="flex items-center justify-center gap-2 px-10 py-4 text-white text-sm tracking-[0.2em] uppercase focus-visible:outline-none hover:opacity-90 transition-opacity bg-black rounded-lg font-semibold disabled:opacity-60 disabled:pointer-events-none"
                 >
-                  {lPlaceOrder}{mounted ? ` · ${fmt(total)}` : ''}
+                  {(placing || previewInFlight || !preview) && (
+                    <span
+                      className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span>
+                    {lPlaceOrder}{mounted ? ` · ${fmt(preview ? preview.totalDue : total)}` : ''}
+                  </span>
                 </button>
               </div>
             </div>
@@ -327,13 +419,90 @@ export function PaymentPage() {
                       <span className="font-semibold">−{fmt(discount)}</span>
                     </div>
                   )}
+                  {/* Loyalty (personal tier) vs Promo (coupon) split so the
+                      shopper can see which discount is which. `preview.
+                      discountAmount` is the total OE deducted before bonuses;
+                      `couponDiscountAmount` is the coupon's slice of that.
+                      Skeleton while first preview is in flight so the panel
+                      doesn't jump when discounts land. */}
+                  {mounted && cartPreviewLoading && !preview ? (
+                    <div className="flex justify-between text-xs" aria-busy="true">
+                      <div className="h-3 w-24 bg-gray-100 animate-pulse" />
+                      <div className="h-3 w-12 bg-gray-100 animate-pulse" />
+                    </div>
+                  ) : (
+                    <>
+                      {mounted && preview && (preview.discountAmount - preview.couponDiscountAmount) > 0 && (
+                        <div className="flex justify-between text-xs text-[var(--sale)]">
+                          <span>{user?.status ?? 'Loyalty'} discount</span>
+                          <span className="font-semibold">−{fmt(preview.discountAmount - preview.couponDiscountAmount)}</span>
+                        </div>
+                      )}
+                      {mounted && couponDiscount > 0 && couponCode && (
+                        <div className="flex justify-between text-xs text-[var(--sale)]">
+                          <span>Promo ({couponCode})</span>
+                          <span className="font-semibold">−{fmt(couponDiscount)}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {mounted && preview && preview.bonusApplied > 0 && (
+                    <div className="flex justify-between text-xs text-[var(--sale)]">
+                      <span>Bonuses used</span>
+                      <span className="font-semibold">−{fmt(preview.bonusApplied)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">{OS.delivery}</span>
                     <span className="text-green-600 font-semibold">{OS.deliveryFree}</span>
                   </div>
+                  {mounted && isLoggedIn && bonusBalance > 0 && (
+                    <div className="pt-2 border-t border-[#e5e7eb]">
+                      <div className="flex items-center justify-between gap-2">
+                        <label htmlFor="bonus-input" className="text-xs text-gray-600">
+                          Use bonuses
+                          <span className="text-gray-400 ml-1">/ {bonusBalance.toLocaleString()} available</span>
+                        </label>
+                        <input
+                          id="bonus-input"
+                          type="number"
+                          min={0}
+                          max={bonusCap}
+                          value={bonusInput}
+                          onChange={(e) => setBonusInput(e.target.value)}
+                          disabled={!bonusUnlocked}
+                          className="w-20 text-right text-xs px-2 py-1 border border-gray-300 focus:border-black outline-none disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                          placeholder="0"
+                        />
+                      </div>
+                      {/* Constraint hints — one line, only when relevant.
+                          `min-order` gate takes priority: if the cart is too
+                          small, the "min N per redemption" and "capped" hints
+                          would be misleading. */}
+                      {!bonusUnlocked && bonusMinOrderAmount != null && (
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Add {fmt(bonusMinOrderAmount - totalSumForGate)} more to use bonuses
+                        </p>
+                      )}
+                      {bonusUnlocked && bonusUnderMin && bonusMinAmount != null && (
+                        <p className="text-[10px] text-[var(--sale)] mt-1">
+                          Minimum {bonusMinAmount.toLocaleString()} bonuses per redemption
+                        </p>
+                      )}
+                      {bonusUnlocked && !bonusUnderMin && bonusRequested > bonusCap && bonusCap > 0 && (
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Capped at {bonusCap.toLocaleString()} for this order
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="flex justify-between items-baseline pt-1 border-t border-[#e5e7eb]">
                     <span className="text-sm font-bold">{OS.total}</span>
-                    <span className="text-lg font-bold">{mounted ? fmt(total) : ''}</span>
+                    {mounted && cartPreviewLoading && !preview ? (
+                      <div className="h-5 w-20 bg-gray-100 animate-pulse" aria-busy="true" />
+                    ) : (
+                      <span className="text-lg font-bold">{mounted ? fmt(preview ? preview.totalDue : total) : ''}</span>
+                    )}
                   </div>
                 </div>
               </div>

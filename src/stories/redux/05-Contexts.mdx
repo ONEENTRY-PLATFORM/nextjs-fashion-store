@@ -4,53 +4,47 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Redux — Contexts
 
-There are **5 hook modules** in `context/`. Three are hook-only modules (no `createContext`) that call Redux directly.
-Only `AuthContext` has a Provider component; `CatalogAccentContext` exports the context object and its Provider is used inline.
+There are **5 hook modules** in `src/app/context/`. Only `AuthContext` is a real React Context (with `createContext` + `<AuthProvider>`). `CartContext`, `WishlistContext`, `QuickViewContext` are **hook-only modules** — no `createContext`; the hooks call Redux + Server Actions directly. `CatalogAccentContext` is a plain string context provided inline by the catalog pages.
 
 <table>
   <thead>
     <tr><th>Module</th><th>Hook</th><th>Backed by</th><th>Has Provider?</th><th>File</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>CartContext</code></td><td><code>useCart()</code></td><td>Redux <code>cartSlice</code></td><td>❌ Hook-only module</td><td><code>context/CartContext.tsx</code></td></tr>
-    <tr><td><code>WishlistContext</code></td><td><code>useWishlist()</code></td><td>Redux <code>wishlistSlice</code></td><td>❌ Hook-only module</td><td><code>context/WishlistContext.tsx</code></td></tr>
-    <tr><td><code>QuickViewContext</code></td><td><code>useQuickView()</code></td><td>Redux <code>uiSlice</code></td><td>❌ Hook-only module</td><td><code>context/QuickViewContext.tsx</code></td></tr>
-    <tr><td><code>AuthContext</code></td><td><code>useAuth()</code></td><td>React <code>useState</code> (modal + isLoggedIn) <strong>+</strong> Redux <code>userSlice</code> (auth tokens via <code>setAuth</code> / <code>clearAuth</code>)</td><td>✅ <code>{'<AuthProvider>'}</code></td><td><code>context/AuthContext.tsx</code></td></tr>
-    <tr><td><code>CatalogAccentContext</code></td><td><code>useCatalogAccent()</code></td><td>Plain string value</td><td>✅ <code>CatalogAccentContext.Provider</code> (inline)</td><td><code>context/CatalogAccentContext.tsx</code></td></tr>
+    <tr><td><code>CartContext</code></td><td><code>useCart()</code></td><td>Redux <code>cartSlice</code> + <code>syncCartAction</code> Server Action (debounced 400 ms)</td><td>❌ Hook-only</td><td><code>context/CartContext.tsx</code></td></tr>
+    <tr><td><code>WishlistContext</code></td><td><code>useWishlist()</code></td><td>Redux <code>wishlistSlice</code> + <code>syncWishlistAction</code> Server Action</td><td>❌ Hook-only</td><td><code>context/WishlistContext.tsx</code></td></tr>
+    <tr><td><code>QuickViewContext</code></td><td><code>useQuickView()</code></td><td>Redux <code>uiSlice.quickView</code></td><td>❌ Hook-only</td><td><code>context/QuickViewContext.tsx</code></td></tr>
+    <tr><td><code>AuthContext</code></td><td><code>useAuth()</code></td><td>React <code>useState</code> for UI + <code>OeUser</code> from <code>getCurrentUserAction</code> + Redux <code>userSlice</code> (identifier only)</td><td>✅ <code>{'<AuthProvider>'}</code></td><td><code>context/AuthContext.tsx</code></td></tr>
+    <tr><td><code>CatalogAccentContext</code></td><td><code>useCatalogAccent()</code></td><td>Plain string value</td><td>✅ inline Provider</td><td><code>context/CatalogAccentContext.tsx</code></td></tr>
   </tbody>
 </table>
 
-**Why the context layer exists:** Components import from these hooks, not from Redux slices directly.
-If the underlying state implementation changes, only the hook file needs updating — all components stay untouched.
-
-> **Note on Cart & Wishlist:** Despite the naming, `CartContext.tsx` and `WishlistContext.tsx` do **not** use `createContext`.
-> They are plain hook modules — `useCart()` and `useWishlist()` call `useSelector` / `useDispatch` directly.
-> No Provider wrapping is needed; they work anywhere inside the Redux `<Provider>`.
+**Why the context layer exists:** components import from these hooks, not Redux slices or Server Actions directly. If the underlying implementation changes (which happened when cart/wishlist sync migrated from RTK Query to Server Actions), only the hook file needs updating — call sites stay untouched.
 
 ---
 
 ## CartContext · `useCart()`
 
-Wraps `cartSlice`. Import: `import { useCart } from '../context/CartContext';`
+Wraps `cartSlice` + `syncCartAction`. Import: `import { useCart } from '../context/CartContext';`
 
 ```ts
 interface CartItem {
-  id: string;
+  id: string;              // playground SKU ('wc-1') OR stringified OE product id
   name: string;
   brand: string;
   color: string;
   sku: string;
   size: string;
   quantity: number;
-  price: number;           // numeric, not string
+  price: number;
   originalPrice?: number;  // for discount display
   image: string;
-  bundleId?: string;       // groups bundle items for removeBundle
+  bundleId?: string;       // groups bundle items for removeBundle / bundle quantity
 }
 
 interface CartContextType {
   items: CartItem[];
-  totalItems: number;      // total quantity across all items
+  totalItems: number;
   subtotal: number;
   discount: number;
   total: number;
@@ -67,30 +61,36 @@ interface CartContextType {
 }
 ```
 
-**Deduplication:** `addItem` matches by **`id + size`**. The same product in two different sizes
-creates two separate cart items.
+**Deduplication:** `addItem` matches by **`id + size`** — same product in different sizes = separate items.
+
+**Server sync:** whenever `items` changes AND `isLoggedIn` is `true`, a debounced 400 ms effect maps items to `OeCartItem[]` via `getCmsProductId(playgroundId)` and calls `useAuth().syncCart(oeItems)`. Failures are silent (fire-and-forget); the next mutation re-attempts.
+
+**Login-time merge:** on the first login after guest browsing (guarded by `sessionStorage['oe_cart_merged']`), the effect fetches placeholders from `user.cartItems`, enriches them via `getProductsByIdsAction`, and merges into Redux. Stale placeholder items (products deleted on OE side) are dropped.
+
+**Bundles:** `updateQuantity` on a bundle line updates **all siblings sharing the same `bundleId`** by the same delta — a single `QtyControl` drives the whole bundle. `syncCart` flattens the bundle into independent `{productId, qty}` entries (OE has no bundle concept); re-hydrating after re-login breaks the bundle back into separate lines.
 
 ---
 
 ## WishlistContext · `useWishlist()`
 
-Wraps `wishlistSlice`. Import: `import { useWishlist } from '../context/WishlistContext';`
+Wraps `wishlistSlice` + `syncWishlistAction`. Import: `import { useWishlist } from '../context/WishlistContext';`
 
 ```ts
 interface WishlistItem {
   id: string;
   name: string;
   brand: string;
-  price: string;           // formatted string, e.g. "$89.99"
-  salePrice?: string;      // if on sale
+  price: number;
+  salePrice?: number;
   image: string;
-  colors: string[];        // hex values
-  colorStock?: boolean[];  // per-color stock (same index as colors)
-  sizes: string[];
+  colorImages?: string[];
+  colors?: string[];
+  colorStock?: number[];   // per-color stock counts (same index as colors)
+  sizes?: string[];
   badge?: string;
   inStock: boolean;
   priceAlert?: boolean;
-  selectedColor?: string;  // hex of currently selected color
+  selectedColor?: string;
   selectedSize?: string;
 }
 
@@ -106,20 +106,17 @@ interface WishlistContextType {
 }
 ```
 
-**`toggleItem` vs `addItem`:** Use `toggleItem` for heart buttons (add if absent, remove if present).
-Use `addItem` when you need to guarantee the item is in the list regardless.
+Same debounced 400 ms sync pattern as `CartContext`, gated on `oe_wishlist_merged` sessionStorage flag.
 
-**`updateSelection`:** Call this when the user changes the selected color or size on an already-wishlisted item
-so the change persists to localStorage.
+**`toggleItem` vs `addItem`:** use `toggleItem` for heart buttons (add if absent, remove if present); use `addItem` when you need to guarantee the item is in the list regardless.
+
+**`updateSelection`:** call this when the user changes the selected colour/size on an already-wishlisted item so the change persists to localStorage and syncs to OE.
 
 ---
 
 ## QuickViewContext · `useQuickView()`
 
-**Not a true React context** — no `createContext`, no Provider required. It is a plain hook module
-that calls `useAppSelector` and `useAppDispatch` directly. Works anywhere inside the Redux `Provider`.
-
-Import: `import { useQuickView } from '../context/QuickViewContext';`
+Hook-only — no `createContext`. Wraps `uiSlice.quickView`. Import: `import { useQuickView } from '../context/QuickViewContext';`
 
 ```ts
 interface QuickViewContextValue {
@@ -131,89 +128,104 @@ interface QuickViewContextValue {
 }
 ```
 
-**`initialColorIndex`:** When the user selects a color in the catalog card and opens Quick View,
-the selected color index is passed through so the modal opens with that color pre-selected.
-`ProductCard` passes its `selectedColor` state; other callers (e.g. `FavoritesPage`) can omit it.
+**`initialColorIndex`:** when the user selects a colour in the catalog card and opens Quick View, the selected index is passed through so the modal opens with the correct swatch pre-selected. `ProductCard` passes its `selectedColor` state; other callers (`FavoritesPage`) can omit it.
 
-**"View Full Details" navigation:** When the user clicks "View Full Details" in the modal,
-the selected color is passed as `?color=#hex` in the URL — `ProductDetailPage` reads it
-from `searchParams` and initializes the correct swatch.
+**"View Full Details" navigation:** clicking "View Full Details" in the modal navigates to `/product/[id]?color=#hex&size=…` with the current variant — `ProductDetailPage` reads it from `searchParams`.
 
-**Close animation detail:** `closeQuickView()` dispatches `closeQuickView` immediately (sets `isOpen: false`),
-then calls `clearQuickViewProduct()` after a **300 ms timeout** — lets the exit animation finish
-before the product is removed from state.
+**Close animation:** `closeQuickView()` dispatches `closeQuickView` immediately (sets `isOpen: false`), then calls `clearQuickViewProduct()` after a **300 ms timeout** so the exit animation completes before the product is dropped from state.
 
 ---
 
 ## AuthContext · `useAuth()`
 
-**Hybrid state.** UI-only fields (`isLoggedIn`, `user`, `loginModalOpen`, `registerModalOpen`) live in local React `useState`. On successful login, `AuthContext.login()` also dispatches `setAuth({ accessToken, refreshToken, userIdentifier })` into `userSlice` so `cartApi` / `wishlistApi` can pick up the Bearer token through `prepareHeaders`. `logout()` dispatches `clearAuth()`.
+Real React Context with `<AuthProvider>` (mounted globally in `Providers.tsx`). Bootstraps the user session from `getCurrentUserAction()` on mount; every mutation is a Server Action from `src/lib/oneentry/auth/actions.ts`.
 
 Import: `import { useAuth } from '../context/AuthContext';`
 
 ```ts
 interface AuthContextType {
   isLoggedIn: boolean;
-  user: User | null;
+  user: User | null;               // merged OeUser + loyalty defaults
+  /** false until the bootstrap /me call finishes — gate flash-of-signed-out UI on this */
+  authReady: boolean;
+
+  // Modal state
   loginModalOpen: boolean;
   registerModalOpen: boolean;
   openLoginModal: () => void;
   closeLoginModal: () => void;
   openRegisterModal: () => void;
   closeRegisterModal: () => void;
-  login: (emailOrPhone: string, password: string) => Promise<boolean>;
+
+  // Sign-in / sign-up / logout
+  login:  (emailOrPhone: string, password: string) => Promise<boolean>;
+  loginWithGoogle: (accessToken: string) => Promise<{ ok: boolean; error?: string }>;
+  signUp: (input: SignUpInput)          => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
-  updateUser: (data: Partial<User>) => void;
+
+  // Mutations — all persist through Server Actions
+  updateUser:        (data: Partial<User>) => void;                                    // optimistic local merge
+  updateProfile:     (patch: ProfileUpdate)             => Promise<{ ok: boolean; error?: string }>;
+  updateAddresses:   (addresses: OeAddress[])           => Promise<{ ok: boolean; error?: string }>;
+  updateSubscriptions:(subs: OeSubscriptions)           => Promise<{ ok: boolean; error?: string }>;
+  updateConsent:     (consent: OeConsent)               => Promise<{ ok: boolean; error?: string }>;
+
+  // Fire-and-forget sync (called from CartContext / WishlistContext)
+  syncCart:     (items: OeCartItem[])     => Promise<void>;
+  syncWishlist: (items: OeWishlistItem[]) => Promise<void>;
 }
 ```
 
-**Relationship with Redux:** two side-effects fire on a successful login.
+**Session model:** the storefront no longer keeps JWTs in Redux or `localStorage`. `oe_access` / `oe_refresh` / `oe_user` are httpOnly cookies set by `signInAction` and cleared by `signOutAction`. Every authenticated Server Action reads the cookie server-side; the client only holds the resulting `user` object.
+
+**Bootstrap:** on mount, `AuthProvider` calls `getCurrentUserAction()`. If a valid session cookie exists, the action returns `OeUser` (profile + addresses + subscriptions + consent + cartItems + wishlistItems + oeOrders + recentlyViewedItems). Either way, `authReady` flips to `true`.
+
+**Sign-in flow (login + Redux side-effects):**
 
 ```
-AuthContext.login(emailOrPhone, password)
-        │
-        ├─→ dispatch(setAuth({ accessToken, refreshToken, userIdentifier }))
-        │       │   stamps tokens onto userSlice.data
-        │       ▼
-        │   cartApi / wishlistApi prepareHeaders pick up Bearer token,
-        │   cached queries automatically refetch under the new auth.
+useAuth().login(emailOrPhone, password)
         │
         ▼
-AuthContext.isLoggedIn → true
+signInAction (Server Action)
+        │
+        ├─→ getApi().AuthProvider.auth('email', {authData:[{marker:login},{marker:password}]})
+        │       │  on success — Server sets oe_access / oe_refresh / oe_user cookies
+        │       │
+        │       └─→ getCurrentUserAction() (internal) → returns OeUser
         │
         ▼
-WishlistSyncEffect (Providers.tsx)
+{ ok:true, userIdentifier, user }
         │
-        ▼
-dispatch(wishlistActions.mergeUserWishlist({ wishlist, waitingList }))
-        │
-        ▼
-wishlistSlice.mergeUserWishlist reducer
-        │  server items take precedence, guest-only items appended
-        ▼
-Redux wishlist state updated + persisted to localStorage
+        ├─→ dispatch(setAuth({ accessToken:'', refreshToken:'', userIdentifier }))  // Redux — identifier only
+        ├─→ setUser(mergeOeUser(user))                                              // local React state
+        └─→ setIsLoggedIn(true) → cart/wishlist sync effects unlock
 ```
 
-`logout()` mirrors this: `clearAuth()` strips tokens from `userSlice.data`,
-which invalidates `cartApi` / `wishlistApi` cached queries (they will 401
-without a Bearer header — callers gate them with `skip: !authToken`).
+**Google OAuth:** `loginWithGoogle(accessToken)` — the client gets the token from GIS via `requestGoogleAccessToken()` in `src/lib/google-auth.ts` (requires `NEXT_PUBLIC_GOOGLE_CLIENT_ID`), then `signInWithGoogleAction` exchanges it for an OE session.
+
+**Sign-up:** `signUp(input)` — `input` follows the CMS attribute set `users_sign_in_sign_up` loaded via `loadSignUpFormSchema()` and exposed by `SignUpFormSchemaProvider`.
+
+**Forgot password:** the "Forgot password?" link inside `LoginModal` currently fires `alert(L.forgotConfirm)` — a placeholder. There is no `requestPasswordResetAction` yet.
+
+**Logout:** clears local state immediately (optimistic), dispatches `clearAuth()`, then fires `signOutAction()` in the background to clear the cookies and invalidate the session server-side.
+
+**WishlistSyncEffect** (inside `Providers.tsx`): **no-op placeholder** — the real wishlist hydration now runs inside `WishlistContext` from `user.wishlistItems`. The component is retained only for backwards compatibility with the earlier pattern.
 
 ---
 
 ## CatalogAccentContext · `useCatalogAccent()`
 
-A simple string context providing the accent hex color for catalog pages.
+A simple string context providing the accent hex colour for catalog pages.
 
 Import: `import { useCatalogAccent } from '../context/CatalogAccentContext';`
 
 ```ts
-// Returns: string  (hex color, e.g. '#F88A8A' or '#8B9EB7')
-const accent = useCatalogAccent();
+const accent = useCatalogAccent();  // '#F88A8A' or '#DA1E1E'
 ```
 
 <table>
   <thead>
-    <tr><th>Page / Component</th><th>Accent color</th></tr>
+    <tr><th>Page / Component</th><th>Accent colour</th></tr>
   </thead>
   <tbody>
     <tr><td>Women's catalog pages</td><td><code>#F88A8A</code> (pink) — <code>ACCENT_WOMEN</code></td></tr>
@@ -222,7 +234,7 @@ const accent = useCatalogAccent();
   </tbody>
 </table>
 
-To override in a story:
+Override in a story:
 
 ```tsx
 export const MensVersion: Story = {

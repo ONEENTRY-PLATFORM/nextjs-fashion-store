@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { getApi, isError, isOneEntryEnabled } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
 
 // Local copy of the hex→name map. Importing the canonical map from
@@ -56,22 +57,27 @@ type CountableProduct = {
   productDetails?: string[];
 };
 
+// OE now sometimes returns `localizeInfos: { title }` (flat) instead of
+// `{ en_US: { title } }` when the SDK unwraps for the requested lang. Accept
+// both shapes so future/past schema variations don't zero out the filter row.
+type RawLocalize = { en_US?: { title?: string }; title?: string };
+
 type RawChild = {
   type: string;
   marker?: string;
   value?: string;
-  localizeInfos?: { en_US?: { title?: string } };
+  localizeInfos?: RawLocalize;
 };
 
 type RawGroup = {
   type: string;
-  localizeInfos?: { en_US?: { title?: string } };
+  localizeInfos?: RawLocalize;
   position?: number;
   children?: RawChild[];
 };
 
 type RawFilter = {
-  localizeInfos?: { en_US?: { title?: string } };
+  localizeInfos?: RawLocalize;
   items?: RawGroup[];
 };
 
@@ -191,10 +197,25 @@ const FILTER_COLUMNS_BY_KEY: Record<string, number> = {
  * `CatalogTemplate`. The `products` arg is used purely to compute per-option
  * counts — the option list itself comes from OE.
  */
+// OE's `Filters.getFilterByMarker` normalises `localizeInfos` either as
+// `{ en_US: { title } }` (nested per-locale) or as a flat `{ title }` when
+// the SDK unwraps it for the requested `langCode`. Support both — a schema
+// change in either direction would otherwise silently zero out every filter
+// group, since a missing title is treated as "skip this row".
+function pickTitle(info: RawLocalize | undefined): string {
+  if (!info) return '';
+  const nested = (info as { en_US?: { title?: string } }).en_US;
+  if (nested && typeof nested.title === 'string' && nested.title.trim()) {
+    return nested.title.trim();
+  }
+  const flat = (info as { title?: string }).title;
+  return typeof flat === 'string' ? flat.trim() : '';
+}
+
 function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[]): ClothingFilterGroup[] {
   const groups: ClothingFilterGroup[] = [];
   for (const g of raw.items ?? []) {
-    const groupTitle = g.localizeInfos?.en_US?.title ?? '';
+    const groupTitle = pickTitle(g.localizeInfos);
     if (!groupTitle) continue;
     const key = FILTER_GROUP_KEY[groupTitle];
     if (!key) continue;
@@ -213,7 +234,7 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[]): Clot
 
     const options: ClothingFilterOption[] = [];
     for (const c of g.children ?? []) {
-      const rawLabel = c.localizeInfos?.en_US?.title ?? c.value ?? '';
+      const rawLabel = pickTitle(c.localizeInfos) || (c.value ?? '');
       const label = rawLabel.trim();
       if (!label) continue;
       const count = countMatches(products, key, label);
@@ -247,24 +268,14 @@ export const loadClothingFilter = cache(
     products: CountableProduct[],
     lang: string = DEFAULT_LOCALE,
   ): Promise<ClothingFilterGroup[] | null> => {
-    const url = process.env.ONEENTRY_URL;
-    const appToken = process.env.ONEENTRY_TOKEN;
-    if (!url || !appToken) return null;
+    if (!isOneEntryEnabled) return null;
     try {
-      const res = await fetch(
-        `${url}/api/content/filters/marker/clothing?langCode=${encodeURIComponent(lang)}`,
-        {
-          headers: {
-            'x-app-token': appToken,
-            accept: 'application/json',
-          },
-          cache: 'no-store',
-        },
-      );
-      const txt = await res.text();
-      if (!res.ok || !txt.trim().startsWith('{')) return null;
-      const raw = JSON.parse(txt) as RawFilter;
-      return adaptFilterToGroups(raw, products);
+      const result = await getApi().Filters.getFilterByMarker('clothing', lang);
+      if (isError(result)) return null;
+      // SDK's `IContentFilter` types the response with a rich `items[].children`
+      // tree, but for adaptFilterToGroups we only need a subset — cast to the
+      // local `RawFilter` shape rather than pull in the full interface.
+      return adaptFilterToGroups(result as unknown as RawFilter, products);
     } catch {
       return null;
     }

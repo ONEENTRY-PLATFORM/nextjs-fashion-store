@@ -22,12 +22,20 @@ export const LOYALTY_CARD_LABELS = {
   moreToTierTpl: (left: string, tier: string) => `${left} more to ${tier} status`,
   highestTier: 'You have reached the highest tier',
   perks: {
-    Bronze:   ['5% off every order', 'Free standard returns', 'Early access to sales'],
+    // Entry-level for shoppers who haven't yet unlocked a paid tier.
+    // Intentionally soft — no discount, just the account basics.
+    Member:   ['Save items to your wishlist', 'Order history at your fingertips', 'Personalised recommendations'],
+    // First bullet on paid tiers is `perkPlaceholder` on purpose — the
+    // LoyaltyCard swaps it for `${pct}% off every order` at render time,
+    // reading the real percentage from OE (`Discounts.marker.<tier>`).
+    // Hardcoding "5% off" here made every Bronze member look 5% regardless
+    // of what the merchant actually configured.
+    Bronze:   ['Discount on every order', 'Free standard returns', 'Early access to sales'],
     Silver:   ['Discount on every order', 'Free returns & exchanges', 'Priority customer support'],
     Gold:     ['Discount on every order', 'Free express delivery', 'Dedicated personal stylist'],
     Platinum: ['Discount on every order', 'Same-day delivery', 'Exclusive VIP events & previews'],
   } as Record<string, readonly string[]>,
-  tierOrder: ['Bronze', 'Silver', 'Gold', 'Platinum'] as const,
+  tierOrder: ['Member', 'Bronze', 'Silver', 'Gold', 'Platinum'] as const,
 } as const;
 
 export const ACCOUNT_PAGE_LABELS = {

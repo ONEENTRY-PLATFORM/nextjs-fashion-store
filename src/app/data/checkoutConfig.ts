@@ -1,12 +1,7 @@
 /* ── Checkout configuration data ── */
 
-export const CHECKOUT_COUPONS: Record<string, { label: string; pct: number }> = {
-  Kekimoro10: { label: '10% off', pct: 10 },
-  SAVE10:     { label: '10% off', pct: 10 },
-  Kekimoro20: { label: '20% off', pct: 20 },
-  SUMMER15:   { label: '15% off', pct: 15 },
-  WELCOME25:  { label: '25% off', pct: 25 },
-};
+// Coupons were previously mocked here; live coupons now flow through OE
+// `previewOrder` / `Discounts.getDiscountByMarker` (see CartContext.applyCoupon).
 
 export const PICKUP_STORES = [
   { id: 's1', name: 'Kekimoro Oxford Street',  address: '234 Oxford St, London W1C 1AP',    hours: 'Mon–Sat 09:00–21:00, Sun 11:00–18:00' },

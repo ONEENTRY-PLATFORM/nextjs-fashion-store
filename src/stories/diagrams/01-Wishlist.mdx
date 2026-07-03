@@ -82,19 +82,20 @@ Entry points: heart button in the **catalog card** and on the **product page**.
 ## 5. Sync After Login
 
 <MermaidDiagram chart={`flowchart TD
-    A([Login]) --> B["validateCredentials"]
-    B --> C{Credentials valid?}
+    A([Login]) --> B["signInAction\\nServer Action"]
+    B --> C{OneEntry\\naccepts?}
     C -->|NO| D["Error"]
-    C -->|YES| E["isLoggedIn = true"]
-    E --> F["WishlistSyncEffect\\nProviders.tsx"]
-    F --> G["mergeUserWishlist\\nwishlist + waitingList"]
-    G --> H["fromDataWishlist\\nconvert wishlist items"]
-    G --> I["fromWaitingItem\\nconvert waiting items"]
-    H --> J["serverItems"]
-    I --> J
-    J --> K["guestOnly = guest items\\nnot found on server"]
-    K --> L["items = serverItems\\n+ guestOnly\\nserver takes priority"]
-    L --> M["saveToStorage\\nlocalStorage"]`} />
+    C -->|YES| E["Set oe_access /\\noe_refresh / oe_user cookies"]
+    E --> F["AuthContext.user\\nseeded from OeUser"]
+    F --> G["isLoggedIn = true"]
+    G --> H["WishlistContext effect\\nfires (once per session,\\nsessionStorage flag\\noe_wishlist_merged)"]
+    H --> I["placeholders from\\nuser.wishlistItems"]
+    I --> J["getProductsByIdsAction\\nenrich placeholders"]
+    J --> K["merge server items\\n+ guest-only items\\n(server wins on dedupe)"]
+    K --> L["saveToStorage\\nlocalStorage"]
+    L --> M["Debounced 400 ms\\nsyncWishlistAction\\npushes merged list\\nback to OE"]`} />
+
+> Note: the older `WishlistSyncEffect` in Providers.tsx is now a **no-op placeholder** — the real merge lives in `WishlistContext`.
 
 ---
 

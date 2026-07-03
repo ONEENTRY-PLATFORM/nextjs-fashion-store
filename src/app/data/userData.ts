@@ -2,7 +2,10 @@
 // Single source of user data for My Data and related sections.
 // When integrating with the real API, replace the values with data from the server response.
 
-export type LoyaltyStatus = 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+/** Loyalty tier label. `Member` is the entry-level bucket assigned to every
+ *  signed-in shopper who hasn't yet cleared the LTV bar of any paid tier —
+ *  no discount, no bonuses, just the standard account experience. */
+export type LoyaltyStatus = 'Member' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
 export type Gender = 'female' | 'male';
 
 interface UserProfile {
@@ -57,7 +60,12 @@ interface BonusTransaction {
 }
 
 
-type OrderStatus = 'Delivered' | 'Processing' | 'Cancelled';
+/** Order status label. `Delivered`/`Processing`/`Cancelled` are the three
+ *  canonical buckets that keep the mock UI happy. OE tenants can define
+ *  their own markers (`shipped`, `in_progress`, `paid`, …) — those flow
+ *  through as raw strings so we render the real status instead of forcing
+ *  everything into "Processing". */
+type OrderStatus = 'Delivered' | 'Processing' | 'Cancelled' | string;
 
 interface UserOrderItem {
   name: string;
@@ -66,6 +74,9 @@ interface UserOrderItem {
   qty: number;
   price: number;
   img: string;
+  /** OE productId — populated for orders sourced from OneEntry, `undefined`
+   *  for mock/redux fallback rows. Enables Reorder → cart. */
+  productId?: number;
 }
 
 export interface UserOrder {
@@ -79,6 +90,12 @@ export interface UserOrder {
   orderItems: UserOrderItem[];
   trackingNo?: string | null;
   estimatedDelivery?: string;
+  /** OE numeric order id — needed for cancel / update calls. `undefined`
+   *  for mock rows sourced from Redux. */
+  oeId?: number;
+  /** OE storage marker (`home`, `store_pickup`, `locker`, …). Used to route
+   *  the update call and to derive the cancelled-status marker. */
+  oeStorage?: string;
 }
 
 export interface WishlistItem {
@@ -109,6 +126,10 @@ export interface HistoryOrder {
   orderNo: string;
   date: string;
   status: HistoryOrderStatus;
+  /** Optional admin-panel display name from OE `statusLocalizeInfos.title`
+   *  (e.g. "Home Paid", "Home Shipped"). When present, the badge shows this
+   *  verbatim instead of the coarse UI-bucket label. */
+  statusTitle?: string;
   total: number;
   itemCount: number;
   trackingNo: string | null;

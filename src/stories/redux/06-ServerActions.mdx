@@ -1,0 +1,210 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Redux/Server Actions" />
+
+# Redux — Server Actions
+
+The storefront's Redux slices are the client-side optimistic layer. Everything server-authoritative — auth, cart / wishlist / recently-viewed sync, profile mutations, order creation, form submits, activity tracking, catalog / block / page / label / menu reads — happens through **Next.js Server Actions and RSC loaders** under `src/lib/oneentry/**`.
+
+This page inventories what the state layer touches on the server side.
+
+Grouped by domain. See `docs/ONEENTRY_INTEGRATION.md` for full request / response shapes and marker registry.
+
+---
+
+## Auth (`src/lib/oneentry/auth/actions.ts` — 18 Server Actions)
+
+All actions are marked `'use server'`. Every authenticated action reads / writes the `oe_access`, `oe_refresh`, `oe_user` cookies server-side. Consumed by `AuthContext`, account subsections, and checkout.
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>OneEntry call</th><th>Redux effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>signInAction(login, password)</code></td><td><code>AuthProvider.auth('email', …)</code> — sets 3 cookies</td><td><code>setAuth({ userIdentifier })</code></td></tr>
+    <tr><td><code>signInWithGoogleAction(accessToken)</code></td><td><code>AuthProvider.oauth('google', …)</code></td><td><code>setAuth({ userIdentifier })</code></td></tr>
+    <tr><td><code>connectGoogleAccountAction(accessToken)</code></td><td>Links Google to the current user</td><td>—</td></tr>
+    <tr><td><code>signUpAction(input)</code></td><td><code>AuthProvider.signUp('signin', formData)</code></td><td><code>setAuth({ userIdentifier })</code></td></tr>
+    <tr><td><code>signOutAction()</code></td><td><code>AuthProvider.logout(refreshToken)</code> — clears cookies</td><td><code>clearAuth()</code></td></tr>
+    <tr><td><code>getCurrentUserAction()</code></td><td><code>Users.getUser</code> + form-data reads + orders lookup</td><td>Seeds <code>AuthContext.user</code>; sets <code>authReady=true</code></td></tr>
+    <tr><td><code>updateProfileAction(patch)</code></td><td>Multiple field updates on <code>user_data</code></td><td>Refreshes <code>AuthContext.user</code> via <code>getCurrentUserAction</code></td></tr>
+    <tr><td><code>updateAddressesAction(addresses)</code></td><td>Form-data upsert to <code>user_addresses</code> (moduleConfigId 24)</td><td>Sets <code>user.addresses</code> to the canonical list from OE</td></tr>
+    <tr><td><code>updateSubscriptionsAction(subs)</code></td><td>Form-data upsert to <code>subscription_management</code> (moduleConfigId 32)</td><td>Sets <code>user.subscriptions</code></td></tr>
+    <tr><td><code>updateConsentAction(consent)</code></td><td>Form-data upsert to <code>user_data</code> (moduleConfigId 3)</td><td>Sets <code>user.consent</code></td></tr>
+    <tr><td><code>syncCartAction(items)</code></td><td>Full-replace push of cart snapshot into user state</td><td>Fire-and-forget; no Redux effect on failure</td></tr>
+    <tr><td><code>getCartAction()</code></td><td>Reads <code>OeCartItem[]</code></td><td>—</td></tr>
+    <tr><td><code>syncWishlistAction(items)</code></td><td>Same for wishlist</td><td>Fire-and-forget</td></tr>
+    <tr><td><code>getWishlistAction()</code></td><td>Reads <code>OeWishlistItem[]</code></td><td>—</td></tr>
+    <tr><td><code>pushRecentlyViewedAction(item)</code></td><td>Appends <code>{productId, viewedAt}</code> to server trail</td><td>—</td></tr>
+    <tr><td><code>getRecentlyViewedAction()</code></td><td>Reads the server trail</td><td>Feeds <code>recentlyViewedActions.hydrate</code></td></tr>
+    <tr><td><code>mergeRecentlyViewedAction(local)</code></td><td>Dedupe merge of guest trail + server trail</td><td>Dispatches <code>recentlyViewedActions.hydrate(merged)</code></td></tr>
+    <tr><td><code>createOrderAction(input)</code></td><td><code>POST /orders-storage/marker/{home|store_pickup|locker}/orders</code> + optional Stripe session</td><td>Returns <code>{orderId, paymentUrl}</code>; PaymentPage redirects if Stripe</td></tr>
+  </tbody>
+</table>
+
+---
+
+## Activity (`src/lib/oneentry/activity/actions.ts`)
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>trackActivityAction({type, productId?, meta?})</code></td><td>POST to <code>/user-activity/track</code>. Guest users are identified by <code>x-guest-id</code> header (from <code>src/app/utils/guest-id.ts</code>).</td></tr>
+  </tbody>
+</table>
+
+10 event types: `product_view`, `page_view`, `category_view`, `search`, `product_add_to_cart`, `product_remove_from_cart`, `product_add_to_wishlist`, `product_remove_from_wishlist`, `product_purchase`, `product_rating`.
+
+Client wrapper: `src/app/utils/track-activity.ts::trackActivity(...)` — fire-and-forget, never throws.
+
+`PageViewTracker` (mounted in `Providers.tsx`) emits `page_view` on every pathname change and **skips `/product/*`** — PDPs emit a dedicated `product_view` from `ProductDetailPage`.
+
+---
+
+## Catalog reads (RSC loaders, `src/lib/oneentry/catalog/*`)
+
+RSC loaders — not Server Actions. Cached via React `cache()` + a 5-minute process-wide TTL where noted. Awaited inside `app/**/page.tsx` shells and passed as props to client components (they never enter Redux).
+
+<table>
+  <thead>
+    <tr><th>Loader / Server Action</th><th>OneEntry API</th><th>Cache</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>loadProducts({pageUrl, lang, filters, sort, page})</code></td><td><code>POST /products/all</code></td><td>React <code>cache()</code> + 5 min TTL</td></tr>
+    <tr><td><code>loadProductById(id, lang)</code></td><td><code>Products.getProductById</code></td><td>React <code>cache()</code></td></tr>
+    <tr><td><code>loadProductsByIds(ids, lang)</code></td><td>Bulk resolver</td><td>React <code>cache()</code></td></tr>
+    <tr><td><code>searchProducts(query, lang)</code></td><td><code>POST /products/vector/search</code> + <code>POST /products/quick/search</code></td><td>React <code>cache()</code></td></tr>
+    <tr><td><code>loadPageByUrl(marker, lang)</code></td><td><code>Pages.getPageByUrl</code></td><td>React <code>cache()</code></td></tr>
+    <tr><td><code>loadStores(lang)</code>, <code>loadStoreLocationsPage(lang)</code></td><td><code>Pages.getChildPagesByParentUrl('stores')</code></td><td>React <code>cache()</code></td></tr>
+    <tr><td><code>loadProductReviews(productId, limit)</code></td><td>Form-data reads for <code>review_feedback</code> + <code>review_rating</code></td><td>React <code>cache()</code></td></tr>
+    <tr><td><code>loadClothingFilter(products, lang)</code></td><td><code>/filters/marker/clothing</code></td><td>React <code>cache()</code></td></tr>
+    <tr><td><code>getProductsByIdsAction(ids)</code> ★</td><td>Wrapper over <code>loadProductsByIds</code></td><td>—</td></tr>
+    <tr><td><code>searchProductsAction(query)</code> ★</td><td>Wrapper over <code>searchProducts</code></td><td>—</td></tr>
+    <tr><td><code>getServiceRequestsAction()</code> ★</td><td>Reads form-data <code>service_request</code> (moduleConfigId 4)</td><td>—</td></tr>
+    <tr><td><code>submitServiceRequestAction(input)</code> ★</td><td>Writes form-data <code>service_request</code></td><td>—</td></tr>
+    <tr><td><code>getWaitingListAction()</code> ★</td><td><code>getWishlistAction</code> + <code>loadProductsByIds</code> + stock inference</td><td>—</td></tr>
+  </tbody>
+</table>
+
+★ marks Server Actions (callable from client components).
+
+---
+
+## Blocks (`src/lib/oneentry/blocks/*`)
+
+RSC loaders for homepage + PDP + category blocks. Fed as props to `<HeroSlider>`, `<DiscountBanner>`, `<CategorySection>`, `<PromoBlock>`, `<NewArrivals>`, `<WomenCollection>` / `<MenCollection>`, `<ProductSpecialOffers>`, `<FrequentlyOrderedAsync>`.
+
+<table>
+  <thead>
+    <tr><th>Loader</th><th>Block marker / kind</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>loadHeroSlides(lang)</code></td><td><code>hero_slider</code></td></tr>
+    <tr><td><code>loadHomepageCollections(lang)</code></td><td><code>homepage_collections</code></td></tr>
+    <tr><td><code>loadDiscountBanner(lang)</code></td><td><code>discount_banner</code></td></tr>
+    <tr><td><code>loadCategorySection(lang)</code></td><td><code>category_section</code></td></tr>
+    <tr><td><code>loadHomepageProductBlocks(lang)</code></td><td><code>best_sellers</code>, <code>new_arrivals_home</code>, <code>sale_home</code></td></tr>
+    <tr><td><code>loadPageBlocksById(id, lang)</code>, <code>loadBlockWithProducts(marker, lang)</code>, <code>loadFrequentlyOrderedBlock(pageId)</code></td><td><code>frequently_ordered_block</code>, <code>bought_together</code>, per-page blocks</td></tr>
+  </tbody>
+</table>
+
+---
+
+## Forms (`src/lib/oneentry/forms/*`)
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Consumer</th><th>Form marker</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>submitForm(marker, fields, lang)</code></td><td><code>NewsletterForm</code></td><td><code>subscribe_new_drops</code></td></tr>
+    <tr><td>same</td><td><code>WriteReviewModal</code> (2 sequential calls)</td><td><code>review_rating</code> + <code>review_feedback</code></td></tr>
+    <tr><td>same</td><td><code>ReserveInStoreModal</code></td><td><code>reserve_in_store</code></td></tr>
+    <tr><td><code>loadFormPlaceholders(marker, lang)</code></td><td>Every form via <code>FormPlaceholdersContext</code></td><td>CMS-managed placeholders</td></tr>
+  </tbody>
+</table>
+
+Order-domain form submissions (`checkout_home_delivery` + `_guest` variants, sign-up form, service request) use dedicated actions, not `submitForm`.
+
+---
+
+## Payments (`src/lib/oneentry/payments/accounts.ts`)
+
+<table>
+  <thead>
+    <tr><th>Action</th><th>Effect</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>getPaymentAccountsAction()</code></td><td>Returns visible <code>PaymentAccount[]</code> — <code>{id, identifier, type: 'stripe'|'custom', title, description}</code>. Consumed by <code>PaymentPage</code>.</td></tr>
+  </tbody>
+</table>
+
+Stripe accounts trigger a secondary `POST /payments/sessions` after `createOrderAction`, returning `paymentUrl` for the hosted-checkout redirect.
+
+---
+
+## Labels (`src/lib/oneentry/labels/*`)
+
+12 CMS-managed label sets. Each pair `{name}-labels.ts` (loader) + `{name}-types.ts` (typed dict). Each has a matching client React context provider.
+
+<table>
+  <thead>
+    <tr><th>Label set</th><th>Attribute set marker</th><th>Provider scope</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>product-card</td><td><code>product_card_set</code></td><td>Global (Providers.tsx)</td></tr>
+    <tr><td>sign-in</td><td><code>sign_in_set</code></td><td>Global</td></tr>
+    <tr><td>create-account</td><td><code>create_account_set</code></td><td>Global</td></tr>
+    <tr><td>interface-controls</td><td><code>interface_controls_set</code></td><td>Global</td></tr>
+    <tr><td>your-bag</td><td><code>your_bag_set</code></td><td>Global</td></tr>
+    <tr><td>checkout</td><td>Multiple markers</td><td>Route-scoped (<code>/cart</code>, <code>/checkout/*</code>)</td></tr>
+    <tr><td>pdp</td><td><code>pdp_set</code></td><td>Route-scoped (<code>/product/[id]</code>)</td></tr>
+    <tr><td>account</td><td><code>account_set</code></td><td>Route-scoped (<code>/account</code>)</td></tr>
+    <tr><td>favorites-page</td><td><code>favorites_page_set</code></td><td>Route-scoped (<code>/favorites</code>)</td></tr>
+    <tr><td>sale-page</td><td><code>sale_page_set</code></td><td>Route-scoped (<code>/sale</code>)</td></tr>
+    <tr><td>new-arrivals-page</td><td><code>new_arrivals_page_set</code></td><td>Route-scoped (<code>/new</code>)</td></tr>
+    <tr><td>stores</td><td><code>stores_set</code></td><td>Route-scoped (<code>/stores</code>)</td></tr>
+  </tbody>
+</table>
+
+Each label loader uses `system-text.ts::getSystemSet(marker, lang)` — 5 minute process-wide TTL + React request cache.
+
+---
+
+## Menus (`src/lib/oneentry/menus/*`)
+
+<table>
+  <thead>
+    <tr><th>Loader</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>loadMenu(marker, lang)</code></td><td><code>Menus.getMenusByMarker</code>. Called in <code>app/layout.tsx</code> for <code>'header'</code> + <code>'footer'</code>.</td></tr>
+    <tr><td><code>adaptHeaderMenuToMega(tree)</code></td><td>OE menu tree → storefront mega-menu shape with keyword + positional fallback for gender / subcategory.</td></tr>
+  </tbody>
+</table>
+
+Consumed by client contexts `HeaderMenuProvider` and `FooterMenuProvider` under `<Providers>`.
+
+---
+
+## Storybook impact
+
+Storybook runs without OE env vars — `getApi()` throws when the SDK is touched. In practice:
+
+- `AuthContext` bootstrap fails; `authReady` still flips to `true` but `user` stays `null`, `isLoggedIn` is `false`.
+- `syncCart` / `syncWishlist` never fire because the debounce effect gates on `isLoggedIn`.
+- Loaders and labels come from the mocked data / prop values passed by each story.
+
+If a story needs to demonstrate a Server Action, stub the module — do not point Storybook at a live Platform.
+
+---
+
+## Cross-references
+
+- `docs/ONEENTRY_INTEGRATION.md` — full inventory, marker registry, cache strategy.
+- `docs/AUTH.md` — cookie model + sign-in flow.
+- `docs/CART_WISHLIST.md` — sync semantics, login-merge, recently-viewed sync.
+- `docs/CHECKOUT.md` — `createOrderAction`, `getPaymentAccountsAction`, Stripe redirect.
+- `docs/ACCOUNT.md` — every tab's Server Actions.

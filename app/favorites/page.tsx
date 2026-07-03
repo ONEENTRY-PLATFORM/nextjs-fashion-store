@@ -13,8 +13,11 @@ export const dynamic = 'force-dynamic';
 export default async function Page() {
   const [labels, recommended, trending] = await Promise.all([
     loadFavoritesPageSystemTexts(),
-    loadProducts({ tags: ['New'], limit: 12 }),
-    loadProducts({ tags: ['Bestseller'], limit: 12 }),
+    // Bigger server-side slice because the client-side gender scoping
+    // (Recommended/Trending are filtered by the shopper's preferred gender)
+    // will drop up to half the items on a mixed-gender tenant.
+    loadProducts({ tags: ['New'], limit: 30 }),
+    loadProducts({ tags: ['Bestseller'], limit: 30 }),
   ]);
   return (
     <FavoritesPageLabelsProvider data={labels}>

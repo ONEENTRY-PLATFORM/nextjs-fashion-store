@@ -75,9 +75,19 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     insulation: p.insulation || undefined,
     productDetails: p.productDetails.length > 0 ? p.productDetails : undefined,
     careInstructions: p.careInstructions.length > 0 ? p.careInstructions : undefined,
-    gender: p.gender || undefined,
+    // Fall back to the category path (`/women/...` vs `/men/...`) when the
+    // OE `gender` attribute is left blank — otherwise "unisex-by-omission"
+    // items slip into the opposite gender's carousels/filters.
+    gender: p.gender || genderFromCategoryPath(p.categories[0]) || undefined,
     ...(variants && variants.length > 0 && { variants }),
   };
+}
+
+function genderFromCategoryPath(path: string | undefined): 'W' | 'M' | '' {
+  const p = (path ?? '').toLowerCase();
+  if (p.startsWith('/women') || p.includes('/women/') || p.startsWith('home2/women')) return 'W';
+  if (p.startsWith('/men') || p.includes('/men/') || p.startsWith('home2/men')) return 'M';
+  return '';
 }
 
 /** Infer the Sale-page bucket from an OneEntry category path. */
@@ -166,6 +176,9 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
     careInstructions: p.careInstructions.length > 0 ? p.careInstructions : undefined,
     specs: specs.length > 0 ? specs : undefined,
     material: p.materials[0],
+    // Stamp gender (OE attr → category-path fallback) so PDP can pass it to
+    // Recently-Viewed → gender-aware carousels don't have to guess later.
+    gender: p.gender || genderFromCategoryPath(p.categories[0]) || undefined,
     variants: pdpVariants,
   };
 }

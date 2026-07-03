@@ -4,7 +4,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Redux — Persistence
 
-Key: `localStorage['oe_store']` · Version: `STORAGE_VERSION = 4`
+Key: `localStorage['oe_store']` · Version: `STORAGE_VERSION = 5`
 
 ---
 
@@ -15,31 +15,33 @@ Key: `localStorage['oe_store']` · Version: `STORAGE_VERSION = 4`
     <tr><th>Slice</th><th>Persisted</th><th>Notes</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>cart</code></td><td>✅</td><td>Loaded in <code>makeStore()</code></td></tr>
+    <tr><td><code>cart</code></td><td>✅</td><td>Loaded in <code>makeStore()</code>. The ephemeral <code>miniCartOpen</code> flag is stripped so re-opening the drawer doesn't leak across navigations.</td></tr>
     <tr><td><code>wishlist</code></td><td>✅</td><td>Loaded in <code>makeStore()</code></td></tr>
-    <tr><td><code>recentlyViewed</code></td><td>✅</td><td>Loaded in <code>makeStore()</code></td></tr>
-    <tr><td><code>catalog</code></td><td>✅</td><td>Saved via <code>saveToStorage</code>, but loaded separately — <code>loadCatalogFromStorage()</code> + <code>hydrateCatalogs</code> dispatched in <code>Providers.tsx</code> after client mount to avoid SSR hydration mismatch</td></tr>
-    <tr><td><code>ui</code></td><td>❌</td><td>Not persisted</td></tr>
-    <tr><td><code>user</code> (full)</td><td>❌</td><td>Not persisted</td></tr>
-    <tr><td><code>user.data.addresses</code></td><td>✅</td><td>Saved as a top-level <code>userAddresses</code> key, reconstructed into <code>user.data.addresses</code> on load</td></tr>
-    <tr><td>RTK Query cache</td><td>❌</td><td>Not persisted</td></tr>
+    <tr><td><code>recentlyViewed</code></td><td>✅</td><td>Loaded in <code>makeStore()</code>. Signed-in users also mirror the trail to OneEntry via <code>pushRecentlyViewedAction</code> / <code>mergeRecentlyViewedAction</code>.</td></tr>
+    <tr><td><code>catalog</code></td><td>✅</td><td>Saved via <code>saveToStorage</code>, but loaded separately — <code>loadCatalogFromStorage()</code> + <code>hydrateCatalogs</code> dispatched in <code>Providers.tsx</code> after client mount to avoid SSR hydration mismatch.</td></tr>
+    <tr><td><code>ui</code></td><td>❌</td><td>Not persisted.</td></tr>
+    <tr><td><code>user</code></td><td>❌</td><td>Not persisted — real profile comes from <code>AuthContext.user</code> (seeded by <code>getCurrentUserAction</code> on mount). The session lives in httpOnly cookies (<code>oe_access</code>, <code>oe_refresh</code>, <code>oe_user</code>).</td></tr>
+    <tr><td>RTK Query cache</td><td>❌</td><td>Not persisted.</td></tr>
   </tbody>
 </table>
+
+The legacy top-level `userAddresses` key was dropped in v5 — real addresses now live in `AuthContext.user.addresses` (persisted server-side via `updateAddressesAction`).
 
 ---
 
 ## Migrations
 
-Version is incremented when the state shape changes. Migrations run automatically on load.
+Version is incremented when the state shape changes. Migrations run automatically on load — see `MIGRATIONS` in `store/index.ts`.
 
 <table>
   <thead>
     <tr><th>Version</th><th>Change</th></tr>
   </thead>
   <tbody>
-    <tr><td>v2</td><td>No-op — <code>userAddresses</code> moved out of <code>user.data</code> into a top-level key (handled by the loader, not the migration)</td></tr>
-    <tr><td>v3</td><td>Adds <code>viewedAt: number</code> to existing <code>recentlyViewed</code> items</td></tr>
+    <tr><td>v2</td><td>No-op — <code>userAddresses</code> moved out of <code>user.data</code> into a top-level key (handled by the loader, not the migration).</td></tr>
+    <tr><td>v3</td><td>Adds <code>viewedAt: number</code> to existing <code>recentlyViewed</code> items.</td></tr>
     <tr><td>v4</td><td>Defensive bump for auth-token fields on <code>user.data</code>. Token is NOT persisted, so no state-shape change — kept for traceability.</td></tr>
+    <tr><td>v5</td><td>Drop the top-level <code>userAddresses</code> key entirely. Real addresses now come from OE via <code>AuthContext</code>; the persisted copy only ever held a demo seed for guests, which was never a valid data source.</td></tr>
   </tbody>
 </table>
 

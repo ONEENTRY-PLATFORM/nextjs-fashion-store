@@ -323,13 +323,44 @@ export function ProductDetailPage({
     }
   }, [selectedColor, selectedSize, dynamicColors]);
 
+  // Deep-linked shoppers hit `/product/{id}` without a `?gender` hint (search
+  // results, bookmarks, marketing emails). The header falls back to WOMEN in
+  // that case — misleading on a men's PDP. Use `router.replace` so Next.js's
+  // `useSearchParams()` in `<Header>` picks up the new value; a bare
+  // `history.replaceState` would sync the URL bar but not trigger Header
+  // to re-derive gender.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!currentGender || (currentGender !== 'M' && currentGender !== 'W')) return;
+    if (searchParams.get('gender')) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('gender', currentGender === 'M' ? 'men' : 'women');
+    const path = url.pathname + '?' + url.searchParams.toString() + url.hash;
+    router.replace(path, { scroll: false });
+  }, [currentGender, searchParams, router]);
+
   const cart = useCart();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoggedIn, user } = useAuth();
   const recentlyViewed = useSelector((state: RootState) => state.recentlyViewed.items);
-  const allRecentlyViewed = recentlyViewed
-    .filter(p => p.id !== productId)
-    .filter(p => !currentGender || currentGender === 'U' || !p.gender || p.gender === currentGender || p.gender === 'U');
+  // Different OE variant IDs of the same product (Pink XL / White M / …) each
+  // push their own Recently-Viewed entry, so the trail can list the same
+  // title twice. Dedupe by name (falling back to id) — keeps the most-recent
+  // entry per unique product.
+  const allRecentlyViewed = (() => {
+    const filtered = recentlyViewed
+      .filter(p => p.id !== productId)
+      .filter(p => !currentGender || currentGender === 'U' || !p.gender || p.gender === currentGender || p.gender === 'U');
+    const seen = new Set<string>();
+    const out: typeof filtered = [];
+    for (const p of filtered) {
+      const key = (p.name || p.id).toLowerCase().trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+    }
+    return out;
+  })();
   // "You May Also Like" — streamed in by the parent via `recommendationsSlot`.
 
   // 1) Local: prepend the current product to the Redux trail for instant UX.
@@ -347,6 +378,9 @@ export function ProductDetailPage({
       image: catalogProduct.image,
       colors: catalogProduct.colors,
       ...(catalogProduct.badge && { label: catalogProduct.badge }),
+      ...(catalogProduct.gender && (catalogProduct.gender === 'W' || catalogProduct.gender === 'M' || catalogProduct.gender === 'U')
+        ? { gender: catalogProduct.gender }
+        : {}),
     }));
     const numeric = Number(catalogProduct.id);
     if (Number.isFinite(numeric) && numeric > 0) {

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch } from '../store/hooks';
 import { fetchUserData } from '../store/userSlice';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -70,14 +70,20 @@ export function AccountPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sectionLoading, setSectionLoading] = useState(false);
 
-  // Restore active tab from URL on mount (e.g. after Back from product page)
+  // Track the URL `?tab=` query so in-page navigations (e.g. clicking
+  // "Full History" from an expanded order row) switch sections. Previously
+  // an on-mount-only effect meant `router.push('/account?tab=history')`
+  // updated the URL bar but the section stayed on `my-orders`.
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get('tab') ?? null;
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab') as Section | null;
-    if (tab && NAV_ITEMS.some(n => n.key === tab)) {
-      setActiveSection(tab);
+    if (tabParam && NAV_ITEMS.some(n => n.key === tabParam)) {
+      setActiveSection(tabParam as Section);
     }
-  }, []);
+    // NAV_ITEMS is derived from labels that recompute on each render — the
+    // effect key is the URL param, not the array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam]);
 
   const handleSectionChange = (key: Section) => {
     setActiveSection(key);

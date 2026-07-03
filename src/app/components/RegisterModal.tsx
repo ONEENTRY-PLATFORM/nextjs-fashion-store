@@ -10,10 +10,8 @@ import { registerSchema } from '../utils/schemas';
 import { REGISTER_MODAL_LABELS as L } from '../data/authLabels';
 import { useCreateAccountT } from '../../lib/oneentry/labels/CreateAccountLabelsContext';
 import { useSignUpFormSchema } from '../../lib/oneentry/auth/SignUpFormSchemaContext';
-
-const GoogleLogo = () => <Image src="/icons/auth/google.svg" alt="" width={16} height={16} className="w-4 h-4" unoptimized />;
-const AppleLogo = () => <Image src="/icons/auth/apple.svg" alt="" width={16} height={16} className="w-4 h-4" unoptimized />;
-const FacebookLogo = () => <Image src="/icons/auth/facebook.svg" alt="" width={16} height={16} className="w-4 h-4" unoptimized />;
+import { useAuthProviders } from '../hooks/useAuthProviders';
+import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../data/socialProviderRegistry';
 
 function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: React.ReactNode }) {
   return (
@@ -55,6 +53,8 @@ export function RegisterModal() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const { providers: authProviders, loading: authProvidersLoading } = useAuthProviders();
+  const socialProviders = authProviders.filter((p) => !isFormBasedProvider(p.identifier, p.type));
 
   useEffect(() => {
     if (registerModalOpen) document.body.style.overflow = 'hidden';
@@ -144,30 +144,46 @@ export function RegisterModal() {
         </div>
 
         <div className="px-8 py-6 space-y-5">
-          {/* Social — Apple and Facebook temporarily hidden until OE wires the providers */}
-          <div className="grid grid-cols-1 gap-2">
-            {[
-              { logo: <GoogleLogo />, label: L.socialGoogle, key: 'google' },
-              // { logo: <AppleLogo />, label: L.socialApple, key: 'apple' },
-              // { logo: <FacebookLogo />, label: L.socialFacebook, key: 'facebook' },
-            ].map(s => (
-              <button
-                key={s.key}
-                onClick={() => handleSocial(s.key)}
-                className="flex items-center justify-center gap-1.5 py-3 text-xs border border-gray-300 font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 focus-visible:outline-none"
-              >
-                {s.logo}
-                {s.label}
-              </button>
-            ))}
-          </div>
+          {/* Social — list from OE via `getAuthProviders()`. Only providers
+              with client wiring in SOCIAL_PROVIDER_REGISTRY are actionable;
+              the rest render disabled with a "Coming soon" hint. */}
+          {authProvidersLoading ? (
+            <div className="grid grid-cols-1 gap-2" aria-busy="true" aria-label="Loading sign-up options">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="py-3 h-[38px] border border-gray-200 bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : socialProviders.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2">
+              {socialProviders.map((p) => {
+                const meta = SOCIAL_PROVIDER_REGISTRY[p.identifier];
+                const wired = meta?.wired ?? false;
+                return (
+                  <button
+                    key={p.identifier}
+                    onClick={() => handleSocial(p.identifier)}
+                    disabled={!wired}
+                    className="flex items-center justify-center gap-1.5 py-3 text-xs border border-gray-300 font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+                  >
+                    {meta?.iconPath && (
+                      <Image src={meta.iconPath} alt="" width={16} height={16} className="w-4 h-4" unoptimized />
+                    )}
+                    {wired ? p.title : `${p.title} — Coming soon`}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 border-t border-gray-200" />
-            <span className="text-xs text-gray-400 tracking-widest uppercase">{lOr}</span>
-            <div className="flex-1 border-t border-gray-200" />
-          </div>
+          {/* Divider present while providers are loading OR after they render
+              — avoids a layout jump when the social block hydrates. */}
+          {(authProvidersLoading || socialProviders.length > 0) && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-gray-200" />
+              <span className="text-xs text-gray-400 tracking-widest uppercase">{lOr}</span>
+              <div className="flex-1 border-t border-gray-200" />
+            </div>
+          )}
 
           {/* First Name */}
           <div>

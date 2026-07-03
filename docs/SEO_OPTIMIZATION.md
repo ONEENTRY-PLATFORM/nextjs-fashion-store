@@ -1,6 +1,6 @@
 # SEO & Performance Optimization
 
-A summary of all SEO, performance and discoverability improvements applied to the ONEENTRY Fashion e-commerce project.
+A summary of all SEO, performance and discoverability improvements applied to the Kekimoro e-commerce project.
 
 ---
 
@@ -114,13 +114,13 @@ Iterates `PAGE_REGISTRY` from `src/app/data/pageRegistry.ts` and filters out the
 
 ### Group 3 — Product pages (`app/sitemap.ts:28-33`)
 
-One entry per key in `PRODUCT_CATALOG` (`src/app/data/productCatalog.ts`).
+One entry per product returned from OneEntry (`loadProducts({langCode:DEFAULT_LOCALE})`) — the legacy `PRODUCT_CATALOG` fallback is now empty and only kept for the transitional period.
 
 | URL pattern | Source | `changeFrequency` | `priority` |
 |---|---|---|---|
-| `/product/{id}` | `Object.keys(PRODUCT_CATALOG)` | `weekly` | `0.7` |
+| `/product/{id}` | `loadProducts({langCode:DEFAULT_LOCALE})` from OneEntry (product `id`s taken from the response); the legacy `PRODUCT_CATALOG` map has been removed | `weekly` | `0.7` |
 
-⚠ All `lastModified` values are stamped with the request timestamp — the sitemap doesn't reflect real per-entity edit times because there's no CMS layer yet.
+⚠ All `lastModified` values are stamped with the request timestamp. Product / page entities in OneEntry have real `dateUpdated` values but the sitemap loader doesn't yet read them — a future patch should thread `dateUpdated` from `loadPageByUrl` / `loadProductById` into the sitemap entries.
 
 ---
 
@@ -169,7 +169,7 @@ For all of the above:
 
 ## Runtime SEO: `app/manifest.ts`
 
-The PWA manifest itself is documented in [`./PWA.md`](./PWA.md) §2 ("Manifest") and §3 ("Icons") — including the verbatim field map and the missing-PNG caveat. Listed here only for SEO completeness: it is served at `/manifest.webmanifest`, advertises `ONEENTRY Fashion` / `standalone` / `categories: ['shopping', 'fashion', 'lifestyle']` and is the surface crawlers pick up for App Manifest signals.
+The PWA manifest itself is documented in [`./PWA.md`](./PWA.md) §2 ("Manifest") and §3 ("Icons") — including the verbatim field map and the missing-PNG caveat. Listed here only for SEO completeness: it is served at `/manifest.webmanifest`, advertises `Kekimoro` / `standalone` / `categories: ['shopping', 'fashion', 'lifestyle']` and is the surface crawlers pick up for App Manifest signals.
 
 ---
 
@@ -182,7 +182,7 @@ A dynamic Open Graph image rendered on Vercel/Next.js Edge (`app/opengraph-image
 | Runtime | `edge` (`ImageResponse` from `next/og`) |
 | `size` | `{ width: OG_IMAGE.width, height: OG_IMAGE.height }` → `1200 × 630` (from `seoData.ts:46`) |
 | `contentType` | `image/png` |
-| `alt` | `OG_IMAGE.alt` — `'ONEENTRY Fashion – Premium clothing, shoes and accessories'` |
+| `alt` | `OG_IMAGE.alt` — `'Kekimoro – Premium clothing, shoes and accessories'` |
 | Content | Brand mark + sub-label + tagline on a dark gradient with gold accent bars; copy lives in `OG_IMAGE_COPY` (`seoData.ts:54-58`) |
 
 The image is dynamic per request (no caching directives), but the rendered content is fully static — every render produces the same pixels. Used by Next.js as the **default** OG image for every page that doesn't define its own (`SEO.*.openGraph.images = [OG_IMAGE]`).
@@ -196,7 +196,7 @@ The image is dynamic per request (no caching directives), but the rendered conte
 `/llms.txt` is a static-rendered (`export const dynamic = 'force-static'` at line 11) plain-text endpoint following the emerging [llms.txt](https://llmstxt.org/) convention. Consumed by Anthropic ClaudeBot, OpenAI GPTBot, Perplexity, Google Gemini and similar LLM crawlers as a single-shot brand overview.
 
 Sections rendered (literal output, in order):
-1. `# ONEENTRY Fashion` heading + blockquote tagline.
+1. `# Kekimoro` heading + blockquote tagline.
 2. Free-form brand summary mentioning `CURRENCY`, `FREE_SHIPPING_THRESHOLD`, `RETURN_WINDOW_DAYS`.
 3. `## Shop Categories` — bulleted `OFFER_CATALOGUE` from `seoData.ts:22-33`.
 4. `## Product Catalogue` — total product count + URL templates + sitemap link.
@@ -232,7 +232,7 @@ Pages without JSON-LD: `/cart`, `/favorites`, `/account`, `/checkout/*`, `/downl
 
 ⚠ The constants `FREE_SHIPPING_THRESHOLD`, `RETURN_WINDOW_DAYS`, `DELIVERY_COUNTRY`, `DELIVERY_MIN_DAYS`, `DELIVERY_MAX_DAYS` in `src/app/data/seoData.ts` are surfaced **only** via metadata / JSON-LD / `llms.txt`. They are NOT enforced anywhere in the UI, cart, or checkout business logic.
 
-For the full table (where each constant is declared, where it surfaces, why it is not enforced) — see [`./CHECKOUT.md`](./CHECKOUT.md) §7.1 "SEO-only shipping & return constants". For an LLM consumer: **do not infer business rules from these values**.
+For the full picture (where each constant is declared, where it surfaces, why it is not enforced) — see [`./CHECKOUT.md`](./CHECKOUT.md) §7 "Coupons" (coupon flow), §10 "What the checkout does NOT do" (list of non-enforced marketing claims), and `src/app/data/seoData.ts` itself. For an LLM consumer: **do not infer business rules from these values**.
 
 ---
 
@@ -240,4 +240,4 @@ For the full table (where each constant is declared, where it surfaces, why it i
 
 There are two independent currency declarations: `seoData.ts:11` (`CURRENCY = 'GBP'`, used in JSON-LD / OG / `llms.txt`) and `currencyConfig.ts:6-15` (`CURRENCY = { code: 'USD', symbol: '$' }`, used by every visible UI price). A crawler reading the structured data sees `priceCurrency: "GBP"`; a human sees `$99.00`.
 
-Full divergence map, authoritative-runtime currency, and cleanup direction (collapse to one constant, fix copy strings, re-derive `llms.txt` delivery copy from `DELIVERY_MIN_DAYS` / `DELIVERY_MAX_DAYS`) — see [`./I18N.md`](./I18N.md) §6 "Currency authority conflict — UI says USD, JSON-LD says GBP".
+Full divergence map, authoritative-runtime currency, and cleanup direction (collapse to one constant, fix copy strings, re-derive `llms.txt` delivery copy from `DELIVERY_MIN_DAYS` / `DELIVERY_MAX_DAYS`) — see [`./I18N.md`](./I18N.md) §5 "Currency".

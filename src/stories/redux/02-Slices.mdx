@@ -140,29 +140,34 @@ Persisted to `localStorage['oe_store'].recentlyViewed`. Circular buffer, max 100
     <tr><th>Action</th><th>Effect</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>recentlyViewedActions.addProduct(product)</code></td><td>Insert at front, deduplicate, evict items older than 30 days</td></tr>
+    <tr><td><code>recentlyViewedActions.addProduct(product)</code></td><td>Insert at front, deduplicate, evict items older than 30 days.</td></tr>
+    <tr><td><code>recentlyViewedActions.hydrate(items)</code></td><td>Replace the buffer with the server-enriched trail — called from <code>AuthContext</code> after <code>mergeRecentlyViewedAction</code> resolves.</td></tr>
   </tbody>
 </table>
 
-> Used in `ProductDetailPage` — adds on mount, renders "Recently Viewed" block.
+**Server mirror (signed-in users):** three OneEntry Server Actions in `src/lib/oneentry/auth/actions.ts` keep the trail in sync — `pushRecentlyViewedAction`, `getRecentlyViewedAction`, `mergeRecentlyViewedAction`. See `06-ServerActions` and `docs/CART_WISHLIST.md §8.1`.
+
+> Used in `ProductDetailPage` — dispatches `addProduct` on mount, renders "Recently Viewed" block via `<RecentlyViewedSection>`.
 > Storybook coverage: ❌ No story (page-level component)
 
 ---
 
 ## userSlice
 
-Mock data from `USER_DATASET` in `data/userData.ts`. Addresses persisted separately as `userAddresses`. **Auth tokens (`authToken`, `refreshToken`, `userIdentifier`) live on `state.user.data` and feed `cartApi` / `wishlistApi` via `prepareHeaders` — but they are NEVER persisted to localStorage** (the persistence layer strips them on load/save; see `04-Persistence`).
+Default state seeded from `USER_DATASET` in `data/userData.ts`. Real profile data comes from `AuthContext.user` (populated by `getCurrentUserAction` — see `05-Contexts`). **This slice is NOT persisted to localStorage** — the session lives in httpOnly cookies (`oe_access`, `oe_refresh`, `oe_user`), managed by Server Actions.
+
+The `authToken` / `refreshToken` fields are retained on `state.user.data` for backward-compatibility but are kept as empty strings on the live path. They are legacy from an older client-side auth model and will be pruned in a future cleanup.
 
 <table>
   <thead>
     <tr><th>Action</th><th>Payload</th><th>Effect</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>patchUserData</code></td><td><code>{'Partial<UserDataset>'}</code></td><td>Save profile changes</td></tr>
-    <tr><td><code>addAddress</code></td><td><code>UserAddress</code></td><td>Append address</td></tr>
-    <tr><td><code>setAuth</code></td><td><code>{'{ accessToken, refreshToken, userIdentifier }'}</code></td><td>Stamp Platform-issued JWT pair on <code>user.data</code> after successful login. Triggers <code>cartApi</code> / <code>wishlistApi</code> refetch via Bearer header.</td></tr>
-    <tr><td><code>clearAuth</code></td><td>—</td><td>Reset <code>authToken</code> / <code>refreshToken</code> / <code>userIdentifier</code> to <code>null</code> on logout.</td></tr>
-    <tr><td><code>fetchUserData</code> (thunk)</td><td>—</td><td>Returns <code>USER_DATASET</code> directly — no HTTP call. Placeholder for future <code>GET /api/user/me</code>. The thunk's <code>fulfilled</code> handler preserves the existing auth fields.</td></tr>
+    <tr><td><code>patchUserData</code></td><td><code>{'Partial<UserDataset>'}</code></td><td>Merge partial fields into <code>state.user.data</code>. Optimistic — real persistence goes through <code>updateProfileAction</code>.</td></tr>
+    <tr><td><code>addAddress</code></td><td><code>UserAddress</code></td><td>Append to <code>state.user.data.addresses</code> (real writes go through <code>updateAddressesAction</code>).</td></tr>
+    <tr><td><code>setAuth</code></td><td><code>{'{ accessToken, refreshToken, userIdentifier }'}</code></td><td>Stamp the user identifier from <code>AuthContext</code>. Tokens are almost always empty strings on the live path — only <code>userIdentifier</code> matters (used by e.g. loyalty display).</td></tr>
+    <tr><td><code>clearAuth</code></td><td>—</td><td>Reset auth fields on logout.</td></tr>
+    <tr><td><code>fetchUserData</code> (thunk)</td><td>—</td><td>Legacy simulated fetch returning <code>USER_DATASET</code>. Retained so Storybook stories compile; no live UI calls it.</td></tr>
   </tbody>
 </table>
 
@@ -171,6 +176,6 @@ Mock data from `USER_DATASET` in `data/userData.ts`. Addresses persisted separat
 import { patchUserData, addAddress, setAuth, clearAuth, fetchUserData } from '../store/userSlice';
 ```
 
-> Wiring: `AuthContext.login()` dispatches `setAuth` on a successful Platform response; `AuthContext.logout()` dispatches `clearAuth`. See `05-Contexts` for the full integration.
+> Wiring: `AuthContext.login()` dispatches `setAuth({ userIdentifier })` (tokens empty) on a successful Server Action response; `AuthContext.logout()` dispatches `clearAuth`. See `05-Contexts` for the full integration.
 >
 > Storybook coverage: ❌ No story (full-page account views)

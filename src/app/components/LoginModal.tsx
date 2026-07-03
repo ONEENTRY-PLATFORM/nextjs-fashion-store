@@ -11,23 +11,35 @@ import { loginSchema } from '../utils/schemas';
 import { LOGIN_MODAL_LABELS as L } from '../data/authLabels';
 import { useSignInT } from '../../lib/oneentry/labels/SignInLabelsContext';
 import { useSignUpFormSchema } from '../../lib/oneentry/auth/SignUpFormSchemaContext';
+import { useAuthProviders } from '../hooks/useAuthProviders';
+import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../data/socialProviderRegistry';
 
-function SocialBtn({ logo, label, onClick }: { logo: React.ReactNode; label: string; onClick: () => void }) {
+const SOCIAL_LOGO_CLASS = 'w-[18px] h-[18px]';
+
+function SocialBtn({
+  iconPath,
+  label,
+  onClick,
+  disabled,
+}: {
+  iconPath?: string;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center gap-2 w-full py-3 text-sm border border-gray-300 font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 focus-visible:outline-none"
+      disabled={disabled}
+      className="flex items-center justify-center gap-2 w-full py-3 text-sm border border-gray-300 font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
     >
-      {logo}
+      {iconPath && (
+        <Image src={iconPath} alt="" width={18} height={18} className={SOCIAL_LOGO_CLASS} unoptimized />
+      )}
       <span>{label}</span>
     </button>
   );
 }
-
-const SOCIAL_LOGO_CLASS = 'w-[18px] h-[18px]';
-const GoogleLogo = () => <Image src="/icons/auth/google.svg" alt="" width={18} height={18} className={SOCIAL_LOGO_CLASS} unoptimized />;
-const AppleLogo = () => <Image src="/icons/auth/apple.svg" alt="" width={18} height={18} className={SOCIAL_LOGO_CLASS} unoptimized />;
-const FacebookLogo = () => <Image src="/icons/auth/facebook.svg" alt="" width={18} height={18} className={SOCIAL_LOGO_CLASS} unoptimized />;
 
 export function LoginModal() {
   const { loginModalOpen, closeLoginModal, openRegisterModal, login, loginWithGoogle } = useAuth();
@@ -53,9 +65,15 @@ export function LoginModal() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
+  // Social-provider (Google) errors get their own slot near the Google
+  // button so a long OE response doesn't visually stick to the password
+  // field. Cleared whenever the form errors are cleared too.
+  const [socialError, setSocialError] = useState('');
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const trapRef = useFocusTrap(loginModalOpen, closeLoginModal);
+  const { providers: authProviders, loading: authProvidersLoading } = useAuthProviders();
+  const socialProviders = authProviders.filter((p) => !isFormBasedProvider(p.identifier, p.type));
 
   useEffect(() => {
     if (loginModalOpen) document.body.style.overflow = 'hidden';
@@ -91,18 +109,19 @@ export function LoginModal() {
 
   const handleSocial = async (provider: string) => {
     setError('');
+    setSocialError('');
     if (provider === 'google') {
       setLoading(true);
       try {
         const idToken = await requestGoogleIdToken();
         const result = await loginWithGoogle(idToken);
         if (!result.ok) {
-          setError(result.error ?? L.errorInvalidCredentials);
+          setSocialError(result.error ?? L.errorInvalidCredentials);
           return;
         }
         if (!isCheckout) router.push('/account');
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Google sign-in failed');
+        setSocialError(e instanceof Error ? e.message : 'Google sign-in failed');
       } finally {
         setLoading(false);
       }
@@ -136,21 +155,45 @@ export function LoginModal() {
         </div>
 
         <div className="px-8 py-6 space-y-5">
-          {/* Social */}
-          <div className="space-y-2.5">
-            <SocialBtn logo={<GoogleLogo />} label={L.socialGoogle} onClick={() => handleSocial('google')} />
-            {/* TODO: re-enable when OE wires Apple / Facebook auth providers.
-            <SocialBtn logo={<AppleLogo />} label={L.socialApple} onClick={() => handleSocial('apple')} />
-            <SocialBtn logo={<FacebookLogo />} label={L.socialFacebook} onClick={() => handleSocial('facebook')} />
-            */}
-          </div>
+          {/* Social — list is pulled from OE via `getAuthProviders()`. Buttons for
+              providers we don't have client wiring for (only google today) render
+              disabled with a "Coming soon" hint. */}
+          {authProvidersLoading ? (
+            <div className="space-y-2.5" aria-busy="true" aria-label="Loading sign-in options">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="w-full py-3 h-[46px] border border-gray-200 bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : socialProviders.length > 0 ? (
+            <div className="space-y-2.5">
+              {socialProviders.map((p) => {
+                const meta = SOCIAL_PROVIDER_REGISTRY[p.identifier];
+                const wired = meta?.wired ?? false;
+                return (
+                  <SocialBtn
+                    key={p.identifier}
+                    iconPath={meta?.iconPath}
+                    label={wired ? p.title : `${p.title} — Coming soon`}
+                    onClick={() => handleSocial(p.identifier)}
+                    disabled={!wired}
+                  />
+                );
+              })}
+              {socialError && (
+                <p className="text-xs text-primary-men whitespace-normal break-words">{socialError}</p>
+              )}
+            </div>
+          ) : null}
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 border-t border-gray-200" />
-            <span className="text-xs text-gray-400 tracking-widest uppercase">{lOr}</span>
-            <div className="flex-1 border-t border-gray-200" />
-          </div>
+          {/* Divider present while providers are loading OR after they render
+              — avoids a layout jump when the social block hydrates. */}
+          {(authProvidersLoading || socialProviders.length > 0) && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-gray-200" />
+              <span className="text-xs text-gray-400 tracking-widest uppercase">{lOr}</span>
+              <div className="flex-1 border-t border-gray-200" />
+            </div>
+          )}
 
           {/* Fields */}
           <div className="space-y-3">
@@ -181,6 +224,8 @@ export function LoginModal() {
                 <button
                   className="text-xs hover:underline focus-visible:outline-none text-primary-women"
                   onClick={() => alert(L.forgotConfirm)}
+                  tabIndex={-1}
+                  type="button"
                 >
                   {lForgot}
                 </button>

@@ -74,13 +74,14 @@ A small inline dropdown triggered by a text button. Opens as an absolutely posit
 
 **Sort options:**
 
-| Label              | Value        |
-|--------------------|--------------|
-| Featured           | `featured`   |
-| Price: Low to High | `price_asc`  |
-| Price: High to Low | `price_desc` |
-| Popularity         | `popularity` |
-| New Arrivals       | `new`        |
+| Label              | UI key (Redux `sortBy`) | OE `sortKey` sent to Products API |
+|--------------------|-------------------------|-----------------------------------|
+| Featured           | `featured`              | `featured` (server default) |
+| Newest First       | `newest`                | `date_created_desc` |
+| Price: Low to High | `price_asc`             | `price_asc` |
+| Price: High to Low | `price_desc`            | `price_desc` |
+| Popularity         | `popularity`            | falls back to `featured` |
+| Biggest Discount   | `discount_desc`         | `discount_desc` (Sale only) |
 
 The active sort option shows a `✓` checkmark in `#F88A8A`. Selecting a sort option also resets pagination to page 1.
 
@@ -404,7 +405,8 @@ Applied to the desktop filter buttons scroll container. The 1 px horizontal bar 
 | `src/app/components/CatalogMobileSort.tsx`    | Mobile sort bottom-sheet                          |
 | `src/app/store/catalogSlice.ts`               | Per-catalog filter / sort / page / view state     |
 | `src/app/pages/WomenCatalogPage.tsx` (etc.)   | Thin per-category config — passes `FILTER_GROUPS`, accent, products into `CatalogTemplate` |
-| `src/app/data/filterUtils.ts`                 | `filterProducts`, `buildOptions`, `buildColorOptions` helpers |
+| `src/lib/oneentry/catalog/filters.ts`         | Pure URL ↔ OE marker mapping. Public utilities: `parseCatalogSearchParams`, `serializeCatalogSearchParams`, `toggleFilterOption`, `isFilterGroupSupported`, `getSelectedOptionsForGroup`, `countActiveFilters`. Private in-memory matcher `matchesCatalogFilters` (in `products.ts`) is used only by `loadFilteredProducts`; its `category` check tries the raw needle AND a slugified variant (`& → space`, `[^a-z0-9]+ → -`, trim) against each `p.categories[]` segment so SEASONAL TRENDS display names like `"T-Shirts & Polos"` match the stored slug `t-shirts-polos`. Legacy `data/filterUtils.ts` has been removed. |
+| `src/lib/oneentry/catalog/seasonal-trend.ts`  | `resolveSeasonalTrend(pageUrl)` / `applySeasonalTrend(filters, trend)` — reads OE page attributes `st_type-of-trends` + `st_trends` and rewrites `CatalogFilters` before load: `category` overrides `filters.category`; `attribute` pushes the value into the matching list filter (`materials`, `styles`, `brands`, `colors`, …) and clears `filters.category`. Wired from `app/[...slug]/page.tsx` right after `parseCatalogSearchParams`. |
 | `app/globals.css`                             | `.scrollbar-pink`, `.scrollbar-red`, `.scrollbar-hide` utilities |
 
 ---

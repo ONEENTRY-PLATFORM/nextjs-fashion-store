@@ -48,6 +48,12 @@ yarn-error.log*
 .vscode
 *.swp
 .playwright-mcp
+
+TESTING_PLAN.md
+OE_INTEGRATION_REPORT.md
+TESTING_RESULTS.md
+TESTING_FIXES_PLAN.md
+.claude/.sync-cursor
 client_secret*.json
 *credentials*.json
 .claude

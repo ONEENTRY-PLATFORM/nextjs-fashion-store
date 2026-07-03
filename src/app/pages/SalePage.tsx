@@ -176,10 +176,12 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
         <div className="max-w-screen-2xl mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between gap-4 py-0">
 
-            {/* ── LEFT: category tabs + filter pills, horizontally scrollable ── */}
-            <div className="flex items-center overflow-x-auto scrollbar-hide gap-0 flex-1 min-w-0">
-
-              {/* Category tabs (same style as New Arrivals) */}
+            {/* ── LEFT: category tabs (horizontally scrollable) ── */}
+            {/* Note: `overflow-x-auto` per CSS spec also clips overflow-y, which
+                would hide any absolute-positioned filter dropdowns rendered
+                below the bar. Keep the scrollable strip narrow (tabs only) and
+                lift the pill filters into the outer, unclipped flex row. */}
+            <div className="flex items-center overflow-x-auto scrollbar-hide gap-0 min-w-0">
               {SALE_CATEGORIES.map(cat => {
                 const count = cat === CAT.all ? PRODUCTS.length : PRODUCTS.filter(p => p.category === cat).length;
                 return (
@@ -200,62 +202,66 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
                   </button>
                 );
               })}
-
-              {/* Separator */}
-              <span className="flex-shrink-0 w-px h-6 bg-gray-200 mx-3 self-center" />
-
-              {/* Filter pills — only visible on desktop */}
-              <div className="hidden md:flex items-center gap-2 flex-shrink-0 py-2">
-                <PillDropdown
-                  label={L.filterDiscount}
-                  options={DISCOUNT_OPTIONS}
-                  selected={selDiscount}
-                  onToggle={toggleDiscount}
-                  onClear={() => clearFilter('discount')}
-                />
-                <PillDropdown
-                  label={L.filterSize}
-                  options={SALE_SIZE_OPTIONS}
-                  selected={selSize}
-                  onToggle={toggleSize}
-                  onClear={() => clearFilter('size')}
-                />
-                <ColorPillDropdown
-                  selected={selColor}
-                  onToggle={toggleColor}
-                  onClear={() => clearFilter('color')}
-                />
-                <PillDropdown
-                  label={L.filterBrand}
-                  options={SALE_BRAND_OPTIONS}
-                  selected={selBrand}
-                  onToggle={toggleBrand}
-                  onClear={() => clearFilter('brand')}
-                />
-                {totalActive > 0 && (
-                  <button
-                    onClick={clearAll}
-                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-black underline ml-1 focus-visible:outline-none whitespace-nowrap"
-                  >
-                    <X size={10} /> {L.clearAll}
-                  </button>
-                )}
-              </div>
-
-              {/* Mobile filter button */}
-              <button
-                onClick={() => setMobileFilterOpen(true)}
-                className="md:hidden flex-shrink-0 flex items-center gap-1.5 px-3 py-2 ml-2 text-xs tracking-wider uppercase focus-visible:outline-none border border-[#d1d5db] rounded-none"
-              >
-                <SlidersHorizontal size={12} />
-                {L.filtersCta}
-                {totalActive > 0 && (
-                  <span className="bg-[var(--sale)] text-white rounded-none text-[9px] font-bold px-1 py-px">
-                    {totalActive}
-                  </span>
-                )}
-              </button>
             </div>
+
+            {/* Separator */}
+            <span className="hidden md:block flex-shrink-0 w-px h-6 bg-gray-200 mx-1 self-center" />
+
+            {/* Filter pills — desktop only, lives OUTSIDE the horizontally
+                scrollable container so its dropdowns aren't clipped. */}
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0 py-2">
+              <PillDropdown
+                label={L.filterDiscount}
+                options={DISCOUNT_OPTIONS}
+                selected={selDiscount}
+                onToggle={toggleDiscount}
+                onClear={() => clearFilter('discount')}
+              />
+              <PillDropdown
+                label={L.filterSize}
+                options={SALE_SIZE_OPTIONS}
+                selected={selSize}
+                onToggle={toggleSize}
+                onClear={() => clearFilter('size')}
+              />
+              <ColorPillDropdown
+                selected={selColor}
+                onToggle={toggleColor}
+                onClear={() => clearFilter('color')}
+              />
+              <PillDropdown
+                label={L.filterBrand}
+                options={SALE_BRAND_OPTIONS}
+                selected={selBrand}
+                onToggle={toggleBrand}
+                onClear={() => clearFilter('brand')}
+              />
+              {totalActive > 0 && (
+                <button
+                  onClick={clearAll}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-black underline ml-1 focus-visible:outline-none whitespace-nowrap"
+                >
+                  <X size={10} /> {L.clearAll}
+                </button>
+              )}
+            </div>
+
+            {/* Spacer that eats leftover space between tabs and right controls */}
+            <div className="flex-1 min-w-0" />
+
+            {/* Mobile filter button */}
+            <button
+              onClick={() => setMobileFilterOpen(true)}
+              className="md:hidden flex-shrink-0 flex items-center gap-1.5 px-3 py-2 ml-2 text-xs tracking-wider uppercase focus-visible:outline-none border border-[#d1d5db] rounded-none"
+            >
+              <SlidersHorizontal size={12} />
+              {L.filtersCta}
+              {totalActive > 0 && (
+                <span className="bg-[var(--sale)] text-white rounded-none text-[9px] font-bold px-1 py-px">
+                  {totalActive}
+                </span>
+              )}
+            </button>
 
             {/* Right: column toggles + sort */}
             <div className="hidden md:flex items-center gap-4 flex-shrink-0 py-2">

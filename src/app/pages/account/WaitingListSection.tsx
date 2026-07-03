@@ -50,14 +50,19 @@ export function WaitingListSection() {
   // Waiting list is derived from /me/wishlist: each wishlist item is enriched
   // with current OE stock status (out_of_stock / low_stock / back_in_stock).
   const [waitingList, setWaitingList] = useState<WaitingItem[]>([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!isLoggedIn || !user?.wishlistItems || user.wishlistItems.length === 0) {
       setWaitingList([]);
+      setLoading(false);
       return;
     }
     let cancelled = false;
+    setLoading(true);
     void getWaitingListAction().then((items) => {
-      if (!cancelled) setWaitingList(items);
+      if (cancelled) return;
+      setWaitingList(items);
+      setLoading(false);
     });
     return () => { cancelled = true; };
   }, [isLoggedIn, user?.wishlistItems]);
@@ -154,7 +159,21 @@ export function WaitingListSection() {
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {loading ? (
+        <div className="space-y-px bg-black" aria-busy="true" aria-label="Loading waiting list">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-4 p-4 bg-white h-[112px]">
+              <div className="w-20 h-24 bg-gray-100 animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-40 bg-gray-100 animate-pulse" />
+                <div className="h-3 w-24 bg-gray-100 animate-pulse" />
+                <div className="h-6 w-20 bg-gray-100 animate-pulse mt-2" />
+              </div>
+              <div className="h-9 w-32 bg-gray-100 animate-pulse" />
+            </div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[var(--banner-bg)]">
           <Bell size={32} className="text-gray-300" />
           <p className="text-sm text-gray-400 text-center max-w-xs">{L.emptyText}</p>

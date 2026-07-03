@@ -16,29 +16,40 @@ import type { OeOrder } from '../../../lib/oneentry/auth/actions';
 
 const HISTORY_FILTERS: HistoryOrderStatus[] = ['delivered', 'shipped', 'processing', 'cancelled', 'returned'];
 
+/**
+ * Bucket an OE order into one of our five UI statuses. OE namespaces status
+ * markers per storage on this tenant — `home_new`, `home_paid`, `home_shipped`,
+ * `home_delivered`, `home_cancelled`, `store_pickup_ready`, etc. — so the
+ * old exact-match dictionary bucketed everything as `processing`. Substring
+ * regex on the marker handles every merchant naming convention (`home_*`,
+ * `pickup_*`, `locker_*`, camelCase, etc.). `returned` beats `cancelled`
+ * beats `delivered` beats `shipped` beats `processing` — reversals win over
+ * fulfillment, most-fulfilled state wins over less-fulfilled.
+ */
+function bucketOeStatus(statusIdentifier: string): HistoryOrderStatus {
+  const s = statusIdentifier.toLowerCase();
+  if (!s) return 'processing';
+  if (/return/.test(s))                                           return 'returned';
+  if (/cancel|refund|reject|void|fail|declin/.test(s))            return 'cancelled';
+  if (/deliver|complete|done|closed|finish|received|arrived/.test(s)) return 'delivered';
+  if (/ship|dispatch|transit|out.?for.?delivery|paid/.test(s))    return 'shipped';
+  return 'processing';
+}
+
 /** Map an OE order into the HistoryOrder shape this section already expects. */
 function adaptOeToHistory(o: OeOrder): HistoryOrder {
   const total = parseFloat(o.totalSum) || 0;
   const date = o.createdDate
     ? new Date(o.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     : '';
-  const statusMap: Record<string, HistoryOrderStatus> = {
-    delivered: 'delivered',
-    completed: 'delivered',
-    shipped: 'shipped',
-    cancelled: 'cancelled',
-    canceled: 'cancelled',
-    returned: 'returned',
-    processing: 'processing',
-    new: 'processing',
-    pending: 'processing',
-  };
-  const status = statusMap[o.statusIdentifier?.toLowerCase?.() ?? ''] ?? 'processing';
   return {
     id: `oe-${o.id}`,
     orderNo: `OE-${o.id}`,
     date,
-    status,
+    status: bucketOeStatus(o.statusIdentifier ?? ''),
+    // Preserve OE's admin-panel display name so the row can render "Home Paid"
+    // etc. verbatim — see ORDER_STATUS_CONFIG override below.
+    statusTitle: o.statusTitle || undefined,
     total,
     itemCount: o.products.length,
     trackingNo: null,
@@ -259,7 +270,7 @@ export function HistorySection() {
                       className="px-2 py-0.5 text-[10px] tracking-wider uppercase hidden sm:inline-block border font-bold"
                       style={{ backgroundColor: cfg.bg, borderColor: cfg.border, color: cfg.text }}
                     >
-                      {cfg.label}
+                      {order.statusTitle ?? cfg.label}
                     </span>
                     {order.trackingNo && (
                       <button
