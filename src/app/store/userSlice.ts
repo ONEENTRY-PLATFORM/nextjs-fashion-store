@@ -1,5 +1,5 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import { USER_DATASET, USER_SLICE_MESSAGES, type UserDataset, type UserAddress } from '../data/userData';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { type UserDataset, type UserAddress } from '../data/userData';
 
 interface UserState {
   data: UserDataset;
@@ -8,19 +8,57 @@ interface UserState {
 }
 
 /**
- * Initial user state. Includes mock dataset so UI renders without a
- * loading flash, plus null auth fields — populated after successful
- * Platform login via `setAuth` (see `AuthContext.login`).
- *
- * `addresses` is forced to an empty array so the demo Jane Smith entries
- * from USER_DATASET don't leak into a guest's Redux state (and from there
- * into localStorage via the `userAddresses` persistence key). Real
- * addresses arrive from OE via `AuthContext.user.addresses`.
+ * Empty initial state. Real user data (profile / loyalty / addresses / cart /
+ * wishlist / orders) flows in from OneEntry via `AuthContext` — this slice
+ * only holds the JWT pair + identifier that RTK Query keys off, plus the
+ * addresses list used by the delivery form.
  */
 const initialState: UserState = {
   data: {
-    ...USER_DATASET,
+    profile: {
+      firstName: '',
+      email: '',
+      phone: '',
+      dob: '',
+      gender: 'female',
+      shoeSize: '',
+      clothingSize: '',
+    },
+    loyalty: {
+      cardNumber: '',
+      status: 'Member',
+      discount: 0,
+      bonuses: 0,
+      totalPurchases: 0,
+      nextLevelAmount: 0,
+    },
     addresses: [],
+    socials: [],
+    orders: [],
+    bonusHistory: [],
+    purchaseHistory: [],
+    wishlist: [],
+    waitingList: [],
+    referral: {
+      linkBase: '',
+      creditAmount: 0,
+      stats: { friendsInvited: 0, ordersPlaced: 0, creditsEarned: '' },
+      minPurchase: 0,
+      creditExpiryMonths: 0,
+    },
+    subscriptions: {
+      emailNewsletter: false,
+      smsNotifications: false,
+      pushNotifications: false,
+      orderUpdates: false,
+      newArrivals: false,
+      saleAlerts: false,
+      loyaltyUpdates: false,
+    },
+    consent: {
+      dataProcessing: false,
+      crossBorder: false,
+    },
     authToken: null,
     refreshToken: null,
     userIdentifier: null,
@@ -28,20 +66,6 @@ const initialState: UserState = {
   status: 'idle',
   error: null,
 };
-
-/**
- * Simulates an API call that returns the user dataset.
- * When backend is ready, replace the mock body with:
- *   const response = await fetch('/api/user/me');
- *   return response.json() as UserDataset;
- */
-export const fetchUserData = createAsyncThunk<UserDataset>(
-  'user/fetchUserData',
-  async () => {
-    // TODO: replace with real API call
-    return USER_DATASET;
-  },
-);
 
 /**
  * Payload shape consumed by `setAuth`. Mirrors `UserTokenType` from
@@ -82,26 +106,6 @@ const userSlice = createSlice({
       state.data.refreshToken = null;
       state.data.userIdentifier = null;
     },
-  },
-  extraReducers: builder => {
-    builder
-      .addCase(fetchUserData.pending, state => {
-        state.status = 'loading';
-        state.error = null;
-      })
-      .addCase(fetchUserData.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.data = {
-          ...action.payload,
-          authToken: state.data.authToken,
-          refreshToken: state.data.refreshToken,
-          userIdentifier: state.data.userIdentifier,
-        };
-      })
-      .addCase(fetchUserData.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.error.message ?? USER_SLICE_MESSAGES.failedToLoad;
-      });
   },
 });
 

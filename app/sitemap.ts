@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '../src/app/data/seoData';
-import { PRODUCT_CATALOG } from '../src/app/data/productCatalog';
 import { PAGE_REGISTRY } from '../src/app/data/pageRegistry';
+import { loadProducts } from '../src/lib/oneentry/catalog/products';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();
 
   // Fixed pages that are not in PAGE_REGISTRY
@@ -24,9 +24,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: entry.type === 'catalog' ? 0.9 : 0.4,
     }));
 
-  // Product pages
-  const productPages: MetadataRoute.Sitemap = Object.keys(PRODUCT_CATALOG).map(id => ({
-    url: `${SITE_URL}/product/${id}`,
+  // Product pages — pulled from OE. Use the aggregated (`unique`) catalog so
+  // colour/size sibling variants don't produce duplicate URLs. `limit` is set
+  // high enough to cover the tenant's current SKU count.
+  const oeCatalog = await loadProducts({ unique: true, limit: 5000 });
+  const productPages: MetadataRoute.Sitemap = oeCatalog.items.map((p) => ({
+    url: `${SITE_URL}/product/${p.id}`,
     lastModified: now,
     changeFrequency: 'weekly' as const,
     priority: 0.7,

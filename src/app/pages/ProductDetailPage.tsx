@@ -37,6 +37,9 @@ import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
 import { strikeColor } from '../utils/colorUtils';
 import { useAnnounce } from '../hooks/useAnnounce';
 import { PRODUCT_PRICE_NOTE, PRODUCT_ACTION_LABELS, PRODUCT_ACCORDION_LABELS as PA, PRODUCT_BREADCRUMB_LABELS as PB, PRODUCT_DEFAULTS as PD } from '../data/productPageLabels';
+// PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks
+// (`saveToWishlist`, `savedToWishlist`) — anything referring to product data
+// (name/brand/price/size/colour) comes from `catalogProduct` / OneEntry.
 import { useProductCardT } from '../../lib/oneentry/labels/ProductCardLabelsContext';
 import { usePdpT } from '../../lib/oneentry/labels/PdpLabelsContext';
 import { CURRENCY } from '../data/currencyConfig';
@@ -69,6 +72,8 @@ export function ProductDetailPage({
   reviewsSlot,
   recommendationsSlot,
   currentGender,
+  bonusPoints,
+  categoryViewAllHref = '/',
 }: {
   initialProduct?: CatalogProduct;
   /** Breadcrumb labels derived from the product's OE category path
@@ -84,6 +89,14 @@ export function ProductDetailPage({
    *  client-side "Recently Viewed" carousel so men only see men's items and
    *  women only see women's (unisex always passes through). */
   currentGender?: 'W' | 'M' | 'U' | '';
+  /** Bonus points earned when purchasing this product, resolved server-side
+   *  from the OE `purchase-of-goods` discount rule. `undefined` (or `0`) hides
+   *  the "Earn X bonus points" block entirely. */
+  bonusPoints?: number;
+  /** Href for the "View all in this category" link — derived from the product's
+   *  OE `categories` path server-side. When absent (or `'/'`), used as a
+   *  passthrough to the recommendations carousel. */
+  categoryViewAllHref?: string;
 } = {}) {
   const router = useRouter();
   const lReviewsSuffix  = useProductCardT('product-card-reviews',                  PRODUCT_ACTION_LABELS.reviewsSuffix);
@@ -156,25 +169,13 @@ export function ProductDetailPage({
 
   if (productId && !catalogProduct) notFound();
 
-  const categoryViewAllHref = (() => {
-    const id = productId;
-    if (id.startsWith('wc-')) return '/women/clothing';
-    if (id.startsWith('mc-')) return '/men/clothing';
-    if (id.startsWith('ws-')) return '/women/shoes';
-    if (id.startsWith('ms-')) return '/men/shoes';
-    if (id.startsWith('wb-')) return '/women/bags';
-    if (id.startsWith('mb-')) return '/men/bags';
-    if (id.startsWith('wa-')) return '/women/accessories';
-    if (id.startsWith('ma-')) return '/men/accessories';
-    return '/women/clothing';
-  })();
-
   const productIsOOS = catalogProduct?.inStock === false;
 
   // Route guard above already returned 404 when productId has no catalogProduct,
   // so by this point catalogProduct is always defined. The `?.` is kept solely
   // for the TS narrowing — runtime never falls back.
-  const dynamicName = catalogProduct?.name ?? PD.fallbackName;
+  const dynamicName = catalogProduct?.name ?? '';
+  const dynamicBrand = catalogProduct?.brand ?? '';
   const dynamicImage = catalogProduct?.image ?? '';
   const dynamicColors = useMemo(() => (
     (catalogProduct?.colors ?? []).map((hex, idx) => ({
@@ -200,7 +201,8 @@ export function ProductDetailPage({
 
   const searchParams = useSearchParams();
   const rawColor = searchParams?.get('color');
-  const initSize = searchParams?.get('size') ?? null;
+  const initSize = searchParams?.get('size')
+    ?? (productSizeOptions.length === 1 ? productSizeOptions[0].label : null);
   // Accept either hex (`#FFC0CB`) or OE colour name (`Pink`) so links coming
   // from either the PDP (writes hex) or ProductCard/QuickView (writes OE name)
   // both resolve to the intended swatch.
@@ -432,10 +434,10 @@ export function ProductDetailPage({
     cart.addBundle(offer.products.map((p, idx) => ({
       id: `${offerId}-item-${idx}`,
       name: p.name,
-      brand: PD.fallbackBrand,
-      color: idx === 0 ? dynamicColors[selectedColor].name : PD.fallbackColorName,
+      brand: dynamicBrand,
+      color: idx === 0 ? dynamicColors[selectedColor].name : '',
       sku: `BUNDLE-${offerId.toUpperCase()}-${idx + 1}`,
-      size: idx === 0 && selectedSize ? selectedSize : PD.fallbackSize,
+      size: idx === 0 && selectedSize ? selectedSize : '',
       quantity: 1,
       price: parseFloat(p.salePrice.match(/[\d.]+/)?.[0] ?? '0') || 0,
       originalPrice: parseFloat(p.originalPrice.match(/[\d.]+/)?.[0] ?? '0') || 0,
@@ -476,7 +478,7 @@ export function ProductDetailPage({
     cart.addItem({
       id: productId || 'pdp-ribbed-cashmere-knit',
       name: dynamicName,
-      brand: PD.fallbackBrand,
+      brand: dynamicBrand,
       color: dynamicColors[selectedColor].name,
       sku: catalogProduct?.specs?.find(s => s.label === 'SKU')?.value ?? productId,
       size: selectedSize,
@@ -547,8 +549,8 @@ export function ProductDetailPage({
 
               {/* Brand + Share */}
               <div className="flex items-center justify-between mb-2">
-                <a href="/women/clothing" className="text-xs tracking-[0.2em] uppercase text-gray-500 hover:text-black transition-colors">
-                  {PD.fallbackBrand}
+                <a href={categoryViewAllHref} className="text-xs tracking-[0.2em] uppercase text-gray-500 hover:text-black transition-colors">
+                  {dynamicBrand}
                 </a>
                 <ProductShareDropdown
                   shareRef={shareRef}
@@ -605,14 +607,18 @@ export function ProductDetailPage({
               </div>
               <p className="text-xs text-gray-400 mb-4">{lPriceNote}</p>
 
-              {/* Purchase Bonus */}
-              <div className="flex items-center gap-2.5 px-4 py-3 mb-6 bg-[#fff8f0] border border-[#ffe0b2]">
-                <span className="text-base">🎁</span>
-                <div>
-                  <p className="text-xs font-semibold text-[#b45309]">{lBonusHeading}</p>
-                  <p className="text-xs text-gray-500">{lBonusBody}</p>
+              {/* Purchase Bonus — rendered only when the OE `purchase-of-goods`
+                  rule applies to this product. `{count}` in the OE-managed
+                  heading is substituted with the resolved point value. */}
+              {typeof bonusPoints === 'number' && bonusPoints > 0 && (
+                <div className="flex items-center gap-2.5 px-4 py-3 mb-6 bg-[#fff8f0] border border-[#ffe0b2]">
+                  <span className="text-base">🎁</span>
+                  <div>
+                    <p className="text-xs font-semibold text-[#b45309]">{lBonusHeading.replace('{count}', String(bonusPoints))}</p>
+                    <p className="text-xs text-gray-500">{lBonusBody}</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Color Selection */}
               <div className="mb-5">

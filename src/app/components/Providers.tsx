@@ -26,10 +26,9 @@ import { SignUpFormSchemaProvider } from '../../lib/oneentry/auth/SignUpFormSche
 import type { SignUpFormSchema } from '../../lib/oneentry/auth/sign-up-form'
 
 /**
- * No-op placeholder kept for backwards compatibility. The real wishlist
- * hydration now happens in `WishlistContext` from /me/wishlist via
- * `useAuth().user.wishlistItems`. The mock USER_DATASET.wishlist injection
- * was removed so the account tab never shows fake products.
+ * No-op placeholder kept for backwards compatibility. Real wishlist
+ * hydration happens in `WishlistContext` from /me/wishlist via
+ * `useAuth().user.wishlistItems`.
  */
 function WishlistSyncEffect() {
   const { isLoggedIn } = useAuth();

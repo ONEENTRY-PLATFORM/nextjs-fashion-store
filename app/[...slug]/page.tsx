@@ -7,7 +7,6 @@ import {
   buildBreadcrumbSchema,
   type CatalogPageEntry,
 } from '../../src/app/data/pageRegistry';
-import { PRODUCT_CATALOG } from '../../src/app/data/productCatalog';
 import { SITE_URL } from '../../src/app/data/seoData';
 import { INFO_PAGE_META, INFO_SLUGS } from '../../src/app/data/infoPages';
 import { INFO_PAGE_SCHEMA } from '../../src/app/data/infoPageLabels';
@@ -81,9 +80,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /* ─── JSON-LD helpers ─── */
-function buildCatalogSchemas(entry: CatalogPageEntry) {
-  const products = Object.values(PRODUCT_CATALOG)
-    .filter(p => p.id.startsWith(entry.productIdPrefix) && p.inStock !== false)
+async function buildCatalogSchemas(entry: CatalogPageEntry) {
+  // Seed the schema.org ItemList with the first 10 in-stock products of this
+  // catalog — pulled from OE by category path (no id-prefix heuristic).
+  const categoryPath = catalogKeyToCategoryPath(entry.catalogKey);
+  const productsResult = categoryPath
+    ? await loadProducts({ categoryPath, limit: 10 })
+    : { items: [] as Awaited<ReturnType<typeof loadProducts>>['items'] };
+  const products = productsResult.items
+    .filter((p) => p.statusIdentifier !== 'out_of_stock')
     .slice(0, 10);
 
   const breadcrumb = buildBreadcrumbSchema(entry.breadcrumbs);
@@ -98,8 +103,8 @@ function buildCatalogSchemas(entry: CatalogPageEntry) {
       '@type': 'ListItem',
       position: i + 1,
       url: `${SITE_URL}/product/${p.id}`,
-      name: p.name,
-      image: p.image,
+      name: p.title,
+      image: p.preview,
     })),
   };
 
@@ -128,7 +133,7 @@ export default async function Page({ params, searchParams }: Props) {
   if (entry.type === 'catalog') {
     const CatalogComponent = CATALOG_COMPONENTS[entry.catalogKey];
     if (!CatalogComponent) notFound();
-    const { breadcrumb, itemList } = buildCatalogSchemas(entry);
+    const { breadcrumb, itemList } = await buildCatalogSchemas(entry);
 
     // Parse the URL filters once on the server so we can issue a filtered OE
     // request and seed the client with the resolved state.

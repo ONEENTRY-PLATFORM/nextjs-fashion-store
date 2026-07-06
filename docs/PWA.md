@@ -29,42 +29,44 @@ Bottom line: this is a PWA in the sense Chrome Lighthouse awards an installabili
 
 ## 3. Manifest
 
-`app/manifest.ts` returns a `MetadataRoute.Manifest`:
+`app/manifest.ts` returns a `MetadataRoute.Manifest`. All copy is sourced from `src/app/data/seoData.ts` — the file has zero hardcoded strings:
 
-```ts
-export default function manifest(): MetadataRoute.Manifest {
-  return {
-    name: 'Kekimoro',
-    short_name: 'Kekimoro',
-    description: 'Kekimoro fashion storefront',
-    start_url: '/',
-    display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#111111',
-    categories: ['shopping', 'fashion', 'lifestyle'],
-    icons: [
-      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-    ],
-    orientation: 'portrait',
-  };
-}
-```
+| Field | Value | Source |
+|---|---|---|
+| `name` | `'Kekimoro'` | `SITE_NAME` |
+| `short_name` | `'Kekimoro'` | `PWA_MANIFEST_COPY.shortName` |
+| `description` | `'Premium fashion for men and women…'` | `SITE_DESCRIPTION` |
+| `start_url` | `'/'` | literal |
+| `display` | `'standalone'` | literal |
+| `background_color` | `'#ffffff'` | literal |
+| `theme_color` | `'#111111'` | literal — matches the ink used in offline shell + `<meta name="theme-color">` |
+| `orientation` | `'portrait'` | literal |
+| `categories` | `['shopping', 'fashion', 'lifestyle']` | `PWA_MANIFEST_COPY.categories` |
+| `icons[0]` | `/icons/icon-192.png`, `192x192`, `image/png`, **`purpose: 'maskable'`** | literal |
+| `icons[1]` | `/icons/icon-512.png`, `512x512`, `image/png`, **`purpose: 'any'`** | literal |
+
+Note the split `purpose` flags: the 192px icon is `maskable` (safe-zone padded, used by Android launchers), the 512px icon is `any` (raw art, used everywhere else). There is intentionally no monochrome (`maskable any`) blend, no separate `apple-touch-icon` entry (Apple picks up `/icons/apple-touch-icon.png` via `layout.tsx` metadata, not the manifest), and no shortcuts / share_target / screenshots.
 
 Served automatically by Next.js at `/manifest.webmanifest`. The `<link rel="manifest">` is emitted by the root `layout.tsx` metadata.
 
 ## 4. Service worker (`public/sw.js`)
 
-61 lines, no framework, three strategies:
+62 lines, no framework, three strategies. Two cache buckets are declared at the top of the file:
 
-1. **On `install`** — precaches **only `/offline.html`** into `oe-store-v1` (`CACHE_NAME`); a second bucket `oe-static-v1` (`STATIC_CACHE`) is populated lazily on the fetch pass. Skip waiting.
-2. **On `activate`** — clean up caches older than `oe-static-v1`. `clients.claim()`.
-3. **On `fetch`**:
-   - **Static assets (`/_next/static/*`)** — cache-first, unless the origin is `localhost` (dev builds should never cache stale chunks).
-   - **Navigations** — network-first; on failure, respond with `/offline.html` from the precache.
-   - **Everything else** — pass through to network (no cache).
+- `CACHE_NAME = 'oe-store-v1'` — precache for the offline shell + runtime cache for successful HTML navigations.
+- `STATIC_CACHE = 'oe-static-v1'` — cache-first bucket for immutable `/_next/static/*` chunks (content-hashed by the compiler).
 
-The offline page ships as a static HTML shell so it works even when React fails to hydrate.
+Handlers:
+
+1. **On `install`** — opens `oe-store-v1`, calls `cache.add(new Request('/offline.html', { cache: 'reload' }))` to bypass any HTTP cache, then `self.skipWaiting()`. `oe-static-v1` is created lazily on the first static-asset request.
+2. **On `activate`** — enumerates `caches.keys()` and deletes any bucket whose name is **not** `oe-store-v1` **and** not `oe-static-v1`, then `self.clients.claim()`. Any older `v1` bucket you rename via version bump is swept on the next activation.
+3. **On `fetch`** — three branches, checked in order:
+   - **Dev-mode skip.** `isDev = url.hostname === 'localhost' || url.hostname === '127.0.0.1'` — both loopback aliases are treated as dev. In dev the static-asset branch is bypassed entirely so Turbopack chunks (whose content changes without a filename change) don't get pinned.
+   - **`/_next/static/*` (production only).** Cache-first against `oe-static-v1`: return the cached response if present; otherwise `fetch`, and if `response.ok`, `cache.put(request, response.clone())` before returning.
+   - **HTML navigations (`request.mode === 'navigate'`).** Network-first: `fetch` → on `response.ok`, clone into `oe-store-v1`; on network error, fall back to `caches.match('/offline.html')` (guaranteed to hit because of the install-time precache).
+   - **Everything else** (subresource images, API, fonts, third-party) — the fetch handler simply `return`s and lets the browser go to network. No SW-side caching.
+
+`public/offline.html` ships as a standalone static HTML shell (self-contained CSS + inline JS) so it renders even when React never hydrates. A React twin lives at `app/offline/page.tsx` and is used only when the app navigates to `/offline` from an online context (label sourced from CMS via `useInterfaceControlsT`). The SW never opens the React route — it always returns the static `public/offline.html` from the precache.
 
 ## 5. Registration
 
@@ -88,14 +90,24 @@ Mounted once inside `<Providers>` — see `src/app/components/Providers.tsx`.
 
 ## 6. Offline route
 
-`app/offline/page.tsx` renders a client component with:
+There are **two** offline UIs. They render identically by design; the split exists because the SW needs a zero-dependency asset:
 
-- Brand title.
-- "You're offline" heading + explanation.
-- Retry button that fires a `HEAD /favicon.ico` to test connectivity; on success reloads the requested route from history.
-- Links to `/` and `/stores` for locally cached content.
+| File | Rendered by | Purpose |
+|---|---|---|
+| `public/offline.html` | Service worker `caches.match('/offline.html')` fallback | Zero-JS-framework HTML shell served when a navigation fails. Cached at `install`. |
+| `app/offline/page.tsx` | Next.js client route (when app is online, e.g. explicit link) | React twin, sources copy from CMS via `useInterfaceControlsT(marker, fallback)`. |
 
-Copy comes from `src/app/data/offlinePageLabels.ts` (fallback) or the CMS if a `pdp_offline_set` (or similar) attribute set is later added.
+Both variants implement the **same ping-based retry** pattern:
+
+- Ping target: `HEAD /favicon.ico` with `cache: 'no-store'` and a `5000 ms` `AbortController` timeout.
+- Countdown: `CHECK_INTERVAL = 10` seconds. On `0` the ping fires automatically.
+- Manual `Try Now` button reuses the same handler and is disabled while a ping is in-flight.
+- `window.addEventListener('online', ...)` triggers an immediate ping when the browser flips back online.
+- On `res.ok`, `window.location.reload()` returns the user to the page they were trying to reach.
+
+`/favicon.ico` was chosen because it's static, tiny, always-cached at the origin, and its `HEAD` is a reliable liveness probe without hitting any RSC/API surface.
+
+CMS-driven labels (React variant only): `offline_title_store`, `offline_title`, `offline_text`, `offline_next_check`, `offline_cta`, `offline_text_below` — all read via `InterfaceControlsLabelsContext`. Static fallbacks live in `src/app/data/offlinePageLabels.ts`.
 
 ## 7. Cache versioning
 

@@ -57,7 +57,7 @@ Optional:
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Enables the "Continue with Google" button (GIS ID token → `signInWithGoogle`) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Enables the "Continue with Google" button. Full-page authorization-code flow: `getGoogleAuthUrlAction` builds the authorize URL from `AuthProvider.getAuthProviderByMarker('google').config.oauthAuthUrl` and the callback route `/auth/callback/google` calls `exchangeGoogleCodeAction`. Must match the OAuth client id in Google Cloud Console; the client secret lives inside the OneEntry provider config. |
 
 Notes:
 
@@ -117,8 +117,8 @@ The file is the largest Server Action module (~1420 lines) and exposes **18 Serv
 | Action | OneEntry call | Purpose |
 |---|---|---|
 | `signInAction(loginOrEmail, password)` | `AuthProvider.auth('email', {authData:[{marker:'login',value},{marker:'password',value}]})` | Email/password sign-in. On success, writes `oe_access` / `oe_refresh` / `oe_user` cookies and returns `{ok:true, user, userIdentifier}`. |
-| `signInWithGoogleAction(accessToken)` | `AuthProvider.oauth('google', {accessToken})` (with fallback field-name variants — `idToken` etc.) | Exchanges a Google `access_token` (obtained via GIS token client — see `src/lib/google-auth.ts`) for an OE session. |
-| `connectGoogleAccountAction(accessToken)` | `AuthProvider.oauth('google', …)` invoked against the already-authenticated user | Links a Google account to the current user (called from `SocialNetworksSection` in Account → My Data). Requires `oe_access`. |
+| `getGoogleAuthUrlAction(origin, returnTo?)` | `AuthProvider.getAuthProviderByMarker('google')` (reads `config.oauthAuthUrl`) | Builds Google's OAuth authorize URL (`response_type=code`, `scope=openid email profile`, `redirect_uri=${origin}/auth/callback/google`), sets httpOnly CSRF `oe_google_state` + `oe_google_return_to` cookies, returns `{url}`. Called from `startGoogleOAuth` in `src/lib/google-auth.ts` — the browser then navigates to `url`. |
+| `exchangeGoogleCodeAction({code, state, origin})` | `AuthProvider.oauth('google', {code, redirect_uri})` | Called from the `app/auth/callback/google/route.ts` GET handler after Google redirects back. Verifies the `oe_google_state` cookie, exchanges the authorization `code` (OneEntry uses its stored `client_secret` server-side), sets `oe_access` / `oe_refresh` / `oe_user`, returns `{ok, user, userIdentifier, returnTo}`. Also handles Google-account linking: if `oe_access` is already present, OE associates the identity with the current user instead of creating a new session. |
 | `signUpAction(input)` | `AuthProvider.signUp('signin', formData)` | Creates a new account. `input` follows the sign-up-form attribute-set schema (see 4.2). |
 | `signOutAction()` | `AuthProvider.logout(refreshToken)` | Server-side logout, clears cookies. |
 | `getCurrentUserAction()` | `Users.getUser(langCode)` + form-data reads (see below) | Bootstrap `/me`. Composes profile + addresses + subscriptions + consent + cart + wishlist + recently-viewed + orders. Called from `AuthContext` on mount and after every mutation. |
@@ -229,7 +229,7 @@ All loaders wrap the SDK, add React `cache()` for request-scoped memoisation, an
 | `discount-banner.ts` | `discount_banner` | `loadDiscountBanner(lang)` | `DiscountBanner` on Home |
 | `homepage-product-blocks.ts` | Multiple (`best_sellers`, `new_arrivals_home`, `sale_home`) | `loadHomepageProductBlock(lang)` (**singular** name in code — the plural form used in earlier revisions was renamed) | Home product carousels |
 | `category-section.ts` | `category_section` | `loadCategorySection(lang)` | Home "Shop by Category" tabs |
-| `page-blocks.ts` | Any page id | `loadPageBlocksById`, `loadBlockWithProducts`, `loadFrequentlyOrderedBlock` + `PageBlock` type + constant `HOME_PAGE_ID = 1` (used by the homepage RSC shell). Home-page `similar_products_block` markers `homepage_new_arrivals` / `homepage_best_sellers` / `homepage_sale` have no seed product for OE's similarity engine, so `loadBlockWithProducts` falls back through `loadHomepageBlockFallback` to `loadProducts({ tags: ['NEW' | 'BESTSELLER' | 'SALE'] })`; unknown markers stay empty (block hides silently). | PDP "You may also like", PDP "Special Offers" (`bought_together`), homepage `pageBlocks`, account tab blocks |
+| `page-blocks.ts` | Any page id | `loadPageBlocksById`, `loadBlockWithProducts`, `loadFrequentlyOrderedBlock`, `getCachedTrending` + `PageBlock` type + constant `HOME_PAGE_ID = 1` (used by the homepage RSC shell). Home-page `similar_products_block` markers `homepage_new_arrivals` / `homepage_best_sellers` / `homepage_sale` have no seed product for OE's similarity engine, so `loadBlockWithProducts` falls back through `loadHomepageBlockFallback` to `loadProducts({ tags: ['NEW' | 'BESTSELLER' | 'SALE'] })`; unknown markers stay empty (block hides silently). Blocks of type `trending_block` are routed through `getCachedTrending`, which calls `getApi().Blocks.getTrending(marker, lang)` — `getBlockByMarker` does not inline products for trending blocks and cannot be used for this type. Product normalisation is identical to the standard path afterwards. | PDP "You may also like", PDP "Special Offers" (`bought_together`), homepage `pageBlocks`, account tab blocks, catalog `catalog_trend_blocks` trending slot |
 | `clothing-filter.ts` | `clothing` filter marker | `loadClothingFilter(products, lang)` | `CatalogTemplate` — normalises OE filter attribute metadata into the UI `ClothingFilterGroup[]` shape (color / size_chips / checkbox / price_range / search_checkbox), maps OE color names to hex via `OE_COLOR_HEX`, computes per-option counts against the current product page |
 
 Block types actually consumed on the PDP:
@@ -287,6 +287,14 @@ Each label loader uses `system-text.ts::getSystemSet(marker, lang)` → 5 min TT
 ### 5.6 System text (`src/lib/oneentry/system-text.ts` + `SystemText.tsx`)
 
 Exports: `Lang` type (currently `'en_US'`), `SystemSchema` type, `readSystemValue(set, path)` (untyped accessor), `getSystemSet(marker, lang)` (cached attribute-set loader — 5-minute TTL + React cache), `t(set, path)` (dot-path accessor with safe fallback), plus `<SystemText>` RSC component in `SystemText.tsx` that renders a label directly.
+
+### 5.7 Discounts (`src/lib/oneentry/discounts/`)
+
+| File | Marker | Loader | Consumer |
+|---|---|---|---|
+| `purchase-bonus.ts` | `purchase-of-goods` | `loadPurchaseBonusForProduct(oeProduct)` | `app/product/[id]/page.tsx` → `ProductDetailPage` |
+
+`loadPurchaseBonusForProduct` calls `getApi().Discounts.getDiscountByMarker('purchase-of-goods', DEFAULT_LOCALE)`, wrapped in `unstable_cache` with the `REVALIDATE_CATALOG` TTL and tag `oe-discounts`. The function checks the discount's `startDate`/`endDate` window, matches PRODUCT and CATEGORY conditions against the provided OE product (by `id` and `categories`), and computes the accrual: `PERCENT` rule → `Math.round(price * percent / 100)`; `FIXED_AMOUNT` rule → the fixed value. Cart-scoped conditions (`MIN_CART_AMOUNT`, `USER_LTV`) are intentionally ignored for the PDP badge. Returns `{ points: number }` when the discount applies to the product, or `null` otherwise.
 
 ---
 
@@ -457,7 +465,8 @@ Files elsewhere that call into the integration:
 
 | File | Role |
 |---|---|
-| `src/app/context/AuthContext.tsx` | Bootstraps `/me` on mount, drives `authReady`. Exposes **11 mutation methods** through the `useAuth()` hook — of which 10 wrap Server Actions (`login`, `loginWithGoogle`, `signUp`, `logout`, `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist`) and 1 is a local optimistic merge (`updateUser` — does not touch OneEntry). Plus `openLoginModal` / `openRegisterModal` state helpers. |
+| `src/app/context/AuthContext.tsx` | Bootstraps `/me` on mount, drives `authReady`. Exposes **11 mutation methods** through the `useAuth()` hook — of which 10 wrap Server Actions (`login`, `startGoogleOAuth`, `signUp`, `logout`, `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist`) and 1 is a local optimistic merge (`updateUser` — does not touch OneEntry). `startGoogleOAuth` is fire-and-navigate (the browser leaves for Google; the outcome is delivered by the `app/auth/callback/google` route). Plus `openLoginModal` / `openRegisterModal` state helpers. |
+| `app/auth/callback/google/route.ts` | GET handler for Google's OAuth redirect (`?code=&state=&error=`). Calls `exchangeGoogleCodeAction` then `redirect()`s to `returnTo` on success or to `/?googleAuthError=<code>` on failure. |
 | `src/app/context/CartContext.tsx` | Debounced 400 ms `syncCart`, one-shot server merge, product enrichment via `getProductsByIdsAction` |
 | `src/app/context/WishlistContext.tsx` | Same pattern for wishlist |
 | `src/app/pages/checkout/PaymentPage.tsx` | Calls `getPaymentAccountsAction` + `createOrderAction` |
@@ -465,7 +474,7 @@ Files elsewhere that call into the integration:
 | `src/app/utils/track-activity.ts` | Client wrapper over `trackActivityAction` |
 | `src/app/utils/guest-id.ts` | Guest UUID; passed to activity + guest-order Server Actions |
 | `src/app/components/HeaderSearch.tsx` | Calls `searchProductsAction` (vector + quick) |
-| `src/app/data/cms-product-id-map.ts` | Playground SKU (`wc-1`) ↔ OneEntry integer id bridge — kept only for the legacy CMS_PRODUCT_ID_MAP path, most product data now uses the integer id directly |
+| `src/app/data/cms-product-id-map.ts` | String↔number id conversion helpers (`getCmsProductId`, `getPlaygroundProductId`) — static mapping table removed; all product ids are already OneEntry numeric ids as strings |
 
 ---
 

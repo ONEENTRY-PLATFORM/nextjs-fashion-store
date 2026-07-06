@@ -50,7 +50,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 **CartItem shape:**
 ```ts
 {
-  id: string;              // playground SKU (e.g. 'wc-1') OR stringified OE id
+  id: string;              // stringified OE numeric product id
   name: string;
   brand: string;
   color: string;
@@ -147,7 +147,8 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 ```ts
 {
   data: {
-    ...USER_DATASET,            // loyalty defaults from src/app/data/userData.ts
+    // All profile / loyalty / lists / subscriptions / consent fields start as blank defaults.
+    // No fixture is spread in — initial state is empty (zeros, empty arrays, nulls).
     addresses: [],
     authToken: null,             // kept for backward compat; always empty on the live path
     refreshToken: null,          // same
@@ -164,7 +165,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 - `setAuth({accessToken, refreshToken, userIdentifier})` — dispatched after successful Server Action sign-in. Tokens are usually empty strings; only `userIdentifier` matters.
 - `clearAuth()` — reset auth fields on logout.
 
-**Async thunk:** `fetchUserData()` — legacy simulated fetch returning `USER_DATASET`. Retained so Storybook stories keep compiling; not used by any live UI. Real profile data comes from `AuthContext.user` (populated by `getCurrentUserAction`).
+The `fetchUserData` async thunk and the `USER_DATASET` / `USER_SLICE_MESSAGES` imports have been **removed**. Real profile data comes from `AuthContext.user` (populated by `getCurrentUserAction`).
 
 **Persistence:** ❌ not persisted. Session lives in httpOnly cookies (`oe_access`, `oe_refresh`, `oe_user`). See [AUTH.md](./AUTH.md) §3.
 

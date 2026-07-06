@@ -86,13 +86,9 @@ Product grid (`ProductCard` × N).
 - Hint: `"Try resetting filters"`
 - **Button**: `"Clear filters"`
 
-## 8. CatalogTrendBlocks (trends)
+## 8. Trending block (OE `catalog_trend_blocks`)
 
-Below the product grid. Content section with trends.
-
-- **Heading (H2)** of the trend block
-- Images + alt for the trend
-- CTA link
+Below the product grid. Products are loaded via `getCachedTrending` (`getApi().Blocks.getTrending(marker, lang)`) and flow into the same `NewArrivals` UI slot. The former static editorial grid (`CatalogTrendBlocks` / `data/trendBlocks.ts`) has been removed; trending content is now fully driven by OE activity data.
 
 ## 9. CatalogCrossSell (cross-sell)
 

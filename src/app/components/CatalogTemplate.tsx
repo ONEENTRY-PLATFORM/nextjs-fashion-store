@@ -17,7 +17,6 @@ import { MobileFilterPanel } from './MobileFilterPanel';
 import { NoFilterResults } from './NoFilterResults';
 import { CatalogListProductCard } from './CatalogListProductCard';
 import { CatalogCrossSell } from './CatalogCrossSell';
-import { CatalogTrendBlocks } from './CatalogTrendBlocks';
 import { NewArrivals } from './NewArrivals';
 import { CatalogMobileSort } from './CatalogMobileSort';
 import { COMMON_EMPTY_STATES, CATALOG_PAGINATION_LABELS, CATALOG_VIEW_LABELS as CVL } from '../data/commonLabels';
@@ -26,7 +25,7 @@ import { ColorSwatch } from './ColorSwatch';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { ColsIcon, CheckboxUI, SortOptionBtn } from './CatalogTemplate.parts';
 import { SORT_OPTIONS, getPageNumbers, type CatalogTemplateProps, type FilterGroup } from './CatalogTemplate.types';
-export type { FilterOption, FilterGroup, TrendBlock, ChipFilter, BreadcrumbItem, CrossSellCategory, CatalogTemplateProps } from './CatalogTemplate.types';
+export type { FilterOption, FilterGroup, ChipFilter, BreadcrumbItem, CrossSellCategory, CatalogTemplateProps } from './CatalogTemplate.types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { CatalogAccentContext } from '../context/CatalogAccentContext';
 import {
@@ -56,7 +55,6 @@ export function CatalogTemplate({
   currentPage: currentPageProp,
   currentFilters: currentFiltersProp,
   productsPerPage: PRODUCTS_PER_PAGE = 16,
-  trendBlocks,
   trendingBlock,
   breadcrumbs,
   priceMax = 600,
@@ -712,7 +710,6 @@ export function CatalogTemplate({
         {trendingBlock && trendingBlock.products.length > 0 && (
           <NewArrivals products={trendingBlock.products} title={trendingBlock.title} />
         )}
-        {trendBlocks && trendBlocks.length > 0 && <CatalogTrendBlocks trendBlocks={trendBlocks} />}
       </main>
 
       <Footer />

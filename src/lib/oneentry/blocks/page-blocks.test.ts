@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // SDK mock — `getBlockByMarker` drives `loadBlockWithProducts`.
 const getBlockByMarker = vi.fn();
-const fakeApi = { Blocks: { getBlockByMarker } };
+const getTrending = vi.fn();
+const fakeApi = { Blocks: { getBlockByMarker, getTrending } };
 
 vi.mock('../index', () => ({
   oneentry: fakeApi,
@@ -33,6 +34,7 @@ const importFresh = async () => {
 
 beforeEach(() => {
   getBlockByMarker.mockReset();
+  getTrending.mockReset();
   loadProducts.mockReset();
   adaptCatalogProductToUiProduct.mockReset();
 });
@@ -132,5 +134,84 @@ describe('loadBlockWithProducts — homepage fallback', () => {
       expect.objectContaining({ tags: ['NEW'] }),
     );
     expect(block!.products).toEqual([{ id: '77', name: 'inline' }]);
+  });
+});
+
+describe('loadBlockWithProducts — trending_block path', () => {
+  // The block descriptor returned by getBlockByMarker for a trending_block.
+  // Products are NOT inlined here — they come from getTrending instead.
+  const trendingBlockDescriptor = {
+    type: 'trending_block',
+    position: 2,
+    quantity: 8,
+    localizeInfos: { title: 'Trending Now' },
+    similarProducts: { items: [] },
+    products: [],
+  };
+
+  it('happy path: calls getTrending, resolves product ids through loadProducts', async () => {
+    getBlockByMarker.mockResolvedValue(trendingBlockDescriptor);
+    getTrending.mockResolvedValue([{ id: 10 }, { id: 20 }]);
+    loadProducts.mockResolvedValue({
+      total: 2,
+      items: [{ id: 10, title: 'Sneaker A' }, { id: 20, title: 'Boot B' }],
+      fromCms: true,
+    });
+    adaptCatalogProductToUiProduct.mockImplementation((p: { id: number }) => ({
+      id: String(p.id),
+      name: 'ui',
+    }));
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('trending_shoes', { lang: 'en_US' });
+
+    expect(getTrending).toHaveBeenCalledOnce();
+    expect(getTrending).toHaveBeenCalledWith('trending_shoes', 'en_US');
+    expect(loadProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ ids: [10, 20] }),
+    );
+    expect(block).not.toBeNull();
+    expect(block!.type).toBe('trending_block');
+    expect(block!.products).toHaveLength(2);
+  });
+
+  it('handles getTrending returning { items } shape instead of a plain array', async () => {
+    getBlockByMarker.mockResolvedValue(trendingBlockDescriptor);
+    // OE SDK may return `{ items: [...] }` rather than a bare array.
+    getTrending.mockResolvedValue({ items: [{ id: 55 }] });
+    loadProducts.mockResolvedValue({
+      total: 1,
+      items: [{ id: 55, title: 'Loafer C' }],
+      fromCms: true,
+    });
+    adaptCatalogProductToUiProduct.mockImplementation((p: { id: number }) => ({
+      id: String(p.id),
+      name: 'ui',
+    }));
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('trending_shoes');
+
+    expect(loadProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ ids: [55] }),
+    );
+    expect(block!.products).toHaveLength(1);
+  });
+
+  it('returns empty products when getTrending signals an error', async () => {
+    getBlockByMarker.mockResolvedValue(trendingBlockDescriptor);
+    // isError returns true when statusCode is present.
+    getTrending.mockResolvedValue({ statusCode: 500, message: 'Server error' });
+    loadProducts.mockResolvedValue({ total: 0, items: [], fromCms: true });
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('trending_shoes');
+
+    // Error branch returns [] from getCachedTrending → no ids → loadProducts
+    // is called only if the fallback fires, and trending_block is NOT in
+    // HOMEPAGE_FALLBACK_LABELS, so loadProducts must NOT be called.
+    expect(loadProducts).not.toHaveBeenCalled();
+    expect(block).not.toBeNull();
+    expect(block!.products).toEqual([]);
   });
 });

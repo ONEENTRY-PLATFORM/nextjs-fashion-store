@@ -39,7 +39,9 @@ To exercise the "Continue with Google" flow, set:
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=<your Google OAuth client id>
 ```
 
-The button appears in `LoginModal` when this env is set. A Google **`access_token`** (obtained via GIS token client from `requestGoogleAccessToken()`) is exchanged for a OneEntry session via `signInWithGoogleAction` → `getApi().AuthProvider.oauth('google', {accessToken})` (the Server Action falls back to `idToken` / `token` / `credential` field names if the tenant expects a different shape).
+The button appears in `LoginModal` when this env is set. The flow is a standard **OAuth 2.0 authorization-code** round-trip: click `startGoogleOAuth()` from `src/lib/google-auth.ts` → `getGoogleAuthUrlAction` builds Google's authorize URL from `AuthProvider.getAuthProviderByMarker('google').config.oauthAuthUrl` and sets an httpOnly CSRF `state` cookie → the browser navigates to Google → Google redirects back to `GET /auth/callback/google?code=&state=` → `exchangeGoogleCodeAction` verifies `state` and calls `getApi().AuthProvider.oauth('google', {code, redirect_uri})`, which performs the server-side code exchange using the `client_secret` stored inside the OneEntry provider config.
+
+The Google Cloud OAuth client must list `${origin}/auth/callback/google` under **Authorised redirect URIs** for every deployed origin (dev: `http://localhost:3000/auth/callback/google`).
 
 ## What runs against the real API
 

@@ -159,7 +159,7 @@ interface AuthContextType {
 
   // Sign-in / sign-up / logout
   login:  (emailOrPhone: string, password: string) => Promise<boolean>;
-  loginWithGoogle: (accessToken: string) => Promise<{ ok: boolean; error?: string }>;
+  startGoogleOAuth: (returnTo?: string) => void;
   signUp: (input: SignUpInput)          => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
 
@@ -201,7 +201,7 @@ signInAction (Server Action)
         └─→ setIsLoggedIn(true) → cart/wishlist sync effects unlock
 ```
 
-**Google OAuth:** `loginWithGoogle(accessToken)` — the client gets the token from GIS via `requestGoogleAccessToken()` in `src/lib/google-auth.ts` (requires `NEXT_PUBLIC_GOOGLE_CLIENT_ID`), then `signInWithGoogleAction` exchanges it for an OE session.
+**Google OAuth:** `startGoogleOAuth(returnTo?)` — a `void` action that redirects the browser to Google's authorization endpoint (authorization-code flow per MCP spec). `src/lib/google-auth.ts` builds the URL (requires `NEXT_PUBLIC_GOOGLE_CLIENT_ID`); Google redirects back to `app/auth/callback/google/route.ts`, which exchanges the code server-side via `signInWithGoogleAction` and sets the OE session cookies. Because the browser navigates away, this call does not return a result — success/failure is observed after the round-trip when `AuthProvider` re-bootstraps.
 
 **Sign-up:** `signUp(input)` — `input` follows the CMS attribute set `users_sign_in_sign_up` loaded via `loadSignUpFormSchema()` and exposed by `SignUpFormSchemaProvider`.
 

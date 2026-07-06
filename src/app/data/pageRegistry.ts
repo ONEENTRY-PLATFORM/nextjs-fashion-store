@@ -22,8 +22,6 @@ export interface CatalogPageEntry {
   catalogKey: string;
   /** Key in the SEO object (seoData.ts) */
   seoKey: keyof typeof SEO;
-  /** Product id prefix for JSON-LD ItemList, e.g. 'wc-' */
-  productIdPrefix: string;
   /** Name for schema.org ItemList */
   schemaName: string;
   /** Breadcrumbs [{name, href?}] */
@@ -46,7 +44,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'women-clothing',
     seoKey: 'womenClothing',
-    productIdPrefix: 'wc-',
     schemaName: "Women's Clothing",
     breadcrumbs: [
       { name: 'Home', href: '/' },
@@ -58,7 +55,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'women-shoes',
     seoKey: 'womenShoes',
-    productIdPrefix: 'ws-',
     schemaName: "Women's Shoes",
     breadcrumbs: [
       { name: 'Home', href: '/' },
@@ -70,7 +66,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'women-bags',
     seoKey: 'womenBags',
-    productIdPrefix: 'wb-',
     schemaName: "Women's Bags",
     breadcrumbs: [
       { name: 'Home', href: '/' },
@@ -82,7 +77,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'women-accessories',
     seoKey: 'womenAccessories',
-    productIdPrefix: 'wa-',
     schemaName: "Women's Accessories",
     breadcrumbs: [
       { name: 'Home', href: '/' },
@@ -96,7 +90,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'men-clothing',
     seoKey: 'menClothing',
-    productIdPrefix: 'mc-',
     schemaName: "Men's Clothing",
     breadcrumbs: [
       { name: 'Home', href: '/' },
@@ -108,7 +101,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'men-shoes',
     seoKey: 'menShoes',
-    productIdPrefix: 'ms-',
     schemaName: "Men's Shoes",
     breadcrumbs: [
       { name: 'Home', href: '/' },
@@ -120,7 +112,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'men-bags',
     seoKey: 'menBags',
-    productIdPrefix: 'mb-',
     schemaName: "Men's Bags",
     breadcrumbs: [
       { name: 'Home', href: '/' },
@@ -132,7 +123,6 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     type: 'catalog',
     catalogKey: 'men-accessories',
     seoKey: 'menAccessories',
-    productIdPrefix: 'ma-',
     schemaName: "Men's Accessories",
     breadcrumbs: [
       { name: 'Home', href: '/' },

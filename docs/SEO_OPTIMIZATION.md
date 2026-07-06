@@ -114,11 +114,11 @@ Iterates `PAGE_REGISTRY` from `src/app/data/pageRegistry.ts` and filters out the
 
 ### Group 3 — Product pages (`app/sitemap.ts:28-33`)
 
-One entry per product returned from OneEntry (`loadProducts({langCode:DEFAULT_LOCALE})`) — the legacy `PRODUCT_CATALOG` fallback is now empty and only kept for the transitional period.
+One entry per product returned from OneEntry via `loadProducts({ unique: true, limit: 5000 })`.
 
 | URL pattern | Source | `changeFrequency` | `priority` |
 |---|---|---|---|
-| `/product/{id}` | `loadProducts({langCode:DEFAULT_LOCALE})` from OneEntry (product `id`s taken from the response); the legacy `PRODUCT_CATALOG` map has been removed | `weekly` | `0.7` |
+| `/product/{id}` | `loadProducts({ unique: true, limit: 5000 })` from OneEntry (`app/sitemap.ts`); product `id`s are taken from the response | `weekly` | `0.7` |
 
 ⚠ All `lastModified` values are stamped with the request timestamp. Product / page entities in OneEntry have real `dateUpdated` values but the sitemap loader doesn't yet read them — a future patch should thread `dateUpdated` from `loadPageByUrl` / `loadProductById` into the sitemap entries.
 
@@ -175,15 +175,15 @@ The PWA manifest itself is documented in [`./PWA.md`](./PWA.md) §2 ("Manifest")
 
 ## Runtime SEO: `app/opengraph-image.tsx`
 
-A dynamic Open Graph image rendered on Vercel/Next.js Edge (`app/opengraph-image.tsx:4` → `export const runtime = 'edge'`).
+A dynamic Open Graph image rendered via `ImageResponse` from `next/og`. **No explicit `runtime` export** — the file inherits the project default (Node.js), which is fine because the render is pure and doesn't touch any Node-only APIs. If Edge runtime is ever required (e.g. for latency at CDN edge), add `export const runtime = 'edge'` — the `next/og` API is edge-compatible.
 
 | Field | Value |
 |---|---|
-| Runtime | `edge` (`ImageResponse` from `next/og`) |
+| Runtime | Project default (no `runtime` export). `ImageResponse` from `next/og`. |
 | `size` | `{ width: OG_IMAGE.width, height: OG_IMAGE.height }` → `1200 × 630` (from `seoData.ts:46`) |
 | `contentType` | `image/png` |
 | `alt` | `OG_IMAGE.alt` — `'Kekimoro – Premium clothing, shoes and accessories'` |
-| Content | Brand mark + sub-label + tagline on a dark gradient with gold accent bars; copy lives in `OG_IMAGE_COPY` (`seoData.ts:54-58`) |
+| Content | Brand mark + sub-label + tagline on a dark gradient (`#111111 → #2d2d2d → #111111`) with gold accent bars (`#c9a96e → #f0d08a`); copy lives in `OG_IMAGE_COPY` (`seoData.ts:60-64`) — `brand`, `subLabel`, `tagline` |
 
 The image is dynamic per request (no caching directives), but the rendered content is fully static — every render produces the same pixels. Used by Next.js as the **default** OG image for every page that doesn't define its own (`SEO.*.openGraph.images = [OG_IMAGE]`).
 
@@ -220,7 +220,7 @@ JSON-LD blocks are injected via the `<JsonLd>` helper (`src/app/components/JsonL
 | `/sale` (`app/sale/page.tsx`) | line 20 | `BreadcrumbList` | Home → Sale |
 | `/new` (`app/new/page.tsx`) | line 20 | `BreadcrumbList` | Home → New Arrivals |
 | `/product/[id]` (`app/product/[id]/page.tsx`) | lines 200, 201 | `Product` + `BreadcrumbList` | Product: `name`, `image[]` (cover + gallery), `brand`, `sku`, `material`, `additionalProperty[] (PropertyValue)`, `aggregateRating`, `review[]`, `offers: Offer { price, priceCurrency=GBP, availability, shippingDetails, hasMerchantReturnPolicy }`. `priceValidUntil` = today + 30d. Breadcrumb: Home → Brand → Product. |
-| `/[...slug]` catalog (`app/[...slug]/page.tsx:106-117`) | lines 112, 113 | `BreadcrumbList` + `ItemList` | `ItemList`: up to 10 in-stock products filtered by `entry.productIdPrefix`, each as `ListItem { position, url, name, image }`. |
+| `/[...slug]` catalog (`app/[...slug]/page.tsx`) | lines 112, 113 | `BreadcrumbList` + `ItemList` | `ItemList`: up to 10 in-stock products fetched at runtime via `loadProducts({ categoryPath, limit: 10 })` using `catalogKeyToCategoryPath(entry.catalogKey)`; products with `statusIdentifier === 'out_of_stock'` are filtered out. Each entry is `ListItem { position, url, name, image }`. |
 | `/[...slug]` info/faq (`app/[...slug]/page.tsx:120-138`) | line 133 (+134 only for faq) | `BreadcrumbList`, conditionally `FAQPage` | FAQPage `mainEntity[]: Question → acceptedAnswer.Answer` from `FAQ_ITEMS`. |
 | `/stores` (`app/stores/page.tsx`) | line 60 (one per store) | `ClothingStore` per store (reusing `ORG_SCHEMA_COPY.schemaType`) | `address`, `telephone`, `email`, `openingHoursSpecification[]` (day-of-week mapped via `mapDayLabel`), `hasMap`, `currenciesAccepted`, `paymentAccepted`, `priceRange`. |
 

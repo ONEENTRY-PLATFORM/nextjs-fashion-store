@@ -1,7 +1,6 @@
 'use client'
 import { CatalogTemplate, type FilterGroup, type ChipFilter } from '../components/CatalogTemplate';
 import type { Product } from '../components/ProductCard';
-import { TREND_BLOCKS_CATALOG } from '../data/trendBlocks';
 import { ACCENT_MEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
 import { FILTER_QUICK_CHIPS as QC } from '../data/catalogFilterLabels';
@@ -9,7 +8,6 @@ import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 const PRODUCTS_PER_PAGE = 12;
-const TREND_BLOCKS = TREND_BLOCKS_CATALOG['men-bags'];
 
 const QUICK_CHIPS: ChipFilter[] = [
   { chip: QC.backpacks,    filter: p => p.bagType === 'Backpack' },
@@ -53,7 +51,6 @@ export function MenBagsPage({
       currentPage={currentPage}
       currentFilters={currentFilters}
       productsPerPage={PRODUCTS_PER_PAGE}
-      trendBlocks={TREND_BLOCKS}
       priceMax={500}
       priceDefault={[0, 500]}
       scrollbarClass="scrollbar-red"

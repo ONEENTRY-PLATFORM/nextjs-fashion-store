@@ -96,6 +96,26 @@ export function categoryPathToBreadcrumbs(path: string | undefined): string[] {
   }).filter(Boolean);
 }
 
+/**
+ * Derives the "View all in this category" storefront href from an OE taxonomy
+ * path (e.g. `/women/women_clothing/costumes` → `/women/clothing`).
+ *
+ * Rules:
+ *  - `seg[0]`  = gender segment (`women` | `men` | …).
+ *  - `seg[1]`  = sub-category with an optional gender prefix that is stripped
+ *                (`women_clothing` → `clothing`, `men_outerwear` → `outerwear`).
+ *  - When both are present the result is `/<gender>/<top>`.
+ *  - Falls back to `'/'` when the product has no categories or the path does
+ *    not contain at least two non-empty segments.
+ */
+export function categoryPathToViewAllHref(categoryPath: string | undefined): string {
+  const seg = (categoryPath ?? '').split('/').filter(Boolean);
+  const gender = seg[0];
+  const top = (seg[1] ?? '').replace(/^(women|men)_/, '');
+  if (gender && top) return `/${gender}/${top}`;
+  return '/';
+}
+
 export interface LoadProductsOptions {
   /** OE category path like "/women/women_outerwear/coats". */
   categoryPath?: string;

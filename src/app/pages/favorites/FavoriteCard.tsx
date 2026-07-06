@@ -14,9 +14,6 @@ import { ColorSwatchButton } from '../../components/ColorSwatchButton';
 import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
 
 export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
-  // The wishlist Redux item carries an `inStock` flag that's already populated
-  // from OE during the cart/wishlist merge — no need to consult the legacy
-  // local PRODUCT_CATALOG fallback anymore.
   const item = rawItem;
 
   const { removeItem, updateSelection } = useWishlist();

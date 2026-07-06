@@ -90,23 +90,25 @@ While a `previewOrder` is in flight and no preview is present (`previewLoading &
 
 ### 2.5 Handoff to Payment
 
-On "Continue to Payment", the page writes to `sessionStorage['oe_checkout_payload']`:
+On "Continue to Payment", the page writes to `sessionStorage['oe_checkout_payload']`. The actual shape written by `DeliveryPage.handleContinueToPayment` (`src/app/pages/DeliveryPage.tsx:203`) is:
 
 ```ts
 {
-  method: 'home' | 'store' | 'locker',
-  address?: { fullName, phone, line1, city, postcode, instructions },
-  addressId?: string,               // for saved addresses
-  deliveryDateISO?: string,
-  timeSlotId?: 'morning' | 'afternoon' | 'evening',
-  storeId?: string,
-  lockerIndex?: number,
-  couponCode?: string,
-  guestContact?: { fullName, email, phone },  // guest store / locker
+  storage: 'home' | 'store_pickup' | 'locker',   // NOT `method` — already mapped to the storage marker
+  isGuest: boolean,                              // driven by `!isLoggedIn`
+  guestContact: { fullName, email, phone } | null,  // ALWAYS present for guests (used by store/locker); null when logged in
+  homeAddress: {                                 // resolved from saved-address OR just-typed form; null for store/locker
+    fullName, phone, line1, city, postcode, instructions,
+  } | null,
+  storeId: string | null,                        // PICKUP_STORES[i].id when storage === 'store_pickup'
+  lockerId: number | null,                       // 0-based index into PARCEL_LOCKERS (shifted +1 later, see §3.3)
+  deliveryDate: string,                          // ISO string (selectedDate.toISOString())
+  deliverySlot: 'morning' | 'afternoon' | 'evening',
+  couponCode: string | null,                     // mirrored from CartContext (not `preview.discountAmount`)
 }
 ```
 
-Then `router.push('/checkout/payment')`.
+There is no separate `addressId` field — saved-address selection is resolved to a flat `homeAddress` object client-side before serialization. Then `router.push('/checkout/payment')`.
 
 ---
 
@@ -130,7 +132,7 @@ interface PaymentAccount {
 Rendered in two groups:
 
 - **`type: 'custom'`** — pay-on-delivery / offline (cash, card-on-delivery, QR, Apple Pay, Google Pay). No redirect; the order is created and Confirmation renders immediately.
-- **`type: 'stripe'`** — online prepayment. After the order is created, a secondary call to `POST /api/content/payments/sessions` provisions a hosted-checkout URL. The browser is redirected there.
+- **`type: 'stripe'`** — online prepayment. After the order is created, a follow-up SDK call `Payments.createSession(orderId, 'session', false)` (server-side wire: `POST /api/content/payments/sessions`) provisions a hosted-checkout URL. The browser is redirected there. See §3.4 for the full Stripe flow.
 
 The list is fully CMS-driven; UI copy (title / description / badges) comes from either the OneEntry account fields or, as a stylistic fallback, `PAYMENT_METHODS_COPY` in `src/app/data/paymentMethodsConfig.ts`.
 
@@ -148,73 +150,122 @@ createOrderAction(input): Promise<
 Flow:
 
 1. Client reads `sessionStorage['oe_checkout_payload']` and Redux cart.
-2. Builds `products: [{productId, quantity}]` mapping playground SKUs → OE numeric ids via `getCmsProductId`.
+2. Builds `products: [{productId, quantity}]` converting stringified OE ids to numbers via `getCmsProductId`.
 3. Constructs `formData` per delivery method (see §3.3).
 4. Calls `createOrderAction({storageMarker, formIdentifier, paymentAccountIdentifier, formData, products, currency: 'USD', langCode: 'en_US'})`.
 
-Server Action:
+Server Action (`src/lib/oneentry/auth/actions.ts:2007`):
 
-- Chooses HTTP endpoint: `POST /api/content/orders-storage/marker/{storageMarker}/orders`
-- `storageMarker`:
-  - `home` for home delivery
-  - `store_pickup` for store pickup
-  - `locker` for parcel locker
-- `formIdentifier`:
+- SDK call: `api.Orders.createOrder(storageMarker, body, DEFAULT_LOCALE)` → hits `POST /api/content/orders-storage/marker/{storageMarker}/orders`.
+- Guest detection is server-side: `isGuest = !readAccessFromCookies()`. The client-side `payload.isGuest` only controls form-data marker suffixes; the storage / formIdentifier markers are set from cookie state.
+- `storageMarker` (guests get a `_guest` suffix on the storage itself):
+  - Auth: `home` / `store_pickup` / `locker`
+  - Guest: `home_guest` / `store_pickup_guest` / `locker_guest`
+- `formIdentifier` (guests get a `_guest` suffix; base map lives in `FORM_IDENTIFIER_MAP`):
   - `checkout_home_delivery` (guest: `checkout_home_delivery_guest`)
   - `checkout_store_pickup` (guest: `checkout_store_pickup_guest`)
   - `checkout_locker` (guest: `checkout_locker_guest`)
+- Body also carries `additionalDiscountsMarkers: ['bronze', 'silver', 'gold', 'platinum']` so OE can re-apply the shopper's tier; markers the shopper doesn't qualify for are ignored.
 - Authentication:
-  - Logged in → `Authorization: Bearer <oe_access>` cookie.
-  - Guest → `x-guest-id: <oe_guest_id>` header.
-- On success returns `orderId` (numeric OE record) + optional `paymentUrl` from Stripe.
+  - Logged in → `Authorization: Bearer <oe_access>` cookie via `getUserApi(access)`.
+  - Guest → SDK constructed with `x-guest-id: <oe_guest_id>` header via `getGuestApi(guestId)`.
+- On success returns `{ orderId: number, paymentUrl: string | null, paymentSessionError?: string }`. `paymentUrl` is either surfaced by OE directly on the created order (legacy providers) or minted by a follow-up `Payments.createSession(orderId, 'session', false)` call for Stripe-typed accounts (see §3.4).
 
 ### 3.3 Form data payloads
 
-The caller passes `formData` to `createOrderAction` as a **plain array** `[{marker, type, value}, ...]`. The OneEntry SDK's `Orders.createOrder` wraps it into `{ [langCode]: [...] }` internally — do **not** pre-wrap on the client (double nesting causes `formData's marker 'undefined' marker is required`). Excerpts:
+The caller passes `formData` to `createOrderAction` as a **plain array** `[{marker, type, value}, ...]`. The OneEntry SDK's `Orders.createOrder` wraps it into `{ [langCode]: [...] }` internally — do **not** pre-wrap on the client (double nesting causes `formData's marker 'undefined' marker is required`). Assembled in `PaymentPage.handlePlaceOrder` (`src/app/pages/PaymentPage.tsx:186`+). A `guestPrefix = payload.isGuest ? '_guest' : ''` is spliced into the `delivery_method` and `delivery_date-time` markers for the home flow only; the store / locker / guest-contact markers are hard-coded (see below).
 
-Home delivery (authenticated):
+**Home delivery (authenticated):**
 ```
-delivery_method              type=string     value=['courier']
-delivery_date-time           type=timeInterval value=[[fromISO, toISO]]
-user_addresses_recipient_name / phone / line_1 / city / postcode / special_instructions
+delivery_method              type=list          value=['courier']
+delivery_date-time           type=timeInterval  value=[[fromISO, toISO]]
+```
+(Auth users use their saved OE profile address — no address markers travel with the order.)
+
+**Home delivery (guest):**
+```
+delivery_method_guest        type=list          value=['courier']
+delivery_date-time_guest     type=timeInterval  value=[[fromISO, toISO]]
+checkout_home_guest_full_name              type=string  value=fullName
+checkout_home_guest_phone                  type=string  value=phone   (spaces stripped, OE caps at 15 chars)
+checkout_home_guest_address_line1          type=string  value=line1
+checkout_home_guest_city                   type=string  value=city
+checkout_home_guest_post_code              type=string  value=postcode
+checkout_home_guest_special_instrations    type=string  value=instructions   (only when non-empty; note the OE typo)
 ```
 
-Home delivery (guest): identical structure but with `_guest` suffixes on the marker names.
+**Time-interval derivation** — the client maps the picked slot id to fixed hours on `deliveryDate`:
 
-Store pickup:
 ```
-checkout_store_pickup_select_store   type=entity   value=[storeId]
-# guest only:
-checkout_store_pickup_guest_full_name / _phone / _email
+morning:   [09:00 UTC, 13:00 UTC]
+afternoon: [13:00 UTC, 17:00 UTC]
+evening:   [17:00 UTC, 21:00 UTC]
 ```
 
-Locker:
+Format: `${dayIso}T${HH}:00:00.000Z` for both ends; `dayIso = payload.deliveryDate.slice(0, 10)`.
+
+**Store pickup (authenticated):**
 ```
-checkout_locker_pickup_point   type=integer   value=lockerIndex + 1  # 0-based → 1-based
-# guest only:
-checkout_locker_guest_pickup_point / _guest_contact_*
+checkout_store_pickup_select_store   type=entity   value=[String(storeId)]
 ```
+
+**Store pickup (guest):**
+```
+checkout_store_pickup_guest_store       type=entity   value=[String(storeId)]
+checkout_store_pickup_guest_full_name   type=string   value=fullName
+checkout_store_pickup_guest_phone       type=string   value=phone (spaces stripped)
+checkout_store_pickup_guest_email       type=string   value=email
+```
+
+Note: the guest variant uses a distinct marker (`..._guest_store`), not a suffix on `select_store`.
+
+**Locker (authenticated):**
+```
+checkout_locker_pickup_point   type=integer   value=lockerId + 1   # 0-based index → 1-based OE integer
+```
+
+**Locker (guest):**
+```
+checkout_locker_guest_pickup_point   type=integer   value=lockerId + 1
+checkout_locker_guest_full_name      type=string   value=fullName
+checkout_locker_guest_phone          type=string   value=phone (spaces stripped)
+checkout_locker_guest_email          type=string   value=email
+```
+
+The `+1` shift is necessary because OE rejects `0` as a missing integer.
 
 ### 3.4 Stripe redirect
 
 For `account.type === 'stripe'`:
 
-1. After `createOrderAction` returns `orderId`, the same action calls `POST /api/content/payments/sessions` with:
-   ```json
-   { "orderId": 123, "type": "session", "automaticTaxEnabled": false, "successUrl": "...", "cancelUrl": "..." }
-   ```
-2. Response: `{ paymentUrl: string }`.
-3. Client `window.location.href = paymentUrl`. Stripe hosted checkout takes over. On success, Stripe redirects to the storefront `successUrl` (`/checkout/confirmation`). Currently `ConfirmationPage` does not read the real OE `orderId` from the URL — it generates its own display-only random id (see §4.1). Wiring the real id through `?orderId=` would need a `ConfirmationPage` update plus a Stripe `successUrl` template that appends the OE-side id.
+1. `createOrderAction` first checks whether OE already surfaced a `paymentUrl` on the created order (legacy providers do). If not, and the selected `paymentAccountType === 'stripe'`, it calls the SDK `api.Payments.createSession(orderId, 'session', false)`. That resolves to `POST /api/content/payments/sessions` server-side; note the SDK signature does **not** forward `successUrl` / `cancelUrl` — the merchant's default URLs configured in OE admin are used.
+2. Response: `{ paymentUrl: string }` (typed loosely in the SDK; the storefront unwraps it via `raw.paymentUrl`).
+3. Before redirecting, `PaymentPage.handlePlaceOrder` fires `clearCart()` unconditionally (see §4.2 — cart is emptied at order creation, not on Confirmation mount). It also removes `sessionStorage['oe_checkout_payload']`.
+4. Client `window.location.href = paymentUrl`. Stripe hosted checkout takes over. On success, Stripe redirects to the storefront `successUrl` (`/checkout/confirmation`). Currently `ConfirmationPage` does not read the real OE `orderId` from the URL — it generates its own display-only random id (see §4.1). Wiring the real id through `?orderId=` would need a `ConfirmationPage` update plus a Stripe `successUrl` template that appends the OE-side id.
 
-If Stripe session creation fails, `paymentSessionError` surfaces on the returned object; the client shows an error inline without redirecting.
+If Stripe session creation fails, `paymentSessionError` surfaces on the returned object; `handlePlaceOrder` shows the error inline (`Stripe session could not be created: {message}`) without redirecting. Because `clearCart()` runs *before* the paymentUrl check, a Stripe failure leaves the shopper with an empty cart on that screen — the OE order still exists on the server, but the buyer hasn't paid.
 
 ### 3.5 Place Order CTA gating
 
-A local `previewInFlight` boolean tracks the debounced `previewOrder` fetch: set `true` when the effect fires, cleared on response (or on the empty-cart early exit). The **Place Order** button is `disabled` while any of `placing` (order in flight), `previewInFlight` (preview still loading), or `!preview` (first fetch hasn't landed) is true, and renders a small `animate-spin` circle inside the label while gated. `handlePlaceOrder` also early-returns on `previewInFlight || !preview`, so a stale total can never reach `createOrderAction` even if the button state races. This prevents the pre-fix bug where a shopper could submit before OneEntry finished computing discounts / bonuses, causing a mismatch between shown total and charged amount.
+A local `previewInFlight` boolean tracks the **300 ms** debounced `previewOrder` fetch (`setTimeout(..., 300)` inside the `useEffect` at `PaymentPage.tsx:115`). It re-fires on any change to `productsKey` (JSON of cart products), `bonusAmount`, or `couponCode`. The **Place Order** button is `disabled` while any of `placing` (order in flight), `previewInFlight` (preview still loading), or `!preview` (first fetch hasn't landed) is true, and renders a small `animate-spin` circle inside the label while gated. `handlePlaceOrder` also early-returns on `previewInFlight || !preview`, so a stale total can never reach `createOrderAction` even if the button state races. This prevents the pre-fix bug where a shopper could submit before OneEntry finished computing discounts / bonuses, causing a mismatch between shown total and charged amount.
+
+The delivery-step coupon input uses a different mechanism: the shopper explicitly clicks "Apply", which awaits `CartContext.applyCoupon(code)` → `previewOrderAction`. `CartContext` has its own separate 300 ms debounce for the ambient preview refresh when the cart changes (`CartContext.tsx:291`). There is no "900 ms coupon debounce" — coupon codes are validated by OE server-side on click, not by any client timer, and the legacy `CHECKOUT_COUPONS` local dictionary has been removed (see §7).
 
 ### 3.6 SSR hydration guard
 
 `PaymentPage` mounts with an internal `mounted` flag to avoid rendering cart-dependent UI on the server pass. This eliminates a hydration mismatch that used to appear when the Redux cart differed from the SSR fallback.
+
+### 3.7 Trust / security badges
+
+Below the payment methods, `PaymentPage` renders a horizontal `#fafafa` strip of trust badges (`PaymentPage.tsx:353` onward). The list is derived from three OE labels (with `PAYMENT_METHODS_COPY.securityBadges` fallback):
+
+- `checkout_payment_ssl` (default: **"256-bit SSL Encryption"**) — rendered with the `Shield` icon.
+- `checkout_payment_pci` (default: **"PCI DSS Compliant"**) — rendered with the `Lock` icon (green).
+- `checkout_payment_3d` (default: **"3D Secure"**) — rendered with the `Shield` icon.
+
+Empty labels are filtered out (`securityBadges = [lSsl, lPci, l3d].filter(Boolean)`), so an OE deployment can suppress any badge by publishing an empty string.
+
+The badges are purely decorative — no client-side verification of SSL / PCI / 3DS status happens. Actual PCI compliance is inherited by hosting cards on Stripe's page.
 
 ---
 
@@ -231,11 +282,16 @@ The page generates a display-only order id:
 
 This is a **cosmetic** number for the receipt. The real OneEntry `orderId` returned by `createOrderAction` is not currently persisted to the client — a follow-up refactor should surface it via the URL query so refresh preserves the number.
 
-### 4.2 Cart cleanup
+### 4.2 Cart cleanup — two-stage
 
-200 ms after mount, `useCart().clearCart()` fires. The delay lets the receipt render with the last item snapshot before the cart is wiped. `clearCart()` also resets the applied coupon (`couponCode=null`, clears `couponError`, and removes `sessionStorage['oe_coupon_code']`) so the shopper's next order requires an explicit `applyCoupon` call instead of silently reusing the previous code.
+The cart is actually cleared in **two places**, in order:
 
-Server cart is NOT wiped by this call — the `syncCart` sync effect will push the empty cart on the next tick. If OneEntry order creation happens outside the sync window (e.g. Stripe success redirect), the server cart is only cleared when the user returns to a page mounted `useCart()`.
+1. **`PaymentPage.handlePlaceOrder`** — immediately after `createOrderAction` resolves successfully, *before* the Stripe redirect or `router.push('/checkout/confirmation')`. This is the load-bearing clear: a closed tab during Stripe redirect (or a cancelled Stripe session) no longer leaves the just-ordered items sitting in the shopper's bag next time they open the site.
+2. **`ConfirmationPage`** — 200 ms after mount, a `setTimeout(() => clearCart(), 200)` re-fires. This is a belt-and-braces call: if a user lands on Confirmation via a direct link, or the PaymentPage clear failed for any reason, the receipt view still wipes the cart. The 200 ms delay lets the receipt render with the last item snapshot before the cart is emptied. `mounted && items.length > 0` guards the item list, so a second-mount clear does not blank the receipt.
+
+`clearCart()` also resets the applied coupon (`couponCode=null`, clears `couponError`, and removes `sessionStorage['oe_coupon_code']`) so the shopper's next order requires an explicit `applyCoupon` call instead of silently reusing the previous code.
+
+Server cart is NOT wiped by these calls directly — the `syncCart` sync effect will push the empty cart on the next tick. If OneEntry order creation happens outside the sync window (e.g. Stripe success redirect), the server cart is only cleared when the user returns to a page mounted `useCart()`.
 
 ### 4.3 Loyalty points
 
@@ -250,25 +306,36 @@ Cart Redux ───────────────────────
                                      │
 sessionStorage['oe_checkout_payload']─┼──► createOrderAction (Server Action)
                                      │        │
-Payment accounts (OE Payments) ──────┘        ├──► OE orders-storage/marker/{home|store_pickup|locker}
+Payment accounts (OE Payments) ──────┘        ├──► OE orders-storage/marker/{home|store_pickup|locker}[_guest]
+                                              │       (SDK Orders.createOrder)
                                               │
-                                              ├── Stripe? ──► POST /payments/sessions ──► paymentUrl
+                                              ├── Stripe? ──► SDK Payments.createSession(orderId, 'session', false)
+                                              │                     │
+                                              │                     └──► paymentUrl
                                               │
-                                              └──► onSuccess: router.push('/checkout/confirmation')
+                                              ├──► clearCart() [PaymentPage, unconditional on success]
+                                              │
+                                              ├── Stripe? ──► window.location.href = paymentUrl
+                                              │
+                                              └──► router.push('/checkout/confirmation')
                                                                           │
-                                                                          └──► clearCart() 200ms after mount
+                                                                          └──► clearCart() 200ms after mount [belt & braces]
 ```
 
 ---
 
 ## 6. Guest checkout
 
-The `x-guest-id` header (from `src/app/utils/guest-id.ts`) turns anonymous checkout into a first-class flow:
+The `x-guest-id` header (from `src/app/utils/guest-id.ts`, minted / persisted in `localStorage` as `oe_guest_id`) turns anonymous checkout into a first-class flow:
 
 - `GuestCheckoutModal` unlocks the page after "Continue as Guest".
 - Delivery page collects `guestContact = {fullName, email, phone}` when the method is store or locker (home already asks for full address).
-- All guest form-identifier markers use the `_guest` suffix (see §3.3).
-- Orders are still persisted on the Platform side, associated with the guest UUID instead of a user identifier.
+- The `_guest` suffix is applied at two levels (see §3.2 / §3.3):
+  - **Storage marker** — `home` → `home_guest`, `store_pickup` → `store_pickup_guest`, `locker` → `locker_guest`.
+  - **Form identifier** — `checkout_home_delivery` → `checkout_home_delivery_guest`, and similarly for the two other forms.
+  - **Individual formData markers** do NOT all follow the suffix pattern — `delivery_method` / `delivery_date-time` get a `_guest` suffix, `checkout_store_pickup_select_store` is replaced with `checkout_store_pickup_guest_store` (distinct name), and contact fields use hard-coded names like `checkout_home_guest_full_name`.
+- The guest SDK is instantiated via `getGuestApi(guestId)` on the server; the SDK adds `x-guest-id: <guestId>` to every OE request (`Orders.createOrder`, `Payments.createSession`, `previewOrder`).
+- Orders are persisted on the Platform side, associated with the guest UUID instead of a user identifier. On a later sign-in, the guest cart merges (see [CART_WISHLIST.md](./CART_WISHLIST.md) §6), but guest **orders** do not automatically re-parent — OE keeps them under the guest id.
 
 Guest cart persists in `localStorage`; if the guest signs in later, `CartContext` performs the login-time merge (see [CART_WISHLIST.md](./CART_WISHLIST.md) §6).
 
@@ -290,9 +357,9 @@ Zod schemas in `src/app/utils/schemas.ts`:
 |---|---|
 | `loginSchema` | email/phone/identifier + password |
 | `registerSchema` | Sign-up form fields |
-| `addressSchema` | `fullName` (1-100), `phone` (regex), `line1` (1-200), `city` (1-100), `postcode` ([A-Z0-9\s-]{3,10}) |
-| `guestContactSchema` | `fullName`, `email`, `phone` |
-| `paymentSchema` | not currently used — Stripe hosts the card UI |
+| `addressSchema` | `fullName` (1-100), `phone` (`/^\+?[\d\s\-()\[\]]{7,20}$/`), `line1` (1-200), `city` (1-100), `postcode` (`/^[A-Z0-9\s\-]{3,10}$/i`), `instructions` (optional, ≤500) |
+| `guestContactSchema` | `fullName` (1-100), `email` (RFC), `phone` (same regex as address) |
+| `paymentSchema` | defined (card number w/ Luhn check, expiry `MM/YY`, CVV 3-4 digits, name on card) — kept for surfaces that host their own card UI; the checkout flow bypasses it because Stripe hosts the actual card form |
 | `profileSchema` | Account "My Data" form |
 | `promoSchema` | Refer-a-friend, gift certificate promo codes |
 

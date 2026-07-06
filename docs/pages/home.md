@@ -1,5 +1,7 @@
 # Home (`/`)
 
+RSC shell (`app/page.tsx`) is `dynamic = 'force-dynamic'` and `Promise.all`-awaits six loaders in parallel — `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`, `loadPageBlocksById(HOME_PAGE_ID)` (id = 1) and `loadStores` — then emits two JSON-LD blobs (`Organization` with the flagship store's `contactPoint` / `address` + `WebSite` with a `SearchAction` targeting `/women/clothing?q={search_term_string}`). Blocks are re-ordered against `HOMEPAGE_MARKER_ORDER` before rendering; each is wrapped in an `AnimatedSection` with an `IntersectionObserver` fade-up (~650 ms), the hero using `immediate` to skip the observer. See CATALOG_FILTERS §15 (§ Homepage) for the full behavioural spec.
+
 In OneEntry:
 A page of type "Common page"
 
@@ -85,7 +87,7 @@ Horizontal scroll carousel (structure identical to Best Sellers).
 
 ## 5. Promo Block
 
-Grid of 4 promo cards. Source: `data/promoBlocks.ts`.
+Grid of 4 promo cards. Data arrives via prop `initialItems` from OneEntry `homepage-collections` (fetched server-side); `data/promoBlocks.ts` retains the `PromoItem` type only.
 
 - **Promo card** (×4): image + alt = `title`
     - **Subtitle** (eyebrow) — e.g. `"Shop Dresses"`

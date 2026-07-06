@@ -59,7 +59,7 @@ Component re-renders
 │     ↕  persisted (cart, wishlist, recentlyViewed, catalog)   │
 ├─────────────────────────────────────────────────────────────┤
 │  OneEntry integration layer  (src/lib/oneentry/**)           │
-│  ├── auth/actions.ts       — 18 Server Actions               │
+│  ├── auth/actions.ts       — 22 Server Actions (18 auth-domain + 4 downstream: create/preview/cancel Order, fetchBonusHistory)
 │  ├── activity/actions.ts   — trackActivity                   │
 │  ├── blocks/*, catalog/*   — cached loaders (RSC)            │
 │  ├── labels/*, menus/*     — cached loaders + React contexts │
@@ -109,7 +109,7 @@ src/app/context/
 └── CatalogAccentContext.tsx  ← plain string context (accent hex)
 
 src/lib/oneentry/
-├── auth/actions.ts           ← 18 Server Actions (sign-in, /me, sync-cart, create-order, …)
+├── auth/actions.ts           ← 22 Server Actions (18 auth-domain + 4 downstream — see 06-ServerActions)
 ├── activity/actions.ts       ← trackActivity
 ├── blocks/*                  ← hero-slides, homepage-collections, discount-banner, category-section, page-blocks, clothing-filter
 ├── catalog/*                 ← products (list + vector + quick search), pages, reviews, stores, filters, adapt, service-requests, waiting-list

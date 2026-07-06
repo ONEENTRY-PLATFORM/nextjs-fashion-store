@@ -12,24 +12,23 @@ Grouped by purpose. Every entry lists file, exports, and which components/hooks/
 | `infoPages.ts` | `INFO_PAGES` (title / description / keywords per info slug) | `InfoPage`, `generateMetadata` for `/[...slug]` |
 | `pageRegistry.ts` also declares catalog entries with `catalogKey`, `pageMarker` (used to fetch content from OE) and SEO key. |
 
-## 2. Product-side identity bridge
+## 2. Numeric id conversion helpers
 
 | File | Exports | Consumers |
 |---|---|---|
-| `cms-product-id-map.ts` | `CMS_PRODUCT_ID_MAP`, `getCmsProductId(playgroundId)`, `getPlaygroundProductId(cmsId)` | `CartContext`, `WishlistContext`, `track-activity`, checkout `createOrderAction` body builder |
+| `cms-product-id-map.ts` | `getCmsProductId(id: string): number | null`, `getPlaygroundProductId(cmsId: number): string | null` | `CartContext`, `WishlistContext`, `track-activity`, checkout `createOrderAction` body builder |
 
-Bridges the ~25 legacy playground SKUs (`wc-1`, `mc-3`, …) to numeric OneEntry product IDs. Kept transitional — as more code paths switch to integer IDs directly, this file shrinks.
+The static mapping table (`CMS_PRODUCT_ID_MAP` / `REVERSE_CMS_PRODUCT_ID_MAP`) has been removed. Both helpers now do pure string↔number conversion: `getCmsProductId` parses a decimal string to a number, and `getPlaygroundProductId` stringifies a finite number. All UI item ids are already OneEntry numeric ids stored as strings.
 
 ## 3. User mock shape
 
 | File | Exports | Consumers |
 |---|---|---|
-| `userData.ts` | `USER_DATASET` (profile / loyalty / addresses / subscriptions fixture) + type exports (`Gender`, `LoyaltyStatus`, `UserAddress`, `PaymentMethod` types), `MOCK_USER_DATA` | `userSlice` initial state, Storybook stories, `validateCredentials` legacy Server Action |
+| `userData.ts` | Type contracts only: `LoyaltyStatus`, `Gender`, `LoyaltyCard`, `UserAddress`, `UserOrder`, `WishlistItem`, `HistoryOrder`, `WaitingItem`, `UserDataset`, and related interfaces | `userSlice`, `AuthContext`, Storybook stories, page components |
 
-Real user data comes from `AuthContext.user` (populated by `getCurrentUserAction`). `USER_DATASET` remains as:
+The `USER_DATASET` fixture (Jane Smith mock profile), `USER_SLICE_MESSAGES`, and the `credentials` / `UserCredentials` fields have been **removed**. `userData.ts` is now a pure type-contract module — no runtime data.
 
-- The Redux `userSlice` initial state (loyalty defaults show something while `/me` is loading).
-- The credentials source for the legacy `validateCredentials` fallback used only by Storybook and mocked E2E paths (see [AUTH.md](./AUTH.md) §12).
+Real user data comes exclusively from `AuthContext.user` (populated by `getCurrentUserAction`).
 
 ## 4. Checkout configuration
 
@@ -56,8 +55,7 @@ Pickup stores/lockers are still local; a future refactor may pull them from OneE
 | File | Exports | Consumers |
 |---|---|---|
 | `sectionTitles.ts` | Eyebrow / title / subtitle / view-all config for homepage carousels | `HomePage` sections |
-| `trendBlocks.ts` | Trend category blocks per catalog (suede bags, evening bags, animal prints, XXL…) | `CatalogTrendBlocks` |
-| `promoBlocks.ts` | Promotional heroes (Best Dress for You, Discover New Style…) | `PromoBlock`, `HomePage` |
+| `promoBlocks.ts` | `PromoItem` type only — `PROMO_ITEMS` array removed; live data comes from OneEntry `homepage-collections` via prop `initialItems` | `PromoBlock` (type reference) |
 | `newArrivalsConfig.ts` | New Arrivals sort options + category filters | `NewArrivalsPage`, `NewArrivalsHero` |
 | `saleConfig.ts` | Sale end date + category filters | `SalePage`, `SaleHero`, `SaleCountdown` |
 | `sizeGuide.ts` | Women's clothing size chart | `SizeGuideModal`, `QuickViewSizeGuide` |
@@ -70,7 +68,7 @@ Most homepage content is fetched from OneEntry Blocks (see [ONEENTRY_INTEGRATION
 |---|---|---|
 | `productCatalog.ts` | `Product` and PDP-specific interfaces (`CatalogProduct`, `SizeOption`, `ProductSpec`, `ProductReview`) — type-only for the transitional period | Storybook, tests, occasional fallback where OE data is missing |
 | `specialOffers.ts` | Bundle / offer interface types (data deprecated) | `ProductSpecialOffers` (types only) |
-| `serviceData.ts` | Service maintenance offerings | `ServiceMaintenanceSection` fallback |
+| `serviceData.ts` | Types only — `SERVICE_REQUESTS` array removed; live data comes from OneEntry `FormData` API (form `service_request`) via `getServiceRequestsAction()` | `ServiceMaintenanceSection` (type reference) |
 
 The concrete product arrays that lived in this folder (`women-clothing.ts`, `men-shoes.ts`, etc.) have all been removed — catalog listings now come from OneEntry Products API.
 
@@ -172,7 +170,7 @@ If a component still imports from one of these paths, that's an unfinished migra
 ## 13. Cross-references
 
 - [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) — where each dataset moved to on the CMS side
-- [REDUX.md](./REDUX.md) §2.6 — `userSlice` still uses `USER_DATASET` as initial state
+- [REDUX.md](./REDUX.md) §2.6 — `userSlice` shape and empty initial state
 - [CHECKOUT.md](./CHECKOUT.md) — how checkout config is consumed
 - [CATALOG_FILTERS.md](./CATALOG_FILTERS.md) — where filter/sort configs are read
 - [SEO_OPTIMIZATION.md](./SEO_OPTIMIZATION.md) — how `seoData.ts` powers metadata and JSON-LD

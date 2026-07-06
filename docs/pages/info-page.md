@@ -1,6 +1,8 @@
 # Info Page (typical, `/[...slug]`)
 
-Catch-all route for all info pages. A single template `InfoPage.tsx` serves 23+ slugs from `infoPages.ts`:
+Catch-all route for all info pages. A single template `InfoPage.tsx` serves 23+ slugs from `infoPages.ts`.
+
+> **Implementation note:** the current `InfoPage.tsx` reads content **entirely from local static datasets** (`INFO_PAGE_LABELS`, `INFO_PAGE_DEMO_NOTICE`, `INFO_PAGE_HERO`, `INFO_PAGE_CTA`, `INFO_PAGE_SECTIONS`, `INFO_PAGE_FEATURE_CARDS` in `data/infoPageLabels.ts`) — no OneEntry loader is called from the component today. The "OneEntry Demo Notice" bar is a design element, not a live CMS binding. `loadPageByUrl` exists in `src/lib/oneentry/catalog/pages.ts` as scaffolding for future CMS wiring but is not on the request path.
 
 - `about-us`, `careers`, `rewards`, `gift-certificates`, `refer-a-friend`, `corporate`
 - `faq`, `track-order`, `delivery`, `exchange`, `sizing-guide`, `care-guide`, `help-center`, `contact`

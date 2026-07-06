@@ -209,7 +209,7 @@ Data source: `state.user.data.subscriptions` (Redux). Changes persisted via `dis
 
 ## 12. Service Maintenance
 
-Data source: `SERVICE_REQUESTS` from `serviceData.ts` (static, not Redux).
+Data source: `getServiceRequestsAction()` — OneEntry `FormData` API (form `service_request`). Types come from `serviceData.ts`.
 Statuses: `open / in-progress / ready / completed / cancelled`.
 
 <MermaidDiagram chart={`flowchart TD

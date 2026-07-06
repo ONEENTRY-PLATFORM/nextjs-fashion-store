@@ -1,7 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch } from '../store/hooks';
-import { fetchUserData } from '../store/userSlice';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -90,11 +89,6 @@ export function AccountPage() {
     setMobileNavOpen(false);
     router.replace(`/account?tab=${key}`, { scroll: false });
   };
-
-  // Fetch user data when logged in
-  useEffect(() => {
-    if (user) dispatch(fetchUserData());
-  }, [user, dispatch]);
 
   useEffect(() => {
     setSectionLoading(true);

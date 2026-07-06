@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { ShoesCatalog } from '../app/components/ShoesCatalog';
-import type { FilterGroup, TrendBlock } from '../app/components/ShoesCatalog';
+import type { FilterGroup } from '../app/components/ShoesCatalog';
 import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT } from './mockData';
 import { ACCENT_WOMEN, ACCENT_MEN } from '../app/constants/colors';
 
@@ -25,26 +25,6 @@ const FILTER_GROUPS: FilterGroup[] = [
   },
 ];
 
-const TREND_BLOCKS: TrendBlock[] = [
-  {
-    label: 'Chunky Sneakers',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-    tag: 'TRENDING',
-  },
-  {
-    label: 'Block Heels',
-    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-  },
-  {
-    label: 'Ankle Boots',
-    image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-  },
-  {
-    label: 'Loafers',
-    image: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-  },
-];
-
 const meta = {
   title: 'Templates / ShoesCatalog',
   component: ShoesCatalog,
@@ -65,7 +45,6 @@ export const WomenShoes: Story = {
     quickChips: ['All', 'Sneakers', 'Boots', 'Sandals'],
     filterGroups: FILTER_GROUPS,
     products: [MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT],
-    trendBlocks: TREND_BLOCKS,
   },
 };
 
@@ -79,6 +58,5 @@ export const MenShoes: Story = {
     quickChips: ['All', 'Sneakers', 'Boots'],
     filterGroups: FILTER_GROUPS,
     products: [MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT],
-    trendBlocks: TREND_BLOCKS,
   },
 };

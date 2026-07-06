@@ -37,7 +37,8 @@ export function QuickViewModal() {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       setSelectedColor(initialColorIndex ?? null);
-      setSelectedSize(null);
+      const productSizes = product?.sizes;
+      setSelectedSize(productSizes && productSizes.length === 1 ? productSizes[0] : null);
       setErrors({});
     } else {
       document.body.style.overflow = '';
@@ -45,7 +46,7 @@ export function QuickViewModal() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, initialColorIndex]);
+  }, [isOpen, initialColorIndex, product]);
 
   if (!isOpen || !product) return null;
 
@@ -258,7 +259,7 @@ export function QuickViewModal() {
                   return (
                     <button
                       key={color}
-                      onClick={() => { if (!isColorOOS) { setSelectedColor(idx); setSelectedSize(null); setSelectedImage(0); setErrors(e => ({ ...e, color: false })); } }}
+                      onClick={() => { if (!isColorOOS) { setSelectedColor(idx); setSelectedSize(sizes.length === 1 ? sizes[0] : null); setSelectedImage(0); setErrors(e => ({ ...e, color: false })); } }}
                       disabled={isColorOOS}
                       aria-disabled={isColorOOS}
                       className={`relative w-8 h-8 transition-all border border-gray-300 ${

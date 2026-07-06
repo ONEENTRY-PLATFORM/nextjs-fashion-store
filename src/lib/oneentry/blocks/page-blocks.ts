@@ -54,6 +54,24 @@ const getCachedBlock = unstable_cache(
   { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
 );
 
+// Trending blocks aren't populated via `getBlockByMarker` — OE computes the
+// list through its dedicated `getTrending` endpoint that reads user-activity
+// (product_view / product_add_to_cart / product_purchase) over the block's
+// configured period.
+const getCachedTrending = unstable_cache(
+  async (marker: string, lang: string) => {
+    const result = await getApi().Blocks.getTrending(marker, lang);
+    if (isError(result)) return [] as Array<{ id?: number }>;
+    // SDK returns either an array or `{ items }` depending on shape.
+    const arr = Array.isArray(result)
+      ? result
+      : (result as unknown as { items?: Array<{ id?: number }> })?.items ?? [];
+    return arr as Array<{ id?: number }>;
+  },
+  ['oe-block-trending'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+);
+
 const getCachedFrequentlyOrdered = unstable_cache(
   async (marker: string, productId: number, lang: string) => {
     const result = await getApi().Blocks.getFrequentlyOrderedProducts(productId, marker, lang);
@@ -112,10 +130,12 @@ export async function loadBlockWithProducts(
 
   let products: Product[] = [];
   if (PRODUCT_BLOCK_TYPES.has(type)) {
-    const inlineItems =
-      block.similarProducts?.items
-      ?? block.products
-      ?? [];
+    // Trending blocks read from a separate endpoint that consumes the OE
+    // activity stream (views / add-to-cart / purchases) — `getBlockByMarker`
+    // doesn't inline products for that type.
+    const inlineItems = type === 'trending_block'
+      ? await getCachedTrending(marker, lang)
+      : (block.similarProducts?.items ?? block.products ?? []);
     const ids = inlineItems
       .map((it) => Number(it?.id))
       .filter((n) => Number.isFinite(n) && n > 0);

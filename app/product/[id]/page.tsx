@@ -11,9 +11,10 @@ import { ProductDetailPage } from '../../../src/app/pages/ProductDetailPage';
 import { JsonLd } from '../../../src/app/components/JsonLd';
 import { loadPdpSystemTexts } from '../../../src/lib/oneentry/labels/pdp-labels';
 import { PdpLabelsProvider } from '../../../src/lib/oneentry/labels/PdpLabelsContext';
-import { loadProductById, categoryPathToBreadcrumbs } from '../../../src/lib/oneentry/catalog/products';
+import { loadProductById, categoryPathToBreadcrumbs, categoryPathToViewAllHref } from '../../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToPdpProduct } from '../../../src/lib/oneentry/catalog/adapt';
 import { loadProductReviews } from '../../../src/lib/oneentry/catalog/reviews';
+import { loadPurchaseBonusForProduct } from '../../../src/lib/oneentry/discounts/purchase-bonus';
 import { ReviewsAsync } from '../../../src/app/pages/product/ReviewsAsync';
 import { ReviewsSkeleton } from '../../../src/app/pages/product/ReviewsSkeleton';
 import { FrequentlyOrderedAsync } from '../../../src/app/pages/product/FrequentlyOrderedAsync';
@@ -110,6 +111,10 @@ export default async function Page({ params }: Props) {
   // but it lives below the fold — the summary near the title needs the
   // counts on initial render.
   const initialReviews = numericId !== null ? await loadProductReviews(numericId, 50) : [];
+  // Purchase-bonus badge: shown only when the OE `purchase-of-goods` rule
+  // applies to this product. Loaded server-side so the block is either
+  // rendered with the computed points or omitted entirely.
+  const purchaseBonus = oeProductRaw ? await loadPurchaseBonusForProduct(oeProductRaw) : null;
   const oeProduct: PdpCatalogProduct | null = oeProductRaw
     ? { ...adaptCatalogProductToPdpProduct(oeProductRaw), reviews: initialReviews.length > 0 ? initialReviews : undefined }
     : null;
@@ -231,13 +236,11 @@ export default async function Page({ params }: Props) {
   // boundary so the main PDP body renders immediately. The skeletons stay on
   // screen until OE finishes resolving the form-data records and the
   // frequently-ordered block respectively.
-  const categoryViewAllHref = (() => {
-    const seg = (oeProductRaw?.categories?.[0] ?? '').split('/').filter(Boolean);
-    const gender = seg[0];
-    const top = (seg[1] ?? '').replace(/^(women|men)_/, '');
-    if (gender && top) return `/${gender}/${top}`;
-    return '/women/clothing';
-  })();
+  // Derive the "View all in this category" href from the product's OE
+  // taxonomy path (e.g. `/women/women_clothing/costumes` → `/women/clothing`).
+  // Falls back to home when the product has no categories — no gender/type
+  // is guessed from the id prefix (that legacy heuristic has been removed).
+  const categoryViewAllHref = categoryPathToViewAllHref(oeProductRaw?.categories?.[0]);
   // Full OE category path (e.g. `/women/women_clothing/outerwear`) — used by
   // the recommendations carousel to backfill from the same shelf when the
   // stats-driven `frequently_ordered_block` has too few products.
@@ -276,6 +279,8 @@ export default async function Page({ params }: Props) {
           reviewsSlot={reviewsSlot}
           recommendationsSlot={recommendationsSlot}
           currentGender={oeProductRaw?.gender}
+          bonusPoints={purchaseBonus?.points}
+          categoryViewAllHref={categoryViewAllHref}
         />
       </PdpLabelsProvider>
     </>

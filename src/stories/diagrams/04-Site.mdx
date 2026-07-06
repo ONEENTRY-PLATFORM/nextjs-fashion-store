@@ -27,9 +27,11 @@ Data source: `signInAction` (Server Action) → OneEntry Platform `AuthProvider.
     H --> J["CartContext + WishlistContext\\ndebounced 400 ms sync effects\\nunlock"]
     H --> K["dispatch setAuth\\nuserIdentifier only\\ntokens stay empty"]
     B --> L{"Continue with Google"}
-    L -->|"NEXT_PUBLIC_GOOGLE_CLIENT_ID set"| M["requestGoogleAccessToken\\nGIS token client popup"]
+    L -->|"NEXT_PUBLIC_GOOGLE_CLIENT_ID set"| M["startGoogleOAuth returnTo\\nbrowser redirects to\\nGoogle authorization endpoint"]
     L -->|"unset"| N["Button hidden"]
-    M --> O["signInWithGoogleAction\\naccessToken"]
+    M --> M2["User consents on Google"]
+    M2 --> M3["Redirect to\\napp/auth/callback/google/route.ts\\nwith authorization code"]
+    M3 --> O["Server: exchange code for tokens\\nthen signInWithGoogleAction accessToken"]
     O --> F2
     B --> P{"Apple / Facebook"}
     P --> Q["Stub — password=social\\nsets empty user session"]

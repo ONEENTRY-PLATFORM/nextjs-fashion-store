@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { SectionTitle } from '../shared';
 import { SOCIAL_NETWORKS_LABELS as L } from '../../../data/accountLabels';
-import { requestGoogleIdToken } from '../../../../lib/google-auth';
-import { connectGoogleAccountAction } from '../../../../lib/oneentry/auth/actions';
+import { startGoogleOAuth } from '../../../../lib/google-auth';
 import { useAuthProviders } from '../../../hooks/useAuthProviders';
 import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../../data/socialProviderRegistry';
 
@@ -42,7 +41,25 @@ export function SocialNetworksSection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLinked(readLinkedProviders());
+    const stored = readLinkedProviders();
+    let next = stored;
+    // If we're coming back from the Google OAuth callback, promote Google
+    // to "linked" and drop the flag from the URL so a refresh doesn't
+    // re-trigger the effect.
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('googleLinked') === '1') {
+        next = Array.from(new Set([...stored, 'google']));
+        writeLinkedProviders(next);
+        url.searchParams.delete('googleLinked');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+    // Reading localStorage + a one-shot URL query flag on mount is exactly
+    // the "sync from external source" case the rule allows — no cascading
+    // renders because the effect has no deps and runs once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLinked(next);
   }, []);
 
   const setProviderLinked = (id: string, isLinked: boolean) => {
@@ -60,16 +77,12 @@ export function SocialNetworksSection() {
     if (id !== 'google') return;
     setBusy(id);
     try {
-      const idToken = await requestGoogleIdToken();
-      const res = await connectGoogleAccountAction(idToken);
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      setProviderLinked(id, true);
+      // Full-page redirect per MCP `auth-provider` rule. On return, the
+      // callback bounces us back to /account with ?googleLinked=1, which
+      // the mount effect above picks up to set the badge.
+      await startGoogleOAuth('/account?googleLinked=1');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to connect Google');
-    } finally {
       setBusy(null);
     }
   };

@@ -1,6 +1,6 @@
 # 404 / Page Not Found
 
-404 error page (`NotFoundPage.tsx`). Rendered by Next.js when a route is not found.
+404 error page (`NotFoundPage.tsx`). Rendered by Next.js when a route is not found (`app/not-found.tsx` → `<NotFoundPage />`, `SEO.notFound` metadata). Static UI — no CMS loaders. Mount effect: `window.scrollTo(0, 0)` to defeat scroll-restore when the client-side router lands on a missing route. All copy comes from `NOT_FOUND_LABELS` in `data/notFoundLabels.ts`.
 
 ## SEO / social networks
 

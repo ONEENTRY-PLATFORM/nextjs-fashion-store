@@ -1,13 +1,11 @@
 'use client'
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { type LoyaltyStatus, type Gender, USER_DATASET } from '../data/userData';
+import { type LoyaltyStatus, type Gender } from '../data/userData';
 import type { AppDispatch } from '../store';
 import { setAuth, clearAuth } from '../store/userSlice';
-import { validateCredentials } from '../actions/auth';
 import {
   signInAction,
-  signInWithGoogleAction,
   signUpAction,
   signOutAction,
   getCurrentUserAction,
@@ -81,8 +79,11 @@ interface AuthContextType {
   openRegisterModal: () => void;
   closeRegisterModal: () => void;
   login: (emailOrPhone: string, password: string) => Promise<boolean>;
-  /** Trade a Google ID token (from GIS popup) for a OE session. */
-  loginWithGoogle: (idToken: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Start the Google OAuth authorization-code flow — user is redirected to
+   *  Google; on return, our /auth/callback/google route exchanges the code
+   *  via OE and sets the session. `returnTo` is the local path to bounce
+   *  back to after auth (defaults to current pathname). */
+  startGoogleOAuth: (returnTo?: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
@@ -111,41 +112,6 @@ const DEFAULT_SUBSCRIPTIONS = {
   orderUpdates: false, newArrivals: false, saleAlerts: false, loyaltyUpdates: false,
 };
 const DEFAULT_CONSENT = { dataProcessing: false, crossBorder: false };
-
-/** Build the mock signed-in user from USER_DATASET (Storybook + e2e). */
-function buildMockUser(): User {
-  return {
-    ...EMPTY_USER_DEFAULTS,
-    firstName: USER_DATASET.profile.firstName,
-    lastName: '',
-    email: USER_DATASET.profile.email,
-    phone: USER_DATASET.profile.phone,
-    dob: USER_DATASET.profile.dob,
-    gender: USER_DATASET.profile.gender,
-    shoeSize: USER_DATASET.profile.shoeSize,
-    clothingSize: USER_DATASET.profile.clothingSize,
-    cardNumber: USER_DATASET.loyalty.cardNumber,
-    discount: USER_DATASET.loyalty.discount,
-    bonuses: USER_DATASET.loyalty.bonuses,
-    status: USER_DATASET.loyalty.status,
-    totalPurchases: USER_DATASET.loyalty.totalPurchases,
-    nextLevelAmount: USER_DATASET.loyalty.nextLevelAmount,
-    addresses: USER_DATASET.addresses.map((a) => ({
-      id: a.id,
-      name: a.name,
-      fullName: a.fullName,
-      phone: a.phone,
-      line1: a.line1,
-      city: a.city,
-      postcode: a.postcode,
-      instructions: a.instructions,
-      full: a.full,
-    })),
-    subscriptions: DEFAULT_SUBSCRIPTIONS,
-    consent: DEFAULT_CONSENT,
-    cartItems: [], wishlistItems: [], oeOrders: [], recentlyViewedItems: [],
-  };
-}
 
 /** Nice-cased tier label (`bronze` → `Bronze`). Handles the empty case. */
 function toTierLabel(marker: string): LoyaltyStatus {
@@ -293,18 +259,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
 
-  // Bootstrap from server-side session cookie on mount. When a Storybook/e2e
-  // mock login flagged sessionStorage.__mock_auth, restore the mock USER_DATASET
-  // profile instead of hitting OE — that way logged-in state persists across
-  // client-side navigations for tests.
+  // Bootstrap from server-side session cookie on mount.
   useEffect(() => {
     let cancelled = false;
-    if (typeof window !== 'undefined' && sessionStorage.getItem('__mock_auth') === '1') {
-      setUser(buildMockUser());
-      setIsLoggedIn(true);
-      setAuthReady(true);
-      return;
-    }
     void getCurrentUserAction().then((me) => {
       if (cancelled) return;
       if (me) {
@@ -340,20 +297,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true;
     }
 
-    // Legacy mock short-circuit for Storybook + e2e (see docs/AUTH.md).
-    // Accepts the fixture credentials from USER_DATASET without hitting OE
-    // and persists a sessionStorage flag so that logged-in state survives
-    // client-side navigations (bootstrap effect restores the mock user).
-    if (await validateCredentials(emailOrPhone, password)) {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('__mock_auth', '1');
-      }
-      setUser(buildMockUser());
-      setIsLoggedIn(true);
-      setLoginModalOpen(false);
-      return true;
-    }
-
     const result = await signInAction(emailOrPhone, password);
     if (result.ok) {
       dispatch(setAuth({
@@ -370,22 +313,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   }, [dispatch]);
 
-  const loginWithGoogle = useCallback(async (idToken: string): Promise<{ ok: boolean; error?: string }> => {
-    const result = await signInWithGoogleAction(idToken);
-    if (result.ok) {
-      dispatch(setAuth({
-        accessToken: '',
-        refreshToken: '',
-        userIdentifier: result.userIdentifier,
-      }));
-      setUser(mergeOeUser(result.user));
-      setIsLoggedIn(true);
-      setLoginModalOpen(false);
-      setRegisterModalOpen(false);
-      return { ok: true };
-    }
-    return { ok: false, error: result.error };
-  }, [dispatch]);
+  const startGoogleOAuth = useCallback(async (returnTo?: string): Promise<void> => {
+    // Full-page redirect flow per MCP `auth-provider` rule. The callback
+    // route (/auth/callback/google) exchanges `?code=` server-side via
+    // AuthProvider.oauth('google', { code, redirect_uri }) and sets session
+    // cookies before bouncing to `returnTo`.
+    const { startGoogleOAuth: kickOff } = await import('../../lib/google-auth');
+    await kickOff(returnTo);
+  }, []);
 
   const signUp = useCallback(async (input: SignUpInput): Promise<{ ok: boolean; error?: string }> => {
     const result = await signUpAction(input);
@@ -407,7 +342,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoggedIn(false);
     setUser(null);
     dispatch(clearAuth());
-    if (typeof window !== 'undefined') sessionStorage.removeItem('__mock_auth');
     void signOutAction();
   }, [dispatch]);
 
@@ -463,7 +397,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loginModalOpen, registerModalOpen,
       openLoginModal, closeLoginModal,
       openRegisterModal, closeRegisterModal,
-      login, loginWithGoogle, signUp, logout, updateUser,
+      login, startGoogleOAuth, signUp, logout, updateUser,
       updateProfile, updateAddresses, updateSubscriptions, updateConsent,
       syncCart, syncWishlist,
     }}>

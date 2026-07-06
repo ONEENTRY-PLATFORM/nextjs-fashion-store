@@ -6,14 +6,17 @@ import {
   OFFER_CATALOGUE,
 } from '../../src/app/data/seoData';
 import { LLMS_TXT_COPY as L } from '../../src/app/data/llmsTextLabels';
-import { PRODUCT_CATALOG } from '../../src/app/data/productCatalog';
+import { loadProducts } from '../../src/lib/oneentry/catalog/products';
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';
 import { INFO_PAGE_META } from '../../src/app/data/infoPages';
 
 export const dynamic = 'force-static';
 
 export async function GET() {
-  const productCount = Object.keys(PRODUCT_CATALOG).length;
+  // Pull the aggregated OE catalog for an accurate SKU count — variants are
+  // collapsed so a "product family" counts once, matching what the shopper sees.
+  const oeCatalog = await loadProducts({ unique: true, limit: 5000 });
+  const productCount = oeCatalog.total;
   const stores = await loadStores();
   const storeCities = [...new Set(stores.map((s) => s.city))].join(', ');
 

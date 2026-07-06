@@ -23,7 +23,6 @@ import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 export type {
   FilterOption,
   FilterGroup,
-  TrendBlock,
   CrossSellCategory,
   BreadcrumbItem,
   ChipFilter,
@@ -39,7 +38,6 @@ export interface ShoesCatalogProps {
   quickChips: string[];
   filterGroups: CatalogTemplateProps['filterGroups'];
   products: Product[];
-  trendBlocks: CatalogTemplateProps['trendBlocks'];
   crossSell?: CatalogTemplateProps['crossSell'];
   priceMax?: number;
   /** Server-reported total products matching `currentFilters`. */
@@ -73,7 +71,6 @@ export function ShoesCatalog({
   quickChips,
   filterGroups,
   products,
-  trendBlocks,
   crossSell,
   priceMax = 500,
   total,
@@ -118,7 +115,6 @@ export function ShoesCatalog({
       currentFilters={currentFilters}
       trendingBlock={trendingBlock}
       productsPerPage={productsPerPage}
-      trendBlocks={trendBlocks}
       breadcrumbs={breadcrumbs}
       priceMax={priceMax}
       scrollbarClass={scrollbarClass}

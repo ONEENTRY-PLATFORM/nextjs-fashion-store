@@ -2,6 +2,8 @@
 
 Page with a list of stores.
 
+RSC shell (`app/stores/page.tsx`) is ISR with `export const revalidate = 3600` (must be a literal — Next.js 16 refuses imported identifiers here). It `Promise.all`-awaits three loaders — `loadStoresSystemTexts`, `loadStores`, `loadStoreLocationsPage` — wraps children in `<StoresLabelsProvider>`, and emits **one `ClothingStore` JSON-LD blob per store** via `buildStoreSchema` (`openingHoursSpecification` day labels expanded through `SCHEMA_DAYS` — `Mon–Sat` yields six entries). Filtering is client-side: search over `name`/`city`/`postcode` plus a city pill row built from `[L.cityAll, …unique(store.city)]`. The `StoreCard` "More info" modal locks body scroll (`document.body.style.overflow = 'hidden'`), closes on `Escape` (`keydown` listener while `modalOpen`), and closes on backdrop click. See CATALOG_FILTERS §15 (§ `/stores`) for details.
+
 ## SEO / social networks
 
 - **Meta title**: string

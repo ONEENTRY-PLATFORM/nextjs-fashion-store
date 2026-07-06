@@ -27,13 +27,11 @@ export const PRODUCT_BREADCRUMB_LABELS = {
   viewAll: 'View All',
 } as const;
 
+// UI-copy fallbacks for OE system-text keys that don't have a product-data
+// equivalent. Anything referring to a specific product (name/brand/price/size/
+// colour) is intentionally NOT here — that data must come from OneEntry, never
+// from a static dataset. Add fallbacks only for admin-controllable copy.
 export const PRODUCT_DEFAULTS = {
-  fallbackName: 'Ribbed Cashmere Blend Knit Top',
-  fallbackBrand: 'Kekimoro',
-  fallbackPrice: 62.99,
-  fallbackOriginalPrice: 89.99,
-  fallbackColorName: 'Default',
-  fallbackSize: 'One Size',
   saveToWishlist: 'Save to Wishlist',
   savedToWishlist: 'Saved to Wishlist',
 } as const;
@@ -55,7 +53,7 @@ export const PRODUCT_ACTION_LABELS = {
   articleLabel: 'Article:',
   defaultSku: '2024-156-1',
   defaultArticle: 'OF-KW-156-BRG',
-  bonusHeading: 'Earn 630 bonus points',
+  bonusHeading: 'Earn {count} bonus points',
   bonusBody: 'Redeemable on your next order. Join Kekimoro Rewards for free.',
   colorLabel: 'Color:',
   outOfStockTitle: ' — Out of stock',

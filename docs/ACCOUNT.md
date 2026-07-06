@@ -46,7 +46,7 @@ Composite section: renders the `LoyaltyCard` header + the six sub-forms below.
 | `myData/PersonalInfoSection.tsx` | `updateProfileAction({firstName, lastName, email, phone, gender, dob, shoeSize, clothingSize})` — validated with `profileSchema` (Zod) |
 | `myData/PasswordSection.tsx` | **Local only** — no `changePasswordAction` exists yet. The success state is simulated. |
 | `myData/AddressesSection.tsx` | `updateAddressesAction(nextAddresses)` — full replace. Each `OeAddress` carries `recordId` when persisted; new addresses get `recordId: undefined`. Validated with `addressSchema`. |
-| `myData/SocialNetworksSection.tsx` | `connectGoogleAccountAction(accessToken)` after GIS token client returns. Apple / Facebook buttons are visual stubs. Linked-status flag is stored in `localStorage` for now. |
+| `myData/SocialNetworksSection.tsx` | "Connect" for Google calls `startGoogleOAuth('/account?googleLinked=1')` — the browser leaves for Google's authorize screen and returns via `app/auth/callback/google`; because `oe_access` is present, `exchangeGoogleCodeAction` links the Google identity to the current user instead of opening a new session. The mount effect reads `?googleLinked=1` and marks Google as linked. Apple / Facebook buttons are visual stubs. |
 | `myData/ConsentSection.tsx` | `updateConsentAction({dataProcessing, crossBorder})` — the same `user_data` form-data record (moduleConfigId 3). |
 | `myData/AccountDeletionSection.tsx` | **No deletion Server Action** — the "Delete account" CTA calls `AuthContext.logout()` and shows a warning. |
 
@@ -242,12 +242,13 @@ To make it real: (1) add the `refer` case back to the `AccountPage` section swit
 | `src/app/pages/account/myData/*.tsx` | Six sub-forms for My Data |
 | `src/app/pages/account/history/TrackingModal.tsx` | Order tracking modal |
 | `src/app/pages/account/service/{ServiceRequestForm,ServiceHowItWorks}.tsx` | Service tab pieces |
-| `src/lib/oneentry/auth/actions.ts` | `updateProfile / updateAddresses / updateSubscriptions / updateConsent / connectGoogleAccount / getCurrentUser / signOut / getCart / getWishlist / pushRecentlyViewed / getRecentlyViewed / mergeRecentlyViewed` |
+| `src/lib/oneentry/auth/actions.ts` | `updateProfile / updateAddresses / updateSubscriptions / updateConsent / getGoogleAuthUrl / exchangeGoogleCode / getCurrentUser / signOut / getCart / getWishlist / pushRecentlyViewed / getRecentlyViewed / mergeRecentlyViewed` |
 | `src/lib/oneentry/catalog/service-requests-action.ts` + `service-request-submit-action.ts` | Service tab Server Actions |
 | `src/lib/oneentry/catalog/waiting-list-action.ts` | Waiting list resolver |
 | `src/lib/oneentry/catalog/products-action.ts` | `getProductsByIdsAction` — used by My Orders image fallback |
 | `src/app/utils/schemas.ts` | `profileSchema`, `addressSchema`, `promoSchema` |
-| `src/lib/google-auth.ts` | GIS access-token helper for Social networks |
+| `src/lib/google-auth.ts` | `startGoogleOAuth(returnTo?)` — server-action-driven authorize-URL redirect used by Social networks and by Login / Register modals |
+| `app/auth/callback/google/route.ts` | GET route that receives Google's `?code=&state=`, calls `exchangeGoogleCodeAction`, redirects to `returnTo` or to `/?googleAuthError=` |
 
 ---
 

@@ -46,7 +46,7 @@ The `context/` filenames are legacy: `CartContext.tsx` and `WishlistContext.tsx`
 | `src/app/context/WishlistContext.tsx` | `useWishlist()` — same pattern |
 | `src/lib/oneentry/auth/actions.ts` | `syncCartAction`, `syncWishlistAction`, `getCurrentUserAction` (returns `cart[]` and `wishlist[]`) |
 | `src/lib/oneentry/catalog/products-action.ts` | `getProductsByIdsAction` — used to enrich server placeholders |
-| `src/app/data/cms-product-id-map.ts` | `getCmsProductId` / `getPlaygroundProductId` — legacy id bridge |
+| `src/app/data/cms-product-id-map.ts` | `getCmsProductId` / `getPlaygroundProductId` — numeric id conversion helpers |
 | `src/app/utils/track-activity.ts` | `trackActivity()` — fire-and-forget analytics wrapper |
 | `src/app/store/api/cartApi.ts` + `wishlistApi.ts` | RTK Query scaffolding — not on the live path |
 
@@ -57,7 +57,7 @@ The `context/` filenames are legacy: `CartContext.tsx` and `WishlistContext.tsx`
 ```ts
 // src/app/context/CartContext.tsx
 interface CartItem {
-  id: string;              // playground SKU ('wc-1') OR stringified OE product id
+  id: string;              // stringified OE numeric product id
   name: string;
   brand: string;
   color: string;
@@ -91,6 +91,26 @@ interface WishlistItem {
 ```
 
 The Platform payload is minimal (`{productId: number, qty: number}` for cart, `{productId: number}` for wishlist). Cosmetic fields (name / price / image) come from either the local Redux state (guest additions) or the enrichment fetch (post-login hydration).
+
+### 3.1 Cart line dedup rule (id + size)
+
+`cartSlice::addItem` treats a line as a **duplicate only when both `id` AND `size` match**:
+
+```ts
+// src/app/store/cartSlice.ts
+addItem(state, action) {
+  const item = action.payload;
+  const existing = state.items.find(i => i.id === item.id && i.size === item.size);
+  if (existing) existing.quantity += item.quantity;
+  else state.items.push(item);
+}
+```
+
+Consequences:
+
+- The same product added in size `M` and size `L` renders as **two lines**, each with independent quantity controls.
+- Changing size via `updateSize` does NOT re-run the dedup — it can leave two lines with the same `id + size`, which is a caller responsibility (the Cart UI never triggers this because sizes come from a bounded dropdown).
+- Wishlist has no size dimension — `wishlistSlice::addItem` dedupes by `id` alone and performs an **upsert-merge** on repeat inserts so a placeholder→enriched hydration doesn't wipe user-selected `selectedColor` / `selectedSize` (they are preserved from the previous entry).
 
 ---
 
@@ -217,19 +237,14 @@ Wishlist follows the same pattern with `oe_wishlist_merged`.
 
 ---
 
-## 7. Playground id bridge
+## 7. Numeric id conversion helpers
 
-`src/app/data/cms-product-id-map.ts` maps ~25 playground SKUs (`wc-1`, `mc-3`, …) to numeric OneEntry product IDs. Two helpers:
+`src/app/data/cms-product-id-map.ts` exposes two thin conversion helpers (the static mapping table has been removed; all UI item ids are already the OneEntry numeric id as a string):
 
-- `getCmsProductId(playgroundId): number | null` — used when the client needs to push to OE (`syncCart`, `syncWishlist`, `trackActivity`).
-- `getPlaygroundProductId(cmsId): string | null` — used when hydrating server items to match against `localStorage`-persisted playground data.
+- `getCmsProductId(id: string): number | null` — returns `Number(id)` when `id` matches `/^\d+$/`, otherwise `null`.
+- `getPlaygroundProductId(cmsId: number): string | null` — returns `String(cmsId)` when `cmsId` is finite, otherwise `null`.
 
-Items without a mapping are:
-
-- Silently dropped from the `syncCart` / `syncWishlist` payload.
-- Untracked (no `trackActivity` fires for them).
-
-The map is a **transitional artefact** — as more storefront components adopt integer OE ids directly, the map's role shrinks.
+Items for which `getCmsProductId` returns `null` (non-numeric id strings) are silently dropped from `syncCart` / `syncWishlist` payloads and produce no `trackActivity` call.
 
 ---
 
@@ -287,7 +302,29 @@ If the persisted schema version is unknown (future), the store is wiped to preve
 - **Failed `getProductsByIdsAction` during merge** — placeholders remain in the cart with `$0` price. This is a symptom of stale server state (deleted products) — the merge effect explicitly drops those items.
 - **Guest bounce** — logging out while items are in the cart clears the `oe_cart_merged` flag but leaves Redux items intact. Guest continues to see the same cart; sign-in triggers a fresh merge.
 
-Legacy helper `emitSyncWarning(kind, message)` in `src/app/utils/syncWarnings.ts` dispatches a `CustomEvent('oe:sync-warning')` for future toast subscribers — currently no listener is attached.
+### 11.1 `emitSyncWarning` event system
+
+`src/app/utils/syncWarnings.ts` exposes a single helper for surfacing sync-side failures:
+
+```ts
+emitSyncWarning(kind: 'unmapped' | 'mutation' | 'connectivity', message: string, context?)
+```
+
+Behaviour:
+
+- Always logs via `console.warn('[sync:<kind>] <message>', context)`.
+- If `window` is defined, dispatches `CustomEvent('oe:sync-warning', { detail: { kind, message, context } })` (constant `SYNC_WARNING_EVENT`). Silent no-op on non-DOM runtimes and on browsers without the CustomEvent constructor.
+- Returns the `detail` payload so unit tests (`src/app/store/__tests__/syncWarnings.test.ts`) can assert on it.
+
+Kinds:
+
+| Kind | Meaning |
+|---|---|
+| `unmapped` | Playground SKU has no `cmsProductId` — mutation stayed local-only, no server call. |
+| `mutation` | Server rejected an add/remove — optimistic Redux state was (or should be) rolled back. |
+| `connectivity` | Fetch itself failed (network / CORS) — local state preserved, retry on next mutation. |
+
+No toast container subscribes to `oe:sync-warning` in production today; the current sync path (§5) also swallows errors silently rather than routing them through `emitSyncWarning`. The helper is retained so a future toast subscriber can attach without a rewrite.
 
 ---
 
@@ -320,7 +357,69 @@ Bundle sources:
 - **CartBundleRow** in `/cart` renders the aggregated bundle row.
 - **MiniCart** renders bundle rows collapsed with the same shared control.
 
-## 14. Cross-references
+### 13.1 Bundle rendering on `/cart`
+
+`CartPage` groups items into `RenderRow` (`{kind: 'item' | 'bundle'}`) via a `useMemo` over `items`:
+
+- All rows carrying the same `bundleId` collapse into a single `CartBundleRow`.
+- The bundle row hides per-line quantity controls, showing a single `QtyControl` on the last line — its `+`/`-` handler calls `updateQuantity(itemId, delta)` on any sibling; the reducer fans the delta to every line in the bundle.
+- The row header displays `L.bundleLabel` + a "remove entire bundle" CTA that dispatches `removeBundle(bundleId)`.
+- Bundle rows do NOT render the "select for bulk remove" checkbox — the `selectedIds` `Set` on `CartPage` only covers non-bundle items, and `Select all` only maps over `nonBundleItems` (`items.filter(i => !i.bundleId)`).
+- Bundle line prices are summed to `bundleTotal` (with `bundleOriginal` for strikethrough savings display); `L.bundleSavePrefix` shows `bundleOriginal − bundleTotal` when > 0.
+
+### 13.2 Quantity floor
+
+`cartSlice::updateQuantity` clamps each affected item to `Math.max(1, quantity + delta)`. Reaching zero requires an explicit `removeItem` / `removeBundle` dispatch — the `-` button on a line at qty=1 is a no-op.
+
+## 14. Waiting list (derived from wishlist + OE stock)
+
+The `/account/waiting-list` tab has no dedicated storage. `WaitingListSection` (`src/app/pages/account/WaitingListSection.tsx`) derives its rows on the fly from the **wishlist** by resolving each item's current stock status:
+
+1. On mount (when `isLoggedIn && user.wishlistItems.length > 0`) it calls the Server Action `getWaitingListAction()` (`src/lib/oneentry/catalog/waiting-list-action.ts`).
+2. The action reads `user.wishlistItems` via `getWishlistAction()`, then fetches each product via `loadProductsByIds()`.
+3. For every product it infers a `WaitingStockStatus`:
+
+   ```ts
+   if (statusIdentifier === 'out_of_stock' || stock <= 0) 'out_of_stock'
+   else if (stock <= 3)                                    'low_stock'
+   else                                                    'back_in_stock'
+   ```
+
+4. Returns `WaitingItem[]` with `{id, name, brand, price, img, size (first), color (first), status, notify: true, addedDate}`. `addedDate` comes from `srv.addedAt` formatted as `dd MMM yyyy`.
+
+Client-side, `WaitingListSection` filters the resolver's result to items whose id is still in the current wishlist (`wishlistIds`), so removing an item from the wishlist immediately drops the corresponding waiting-list row without a re-fetch. `notify` is a local-only override (`notifyOverrides` map, not persisted). `handleAdd` synthesizes a cart line with a suffixed id (`${item.id}-waiting`) — the `-waiting` suffix keeps it visually distinct from the same product added directly from a PDP, but note `getCmsProductId` regex-strips the suffix so sync still works.
+
+Empty wishlist short-circuits to `[]` without a catalog call. Products the catalog can't return (deleted upstream) are silently dropped from the result via `flatMap`.
+
+## 15. FavoritesPage bulk actions
+
+`FavoritesPage` (`src/app/pages/FavoritesPage.tsx`) exposes two bulk operations on the wishlist:
+
+- **`handleMoveAllToCart`** — iterates `items.filter(i => i.inStock)` and dispatches `useCart().addItem(...)` per row, synthesizing a CartItem with:
+  - `id: `${item.id}-auto`` — suffix marks it as a bulk-added line, but does NOT create a new dedup key beyond what `id + size` already provides.
+  - `size: item.sizes[0] ?? ''` — first available size. Wishlist items without a saved `selectedSize` end up with a blank size, which the cart row's `SizeDropdown` treats as an unselected placeholder.
+  - `price` parsed from the formatted `salePrice ?? price` string via `parseFloat(str.replace(/[^0-9.]/g, ''))`.
+  - Out-of-stock items are skipped silently (no toast).
+- **`clearAll`** — from `useWishlist()`, dispatches `wishlistActions.clearAll()`. Gated by an inline confirmation UI (`showClearConfirm`) rather than a modal.
+
+Bundles are NOT a concept on the favourites page (wishlist has no `bundleId` field) — bulk move-to-cart therefore adds every item as an independent cart line, even if the shopper originally arrived via a PDP bundle CTA.
+
+The "Recently viewed" strip on `FavoritesPage` reads `state.recentlyViewed.items` and dedupes by lowercased `name` (fallback `id`) so variants of the same product don't monopolise the row.
+
+## 16. CartPage promo section (independent from Delivery)
+
+`CartPage` renders its own coupon input alongside the order summary. Key details:
+
+- The input is gated by a `promoChecked` checkbox that auto-opens on mount when `couponCode` is already applied (shopper navigated back from the Delivery step with a code active — see the `useEffect` on `[couponCode, promoChecked]`).
+- `handleApplyPromo` guards against re-entry with a `promoBusy` flag, then calls `useCart().applyCoupon(input)`.
+- On success, the panel switches to a "coupon applied" chip with a `Remove` button that calls `useCart().removeCoupon()` and clears `promoInput`.
+- `couponError` renders under the input only while `!couponCode` (i.e. no active coupon).
+- `finalTotal` uses `totalDue` from `preview` when either `personalDiscount > 0` or `couponDiscount > 0`; otherwise falls back to the client-computed `total`. This avoids a flash of the pre-preview number after `applyCoupon()` clears `preview`.
+- The Delivery step (`CheckoutDeliveryPage`) has its own, structurally identical promo section. Both write to the same `couponCode` in `useCart()`, so applying the code on one page immediately reflects on the other via Redux + `sessionStorage['oe_coupon_code']`. The two inputs are **independent React state** (`promoInput`, `promoChecked`) — closing the cart page and reopening it re-reads only `couponCode`, not the last-typed raw string.
+
+**Coupon math source of truth.** Discount amounts are NOT computed client-side — the client sends `products + couponCode` to `previewOrderAction()`, and OE returns `totalSum`, `totalSumWithDiscount`, `discountConfig.coupon.applied`. `couponDiscountAmount = couponApplied ? (totalSum − totalSumWithDiscount) : 0`. There is no `(subtotal * pct / 100)` fallback in the current code path — the client never sees the coupon's percentage.
+
+## 17. Cross-references
 
 - [REDUX.md](./REDUX.md) — full store layout, migrations
 - [AUTH.md](./AUTH.md) — how session cookies gate `syncCart` / `syncWishlist`

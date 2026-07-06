@@ -10,12 +10,11 @@ import {
   type ShoesCatalogProps,
   type FilterOption,
   type FilterGroup,
-  type TrendBlock,
   type CrossSellCategory,
 } from './ShoesCatalog';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
 
-export type { FilterOption, FilterGroup, TrendBlock, CrossSellCategory };
+export type { FilterOption, FilterGroup, CrossSellCategory };
 export type AccessoriesCatalogProps = ShoesCatalogProps;
 
 const ACCESSORY_CHIP_MAP: Record<string, string> = {

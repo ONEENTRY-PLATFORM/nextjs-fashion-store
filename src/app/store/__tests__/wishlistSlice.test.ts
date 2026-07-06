@@ -163,8 +163,8 @@ describe('wishlistSlice', () => {
         emptyState,
         wishlistActions.mergeUserWishlist({ wishlist: [serverItem], waitingList: [] }),
       );
-      expect(state.items[0].price).toBe('$150.00');
-      expect(state.items[0].salePrice).toBe('$80.00');
+      expect(state.items[0].price).toBe('$150');
+      expect(state.items[0].salePrice).toBe('$80');
     });
   });
 });

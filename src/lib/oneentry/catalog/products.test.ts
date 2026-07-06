@@ -165,6 +165,45 @@ describe('loadFilteredProducts — category slugify branch', () => {
   });
 });
 
+// ─── categoryPathToViewAllHref ──────────────────────────────────────────────
+// Pure function — imported directly, no mock needed.
+describe('categoryPathToViewAllHref', () => {
+  // Import once at describe level; the function is pure and stateless.
+  let categoryPathToViewAllHref: (p: string | undefined) => string;
+  beforeEach(async () => {
+    ({ categoryPathToViewAllHref } = await import('./products'));
+  });
+
+  it('derives /women/clothing from /women/women_clothing/costumes', () => {
+    expect(categoryPathToViewAllHref('/women/women_clothing/costumes')).toBe('/women/clothing');
+  });
+
+  it('derives /men/outerwear from /men/men_outerwear/coats', () => {
+    expect(categoryPathToViewAllHref('/men/men_outerwear/coats')).toBe('/men/outerwear');
+  });
+
+  it('handles a path with only gender+sub but no leaf segment', () => {
+    expect(categoryPathToViewAllHref('/women/women_clothing')).toBe('/women/clothing');
+  });
+
+  it('passes through a sub-segment that has no gender prefix', () => {
+    // e.g. a custom category marker without the women_/men_ convention
+    expect(categoryPathToViewAllHref('/women/accessories/bags')).toBe('/women/accessories');
+  });
+
+  it('falls back to "/" when path is undefined', () => {
+    expect(categoryPathToViewAllHref(undefined)).toBe('/');
+  });
+
+  it('falls back to "/" when path is an empty string', () => {
+    expect(categoryPathToViewAllHref('')).toBe('/');
+  });
+
+  it('falls back to "/" when path has only one segment (no sub-category)', () => {
+    expect(categoryPathToViewAllHref('/women')).toBe('/');
+  });
+});
+
 describe('loadProducts — disabled', () => {
   it('returns fromCms:false when SDK is disabled', async () => {
     vi.resetModules();

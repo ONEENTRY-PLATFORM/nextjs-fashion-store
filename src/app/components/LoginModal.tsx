@@ -5,7 +5,6 @@ import { useFocusTrap } from '../hooks/useFocusTrap';
 import { TIMINGS } from '../constants/timings';
 import { X, Eye, EyeOff, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { requestGoogleIdToken } from '../../lib/google-auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { loginSchema } from '../utils/schemas';
 import { LOGIN_MODAL_LABELS as L } from '../data/authLabels';
@@ -42,7 +41,7 @@ function SocialBtn({
 }
 
 export function LoginModal() {
-  const { loginModalOpen, closeLoginModal, openRegisterModal, login, loginWithGoogle } = useAuth();
+  const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth } = useAuth();
   const lTitle      = useSignInT('sign_in_title',          L.title);
   const lOr         = useSignInT('sign_in_or',             L.dividerOr);
   const lForgot     = useSignInT('sign_in_forgot_password', L.forgotPassword);
@@ -113,16 +112,12 @@ export function LoginModal() {
     if (provider === 'google') {
       setLoading(true);
       try {
-        const idToken = await requestGoogleIdToken();
-        const result = await loginWithGoogle(idToken);
-        if (!result.ok) {
-          setSocialError(result.error ?? L.errorInvalidCredentials);
-          return;
-        }
-        if (!isCheckout) router.push('/account');
+        // Full-page redirect to Google. After OE exchanges the code the
+        // callback route bounces the user back — we come back to /account
+        // (post-checkout would be handled by that page's own logic).
+        await startGoogleOAuth(isCheckout ? window.location.pathname : '/account');
       } catch (e) {
         setSocialError(e instanceof Error ? e.message : 'Google sign-in failed');
-      } finally {
         setLoading(false);
       }
       return;

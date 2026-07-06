@@ -9,12 +9,13 @@ How the storefront authenticates users against the OneEntry Platform. Every user
 ```
 ┌───────── Client (React) ─────────┐        ┌──── Server Actions ('use server') ────┐        ┌── OneEntry ──┐
 │  LoginModal, RegisterModal,      │        │  signInAction / signUpAction /        │        │  AuthProvider │
-│  AuthContext.login/.signUp/…     │  RSC   │  signInWithGoogleAction /             │ HTTPS  │  Users        │
-│  useAuth().{isLoggedIn,user,…}   │  boundary │  getCurrentUserAction /             │ ────▶  │  Form-data    │
-│                                  │ ────▶  │  updateProfileAction /                │        │  (users_addr, │
-│  Cookies (readable but not       │        │  updateAddressesAction /              │        │   subs, data) │
-│  writable): oe_user              │        │  updateSubscriptionsAction /          │        │               │
-└──────────────────────────────────┘        │  updateConsentAction /                │        └──────────────┘
+│  AuthContext.login/.signUp/…     │  RSC   │  getGoogleAuthUrlAction /             │ HTTPS  │  Users        │
+│  useAuth().{isLoggedIn,user,…}   │  boundary │  exchangeGoogleCodeAction /         │ ────▶  │  Form-data    │
+│                                  │ ────▶  │  getCurrentUserAction /               │        │  (users_addr, │
+│  Cookies (readable but not       │        │  updateProfileAction /                │        │   subs, data) │
+│  writable): oe_user              │        │  updateAddressesAction /              │        │               │
+└──────────────────────────────────┘        │  updateSubscriptionsAction /          │        └──────────────┘
+                                            │  updateConsentAction /                │
                                             │  syncCartAction / syncWishlistAction /│
                                             │  signOutAction                        │
                                             └───┬───────────────────────────────────┘
@@ -44,9 +45,11 @@ Google OAuth adds one more:
 
 | Var | Purpose |
 |---|---|
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Enables the "Continue with Google" button (Google Identity Services) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Enables the "Continue with Google" button. Value must match the `client_id` configured on the OneEntry `google` auth provider. |
 
 Without `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, the Google button is hidden but email sign-in continues to work.
+
+The `client_secret` for the Google OAuth client lives inside the OneEntry provider config (`AuthProvider.getAuthProviderByMarker('google').config`) — never in the Next.js env. In Google Cloud Console the OAuth client must list `${origin}/auth/callback/google` under **Authorised redirect URIs** for every deployed origin (not "Authorised JavaScript origins" — the implicit flow is no longer used).
 
 ---
 
@@ -81,23 +84,32 @@ The action supports **email**, **phone**, and the raw OneEntry `identifier` as t
 
 ### 4.2 Google OAuth
 
-The Google Identity Services (GIS) integration uses the **token client flow** — the client obtains an `access_token` (not an ID token), then hands it to the server for exchange.
+The Google integration is a **standard OAuth 2.0 authorization-code flow** — no browser SDK, no GIS popup, no implicit access token. The browser navigates to Google, Google redirects back to a Next.js route with a `code`, and the server exchanges that `code` for an OE session via `AuthProvider.oauth('google', …)`. This matches the OneEntry `auth-provider` MCP rule (server-side code exchange only).
+
+**Sign-in flow (LoginModal / RegisterModal):**
 
 1. `LoginModal` (and `RegisterModal`) render a "Continue with Google" button gated on `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
-2. `requestGoogleAccessToken()` from `src/lib/google-auth.ts` lazy-loads the GIS script, opens the popup via `window.google.accounts.oauth2.initTokenClient({client_id, scope:'openid email profile', prompt:''})`, and resolves with the `access_token`. A back-compat alias `requestGoogleIdToken = requestGoogleAccessToken` is exported (and consumed by `LoginModal` / `RegisterModal` under that older name — both point at the same access-token function).
-3. Client calls `AuthContext.loginWithGoogle(accessToken)`.
-4. `signInWithGoogleAction(accessToken)` calls `getApi().AuthProvider.oauth('google', {accessToken})` (with fallback field-name variants — `idToken`, `token`, `credential` — the Platform accepts multiple shapes across versions). OE resolves the user by calling Google's `/userinfo` server-side and returns the OE session tokens.
-5. On success — same cookie + user-load flow as email sign-in.
+2. Click calls `startGoogleOAuth(returnTo?)` from `src/lib/google-auth.ts`, which calls the Server Action `getGoogleAuthUrlAction(origin, returnTo?)` and then does `window.location.href = url`.
+3. `getGoogleAuthUrlAction`:
+   - Reads `getApi().AuthProvider.getAuthProviderByMarker('google').config.oauthAuthUrl` (Google's authorize endpoint URL is stored in the OneEntry provider config, not hardcoded).
+   - Builds the authorize URL with `client_id=NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `redirect_uri=${origin}/auth/callback/google`, `response_type=code`, `scope=openid email profile`, and a CSRF `state`.
+   - Sets two httpOnly cookies: `oe_google_state` (CSRF token — must match on callback) and `oe_google_return_to` (the `returnTo` path).
+4. Google shows its account chooser / consent screen, then redirects to `GET /auth/callback/google?code=…&state=…` (route handler at `app/auth/callback/google/route.ts`).
+5. The route handler calls `exchangeGoogleCodeAction({code, state, origin})`, which:
+   - Verifies `state` matches the `oe_google_state` cookie (rejects on mismatch).
+   - Calls `getApi().AuthProvider.oauth('google', { code, redirect_uri: `${origin}/auth/callback/google` })`. OneEntry performs the server-to-Google code exchange using the `client_secret` from its provider config, then resolves / creates the user.
+   - On success writes `oe_access` / `oe_refresh` / `oe_user`, clears the two Google cookies, and returns `{ok:true, user, userIdentifier, returnTo}`.
+6. The route handler `redirect()`s to `returnTo` on success, or to `/?googleAuthError=<code>` on failure. `AuthContext` re-bootstraps `/me` on the next mount and the user is signed in.
 
-Failure returns `{ok:false, error}`; the modal displays the error inline.
+Because the browser navigates away, `AuthContext.startGoogleOAuth` does not return a result — the login modal never sees the outcome. Error surfacing happens on the landing page via the `?googleAuthError=` query param.
 
-**Linking Google to an existing account:** `AccountPage → My Data → Social networks` calls `connectGoogleAccountAction(accessToken)`. Requires an active `oe_access` cookie — the action associates the Google identity with the current user rather than creating a new session.
+**Linking Google to an existing account:** `AccountPage → My Data → Social networks` also uses `startGoogleOAuth('/account?googleLinked=1')`. There is **no** separate "connect" Server Action — the same authorize / callback path is reused. Because `exchangeGoogleCodeAction` is called with an active `oe_access` cookie present, OneEntry associates the Google identity with the current user rather than opening a fresh session. The mount effect in `SocialNetworksSection` reads the `?googleLinked=1` query flag on return and marks Google as linked in local state.
 
-Required env: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (must list every deployed origin under "Authorised JavaScript origins" in Google Cloud Console). Without it, the buttons are hidden and no Google flow is attempted.
+Required env: `NEXT_PUBLIC_GOOGLE_CLIENT_ID`. In Google Cloud Console the OAuth client must list `${origin}/auth/callback/google` under **Authorised redirect URIs** for every deployed origin. Without the env, the buttons are hidden and no Google flow is attempted.
 
 ### 4.3 Social buttons (Apple / Facebook)
 
-Currently stubbed. `AuthContext.login(_, 'social')` treats the sentinel password `'social'` as a synthetic success — sets `isLoggedIn = true` with an **empty** user object. No fake profile is injected. When Apple/Facebook OAuth providers are wired up on the Platform side, they should follow the same pattern as `signInWithGoogleAction`.
+Currently stubbed. `AuthContext.login(_, 'social')` treats the sentinel password `'social'` as a synthetic success — sets `isLoggedIn = true` with an **empty** user object. No fake profile is injected. When Apple/Facebook OAuth providers are wired up on the Platform side, they should follow the same authorization-code pattern as Google: a `getAppleAuthUrlAction` / `getFacebookAuthUrlAction` that reads the provider config, a per-provider `/auth/callback/<name>` route, and an `exchange<Name>CodeAction` calling `AuthProvider.oauth(<marker>, {code, redirect_uri})`.
 
 ### 4.4 Forgot password
 
@@ -155,7 +167,7 @@ On mount, `AuthContext` calls `getCurrentUserAction()`:
 
 ## 7. Post-sign-in mutations
 
-`src/lib/oneentry/auth/actions.ts` exports **18 auth Server Actions** in total. `AuthContext` exposes **11 mutation methods** through the hook: `login`, `loginWithGoogle`, `signUp`, `logout`, `updateUser` (local optimistic merge, no Server Action), `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist` — plus 4 modal state helpers (`openLoginModal`, `closeLoginModal`, `openRegisterModal`, `closeRegisterModal`) and 3 state fields (`isLoggedIn`, `user`, `authReady`). The other 7 Server Actions (`connectGoogleAccountAction`, `getCartAction`, `getWishlistAction`, `pushRecentlyViewedAction`, `getRecentlyViewedAction`, `mergeRecentlyViewedAction`, `createOrderAction`) are imported and called **directly from components** (Account → My Data, PDP, ProductDetailPage bootstrap, PaymentPage) without a context wrapper. Grouped:
+`src/lib/oneentry/auth/actions.ts` exports the auth Server Action set. `AuthContext` exposes **11 mutation methods** through the hook: `login`, `startGoogleOAuth`, `signUp`, `logout`, `updateUser` (local optimistic merge, no Server Action), `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist` — plus 4 modal state helpers (`openLoginModal`, `closeLoginModal`, `openRegisterModal`, `closeRegisterModal`) and 3 state fields (`isLoggedIn`, `user`, `authReady`). `startGoogleOAuth` does **not** return a result — it navigates the browser to Google via `getGoogleAuthUrlAction`. The remaining Server Actions (`exchangeGoogleCodeAction`, `getCartAction`, `getWishlistAction`, `pushRecentlyViewedAction`, `getRecentlyViewedAction`, `mergeRecentlyViewedAction`, `createOrderAction`) are called **directly** — `exchangeGoogleCodeAction` from the `app/auth/callback/google/route.ts` route handler, the rest from components (PDP, ProductDetailPage bootstrap, PaymentPage). Grouped:
 
 **Wrapped by `AuthContext` (exposed as hook methods):**
 
@@ -174,7 +186,7 @@ Each returns `{ok, error?}`; the `sync*` variants are fire-and-forget.
 
 | Action | Consumer | Effect |
 |---|---|---|
-| `connectGoogleAccountAction(accessToken)` | `SocialNetworksSection` (Account → My Data) | Links a Google identity to the current user without opening a new session. |
+| `exchangeGoogleCodeAction({code, state, origin})` | `app/auth/callback/google/route.ts` | Verifies CSRF `state` cookie, calls `AuthProvider.oauth('google', {code, redirect_uri})`, sets session cookies, returns `{ok, user, userIdentifier, returnTo}`. Also used to link Google to an already-authenticated user when `oe_access` is present. |
 | `getCartAction()` | E2E specs, future refresher | Reads `OeCartItem[]` from user state. |
 | `getWishlistAction()` | E2E specs, future refresher | Reads `OeWishlistItem[]` from user state. |
 | `pushRecentlyViewedAction({productId, viewedAt})` | `RecentlyViewedSection` on PDP mount (when signed in) | Appends one product view to the server trail. |
@@ -238,24 +250,13 @@ Server Actions themselves enforce auth via the `oe_access` cookie — anonymous 
 
 ---
 
-## 12. Fallback: legacy `validateCredentials` Server Action
-
-`src/app/actions/auth.ts::validateCredentials(emailOrPhone, password)` still exists — it compares against the hardcoded `USER_DATASET.credentials` (`test@test.com` / `111`) in `src/app/data/userData.ts`. **This is no longer on the main login path**; it is retained for two edge cases:
-
-1. Storybook stories that render `LoginModal` without a running Platform (the story mocks Server Actions to point at this).
-2. E2E tests that need to short-circuit the auth flow without hitting a live OE instance.
-
-It should not be relied on for production sign-in.
-
----
-
-## 13. Error handling
+## 12. Error handling
 
 | Failure | Behaviour |
 |---|---|
 | Wrong password (4xx from OE) | `signInAction` returns `{ok:false, error}`. Modal renders "Wrong credentials". |
-| Google token invalid | `signInWithGoogleAction` returns `{ok:false, error:'oauth_failed'}`. Modal renders "Google sign-in failed". |
-| Network failure to OneEntry | Server Action throws; Next.js surfaces it as `{ok:false}`. No mock fallback (except the `USER_DATASET` legacy path — see §12). |
+| Google code exchange failure (bad `state`, Google denies, OE `oauth` throws) | `exchangeGoogleCodeAction` returns `{ok:false, error}`. `app/auth/callback/google/route.ts` redirects to `/?googleAuthError=<code>` — the landing page can surface the code inline. |
+| Network failure to OneEntry | Server Action throws; Next.js surfaces it as `{ok:false}`. No mock fallback — configure `ONEENTRY_URL` / `ONEENTRY_TOKEN`. |
 | Missing env vars at server boot | `getApi()` throws `'OneEntry SDK is not configured'`. Every auth action fails immediately. |
 | `oe_access` expired | Any authenticated Server Action returns `{ok:false, error:'unauthenticated'}`. `AuthContext` shows the sign-in prompt on next mount. |
 
@@ -263,7 +264,7 @@ There is currently **no automatic token refresh** on the client. Sessions last a
 
 ---
 
-## 14. Cross-references
+## 13. Cross-references
 
 - [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) — SDK inventory including the auth API surface (§4.1)
 - [CART_WISHLIST.md](./CART_WISHLIST.md) — how `syncCart` / `syncWishlist` piggyback on the session cookie

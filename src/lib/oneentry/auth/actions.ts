@@ -1107,109 +1107,132 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
 }
 
 const GOOGLE_AUTH_MARKER = 'google';
+const GOOGLE_OAUTH_STATE_COOKIE = 'oe_google_oauth_state';
+const GOOGLE_OAUTH_RETURN_COOKIE = 'oe_google_oauth_return';
+const GOOGLE_CALLBACK_PATH = '/auth/callback/google';
 
-/**
- * Trade a Google `id_token` (received via Google Identity Services popup on
- * the client) for an OE session. OE verifies the JWT against its configured
- * Google OAuth audience, then returns the same `OeAuthEntity` shape as the
- * email auth — so the calling client can treat the success exactly like a
- * regular email login.
- */
-/** OE on this tenant doesn't document the exact body shape for the OAuth
- *  endpoint, and the response error is identical for any wrong field. So we
- *  try the field names known to be used by other OE installs in order
- *  until one of them returns a non-error result. */
-const OAUTH_BODY_VARIANTS = (token: string): Array<Record<string, string>> => [
-  { accessToken: token },
-  { idToken: token },
-  { token },
-  { code: token },
-  { credential: token },
-];
-
-async function tryOauthVariants(token: string): Promise<
-  | { ok: true; entity: OeAuthEntity; matchedField: string }
-  | { ok: false; attempts: Array<{ field: string; error: string }> }
-> {
-  const attempts: Array<{ field: string; error: string }> = [];
-  if (!oneentry) return { ok: false, attempts: [{ field: '', error: 'SDK not initialised' }] };
-  const sdk = oneentry;
-  for (const body of OAUTH_BODY_VARIANTS(token)) {
-    const field = Object.keys(body)[0];
-    try {
-      const result = await sdk.AuthProvider.oauth(
-        GOOGLE_AUTH_MARKER,
-        body as unknown as Parameters<typeof sdk.AuthProvider.oauth>[1],
-      );
-      if (!isError(result)) {
-        return { ok: true, entity: result as OeAuthEntity, matchedField: field };
-      }
-      attempts.push({ field, error: result.message ?? 'unknown error' });
-    } catch (err) {
-      attempts.push({ field, error: err instanceof Error ? err.message : 'unknown error' });
-    }
-  }
-  return { ok: false, attempts };
+function absoluteCallbackUri(origin: string): string {
+  return `${origin.replace(/\/$/, '')}${GOOGLE_CALLBACK_PATH}`;
 }
 
-export async function signInWithGoogleAction(accessToken: string): Promise<AuthResult> {
+/**
+ * Kick off Google OAuth per MCP `auth-provider` rule: read `config.oauthAuthUrl`
+ * from the OE provider, build the authorize URL with `response_type=code`, set
+ * an httpOnly CSRF state cookie, and return the URL for the client to redirect
+ * to. The client never sees `client_secret` — OE holds it and does the
+ * server-side code exchange inside `AuthProvider.oauth`.
+ */
+export interface GoogleOAuthStart {
+  ok: true;
+  url: string;
+}
+export interface GoogleOAuthStartError {
+  ok: false;
+  error: string;
+}
+export async function getGoogleAuthUrlAction(
+  origin: string,
+  returnTo?: string,
+): Promise<GoogleOAuthStart | GoogleOAuthStartError> {
   if (!isOneEntryEnabled || !oneentry) {
     return { ok: false, error: 'OneEntry is not configured' };
   }
-  if (!accessToken) {
-    return { ok: false, error: 'Missing Google access token' };
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return { ok: false, error: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set' };
+  }
+  if (!origin || !/^https?:\/\//i.test(origin)) {
+    return { ok: false, error: 'Invalid origin' };
   }
   try {
-    const attempt = await tryOauthVariants(accessToken);
-    if (!attempt.ok) {
-      // OE tries multiple body-field variants and often returns the same
-      // generic error for each. Dedupe so the UI shows a single readable
-      // message instead of a concatenated wall of the same text. Keep the
-      // per-field detail in the server log for debugging.
-      const uniqueErrors = Array.from(new Set(attempt.attempts.map(a => a.error)));
-      console.warn('[OE Google OAuth] all variants failed:', attempt.attempts);
-      const detail = uniqueErrors.join(' | ');
-      return { ok: false, error: `Google sign-in rejected by OneEntry — ${detail}` };
+    const provider = await oneentry.AuthProvider.getAuthProviderByMarker(GOOGLE_AUTH_MARKER);
+    if (isError(provider)) {
+      return { ok: false, error: provider.message ?? 'Google provider not found' };
     }
+    const oauthAuthUrl = provider.config?.oauthAuthUrl;
+    if (!oauthAuthUrl) {
+      return { ok: false, error: 'Provider missing oauthAuthUrl' };
+    }
+    const state = crypto.randomUUID();
+    const redirectUri = absoluteCallbackUri(origin);
+    const url = new URL(oauthAuthUrl);
+    url.searchParams.set('client_id', clientId);
+    url.searchParams.set('redirect_uri', redirectUri);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('scope', 'openid email profile');
+    url.searchParams.set('access_type', 'offline');
+    url.searchParams.set('prompt', 'consent');
+    url.searchParams.set('state', state);
+
     const jar = (await cookies()) as unknown as CookieJar;
-    await setSessionCookies(jar, attempt.entity);
-    const user = await fetchMe(attempt.entity.accessToken);
-    return { ok: true, userIdentifier: attempt.entity.userIdentifier, user };
+    const baseOpts = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 60 * 10,
+    };
+    jar.set(GOOGLE_OAUTH_STATE_COOKIE, state, baseOpts);
+    // Only allow local return paths, never full URLs — prevents open-redirect.
+    const safeReturn = typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')
+      ? returnTo
+      : '/';
+    jar.set(GOOGLE_OAUTH_RETURN_COOKIE, safeReturn, baseOpts);
+    return { ok: true, url: url.toString() };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Google auth-url failed' };
+  }
+}
+
+/**
+ * Exchange the Google `?code=` returned to the callback route for an OE
+ * session. Per the MCP rule and the SDK docs, OE expects `{ code, redirect_uri }`
+ * on the tenant side (`client_id` / `client_secret` live in OE), so we send
+ * only those two fields even though the SDK's generated TS shape includes more.
+ */
+export interface GoogleCallbackContext {
+  code: string;
+  state: string;
+  origin: string;
+}
+export async function exchangeGoogleCodeAction(
+  ctx: GoogleCallbackContext,
+): Promise<AuthResult & { returnTo?: string }> {
+  if (!isOneEntryEnabled || !oneentry) {
+    return { ok: false, error: 'OneEntry is not configured' };
+  }
+  if (!ctx.code) return { ok: false, error: 'Missing Google authorization code' };
+
+  const jar = (await cookies()) as unknown as CookieJar;
+  const savedState = jar.get(GOOGLE_OAUTH_STATE_COOKIE)?.value ?? '';
+  const returnTo = jar.get(GOOGLE_OAUTH_RETURN_COOKIE)?.value ?? '/';
+  // Consume the CSRF pair immediately so the code can only be redeemed once.
+  jar.delete(GOOGLE_OAUTH_STATE_COOKIE);
+  jar.delete(GOOGLE_OAUTH_RETURN_COOKIE);
+
+  if (!savedState || savedState !== ctx.state) {
+    return { ok: false, error: 'OAuth state mismatch (possible CSRF)' };
+  }
+
+  try {
+    const redirectUri = absoluteCallbackUri(ctx.origin);
+    const body = { code: ctx.code, redirect_uri: redirectUri };
+    const result = await oneentry.AuthProvider.oauth(
+      GOOGLE_AUTH_MARKER,
+      body as unknown as Parameters<typeof oneentry.AuthProvider.oauth>[1],
+    );
+    if (isError(result)) {
+      return { ok: false, error: result.message ?? 'Google sign-in rejected by OneEntry' };
+    }
+    const entity = result as OeAuthEntity;
+    await setSessionCookies(jar, entity);
+    const user = await fetchMe(entity.accessToken);
+    return { ok: true, userIdentifier: entity.userIdentifier, user, returnTo };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Google sign-in failed' };
   }
 }
 
-/**
- * Verify a Google `id_token` against OE's `google` provider on behalf of the
- * currently logged-in user. OE accepts the same `oauth` endpoint used for
- * sign-in; when the issuer matches and the audience equals the configured
- * Google client ID, OE returns a fresh session entity. We do not overwrite
- * the existing cookies — the calling page only needs the success flag to
- * mark the provider as "connected" in the UI.
- */
-export async function connectGoogleAccountAction(
-  accessToken: string,
-): Promise<{ ok: true; matchedField?: string } | { ok: false; error: string }> {
-  if (!isOneEntryEnabled || !oneentry) {
-    return { ok: false, error: 'OneEntry is not configured' };
-  }
-  if (!accessToken) {
-    return { ok: false, error: 'Missing Google access token' };
-  }
-  try {
-    const attempt = await tryOauthVariants(accessToken);
-    if (!attempt.ok) {
-      const uniqueErrors = Array.from(new Set(attempt.attempts.map(a => a.error)));
-      console.warn('[OE Google OAuth] connect: all variants failed:', attempt.attempts);
-      const detail = uniqueErrors.join(' | ');
-      return { ok: false, error: `Google verification rejected by OneEntry — ${detail}` };
-    }
-    return { ok: true, matchedField: attempt.matchedField };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to verify Google account' };
-  }
-}
 
 export async function signOutAction(): Promise<{ ok: boolean }> {
   const jar = (await cookies()) as unknown as CookieJar;

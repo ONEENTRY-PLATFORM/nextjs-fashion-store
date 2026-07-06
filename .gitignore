@@ -54,6 +54,10 @@ OE_INTEGRATION_REPORT.md
 TESTING_RESULTS.md
 TESTING_FIXES_PLAN.md
 .claude/.sync-cursor
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+HARDCODED_BLOCKS.md
+DATA_SOURCES_AUDIT.md
 client_secret*.json
 *credentials*.json
 .claude

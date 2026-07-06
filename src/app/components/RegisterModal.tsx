@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { requestGoogleIdToken } from '../../lib/google-auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { registerSchema } from '../utils/schemas';
 import { REGISTER_MODAL_LABELS as L } from '../data/authLabels';
@@ -30,7 +29,7 @@ function Checkbox({ checked, onChange, children }: { checked: boolean; onChange:
 }
 
 export function RegisterModal() {
-  const { registerModalOpen, closeRegisterModal, openLoginModal, signUp, login, loginWithGoogle } = useAuth();
+  const { registerModalOpen, closeRegisterModal, openLoginModal, signUp, login, startGoogleOAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isCheckout = pathname?.startsWith('/checkout');
@@ -105,13 +104,7 @@ export function RegisterModal() {
     setError('');
     if (provider === 'google') {
       try {
-        const idToken = await requestGoogleIdToken();
-        const result = await loginWithGoogle(idToken);
-        if (!result.ok) {
-          setError(result.error ?? 'Google sign-in failed');
-          return;
-        }
-        if (!isCheckout) router.push('/account');
+        await startGoogleOAuth(isCheckout ? window.location.pathname : '/account');
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Google sign-in failed');
       }

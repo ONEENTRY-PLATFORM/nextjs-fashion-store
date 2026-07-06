@@ -71,6 +71,25 @@ export const MOCK_MULTICOLOR_PRODUCT: Product = {
   sizes: ['XS', 'S', 'M', 'L', 'XL'],
 };
 
+/** Product that ships a single size — used to verify auto-selection behaviour. */
+export const MOCK_SINGLE_SIZE_PRODUCT: Product = {
+  id: 'wc-onesize',
+  name: 'Silk Square Scarf',
+  brand: 'Toteme',
+  price: '$120.00',
+  label: 'NEW IN',
+  colors: ['#000000', '#C4A882'],
+  colorImages: [
+    'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+    'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+  ],
+  colorStock: [true, true],
+  image:
+    'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+  sizes: ['ONE SIZE'],
+  clothingType: 'Accessories',
+};
+
 // ─── Wishlist items ──────────────────────────────────────────────────────────
 
 import type { WishlistItem } from '../app/context/WishlistContext';

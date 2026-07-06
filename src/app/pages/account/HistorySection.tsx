@@ -10,7 +10,6 @@ import { SectionTitle, ACCENT, fmt } from './shared';
 import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { TrackingModal } from './history/TrackingModal';
 import { HISTORY_LABELS as L } from '../../data/accountLabels';
-import { PRODUCT_DEFAULTS } from '../../data/productPageLabels';
 import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
 import type { OeOrder } from '../../../lib/oneentry/auth/actions';
 
@@ -120,7 +119,7 @@ export function HistorySection() {
       addItem({
         id: `reorder-${id}-${idx}`,
         name: item.name,
-        brand: PRODUCT_DEFAULTS.fallbackBrand,
+        brand: '',
         color: item.color,
         sku: `REORDER-${id}-${idx}`,
         size: item.size,

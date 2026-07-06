@@ -12,7 +12,7 @@ Grouped by domain. See `docs/ONEENTRY_INTEGRATION.md` for full request / respons
 
 ---
 
-## Auth (`src/lib/oneentry/auth/actions.ts` — 18 Server Actions)
+## Auth (`src/lib/oneentry/auth/actions.ts` — 18 auth-domain Server Actions; the file also contains 4 downstream actions covered in Checkout / Account: `createOrderAction`, `previewOrderAction`, `cancelOrderAction`, `fetchBonusHistoryAction` — grand total 22 exports)
 
 All actions are marked `'use server'`. Every authenticated action reads / writes the `oe_access`, `oe_refresh`, `oe_user` cookies server-side. Consumed by `AuthContext`, account subsections, and checkout.
 

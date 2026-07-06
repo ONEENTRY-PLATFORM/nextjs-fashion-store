@@ -146,7 +146,7 @@ yarn build-storybook    # static build → storybook-static/
 **Stories (34 files under `src/stories/`)**:
 
 Layout: `Header`, `Footer`, `CheckoutStepper`, `HeroSlider`, `DiscountBanner`.
-Catalog: `CatalogTemplate`, `CatalogTrendBlocks`, `CatalogCrossSell`, `CatalogListProductCard`, `CatalogMobileSort`, `CategorySection`, `MobileFilterBody`, `MobileFilterPanel`, `NoFilterResults`.
+Catalog: `CatalogTemplate`, `CatalogCrossSell`, `CatalogListProductCard`, `CatalogMobileSort`, `CategorySection`, `MobileFilterBody`, `MobileFilterPanel`, `NoFilterResults`.
 Cards & products: `ProductCard`, `ProductCardSkeleton`, `ColorSwatch`, `SizeDropdown`, `QtyControl`, `RadioCard`.
 Collection wrappers: `WomenCollection`, `MenCollection`, `AccessoriesCatalog`, `ShoesCatalog`.
 Interactive: `LoginModal`, `RegisterModal`, `QuickViewModal`, `MiniCart`, `PromoBlock`, `NewArrivals`.
@@ -158,8 +158,8 @@ Widgets: `FormField`, `JsonLd`, `ErrorBoundary`, `ImageWithFallback`.
 - **Redux / Slices** (`redux/02-Slices.mdx`) — every slice's actions with payloads.
 - **Redux / RTK Query** (`redux/03-RTKQuery.mdx`) — the 2 remaining API slices (`cartApi`, `wishlistApi`) as scaffolding; the live sync path via Server Actions.
 - **Redux / Persistence** (`redux/04-Persistence.mdx`) — `oe_store` v5 schema + all 4 migration steps (v1→v2, v2→v3, v3→v4, v4→v5).
-- **Redux / Contexts** (`redux/05-Contexts.mdx`) — the 5 context modules; full `AuthContext` interface (11 mutation methods + 4 modal helpers + 3 state fields wrapping 11 of the 18 auth Server Actions).
-- **Redux / Server Actions** (`redux/06-ServerActions.mdx`) — inventory of the 18 auth actions + activity + catalog + blocks + forms + payments + labels + menus loaders.
+- **Redux / Contexts** (`redux/05-Contexts.mdx`) — the 5 context modules; full `AuthContext` interface (11 mutation methods + 4 modal helpers + 3 state fields, wrapping 10 of the 18 auth-domain Server Actions + 1 local `updateUser`).
+- **Redux / Server Actions** (`redux/06-ServerActions.mdx`) — inventory of the 18 auth-domain actions (`auth/actions.ts` also exposes 4 downstream actions — `createOrder / previewOrder / cancelOrder / fetchBonusHistory` — for a file total of 22) + activity + catalog + blocks + forms + payments + labels + menus loaders.
 - **Diagrams / Wishlist / Account / Cart / Site** (`diagrams/01-*` … `04-*.mdx`) — Mermaid flowcharts for each domain.
 
 Support: `mockData.ts` (shared `MOCK_PRODUCT`, `MOCK_CART_ITEM`, etc.), `MermaidDiagram.tsx` (Mermaid renderer used by diagrams), `diagrams/wishlist.md` (redirect stub to the MDX version).

@@ -18,12 +18,6 @@ export interface FilterGroup {
   rangeUnit?: string;
 }
 
-export interface TrendBlock {
-  label: string;
-  image: string;
-  tag?: string;
-}
-
 export interface ChipFilter {
   chip: string;
   filter: (p: Product) => boolean;
@@ -64,7 +58,6 @@ export interface CatalogTemplateProps {
    *  state. Optional so storybook can render with an empty filter set. */
   currentFilters?: import('../../lib/oneentry/catalog/filters').CatalogFilters;
   productsPerPage?: number;
-  trendBlocks?: TrendBlock[];
   /** OE-managed trending block (server-fetched). Rendered as a product
    *  carousel under the grid when products are present. */
   trendingBlock?: import('../../lib/oneentry/blocks/page-blocks').PageBlock | null;
