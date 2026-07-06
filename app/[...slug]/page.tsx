@@ -62,13 +62,17 @@ type Props = {
  *  `CatalogTemplate`. Per-catalog overrides can be added here later. */
 const PRODUCTS_PER_PAGE = 16;
 
-// Catalog pages use URL `searchParams` (filters/sort/page) + OE-fetchers with
-// `cache: 'no-store'` — both require runtime rendering. Static prerender of
-// the routes from `generateStaticParams` would crash with
-// FUNCTION_INVOCATION_FAILED on the first OE block call. Next.js 16 rejects
-// combining `generateStaticParams` with `dynamic = 'force-dynamic'` — since
-// we render dynamically, keep only the segment flag.
-export const dynamic = 'force-dynamic';
+// ISR + dynamic auto: catalog pages hit by a clean URL (`/women/shoes`
+// with no query params) are served from cache for 60 s, then refreshed
+// in the background. URLs carrying filters / sort / pagination fall
+// through to per-request SSR because `searchParams` mark the render
+// dynamic. Loader-level TTLs (`loadProducts` / `loadFilteredProducts`)
+// are separately env-tunable via `ISR_CATALOG_TTL_SEC` in `src/lib/isr.ts`.
+//
+// This value MUST be a literal — Next.js statically analyses route
+// segment config at build time and rejects imported / re-exported /
+// computed values with "Invalid segment configuration export detected".
+export const revalidate = 60;
 
 /* ─── generateMetadata ─── */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

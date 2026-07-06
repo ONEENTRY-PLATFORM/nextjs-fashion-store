@@ -58,14 +58,14 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | Path | Purpose |
 |---|---|
 | `app/layout.tsx` | Root layout — metadata, viewport, `<Providers>` wrap |
-| `app/page.tsx` | Home — JSON-LD organisation/website schema + `<HomePage />` |
-| `app/[...slug]/page.tsx` | Catch-all — catalog/info pages dispatched via `PAGE_REGISTRY` (`src/app/data/pageRegistry.ts`); `generateMetadata`, `dynamic = 'force-dynamic'` |
+| `app/page.tsx` | Home — JSON-LD organisation/website schema + `<HomePage />` (`export const revalidate = 300` — hard-coded literal; see note on route-shell literals below) |
+| `app/[...slug]/page.tsx` | Catch-all — catalog/info pages dispatched via `PAGE_REGISTRY` (`src/app/data/pageRegistry.ts`); `generateMetadata` (`export const revalidate = 60` — hard-coded literal) — ISR for clean URLs, per-request SSR for `searchParams`-carrying requests (filters / sort / pagination) |
 | `app/account/page.tsx` | Account dashboard (login-gated) |
 | `app/cart/page.tsx` | Cart |
 | `app/checkout/{delivery,payment,confirmation}/page.tsx` | Three-step checkout funnel |
 | `app/checkout/error.tsx` | Section-scoped error boundary |
 | `app/favorites/page.tsx` | Wishlist |
-| `app/product/[id]/page.tsx` | Product detail (dynamic) |
+| `app/product/[id]/page.tsx` | Product detail (`export const revalidate = 120` — hard-coded literal; critical stock/price validation deferred to a fresh `previewOrderAction` call immediately before `createOrderAction` on the Payment page) |
 | `app/new/page.tsx` | New Arrivals (`dynamic = 'force-dynamic'`) |
 | `app/sale/page.tsx` | Sale (`dynamic = 'force-dynamic'`) |
 | `app/stores/page.tsx` | Store locator (`revalidate = 3600` — ISR) |
@@ -78,6 +78,8 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | `app/llms.txt/route.ts` | AI-crawler documentation endpoint (`dynamic = 'force-static'`) |
 | `app/icon.svg`, `app/favicon.ico` | Icons |
 | `app/globals.css` | Tailwind entry |
+
+> **Route-shell revalidate must be a literal.** Next.js statically analyses `export const revalidate` at build time and rejects any value that is not a statically-analysable literal — importing a variable from another module (e.g. `import { REVALIDATE_HOME } from 'src/lib/isr'`) causes "Invalid segment configuration export detected" and breaks the production build. The three ISR route shells therefore hard-code the numeric literal directly. The `ISR_*_TTL_SEC` env vars **only** affect `unstable_cache` TTLs inside the individual data loaders — they do not change the route-shell revalidate window. If you adjust a default in `src/lib/isr.ts`, update the corresponding literal in the route file manually.
 
 ### `src/app/` — implementation
 
@@ -100,7 +102,8 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | Folder / file | Purpose |
 |---|---|
 | `src/lib/google-auth.ts` | Google OAuth kick-off helper. Exports `startGoogleOAuth(returnTo?)`, which calls the `getGoogleAuthUrlAction` Server Action and then `window.location.href = url` — the browser leaves for Google's authorize page. The callback lands on `app/auth/callback/google/route.ts`, which invokes `exchangeGoogleCodeAction`. Env: `NEXT_PUBLIC_GOOGLE_CLIENT_ID`. |
-| `src/lib/isr.ts` | Central revalidate constants: `REVALIDATE_HOME=300`, `REVALIDATE_PRODUCT=600`, `REVALIDATE_CATALOG=300`, `REVALIDATE_SALE=60`, `REVALIDATE_NEW=600`, `REVALIDATE_STORES=3600`, `REVALIDATE_INFO=3600`. Consumed by SDK loaders (`fetch(..., {next: {revalidate: CONSTANT}})` inside `products.ts`, `page-blocks.ts`, `homepage-product-blocks.ts`). **Note**: Route segment configs (`app/**/page.tsx`'s `export const revalidate = …`) require an **AST-parseable literal** in Next.js 16 — the shared imported constant cannot be used there, so route shells hard-code the number (e.g. `app/stores/page.tsx` uses `export const revalidate = 3600;` with a `// Next.js 16 requires a literal` comment). Setting `ISR_DISABLED=1` collapses the loader-side values to 0 (dev only). |
+| `src/lib/isr.ts` | Central revalidate constants with env overrides via a `ttl(envKey, fallback)` helper. Defaults: `REVALIDATE_HOME=300`, `REVALIDATE_PRODUCT=120`, `REVALIDATE_CATALOG=60`, `REVALIDATE_SALE=60`, `REVALIDATE_NEW=600`, `REVALIDATE_STORES=3600`, `REVALIDATE_INFO=3600`. Each constant reads an optional env var (`ISR_HOME_TTL_SEC`, `ISR_PRODUCT_TTL_SEC`, `ISR_CATALOG_TTL_SEC`, `ISR_SALE_TTL_SEC`, `ISR_NEW_TTL_SEC`, `ISR_STORES_TTL_SEC`, `ISR_INFO_TTL_SEC`). **These constants are consumed exclusively by `unstable_cache`-wrapped loader functions** — they are NOT imported by `app/*/page.tsx`. Route-shell `export const revalidate` must be a statically-analysable literal; importing a computed value causes Next.js to throw "Invalid segment configuration export detected" and break the build. The three main route shells therefore use plain literals (`app/page.tsx` → `300`, `app/product/[id]/page.tsx` → `120`, `app/[...slug]/page.tsx` → `60`) that must be kept in sync with the defaults in this file manually. Setting `ISR_DISABLED=1` collapses all `unstable_cache` TTLs to 1 s; it has no effect on the route-shell literals. |
+| `src/lib/oneentry/profiling.ts` | Loader profiling helper. `withTiming(name, fn)` wraps an async loader: no-op in production (returns `fn` unchanged); when `OE_PROFILE=1`, emits `[OE-timing] <name> ok <ms>ms` (or `FAIL`) to stdout after each call. `OE_PROFILE_SLOW_MS=N` suppresses logs for calls faster than N ms. Applied to `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`, `loadStores`, `loadProducts`, `loadProductById`, `loadProductsByIds`, `loadFilteredProducts`, `loadProductReviews`, `loadBlockWithProducts`, `loadPageBlocksById`, `loadFrequentlyOrderedBlock`, `loadHomepageProductBlock`, `loadPurchaseBonusForProduct`. |
 | `src/lib/oneentry/index.ts` | **SDK singleton.** `defineOneEntry(url, {token})` guarded by `isOneEntryEnabled`. Exports `getApi()` (throws if env missing), `isError()` type guard, `OeError` alias. |
 | `src/lib/oneentry/locale.ts` | `DEFAULT_LOCALE = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US'`. |
 | `src/lib/oneentry/system-text.ts` + `SystemText.tsx` | CMS-managed label engine. Loads attribute sets by marker, caches 5 min process-wide + per-request via React `cache()`, provides `t()` and `<SystemText>` for RSC. |
@@ -182,7 +185,7 @@ Four tiers with distinct responsibilities. Never duplicate state across tiers.
 
 ### 4.1 OneEntry SDK (server-side truth)
 
-All server-authoritative data — products, pages, blocks, menus, labels, user profile, orders, payment accounts, reviews, forms — comes from `src/lib/oneentry/`. Every fetcher wraps `getApi().Xxx.yyy(marker, langCode)`, memoizes the result with React `cache()` for the request, and adds a process-wide 5-minute TTL for high-traffic reads (attribute sets, product lists). Server Actions (files marked `'use server'`) handle mutations (login, signup, order, sync-cart, sync-wishlist, submit-form) and cookie state. Env gate: `isOneEntryEnabled = Boolean(ONEENTRY_URL && ONEENTRY_TOKEN)`; `getApi()` throws loudly if missing.
+All server-authoritative data — products, pages, blocks, menus, labels, user profile, orders, payment accounts, reviews, forms — comes from `src/lib/oneentry/`. Most fetchers wrap `getApi().Xxx.yyy(marker, langCode)` and memoize with React `cache()` for the current request. Homepage block loaders (`loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`) and `loadStores` use Next.js `unstable_cache` instead — persistent cross-request storage keyed by `(lang)`, tagged `oe-block` / `oe-stores` for on-demand webhook invalidation, with TTLs from `src/lib/isr.ts`. Other high-traffic reads (attribute sets, product lists) add a process-wide 5-minute TTL. Server Actions (files marked `'use server'`) handle mutations (login, signup, order, sync-cart, sync-wishlist, submit-form) and cookie state. Env gate: `isOneEntryEnabled = Boolean(ONEENTRY_URL && ONEENTRY_TOKEN)`; `getApi()` throws loudly if missing.
 
 ### 4.2 React Context — session + UI conveniences
 

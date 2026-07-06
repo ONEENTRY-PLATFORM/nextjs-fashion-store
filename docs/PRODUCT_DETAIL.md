@@ -15,7 +15,7 @@
 - `ProductCard.tsx` builds `cardHref` as `/product/{id}?gender=men|women` derived from `product.gender` (`'M'` → `men`, `'W'` → `women`), so clicks from any men's / women's catalog carry the gender forward.
 - `ProductDetailPage.tsx` has a `useEffect` that, when `currentGender` is `'M'` or `'W'` and no `gender` param is present in the URL (deep link, search hit, external referrer), injects it via `router.replace(path, { scroll: false })` so the Header re-derives WOMEN/MEN correctly. Unisex / kids products leave the URL untouched.
 
-**ISR:** `export const revalidate = REVALIDATE_PRODUCT` (600 s in prod, from `src/lib/isr.ts`).
+**ISR:** `app/product/[id]/page.tsx` declares `export const revalidate = 120` as a hard-coded literal. Next.js requires route-segment `revalidate` to be a statically-analysable literal — importing a computed value (e.g. `import { REVALIDATE_PRODUCT } from 'src/lib/isr'`) causes "Invalid segment configuration export detected" and breaks the build. The `ISR_PRODUCT_TTL_SEC` env var tunes the `unstable_cache` TTL inside PDP data loaders only; it does not change the route-shell revalidate window. If you need a different route TTL, update the literal in the file directly and keep it in sync with the default in `src/lib/isr.ts`. Because PDP HTML may be up to ~2 minutes stale, critical stock/price re-validation is performed on the checkout side: `PaymentPage.handlePlaceOrder` runs a fresh `previewOrderAction` immediately before calling `createOrderAction` (see [CHECKOUT.md §3.5a](./CHECKOUT.md#35a-pre-flight-preview-check)).
 
 ---
 

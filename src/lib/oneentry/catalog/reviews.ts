@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { getApi, isError, isOneEntryEnabled } from '../index';
+import { withTiming } from '../profiling';
 import { loadProductById } from './products';
 import type { ProductReview } from '../../../app/data/productCatalog';
 
@@ -96,7 +97,7 @@ function fmtDate(iso: string | undefined): string {
  * one in 99% of cases. Falls back to averaged-rating when proximity match
  * is ambiguous.
  */
-export const loadProductReviews = cache(
+export const loadProductReviews = withTiming('loadProductReviews', cache(
   async (productId: number, limit = 100): Promise<ProductReview[]> => {
     if (!Number.isFinite(productId) || productId <= 0) return [];
     const [feedbacks, ratings, product] = await Promise.all([
@@ -170,4 +171,4 @@ export const loadProductReviews = cache(
       };
     });
   },
-);
+));

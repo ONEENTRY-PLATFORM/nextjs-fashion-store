@@ -218,7 +218,7 @@ Server Actions for domain-specific forms (`service_request`, `checkout_home_deli
 
 ## 5. Read-side loaders (cached, no side effects)
 
-All loaders wrap the SDK, add React `cache()` for request-scoped memoisation, and often a 5-minute process-wide TTL for high-traffic reads.
+All loaders wrap the SDK. Most add React `cache()` for request-scoped deduplication. Homepage block loaders (`loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`) and `loadStores` use `unstable_cache` instead — persistent cross-request cache backed by the Next.js data cache, keyed by `(lang)`, with tag-based invalidation (`oe-block` for the four block loaders, `oe-stores` for `loadStores`) and TTLs from `src/lib/isr.ts` (`REVALIDATE_HOME` / `REVALIDATE_STORES`). Other high-traffic reads (attribute sets, product lists) additionally memoise with a 5-minute process-wide TTL inside `system-text.ts` and `catalog/products.ts`.
 
 ### 5.1 Blocks (`src/lib/oneentry/blocks/`)
 
@@ -426,19 +426,22 @@ Legacy hook — logs `console.warn` + dispatches a `CustomEvent('oe:sync-warning
 
 ## 10. Caching / revalidation
 
-- **React `cache()`** — every read loader wraps its work in `cache()` so multiple RSCs on the same request share a single fetch.
-- **Process-wide TTL** — high-traffic reads (attribute sets, product lists, hero slides…) additionally memoise with a 5-minute TTL keyed by `(marker, lang)` inside `system-text.ts` and `catalog/products.ts`.
-- **Next.js ISR** — `src/lib/isr.ts` exports revalidate constants used by RSC `export const revalidate` and by block loaders. Turn ISR off in dev by setting `ISR_DISABLED=1`.
+- **React `cache()`** — most read loaders wrap their work in `cache()` so multiple RSCs on the same request share a single fetch.
+- **`unstable_cache` (persistent cross-request)** — `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection` (tag `oe-block`, TTL `REVALIDATE_HOME`) and `loadStores` (tag `oe-stores`, TTL `REVALIDATE_STORES`) use Next.js `unstable_cache` so their responses survive across requests within the ISR window. Call `revalidateTag('oe-block')` or `revalidateTag('oe-stores')` from an OE webhook route to purge them on demand.
+- **Process-wide TTL** — high-traffic reads (attribute sets, product lists) additionally memoise with a 5-minute TTL keyed by `(marker, lang)` inside `system-text.ts` and `catalog/products.ts`.
+- **Next.js ISR** — `src/lib/isr.ts` exports revalidate constants via a `ttl(envKey, fallback)` helper. These constants are consumed **only** by `unstable_cache`-wrapped loader functions; they are not imported by route shells. Route-shell `export const revalidate` must be a statically-analysable literal — importing a computed value causes Next.js to throw "Invalid segment configuration export detected" and abort the build. The three ISR route shells therefore declare plain numeric literals: `app/page.tsx` → `300`, `app/product/[id]/page.tsx` → `120`, `app/[...slug]/page.tsx` → `60`. The `ISR_*_TTL_SEC` env vars tune only the loader-level `unstable_cache` TTLs, not the route-shell revalidate windows. Set `ISR_DISABLED=1` to collapse all loader TTLs to 1 s (has no effect on route-shell literals).
 
-  | Constant | Prod TTL | Consumers |
-  |---|---|---|
-  | `REVALIDATE_HOME` | 300 s | Homepage blocks |
-  | `REVALIDATE_PRODUCT` | 600 s | PDP loaders |
-  | `REVALIDATE_CATALOG` | 300 s | `/women/*` and `/men/*` catalogs |
-  | `REVALIDATE_SALE` | 60 s | `/sale` — time-sensitive countdown |
-  | `REVALIDATE_NEW` | 600 s | `/new` |
-  | `REVALIDATE_STORES` | 3600 s | `/stores` locator |
-  | `REVALIDATE_INFO` | 3600 s | `/[...slug]` info pages |
+  | Constant | Default TTL | Env override | Loader consumers | Route-shell literal |
+  |---|---|---|---|---|
+  | `REVALIDATE_HOME` | 300 s | `ISR_HOME_TTL_SEC` | `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection` | `app/page.tsx` → `300` |
+  | `REVALIDATE_PRODUCT` | 120 s | `ISR_PRODUCT_TTL_SEC` | PDP loaders | `app/product/[id]/page.tsx` → `120` |
+  | `REVALIDATE_CATALOG` | 60 s | `ISR_CATALOG_TTL_SEC` | `cachedProductList`, `loadPurchaseBonusForProduct` | `app/[...slug]/page.tsx` → `60` |
+  | `REVALIDATE_SALE` | 60 s | `ISR_SALE_TTL_SEC` | `/sale` loaders | — (`force-dynamic`) |
+  | `REVALIDATE_NEW` | 600 s | `ISR_NEW_TTL_SEC` | `/new` loaders | — (`force-dynamic`) |
+  | `REVALIDATE_STORES` | 3600 s | `ISR_STORES_TTL_SEC` | `loadStores` | `app/stores/page.tsx` → `3600` (literal) |
+  | `REVALIDATE_INFO` | 3600 s | `ISR_INFO_TTL_SEC` | info-page loaders | shared via `app/[...slug]/page.tsx` literal |
+
+- **Loader profiling** — `src/lib/oneentry/profiling.ts` exports `withTiming(name, fn)`. Disabled by default (returns `fn` unchanged, zero production overhead). Enable with `OE_PROFILE=1`; each wrapped call then logs `[OE-timing] <name> ok <ms>ms` or `[OE-timing] <name> FAIL <ms>ms` to stdout (visible in Vercel Logs). Set `OE_PROFILE_SLOW_MS=N` to suppress logs for calls faster than N ms — useful for isolating genuine cache misses during a scripted browse (playwright / k6). Wrapped loaders: `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`, `loadStores`, `loadProducts`, `loadProductById`, `loadProductsByIds`, `loadFilteredProducts`, `loadProductReviews`, `loadBlockWithProducts`, `loadPageBlocksById`, `loadFrequentlyOrderedBlock`, `loadHomepageProductBlock`, `loadPurchaseBonusForProduct`.
 
 - **RTK Query tag invalidation** — `cartApi` / `wishlistApi` still declare `['Cart']` / `['Wishlist']` tags, but with the sync path having moved to Server Actions their query hooks are effectively unused.
 - **`localStorage`** — `oe_store` v5 persists client-only Redux slices (cart minus `miniCartOpen`, wishlist, recentlyViewed, catalog). Auth tokens are **never** written to `localStorage`.

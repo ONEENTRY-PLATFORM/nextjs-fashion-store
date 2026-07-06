@@ -58,6 +58,8 @@ TESTING_FIXES_PLAN.md
 .claude/scheduled_tasks.lock
 HARDCODED_BLOCKS.md
 DATA_SOURCES_AUDIT.md
+k6-load-test.js
+k6-summary.json
 client_secret*.json
 *credentials*.json
 .claude

@@ -253,6 +253,37 @@ export function PaymentPage() {
     const guestId = payload.isGuest ? getOrCreateGuestId() : undefined;
 
     setPlacing(true);
+
+    // Fresh authoritative preview right before createOrder. The debounced
+    // preview above may be minutes stale — the shopper could have stayed on
+    // this page picking a payment method, and PDP/catalog HTML is now
+    // served from ISR cache (up to 2 minutes for PDP / 60 s for catalog) so
+    // price or stock could have changed since the item entered the cart.
+    // OE rejects the preview outright when a line item is unavailable or
+    // its price is undefined; we surface that instead of pushing a bad
+    // createOrder request through.
+    const freshPreviewGuestId = payload.isGuest ? guestId : undefined;
+    const fresh = await previewOrderAction({
+      products: productsForPreview,
+      bonusAmount,
+      ...(couponCode ? { couponCode } : {}),
+      ...(freshPreviewGuestId ? { guestId: freshPreviewGuestId } : {}),
+    });
+    if (!fresh.ok) {
+      setPlacing(false);
+      setSubmitError(fresh.error || 'Cart could not be re-validated. Please review your cart and try again.');
+      return;
+    }
+    // Total shifted vs. what the shopper saw — update the on-screen summary
+    // and require an explicit re-confirm before actually creating the order.
+    if (preview && Math.abs(fresh.totalDue - preview.totalDue) > 0.01) {
+      setPreview(fresh);
+      setPlacing(false);
+      setSubmitError(`Order total changed to ${fmt(fresh.totalDue)} since you last reviewed it. Please check the summary and place the order again.`);
+      return;
+    }
+    setPreview(fresh);
+
     const res = await createOrderAction({
       storage: payload.storage,
       paymentAccount: paymentAccountIdentifier,

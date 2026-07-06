@@ -1,7 +1,9 @@
-import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { oneentry, isError } from '../index';
+import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_HOME } from '../../isr';
 
 export interface CategoryItemFromCms {
   id: string;
@@ -39,7 +41,7 @@ const extractImage = (raw: Record<string, unknown>): string => {
 const slugify = (s: string): string =>
   s.toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-export const loadCategorySection = cache(
+export const loadCategorySection = withTiming('loadCategorySection', unstable_cache(
   async (_lang: Lang = DEFAULT_LOCALE): Promise<CategorySectionFromCms> => {
     if (!oneentry) return { chips: [], categories: [] };
     try {
@@ -81,4 +83,6 @@ export const loadCategorySection = cache(
       return { chips: [], categories: [] };
     }
   },
-);
+  ['oe-category-section'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+));

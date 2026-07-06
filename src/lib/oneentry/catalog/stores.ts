@@ -1,9 +1,11 @@
-import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { oneentry, isError } from '../index';
+import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { Store } from '../../../app/data/stores';
 import { STORES as MOCK_STORES } from '../../../app/data/stores';
 import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_STORES } from '../../isr';
 
 type RawAttrValue = { value?: unknown };
 type RawPage = {
@@ -122,7 +124,7 @@ const normalize = (raw: RawPage, lang: Lang, mockFallback?: Store): Store => {
   };
 };
 
-export const loadStores = cache(
+export const loadStores = withTiming('loadStores', unstable_cache(
   async (lang: Lang = DEFAULT_LOCALE): Promise<Store[]> => {
     // Mock fallback so all stores render even while a few OE store pages
     // remain partially filled. When every store page has full attributes
@@ -139,4 +141,6 @@ export const loadStores = cache(
       return MOCK_STORES;
     }
   },
-);
+  ['oe-stores'],
+  { revalidate: REVALIDATE_STORES, tags: ['oe-stores'] },
+));

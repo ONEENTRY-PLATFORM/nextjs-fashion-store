@@ -1,7 +1,9 @@
-import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { oneentry, isError } from '../index';
+import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_HOME } from '../../isr';
 
 export interface HeroSlideFromCms {
   id: number;
@@ -52,7 +54,7 @@ const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
   };
 };
 
-export const loadHeroSlides = cache(
+export const loadHeroSlides = withTiming('loadHeroSlides', unstable_cache(
   async (_lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
     if (!oneentry) return [];
     try {
@@ -65,4 +67,6 @@ export const loadHeroSlides = cache(
       return [];
     }
   },
-);
+  ['oe-hero-slides'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+));

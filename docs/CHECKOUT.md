@@ -249,6 +249,17 @@ If Stripe session creation fails, `paymentSessionError` surfaces on the returned
 
 A local `previewInFlight` boolean tracks the **300 ms** debounced `previewOrder` fetch (`setTimeout(..., 300)` inside the `useEffect` at `PaymentPage.tsx:115`). It re-fires on any change to `productsKey` (JSON of cart products), `bonusAmount`, or `couponCode`. The **Place Order** button is `disabled` while any of `placing` (order in flight), `previewInFlight` (preview still loading), or `!preview` (first fetch hasn't landed) is true, and renders a small `animate-spin` circle inside the label while gated. `handlePlaceOrder` also early-returns on `previewInFlight || !preview`, so a stale total can never reach `createOrderAction` even if the button state races. This prevents the pre-fix bug where a shopper could submit before OneEntry finished computing discounts / bonuses, causing a mismatch between shown total and charged amount.
 
+### 3.5a Pre-flight preview check
+
+Because PDP and catalog routes are now ISR-cached (up to ~2 minutes for PDP, 5 minutes for home/catalog), a shopper could add an item at a stale price, walk away, and return to place an order using an out-of-date total. To close this gap, `handlePlaceOrder` runs a **fresh `previewOrderAction`** against the exact `productsForPreview` payload that the debounced summary was built from, immediately after `setPlacing(true)` and before `createOrderAction`.
+
+Two guards are applied on the fresh response:
+
+1. **`!fresh.ok`** — OE rejected the preview (e.g. a line item is unavailable or its price is undefined). `handlePlaceOrder` surfaces `fresh.error` (or a generic re-validation message) and returns without calling `createOrderAction`.
+2. **Total drift** — if `preview` exists and `Math.abs(fresh.totalDue - preview.totalDue) > 0.01`, the `preview` state is updated to the fresh figures and a message is shown: _"Order total changed to $X since you last reviewed it — please check the summary and place the order again."_ The shopper must click **Place Order** a second time with the corrected total visible on screen.
+
+This makes the fresh preview the authoritative pre-flight check for every order, regardless of how long the shopper spent on the page or how stale the ISR-cached PDP was.
+
 The delivery-step coupon input uses a different mechanism: the shopper explicitly clicks "Apply", which awaits `CartContext.applyCoupon(code)` → `previewOrderAction`. `CartContext` has its own separate 300 ms debounce for the ambient preview refresh when the cart changes (`CartContext.tsx:291`). There is no "900 ms coupon debounce" — coupon codes are validated by OE server-side on click, not by any client timer, and the legacy `CHECKOUT_COUPONS` local dictionary has been removed (see §7).
 
 ### 3.6 SSR hydration guard
@@ -302,24 +313,30 @@ Rendered as `Math.floor(total * 10)` points earned. This is a static marketing c
 ## 5. Data flow diagram
 
 ```
-Cart Redux ──────────────────────────┐
-                                     │
-sessionStorage['oe_checkout_payload']─┼──► createOrderAction (Server Action)
-                                     │        │
-Payment accounts (OE Payments) ──────┘        ├──► OE orders-storage/marker/{home|store_pickup|locker}[_guest]
-                                              │       (SDK Orders.createOrder)
-                                              │
-                                              ├── Stripe? ──► SDK Payments.createSession(orderId, 'session', false)
-                                              │                     │
-                                              │                     └──► paymentUrl
-                                              │
-                                              ├──► clearCart() [PaymentPage, unconditional on success]
-                                              │
-                                              ├── Stripe? ──► window.location.href = paymentUrl
-                                              │
-                                              └──► router.push('/checkout/confirmation')
-                                                                          │
-                                                                          └──► clearCart() 200ms after mount [belt & braces]
+handlePlaceOrder ───► previewOrderAction (fresh pre-flight)
+                             │
+                      !ok? ──► show error, return
+                             │
+                      totalDue drifted? ──► update preview state, show "total changed" message, return
+                             │
+Cart Redux ──────────────────┼──────────────────────┐
+                             │                       │
+sessionStorage['oe_checkout_payload']────────────────┼──► createOrderAction (Server Action)
+                                                     │        │
+Payment accounts (OE Payments) ──────────────────────┘        ├──► OE orders-storage/marker/{home|store_pickup|locker}[_guest]
+                                                              │       (SDK Orders.createOrder)
+                                                              │
+                                                              ├── Stripe? ──► SDK Payments.createSession(orderId, 'session', false)
+                                                              │                     │
+                                                              │                     └──► paymentUrl
+                                                              │
+                                                              ├──► clearCart() [PaymentPage, unconditional on success]
+                                                              │
+                                                              ├── Stripe? ──► window.location.href = paymentUrl
+                                                              │
+                                                              └──► router.push('/checkout/confirmation')
+                                                                                          │
+                                                                                          └──► clearCart() 200ms after mount [belt & braces]
 ```
 
 ---

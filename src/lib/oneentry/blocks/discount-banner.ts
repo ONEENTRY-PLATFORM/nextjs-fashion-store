@@ -1,7 +1,9 @@
-import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { oneentry, isError } from '../index';
+import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_HOME } from '../../isr';
 
 export interface DiscountBannerFromCms {
   image: string;
@@ -24,7 +26,7 @@ const extractImage = (v: unknown): string => {
   return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
 };
 
-export const loadDiscountBanner = cache(
+export const loadDiscountBanner = withTiming('loadDiscountBanner', unstable_cache(
   async (lang: Lang = DEFAULT_LOCALE): Promise<DiscountBannerFromCms | null> => {
     if (!oneentry) return null;
     try {
@@ -61,4 +63,6 @@ export const loadDiscountBanner = cache(
       return null;
     }
   },
-);
+  ['oe-discount-banner'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+));

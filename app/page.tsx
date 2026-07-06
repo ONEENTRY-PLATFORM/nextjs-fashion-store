@@ -17,11 +17,18 @@ import type { Store } from '../src/app/data/stores';
 
 export const metadata: Metadata = SEO.home;
 
-// Homepage pulls product-list blocks via `loadPageBlocksById`
-// (uses `cache: 'no-store'`). Without `force-dynamic` Next 16 throws
-// FUNCTION_INVOCATION_FAILED at runtime. Cannot switch to ISR without
-// dropping the no-store hints inside blocks/page-blocks.ts.
-export const dynamic = 'force-dynamic';
+// ISR route: homepage HTML is cached for 5 min, then a background
+// revalidation refreshes it. Individual SDK reads are memoised in
+// `unstable_cache` within `loadHeroSlides` / `loadHomepageCollections` /
+// `loadDiscountBanner` / `loadCategorySection` / `loadStores` /
+// `loadBlockWithProducts` — those honour `ISR_HOME_TTL_SEC` env for
+// per-loader TTL tuning (see `src/lib/isr.ts`).
+//
+// This value MUST be a literal (or a locally-defined const of a literal).
+// Next.js statically analyses route segment config at build time and
+// rejects imported / re-exported / computed values with "Invalid segment
+// configuration export detected".
+export const revalidate = 300;
 
 function buildOrganizationSchema(flagship: Store | undefined) {
   return {

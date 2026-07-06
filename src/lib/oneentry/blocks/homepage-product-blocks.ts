@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { getApi, isError, isOneEntryEnabled } from '../index';
+import { withTiming } from '../profiling';
 import { loadProducts } from '../catalog/products';
 import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
 import type { Product } from '../../../app/components/ProductCard';
@@ -49,7 +50,7 @@ const getCachedBlock = unstable_cache(
  * Once the OE admin fixes their rules to use `in`/`exs`, this returns the
  * correct products directly.
  */
-export const loadHomepageProductBlock = cache(
+export const loadHomepageProductBlock = withTiming('loadHomepageProductBlock', cache(
   async (
     marker: string,
     options: { categoryPath?: string; limit?: number; lang?: string } = {},
@@ -96,4 +97,4 @@ export const loadHomepageProductBlock = cache(
 
     return { title, products };
   },
-);
+));

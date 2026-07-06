@@ -96,11 +96,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// Server-fetchers (`loadBlockWithProducts`, `loadFrequentlyOrderedBlock`,
-// `loadProductReviews`) use `cache: 'no-store'` so OE edits surface
-// immediately. Next.js 16 rejects combining `generateStaticParams` (empty or
-// not) with `dynamic = 'force-dynamic'`, so we keep only the segment flag.
-export const dynamic = 'force-dynamic';
+// ISR route: PDP HTML is cached for 2 min, then background revalidation
+// refreshes it. Kept intentionally short because a stale price / stock on
+// PDP could produce a paid stale order. Belt-and-braces safety: the
+// place-order handler runs a fresh `previewOrder` right before creating
+// the order (see `src/app/pages/PaymentPage.tsx`). Loader-level TTLs
+// (products / reviews / bonus) are separately env-tunable via
+// `ISR_PRODUCT_TTL_SEC` in `src/lib/isr.ts`.
+//
+// This value MUST be a literal — Next.js statically analyses route
+// segment config at build time and rejects imported / re-exported /
+// computed values with "Invalid segment configuration export detected".
+export const revalidate = 120;
 
 export default async function Page({ params }: Props) {
   const { id } = await params;

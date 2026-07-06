@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { getApi, isError, isOneEntryEnabled } from '../index';
+import { withTiming } from '../profiling';
 import { DEFAULT_LOCALE } from '../locale';
 import { REVALIDATE_CATALOG } from '../../isr';
 import type { CatalogProduct } from '../catalog/products';
@@ -92,7 +93,9 @@ const loadPurchaseBonusRuleCached = unstable_cache(
  *  `purchase-of-goods` rule. Returns `null` when the rule is missing, inactive,
  *  or does not apply to this product. `1 bonus = 1 currency unit`, so a PERCENT
  *  rule of 5% on a $126 product yields ~6 points. */
-export async function loadPurchaseBonusForProduct(
+export const loadPurchaseBonusForProduct = withTiming('loadPurchaseBonusForProduct', _loadPurchaseBonusForProduct);
+
+async function _loadPurchaseBonusForProduct(
   oeProduct: Pick<CatalogProduct, 'id' | 'price' | 'categories'>,
 ): Promise<{ points: number } | null> {
   if (!isOneEntryEnabled) return null;

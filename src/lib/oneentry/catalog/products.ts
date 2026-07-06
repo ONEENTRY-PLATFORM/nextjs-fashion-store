@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { getApi, isError, oneentry } from '../index';
+import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
 import { DEFAULT_LOCALE } from '../locale';
@@ -519,7 +520,7 @@ function aggregateByName(items: CatalogProduct[], allById: Map<number, CatalogPr
   return out;
 }
 
-export const loadProducts = cache(
+export const loadProducts = withTiming('loadProducts', cache(
   async (opts: LoadProductsOptions = {}): Promise<LoadProductsResult> => {
     if (!oneentry) return { total: 0, items: [], fromCms: false };
     const lang = opts.lang ?? DEFAULT_LOCALE;
@@ -555,9 +556,9 @@ export const loadProducts = cache(
       fromCms: true,
     };
   },
-);
+));
 
-export const loadProductById = cache(
+export const loadProductById = withTiming('loadProductById', cache(
   async (id: number, lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct | null> => {
     const all = await loadFullCatalog(lang);
     const target = all.find((p) => p.id === id);
@@ -614,15 +615,15 @@ export const loadProductById = cache(
       statusIdentifier: anyInStock ? 'in_stock' : target.statusIdentifier,
     };
   },
-);
+));
 
-export const loadProductsByIds = cache(
+export const loadProductsByIds = withTiming('loadProductsByIds', cache(
   async (ids: number[], lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct[]> => {
     const all = await loadFullCatalog(lang);
     const set = new Set(ids);
     return all.filter((p) => set.has(p.id));
   },
-);
+));
 
 async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise<number[]> {
   if (!oneentry) return [];
@@ -815,7 +816,9 @@ function matchesCatalogFilters(p: CatalogProduct, f: CatalogFilters): boolean {
   return true;
 }
 
-export async function loadFilteredProducts(
+export const loadFilteredProducts = withTiming('loadFilteredProducts', _loadFilteredProducts);
+
+async function _loadFilteredProducts(
   opts: LoadFilteredProductsOptions,
 ): Promise<LoadFilteredProductsResult> {
   const lang = opts.lang ?? DEFAULT_LOCALE;

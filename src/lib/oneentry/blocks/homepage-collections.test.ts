@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// unstable_cache is transparent in tests — call the wrapped fn directly.
+vi.mock('next/cache', () => ({
+  unstable_cache: (fn: any) => fn,
+}));
+
 const getSlides = vi.fn();
 
 vi.mock('../index', () => ({
   oneentry: { Blocks: { getSlides } },
   isOneEntryEnabled: true,
+  isError: (v: unknown) =>
+    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {

@@ -1,7 +1,9 @@
-import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { oneentry, isError } from '../index';
+import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { REVALIDATE_HOME } from '../../isr';
 
 export interface HomepageCollectionItem {
   id: number;
@@ -43,7 +45,7 @@ const normalize = (raw: RawSlide): HomepageCollectionItem => {
   };
 };
 
-export const loadHomepageCollections = cache(
+export const loadHomepageCollections = withTiming('loadHomepageCollections', unstable_cache(
   async (_lang: Lang = DEFAULT_LOCALE): Promise<HomepageCollectionItem[]> => {
     if (!oneentry) return [];
     try {
@@ -56,4 +58,6 @@ export const loadHomepageCollections = cache(
       return [];
     }
   },
-);
+  ['oe-homepage-collections'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+));

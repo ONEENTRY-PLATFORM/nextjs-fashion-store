@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { getApi, isError, isOneEntryEnabled } from '../index';
+import { withTiming } from '../profiling';
 import { loadProducts, type LoadProductsOptions } from '../catalog/products';
 import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
 import type { Product } from '../../../app/components/ProductCard';
@@ -109,7 +110,9 @@ const getCachedPageById = unstable_cache(
  * rule-based tag scan. Once the OE admin fixes the block rules to use
  * `in`/`exs` semantics the SDK path returns the right products directly.
  */
-export async function loadBlockWithProducts(
+export const loadBlockWithProducts = withTiming('loadBlockWithProducts', _loadBlockWithProducts);
+
+async function _loadBlockWithProducts(
   marker: string,
   options: { categoryPath?: string; lang?: string } = {},
 ): Promise<PageBlock | null> {
@@ -203,7 +206,7 @@ async function loadHomepageBlockFallback(marker: string, limit: number, lang: st
  * empty segment). Returns each attached block with title, type and (for
  * product-list blocks) resolved products, in admin-defined order.
  */
-export const loadPageBlocksById = cache(
+export const loadPageBlocksById = withTiming('loadPageBlocksById', cache(
   async (pageId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
     if (!isOneEntryEnabled) return [];
     const page = await getCachedPageById(pageId, lang);
@@ -232,7 +235,7 @@ export const loadPageBlocksById = cache(
       .filter((b): b is PageBlock => b !== null)
       .sort((a, b) => a.position - b.position || markers.indexOf(a.marker) - markers.indexOf(b.marker));
   },
-);
+));
 
 export const HOME_PAGE_ID = 1;
 
@@ -242,7 +245,9 @@ export const HOME_PAGE_ID = 1;
  * together with `productId`. No similarProductRules involved — the result is
  * statistics-driven.
  */
-export async function loadFrequentlyOrderedBlock(
+export const loadFrequentlyOrderedBlock = withTiming('loadFrequentlyOrderedBlock', _loadFrequentlyOrderedBlock);
+
+async function _loadFrequentlyOrderedBlock(
   marker: string,
   productId: number,
   lang: string = DEFAULT_LOCALE,
