@@ -1,7 +1,9 @@
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { getApi, isError, isOneEntryEnabled } from '../index';
 import { withTiming } from '../profiling';
 import { loadProductById } from './products';
+import { REVALIDATE_HOME } from '../../isr';
 import type { ProductReview } from '../../../app/data/productCatalog';
 
 interface RawFormDataItem {
@@ -21,34 +23,46 @@ const FEEDBACK_MODULE_CONFIG = 13;
 const RATING_MARKER = 'review_rating';
 const RATING_MODULE_CONFIG = 12;
 
-async function fetchFormData(
-  marker: string,
-  configId: number,
-  productId: number,
-  limit: number,
-): Promise<RawFormDataItem[]> {
-  if (!isOneEntryEnabled) return [];
-  try {
-    const result = await getApi().FormData.getFormsDataByMarker(
-      marker,
-      configId,
-      { entityIdentifier: productId },
-      1,
-      'en_US',
-      0,
-      limit,
-    );
-    if (isError(result)) return [];
-    // SDK typings for `IFormByMarkerDataEntity` narrow `formData` to
-    // `FormDataType[]` (flat array), but the review endpoints ship the
-    // wrapped `{ en_US: [...] }` shape. Cast to the local RawFormDataResp
-    // that already tolerates both.
-    const data = result as unknown as RawFormDataResp;
-    return Array.isArray(data.items) ? data.items : [];
-  } catch {
-    return [];
-  }
-}
+// Cross-request cache of the raw OE form-data reads that back reviews.
+// Previously only the outer `loadProductReviews` had React `cache()` (single
+// request dedup), so every SSR of a PDP under load re-issued two form-data
+// round-trips to OE. Under 20 VU this became the dominant contributor to
+// PDP p95 (~17 s in perf-dump). `unstable_cache` shares one result across
+// requests, keyed on all four args — 300 product ids × 2 markers = 600 max
+// entries, easily fits the Data Cache. Reviews change slowly, so a 5-min
+// window matches the homepage/block window and is safe.
+const cachedFetchFormData = unstable_cache(
+  async (
+    marker: string,
+    configId: number,
+    productId: number,
+    limit: number,
+  ): Promise<RawFormDataItem[]> => {
+    if (!isOneEntryEnabled) return [];
+    try {
+      const result = await getApi().FormData.getFormsDataByMarker(
+        marker,
+        configId,
+        { entityIdentifier: productId },
+        1,
+        'en_US',
+        0,
+        limit,
+      );
+      if (isError(result)) return [];
+      // SDK typings for `IFormByMarkerDataEntity` narrow `formData` to
+      // `FormDataType[]` (flat array), but the review endpoints ship the
+      // wrapped `{ en_US: [...] }` shape. Cast to the local RawFormDataResp
+      // that already tolerates both.
+      const data = result as unknown as RawFormDataResp;
+      return Array.isArray(data.items) ? data.items : [];
+    } catch {
+      return [];
+    }
+  },
+  ['oe-review-formdata'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-reviews'] },
+);
 
 function value(it: RawFormDataItem, marker: string): unknown {
   return it.formData?.en_US?.find((f) => f.marker === marker)?.value;
@@ -100,11 +114,24 @@ function fmtDate(iso: string | undefined): string {
 export const loadProductReviews = withTiming('loadProductReviews', cache(
   async (productId: number, limit = 100): Promise<ProductReview[]> => {
     if (!Number.isFinite(productId) || productId <= 0) return [];
-    const [feedbacks, ratings, product] = await Promise.all([
-      fetchFormData(FEEDBACK_MARKER, FEEDBACK_MODULE_CONFIG, productId, limit),
-      fetchFormData(RATING_MARKER, RATING_MODULE_CONFIG, productId, limit),
-      loadProductById(productId),
+    // Reviews live in OE form-data (2 markers × 1 config × id). Even with
+    // `cachedFetchFormData` warming subsequent requests, the very first
+    // cold hit for a product id can wait 3-6 s on OE (perf-dump p95 = 3.2 s
+    // pre-timeout). We hard-cap the SSR wait at 2 s: on timeout we return
+    // an empty review list and let the PDP body stream. The abandoned
+    // fetches keep running behind `unstable_cache`, so their result still
+    // lands in the Data Cache and warms future SSRs of the same id — only
+    // the very first user for a cold id gets a body without reviews.
+    const raced = await Promise.race([
+      Promise.all([
+        cachedFetchFormData(FEEDBACK_MARKER, FEEDBACK_MODULE_CONFIG, productId, limit),
+        cachedFetchFormData(RATING_MARKER, RATING_MODULE_CONFIG, productId, limit),
+        loadProductById(productId),
+      ]),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
     ]);
+    if (raced === null) return [];
+    const [feedbacks, ratings, product] = raced;
     // Earlier seed iterations left behind feedback records with no body
     // (just headline + occasions). Hide those so the storefront only renders
     // the newer, properly-filled reviews.

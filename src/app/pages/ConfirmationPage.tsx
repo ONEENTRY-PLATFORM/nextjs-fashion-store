@@ -24,12 +24,19 @@ function randomOrderId() {
   return 'OE-' + crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 }
 
-export function ConfirmationPage() {
+interface ConfirmationPageProps {
+  /** Order-success line authored in the OE admin panel
+   *  (`checkout_home_delivery.localizeInfos.successMessage`). When present it
+   *  overrides the literal heading; `null` falls back to `L.heading`. */
+  successMessage?: string | null;
+}
+
+export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {}) {
   const router = useRouter();
   const { items, total, clearCart } = useCart();
   const [orderId, setOrderId] = useState<string | null>(null);
 
-  const lHeading       = useT('checkout_confirmed', 'checkout_confirmed_titel',                    L.heading);
+  const lHeading       = useT('checkout_confirmed', 'checkout_confirmed_titel',                    successMessage || L.heading);
   const lSub           = useT('checkout_confirmed', 'checkout_confirmed_text',                     L.subheading);
   const lOrderIdLabel  = useT('checkout_confirmed', 'checkout_confirmed_id',                       L.orderIdLabel);
   const lLoyaltyPre    = useT('checkout_confirmed', 'checkout_confirmed_bonus_text_1',             L.loyaltyPrefix);
@@ -53,7 +60,14 @@ export function ConfirmationPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
-    setOrderId(randomOrderId());
+    // Prefer the real OE order id stashed by PaymentPage. Random fallback is
+    // only for edge cases (opened /confirmation directly, sessionStorage
+    // cleared by Stripe round-trip on some browsers) so we still render
+    // *something* instead of "null".
+    let realId: string | null = null;
+    try { realId = sessionStorage.getItem('oe_last_order_id'); } catch { /* ignore */ }
+    setOrderId(realId && realId.length > 0 ? realId : randomOrderId());
+    try { sessionStorage.removeItem('oe_last_order_id'); } catch { /* ignore */ }
     const timer = setTimeout(() => clearCart(), 200);
     return () => clearTimeout(timer);
   }, [clearCart]);

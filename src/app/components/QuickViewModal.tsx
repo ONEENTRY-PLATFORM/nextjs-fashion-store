@@ -2,20 +2,26 @@
 import { useState, useEffect } from 'react';
 import { ACCENT_WOMEN, SALE_COLOR, BUY_GREEN, BUY_GREEN_HOVER } from '../constants/colors';
 import Image from 'next/image';
-import { X, ChevronDown, Star, Heart } from 'lucide-react';
+import { X, ChevronDown, Heart } from 'lucide-react';
+import { StarRating } from '../pages/product/StarRating';
 import { useQuickView } from '../context/QuickViewContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { QuickViewSizeGuide } from './QuickViewSizeGuide';
-import { QUICK_VIEW_LABELS as L, PRODUCT_ACTION_LABELS as PA } from '../data/productPageLabels';
+import { WriteReviewModal } from '../pages/product/WriteReviewModal';
+import { QUICK_VIEW_LABELS as L, PRODUCT_ACTION_LABELS as PA, PRODUCT_REVIEWS_LABELS as PR } from '../data/productPageLabels';
 import { SIZE_DROPDOWN_LABELS } from '../data/commonLabels';
+import { getProductReviewSummary } from '../../lib/oneentry/catalog/reviews-actions';
+import { canReviewProduct } from '../utils/review-eligibility';
 
 export function QuickViewModal() {
   const { isOpen, product, initialColorIndex, closeQuickView } = useQuickView();
   const { addItem, openMiniCart } = useCart();
   const { toggleItem, isWishlisted } = useWishlist();
+  const { isLoggedIn, openLoginModal, user } = useAuth();
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState<number | null>(null);
@@ -24,6 +30,9 @@ export function QuickViewModal() {
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [errors, setErrors] = useState<{ color?: boolean; size?: boolean }>({});
   const [buyBtnHovered, setBuyBtnHovered] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState<{ count: number; avg: number | null } | null>(null);
+  const [showWriteReview, setShowWriteReview] = useState(false);
+  const [showPurchaseNotice, setShowPurchaseNotice] = useState(false);
   const trapRef = useFocusTrap(isOpen, closeQuickView);
 
   useEffect(() => {
@@ -40,6 +49,8 @@ export function QuickViewModal() {
       const productSizes = product?.sizes;
       setSelectedSize(productSizes && productSizes.length === 1 ? productSizes[0] : null);
       setErrors({});
+      setShowWriteReview(false);
+      setShowPurchaseNotice(false);
     } else {
       document.body.style.overflow = '';
     }
@@ -47,6 +58,24 @@ export function QuickViewModal() {
       document.body.style.overflow = '';
     };
   }, [isOpen, initialColorIndex, product]);
+
+  // Fetch the real review summary (count + avg) when the modal opens for a
+  // new product. Reset first so a stale summary from the previous product
+  // doesn't briefly flash. `product.id` is a string on the UI Product shape;
+  // OE reviews key on the numeric product id.
+  useEffect(() => {
+    if (!isOpen || !product) { setReviewSummary(null); return; }
+    setReviewSummary(null);
+    const productId = Number(product.id);
+    if (!Number.isFinite(productId) || productId <= 0) return;
+    let cancelled = false;
+    getProductReviewSummary(productId).then((s) => {
+      if (!cancelled) setReviewSummary(s);
+    }).catch(() => {
+      if (!cancelled) setReviewSummary({ count: 0, avg: null });
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, product]);
 
   if (!isOpen || !product) return null;
 
@@ -72,6 +101,40 @@ export function QuickViewModal() {
     : product.galleryImages?.length
     ? product.galleryImages
     : [product.image];
+
+  // Badges are opt-in: only render when the underlying data actually supports
+  // them. `label` comes from OE's Label attribute (adapter forwards it as-is);
+  // `LOW IN STOCK` shows only when we have a numeric stock < 5 for the picked
+  // variant (or the product itself). Tenants that track availability via
+  // `statusIdentifier` leave `stock` undefined and get no low-stock badge —
+  // matching PDP behaviour where we don't invent a threshold from thin air.
+  const activeStock = activeVariant?.stock ?? product.stock;
+  const showLowStock = typeof activeStock === 'number' && activeStock > 0 && activeStock < 5;
+  const showLabelBadge = !!product.label;
+
+  // Resolve the OE availability status for the row above the price. Prefer
+  // the active variant's own status (colour-specific `preorder` etc.) and
+  // fall back to the product-level flag. Mirrors PDP's stock-copy tree:
+  //   out_of_stock → "Out of Stock"  (grey)
+  //   coming_soon  → "Coming soon"   (grey)
+  //   preorder     → "Pre-order"     (amber)
+  //   else         → "In Stock"      (green)
+  const productIsOOS = product.inStock === false;
+  const stockStatus = activeVariant?.statusIdentifier ?? product.statusIdentifier;
+  const isComingSoon = !productIsOOS && stockStatus === 'coming_soon';
+  const isPreOrder = !productIsOOS && stockStatus === 'preorder';
+  const stockLabel = productIsOOS
+    ? PA.outOfStock
+    : isComingSoon
+    ? PA.comingSoon
+    : isPreOrder
+    ? PA.preOrder
+    : PA.inStock;
+  const stockClassName = productIsOOS || isComingSoon
+    ? 'text-[#8B8B8B]'
+    : isPreOrder
+    ? 'text-[#B8860B]'
+    : 'text-[#2E8B57]';
 
   const wishlisted = isWishlisted(product.id);
 
@@ -118,10 +181,35 @@ export function QuickViewModal() {
   };
 
   const sizes = product.sizes || [...SIZE_DROPDOWN_LABELS.clothingSizes];
-  const rating = product.reviews
-    ? product.reviews.reduce((s, r) => s + r.rating, 0) / product.reviews.length
-    : 4.5;
-  const reviewCount = product.reviews?.length ?? 127;
+
+  // "N reviews" — jump to the existing reviews block on the PDP. No auth
+  // needed to read reviews, so we always navigate.
+  const goToReviews = () => {
+    closeQuickView();
+    router.push(`/product/${product.id}#reviews`);
+  };
+
+  // "Be the first to review" — writing is gated twice:
+  //   1. Session required — unauthed shoppers get the login modal (which
+  //      also offers register).
+  //   2. Delivered order for THIS product — reviews should only come from
+  //      real customers, so signed-in shoppers who never received the item
+  //      see an inline notice under the rating row instead of the write
+  //      modal.
+  const startWriteReview = () => {
+    if (!isLoggedIn) {
+      closeQuickView();
+      openLoginModal();
+      return;
+    }
+    const productId = Number(product.id);
+    if (!canReviewProduct(user?.oeOrders, productId)) {
+      setShowPurchaseNotice(true);
+      return;
+    }
+    setShowPurchaseNotice(false);
+    setShowWriteReview(true);
+  };
 
   return (
     <div
@@ -135,6 +223,26 @@ export function QuickViewModal() {
       />
 
       {showSizeGuide && <QuickViewSizeGuide onClose={() => setShowSizeGuide(false)} />}
+
+      {/* Write-review modal (stacked on top of QuickView). Only rendered
+          for logged-in shoppers — unauthed ones get the login modal via
+          `startWriteReview` instead. On close we refetch the summary so a
+          just-submitted review flips the row from "Be the first" to a real
+          count on the next render. */}
+      {showWriteReview && (
+        <WriteReviewModal
+          onClose={() => {
+            setShowWriteReview(false);
+            const productId = Number(product.id);
+            if (Number.isFinite(productId) && productId > 0) {
+              getProductReviewSummary(productId)
+                .then((s) => setReviewSummary(s))
+                .catch(() => { /* keep existing summary on failure */ });
+            }
+          }}
+          productId={Number(product.id)}
+        />
+      )}
 
       {/* Modal Container */}
       <div
@@ -202,21 +310,40 @@ export function QuickViewModal() {
               {product.name}
             </h2>
 
-            {/* Rating */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={14}
-                    fill={i < Math.floor(rating) ? '#000' : 'none'}
-                    stroke="#000"
-                    strokeWidth={1.5}
-                  />
-                ))}
-              </div>
-              <span className="text-sm text-gray-600">({reviewCount} {L.reviewsSuffix})</span>
+            {/* Rating row — mirrors the PDP sub-title style. Always shows
+                the 5-star strip (empty when count === 0), the "N reviews"
+                link, a thin divider and the stock status. Zero-review case
+                is auth-gated: guests get the login modal (which offers
+                register), authed shoppers get the write-review modal. */}
+            <div className="flex items-center gap-3 mb-4 h-5">
+              {reviewSummary === null ? (
+                <span className="inline-block w-40 h-3 bg-gray-100 animate-pulse rounded-sm" aria-hidden="true" />
+              ) : (
+                <>
+                  <StarRating rating={reviewSummary.avg ?? 0} size={14} />
+                  <button
+                    onClick={reviewSummary.count === 0 ? startWriteReview : goToReviews}
+                    className="text-xs text-gray-500 hover:text-black underline transition-colors"
+                  >
+                    {reviewSummary.count} {L.reviewsSuffix}
+                  </button>
+                  <span className="text-xs text-gray-300">|</span>
+                  <span className={`text-xs font-medium ${stockClassName}`}>
+                    {stockLabel}
+                  </span>
+                </>
+              )}
             </div>
+
+            {/* Purchase-required notice — shown when a signed-in shopper
+                clicks the review CTA on a product they haven't received
+                (no delivered / done order in `oeOrders`). Auto-dismisses
+                with the modal close. */}
+            {showPurchaseNotice && (
+              <p role="status" className="mb-4 text-xs text-[#B8860B] leading-relaxed">
+                {PR.purchaseRequired}
+              </p>
+            )}
 
             {/* Price */}
             <div className="flex items-center gap-3 mb-4">
@@ -231,14 +358,20 @@ export function QuickViewModal() {
             </div>
 
             {/* Badges */}
-            <div className="flex gap-2 mb-6">
-              <span className="px-3 py-1 bg-black text-white text-xs tracking-wider uppercase">
-                {L.badgeNewIn}
-              </span>
-              <span className="px-3 py-1 bg-primary-men text-white text-xs tracking-wider uppercase">
-                {L.badgeLowStock}
-              </span>
-            </div>
+            {(showLabelBadge || showLowStock) && (
+              <div className="flex gap-2 mb-6">
+                {showLabelBadge && (
+                  <span className="px-3 py-1 bg-black text-white text-xs tracking-wider uppercase">
+                    {product.label}
+                  </span>
+                )}
+                {showLowStock && (
+                  <span className="px-3 py-1 bg-primary-men text-white text-xs tracking-wider uppercase">
+                    {L.badgeLowStock}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Color Selector */}
             <div className="mb-6">
@@ -356,6 +489,7 @@ export function QuickViewModal() {
                     }
                     const cartPrice = parseFloat((product.salePrice ?? activePrice).match(/[\d.]+/)?.[0] ?? '0') || 0;
                     const originalPriceRaw = product.salePrice ? parseFloat(activePrice.match(/[\d.]+/)?.[0] ?? '0') || 0 : undefined;
+                    const stockLimit = activeVariant?.stock ?? product.stock;
                     addItem({
                       id: activeVariant?.id ?? `${product.id}-quick`,
                       name: product.name,
@@ -367,6 +501,7 @@ export function QuickViewModal() {
                       price: cartPrice,
                       ...(originalPriceRaw !== undefined && { originalPrice: originalPriceRaw }),
                       image: productImages[selectedImage] ?? product.image,
+                      ...(stockLimit !== undefined && { stockLimit }),
                     });
                     closeQuickView();
                     // Used to jump straight to /checkout/delivery, but with

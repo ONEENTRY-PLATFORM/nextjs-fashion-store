@@ -116,9 +116,26 @@ export function CatalogTemplate({
     const insulations = csv(sp.insulation); if (insulations?.length) inlineFilters.insulations = insulations;
     if (sp.sort) inlineFilters.sort = sp.sort;
     const page = num(sp.page); if (page !== undefined && page > 0) inlineFilters.page = Math.floor(page);
-    if (sp.chip) inlineFilters.chip = sp.chip;
+    if (sp.chip) {
+      inlineFilters.chip = sp.chip;
+    } else {
+      // Slug-based URLs like `/women/clothing/category/outerwear` carry the
+      // chosen sub-category in the path instead of the query. Extract it and
+      // prettify (`winter-outfits` → `Winter Outfits`) so the chip highlights
+      // and product-list filters exactly as if the shopper had clicked the
+      // matching QUICK_CHIP.
+      const parts = pathname.split('/').filter(Boolean);
+      const idx = parts.lastIndexOf('category');
+      if (idx >= 0 && idx < parts.length - 1) {
+        inlineFilters.chip = parts[idx + 1]
+          .split(/[-_]/)
+          .filter(Boolean)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+      }
+    }
     return inlineFilters;
-  }, [searchParams, currentFiltersProp]);
+  }, [searchParams, currentFiltersProp, pathname]);
 
   // Optimistic mirror of `currentFilters`. The UI (checkboxes, chips, sort
   // pill, price slider) renders from this snapshot so a click flips the
@@ -298,26 +315,58 @@ export function CatalogTemplate({
           <div className="flex items-center gap-3">
             <span className="hidden md:block w-px h-6 bg-[var(--accent)]" />
             <h1 className="tracking-[0.15em] uppercase text-2xl font-bold">
-              {title}
+              {activeChip || title}
             </h1>
             <span className="hidden md:inline-flex items-center px-2 py-0.5 text-white text-xs tracking-widest uppercase bg-[var(--accent)] rounded-none">
               {genderLabel}
             </span>
           </div>
-          {breadcrumbs && breadcrumbs.length > 0 && (
-            <nav className="hidden md:flex items-center gap-1 text-xs text-gray-400">
-              {breadcrumbs.map((crumb, i) => (
-                <span key={i} className="flex items-center gap-1">
-                  {i > 0 && <span className="mx-0.5">/</span>}
-                  {crumb.href ? (
-                    <a href={crumb.href} className="hover:text-black transition-colors">{crumb.label}</a>
-                  ) : (
-                    <span className="text-black">{crumb.label}</span>
-                  )}
-                </span>
-              ))}
-            </nav>
-          )}
+          {breadcrumbs && breadcrumbs.length > 0 && (() => {
+            // Determine the terminal sub-category from two sources:
+            //   1) `activeChip` — chosen via chip filter on the current page.
+            //   2) A `/category/<slug>` suffix on `pathname` — used by OE
+            //      hosting / deep-links to land straight on a sub-category.
+            // Chip wins when both are set (it's the truest "user picked"
+            // signal). Otherwise slug is prettified into a display label.
+            const pathParts = pathname.split('/').filter(Boolean);
+            const catIdx = pathParts.lastIndexOf('category');
+            const slugSubcategory = catIdx >= 0 && catIdx < pathParts.length - 1
+              ? pathParts[catIdx + 1]
+              : '';
+            const prettify = (s: string) => s
+              .split(/[-_]/)
+              .filter(Boolean)
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ');
+            const terminalLabel = activeChip || (slugSubcategory ? prettify(slugSubcategory) : '');
+            // Parent link points to the catalog page without the trailing
+            // `/category/<slug>` when we arrived via slug-based URL. Falls
+            // back to the last breadcrumb's own href, then to `pathname`.
+            const parentHref = catIdx >= 0
+              ? '/' + pathParts.slice(0, catIdx).join('/')
+              : (breadcrumbs[breadcrumbs.length - 1].href ?? pathname);
+            const trail = terminalLabel
+              ? [
+                  ...breadcrumbs.slice(0, -1),
+                  { ...breadcrumbs[breadcrumbs.length - 1], href: parentHref },
+                  { label: terminalLabel },
+                ]
+              : breadcrumbs;
+            return (
+              <nav className="hidden md:flex items-center gap-1 text-xs text-gray-400">
+                {trail.map((crumb, i) => (
+                  <span key={i} className="flex items-center gap-1">
+                    {i > 0 && <span className="mx-0.5">/</span>}
+                    {crumb.href ? (
+                      <a href={crumb.href} className="hover:text-black transition-colors">{crumb.label}</a>
+                    ) : (
+                      <span className="text-black">{crumb.label}</span>
+                    )}
+                  </span>
+                ))}
+              </nav>
+            );
+          })()}
         </div>
 
         {/* ══ STICKY BLOCK — chips + filter bar ══ */}
@@ -329,7 +378,7 @@ export function CatalogTemplate({
           <div className="px-4 lg:px-8 py-2 flex items-center justify-between gap-4">
             {/* Chips */}
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0 py-1">
-              {QUICK_CHIPS.map(({ chip }) => (
+              {QUICK_CHIPS.map((chip) => (
                 <button
                   key={chip}
                   onClick={() => setActiveChip(activeChip === chip ? '' : chip)}
@@ -410,6 +459,12 @@ export function CatalogTemplate({
           </div>
 
           {/* ── Row 3 desktop: Filter buttons ── */}
+          {/* Only render this row when there is at least one real filter
+              group. `section` entries are just visual separators and don't
+              give the shopper anything actionable — a row filled with them
+              (or entirely empty) reads as broken white space. Hides the
+              styles counter too until a filter group re-appears. */}
+          {supportedGroups.some(g => g.type !== 'section') && (
           <div className="px-4 lg:px-8 hidden md:flex items-center border-b border-gray-200">
             <div className={`flex items-center flex-1 overflow-x-auto overflow-y-hidden gap-0 ${scrollbarClass}`}>
               {supportedGroups.map(group => {
@@ -447,10 +502,8 @@ export function CatalogTemplate({
                 );
               })}
             </div>
-            <span className="flex-shrink-0 text-xs text-gray-400 pl-4">
-              {filteredProducts.length.toLocaleString()} {CVL.stylesCount}
-            </span>
           </div>
+          )}
 
           {/* ── Row 3 mobile: FILTERS | SORT ── */}
           <div className="flex md:hidden border-b border-black border-t border-t-[#e5e7eb]">
@@ -552,6 +605,33 @@ export function CatalogTemplate({
                               <span className="text-xs text-gray-400 ml-auto">({option.count.toLocaleString()})</span>
                             )}
                           </label>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Size chips — pressable pills instead of checkboxes. */}
+                  {currentFilterGroup.type === 'size_chips' && (
+                    <div className="flex flex-wrap gap-2">
+                      {currentFilterGroup.options.map(option => {
+                        const selected = !!(selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label));
+                        return (
+                          <button
+                            key={option.label}
+                            type="button"
+                            onClick={() => toggleFilter(currentFilterGroup.key, option.label)}
+                            aria-pressed={selected}
+                            className={`px-3 py-1.5 text-xs tracking-wider uppercase border transition-colors ${
+                              selected
+                                ? 'bg-black text-white border-black'
+                                : 'bg-white text-black border-gray-300 hover:border-black'
+                            }`}
+                          >
+                            {option.label}
+                            {option.count !== undefined && (
+                              <span className={`ml-1 text-[10px] ${selected ? 'text-white/70' : 'text-gray-400'}`}>({option.count})</span>
+                            )}
+                          </button>
                         );
                       })}
                     </div>

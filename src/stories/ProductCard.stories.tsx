@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { ProductCard } from '../app/components/ProductCard';
 import { useAppDispatch } from '../app/store/hooks';
 import { wishlistActions } from '../app/store/wishlistSlice';
-import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT, MOCK_MULTICOLOR_PRODUCT, MOCK_WISHLIST_ITEM } from './mockData';
+import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT, MOCK_MULTICOLOR_PRODUCT, MOCK_WISHLIST_ITEM, MOCK_COMING_SOON_PRODUCT, MOCK_PREORDER_PRODUCT } from './mockData';
 
 const meta = {
   title: 'Components / ProductCard',
@@ -39,6 +39,16 @@ export const OutOfStock: Story = {
 export const ManyColors: Story = {
   name: '6+ colors — "+N" overflow label',
   args: { product: MOCK_MULTICOLOR_PRODUCT },
+};
+
+export const ComingSoon: Story = {
+  name: 'Coming Soon — statusIdentifier: coming_soon',
+  args: { product: MOCK_COMING_SOON_PRODUCT },
+};
+
+export const PreOrder: Story = {
+  name: 'Pre-order — statusIdentifier: preorder',
+  args: { product: MOCK_PREORDER_PRODUCT },
 };
 
 export const MenAccent: Story = {

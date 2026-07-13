@@ -1,15 +1,15 @@
 'use client'
 import { Store, MapPin, Clock, CheckCircle, ChevronDown } from 'lucide-react';
 import { RadioCard } from '../../components/RadioCard';
-import { PICKUP_STORES, PICKUP_PERKS } from '../../data/checkoutConfig';
+import { PICKUP_PERKS, type PickupStore } from '../../data/checkoutConfig';
 import { DELIVERY_METHOD_STORE_LABELS as L, GUEST_CONTACT_LABELS as GC } from '../../data/checkoutLabels';
 import { GuestContactForm, type GuestContactFormState } from './GuestContactForm';
-
-type PickupStore = (typeof PICKUP_STORES)[number];
+import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 interface DeliveryMethodStoreProps {
   checked: boolean;
   onChange: () => void;
+  stores: PickupStore[];
   selectedStore: PickupStore;
   setSelectedStore: (s: PickupStore) => void;
   storeDropOpen: boolean;
@@ -22,18 +22,23 @@ interface DeliveryMethodStoreProps {
 
 export function DeliveryMethodStore({
   checked, onChange,
+  stores,
   selectedStore, setSelectedStore,
   storeDropOpen, setStoreDropOpen,
   isLoggedIn, guestContact, setGuestContact, guestContactErrors,
 }: DeliveryMethodStoreProps) {
+  const info = useDeliveryMethodInfo();
+  const title    = info?.store.title    ?? L.title;
+  const subtitle = info?.store.subtitle ?? L.subtitle;
+  const perks    = info?.store.perks    ?? PICKUP_PERKS.map((p) => p.text);
   return (
     <RadioCard
       id="store"
       checked={checked}
       onChange={onChange}
       icon={<Store size={20} />}
-      title={L.title}
-      subtitle={L.subtitle}
+      title={title}
+      subtitle={subtitle}
     >
       <div className="pt-4">
         <label className="block text-xs tracking-wide uppercase mb-1.5 font-semibold text-[#555]">
@@ -54,7 +59,7 @@ export function DeliveryMethodStore({
           </button>
           {storeDropOpen && (
             <div className="absolute top-full left-0 right-0 bg-white z-20 border border-[#d1d5db] border-t-0">
-              {PICKUP_STORES.map(s => (
+              {stores.map(s => (
                 <button
                   key={s.id}
                   onClick={() => { setSelectedStore(s); setStoreDropOpen(() => false); }}
@@ -81,10 +86,10 @@ export function DeliveryMethodStore({
         </div>
 
         <div className="flex flex-wrap gap-4 mt-4">
-          {PICKUP_PERKS.map(b => (
-            <div key={b.text} className="flex items-center gap-1.5 text-xs text-gray-500">
+          {perks.map(text => (
+            <div key={text} className="flex items-center gap-1.5 text-xs text-gray-500">
               <CheckCircle size={12} className="text-green-600" />
-              {b.text}
+              {text}
             </div>
           ))}
         </div>

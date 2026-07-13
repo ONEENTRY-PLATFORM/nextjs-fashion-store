@@ -2,16 +2,12 @@
 /**
  * ShoesCatalog — thin wrapper over CatalogTemplate.
  *
- * Converts quickChips (string[]) + chipField + chipAliasMap into
- * ChipFilter[] objects for CatalogTemplate, and computes
- * genderLabel / breadcrumbs / scrollbarClass from the props.
- *
+ * Computes genderLabel / breadcrumbs / scrollbarClass from the props.
  * All rendering logic lives in CatalogTemplate.
  */
 import {
   CatalogTemplate,
   type CatalogTemplateProps,
-  type ChipFilter,
 } from './CatalogTemplate';
 import { ACCENT_MEN } from '../constants/colors';
 import type { Product } from './ProductCard';
@@ -25,7 +21,6 @@ export type {
   FilterGroup,
   CrossSellCategory,
   BreadcrumbItem,
-  ChipFilter,
 } from './CatalogTemplate';
 
 export interface ShoesCatalogProps {
@@ -51,23 +46,14 @@ export interface ShoesCatalogProps {
   catalogTitle?: string;
   /** Override breadcrumb category label (default: "Shoes") */
   breadcrumbCategory?: string;
-  /** Product field to match quick chips against (default: "shoeType") */
-  chipField?: 'shoeType' | 'accessoryType';
-  /** Alias map for chip labels → field values */
-  chipAliasMap?: Record<string, string>;
 }
-
-const DEFAULT_SHOE_ALIAS_MAP: Record<string, string> = {
-  'Chelsea': 'Chelsea Boots',
-  'Oxford': 'Low Shoes',
-};
 
 export function ShoesCatalog({
   catalogKey,
   gender,
   accentColor,
   totalStyles,
-  productsPerPage = 12,
+  productsPerPage = 16,
   quickChips,
   filterGroups,
   products,
@@ -79,8 +65,6 @@ export function ShoesCatalog({
   trendingBlock,
   catalogTitle = CL.shoes,
   breadcrumbCategory = CL.breadcrumbShoes,
-  chipField = 'shoeType',
-  chipAliasMap,
 }: ShoesCatalogProps) {
   const genderLabel = gender === 'women' ? CL.women : CL.men;
   const scrollbarClass = accentColor === ACCENT_MEN ? 'scrollbar-red' : 'scrollbar-pink';
@@ -90,22 +74,12 @@ export function ShoesCatalog({
     { label: breadcrumbCategory },
   ];
 
-  const resolvedAliasMap = chipAliasMap ?? (chipField === 'shoeType' ? DEFAULT_SHOE_ALIAS_MAP : {});
-
-  const chipFilters: ChipFilter[] = quickChips.map(chip => {
-    const target = resolvedAliasMap[chip] ?? chip;
-    return {
-      chip,
-      filter: (p: Product) => (p[chipField as keyof Product] as string | undefined) === target,
-    };
-  });
-
   return (
     <CatalogTemplate
       catalogKey={catalogKey}
       products={products}
       filterGroups={filterGroups}
-      quickChips={chipFilters}
+      quickChips={quickChips}
       accentColor={accentColor}
       title={catalogTitle}
       genderLabel={genderLabel}

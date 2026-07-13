@@ -2,15 +2,13 @@
 import { AccessoriesCatalog, type FilterGroup } from '../components/AccessoriesCatalog';
 import type { Product } from '../components/ProductCard';
 import { ACCENT_MEN as ACCENT } from '../constants/colors';
-import { FILTER_QUICK_CHIPS as QC } from '../data/catalogFilterLabels';
 import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-
-const QUICK_CHIPS = [QC.belts, QC.wallets, QC.scarves, QC.gloves, QC.caps, QC.sunglasses, QC.watches];
 
 export function MenAccessoriesPage({
   initialProducts,
   initialFilterGroups,
+  initialQuickChips,
   initialTotalStyles,
   currentFilters,
   currentPage,
@@ -19,6 +17,7 @@ export function MenAccessoriesPage({
 }: {
   initialProducts?: Product[];
   initialFilterGroups?: FilterGroup[];
+  initialQuickChips?: string[];
   initialTotalStyles?: number;
   currentFilters?: CatalogFilters;
   currentPage?: number;
@@ -35,8 +34,8 @@ export function MenAccessoriesPage({
       trendingBlock={trendingBlock}
       currentPage={currentPage}
       currentFilters={currentFilters}
-      productsPerPage={12}
-      quickChips={QUICK_CHIPS}
+      productsPerPage={16}
+      quickChips={initialQuickChips ?? []}
       filterGroups={initialFilterGroups ?? []}
       products={initialProducts ?? []}
       priceMax={400}

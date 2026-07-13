@@ -121,6 +121,15 @@ export interface Product {
    *  color / size swatch in the card or QuickView swaps the displayed image,
    *  price, SKU, and stock to the matching variant. */
   variants?: ProductVariant[];
+  /** Product-level numeric stock — used as a fallback for `CartItem.stockLimit`
+   *  when a variant-less product is added from QuickView. Undefined when the
+   *  tenant tracks availability via `statusIdentifier` alone. */
+  stock?: number;
+  /** OE availability status (`in_stock` | `out_of_stock` | `coming_soon` |
+   *  `preorder` | ...). Forwarded from the OE product record so the storefront
+   *  can render richer stock copy (Coming Soon / Pre-order) rather than the
+   *  binary `inStock` boolean. */
+  statusIdentifier?: string;
 }
 
 export interface ProductVariant {
@@ -128,10 +137,18 @@ export interface ProductVariant {
   colors: string[];
   sizes: string[];
   price: string;
+  salePrice?: string;
   sku: string;
   image: string;
   images: string[];
   inStock: boolean;
+  /** Numeric stock forwarded from OE when the tenant tracks quantities.
+   *  Used by QuickView's Add-to-Cart to seed `CartItem.stockLimit`. */
+  stock?: number;
+  /** OE variant availability status — mirrors `Product.statusIdentifier` but
+   *  keyed per variant so a Pre-order colour + In Stock colour of the same
+   *  title-group render distinct copy. */
+  statusIdentifier?: string;
 }
 
 interface ProductCardProps {
@@ -145,7 +162,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const accentColor = accentProp ?? contextAccent ?? ACCENT_WOMEN;
   const { toggleItem, isWishlisted } = useWishlist();
   const { addItem: addToCart } = useCart();
-  const { openQuickView } = useQuickView();
+  const { openQuickView, isOpen: isQuickViewOpen } = useQuickView();
   // CTA labels: `add_to_cart_cta` lives in the `product-card` set, while the
   // post-click "Added" copy and "Quick View" labels live in the dedicated
   // `product_card_actions` set on OE.
@@ -155,7 +172,47 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const wishlisted = mounted && isWishlisted(product.id);
+  // JS-controlled hover state instead of Tailwind `group-hover:` for the
+  // image zoom + action-strip reveal. CSS `:hover` is pointer-based: when
+  // the shopper opens the QuickView modal (which covers the card) and then
+  // closes it without moving the mouse, the browser fires no `mouseleave` /
+  // `mouseenter` on the underlying card even though the pointer target
+  // changed from modal-overlay back to the card. Result was the card left
+  // in a `:hover` state (image scaled 105 %) until any mouse movement —
+  // visually looked like the image "stayed pushed up". The QuickView-open
+  // effect below force-resets `isHovered` so the card renders clean
+  // regardless of pointer position.
   const [isHovered, setIsHovered] = useState(false);
+  // Short cooldown that blocks the hover-scale from re-applying immediately
+  // after the QuickView modal closes. Chrome re-fires `mouseenter` on the
+  // card when the modal is removed from the DOM and the pointer's target
+  // silently changes back to the card, even though the pointer never moved —
+  // which snaps `isHovered` back to `true` faster than any `useEffect`
+  // reset can beat. During this cooldown, scale is force-suppressed so the
+  // card returns to its resting size; once the shopper actually moves the
+  // mouse (any direction), the flag clears and hover behaviour resumes
+  // normally.
+  const [suppressHoverScale, setSuppressHoverScale] = useState(false);
+  useEffect(() => {
+    if (isQuickViewOpen) {
+      setIsHovered(false);
+      setSuppressHoverScale(true);
+      return;
+    }
+    // Modal closed: keep suppression active until the shopper actually
+    // moves the pointer (any direction). No timer fallback — a stationary
+    // mouse means the shopper's attention hasn't returned to the card, so
+    // leaving it un-scaled matches user intent. Any real interaction
+    // (pointermove or pointerdown anywhere) lifts the flag.
+    const onInteract = () => setSuppressHoverScale(false);
+    document.addEventListener('pointermove', onInteract, { once: true });
+    document.addEventListener('pointerdown', onInteract, { once: true });
+    return () => {
+      document.removeEventListener('pointermove', onInteract);
+      document.removeEventListener('pointerdown', onInteract);
+    };
+  }, [isQuickViewOpen]);
+  const showHoverScale = isHovered && !suppressHoverScale;
   const [selectedColor, setSelectedColor] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
@@ -188,7 +245,23 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const outOfStock = product.inStock === false || activeColorOOS;
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
-  useEffect(() => { setImgError(false); setImgLoaded(false); }, [activeImage]);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  useEffect(() => {
+    setImgError(false);
+    // `<img>` `onLoad` doesn't fire when the browser served the image straight
+    // from HTTP cache before React attached the event listener (a very common
+    // scenario after route navigation) — the wrapper then stays at `opacity-0`
+    // and the card renders as an empty container even though the image byte
+    // stream is already decoded and painted. Check `img.complete +
+    // naturalWidth` on mount so already-cached images flip to `opacity-100`
+    // regardless of whether the event ever fires.
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) {
+      setImgLoaded(true);
+    } else {
+      setImgLoaded(false);
+    }
+  }, [activeImage]);
   const [addedToCart, setAddedToCart] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -310,17 +383,18 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         }`}
       >
         {imgError || !hasRealImage ? (
-          <div className={`w-full h-full flex items-center justify-center bg-[#f2f1ef] transition-transform duration-500 group-hover:scale-105 ${outOfStock ? 'grayscale opacity-60' : ''}`}>
+          <div className={`w-full h-full flex items-center justify-center bg-[#f2f1ef] ${suppressHoverScale ? 'transition-none' : 'transition-transform duration-500'} ${showHoverScale ? 'scale-105' : ''} ${outOfStock ? 'grayscale opacity-60' : ''}`}>
             <Image src="/icons/ui/bag-placeholder.svg" alt="" width={48} height={48} unoptimized />
           </div>
         ) : (
           <div className={`absolute inset-0 transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}>
             <Image
+              ref={imgRef}
               src={activeImage}
               alt={product.brand ? `${product.name} by ${product.brand}` : product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={`object-cover object-top transition-transform duration-500 group-hover:scale-105 ${outOfStock ? 'grayscale opacity-60' : ''}`}
+              className={`object-cover object-top ${suppressHoverScale ? 'transition-none' : 'transition-transform duration-500'} ${showHoverScale ? 'scale-105' : ''} ${outOfStock ? 'grayscale opacity-60' : ''}`}
               onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
               priority={priority}
@@ -365,9 +439,14 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         </button>
 
         {/* Quick View Overlay */}
+        {/* NOTE: Do not use Tailwind `translate-y-full` here. Tailwind 4 compiles
+            it to the CSS `translate` property, which — after a hover→QV-open→close
+            cycle on a card — leaves a stale cached layout box on the sibling image
+            wrapper, shifting it ~64px up and revealing the beige card background at
+            the bottom of the image. Animate opacity + pointer-events only. */}
         {!outOfStock && <div
-          className={`absolute inset-x-0 bottom-0 flex flex-col gap-2 p-4 transition-all duration-300 ${
-            isHovered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+          className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-4 transition-opacity duration-300 ${
+            isHovered ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         >
           {/* Add to Cart — hidden when product has multiple colors or sizes */}
@@ -449,7 +528,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
               const isActive = selectedColor === idx;
               return (
                 <ColorSwatchButton
-                  key={color}
+                  key={`${color}-${idx}`}
                   color={color}
                   active={isActive}
                   outOfStock={isOOS}
@@ -468,7 +547,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
             size flips the card to the matching variant (image / price / SKU). */}
         {product.variants && product.variants.length > 1 && product.sizes && product.sizes.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 mt-2">
-            {product.sizes.slice(0, 6).map((size) => {
+            {product.sizes.slice(0, 6).map((size, idx) => {
               const active = selectedSize === size;
               const currentColorHex = product.colors?.[selectedColor];
               const isAvailable = product.variants?.some(
@@ -476,7 +555,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
               );
               return (
                 <button
-                  key={size}
+                  key={`${size}-${idx}`}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();

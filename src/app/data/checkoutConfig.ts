@@ -3,7 +3,22 @@
 // Coupons were previously mocked here; live coupons now flow through OE
 // `previewOrder` / `Discounts.getDiscountByMarker` (see CartContext.applyCoupon).
 
-export const PICKUP_STORES = [
+/** Shape of a pickup store as consumed by the delivery-step store picker.
+ *  `oeId` is the numeric OE page id; populated when the entry originates from
+ *  OneEntry so `createOrder` can attach the pickup to the real store record.
+ *  The literal fallback entries below leave it undefined — a guest checkout
+ *  that lands on those will attempt to send the string `id` to OE and fail,
+ *  which is fine because the fallback is a dev-only safety net when OE has
+ *  no stores. In practice the loader always returns OE data. */
+export interface PickupStore {
+  id: string;
+  oeId?: number;
+  name: string;
+  address: string;
+  hours: string;
+}
+
+export const PICKUP_STORES: PickupStore[] = [
   { id: 's1', name: 'Kekimoro Oxford Street',  address: '234 Oxford St, London W1C 1AP',    hours: 'Mon–Sat 09:00–21:00, Sun 11:00–18:00' },
   { id: 's2', name: 'Kekimoro Covent Garden',  address: '14 James St, London WC2E 8BT',     hours: 'Mon–Sat 10:00–20:00, Sun 11:00–18:00' },
   { id: 's3', name: 'Kekimoro Canary Wharf',   address: 'Jubilee Place, London E14 5NY',    hours: 'Mon–Fri 08:00–21:00, Sat–Sun 10:00–19:00' },

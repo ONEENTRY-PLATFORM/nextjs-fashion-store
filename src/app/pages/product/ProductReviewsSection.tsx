@@ -22,6 +22,10 @@ interface ProductReviewsSectionProps {
   showAllReviews: boolean;
   setShowAllReviews: (v: boolean) => void;
   setShowReviewModal: (v: boolean) => void;
+  /** Optional inline notice shown under the "Write a Review" button — used
+   *  when the shopper is signed in but never actually received the product,
+   *  so we block the write flow and explain why. `null` hides the row. */
+  purchaseNotice?: string | null;
 }
 
 export function ProductReviewsSection({
@@ -33,6 +37,7 @@ export function ProductReviewsSection({
   showAllReviews,
   setShowAllReviews,
   setShowReviewModal,
+  purchaseNotice = null,
 }: ProductReviewsSectionProps) {
   const lReviewsCount = usePdpT('customer-reviews', 'reviews',             L.reviewsCountSuffix);
   const lWriteReview  = usePdpT('customer-reviews', 'write-a-review-cta',  L.writeReview);
@@ -70,18 +75,36 @@ export function ProductReviewsSection({
           >
             {lWriteReview}
           </button>
+          {purchaseNotice && (
+            <p role="status" className="mt-3 text-xs text-[#B8860B] leading-relaxed">
+              {purchaseNotice}
+            </p>
+          )}
         </div>
 
         <div className="flex-1">
-          {visibleReviews.map(r => <ReviewCard key={r.id} review={r} />)}
+          {productReviews.length === 0 ? (
+            <div className="h-full flex flex-col items-start justify-center text-left border border-dashed border-[#e5e7eb] p-8 rounded-none">
+              <p className="tracking-[0.15em] uppercase text-sm font-bold mb-2">
+                {L.emptyHeading}
+              </p>
+              <p className="text-sm text-gray-500 max-w-md">
+                {L.emptyBody}
+              </p>
+            </div>
+          ) : (
+            <>
+              {visibleReviews.map(r => <ReviewCard key={r.id} review={r} />)}
 
-          {!showAllReviews && productReviews.length > 3 && (
-            <button
-              onClick={() => setShowAllReviews(true)}
-              className="mt-6 text-xs tracking-widest uppercase underline hover:text-gray-600 transition-colors"
-            >
-              {lShowAll} {productReviews.length} {L.showAllSuffix}
-            </button>
+              {!showAllReviews && productReviews.length > 3 && (
+                <button
+                  onClick={() => setShowAllReviews(true)}
+                  className="mt-6 text-xs tracking-widest uppercase underline hover:text-gray-600 transition-colors"
+                >
+                  {lShowAll} {productReviews.length} {L.showAllSuffix}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

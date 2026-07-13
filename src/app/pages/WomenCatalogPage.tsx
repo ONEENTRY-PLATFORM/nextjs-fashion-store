@@ -1,27 +1,17 @@
 'use client'
-import { CatalogTemplate, type FilterGroup, type ChipFilter } from '../components/CatalogTemplate';
+import { CatalogTemplate, type FilterGroup } from '../components/CatalogTemplate';
 import type { Product } from '../components/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
-import { FILTER_QUICK_CHIPS as QC } from '../data/catalogFilterLabels';
 import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 const PRODUCTS_PER_PAGE = 16;
 
-const QUICK_CHIPS: ChipFilter[] = [
-  { chip: QC.bestSellers,   filter: p => p.label === 'BESTSELLER' },
-  { chip: QC.dresses,       filter: p => p.clothingType === 'Dresses' },
-  { chip: QC.tops,          filter: p => ['Tank Tops', 'T-Shirts / Polo Shirts', 'Shirts', 'Hoodies / Sweatshirts'].includes(p.clothingType ?? '') },
-  { chip: QC.bottoms,       filter: p => ['Jeans', 'Pants', 'Skirts', 'Trousers', 'Shorts'].includes(p.clothingType ?? '') },
-  { chip: QC.outerwear,     filter: p => ['Outerwear', 'Blazers'].includes(p.clothingType ?? '') },
-  { chip: QC.winterOutfits, filter: p => p.season === 'Winter' },
-  { chip: QC.partyOutfits,  filter: p => p.clothingType === 'Dresses' },
-];
-
 export function WomenCatalogPage({
   initialProducts,
   initialFilterGroups,
+  initialQuickChips,
   initialTotalStyles,
   currentFilters,
   currentPage,
@@ -30,6 +20,7 @@ export function WomenCatalogPage({
 }: {
   initialProducts?: Product[];
   initialFilterGroups?: FilterGroup[];
+  initialQuickChips?: string[];
   initialTotalStyles?: number;
   currentFilters?: CatalogFilters;
   currentPage?: number;
@@ -41,7 +32,7 @@ export function WomenCatalogPage({
       catalogKey="women-clothing"
       products={initialProducts ?? []}
       filterGroups={initialFilterGroups ?? []}
-      quickChips={QUICK_CHIPS}
+      quickChips={initialQuickChips ?? []}
       accentColor={ACCENT}
       title={CL.clothing}
       genderLabel={CL.women}

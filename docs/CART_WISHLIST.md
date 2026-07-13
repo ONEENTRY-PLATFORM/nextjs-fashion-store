@@ -39,7 +39,7 @@ The `context/` filenames are legacy: `CartContext.tsx` and `WishlistContext.tsx`
 
 | File | Role |
 |---|---|
-| `src/app/store/cartSlice.ts` | Reducers + selectors for cart items and `miniCartOpen` |
+| `src/app/store/cartSlice.ts` | Reducers + selectors for cart items, `miniCartOpen`, and `unavailableRemoved` |
 | `src/app/store/wishlistSlice.ts` | Reducers + selectors for wishlist items |
 | `src/app/store/recentlyViewedSlice.ts` | Reducers for the recently-viewed trail (TTL 30d, cap 100) |
 | `src/app/context/CartContext.tsx` | `useCart()` — hook facade; hydrates from `user.cartItems`, debounced sync, activity tracking |
@@ -68,6 +68,8 @@ interface CartItem {
   originalPrice?: number;
   image: string;
   bundleId?: string;
+  stockLimit?: number;     // max orderable qty for this variant, snapshotted at add-time from OE stockqty/units.
+                           // undefined = uncapped (legacy items or server-hydrated placeholders).
 }
 
 // src/app/context/WishlistContext.tsx
@@ -91,6 +93,10 @@ interface WishlistItem {
 ```
 
 The Platform payload is minimal (`{productId: number, qty: number}` for cart, `{productId: number}` for wishlist). Cosmetic fields (name / price / image) come from either the local Redux state (guest additions) or the enrichment fetch (post-login hydration).
+
+`stockLimit` is snapshotted from `activeVariant?.stock` (or `catalogProduct?.stock` for products without variants) when the shopper clicks "Add to cart" on `ProductDetailPage`. Both `CatalogProduct` and `PdpProductVariant` now carry an optional `stock?: number` field populated by `adaptCatalogProductToPdpProduct`, so the PDP-to-cart path delivers a real value. `undefined` means uncapped — this is the state for items re-hydrated from the server (the OE `users/me` cart payload carries no stock field) or for tenants that track availability via `statusIdentifier` only (in which case `adaptCatalogProductToPdpProduct` intentionally omits the `stock` field rather than forwarding a zero). When a duplicate line is detected on `addItem`, the reducer refreshes `stockLimit` from the incoming payload if it carries a fresh value, so a shopper who revisits the PDP picks up any inventory changes.
+
+**Current coverage gap:** `QuickViewModal` and `CatalogListProductCard` do not yet snapshot `stockLimit` because the UI `Product` type (used by the catalog-list path) doesn't carry a `stock` field — plumbing it would require updating `adaptCatalogProductToUiProduct` and the `Product`/`CatalogProductVariant` UI types. `previewOrderAction` triggers catalog-verified pruning for items OE reports as not found (see §4a); `createOrderAction` still relies on OE to reject on hard OOS at submit time.
 
 ### 3.1 Cart line dedup rule (id + size)
 
@@ -146,6 +152,9 @@ Mutations exposed by `useCart()`:
 | `updateSize(id, size)` | `cartActions.updateSize` | none |
 | `clearCart()` | `cartActions.clearCart` + resets coupon state (`couponCode=null`, `couponError=null`, drops `sessionStorage['oe_coupon_code']`) | none |
 | `openMiniCart()` / `closeMiniCart()` | `cartActions.openMiniCart` / `closeMiniCart` | — |
+| `dismissUnavailableNotice()` | `cartActions.dismissUnavailableRemoved` | — |
+
+`unavailableRemoved` (read-only from context) — snapshot of items auto-pruned by the `previewOrder` failure branch (see §4a below). Used by `CartUnavailableNotice` to render the banner.
 
 Derived values also exposed: `totalItems`, `subtotal`, `discount` (= `originalTotal − subtotal`), `total` (= `subtotal`).
 
@@ -167,6 +176,21 @@ Derived values also exposed: `totalItems`, `subtotal`, `discount` (= `originalTo
 | `removeCoupon()` | Clears `preview` and flips `previewLoading=true` before setting `couponCode=null`. The `productsKey`/`couponCode` `useEffect` then re-fetches without the coupon; the discount-row skeleton fires during recompute instead of momentarily showing the stale coupon discount. |
 
 A `useEffect` reruns `previewOrder` whenever the cart's `productsKey` or `couponCode` changes.
+
+#### Auto-pruning stale product ids
+
+When `previewOrderAction` returns `!ok` and the response includes `missingProductIds: number[]`, `CartContext` runs a **catalog double-check** before touching the cart:
+
+1. Calls `getProductsByIdsAction(missingProductIds)` (the same catalog endpoint used for cart hydration).
+2. Any id the catalog **also** cannot find is considered truly gone — those `CartItem` entries are snapshotted via `dispatch(cartActions.setUnavailableRemoved(snapshots))` and removed via `cartActions.removeItem`.
+3. Any id the catalog **does** return (i.e. the product exists in the catalog but `Orders.previewOrder` erroneously reports it missing) is left in the cart unchanged.
+4. The pruned item list is exposed as `unavailableRemoved` from `useCart()`.
+
+This double-check prevents valid catalog products from being silently wiped when OE's `Orders.previewOrder` endpoint returns a spurious `"Product <id> not found"` error for items that are `in_stock` in the catalog (a known OE inconsistency observed with, for example, newly added products).
+
+`missingProductIds` is extracted server-side by `previewOrderAction` in `src/lib/oneentry/auth/actions.ts` — OE returns error messages shaped `"Product <id> not found"`; the action extracts numeric ids via regex and attaches them to the `PreviewOrderResponse` (`{ ok: false; error: string; missingProductIds: number[] }`).
+
+After pruning confirmed-missing items, the `productsKey` dependency changes and the effect re-fires a fresh `previewOrder` without the removed ids. The shopper sees `CartUnavailableNotice` (a banner mounted in `Providers.tsx` that reads `unavailableRemoved`), which lists the removed items and offers a "Dismiss" button that calls `dismissUnavailableNotice()` → `cartActions.dismissUnavailableRemoved()`. The banner also self-dismisses automatically after 5 seconds via a `setTimeout` inside a `useEffect`; if a new removal batch replaces `unavailableRemoved` while the timer is running, the effect cleans up the old timer and starts a fresh 5-second countdown. `unavailableRemoved` is excluded from `oe_store` persistence — it is ephemeral banner state only.
 
 ---
 
@@ -204,34 +228,42 @@ The `syncCart` / `syncWishlist` Server Actions (`src/lib/oneentry/auth/actions.t
 
 ## 6. Login-time server merge
 
-When `isLoggedIn` flips to `true`, the effect that hydrates from `user.cartItems` fires once per session:
+When `isLoggedIn` flips to `true`, the effect that hydrates from `user.cartItems` fires once per **(user × browser session)**:
 
 ```ts
 // src/app/context/CartContext.tsx (excerpt)
 const hydratedRef = useRef(false);
 useEffect(() => {
-  if (!isLoggedIn || !user?.cartItems) return;
+  if (!isLoggedIn || !user?.cartItems || !userIdentifier) return;
   if (hydratedRef.current) return;
-  if (sessionStorage.getItem('oe_cart_merged') === '1') { hydratedRef.current = true; return; }
+  if (sessionStorage.getItem('oe_cart_merged') === userIdentifier) { hydratedRef.current = true; return; }
   hydratedRef.current = true;
-  sessionStorage.setItem('oe_cart_merged', '1');
+  sessionStorage.setItem('oe_cart_merged', userIdentifier);
   // ... place server placeholders that aren't already in the local cart
   // ... call getProductsByIdsAction(placeholderProductIds)
   // ... swap each placeholder for the enriched product
   // ... drop stale server-only items whose id didn't come back
-}, [isLoggedIn, user, dispatch]);
+}, [isLoggedIn, user, userIdentifier, dispatch]);
 ```
 
 Logic:
 
-1. If a `sessionStorage.oe_cart_merged === '1'` flag is present, the effect is a no-op — this prevents re-merging on every remount as Next.js App Router bounces the tree between navigations.
-2. Otherwise, for each server item not already in the local cart:
-   - Insert a placeholder (`name: 'Platform product #N'`, `price: 0`, `image: '/placeholder.svg'`).
-3. Call `getProductsByIdsAction(productIds)` — a Server Action that maps OE product IDs to `Product` shape.
-4. Swap each placeholder for the enriched product.
-5. Drop any server placeholder whose id did NOT come back from the catalog fetch — that indicates a deleted product on the OE side, and leaving it in the cart would raise a `$0` line and break order placement.
+1. If `sessionStorage.oe_cart_merged` equals the **current `userIdentifier`**, the effect is a no-op — this prevents re-merging on every remount as Next.js App Router bounces the tree between navigations.
+2. A mismatch (different user, stale or missing value) means the merge runs again. The stored value is the OE `userIdentifier` string, not the literal `'1'` used before this fix.
+3. **Prune first (OE is authoritative).** For every local Redux item whose `id` maps to a numeric CMS product id (`getCmsProductId` returns non-null), the effect checks whether that id is present in the OE list. If it is absent, the item is dispatched with `cartActions.removeItem` / `wishlistActions.removeItem` immediately. This reflects cross-device deletions — e.g. a shopper deleted an item in the mobile app while the web tab was closed; on next page load / re-sign-in the local stale entry is pruned. Items with non-numeric ids (playground stubs) are left untouched because OE never held them.
+4. For each server item after pruning, two sub-cases apply:
+   - **Id not in local cart** — insert a placeholder (`name: 'Platform product #N'`, `price: 0`, `image: '/placeholder.svg'`).
+   - **Id already in local cart but `quantity` differs from OE** — re-align to OE's qty by calling `removeItem(local.id)` followed by `addItem({...local, quantity: srv.qty})`. The enriched `name` / `image` / `size` fields are taken from the existing local entry so they are not lost. This handles cross-device quantity changes (e.g. the shopper adjusted qty on mobile while this browser tab was closed).
+   - **Id already in local cart with matching `quantity`** — no action; the local entry is kept as-is.
+5. Call `getProductsByIdsAction(productIds)` — a Server Action that maps OE product IDs to `Product` shape.
+6. Swap each placeholder for the enriched product.
+7. Drop any server placeholder whose id did NOT come back from the catalog fetch — that indicates a deleted product on the OE side, and leaving it in the cart would raise a `$0` line and break order placement.
 
-On logout, `hydratedRef` and the sessionStorage flag are cleared so the next login re-merges.
+**Cross-user safety (added fix).** Before this change, the flag stored a raw `'1'`. If two different users signed in during the same browser session, the `'1'` flag from user A prevented the merge from running for user B. Worse, the debounced sync effect then pushed the empty local Redux to OE as an absolute PUT, wiping user B's mobile-added items from the server. The fix scopes the flag to `userIdentifier` so a different user always gets a fresh merge.
+
+**On logout / hard reload.** A `useEffect` that watches `!isLoggedIn` resets `hydratedRef` and removes `oe_cart_merged` from sessionStorage. Because `isLoggedIn` starts as `false` on every page load (while the bootstrap `getCurrentUserAction` is in flight), this effect runs on the initial mount — guaranteeing a fresh merge even after a hard reload by the same user, so items added on another device (mobile app, different browser) are always picked up.
+
+**Cross-user guard without a `!isLoggedIn` transition.** A second `useEffect` watching only `userIdentifier` resets `hydratedRef` to `false`. This covers edge cases where the identifier changes without a logout cycle, ensuring the merge-check above re-evaluates against the new user.
 
 Wishlist follows the same pattern with `oe_wishlist_merged`.
 
@@ -277,7 +309,7 @@ The recently-viewed section on the PDP (`src/app/pages/product/RecentlyViewedSec
 
 ## 9. Persistence to `localStorage`
 
-`saveToStorage(state)` in `src/app/store/index.ts` writes `cart` (minus `miniCartOpen`), `wishlist`, `recentlyViewed`, and `catalog` on every dispatched action.
+`saveToStorage(state)` in `src/app/store/index.ts` writes `cart` (minus `miniCartOpen` and `unavailableRemoved`), `wishlist`, `recentlyViewed`, and `catalog` on every dispatched action.
 
 - **Key:** `oe_store`.
 - **Version:** 5.
@@ -300,6 +332,7 @@ If the persisted schema version is unknown (future), the store is wiped to preve
 - **Failed `syncCart` / `syncWishlist`** — the Server Action swallows the error (fire-and-forget). Redux state is NOT rolled back; the next mutation will re-attempt. Look for `console.warn('[…] sync failed')` on the server logs.
 - **Failed `getCurrentUserAction`** — `AuthContext` sets `authReady = true` but leaves `user = null`; login prompts render.
 - **Failed `getProductsByIdsAction` during merge** — placeholders remain in the cart with `$0` price. This is a symptom of stale server state (deleted products) — the merge effect explicitly drops those items.
+- **`previewOrder` "Product not found" failure** — when `previewOrderAction` returns `!ok` with `missingProductIds`, `CartContext` cross-checks each id against the catalog via `getProductsByIdsAction`. Only ids the catalog also cannot find are pruned: their snapshots are saved to `unavailableRemoved` and the items are removed from the cart; ids the catalog still returns are left untouched. After pruning, `previewOrder` is re-fired without the removed ids. `CartUnavailableNotice` surfaces the list to the shopper. See §4a for the full flow.
 - **Guest bounce** — logging out while items are in the cart clears the `oe_cart_merged` flag but leaves Redux items intact. Guest continues to see the same cart; sign-in triggers a fresh merge.
 
 ### 11.1 `emitSyncWarning` event system
@@ -367,9 +400,11 @@ Bundle sources:
 - Bundle rows do NOT render the "select for bulk remove" checkbox — the `selectedIds` `Set` on `CartPage` only covers non-bundle items, and `Select all` only maps over `nonBundleItems` (`items.filter(i => !i.bundleId)`).
 - Bundle line prices are summed to `bundleTotal` (with `bundleOriginal` for strikethrough savings display); `L.bundleSavePrefix` shows `bundleOriginal − bundleTotal` when > 0.
 
-### 13.2 Quantity floor
+### 13.2 Quantity floor and stock cap
 
 `cartSlice::updateQuantity` clamps each affected item to `Math.max(1, quantity + delta)`. Reaching zero requires an explicit `removeItem` / `removeBundle` dispatch — the `-` button on a line at qty=1 is a no-op.
+
+`addItem`, `addBundle`, and `updateQuantity` additionally clamp `quantity` at `item.stockLimit ?? Infinity`. When `stockLimit` is `undefined` (legacy or server-hydrated items) the cap is effectively infinite. The `+` button in `QtyControl` is disabled when `value >= max` (where `max` is passed down as `item.stockLimit`), preventing the shopper from requesting more units than OE reports as available at add-time.
 
 ## 14. Waiting list (derived from wishlist + OE stock)
 

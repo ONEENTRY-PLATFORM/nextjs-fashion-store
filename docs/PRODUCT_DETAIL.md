@@ -6,22 +6,33 @@
 
 ## 1. Load
 
-1. `app/product/[id]/page.tsx` (RSC) awaits `params.id`, calls `loadProductById(id, DEFAULT_LOCALE)` (`src/lib/oneentry/catalog/products.ts`), and `adaptCatalogProductToPdpProduct` to normalise the OE entity into a `CatalogProduct`.
+1. `app/product/[id]/page.tsx` (RSC) awaits `params.id`, then fires `loadProductById(id, DEFAULT_LOCALE)` and `loadPdpSystemTexts(DEFAULT_LOCALE)` **in parallel** via `Promise.all`. `adaptCatalogProductToPdpProduct` normalises the OE entity into a `CatalogProduct`. `loadPurchaseBonusForProduct` is still called sequentially after `Promise.all` resolves because it needs the product's `id`, `price`, and `categories`.
 2. `generateMetadata` composes SEO metadata + Product JSON-LD (`priceCurrency: GBP`, `Offer`, `AggregateRating`, `Review[]`, `shippingDetails`, `hasMerchantReturnPolicy`).
 3. The RSC renders `<ProductDetailPage initialProduct={...} reviewsSlot={<ReviewsAsync ...>} recommendationsSlot={<FrequentlyOrderedAsync ...>} />`. Both slots are wrapped in `<Suspense>` so they stream in independently.
 4. On mount, `RecentlyViewedSection` fires `useRecentlyViewed().addProduct(product)` and — when signed in — `pushRecentlyViewedAction({productId, viewedAt})`.
+
+**`#reviews` hash scroll.** `ProductDetailPage.tsx` mounts a `useEffect` that checks `window.location.hash === '#reviews'`. When true it smooth-scrolls to `reviewsRef` (the reviews section anchor). Because the reviews slot streams in under `<Suspense>`, the effect retries in a loop with short intervals for up to 4 seconds, so deep links from QuickView's "N reviews" / "Be the first to review" buttons land correctly even when the section hasn't rendered yet on first paint.
 
 **Gender URL param.** The PDP URL accepts an optional `?gender=men|women` to keep the site `<Header>` highlighting the correct gender tab (Header reads `useSearchParams().get('gender')`). Ingress rules:
 - `ProductCard.tsx` builds `cardHref` as `/product/{id}?gender=men|women` derived from `product.gender` (`'M'` → `men`, `'W'` → `women`), so clicks from any men's / women's catalog carry the gender forward.
 - `ProductDetailPage.tsx` has a `useEffect` that, when `currentGender` is `'M'` or `'W'` and no `gender` param is present in the URL (deep link, search hit, external referrer), injects it via `router.replace(path, { scroll: false })` so the Header re-derives WOMEN/MEN correctly. Unisex / kids products leave the URL untouched.
 
-**ISR:** `app/product/[id]/page.tsx` declares `export const revalidate = 120` as a hard-coded literal. Next.js requires route-segment `revalidate` to be a statically-analysable literal — importing a computed value (e.g. `import { REVALIDATE_PRODUCT } from 'src/lib/isr'`) causes "Invalid segment configuration export detected" and breaks the build. The `ISR_PRODUCT_TTL_SEC` env var tunes the `unstable_cache` TTL inside PDP data loaders only; it does not change the route-shell revalidate window. If you need a different route TTL, update the literal in the file directly and keep it in sync with the default in `src/lib/isr.ts`. Because PDP HTML may be up to ~2 minutes stale, critical stock/price re-validation is performed on the checkout side: `PaymentPage.handlePlaceOrder` runs a fresh `previewOrderAction` immediately before calling `createOrderAction` (see [CHECKOUT.md §3.5a](./CHECKOUT.md#35a-pre-flight-preview-check)).
+**`salePrice` — OE Discounts overlay.** `loadProductById` calls `loadProductDiscounts()` (`src/lib/oneentry/discounts/product-discount.ts`) and applies `applyProductDiscount` to every member of the product family (target variant + related siblings). `loadProductDiscounts` fetches all `type: DISCOUNT` / `applicability: TO_PRODUCT` rules via `getApi().Discounts.getAllDiscounts`, filtered to the active date window and to rules that gate on `PRODUCT`, `CATEGORY`, or `ATTRIBUTE` conditions. The result is `unstable_cache`-wrapped (TTL `REVALIDATE_CATALOG`, tag `oe-discounts`), so this is a cheap cross-request lookup even when the PDP is the first cold hit. `applyProductDiscount` returns the lowest discounted price across all matching rules (rules do **not** stack). The returned `salePrice` is forwarded into each `CatalogProductVariant` and ultimately into the `PdpProductVariant.salePrice` field. Cart-scoped and user-scoped conditions (`MIN_CART_AMOUNT`, `USER_LTV`, `PRODUCT_IN_CART`, `TO_ORDER` rules) are excluded from the storefront overlay — they are evaluated by `previewOrder` at checkout where the full cart and user context are available. `ATTRIBUTE` conditions are evaluated against `CatalogProduct.discountAttributes` — a map populated from all OE attributes whose marker starts with `discount_` (or equals `discount`); the marker id is taken from `condition.entityIds[0].id` and the comparison uses the rule's operator (`eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `like`, `exists`, `not_exists`, defaulting to `eq`).
+
+**PDP fetch pattern.** `loadProductById` does **not** download the full catalog. It issues at most three targeted OE calls, each wrapped in its own `unstable_cache` layer with `REVALIDATE_PRODUCT` TTL and tag `oe-products`:
+1. `cachedGetProductById(id, lang)` — wraps `Products.getProductById()`.
+2. `cachedGetRelated(id, lang)` — wraps `Products.getRelatedProductsById()`, used to reconstruct the colour/size family.
+3. `cachedGetByIds(idsCsv, lang)` — wraps `Products.getProductsByIds()`, called only when the product record carries explicit `relatedIds` that weren't already covered by step 2.
+
+The same aggregation logic (dedupe by id, union colours/sizes/variants, stock/status roll-up, `target` pushed first) applies as with the full-catalog path. Under 25 concurrent VUs this drops PDP p95 from ~50 s to the per-request cost of three small OE responses.
+
+**ISR:** `app/product/[id]/page.tsx` declares `export const revalidate = 120` as a hard-coded literal and `export async function generateStaticParams() { return []; }`. Both exports are required together. Next.js 16 treats a dynamic-segment route that omits `generateStaticParams` as fully dynamic — `revalidate` is silently ignored and every request re-SSRs. With `generateStaticParams` present (even returning an empty array), Next.js classifies the route as on-demand ISR (`●` in the build output), product HTML is generated and cached per `id` on first cold hit, and subsequent requests within the 120 s window are served from the Next.js Data Cache (`x-nextjs-cache: HIT`, `Cache-Control: s-maxage=1, stale-while-revalidate=31535999`). The `generateStaticParams() { return []; }` export is therefore load-bearing — removing it reverts the route to fully dynamic even though `revalidate` remains. Next.js also requires `revalidate` to be a statically-analysable literal — importing a computed value (e.g. `import { REVALIDATE_PRODUCT } from 'src/lib/isr'`) causes "Invalid segment configuration export detected" and breaks the build. The `ISR_PRODUCT_TTL_SEC` env var tunes the `unstable_cache` TTL inside PDP data loaders only; it does not change the route-shell revalidate window. If you need a different route TTL, update the literal in the file directly and keep it in sync with the default in `src/lib/isr.ts`. Because PDP HTML may be up to ~2 minutes stale, critical stock/price re-validation is performed on the checkout side: `PaymentPage.handlePlaceOrder` runs a fresh `previewOrderAction` immediately before calling `createOrderAction` (see [CHECKOUT.md §3.5a](./CHECKOUT.md#35a-pre-flight-preview-check)).
 
 ---
 
 ## 2. Layout
 
-- **Gallery (left, sticky on desktop)** — `ProductGallery` renders the main image with hover zoom, a thumbnail rail, and `FullscreenViewer` on tap.
+- **Gallery (left, sticky on desktop)** — `ProductGallery` renders the main image with hover zoom, a thumbnail rail, and `FullscreenViewer` on tap. When the active variant has no usable images (`pictures_22` is absent or every URL is an empty string), the gallery renders a bag-placeholder block instead of `null`: an `aspect-[3/4]` container with `#f2f1ef` background and the `/icons/ui/bag-placeholder.svg` icon — the same placeholder used by catalog cards and `ImageWithFallback`, so the PDP column is never blank.
 - **Info column (right)** — brand link, product name, `<StarRating>`, review count, SKU + article, price block (sale price / original / discount %), bonus-points loyalty callout, color swatches, size grid, store city dropdown, primary CTAs, delivery / free-shipping snippets, share dropdown.
 - **Below the fold** — Accordions (Specifications open by default; Description; Delivery & Returns; Care Instructions) → `ProductSpecialOffers` (bundle block) → `<Suspense fallback={<ReviewsSkeleton/>}>{reviewsSlot}</Suspense>` → `<Suspense fallback={<RecommendationsSkeleton/>}>{recommendationsSlot}</Suspense>` → `RecentlyViewedSection`.
 
@@ -63,7 +74,9 @@ Colour-vs-size cross-check runs in `dynamicSizeOptions` via `variants.some(v => 
 
 ## 4. Add-to-Cart
 
-`ProductDetailPage.handleAddToCart` → `useCart().addItem({id, name, brand, color, sku, size, quantity: 1, price, originalPrice, image})`.
+`ProductDetailPage.handleAddToCart` → `useCart().addItem({id, name, brand, color, sku, size, quantity: 1, price, originalPrice, image, stockLimit})`.
+
+`stockLimit` is taken from `activeVariant?.stock` when the shopper has picked a specific variant, falling back to `catalogProduct?.stock` for products without variants. Both fields are populated by `adaptCatalogProductToPdpProduct` from OE inventory markers — see [CART_WISHLIST.md §3](./CART_WISHLIST.md) for capping behaviour.
 
 Preconditions:
 
@@ -192,10 +205,12 @@ No server-side inventory hold — the storefront just records the reservation as
 
 ### 8.1 Load
 
-`<ReviewsAsync productId={n} />` (RSC) calls `loadProductReviews(productId, 20)` from `src/lib/oneentry/catalog/reviews.ts` (page passes `limit=20`; the exported default is `100`). Internals:
+`app/product/[id]/page.tsx` does **not** call `loadProductReviews` during its own render — reviews are off the critical path entirely. The sub-title `<StarRating>` and review count start at `0` on initial paint and hydrate once `<ReviewsAsync>` streams in.
+
+`<ReviewsAsync productId={n} />` (RSC) calls `loadProductReviews(productId, 20)` from `src/lib/oneentry/catalog/reviews.ts` (page passes `limit=20`; the exported default is `100`). It is served through the `reviewsSlot` `<Suspense>` boundary and arrives as a streaming chunk roughly 100 ms after first byte — the same data, but removed from the synchronous render to reduce TTFB. Internals:
 
 1. Parallel fetch of three sources via `Promise.all`:
-   - `getFormsDataByMarker('review_feedback', 13, { entityIdentifier: productId }, 1, 'en_US', 0, limit)` — fields `headline`, `body`, `name`, `email`, `occasions`.
+   - `getFormsDataByMarker('review_feedback', 13, { entityIdentifier: productId }, 1, 'en_US', 0, limit)` — reads `body` and `occasions` from the current OE schema. `headline`, `name`, and `email` are accessed with `?? ''` / `?? 'Anonymous'` fallbacks to handle legacy seed records written before those attributes were removed from the form; new submissions no longer populate those fields.
    - `getFormsDataByMarker('review_rating', 12, { entityIdentifier: productId }, 1, 'en_US', 0, limit)` — field `rating` (1–5, coerced with `Number(...)`, clamped to `[1, 5]`).
    - `loadProductById(productId)` — needed only to get the `sizes[]` list for the deterministic size stamp.
 2. **Filter empty-body records first** — earlier seed iterations left behind feedback rows with just a headline. If `withBody.length === 0` the function returns `[]` (client renders nothing).
@@ -208,28 +223,69 @@ No server-side inventory hold — the storefront just records the reservation as
 6. Date formatting via `toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'})`.
 7. Return `ProductReview[]` — `{id, author, rating, date, title, body, size, helpful: 0, verified: true}`.
 
-Wrapped in React `cache()` — request-scoped memoisation only; no additional TTL. When `isOneEntryEnabled === false` or the SDK returns an error the function short-circuits to `[]`.
+The outer `loadProductReviews` is wrapped in React `cache()` for request-scoped deduplication. The inner form-data fetcher (`cachedFetchFormData`) is additionally wrapped in `unstable_cache` with tag `'oe-reviews'` and `REVALIDATE_HOME` (300 s) TTL — shared across all concurrent PDP renders, eliminating the per-request OE round-trips that dominated PDP p95 under load. When `isOneEntryEnabled === false` or the SDK returns an error the function short-circuits to `[]`.
+
+**SSR wait ceiling.** The `Promise.all([cachedFetchFormData × 2, loadProductById])` is raced against a 2 000 ms timeout. On timeout `loadProductReviews` resolves to `[]` (client renders no reviews block). The abandoned OE fetches continue running behind `unstable_cache`, so their results still populate the Data Cache — the first cold request for a given `productId` may return empty reviews while subsequent requests receive the warm-cached data.
 
 ### 8.2 Render
 
-`<ReviewsClient>` (`src/app/pages/product/ReviewsClient.tsx`) receives the array and renders:
+`<ReviewsClient>` (`src/app/pages/product/ReviewsClient.tsx`) receives the array and is **always mounted** — the previous `if (reviews.length === 0) return null` early-return has been removed.
+
+When `reviews.length > 0` it renders:
 
 - `avgRating = round(mean(rating) * 10) / 10` — one-decimal average.
 - `ratingCounts` — bucketed by `Math.round(r.rating)` for the 5→4→3→2→1 histogram, `pct = count / total * 100`.
 - Left: average rating (5-star + numeric), star histogram.
-- Right: `<ReviewCard>` list, initially sliced to the first `3` (`showAllReviews ? reviews : reviews.slice(0, 3)`); the "Show All" toggle reveals the rest. Also renders the `<WriteReviewModal>` trigger.
-- If `reviews.length === 0` the whole block returns `null` (no empty state).
+- Right: `<ProductReviewsSection>` — see §8.2a below. Also renders `<WriteReviewModal>`.
+
+`ReviewsClient` calls `useAuth()` and exposes a `requestWriteReview(_open: boolean)` callback that routes the shopper based on auth state: unauthenticated → `openLoginModal()`; authenticated → `setShowReviewModal(true)`. This is the section-level auth gate for the "Write a Review" CTA (see §8.2b).
+
+### 8.2a Empty state (`ProductReviewsSection`)
+
+When `productReviews.length === 0`, the right-hand column of `ProductReviewsSection` (`src/app/pages/product/ProductReviewsSection.tsx`) renders a dashed-border card containing:
+
+- Heading: `L.emptyHeading` ("No reviews yet") from `PRODUCT_REVIEWS_LABELS` (`src/app/data/productPageLabels.ts`).
+- Body copy: `L.emptyBody` ("Be the first to share your thoughts about this product.").
+
+The empty-state card has no button of its own. The left-column bordered "Write a Review" CTA (auth-gated via `ReviewsClient.requestWriteReview`) is the sole entry point for submitting a review when the list is empty.
+
+When `productReviews.length > 0`, the existing `visibleReviews.map` path renders `<ReviewCard>` tiles as before.
+
+### 8.2b Section-level write-review gate
+
+The "Write a Review" CTA inside the reviews section (the left-column button) routes through `requestWriteReview` in `ReviewsClient`, which applies a **three-way gate**:
+
+| Shopper state | Behaviour |
+|---|---|
+| `isLoggedIn === false` | Calls `openLoginModal()` — shows the login modal. |
+| Signed in, but `canReviewProduct(orders, productId) === false` | Sets the `purchaseNotice` state to `PRODUCT_REVIEWS_LABELS.purchaseRequired`. The notice text is forwarded to `<ProductReviewsSection>` via the `purchaseNotice` prop and rendered as a small amber paragraph under the left-column CTA. The notice auto-dismisses after 4 s. |
+| Signed in AND has a qualifying delivered order | Calls `setShowReviewModal(true)` — opens `<WriteReviewModal>`. |
+
+`canReviewProduct(orders, productId)` is defined in `src/app/utils/review-eligibility.ts`. It returns `true` when the shopper has at least one order whose `statusIdentifier` matches the regex `/deliver|complete|done|closed|finish|received|arrived/i` AND whose `products[]` list contains the given `productId`. The substring-match pattern follows the convention of `bucketOeStatus` / `computeLtv` so namespaced status markers (e.g. `home_done`, `pickup_delivered`) still resolve correctly.
+
+### 8.3 Rating-row "N reviews" button (top-of-page)
+
+The star row below the product title contains a clickable "N reviews" button that **always smooth-scrolls to `reviewsRef`** (the streaming reviews section anchor). There is no auth or purchase check at this level. All gating lives inside `ReviewsClient`.
+
+`ProductDetailPage.tsx` no longer owns a `showWriteReview` state or a PDP-level `<WriteReviewModal>` mount. `<WriteReviewModal>` is rendered exclusively inside `<ReviewsClient>`.
 
 ### 8.3 Submit — `<WriteReviewModal>`
 
-Client-side validation first — all six fields required, plus email regex `/\S+@\S+\.\S+/`. On any failure, per-field `errors[marker]` is set to `L.requiredFieldsNote`.
+Fields match the live OE schema (probed via `Forms.getFormByMarker`):
+
+- `review_rating` (id 7) — `rating` (integer).
+- `review_feedback` (id 8) — `body` (text), `occasions` (list), `add_media` (groupOfImages).
+
+Client-side validation checks that `body` is non-empty and `rating` is set (1–5). Per-field `errors[marker]` is set to `L.requiredFieldsNote` on failure. The Headline, Name, and Email inputs were removed when those attributes were dropped from the OE form — no validation for them exists.
 
 Submit is wrapped in `useTransition` and runs **exactly two sequential** `submitForm` calls (default `moduleConfigId=0`):
 
-1. `submitForm('review_rating', [{marker:'rating', value: String(rating), type:'string'}])`.
+1. `submitForm('review_rating', [{marker:'rating', value: String(rating), type:'integer'}])`.
    - Fails → `setSubmitError(res.error)` and **abort**. The second call is never made — orphaned ratings are impossible.
-2. `submitForm('review_feedback', [{'headline'}, {'body'}, {'name'}, {'email'}, {'occasions'}])` with `occasions.join(', ')`.
-   - Fails → `setSubmitError(res.error)`; the review_rating record already exists but has no matching feedback. `loadProductReviews` filters it out via the empty-body guard.
+2. `submitForm('review_feedback', [{marker:'body', value: body, type:'text'}, {marker:'occasions', value: selectedOccasions, type:'list'}])` — `selectedOccasions` is a `string[]` of OE marker values (`everyday | work | party | travel | sport`). `FormField.value` accepts `string | string[]`; the wire cast follows the existing sign-up action pattern.
+   - Fails → `setSubmitError(res.error)`; the `review_rating` record already exists but has no matching feedback. `loadProductReviews` filters it out via the empty-body guard.
+
+Occasion chips display storefront-facing labels from `WRITE_REVIEW_LABELS.occasions` (`{ value, label }[]` in `src/app/data/productPageLabels.ts`); `value` matches the OE marker, `label` is the display copy rendered in the UI.
 
 Success path (both calls `ok:true`):
 
@@ -242,19 +298,13 @@ Media upload input is present (`<input type="file" multiple accept="image/*,vide
 
 ## 9. "You may also like" (`FrequentlyOrderedAsync`)
 
-Loads the CMS block marker `pdp_you_may_also_like` (kind `frequently_ordered_block`) via `loadFrequentlyOrderedBlock(marker, productId)` (`src/lib/oneentry/blocks/page-blocks.ts`). Under the hood two `unstable_cache`-wrapped SDK calls run — `Blocks.getBlockByMarker` (title, position, quantity) and `Blocks.getFrequentlyOrderedProducts(productId, marker, lang)` (the statistics-driven item ids); the ids are then hydrated by `loadProducts({ids})` and mapped through `adaptCatalogProductToUiProduct`. Cache tag: `'oe-block'`; revalidate = `REVALIDATE_HOME`.
+Loads the CMS block marker `pdp_you_may_also_like` (kind `frequently_ordered_block`) via `loadFrequentlyOrderedBlock(marker, productId)` (`src/lib/oneentry/blocks/page-blocks.ts`). Under the hood two `unstable_cache`-wrapped SDK calls run — `Blocks.getBlockByMarker` (title, position, quantity) and `Blocks.getFrequentlyOrderedProducts(productId, marker, lang)` (the statistics-driven item ids); the ids are then hydrated by `loadProducts({ids})` and mapped through `adaptCatalogProductToUiProduct`. Cache tag: `'oe-block'`; revalidate = `REVALIDATE_HOME`. A process-wide in-flight dedup layer (`getFrequentlyOrderedDedup`, backed by a `Map` pinned to `globalThis.__oneentryFrequentlyOrderedInflight__`) collapses concurrent cold misses on the same `(marker, productId, lang)` key onto a single OE call — the same pattern as `fullCatalogInflight` in `catalog/products.ts`.
 
-**Backfill algorithm** (`CAROUSEL_TARGET = 8`):
+**SSR wait ceiling.** The `getFrequentlyOrderedDedup(...)` call is raced against a 2 000 ms timeout. On timeout `_loadFrequentlyOrderedBlock` resolves to `null`, which triggers the existing "empty products array" path — the PDP body streams to completion without a recommendations carousel. The abandoned OE fetch keeps running behind `unstable_cache`, so its result still populates the Data Cache. The first cold request for a given `productId` may therefore see no recommendations; subsequent requests receive the warm-cached data.
 
-1. Start with the OE block's products, gender-filtered by `genderOk(p) = !productGender || productGender === 'U' || !p.gender || p.gender === productGender || p.gender === 'U'`.
-2. If `products.length < 8` and a `categoryPath` was passed, split it into segments and walk **up** from the leaf while `i >= 2` (`i` = number of leading segments kept). E.g. `/women/women_clothing/outerwear` yields `['/women/women_clothing/outerwear', '/women/women_clothing']` — the walk stops at depth 2, so `/women` alone is never queried (that would be too broad).
-3. For each candidate path, call `loadProducts({categoryPath, limit: 16, unique: true})` and iterate items:
-   - Skip anything already in `seen` (seeded with `[String(productId), ...primary.map(p => p.id)]`).
-   - Skip anything failing `genderOk`.
-   - Adapt via `adaptCatalogProductToUiProduct` and append.
-   - Break out as soon as `products.length + extras.length >= 8`.
-4. **Final dedupe by id** — a second `Set` pass because an item can belong to overlapping categories and appear twice; React would otherwise choke on duplicate keys.
-5. If the merged list is empty, `FrequentlyOrderedAsync` returns `null` (no empty state — Suspense fallback disappears, no carousel).
+**No backfill.** `FrequentlyOrderedAsync` renders whatever OE returns and hides (returns `null`) when the block is empty. The former category-tree walk that called `loadProducts({categoryPath, limit: 16, unique: true})` for each ancestor path has been removed. Under load that walk tunnelled through `loadFullCatalog` (the full 2 000-item / ~30 MB catalog dump) on every PDP render for any tenant where `frequently_ordered_block` returned fewer than 8 items — flooding OE and dragging PDP p95 into the 30-second range under 20 VU. The `categoryPath` prop and the `adaptCatalogProductToUiProduct` import have also been removed from `FrequentlyOrderedAsync`.
+
+The gender-filter pass (`genderOk`) still applies to the products returned directly by OE. If the resulting list is empty, `FrequentlyOrderedAsync` returns `null` (Suspense fallback disappears, no carousel — cheaper failure mode than backfilling).
 
 Rendered by `<FrequentlyOrderedClient>` in a horizontal carousel (`<RecommendationsCarousel>`). "View All" points at `categoryViewAllHref`, a prop passed from `app/product/[id]/page.tsx` that is derived from `oeProductRaw?.categories[0]` (the OE taxonomy path). Fallback is `'/'` when no category is available. The same prop is also used for the brand-pill `<a>` above the product name.
 
@@ -361,7 +411,7 @@ The `Math.floor(total * 10)` formula (1 point per £0.10) is applied only downst
 | `src/app/pages/product/ReviewsAsync.tsx` + `ReviewsClient.tsx` + `ReviewsSkeleton.tsx` | Streamed reviews slot |
 | `src/app/pages/product/ProductReviewsSection.tsx` + `ReviewCard.tsx` + `StarRating.tsx` | Review UI pieces |
 | `src/app/pages/product/WriteReviewModal.tsx` | Review submit form |
-| `src/app/pages/product/FrequentlyOrderedAsync.tsx` + `FrequentlyOrderedClient.tsx` | You-may-also-like slot with backfill |
+| `src/app/pages/product/FrequentlyOrderedAsync.tsx` + `FrequentlyOrderedClient.tsx` | You-may-also-like slot; hides when OE returns nothing (no backfill) |
 | `src/app/pages/product/RecommendationsCarousel.tsx` + `RecommendationsSkeleton.tsx` | Horizontal carousel |
 | `src/app/pages/product/RecentlyViewedSection.tsx` | Lazy-loaded recently-viewed |
 | `src/lib/oneentry/discounts/purchase-bonus.ts` | `loadPurchaseBonusForProduct` — discount eligibility + points calculation |
@@ -369,6 +419,7 @@ The `Math.floor(total * 10)` formula (1 point per £0.10) is applied only downst
 | `src/lib/oneentry/catalog/reviews.ts` | `loadProductReviews` |
 | `src/lib/oneentry/blocks/page-blocks.ts` | `loadFrequentlyOrderedBlock`, `loadBlockWithProducts` |
 | `src/lib/oneentry/forms/submit.ts` | `submitForm` for reviews + reserve |
+| `src/app/utils/review-eligibility.ts` | `canReviewProduct(orders, productId)` — purchase-gate helper |
 | `src/lib/oneentry/auth/actions.ts` | `pushRecentlyViewedAction` |
 
 ---
@@ -398,13 +449,22 @@ The `Math.floor(total * 10)` formula (1 point per £0.10) is applied only downst
 
 **A11y:** all icon buttons carry `aria-label`s from `QUICK_VIEW_LABELS` + `MINI_CART_ARIA_LABELS`; `useFocusTrap(isOpen, closeQuickView)` runs while open; `role="dialog"`, `aria-modal="true"`, `aria-labelledby="quick-view-title"`.
 
+**Review summary (QuickView-only):** on modal open, `QuickViewModal` calls `getProductReviewSummary(productId)` (`src/lib/oneentry/catalog/reviews-actions.ts`, `'use server'`) and shows a pulse placeholder while in-flight. When the promise resolves:
+
+The rating row layout matches the PDP sub-title: the shared `<StarRating>` SVG component is always rendered (empty grey strip when `count === 0`), followed by an underlined "N reviews" link (no parentheses), a `|` divider, and a stock-status label that mirrors the PDP four-way availability display: `out_of_stock` → grey "Out of Stock" (`PA.outOfStock`), `coming_soon` → grey "Coming soon" (`PA.comingSoon`), `preorder` → amber "Pre-order" (`PA.preOrder`), and any other value → green "In Stock" (`PA.inStock`). The label prefers `activeVariant.statusIdentifier` and falls back to `product.statusIdentifier` so a colour-specific pre-order shows the correct copy. `<StarRating>` is the same component used on the PDP — the two views are visually identical.
+
+- `count === 0` — the "N reviews" link runs `startWriteReview` with a three-way gate: `isLoggedIn === false` → closes QuickView and calls `openLoginModal()`; signed in but `canReviewProduct(orders, productId) === false` → shows an inline amber `showPurchaseNotice` under the rating row (purchase required); signed in with a qualifying delivered order → opens `WriteReviewModal` stacked on top of QuickView. When `WriteReviewModal` closes, `getProductReviewSummary` is re-called and the row updates to reflect any just-submitted review.
+- `count > 0` — the "N reviews" link navigates to `/product/{id}#reviews`. Viewing existing reviews is **not** auth-gated.
+
+No hardcoded star or review-count values remain.
+
 **Deliberate omissions vs PDP:**
 - No `product_view` analytics (Quick View isn't a page).
 - No recently-viewed dispatch / hydrate.
-- No reviews stream, no "You May Also Like" carousel.
+- No full reviews stream, no "You May Also Like" carousel.
 - No share dropdown.
 - No URL sync for colour/size (all state is modal-local).
-- No `product_rating` because there's no write-review flow.
+- No full reviews stream, no direct link-out to the PDP `#reviews` section for "Be the first" (that CTA now opens `WriteReviewModal` in-modal when logged in, or the login flow when logged out).
 
 ## 16. Mini Cart (`MiniCart`)
 

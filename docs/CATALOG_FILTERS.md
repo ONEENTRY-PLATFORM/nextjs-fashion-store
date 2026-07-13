@@ -74,11 +74,11 @@ Response is normalised through `catalog/adapt.ts` into the storefront `Product` 
 
 | Layer | Where | Scope | TTL / invalidation |
 |---|---|---|---|
-| React `cache()` | `loadProducts`, `loadFullCatalog`, `loadProductById`, `loadProductsByIds`, `searchProducts` implicit via `loadFullCatalog` | Single HTTP request | Cleared per request |
-| Process-wide `Map<Lang, {at, value}>` | `fullCatalogCache` in `products.ts` | Node process | 5 min (`FULL_CATALOG_TTL_MS`) — deduped by an `fullCatalogInflight` promise map |
-| Next.js `unstable_cache` | `cachedProductList` (SDK-backed list fetch) | ISR-persistent | `REVALIDATE_CATALOG` (`src/lib/isr.ts`), tag `oe-products` |
+| React `cache()` | `loadProducts`, `loadFullCatalog`, `loadProductById`, `loadProductsByIds`, `searchProducts` | Single HTTP request | Cleared per request |
+| Process-wide `Map<Lang, {at, value}>` | `fullCatalogCache` in `products.ts` | Node process | 5 min (`FULL_CATALOG_TTL_MS`) — deduped by a `fullCatalogInflight` promise map |
+| Next.js `unstable_cache` | `cachedProductList` (catalog list fetch); `cachedGetProductById`, `cachedGetRelated`, `cachedGetByIds` (PDP targeted fetchers) | ISR-persistent | `cachedProductList` → `REVALIDATE_CATALOG`; PDP fetchers → `REVALIDATE_PRODUCT`. All tagged `oe-products`. |
 
-Notably, the **full catalog dump** (`fetchFullCatalog`, limit=2000, ~30 MB payload) deliberately **bypasses `unstable_cache`** because Next.js rejects individual entries larger than 2 MB with "items over 2MB can not be cached". The in-memory `fullCatalogCache` is the only cross-request memoisation for that path.
+Notably, the **full catalog dump** (`fetchFullCatalog`, limit=2000, ~30 MB payload) deliberately **bypasses `unstable_cache`** because Next.js rejects individual entries larger than 2 MB with "items over 2MB can not be cached". The in-memory `fullCatalogCache` is the only cross-request memoisation for that path. `loadProductById` and `loadProductsByIds` do **not** go through this path — they use targeted OE endpoints (see §15d below).
 
 ---
 
@@ -172,7 +172,11 @@ Currency: prices are stored in the CMS as decimals under the `price_14` marker. 
 
 ## 7. Pagination
 
-Default page size 24. `currentPage` in Redux state. On page change, `loadProducts` is refetched with the new `pageNumber`. `<CatalogPagination>` renders "Page N of M" from the returned `total` count.
+Page size is **16** across all catalog pages. The single source of truth is `PRODUCTS_PER_PAGE = 16` in `app/[...slug]/page.tsx` (server side); all catalog shell components (`ShoesCatalog`, `MenShoesPage`, `WomenShoesPage`, `MenAccessoriesPage`, `WomenAccessoriesPage`, `MenBagsPage`, `WomenBagsPage`) pass the same value so the client UI ("You've viewed N of M pages") stays in sync with the server.
+
+`currentPage` is held in Redux state. On page change, `loadProducts` is refetched with the new `pageNumber`. `<CatalogPagination>` renders "Page N of M" from the returned `total` count.
+
+**Out-of-range page redirect.** After `loadFilteredProducts` returns, if `currentPage > 1 && items.length === 0 && total > 0` (e.g. a bookmarked `?page=99` after the catalog shrank), the server computes the last valid page (`Math.ceil(total / PRODUCTS_PER_PAGE)`) and issues a `redirect(...)` preserving all other query params (color, size, sort, …). If `total === 0` (genuinely empty catalog) no redirect occurs — the `NoFilterResults` placeholder is shown instead.
 
 Guests can bookmark a page via the URL only if the `?page=N` param is preserved — but toggling filters resets to page 1 regardless.
 
@@ -180,9 +184,14 @@ Guests can bookmark a page via the URL only if the `?page=N` param is preserved 
 
 ## 8. Chip filters (quick pre-sets)
 
-Above the main filter drawer, each catalog offers 5–7 quick chips (e.g. "Best Sellers", "Dresses", "Winter Outfits" for women's clothing). Selecting a chip sets `catalogSlice.activeChip` and translates to a category / tag filter on OE side (`?chip=Best+Sellers` in the URL).
+Above the main filter drawer, each catalog offers 5–7 quick chips (e.g. "Outerwear", "Leather", "Dresses"). Selecting a chip sets `catalogSlice.activeChip` and triggers a server-side product filter on the next RSC render — the selected label is written into the URL as `?chip=<label>` and read back by `app/[...slug]/page.tsx`.
 
-Chip → filter mapping is defined in `src/lib/oneentry/catalog/filters.ts` (`CHIP_TO_CONDITIONS`) and in per-catalog CMS content when the chip corresponds to a taxonomy child page.
+**Server-side application.** The RSC shell calls `chipToFilterPatch(filters.chip, chips)` (exported from `src/lib/oneentry/blocks/filter-chips.ts`) and merges the result into `CatalogFilters` before calling `loadFilteredProducts`. Two chip flavours are handled:
+
+- **`type: 'page'`** (Clothing / Shoes / Accessories catalogs) — the chip carries a category `pageUrl`; the patch sets `filters.category = url`, narrowing the product grid to that OE category leaf.
+- **`type: 'attribute'`** (Bags: `material_14`, `details_4`) — the chip carries an OE attribute `marker` + `value`; the patch appends `value` to the matching list field in `CatalogFilters` (e.g. `material_*` → `materials`, `details_*` → `productDetails`). The marker-to-field mapping lives in `attributeMarkerToFilterField` (private to `filter-chips.ts`) and covers both clothing and bag attribute suffix variants, collapsing them onto the same canonical storefront field.
+
+`chipToFilterPatch` returns `{ category }`, `{ attributeField, attributeValue }`, or `null` (chip label not found in the descriptor list — filters are left unchanged). The `initialQuickChips` prop passed to catalog page components still carries only labels (`string[]`), so no page component signatures changed.
 
 ---
 
@@ -215,7 +224,7 @@ Colour + size UI is rendered **inline** by `ProductDetailPage` (no shared `<Colo
 
 **URL synchronisation** — `useEffect([selectedColor, selectedSize])` writes `?color=<hex>` / `?size=<label>` back into the URL via `window.history.replaceState` (no re-render, no scroll) so a full reload restores the exact variant.
 
-Related-products carousel ("You may also like") is loaded via `loadFrequentlyOrderedBlock(marker, productId)` with backfill up the category tree — see PRODUCT_DETAIL.md §9.
+Related-products carousel ("You may also like") is loaded via `loadFrequentlyOrderedBlock(marker, productId)`; the carousel hides when OE returns nothing (no category-tree backfill) — see PRODUCT_DETAIL.md §9.
 
 ---
 
@@ -266,7 +275,8 @@ The filter drawer previews option counts (e.g. "Color · 18 options"). Currently
 |---|---|
 | `src/lib/oneentry/catalog/products.ts` | List / vector / quick search loaders |
 | `src/lib/oneentry/catalog/filters.ts` | URL ↔ OE marker mapping, chip presets, sort keys |
-| `src/lib/oneentry/catalog/adapt.ts` | `ProductEntity` → UI `Product` normaliser |
+| `src/lib/oneentry/catalog/adapt.ts` | `ProductEntity` → UI `Product` normaliser; forwards `salePrice` from the Discounts overlay |
+| `src/lib/oneentry/discounts/product-discount.ts` | `loadProductDiscounts` (rule fetcher) + `applyProductDiscount` (per-product resolver) |
 | `src/app/components/CatalogTemplate.tsx` | Main catalog engine (grid, filters, sort, pagination) |
 | `src/app/components/CatalogTemplate.parts.tsx` | Filter drawer pieces, sort button, view mode toggle |
 | `src/app/components/MobileFilterPanel.tsx` + `MobileFilterBody.tsx` | Mobile full-screen filter accordion |
@@ -303,6 +313,7 @@ Beyond the generic catalog engine, three routes carry extra business rules:
 - Reads `useWishlist()`: renders `<FavoriteCard>` per item; empty state = `<FavoritesEmptyState>` with a CTA to `/women/clothing`.
 - Bulk actions: **Move All to Bag** (loops `useCart().addItem` for every in-stock item), **Clear All** (opens a confirm modal, calls `clearAll()` on confirm).
 - Guarded by a `mounted` flag to skip SSR mismatch — persisted wishlist may differ from the empty SSR pass.
+- Two carousels below the grid — **Recommended** and **Trending** — receive their full `recommended` / `trending` product arrays from the RSC shell as props. Before client mount both carousels render those arrays unfiltered. After mount a `matchesPreferredGender` filter is applied to each array. `preferredGender` is derived from client-only state in this order: (1) logged-in `user.gender` from `AuthContext`; (2) majority gender from the Redux `recentlyViewed` trail (gender inferred from `product.gender`, then product name pattern `/\bwomen('s)?\b/` / `/\bmen('s)?\b/`, then image-URL code `SO-W-…` / `-M-`); (3) `null` — no filtering. Unisex (`'U'`) and gender-unknown items always pass through. Applying the filter only after `mounted` prevents a hydration mismatch, because both `recentlyViewed` (hydrated from `localStorage` after mount) and `user` (resolved via async auth bootstrap) are unavailable on the SSR pass and during the first client render.
 
 **`/` (`HomePage`)**
 
@@ -364,7 +375,7 @@ Used by `ProductDetailPage.tsx` so each PDP renders the exact category chain the
 | `description` | `description`, `productdescription` | `stringValue` (plain text) | |
 | `descriptionHtml` | `description`, `productdescription` | `richTextValue` (prefers `htmlValue`, then `mdValue`, then `plainValue`) | Rendered by PDP body |
 | `statusIdentifier` | — | `raw.statusIdentifier` | `in_stock` / `out_of_stock` / other |
-| `price` | `price` (string) → `raw.price` | `asNumber` | |
+| `price` | `price` (`float` or string) → `raw.price` | `asNumber(stringValue(...))` | `stringValue` handles both numeric `value` (OE `type: float`) and string shapes; `raw.price` is the fallback when the attribute is absent |
 | `currency` | `currency` | `stringValue` | Defaults to `'USD'` |
 | `sku` | `sku` | `stringValue` → `raw.sku` | |
 | `brand` | `brand` | `listValues[0]` | First entry from the list |
@@ -384,13 +395,15 @@ Used by `ProductDetailPage.tsx` so each PDP renders the exact category chain the
 | `gender` | `gender` (list) | `GENDER_MAP[genderRaw]` → `''` fallback | `W/M/U` |
 | `images` | `gallery`, `pictures` | `imagesValue` (reads `.downloadLink`) | |
 | `preview` | — | `images[0]` | |
-| `categories` | — | `raw.categories` (path strings) | |
+| `categories` | — | `raw.categories` mapped through `normalizeCategoryPath` | OE may return paths as `home/women/women_clothing/dresses` (no leading slash, extra `home/` root). `normalizeCategoryPath` strips the `home/` prefix and any leading slashes, then re-prepends `/`, so consumers always receive the canonical `/women/women_clothing/dresses` shape. |
 | `relatedIds` | — | `raw.relatedIds`, filtered to positive numbers | Used by `aggregateByName` |
 
 Two adapters ride on top:
 
-- `adaptCatalogProductToUiProduct` (`adapt.ts`) — for `ProductCard` / grid. Formats price via `CURRENCY.format`, uppercases `tag` (`Sale → SALE` via `TAG_TO_LABEL`), derives per-swatch `colorStock` from `variants`, fills `gender` from `p.categories[0]` when the OE attr is blank (via `genderFromCategoryPath`).
-- `adaptCatalogProductToPdpProduct` (`adapt.ts`) — for `ProductDetailPage`. Additionally converts colour names to hex (via a local `COLOR_NAME_TO_HEX` distinct from `HEX_COLOR_NAMES`), computes per-size availability from variants, builds a `specs` table with `buildProductSpecs`, and emits a slim `pdpVariants` list carrying `descriptionHtml` per variant so the PDP can swap rich text on colour change.
+- `adaptCatalogProductToUiProduct` (`adapt.ts`) — for `ProductCard` / grid. Formats price via `CURRENCY.format`, uppercases `tag` (`Sale → SALE` via `TAG_TO_LABEL`), derives per-swatch `colorStock` from `variants`, fills `gender` from `p.categories[0]` when the OE attr is blank (via `genderFromCategoryPath`). Forwards `salePrice` (formatted string) for both the top-level product and each variant entry when the value is strictly below `price` — the card renders a strike-through on the original price and highlights the sale price.
+- `adaptCatalogProductToPdpProduct` (`adapt.ts`) — for `ProductDetailPage`. Additionally converts colour names to hex (via a local `COLOR_NAME_TO_HEX` distinct from `HEX_COLOR_NAMES`), computes per-size availability from variants, builds a `specs` table with `buildProductSpecs`, and emits a slim `pdpVariants` list carrying `descriptionHtml` per variant so the PDP can swap rich text on colour change. Forwards `salePrice` as a raw number for both the top-level product and each `PdpProductVariant` entry when strictly below `price`. The PDP price block conditions its strike-through rendering on `salePrice` being present.
+
+`salePrice` on both adapters is sourced exclusively from the OE Discounts module overlay (`applyProductDiscount` in `src/lib/oneentry/discounts/product-discount.ts`) — it is no longer read from any product attribute.
 
 ## 15d. Variant aggregation (`aggregateByName`)
 
@@ -406,7 +419,7 @@ Algorithm:
 
 Server-side OE `aggregate=true` isn't used because a product's colour / size variants can live in **different category leaves** in this tenant, and server-side aggregation would collapse rows before the category filter runs, surfacing wrong representatives. Aggregating locally against the cached full-catalog dump avoids the round-trip cost.
 
-`loadProductById` performs the same expansion but pushes `target` first, so the PDP always opens on the requested variant while still exposing the whole family. It also does a second `for … push` pass over sibling `relatedIds` to reach two-hop links.
+`loadProductById` performs the same expansion but uses targeted OE endpoints — **not** `loadFullCatalog`. It fetches the product via `cachedGetProductById`, then calls `cachedGetRelated` (`getRelatedProductsById`) to collect admin-linked siblings, and optionally `cachedGetByIds` (`getProductsByIds`) to resolve any explicit `relatedIds` on the product record. The resulting `family[]` array is deduplicated by id, then aggregated with the same union colours/sizes/variants and stock roll-up logic. `target` is pushed first so the PDP opens on the requested variant while still exposing the whole family.
 
 ## 15e. Stock inference
 
@@ -429,7 +442,7 @@ Both live in `products.ts`. They target overlapping shapes but differ in intent:
 | | `loadProducts(opts)` | `loadFilteredProducts(opts)` |
 |---|---|---|
 | Input | `{ categoryPath?, tags?, ids?, unique, limit, offset, sortKey, sortOrder, lang }` | `{ pageUrl?, categoryPath?, filters: CatalogFilters, page?, limit?, lang }` |
-| Backend fetch | `loadFullCatalog(lang)` (bounded fast path when `opts.ids` is set) | Always `loadFullCatalog(lang)` |
+| Backend fetch | `loadFullCatalog(lang)` (bounded fast path when `opts.ids` is set; `loadProductsByIds` uses `cachedGetByIds` directly) | Always `loadFullCatalog(lang)` |
 | Attribute filtering | `categoryPath.startsWith` + `tag` set | Runs `matchesCatalogFilters(p, filters)` over every attribute (`colors / sizes / brands / styles / materials / seasons / fits / …`) plus category slug fallback |
 | Aggregation | `aggregateByName` when `unique !== false` | Always `aggregateByName` |
 | Sort | Server via `sortKey` / `sortOrder` | Client-side `price_asc` / `price_desc` after aggregation (`filters.sort`) |
@@ -475,7 +488,8 @@ Why this exists at all: `buildOEFilterBody` hard-codes clothing attribute suffix
 ## 17. Known gaps in filter transport
 
 - **`loadFilteredProducts` does not currently call `buildOEFilterBody`.** The SSR shell filters in-memory against the cached full catalog for the reasons in §15h. `buildOEFilterBody` is retained for the future clothing-only OE-native path but is not on the request path today.
-- **`unstable_cache` bypass for the 2000-row dump** — the full-catalog fetcher explicitly skips `unstable_cache` because Next.js caps a single entry at 2 MB and the payload is ~30 MB. If the merchant grows the catalog materially, this bypass needs revisiting (Redis, page-based paging).
+- **`unstable_cache` bypass for the 2000-row dump** — `loadFullCatalog` (used by `loadProducts` / `loadFilteredProducts` / `searchProducts`) explicitly skips `unstable_cache` because Next.js caps a single entry at 2 MB and the payload is ~30 MB. If the merchant grows the catalog materially, this bypass needs revisiting (Redis, page-based paging). `loadProductById` and `loadProductsByIds` are **not** affected — they write individual small entries to `unstable_cache` via `cachedGetProductById`, `cachedGetRelated`, and `cachedGetByIds`, all tagged `oe-products` with `REVALIDATE_PRODUCT` TTL.
+- **`loadFullCatalog` return type is `Promise<CatalogProduct[] | null>`.** `null` means the OE SDK threw, returned a null response, or returned an error shape — i.e. the catalog endpoint was unreachable or failed. An empty array `[]` means OE responded successfully with zero products. Null results are **not** written to `fullCatalogCache` so the next request retries; successful `[]` responses are cached normally. When `loadFullCatalog` returns null, both `loadProducts` and `loadFilteredProducts` return `{ total: 0, items: [], fromCms: false }` — signalling an outage rather than masking it as an OE-sourced empty grid (`fromCms: true`). The vector-search enrichment path likewise returns `[]` on null so `searchProducts` degrades gracefully.
 - **OE-native facet counts still unwired.** The filter drawer counts come from `loadClothingFilter` (`src/lib/oneentry/blocks/clothing-filter.ts`) which pulls the OE `clothing` filter marker and recounts each option locally against `countingProducts`. Real OE facet counts would collapse this into one endpoint call.
 
 ## 16. Cross-references

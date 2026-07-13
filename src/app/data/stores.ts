@@ -2,6 +2,12 @@ import { CURRENCY } from './seoData';
 
 export interface Store {
   id: string;
+  /** OneEntry numeric page id. Used as the `entity` value when placing a
+   *  Store Pickup order — OE stores are represented as child pages under
+   *  `stores`, and the checkout form field expects the numeric id, not the
+   *  pageUrl slug. Only populated for stores that came from OE (mock fallback
+   *  entries leave it undefined). */
+  oeId?: number;
   name: string;
   city: string;
   address: string;

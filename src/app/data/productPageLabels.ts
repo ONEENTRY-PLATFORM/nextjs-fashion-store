@@ -121,6 +121,11 @@ export const RESERVE_MODAL_LABELS = {
 } as const;
 
 // ─── WriteReviewModal ───────────────────────────────────────────────────────
+// Fields mirror the OE `review_feedback` (id 8) + `review_rating` (id 7)
+// forms currently deployed on the tenant:
+//   feedback → body (text) + occasions (list) + add_media (groupOfImages)
+//   rating   → rating (integer)
+// Legacy headline/name/email fields were removed from OE and dropped here.
 export const WRITE_REVIEW_LABELS = {
   title: 'Share your thoughts',
   closeLabel: 'Close',
@@ -133,12 +138,6 @@ export const WRITE_REVIEW_LABELS = {
   rateLabels: ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'] as const,
   writeReviewLabel: 'Write a review',
   writeReviewPlaceholder: 'Tell us what you like or dislike',
-  headlineLabel: 'Add a headline',
-  headlinePlaceholder: 'Summarize your experience',
-  nameLabel: 'Your name',
-  namePlaceholder: 'Jane D.',
-  emailLabel: 'Your email',
-  emailPlaceholder: 'jane@email.com',
   mediaLabel: 'Add media',
   mediaUpload: 'Upload photos or videos',
   mediaHint: 'Up to 10 images and 3 videos (max. file size 2 GB)',
@@ -146,13 +145,15 @@ export const WRITE_REVIEW_LABELS = {
   occasionHint: 'Choose 1',
   requiredFieldsNote: '* required fields',
   ctaSend: 'Send',
+  // Value ↔ display label for the OE `occasions` `list` field. Values must
+  // match the OE `listTitles` markers exactly (`everyday`, `work`, `party`,
+  // `travel`, `sport`) — display labels are storefront copy.
   occasions: [
-    'Going Out / Party Outfit',
-    'Birthday Outfit',
-    'Graduation Outfit',
-    'Homecoming Outfit',
-    'Prom Outfit',
-    'Wedding / Engagement Outfit',
+    { value: 'everyday', label: 'Everyday' },
+    { value: 'work',     label: 'Work' },
+    { value: 'party',    label: 'Party' },
+    { value: 'travel',   label: 'Travel' },
+    { value: 'sport',    label: 'Sport' },
   ] as const,
 } as const;
 
@@ -167,6 +168,9 @@ export const PRODUCT_REVIEWS_LABELS = {
   helpfulPrefix: 'Helpful',
   helpfulMarkedAria: 'Marked as helpful',
   helpfulMarkAria: 'Mark as helpful',
+  emptyHeading: 'No reviews yet',
+  emptyBody: 'Be the first to share your thoughts about this product.',
+  purchaseRequired: 'Only shoppers who have received this product can leave a review.',
 } as const;
 
 // ─── ProductGallery ─────────────────────────────────────────────────────────
@@ -243,6 +247,7 @@ export const QUICK_VIEW_LABELS = {
   closeLabel: 'Close',
   defaultBrand: 'Kekimoro',
   reviewsSuffix: 'reviews',
+  beFirstToReview: 'Be the first to review',
   badgeNewIn: 'NEW IN',
   badgeLowStock: 'LOW IN STOCK',
   colorLabel: 'Color:',

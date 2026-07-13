@@ -82,8 +82,14 @@ function loadFromStorage() {
     const result: Record<string, unknown> = { ...rest };
     if (persistedCart && typeof persistedCart === 'object') {
       // Drop any ephemeral UI flags (older builds persisted miniCartOpen,
-      // which would re-open the mini-cart on every page load).
-      const { miniCartOpen: _miniCartOpen, ...cleanCart } = persistedCart as Record<string, unknown>;
+      // which would re-open the mini-cart on every page load). Same for
+      // `unavailableRemoved` — the notice is a one-shot per session, not a
+      // sticky state that should survive reload.
+      const {
+        miniCartOpen: _miniCartOpen,
+        unavailableRemoved: _unavailableRemoved,
+        ...cleanCart
+      } = persistedCart as Record<string, unknown>;
       result.cart = cleanCart;
     }
     return result;
@@ -111,8 +117,13 @@ function saveToStorage(state: RootState) {
   try {
     // miniCartOpen is ephemeral UI state — keep it out of localStorage so it
     // can't leak across navigations and cause a hydration mismatch on the next
-    // page load.
-    const { miniCartOpen: _miniCartOpen, ...persistedCart } = state.cart;
+    // page load. Same rationale for `unavailableRemoved`: it's a one-shot
+    // notice, not a preference to persist.
+    const {
+      miniCartOpen: _miniCartOpen,
+      unavailableRemoved: _unavailableRemoved,
+      ...persistedCart
+    } = state.cart;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       __version: STORAGE_VERSION,
       cart: persistedCart,

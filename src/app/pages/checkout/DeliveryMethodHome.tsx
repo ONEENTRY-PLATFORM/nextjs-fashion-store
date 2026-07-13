@@ -6,6 +6,7 @@ import { DELIVERY_TIME_SLOTS, DELIVERY_PERKS } from '../../data/checkoutConfig';
 import { DELIVERY_METHOD_HOME_LABELS as L } from '../../data/checkoutLabels';
 import type { UserAddress } from '../../data/userData';
 import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 export interface NewAddressForm {
   fullName: string;
@@ -55,6 +56,11 @@ export function DeliveryMethodHome({
     setAddrErrors(e => ({ ...e, [key]: '' }));
   };
 
+  const info = useDeliveryMethodInfo();
+  const title    = info?.home.title    ?? L.title;
+  const subtitle = info?.home.subtitle ?? L.subtitle;
+  const perks    = info?.home.perks    ?? DELIVERY_PERKS.map((p) => p.text);
+
   const phFullName     = useFormPlaceholder('user_addresses', 'user_addresses_recipient_name',       'placeholder_name',                 L.placeholderFullName);
   const phPhone        = useFormPlaceholder('user_addresses', 'user_addresses_recipient_phone',      'placeholder_phone',                L.placeholderPhone);
   const phAddressLine1 = useFormPlaceholder('user_addresses', 'user_addresses_line_1',               'placeholder_address_line_1',       L.placeholderAddressLine1);
@@ -68,8 +74,8 @@ export function DeliveryMethodHome({
       checked={checked}
       onChange={onChange}
       icon={<MapPin size={20} />}
-      title={L.title}
-      subtitle={L.subtitle}
+      title={title}
+      subtitle={subtitle}
     >
       {/* Address selector for logged-in users */}
       {isLoggedIn && savedAddresses.length > 0 ? (
@@ -226,10 +232,10 @@ export function DeliveryMethodHome({
       </div>
 
       <div className="flex flex-wrap gap-4 mt-5">
-        {DELIVERY_PERKS.map(b => (
-          <div key={b.text} className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="text-green-600 font-bold">{b.icon}</span>
-            {b.text}
+        {perks.map(text => (
+          <div key={text} className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="text-green-600 font-bold">✓</span>
+            {text}
           </div>
         ))}
       </div>

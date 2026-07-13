@@ -5,7 +5,12 @@ import { DEFAULT_LOCALE } from '../locale';
 
 export interface FormField {
   marker: string;
-  value: string;
+  /** Scalar (`string`) for text-ish fields, `string[]` when the OE attribute
+   *  is `type: 'list'` (multi-select). Type is `unknown`-widened on the wire
+   *  because OE's `postFormsData` accepts both shapes — see the `sign-up`
+   *  action which sends `type: 'list', value: [input.gender]` for the same
+   *  reason. */
+  value: string | string[];
   type?: string;
 }
 
@@ -43,7 +48,9 @@ export async function submitForm(
         status: 'sent',
         formData: fields.map((f) => ({
           marker: f.marker,
-          value: f.value,
+          // SDK types `value` as `string`; OE actually accepts `string[]` when
+          // the attribute is `list`. Widening here to match the runtime shape.
+          value: f.value as unknown as string,
           type: (f.type ?? 'string') as 'string',
         })),
       },

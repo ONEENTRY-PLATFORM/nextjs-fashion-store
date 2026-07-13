@@ -49,16 +49,38 @@ Three methods, selected via radio cards:
 | Method | Consumer requirements |
 |---|---|
 | `home` | Full address (saved or new) + delivery date + time slot |
-| `store` | Pickup store id (from `PICKUP_STORES` in `src/app/data/checkoutConfig.ts`) + guest contact if not logged in |
+| `store` | Pickup store (from OE via `loadStores()`, adapted to `PickupStore[]` in the server layer) + guest contact if not logged in |
 | `locker` | Locker id (from `PARCEL_LOCKERS`) + guest contact if not logged in |
 
-Static resources in `src/app/data/checkoutConfig.ts`:
+**Delivery method copy — OE-driven with literal fallback**
+
+Radio card copy (title, subtitle, perks, and the locker PIN hint) is loaded at request time from the OE admin panel and passed down to the method components through a React Context:
+
+- `src/lib/oneentry/checkout/delivery-methods.ts` — exports `loadDeliveryMethodInfo(lang?)` and the `DeliveryMethodInfo` interface. The loader calls `Forms.getFormByMarker('checkout_home_delivery', lang)`, reads the `delivery_method` attribute's `listTitles` (keyed by values `courier`, `pickup`, `locker`) for titles and subtitles, and reads `additionalFields` for perks (`home_free_delivery`, `home_partial_purchase`, `home_in-home-fitting`; `store_pickup_free`, `store_pickup_partial_purchase`, `store_pickup_fitting_room`) and the locker PIN hint (`locaer_text` — typo preserved from the OE admin panel). The loader is wrapped with `unstable_cache` (cache key `oe-delivery-method-info`, tag `oe-forms`, TTL `REVALIDATE_STORES`). Any OE error returns the local `FALLBACK` constant built from `DELIVERY_METHOD_HOME/STORE/LOCKER_LABELS` and `DELIVERY_PERKS` / `PICKUP_PERKS`.
+- `src/lib/oneentry/checkout/DeliveryMethodInfoContext.tsx` — exports `DeliveryMethodInfoProvider` (wraps children with the loaded `DeliveryMethodInfo`) and `useDeliveryMethodInfo()` (returns `DeliveryMethodInfo | null`; returns `null` when the provider is absent so Storybook / unit tests can omit it).
+- `app/checkout/delivery/page.tsx` — `Promise.all`s `loadDeliveryMethodInfo()` alongside `loadStores()` and the other loaders, then wraps `<DeliveryPage />` in `<DeliveryMethodInfoProvider data={info}>`.
+- `DeliveryMethodHome.tsx` / `DeliveryMethodStore.tsx` / `DeliveryMethodLocker.tsx` — each calls `useDeliveryMethodInfo()` and reads `.home` / `.store` / `.locker`; falls back to its local literal labels when the hook returns `null`. Perks are rendered as a plain string list; `DeliveryMethodLocker` additionally replaces the hardcoded `pinHint` with `info.locker.pinHint`.
+
+**Pickup store loading** — `app/checkout/delivery/page.tsx` calls `loadStores()` (from `src/lib/oneentry/catalog/stores.ts`) as part of a `Promise.all` alongside the label / placeholder loaders. Only stores that carry a numeric `oeId` (populated by `normalize()` from `raw.id`) are kept — entries without `oeId` have no matching OE page and would be rejected at order creation. The filtered list is mapped to `PickupStore[]` (defined in `src/app/data/checkoutConfig.ts`) and passed as the `pickupStores` prop to `<DeliveryPage>`.
+
+`DeliveryPage` accepts an optional `pickupStores?: PickupStore[]` prop. When the array is non-empty it is used as the source of truth; when it is empty (OE has no stores, or the page is rendered bare in tests / Storybook) the component falls back to the literal `PICKUP_STORES` constant in `checkoutConfig.ts`. `<DeliveryMethodStore>` renders whichever list it receives via a `stores` prop — it no longer imports `PICKUP_STORES` directly.
 
 ```ts
-PICKUP_STORES = [
-  { id: '...', name: 'Oxford Street Flagship', address: '...', hours: '...' },
-  ...
-]
+// PickupStore — src/app/data/checkoutConfig.ts
+export interface PickupStore {
+  id: string;       // pageUrl slug (stable marker)
+  oeId?: number;    // numeric OE page id — required for the order form entity field
+  name: string;
+  address: string;
+  hours: string;    // pre-flattened to a single string by the server layer
+}
+
+// PICKUP_STORES stays in the file as a typed PickupStore[] dev/test fallback
+```
+
+Other static resources in `src/app/data/checkoutConfig.ts`:
+
+```ts
 PARCEL_LOCKERS = [
   'Paddington Station — Platform 8 Locker Hub',
   ...
@@ -100,7 +122,7 @@ On "Continue to Payment", the page writes to `sessionStorage['oe_checkout_payloa
   homeAddress: {                                 // resolved from saved-address OR just-typed form; null for store/locker
     fullName, phone, line1, city, postcode, instructions,
   } | null,
-  storeId: string | null,                        // PICKUP_STORES[i].id when storage === 'store_pickup'
+  storeId: string | number | null,               // selectedStore.oeId ?? selectedStore.id when storage === 'store_pickup'; numeric oeId is strongly preferred — OE's entity field expects the page's numeric id, not the slug
   lockerId: number | null,                       // 0-based index into PARCEL_LOCKERS (shifted +1 later, see §3.3)
   deliveryDate: string,                          // ISO string (selectedDate.toISOString())
   deliverySlot: 'morning' | 'afternoon' | 'evening',
@@ -240,8 +262,8 @@ For `account.type === 'stripe'`:
 
 1. `createOrderAction` first checks whether OE already surfaced a `paymentUrl` on the created order (legacy providers do). If not, and the selected `paymentAccountType === 'stripe'`, it calls the SDK `api.Payments.createSession(orderId, 'session', false)`. That resolves to `POST /api/content/payments/sessions` server-side; note the SDK signature does **not** forward `successUrl` / `cancelUrl` — the merchant's default URLs configured in OE admin are used.
 2. Response: `{ paymentUrl: string }` (typed loosely in the SDK; the storefront unwraps it via `raw.paymentUrl`).
-3. Before redirecting, `PaymentPage.handlePlaceOrder` fires `clearCart()` unconditionally (see §4.2 — cart is emptied at order creation, not on Confirmation mount). It also removes `sessionStorage['oe_checkout_payload']`.
-4. Client `window.location.href = paymentUrl`. Stripe hosted checkout takes over. On success, Stripe redirects to the storefront `successUrl` (`/checkout/confirmation`). Currently `ConfirmationPage` does not read the real OE `orderId` from the URL — it generates its own display-only random id (see §4.1). Wiring the real id through `?orderId=` would need a `ConfirmationPage` update plus a Stripe `successUrl` template that appends the OE-side id.
+3. Before redirecting, `PaymentPage.handlePlaceOrder` fires `clearCart()` unconditionally (see §4.2 — cart is emptied at order creation, not on Confirmation mount). It also saves `String(res.orderId)` to `sessionStorage['oe_last_order_id']` and removes `sessionStorage['oe_checkout_payload']`.
+4. Client `window.location.href = paymentUrl`. Stripe hosted checkout takes over. On success, Stripe redirects to the storefront `successUrl` (`/checkout/confirmation`), where `ConfirmationPage` reads `sessionStorage['oe_last_order_id']` to display the real OE order id (see §4.1). Note: the Stripe round-trip may clear `sessionStorage` on some browsers — in that case `ConfirmationPage` falls back to the random display id.
 
 If Stripe session creation fails, `paymentSessionError` surfaces on the returned object; `handlePlaceOrder` shows the error inline (`Stripe session could not be created: {message}`) without redirecting. Because `clearCart()` runs *before* the paymentUrl check, a Stripe failure leaves the shopper with an empty cart on that screen — the OE order still exists on the server, but the buyer hasn't paid.
 
@@ -255,10 +277,20 @@ Because PDP and catalog routes are now ISR-cached (up to ~2 minutes for PDP, 5 m
 
 Two guards are applied on the fresh response:
 
-1. **`!fresh.ok`** — OE rejected the preview (e.g. a line item is unavailable or its price is undefined). `handlePlaceOrder` surfaces `fresh.error` (or a generic re-validation message) and returns without calling `createOrderAction`.
+1. **`!fresh.ok`** — OE rejected the preview (e.g. a line item is unavailable or its price is undefined). `handlePlaceOrder` surfaces `fresh.error` (or a generic re-validation message) and returns without calling `createOrderAction`. Note: "Product not found" failures are handled earlier — `CartContext`'s ambient `previewOrder` effect double-checks each reported id against the catalog via `getProductsByIdsAction` and only prunes items that the catalog also cannot find, so valid products are not removed due to a spurious `Orders.previewOrder` error (see [CART_WISHLIST.md §4a](./CART_WISHLIST.md#4a-checkout-preview--coupons)).
 2. **Total drift** — if `preview` exists and `Math.abs(fresh.totalDue - preview.totalDue) > 0.01`, the `preview` state is updated to the fresh figures and a message is shown: _"Order total changed to $X since you last reviewed it — please check the summary and place the order again."_ The shopper must click **Place Order** a second time with the corrected total visible on screen.
 
 This makes the fresh preview the authoritative pre-flight check for every order, regardless of how long the shopper spent on the page or how stale the ISR-cached PDP was.
+
+**`PreviewOrderResponse` shape** (`src/lib/oneentry/auth/actions.ts`):
+
+```ts
+type PreviewOrderResponse =
+  | { ok: true;  /* ...preview fields... */ }
+  | { ok: false; error: string; missingProductIds: number[] }
+```
+
+`missingProductIds` is populated by parsing OE's `"Product <id> not found"` error messages via regex. An empty array (`[]`) is always present on the failure branch so callers can safely check `.length > 0` without a null guard.
 
 The delivery-step coupon input uses a different mechanism: the shopper explicitly clicks "Apply", which awaits `CartContext.applyCoupon(code)` → `previewOrderAction`. `CartContext` has its own separate 300 ms debounce for the ambient preview refresh when the cart changes (`CartContext.tsx:291`). There is no "900 ms coupon debounce" — coupon codes are validated by OE server-side on click, not by any client timer, and the legacy `CHECKOUT_COUPONS` local dictionary has been removed (see §7).
 
@@ -284,14 +316,9 @@ The badges are purely decorative — no client-side verification of SSL / PCI / 
 
 ### 4.1 Display id
 
-The page generates a display-only order id:
+On mount, `ConfirmationPage` reads `sessionStorage['oe_last_order_id']` (set by `PaymentPage` immediately after `createOrderAction` resolves) and uses that value as the receipt order id. The entry is removed from `sessionStorage` after reading so it is not reused on a second visit.
 
-```ts
-'OE-' + crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()
-// e.g. 'OE-A1B2C3D4'
-```
-
-This is a **cosmetic** number for the receipt. The real OneEntry `orderId` returned by `createOrderAction` is not currently persisted to the client — a follow-up refactor should surface it via the URL query so refresh preserves the number.
+`randomOrderId()` (`'OE-' + crypto.randomUUID().replace(/-/g,'').slice(0,8).toUpperCase()`) is now only a fallback — it fires when the `sessionStorage` read returns empty (direct navigation to `/checkout/confirmation`, or Stripe round-trip clearing `sessionStorage` on some browsers). The fallback keeps the receipt from rendering `null` for the order number.
 
 ### 4.2 Cart cleanup — two-stage
 
@@ -307,6 +334,14 @@ Server cart is NOT wiped by these calls directly — the `syncCart` sync effect 
 ### 4.3 Loyalty points
 
 Rendered as `Math.floor(total * 10)` points earned. This is a static marketing calculation — it does not credit the user's OE loyalty balance.
+
+### 4.4 Order-confirmed heading — copy precedence chain
+
+The heading shown on the Confirmation page ("Order Confirmed!" or equivalent) is resolved at three levels, in priority order:
+
+1. **OE System Text bucket `checkout_confirmed` / key `checkout_confirmed_titel`** — loaded via `useT('checkout_confirmed', 'checkout_confirmed_titel', ...)` at render time. This is the highest-priority override and the primary admin surface for per-locale copy.
+2. **`checkout_home_delivery` form's `localizeInfos.successMessage`** — loaded server-side by `loadCheckoutSuccessMessage(lang)` (exported from `src/lib/oneentry/checkout/delivery-methods.ts`). The loader calls `Forms.getFormByMarker('checkout_home_delivery', lang)` and reads `.localizeInfos.successMessage`. It is wrapped with `unstable_cache` (key `oe-checkout-success-message`, tag `oe-forms`, TTL `REVALIDATE_STORES`) and returns `null` on error or when the field is empty. The `app/checkout/confirmation/page.tsx` route shell adds this loader to its existing `Promise.all` alongside `loadCheckoutSystemTexts()` and passes the result as a `successMessage?: string | null` prop to `<ConfirmationPage />`. If the System Text is blank, `useT` falls through to this value.
+3. **Local literal `L.heading`** — a hardcoded string ("Order Confirmed!") compiled into `ConfirmationPage.tsx`. Used only when both OE surfaces are empty or unavailable.
 
 ---
 
@@ -332,9 +367,13 @@ Payment accounts (OE Payments) ────────────────�
                                                               │
                                                               ├──► clearCart() [PaymentPage, unconditional on success]
                                                               │
+                                                              ├──► sessionStorage['oe_last_order_id'] = orderId
+                                                              │
                                                               ├── Stripe? ──► window.location.href = paymentUrl
                                                               │
                                                               └──► router.push('/checkout/confirmation')
+                                                                                          │
+                                                                                          ├──► read sessionStorage['oe_last_order_id'] → display real order id
                                                                                           │
                                                                                           └──► clearCart() 200ms after mount [belt & braces]
 ```
@@ -389,6 +428,7 @@ Client validation runs on the DeliveryPage "Continue to Payment" click. Server v
 | Key | Scope | Lifetime | Purpose |
 |---|---|---|---|
 | `oe_checkout_payload` | `sessionStorage` | Until Payment redirects / order created | Delivery → Payment handoff |
+| `oe_last_order_id` | `sessionStorage` | Written by PaymentPage after `createOrderAction`; removed by ConfirmationPage on mount | Real OE `orderId` surfaced on the receipt |
 | `oe_cart_merged` / `oe_wishlist_merged` | `sessionStorage` | Session | Prevent re-merge on tree remounts |
 | `oe_guest_id` | `localStorage` | Persistent | Link guest orders / activity |
 | `oe_access` / `oe_refresh` / `oe_user` | Cookies | Server-managed | Auth session |
@@ -422,12 +462,18 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 
 | File | Role |
 |---|---|
-| `app/checkout/{delivery,payment,confirmation}/page.tsx` | Route shells (SEO metadata + client component) |
+| `app/checkout/delivery/page.tsx` | Delivery route shell — also calls `loadStores()` and adapts the result to `PickupStore[]` before passing to `<DeliveryPage>` |
+| `app/checkout/confirmation/page.tsx` | Route shell — `Promise.all`s `loadCheckoutSuccessMessage()` alongside `loadCheckoutSystemTexts()`; passes result as `successMessage` prop to `<ConfirmationPage />` |
+| `app/checkout/payment/page.tsx` | Route shell (SEO metadata + client component) |
 | `app/checkout/error.tsx` | Segment error boundary |
-| `src/app/pages/DeliveryPage.tsx` | Delivery step client component |
-| `src/app/pages/PaymentPage.tsx` | Payment step client component |
-| `src/app/pages/ConfirmationPage.tsx` | Confirmation step client component |
-| `src/app/pages/checkout/DeliveryMethodHome.tsx` / `Locker.tsx` / `Store.tsx` | Method-specific sub-forms |
+| `src/app/pages/DeliveryPage.tsx` | Delivery step client component; accepts `pickupStores?: PickupStore[]` prop |
+| `src/app/pages/PaymentPage.tsx` | Payment step client component; writes real `orderId` to `sessionStorage['oe_last_order_id']` on success |
+| `src/app/pages/ConfirmationPage.tsx` | Confirmation step; reads real `orderId` from `sessionStorage['oe_last_order_id']`, falls back to `randomOrderId()`; accepts optional `successMessage?: string | null` prop used as secondary source for the confirmed-order heading (see §4.4) |
+| `src/app/pages/checkout/DeliveryMethodHome.tsx` / `Locker.tsx` / `Store.tsx` | Method-specific sub-forms; `Store.tsx` now takes a `stores: PickupStore[]` prop; all three read OE copy via `useDeliveryMethodInfo()` with literal-label fallback |
+| `src/lib/oneentry/checkout/delivery-methods.ts` | `loadDeliveryMethodInfo()` — cached OE form loader; returns `DeliveryMethodInfo`. Also exports `loadCheckoutSuccessMessage(lang)` — reads `checkout_home_delivery` form's `localizeInfos.successMessage`; cached under key `oe-checkout-success-message`, tag `oe-forms`, TTL `REVALIDATE_STORES`; returns `null` on error/empty (see §4.4) |
+| `src/lib/oneentry/checkout/DeliveryMethodInfoContext.tsx` | `DeliveryMethodInfoProvider` + `useDeliveryMethodInfo()` |
+| `src/app/data/stores.ts` | `Store` interface — carries optional `oeId?: number` (numeric OE page id) |
+| `src/lib/oneentry/catalog/stores.ts` | `normalize()` populates `oeId: raw.id` on every store returned from OE |
 | `src/app/pages/checkout/DeliveryOrderSummary.tsx` | Right-rail order summary |
 | `src/app/pages/checkout/PaymentMethodsList.tsx` | Renders the OE payment accounts list |
 | `src/app/pages/checkout/GuestCheckoutModal.tsx` | Auth gate modal |
@@ -435,7 +481,8 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 | `src/app/components/CheckoutStepper.tsx` | Step indicator |
 | `src/app/data/checkoutConfig.ts` | Pickup stores, lockers, time slots, coupon dict, delivery perks |
 | `src/app/data/paymentMethodsConfig.ts` | Stylistic copy for payment badges |
-| `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction` |
+| `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction`, `previewOrderAction` (returns `missingProductIds` on failure) |
+| `src/app/components/CartUnavailableNotice.tsx` | Top-of-page banner that displays auto-pruned items and lets the shopper dismiss; mounted in `Providers.tsx` |
 | `src/lib/oneentry/payments/accounts.ts` | `getPaymentAccountsAction` |
 | `src/app/utils/guest-id.ts` | `getOrCreateGuestId()` |
 | `src/app/utils/schemas.ts` | Zod schemas |

@@ -317,6 +317,11 @@ export function PaymentPage() {
     // during Stripe redirect (or a cancelled Stripe session) leaves the
     // just-ordered items sitting in their bag next time they open the site.
     clearCart();
+    // Real OE order id — Confirmation reads this from sessionStorage instead
+    // of hallucinating a random `OE-XXXXXXXX` for the shopper (a fake id was
+    // useless in a support call). Falls back to a random id only if this
+    // read fails, e.g. after the Stripe round-trip when sessionStorage cleared.
+    try { sessionStorage.setItem('oe_last_order_id', String(res.orderId)); } catch { /* ignore */ }
     // Stripe / online payment methods: OE returns a hosted checkout URL.
     // Redirect to it; the user finishes the payment on Stripe and OE marks
     // the order completed via webhook. Cash / card-on-delivery have no URL —

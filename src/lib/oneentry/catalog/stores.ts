@@ -108,6 +108,7 @@ const normalize = (raw: RawPage, lang: Lang, mockFallback?: Store): Store => {
   const mapUrl = v('page_store_directions');
   return {
     id: raw.pageUrl ?? `oe-${raw.id}`,
+    oeId: raw.id,
     name: extractTitle(raw, lang) || mockFallback?.name || '',
     city: v('page_store_city') || mockFallback?.city || '',
     address: address || mockFallback?.address || '',

@@ -1,11 +1,12 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
+import { loadProductDiscounts, applyProductDiscount } from '../discounts/product-discount';
 import { getApi, isError, oneentry } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
 import { DEFAULT_LOCALE } from '../locale';
-import { REVALIDATE_CATALOG } from '../../isr';
+import { REVALIDATE_CATALOG, REVALIDATE_PRODUCT } from '../../isr';
 
 /**
  * Normalized OneEntry product for the storefront. Mirrors the actual
@@ -18,6 +19,12 @@ export interface CatalogProduct {
   description: string;
   statusIdentifier: string;
   price: number;
+  /** Discounted price when an OE `Discounts` rule (`type: DISCOUNT`,
+   *  `applicability: TO_PRODUCT`) matches this product by id or category.
+   *  Populated in a post-normalize pass by `applyProductDiscount` — see
+   *  `src/lib/oneentry/discounts/product-discount.ts`. `undefined` when
+   *  no active rule applies. */
+  salePrice?: number;
   currency: string;
   sku: string;
   brand: string;
@@ -27,7 +34,7 @@ export interface CatalogProduct {
   styles: string[];
   gender: 'W' | 'M' | 'U' | '';
   tag: string;
-  /** Total stock units (stockqty_11 if present, falls back to units_10). */
+  /** Total stock units — sourced exclusively from OE's `stockqty` attribute. */
   stock: number;
   season: string;
   country: string;
@@ -48,6 +55,15 @@ export interface CatalogProduct {
   /** Care symbols / instructions (`careinstructions_18` list). Empty array when
    *  the attribute isn't set or the values are blank. */
   careInstructions: string[];
+  /** Raw string values for every OE attribute marker starting with
+   *  `discount_` on this product. Populated at normalize time so
+   *  `applyProductDiscount` can evaluate `ATTRIBUTE` conditions (which is
+   *  how the storefront tenant scopes its "10% off if discount_12=10"
+   *  campaigns) without a second SDK call. Keys are full OE markers
+   *  (e.g. `discount_12`), values are stringified attribute values
+   *  (e.g. `"10"`, `"20"`). `{}` when the product has no discount
+   *  attributes. */
+  discountAttributes: Record<string, string>;
   /** All variant products in the same title-group (same product, different
    *  color/size combinations). Present only on the aggregated representative
    *  returned by `aggregateByName` — raw catalog rows have this undefined. */
@@ -68,6 +84,12 @@ export interface CatalogProductVariant {
   colors: string[];
   sizes: string[];
   price: number;
+  /** Discounted price when an OE `Discounts` rule (`type: DISCOUNT`,
+   *  `applicability: TO_PRODUCT`) matches THIS variant's id or category.
+   *  Not stacked with sibling variants — each variant is a distinct OE
+   *  record and gets its own resolution. `undefined` when no rule
+   *  applies or the resolved price isn't strictly below `price`. */
+  salePrice?: number;
   sku: string;
   preview: string;
   images: string[];
@@ -188,6 +210,13 @@ const listValues = (attr: RawAttr | undefined): string[] => {
 const stringValue = (attr: RawAttr | undefined): string => {
   if (!attr) return '';
   if (typeof attr.value === 'string') return attr.value;
+  // OE marker `type: integer` / `type: float` ships `value` as a raw
+  // number (not a string). Previously we only handled strings + list
+  // arrays and silently returned `''` for numbers — that dropped
+  // `price_14`, `stockqty_12`, and any other numeric attr,
+  // causing product prices to fall back to a missing top-level `raw.price`
+  // (0) and inventory to read as 0 even when OE reported real stock.
+  if (typeof attr.value === 'number' && Number.isFinite(attr.value)) return String(attr.value);
   if (Array.isArray(attr.value)) {
     const first = attr.value[0] as { plainValue?: unknown; value?: unknown; title?: unknown } | undefined;
     return asString(first?.plainValue) || asString(first?.value) || asString(first?.title);
@@ -268,6 +297,16 @@ const findAttr = (
   return undefined;
 };
 
+// OE returns category paths as `home/women/women_clothing/dresses`. The
+// storefront (breadcrumbs, gender detection, `catalogKeyToCategoryPath`,
+// filter needles) all expect `/women/women_clothing/dresses`. Strip the
+// legacy `home/` root and prepend a leading `/` so downstream code has a
+// single canonical shape.
+function normalizeCategoryPath(raw: string): string {
+  const trimmed = raw.replace(/^\/+/, '').replace(/^home\//, '');
+  return `/${trimmed}`;
+}
+
 const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
   const attrs = pickAttributes(raw, lang);
   // Real attribute markers in the live tenant (snapshot from /inspect-api):
@@ -291,8 +330,12 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
   const insulation = listValues(findAttr(attrs, ['insulation']))[0] ?? '';
   const productDetails = listValues(findAttr(attrs, ['details']));
   const careInstructions = listValues(findAttr(attrs, ['careinstructions', 'care']));
-  const stockRaw =
-    stringValue(findAttr(attrs, ['stockqty'])) || stringValue(findAttr(attrs, ['units']));
+  // Stock is tracked ONLY by the `stockqty` attribute per merchant decision.
+  // `units_N` is intentionally ignored — the two markers used to be merged,
+  // but the tenant confirmed `stockqty` is the single source of truth for
+  // inventory count. Missing / non-numeric attribute yields `0`, which then
+  // falls through to `statusIdentifier`-based availability downstream.
+  const stockRaw = stringValue(findAttr(attrs, ['stockqty']));
   const priceRaw = stringValue(findAttr(attrs, ['price']));
   const description = stringValue(findAttr(attrs, ['description', 'productdescription']));
   const descriptionHtml = richTextValue(findAttr(attrs, ['description', 'productdescription']));
@@ -300,6 +343,27 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
   const productName = stringValue(findAttr(attrs, ['title', 'productname']));
   const genderRaw = (listValues(findAttr(attrs, ['gender']))[0] ?? '').toUpperCase();
   const currencyAttr = stringValue(findAttr(attrs, ['currency']));
+  // Snapshot every attribute whose marker starts with `discount_` — these
+  // are the campaign flags OE `Discounts` rules key on via `ATTRIBUTE`
+  // conditions (`entityIds: [{ id: "discount_12" }]`). Storing them
+  // together on the normalized product lets `applyProductDiscount` run
+  // synchronously without a second SDK trip.
+  //
+  // Merchants pick discount tiers from a display-oriented list where each
+  // option renders as `"10%"` / `"20%"` etc. — OE ships both `title` and
+  // `value` with the `%` suffix. The matching Discounts rules, however,
+  // store the numeric-only form (`value: "10"` / `"20"`) in their
+  // `ATTRIBUTE.value.value` condition. Strip a trailing `%` (plus any
+  // surrounding whitespace) here so `discountAttributes` carries the
+  // semantic tier the rule expects. Non-discount attributes go through
+  // `stringValue` untouched.
+  const discountAttributes: Record<string, string> = {};
+  for (const key of Object.keys(attrs)) {
+    if (!key.startsWith('discount_') && !key.startsWith('discount')) continue;
+    const rawValue = stringValue(attrs[key]);
+    const cleaned = rawValue.replace(/\s+/g, '').replace(/%+$/, '');
+    if (cleaned) discountAttributes[key] = cleaned;
+  }
   return {
     id: raw.id ?? 0,
     title: productName || titleOf(raw, lang),
@@ -318,7 +382,7 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
     stock: asNumber(stockRaw),
     season: seasons[0] ?? '',
     country: countries[0] ?? '',
-    categories: Array.isArray(raw.categories) ? raw.categories : [],
+    categories: Array.isArray(raw.categories) ? raw.categories.map(normalizeCategoryPath) : [],
     images,
     preview: images[0] ?? '',
     descriptionHtml,
@@ -330,6 +394,7 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
     relatedIds: Array.isArray(raw.relatedIds)
       ? raw.relatedIds.filter((n): n is number => typeof n === 'number' && n > 0)
       : [],
+    discountAttributes,
   };
 };
 
@@ -405,27 +470,49 @@ async function rawProductList(
 // requests in the same Node process reuse it.
 const FULL_CATALOG_TTL_MS = 5 * 60 * 1000;
 const fullCatalogCache = new Map<Lang, { at: number; value: CatalogProduct[] }>();
-const fullCatalogInflight = new Map<Lang, Promise<CatalogProduct[]>>();
+const fullCatalogInflight = new Map<Lang, Promise<CatalogProduct[] | null>>();
 
-async function fetchFullCatalog(lang: Lang): Promise<CatalogProduct[]> {
-  if (!oneentry) return [];
+async function fetchFullCatalog(lang: Lang): Promise<CatalogProduct[] | null> {
+  if (!oneentry) return null;
   // Bypass `unstable_cache` here — Next.js caps a single entry at 2 MB, and
   // the full catalog dump (2000 products with all their attributes) is
   // ~30 MB, which makes `unstable_cache` reject the write with
   // "items over 2MB can not be cached". The in-memory `fullCatalogCache`
   // below already covers this call with a 5-min TTL per Node process, so
   // an extra ISR layer isn't needed anyway.
-  const result = await getApi().Products.getProducts(
-    [] as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[0],
-    lang,
-    { offset: 0, limit: 2000 } as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[2],
-  );
-  if (isError(result)) return [];
-  const items = (result as unknown as ListResponse).items ?? [];
-  return items.map((r) => normalize(r, lang));
+  //
+  // Returns `null` for any failure path (SDK throw, null response, error
+  // envelope) so callers can distinguish "OE unreachable" from "OE returned
+  // an empty catalog". `loadProducts` / `loadFilteredProducts` use this to
+  // set `fromCms: false` instead of masquerading an outage as an empty grid.
+  try {
+    const result = await getApi().Products.getProducts(
+      [] as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[0],
+      lang,
+      { offset: 0, limit: 2000 } as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[2],
+    );
+    if (!result || isError(result)) return null;
+    const items = (result as unknown as ListResponse).items ?? [];
+    const normalized = items.map((r) => normalize(r, lang));
+    // Overlay per-product discounts from the OE Discounts module onto the
+    // freshly normalized catalog. Rules are cached separately (5-min TTL),
+    // so this is a single cross-request lookup even for a 2000-row dump.
+    // A rule that doesn't apply leaves `salePrice` undefined — the UI
+    // only renders a strike-through when `salePrice < price`.
+    const rules = await loadProductDiscounts();
+    if (rules.length > 0) {
+      for (const p of normalized) {
+        const sp = applyProductDiscount(p, rules);
+        if (sp !== undefined) p.salePrice = sp;
+      }
+    }
+    return normalized;
+  } catch {
+    return null;
+  }
 }
 
-const loadFullCatalog = cache(async (lang: Lang): Promise<CatalogProduct[]> => {
+const loadFullCatalog = cache(async (lang: Lang): Promise<CatalogProduct[] | null> => {
   const now = Date.now();
   const cached = fullCatalogCache.get(lang);
   if (cached && now - cached.at < FULL_CATALOG_TTL_MS) return cached.value;
@@ -433,7 +520,9 @@ const loadFullCatalog = cache(async (lang: Lang): Promise<CatalogProduct[]> => {
   if (inflight) return inflight;
   const p = fetchFullCatalog(lang)
     .then((value) => {
-      fullCatalogCache.set(lang, { at: Date.now(), value });
+      // Only cache successful fetches — a null (outage) shouldn't lock in
+      // for 5 minutes; the next request should retry.
+      if (value !== null) fullCatalogCache.set(lang, { at: Date.now(), value });
       return value;
     })
     .finally(() => {
@@ -497,6 +586,7 @@ function aggregateByName(items: CatalogProduct[], allById: Map<number, CatalogPr
       colors: v.colors,
       sizes: v.sizes,
       price: v.price,
+      ...(v.salePrice !== undefined && { salePrice: v.salePrice }),
       sku: v.sku,
       preview: v.preview,
       images: v.images,
@@ -531,12 +621,15 @@ export const loadProducts = withTiming('loadProducts', cache(
     // For id lookups we always need raw variants — return the variant rows.
     if (opts.ids && opts.ids.length > 0) {
       const all = await loadFullCatalog(lang);
+      if (all === null) return { total: 0, items: [], fromCms: false };
       const set = new Set(opts.ids);
       const filtered = all.filter((p) => set.has(p.id));
       return { total: filtered.length, items: filtered.slice(offset, offset + limit), fromCms: true };
     }
 
-    let all = await loadFullCatalog(lang);
+    const initial = await loadFullCatalog(lang);
+    if (initial === null) return { total: 0, items: [], fromCms: false };
+    let all = initial;
     if (opts.categoryPath) {
       const needle = opts.categoryPath.toLowerCase();
       all = all.filter((p) => p.categories.some((c) => c.toLowerCase().startsWith(needle)));
@@ -546,8 +639,7 @@ export const loadProducts = withTiming('loadProducts', cache(
       all = all.filter((p) => tagSet.has(p.tag.toLowerCase()));
     }
     if (unique) {
-      const fullCatalog = await loadFullCatalog(lang);
-      const byId = new Map(fullCatalog.map((p) => [p.id, p]));
+      const byId = new Map(initial.map((p) => [p.id, p]));
       all = aggregateByName(all, byId);
     }
     return {
@@ -558,29 +650,97 @@ export const loadProducts = withTiming('loadProducts', cache(
   },
 ));
 
+// Targeted single-product fetch — replaces a full 2000-item catalog dump
+// (~30 MB) with a single OE call that returns the requested product only.
+// PDP p95 previously hit ~50 s under 25 VU load because every pod's cold
+// `loadFullCatalog` queued at OE; this brings each PDP hydrate to a
+// small handful of small requests.
+const cachedGetProductById = unstable_cache(
+  async (id: number, lang: string): Promise<RawProduct | null> => {
+    if (!oneentry) return null;
+    const result = await getApi().Products.getProductById(id, lang);
+    if (isError(result)) return null;
+    return result as unknown as RawProduct;
+  },
+  ['oe-product-by-id'],
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
+);
+
+// Related products via OE's dedicated endpoint (linked in admin panel).
+// Used to reconstruct the colour / size family without scanning the
+// full catalog. Cached alongside the product because they share TTL.
+const cachedGetRelated = unstable_cache(
+  async (id: number, lang: string): Promise<RawProduct[]> => {
+    if (!oneentry) return [];
+    const result = await getApi().Products.getRelatedProductsById(id, lang);
+    if (isError(result)) return [];
+    const arr = Array.isArray(result)
+      ? result
+      : (result as unknown as { items?: RawProduct[] })?.items ?? [];
+    return (arr as RawProduct[]) ?? [];
+  },
+  ['oe-related-products'],
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
+);
+
+// Batch fetch by ids — used to resolve explicit `relatedIds` the admin set
+// on the product itself (separate from OE's `getRelatedProductsById`).
+const cachedGetByIds = unstable_cache(
+  async (idsCsv: string, lang: string): Promise<RawProduct[]> => {
+    if (!oneentry || !idsCsv) return [];
+    const result = await getApi().Products.getProductsByIds(idsCsv, lang);
+    if (isError(result)) return [];
+    return (result as unknown as RawProduct[]) ?? [];
+  },
+  ['oe-products-by-ids'],
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
+);
+
 export const loadProductById = withTiming('loadProductById', cache(
   async (id: number, lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct | null> => {
-    const all = await loadFullCatalog(lang);
-    const target = all.find((p) => p.id === id);
-    if (!target) return null;
+    const raw = await cachedGetProductById(id, lang);
+    if (!raw) return null;
+    const target = normalize(raw, lang);
 
-    // Pull siblings from the same title group AND from OE's explicit
-    // `relatedIds` list, then merge colors/sizes/variants so the PDP sees
-    // the whole product family. Without this expansion the PDP only shows
-    // the picked variant's own colour / size, hiding everything the admin
-    // linked as related.
-    const byId = new Map(all.map((p) => [p.id, p]));
-    const seen = new Set<number>();
-    const family: CatalogProduct[] = [];
-    const push = (p: CatalogProduct | undefined) => {
-      if (!p || seen.has(p.id)) return;
+    // Reconstruct the family via two targeted requests instead of scanning
+    // the whole catalog: (1) OE's `getRelatedProductsById` (admin-linked
+    // siblings) and (2) explicit `relatedIds` on the product record. Union
+    // dedup by id. Failures fall through to the singular product.
+    const seen = new Set<number>([target.id]);
+    const family: CatalogProduct[] = [target];
+    const push = (p: CatalogProduct) => {
+      if (seen.has(p.id)) return;
       seen.add(p.id);
       family.push(p);
     };
-    push(target);
-    for (const rid of target.relatedIds) push(byId.get(rid));
-    for (const p of all) if (p.title && p.title === target.title) push(p);
-    for (const p of family.slice()) for (const rid of p.relatedIds) push(byId.get(rid));
+
+    const relatedRaws = await cachedGetRelated(id, lang);
+    for (const r of relatedRaws) {
+      if (!r) continue;
+      push(normalize(r, lang));
+    }
+
+    if (target.relatedIds.length > 0) {
+      const missing = target.relatedIds.filter((rid) => !seen.has(rid));
+      if (missing.length > 0) {
+        const byIdsRaws = await cachedGetByIds(missing.join(','), lang);
+        for (const r of byIdsRaws) {
+          if (!r) continue;
+          push(normalize(r, lang));
+        }
+      }
+    }
+
+    // Overlay OE Discounts on every family member (target + siblings) —
+    // `loadProductById` doesn't route through `loadFullCatalog`'s cache,
+    // so the rules must be applied here too. Cross-request cached, cheap.
+    const rules = await loadProductDiscounts();
+    if (rules.length > 0) {
+      for (const p of family) {
+        const sp = applyProductDiscount(p, rules);
+        if (sp !== undefined) p.salePrice = sp;
+      }
+    }
 
     if (family.length === 1) return target;
 
@@ -599,6 +759,7 @@ export const loadProductById = withTiming('loadProductById', cache(
     }
     const variants: CatalogProductVariant[] = family.map((v) => ({
       id: v.id, colors: v.colors, sizes: v.sizes, price: v.price, sku: v.sku,
+      ...(v.salePrice !== undefined && { salePrice: v.salePrice }),
       preview: v.preview, images: v.images, stock: v.stock,
       statusIdentifier: v.statusIdentifier,
       descriptionHtml: v.descriptionHtml,
@@ -619,9 +780,13 @@ export const loadProductById = withTiming('loadProductById', cache(
 
 export const loadProductsByIds = withTiming('loadProductsByIds', cache(
   async (ids: number[], lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct[]> => {
-    const all = await loadFullCatalog(lang);
-    const set = new Set(ids);
-    return all.filter((p) => set.has(p.id));
+    if (ids.length === 0) return [];
+    const validIds = ids.filter((n) => Number.isFinite(n) && n > 0);
+    if (validIds.length === 0) return [];
+    // OE's batch endpoint is much cheaper than pulling the whole catalog
+    // just to filter it. Falls back to an empty list on error.
+    const raws = await cachedGetByIds(validIds.join(','), lang);
+    return raws.map((r) => normalize(r, lang));
   },
 ));
 
@@ -692,6 +857,7 @@ export async function searchProducts(
   // Enrich with full product details from the cached catalog (image, price,
   // brand, colors, sizes — none of which the quick endpoint returns).
   const catalog = await loadFullCatalog(lang);
+  if (catalog === null) return [];
   const byId = new Map(catalog.map((p) => [p.id, p]));
   const enriched: CatalogProduct[] = orderedIds.flatMap((id) => {
     const p = byId.get(id);
@@ -830,6 +996,9 @@ async function _loadFilteredProducts(
   }
 
   const fullCatalog = await loadFullCatalog(lang);
+  if (fullCatalog === null) {
+    return { total: 0, items: [], page, limit, fromCms: false };
+  }
   const byId = new Map(fullCatalog.map((p) => [p.id, p]));
   let all = fullCatalog;
 

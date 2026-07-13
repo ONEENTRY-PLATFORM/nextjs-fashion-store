@@ -2,7 +2,7 @@
 
 ## Overview
 
-The filter system lives on the **Women's Catalog page** (`/src/app/pages/WomenCatalogPage.tsx`) and its companion mobile component (`/src/app/components/MobileFilterPanel.tsx`). It is split into two distinct experiences: a **desktop horizontal filter bar** with mega-dropdown panels, and a **mobile full-screen accordion panel**. Both share the same filter state and the same `FILTER_GROUPS` data structure.
+The filter system lives inside the universal catalog engine **`CatalogTemplate`** (`/src/app/components/CatalogTemplate.tsx`) and its companion mobile component (`/src/app/components/MobileFilterPanel.tsx`). It is split into two distinct experiences: a **desktop horizontal filter bar** with mega-dropdown panels, and a **mobile full-screen accordion panel**. Both share the same filter state (Redux `catalogSlice`) and the same `FILTER_GROUPS` data structure.
 
 ---
 
@@ -37,8 +37,9 @@ Sticky offsets by breakpoint:
 
 A horizontally scrollable row of pill-shaped shortcut chips. Scrollbar is hidden (`scrollbar-hide`).
 
-**Chips available:**
-- Best Sellers · Dresses · Tops · Bottoms · Outerwear · Winter Outfits · Party Outfits
+**Chip source:** chips are no longer hardcoded in each page component. The RSC shell at `app/[...slug]/page.tsx` calls `loadFilterChips(entry.catalogKey, lang)` (`src/lib/oneentry/blocks/filter-chips.ts`), which fetches the OneEntry filter marker `filter_chips_<catalogKey>` (e.g. `filter_chips_men_bags`) and returns `FilterChip[] | null`. Each `FilterChip` carries `{ label, type: 'page' | 'attribute', url?, marker?, value? }`. Labels only are forwarded as `initialQuickChips?: string[]` to the catalog page component and into `CatalogTemplate` as `quickChips: string[]`. The chip list is therefore CMS-controlled and can differ per catalog without a code deploy.
+
+**Server-side filter effect:** when a chip is active, `app/[...slug]/page.tsx` calls `chipToFilterPatch(filters.chip, chips)` and merges the result into `CatalogFilters` before `loadFilteredProducts` runs. `type: 'page'` chips set `filters.category`; `type: 'attribute'` chips append their value to the matching list field (`materials`, `productDetails`, etc.) via `attributeMarkerToFilterField`.
 
 **Toggle behaviour:** clicking a chip toggles `activeChip` state. Only one chip can be active at a time; clicking the active chip deselects it.
 

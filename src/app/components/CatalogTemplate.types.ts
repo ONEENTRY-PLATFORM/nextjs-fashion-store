@@ -18,10 +18,9 @@ export interface FilterGroup {
   rangeUnit?: string;
 }
 
-export interface ChipFilter {
-  chip: string;
-  filter: (p: Product) => boolean;
-}
+/** Quick-filter chip label. Now a plain string — chips no longer carry a
+ *  per-page predicate. Kept as a named type for stable import sites. */
+export type ChipFilter = string;
 
 export interface BreadcrumbItem {
   label: string;
@@ -40,7 +39,7 @@ export interface CatalogTemplateProps {
   /** Products for the current page, already filtered server-side. */
   products: Product[];
   filterGroups: FilterGroup[];
-  quickChips: ChipFilter[];
+  quickChips: string[];
   accentColor: string;
   title: string;
   genderLabel: string;

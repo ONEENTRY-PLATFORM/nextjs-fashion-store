@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { CatalogTemplate } from '../app/components/CatalogTemplate';
-import type { FilterGroup, ChipFilter } from '../app/components/CatalogTemplate';
+import type { FilterGroup } from '../app/components/CatalogTemplate';
 import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT } from './mockData';
 import { ACCENT_WOMEN, ACCENT_MEN } from '../app/constants/colors';
 
@@ -35,11 +35,7 @@ const SAMPLE_FILTER_GROUPS: FilterGroup[] = [
   },
 ];
 
-const SAMPLE_QUICK_CHIPS: ChipFilter[] = [
-  { chip: 'All', filter: () => true },
-  { chip: 'Dresses', filter: (p) => p.clothingType === 'Dresses' },
-  { chip: 'On Sale', filter: (p) => !!p.salePrice },
-];
+const SAMPLE_QUICK_CHIPS: string[] = ['All', 'Dresses', 'On Sale'];
 
 const SAMPLE_PRODUCTS = [MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT];
 

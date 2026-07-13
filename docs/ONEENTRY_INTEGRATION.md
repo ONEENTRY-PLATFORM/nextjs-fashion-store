@@ -58,6 +58,9 @@ Optional:
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Enables the "Continue with Google" button. Full-page authorization-code flow: `getGoogleAuthUrlAction` builds the authorize URL from `AuthProvider.getAuthProviderByMarker('google').config.oauthAuthUrl` and the callback route `/auth/callback/google` calls `exchangeGoogleCodeAction`. Must match the OAuth client id in Google Cloud Console; the client secret lives inside the OneEntry provider config. |
+| `OE_PROFILE` | Set to `1` to enable loader timing capture. Each wrapped loader logs to stdout and pushes into the in-memory ring buffer. Off by default — zero overhead in production. |
+| `OE_PROFILE_SLOW_MS` | When `OE_PROFILE=1`, suppress stdout logs for calls faster than N ms (default `0` = log all). Does **not** affect the ring buffer — every call is recorded regardless. |
+| `PERF_DUMP_TOKEN` | Shared secret required by `GET /api/perf-dump`. The endpoint returns 401 for every request when this var is unset. Keep the value out of the client bundle (server-only). |
 
 Notes:
 
@@ -193,7 +196,7 @@ Client wrapper: `src/app/utils/track-activity.ts` — fire-and-forget, never thr
 
 Three files:
 
-- `submit.ts` — `submitForm(marker, fields, binding?, lang?)` Server Action. Calls `getApi().FormData.postFormsData({formIdentifier: marker, formModuleConfigId, moduleEntityIdentifier, replayTo: null, status: 'sent', formData: fields}, lang)`. `binding` is optional `{moduleConfigId?, moduleEntityIdentifier?}` and defaults to `{0, ''}`. When a form is bound to a page in the OE admin, both values must match one of the form's `moduleFormConfigs` entries — otherwise OE rejects with `Incorrect formIdentifier for provided config`. Find the pair via `getApi().Pages.getPageByUrl('<page>', lang)` → `page.moduleFormConfigs[N].id` (the numeric `moduleConfigId`) and `page.moduleFormConfigs[N].entityIdentifiers[0].id` (the `moduleEntityIdentifier`, usually the page's `pageUrl`). Returns `{ok:true}` or `{ok:false, error}`.
+- `submit.ts` — `submitForm(marker, fields, binding?, lang?)` Server Action. Calls `getApi().FormData.postFormsData({formIdentifier: marker, formModuleConfigId, moduleEntityIdentifier, replayTo: null, status: 'sent', formData: fields}, lang)`. `binding` is optional `{moduleConfigId?, moduleEntityIdentifier?}` and defaults to `{0, ''}`. When a form is bound to a page in the OE admin, both values must match one of the form's `moduleFormConfigs` entries — otherwise OE rejects with `Incorrect formIdentifier for provided config`. Find the pair via `getApi().Pages.getPageByUrl('<page>', lang)` → `page.moduleFormConfigs[N].id` (the numeric `moduleConfigId`) and `page.moduleFormConfigs[N].entityIdentifiers[0].id` (the `moduleEntityIdentifier`, usually the page's `pageUrl`). Returns `{ok:true}` or `{ok:false, error}`. `FormField.value` accepts `string | string[]` — OE `list` attributes (e.g. `occasions`) are passed as a `string[]` of marker values; the wire cast mirrors the existing sign-up action pattern.
 - `placeholders.ts` — `loadFormPlaceholders(marker, lang)` cached loader (5 min TTL, dedupes inflight). Reads placeholders from `Forms.getFormByMarker` and returns a nested map `attribute → additionalField → string`.
 - `FormPlaceholdersContext.tsx` — client-side `FormPlaceholdersProvider` + `useFormPlaceholder(formMarker, attrMarker, fieldMarker, fallback)` hook.
 
@@ -202,7 +205,7 @@ Three files:
 | Consumer | Form marker | Page binding (`moduleConfigId` / `moduleEntityIdentifier`) | Fields |
 |---|---|---|---|
 | `NewsletterForm.tsx` | `subscribe_new_drops` | `52` / `'subscribe'` | `subscribe_new_drops_email` |
-| `WriteReviewModal.tsx` (PDP) | `review_rating` + `review_feedback` (two calls in sequence) | — (unbound) | `rating` (rating form); `headline`, `body`, `name`, `email`, `occasions` (feedback form) |
+| `WriteReviewModal.tsx` (PDP) | `review_rating` + `review_feedback` (two calls in sequence) | — (unbound) | `rating` (`review_rating` form, type `integer`); `body` (text), `occasions` (list — `string[]` of OE marker values: `everyday \| work \| party \| travel \| sport`), `add_media` (groupOfImages, UI present but file upload is a follow-up) (`review_feedback` form). `headline`, `name`, `email` removed — no longer in the OE schema. |
 | `ReserveInStoreModal.tsx` (PDP) | `reserve_in_store` | — (unbound) | `size`, `first_name`, `last_name`, `phone`, `email`, `pickup_date`, `agreed_terms`, `reserve_in_store_form_select_store` |
 | `FeedbackSection.tsx` (Account) | `user_account_feedback` (planned — currently local-only in UI) | — | rating, category, orderId, message |
 
@@ -231,21 +234,23 @@ All loaders wrap the SDK. Most add React `cache()` for request-scoped deduplicat
 | `category-section.ts` | `category_section` | `loadCategorySection(lang)` | Home "Shop by Category" tabs |
 | `page-blocks.ts` | Any page id | `loadPageBlocksById`, `loadBlockWithProducts`, `loadFrequentlyOrderedBlock`, `getCachedTrending` + `PageBlock` type + constant `HOME_PAGE_ID = 1` (used by the homepage RSC shell). Home-page `similar_products_block` markers `homepage_new_arrivals` / `homepage_best_sellers` / `homepage_sale` have no seed product for OE's similarity engine, so `loadBlockWithProducts` falls back through `loadHomepageBlockFallback` to `loadProducts({ tags: ['NEW' | 'BESTSELLER' | 'SALE'] })`; unknown markers stay empty (block hides silently). Blocks of type `trending_block` are routed through `getCachedTrending`, which calls `getApi().Blocks.getTrending(marker, lang)` — `getBlockByMarker` does not inline products for trending blocks and cannot be used for this type. Product normalisation is identical to the standard path afterwards. | PDP "You may also like", PDP "Special Offers" (`bought_together`), homepage `pageBlocks`, account tab blocks, catalog `catalog_trend_blocks` trending slot |
 | `clothing-filter.ts` | `clothing` filter marker | `loadClothingFilter(products, lang)` | `CatalogTemplate` — normalises OE filter attribute metadata into the UI `ClothingFilterGroup[]` shape (color / size_chips / checkbox / price_range / search_checkbox), maps OE color names to hex via `OE_COLOR_HEX`, computes per-option counts against the current product page |
+| `filter-chips.ts` | `filter_chips_<catalogKey>` (e.g. `filter_chips_men_bags`) | `loadFilterChips(catalogKey, lang)` → `FilterChip[] | null`. Exports `FilterChip = { label, type: 'page' | 'attribute', url?, marker?, value? }`, `chipToFilterPatch(label, chips)` (returns `{ category }` for page-type chips or `{ attributeField, attributeValue }` for attribute-type chips), and the private `attributeMarkerToFilterField` helper (OE marker root → `CatalogFilters` field). | `app/[...slug]/page.tsx` — labels mapped to `initialQuickChips: string[]` for the UI; `chipToFilterPatch` used server-side to merge the active chip's effect into `CatalogFilters` before `loadFilteredProducts` is called |
 
 Block types actually consumed on the PDP:
 
-- `frequently_ordered_block` (marker `pdp_you_may_also_like`) — stats-driven cross-sell. `FrequentlyOrderedAsync` backfills with category shelf products when the block returns fewer than 8 items, walking up the category tree and de-duping by product id + gender.
+- `frequently_ordered_block` (marker `pdp_you_may_also_like`) — stats-driven cross-sell. `FrequentlyOrderedAsync` renders whatever OE returns and hides (returns `null`) when the block is empty; no category-tree backfill is performed. The underlying `getFrequentlyOrderedDedup` call is raced against a 2 000 ms timeout; on timeout the loader resolves to `null` (PDP streams without recommendations). The abandoned OE fetch still populates `unstable_cache` for future requests.
 - `bought_together` (marker `special_offers`) — manually curated bundle set. Rendered by `ProductSpecialOffers`.
 
 ### 5.2 Catalog (`src/lib/oneentry/catalog/`)
 
 | File | SDK / endpoint | Exports |
 |---|---|---|
-| `products.ts` (833 loc) | `POST /products/all`, `POST /products/vector/search`, `POST /products/quick/search` | `loadProducts`, `loadProductById`, `loadProductsByIds`, `searchProducts` (+ alias `searchProductsByVector`), `loadFilteredProducts` (filter-body variant used by `app/[...slug]/page.tsx`), plus pure helpers `categoryPathToBreadcrumbs(path)` and `catalogKeyToPageUrl(catalogKey)`. Exports 6 types (`CatalogProduct`, `CatalogProductVariant`, `LoadProductsOptions`, `LoadProductsResult`, `LoadFilteredProductsOptions`, `LoadFilteredProductsResult`). |
+| `products.ts` | `POST /products/all`, `POST /products/vector/search`, `POST /products/quick/search`; `GET /products/{id}`, `GET /products/{id}/related`, `GET /products/ids/{csv}` (PDP targeted path) | `loadProducts`, `loadProductById`, `loadProductsByIds`, `searchProducts` (+ alias `searchProductsByVector`), `loadFilteredProducts` (filter-body variant used by `app/[...slug]/page.tsx`), plus pure helpers `categoryPathToBreadcrumbs(path)` and `catalogKeyToPageUrl(catalogKey)`. Exports 6 types (`CatalogProduct`, `CatalogProductVariant`, `LoadProductsOptions`, `LoadProductsResult`, `LoadFilteredProductsOptions`, `LoadFilteredProductsResult`). **PDP cache detail:** `loadProductById` and `loadProductsByIds` no longer call `loadFullCatalog`; they use three internal `unstable_cache`-wrapped fetchers (`cachedGetProductById`, `cachedGetRelated`, `cachedGetByIds`) each tagged `oe-products` with `REVALIDATE_PRODUCT` TTL. `loadFullCatalog` is still used by `loadProducts` / `loadFilteredProducts` / `searchProducts` for the catalog grid and search enrichment. **Error-hardening:** `fetchFullCatalog` is wrapped in try/catch with a null-guard on the OE response; `loadFullCatalog` returns `Promise<CatalogProduct[] | null>` — `null` signals an OE outage/error (not cached, next request retries), `[]` signals a successfully empty catalog. When null is returned, `loadProducts` and `loadFilteredProducts` emit `{ total: 0, items: [], fromCms: false }` instead of masking the failure as an OE-sourced empty result. |
 | `pages.ts` | `Pages.getPageByUrl(pageMarker, lang)` | `loadPageByUrl` — **exported but not currently consumed by any RSC or component** (dead code, retained for future info-page CMS wiring; today `InfoPage` reads from local `INFO_PAGE_LABELS` instead) |
 | `stores.ts` | `Pages.getChildPagesByParentUrl('stores', lang)` | `loadStores` |
 | `store-locations-page.ts` | `Pages` raw list | `loadStoreLocationsPage` |
-| `reviews.ts` | Form-data for markers `review_feedback` (moduleConfigId=13) and `review_rating` (moduleConfigId=12) | `loadProductReviews` |
+| `reviews.ts` | Form-data for markers `review_feedback` (moduleConfigId=13) and `review_rating` (moduleConfigId=12) | `loadProductReviews` — the inner `Promise.all` is raced against a 2 000 ms timeout; on timeout returns `[]` (no reviews rendered for that request). Abandoned fetches still populate `unstable_cache` for future requests. |
+| `reviews-actions.ts` | Wraps `loadProductReviews` | `getProductReviewSummary(productId: number)` — `'use server'` action that returns `{ count: number; avg: number \| null }`. Aggregates the full review list server-side so only the summary (not every review object) is serialised to the client. Consumed by `QuickViewModal` on modal open. |
 | `filters.ts` | Pure module — URL ↔ OE filter payload | Attribute markers: `color_9`, `size_10`, `brand_7`, `style_3`, `material_15`, `season_19`, `fitrise_4`, `lining_16`, `country_20`, `lable_23`, `details_5`, `careinstructions_18`, `insulation_17`, `price_14`. Exports: `parseCatalogSearchParams`, `serializeCatalogSearchParams`, `isFilterGroupSupported`, `toggleFilterOption`, `getSelectedOptionsForGroup`, `countActiveFilters`. `matchesCatalogFilters` is a private in-memory matcher used by `loadFilteredProducts` (not exported). ⚠ **`buildOEFilterBody` is exported but has 0 consumers** — dead code left over from an earlier attempt to push the filter payload to OneEntry. |
 | `adapt.ts` | Pure — maps `ProductEntity` → UI `Product` | Shared by every product consumer |
 
@@ -284,17 +289,61 @@ Each label loader uses `system-text.ts::getSystemSet(marker, lang)` → 5 min TT
 
 `loadFormPlaceholders(marker, lang)` returns a nested map `attribute → additionalField → string`. Consumed by `FormPlaceholdersContext` and shared by all form components.
 
+### 5.5a Delivery method copy (`src/lib/oneentry/checkout/delivery-methods.ts`)
+
+`loadDeliveryMethodInfo(lang?)` fetches `Forms.getFormByMarker('checkout_home_delivery', lang)`, reads the `delivery_method` attribute, and returns a `DeliveryMethodInfo` object:
+
+```ts
+interface DeliveryMethodInfo {
+  home:   { title: string; subtitle: string; perks: string[] };
+  store:  { title: string; subtitle: string; perks: string[] };
+  locker: { title: string; subtitle: string; pinHint: string };
+}
+```
+
+Titles/subtitles come from `listTitles[value=courier|pickup|locker].title` and `.extended.value`. Perks come from `additionalFields` keyed by `home_free_delivery`, `home_partial_purchase`, `home_in-home-fitting`, `store_pickup_free`, `store_pickup_partial_purchase`, `store_pickup_fitting_room`. The locker PIN hint uses `additionalFields.locaer_text` (admin-panel typo, preserved as-is).
+
+Cached with `unstable_cache` (key `oe-delivery-method-info`, tag `oe-forms`, TTL `REVALIDATE_STORES`). Any OE error or SDK failure returns a typed `FALLBACK` built from the local literal constants in `checkoutLabels.ts` and `checkoutConfig.ts`. Call `revalidateTag('oe-forms')` to flush on content changes.
+
+The accompanying client module `src/lib/oneentry/checkout/DeliveryMethodInfoContext.tsx` exports `DeliveryMethodInfoProvider` and `useDeliveryMethodInfo(): DeliveryMethodInfo | null`. The hook returns `null` when no provider is mounted (Storybook / unit tests), letting each method component fall back to its local labels.
+
 ### 5.6 System text (`src/lib/oneentry/system-text.ts` + `SystemText.tsx`)
 
 Exports: `Lang` type (currently `'en_US'`), `SystemSchema` type, `readSystemValue(set, path)` (untyped accessor), `getSystemSet(marker, lang)` (cached attribute-set loader — 5-minute TTL + React cache), `t(set, path)` (dot-path accessor with safe fallback), plus `<SystemText>` RSC component in `SystemText.tsx` that renders a label directly.
 
 ### 5.7 Discounts (`src/lib/oneentry/discounts/`)
 
-| File | Marker | Loader | Consumer |
+| File | Marker / filter | Loader | Consumer |
 |---|---|---|---|
 | `purchase-bonus.ts` | `purchase-of-goods` | `loadPurchaseBonusForProduct(oeProduct)` | `app/product/[id]/page.tsx` → `ProductDetailPage` |
+| `product-discount.ts` | `type: DISCOUNT`, `applicability: TO_PRODUCT` (all active rules) | `loadProductDiscounts()` / `applyProductDiscount(product, rules)` | `catalog/products.ts` — `fetchFullCatalog` and `loadProductById` |
 
 `loadPurchaseBonusForProduct` calls `getApi().Discounts.getDiscountByMarker('purchase-of-goods', DEFAULT_LOCALE)`, wrapped in `unstable_cache` with the `REVALIDATE_CATALOG` TTL and tag `oe-discounts`. The function checks the discount's `startDate`/`endDate` window, matches PRODUCT and CATEGORY conditions against the provided OE product (by `id` and `categories`), and computes the accrual: `PERCENT` rule → `Math.round(price * percent / 100)`; `FIXED_AMOUNT` rule → the fixed value. Cart-scoped conditions (`MIN_CART_AMOUNT`, `USER_LTV`) are intentionally ignored for the PDP badge. Returns `{ points: number }` when the discount applies to the product, or `null` otherwise.
+
+**`product-discount.ts` — storefront-level `salePrice` overlay**
+
+`loadProductDiscounts()` pages through `getApi().Discounts.getAllDiscounts(lang, offset, 200, 'DISCOUNT')`, then filters to rules where `type = DISCOUNT`, `applicability = TO_PRODUCT`, the current date falls within `startDate`/`endDate`, and at least one condition is of kind `PRODUCT`, `CATEGORY`, or `ATTRIBUTE`. The trimmed rule list is wrapped in `unstable_cache` (key `oe-product-discounts`, TTL `REVALIDATE_CATALOG`, tag `oe-discounts`) and wrapped with `withTiming('loadProductDiscounts', ...)`. Cart-scoped and user-scoped conditions (`MIN_CART_AMOUNT`, `PRODUCT_IN_CART`, `USER_LTV`, etc.) are intentionally excluded — they require cart/session context that is only available at checkout via `previewOrder`.
+
+**ATTRIBUTE conditions.** When a rule's condition kind is `ATTRIBUTE`, `ruleAppliesTo` resolves the attribute marker from `condition.entityIds[0].id`, then looks up the corresponding value in `product.discountAttributes` (a `Record<string, string>` populated during `normalize()` from every OE attribute whose marker starts with `discount_` or equals `discount`). Values are stored with any trailing `%` and surrounding whitespace stripped, so `discountAttributes` holds `"10"` rather than `"10%"` — the same bare numeric string that OE rule `ATTRIBUTE.value.value` conditions carry. The comparison operator comes from `condition.operator`; supported operators are `eq`, `neq`/`ne`, `gt`, `gte`/`ge`, `lt`, `lte`/`le`, `lke`/`like`/`contains`, `exs`/`exists`, `nex`/`nexs`/`not_exists`; unknown operators fall back to `eq`. Comparisons are case-insensitive string form. When a rule mixes multiple condition kinds, the `conditionLogic` field (`AND` | `OR`, default `OR`) controls how they are combined.
+
+`applyProductDiscount(product, rules)` iterates the loaded rule set and returns the lowest resulting price that is strictly below `product.price`, or `undefined` when nothing applies. Rules do **not** stack — best-for-shopper (lowest resulting price) wins. `PERCENT` and `FIXED_AMOUNT` discount types are supported; an optional `maxAmount` cap limits the absolute reduction. The returned value is rounded to two decimal places.
+
+**Condition evaluation split — storefront vs checkout**
+
+| Condition kind | Where evaluated | Notes |
+|---|---|---|
+| `PRODUCT` (product id match) | Storefront — `loadProductDiscounts` + `applyProductDiscount` | Applied per product at catalog load time |
+| `CATEGORY` (category path / marker match) | Storefront — `loadProductDiscounts` + `applyProductDiscount` | Matched against `CatalogProduct.categories[]` |
+| `ATTRIBUTE` (OE attribute value match) | Storefront — `loadProductDiscounts` + `applyProductDiscount` | Matched against `CatalogProduct.discountAttributes`; e.g. `discount_12` / `discount_13` values gate `off_N` rules |
+| `MIN_CART_AMOUNT`, `PRODUCT_IN_CART`, `USER_LTV`, `TO_ORDER` rules | Checkout — `previewOrder` / `createOrderAction` | Cart and user context required; not evaluated storefront-side |
+
+**`fetchFullCatalog` integration.** After normalising each `CatalogProduct`, `fetchFullCatalog` calls `loadProductDiscounts()` once and iterates every product through `applyProductDiscount`. The rules are cached cross-request (same 60 s TTL as the catalog list); the overlay adds negligible overhead even against a 2000-row dump.
+
+**`loadProductById` integration.** `loadProductById` does not route through `fetchFullCatalog`, so the rules are applied independently: after collecting the product family (target + related siblings), it calls `loadProductDiscounts()` and applies `applyProductDiscount` to each family member. `salePrice` is forwarded into the `variants[]` slim descriptors when set.
+
+**`adapt.ts` forwarding rules.** Both `adaptCatalogProductToUiProduct` (catalog grid) and `adaptCatalogProductToPdpProduct` (PDP) forward `salePrice` only when it is strictly below the original price. `adaptCatalogProductToUiProduct` formats the value via `formatPrice` (matching the `price` string field); `adaptCatalogProductToPdpProduct` forwards the raw number.
+
+`adaptCatalogProductToUiProduct` also propagates `statusIdentifier` from `CatalogProduct` onto the UI `Product`, and from each `CatalogProductVariant` onto the corresponding UI `ProductVariant`. An optional-spread pattern is used so the field is omitted entirely when OE does not populate it. This allows `QuickViewModal` (and any other consumer of the catalog-adapted shape) to render the full four-way availability label (`in_stock` / `out_of_stock` / `coming_soon` / `preorder`) rather than a binary in/out flag.
 
 ---
 
@@ -336,13 +385,16 @@ Every marker referenced in the codebase. Grouped by domain.
 - Mandatory: `gallery` / `pictures`, `brand`, `colors` / `color`, `sizes` / `size`, `material`, `style`, `label` / `lable`, `season`, `brand_country` / `country`, `price`, `sku`, `title`, `currency`
 - Optional: `fit` / `fitrise`, `lining_material` / `lining`, `insulation`, `details`, `careinstructions`, `stockqty` / `units`, `description` / `productdescription`
 
+  > **Stock reconciliation (`stockqty` / `units`):** OE tenants split inventory across two markers and neither is authoritative on every tenant (e.g. `stockqty=0, units=2` is valid seed data). The `normalize` function resolves this with `Math.max(asNumber(stockqty), asNumber(units))` so a non-zero reading in either field wins. A plain `||` fallback was previously used, but `'0'` is truthy in JS, causing `stockqty=0` to mask a valid `units=2`. The resolved numeric value is forwarded into `CatalogProduct.stock` and `PdpProductVariant.stock`; `adaptCatalogProductToPdpProduct` omits the field entirely when the resolved value is `0` (signals status-only tracking, not zero inventory).
+
 Filter body markers (URL param ↔ marker in `src/lib/oneentry/catalog/filters.ts`): `color_9`, `size_10`, `brand_7`, `style_3`, `material_15`, `season_19`, `fitrise_4`, `lining_16`, `country_20`, `lable_23`, `details_5`, `careinstructions_18`, `insulation_17`, `price_14`.
 
 ### 7.6 Forms
 - Auth: `signin`
 - Reviews: `review_feedback` (moduleConfigId=13), `review_rating` (moduleConfigId=12)
 - Service: `service_request` (moduleConfigId=4)
-- Checkout: `checkout_home_delivery`, `checkout_store_pickup`, `checkout_locker` (+ `_guest` variants)
+- Checkout order forms: `checkout_home_delivery`, `checkout_store_pickup`, `checkout_locker` (+ `_guest` variants) — used as `formIdentifier` in `createOrderAction`
+- Checkout delivery copy: `checkout_home_delivery` is **also** read by `loadDeliveryMethodInfo()` via `Forms.getFormByMarker` to populate the delivery-picker radio card titles, subtitles, perks, and locker PIN hint. The `delivery_method` attribute's `listTitles` (values `courier`, `pickup`, `locker`) and `additionalFields` keys (`home_free_delivery`, `home_partial_purchase`, `home_in-home-fitting`, `store_pickup_free`, `store_pickup_partial_purchase`, `store_pickup_fitting_room`, `locaer_text`) carry the editable copy.
 
 ### 7.7 Orders storage
 - `home`, `store_pickup`, `locker` — passed as `{storage}` in `POST /orders-storage/marker/{storage}/orders`
@@ -427,21 +479,40 @@ Legacy hook — logs `console.warn` + dispatches a `CustomEvent('oe:sync-warning
 ## 10. Caching / revalidation
 
 - **React `cache()`** — most read loaders wrap their work in `cache()` so multiple RSCs on the same request share a single fetch.
-- **`unstable_cache` (persistent cross-request)** — `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection` (tag `oe-block`, TTL `REVALIDATE_HOME`) and `loadStores` (tag `oe-stores`, TTL `REVALIDATE_STORES`) use Next.js `unstable_cache` so their responses survive across requests within the ISR window. Call `revalidateTag('oe-block')` or `revalidateTag('oe-stores')` from an OE webhook route to purge them on demand.
-- **Process-wide TTL** — high-traffic reads (attribute sets, product lists) additionally memoise with a 5-minute TTL keyed by `(marker, lang)` inside `system-text.ts` and `catalog/products.ts`.
+- **`unstable_cache` (persistent cross-request)** — `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection` (tag `oe-block`, TTL `REVALIDATE_HOME`), `loadStores` (tag `oe-stores`, TTL `REVALIDATE_STORES`), and `loadDeliveryMethodInfo` (tag `oe-forms`, TTL `REVALIDATE_STORES`) use Next.js `unstable_cache` so their responses survive across requests within the ISR window. `loadProductReviews` also uses `unstable_cache` at the inner `cachedFetchFormData` layer (tag `oe-reviews`, TTL `REVALIDATE_HOME`) so form-data for the `review_feedback` / `review_rating` markers is shared across concurrent PDP renders rather than re-fetched per request. Call `revalidateTag('oe-block')`, `revalidateTag('oe-stores')`, `revalidateTag('oe-forms')`, or `revalidateTag('oe-reviews')` from an OE webhook route to purge on demand.
+- **Process-wide TTL / in-flight dedup** — high-traffic reads (attribute sets, product lists) additionally memoise with a 5-minute TTL keyed by `(marker, lang)` inside `system-text.ts` and `catalog/products.ts`. `getCachedFrequentlyOrdered` (in `blocks/page-blocks.ts`) goes one step further: a `Map` pinned to `globalThis.__oneentryFrequentlyOrderedInflight__` deduplicates concurrent cold misses on the same `(marker, productId, lang)` key so only one OE call fires at a time — the same pattern as `fullCatalogInflight` in `catalog/products.ts`. The `globalThis` pin is required because Next.js bundle splitting would otherwise give each server bundle its own private map.
 - **Next.js ISR** — `src/lib/isr.ts` exports revalidate constants via a `ttl(envKey, fallback)` helper. These constants are consumed **only** by `unstable_cache`-wrapped loader functions; they are not imported by route shells. Route-shell `export const revalidate` must be a statically-analysable literal — importing a computed value causes Next.js to throw "Invalid segment configuration export detected" and abort the build. The three ISR route shells therefore declare plain numeric literals: `app/page.tsx` → `300`, `app/product/[id]/page.tsx` → `120`, `app/[...slug]/page.tsx` → `60`. The `ISR_*_TTL_SEC` env vars tune only the loader-level `unstable_cache` TTLs, not the route-shell revalidate windows. Set `ISR_DISABLED=1` to collapse all loader TTLs to 1 s (has no effect on route-shell literals).
+
+  **Next.js 16 gotcha — `generateStaticParams` required for ISR on dynamic segments.** A route with a `[param]` segment that does not export `generateStaticParams` is classified as fully dynamic regardless of `revalidate`: the value is silently ignored and every request re-SSRs. `app/product/[id]/page.tsx` exports `export async function generateStaticParams() { return []; }` alongside `revalidate = 120`; together they enable on-demand ISR — the first request for a given `id` generates and caches the HTML, all subsequent requests within the 120 s window are served from the Next.js Data Cache. The empty array means no ids are pre-built at deploy time. This export is load-bearing — removing it reverts the route to fully dynamic even though `revalidate` is still present.
 
   | Constant | Default TTL | Env override | Loader consumers | Route-shell literal |
   |---|---|---|---|---|
   | `REVALIDATE_HOME` | 300 s | `ISR_HOME_TTL_SEC` | `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection` | `app/page.tsx` → `300` |
   | `REVALIDATE_PRODUCT` | 120 s | `ISR_PRODUCT_TTL_SEC` | PDP loaders | `app/product/[id]/page.tsx` → `120` |
-  | `REVALIDATE_CATALOG` | 60 s | `ISR_CATALOG_TTL_SEC` | `cachedProductList`, `loadPurchaseBonusForProduct` | `app/[...slug]/page.tsx` → `60` |
+  | `REVALIDATE_CATALOG` | 60 s | `ISR_CATALOG_TTL_SEC` | `cachedProductList`, `loadPurchaseBonusForProduct`, `loadProductDiscounts` | `app/[...slug]/page.tsx` → `60` |
   | `REVALIDATE_SALE` | 60 s | `ISR_SALE_TTL_SEC` | `/sale` loaders | — (`force-dynamic`) |
   | `REVALIDATE_NEW` | 600 s | `ISR_NEW_TTL_SEC` | `/new` loaders | — (`force-dynamic`) |
   | `REVALIDATE_STORES` | 3600 s | `ISR_STORES_TTL_SEC` | `loadStores` | `app/stores/page.tsx` → `3600` (literal) |
   | `REVALIDATE_INFO` | 3600 s | `ISR_INFO_TTL_SEC` | info-page loaders | shared via `app/[...slug]/page.tsx` literal |
 
-- **Loader profiling** — `src/lib/oneentry/profiling.ts` exports `withTiming(name, fn)`. Disabled by default (returns `fn` unchanged, zero production overhead). Enable with `OE_PROFILE=1`; each wrapped call then logs `[OE-timing] <name> ok <ms>ms` or `[OE-timing] <name> FAIL <ms>ms` to stdout (visible in Vercel Logs). Set `OE_PROFILE_SLOW_MS=N` to suppress logs for calls faster than N ms — useful for isolating genuine cache misses during a scripted browse (playwright / k6). Wrapped loaders: `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`, `loadStores`, `loadProducts`, `loadProductById`, `loadProductsByIds`, `loadFilteredProducts`, `loadProductReviews`, `loadBlockWithProducts`, `loadPageBlocksById`, `loadFrequentlyOrderedBlock`, `loadHomepageProductBlock`, `loadPurchaseBonusForProduct`.
+- **Loader profiling** — `src/lib/oneentry/profiling.ts` exports `withTiming(name, fn)`. Disabled by default (returns `fn` unchanged, zero production overhead). Enable with `OE_PROFILE=1`; each wrapped call then logs `[OE-timing] <name> ok <ms>ms` or `[OE-timing] <name> FAIL <ms>ms` to stdout (visible in Vercel Logs / container stdout) **and** pushes a `TimingRecord` into a 5000-entry in-memory ring buffer. Set `OE_PROFILE_SLOW_MS=N` to suppress stdout logs for calls faster than N ms — useful for isolating genuine cache misses during a scripted browse (playwright / k6). The ring buffer is always written to regardless of `OE_PROFILE_SLOW_MS`; it can be inspected at any time via `GET /api/perf-dump` without requiring shell access to the container or a live log stream. Ring-buffer state lives on `globalThis.__oneentryTimingRing__` rather than module scope, so the SSR bundles and the `/api/perf-dump` route handler share one instance across Next.js bundle splitting and `next dev` HMR reloads. Wrapped loaders: `loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`, `loadStores`, `loadProducts`, `loadProductById`, `loadProductsByIds`, `loadFilteredProducts`, `loadProductReviews`, `loadBlockWithProducts`, `loadPageBlocksById`, `loadFrequentlyOrderedBlock`, `loadHomepageProductBlock`, `loadPurchaseBonusForProduct`, `loadProductDiscounts`.
+
+  **`GET /api/perf-dump` — ops endpoint** (see `app/api/perf-dump/route.ts`). Requires `Authorization: Bearer <PERF_DUMP_TOKEN>`. Returns 409 when `OE_PROFILE≠1`. `dynamic = 'force-dynamic'` + `runtime = 'nodejs'` — never cached.
+
+  ```bash
+  # Aggregated view — one row per loader, sorted by p95 desc
+  curl -H "Authorization: Bearer $PERF_DUMP_TOKEN" \
+       https://<host>/api/perf-dump
+
+  # Raw record list — every captured call in insertion order (up to 5000)
+  curl -H "Authorization: Bearer $PERF_DUMP_TOKEN" \
+       "https://<host>/api/perf-dump?raw=1"
+
+  # Reset the buffer before a fresh load-test run
+  curl -X DELETE \
+       -H "Authorization: Bearer $PERF_DUMP_TOKEN" \
+       https://<host>/api/perf-dump
+  ```
 
 - **RTK Query tag invalidation** — `cartApi` / `wishlistApi` still declare `['Cart']` / `['Wishlist']` tags, but with the sync path having moved to Server Actions their query hooks are effectively unused.
 - **`localStorage`** — `oe_store` v5 persists client-only Redux slices (cart minus `miniCartOpen`, wishlist, recentlyViewed, catalog). Auth tokens are **never** written to `localStorage`.
@@ -460,6 +531,7 @@ Under `src/lib/oneentry/` (100+ files including tests). Top-level:
 - `blocks/*.ts` (6 loaders + tests)
 - `catalog/*.ts` (~14 files — see §5.2)
 - `forms/*.ts` (3 files — placeholders, submit, context)
+- `checkout/delivery-methods.ts` + `checkout/DeliveryMethodInfoContext.tsx` — delivery-picker copy loader and client context
 - `labels/*.ts` (12 pairs of loader/types + 12 contexts + tests)
 - `menus/*.ts` (menu loader, header adapter, footer adapter, 2 contexts)
 - `payments/accounts.ts`

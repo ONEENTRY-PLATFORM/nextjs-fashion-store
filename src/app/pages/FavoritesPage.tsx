@@ -103,8 +103,14 @@ export function FavoritesPage({
     if (!g || g === 'U') return true;
     return g === preferredGender;
   };
-  const RECOMMENDATION_PRODUCTS_SCOPED = recommended.filter(matchesPreferredGender);
-  const TRENDING_PRODUCTS_SCOPED = trending.filter(matchesPreferredGender);
+  // Gender-scoped filtering only kicks in after mount — `preferredGender` is
+  // computed from client-only state (Redux Recently-Viewed hydrates from
+  // localStorage, auth resolves via async bootstrap), so applying it during
+  // SSR / the first client render would swap product tiles between the two
+  // passes and trip React's hydration mismatch warning. Same shape either
+  // way so the empty-first-paint doesn't jump.
+  const RECOMMENDATION_PRODUCTS_SCOPED = mounted ? recommended.filter(matchesPreferredGender) : recommended;
+  const TRENDING_PRODUCTS_SCOPED       = mounted ? trending.filter(matchesPreferredGender)    : trending;
 
   const handleMoveAllToCart = () => {
     items.filter(i => i.inStock).forEach(item => {

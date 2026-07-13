@@ -17,7 +17,30 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
   const mainRef = useRef<HTMLDivElement>(null);
   const lZoomHint = useProductCardT('product-card-click_to_zoom', PRODUCT_GALLERY_LABELS.zoomHint);
 
-  if (safeImages.length === 0) return null;
+  // No usable pictures on the variant AND no fallback wired up upstream —
+  // render the same bag placeholder the catalog card uses, in the same
+  // aspect ratio, so the PDP doesn't leave a blank column where the gallery
+  // should be. Matches the shopper's mental model ("I saw this tile in the
+  // catalog with a placeholder, PDP looks the same"). No thumbnails/controls
+  // because there's nothing to switch between.
+  if (safeImages.length === 0) {
+    return (
+      <div className="flex flex-col lg:flex-row gap-3 w-full">
+        <div className="flex-1 relative">
+          <div className="relative overflow-hidden aspect-[3/4] bg-[#f2f1ef] flex items-center justify-center">
+            <Image
+              src="/icons/ui/bag-placeholder.svg"
+              alt={productName}
+              width={80}
+              height={80}
+              unoptimized
+              className="opacity-70"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
   const safeSelected = Math.min(selected, safeImages.length - 1);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {

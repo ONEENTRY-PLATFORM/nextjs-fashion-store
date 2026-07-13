@@ -13,7 +13,6 @@ import { loadPdpSystemTexts } from '../../../src/lib/oneentry/labels/pdp-labels'
 import { PdpLabelsProvider } from '../../../src/lib/oneentry/labels/PdpLabelsContext';
 import { loadProductById, categoryPathToBreadcrumbs, categoryPathToViewAllHref } from '../../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToPdpProduct } from '../../../src/lib/oneentry/catalog/adapt';
-import { loadProductReviews } from '../../../src/lib/oneentry/catalog/reviews';
 import { loadPurchaseBonusForProduct } from '../../../src/lib/oneentry/discounts/purchase-bonus';
 import { ReviewsAsync } from '../../../src/app/pages/product/ReviewsAsync';
 import { ReviewsSkeleton } from '../../../src/app/pages/product/ReviewsSkeleton';
@@ -109,21 +108,41 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // computed values with "Invalid segment configuration export detected".
 export const revalidate = 120;
 
+// Next.js 16: routes with a dynamic segment (`[id]`) that don't declare
+// `generateStaticParams` are treated as fully dynamic — `revalidate` above is
+// silently ignored and every request re-SSRs. Returning `[]` here tells the
+// framework "no build-time prerendering, but still opt into on-demand ISR" —
+// the first request per id generates + caches, subsequent hits within the
+// revalidate window get an instant Next.js Data Cache hit. Add popular ids
+// (e.g. top-100 by traffic) later if we want them warm at deploy time.
+export async function generateStaticParams() {
+  return [];
+}
+
 export default async function Page({ params }: Props) {
   const { id } = await params;
   const numericId = /^\d+$/.test(id) ? Number(id) : null;
-  const oeProductRaw = numericId !== null ? await loadProductById(numericId) : null;
-  // Pre-seed the title-row reviews summary (stars + "(N reviews)") from OE.
-  // The full reviews block lower on the page streams in via `<ReviewsAsync>`,
-  // but it lives below the fold — the summary near the title needs the
-  // counts on initial render.
-  const initialReviews = numericId !== null ? await loadProductReviews(numericId, 50) : [];
+  // Load the product and the system-text bundle in parallel. Previously these
+  // were three sequential `await`s that summed into TTFB; now the max of two
+  // parallel calls sets the floor. `loadPurchaseBonusForProduct` still waits
+  // on the product (it reads the id / price / categories) so it kicks off
+  // right after the first await resolves — small penalty vs. the win of
+  // batching the two big independent calls together.
+  const [oeProductRaw, pdpLabels] = await Promise.all([
+    numericId !== null ? loadProductById(numericId) : Promise.resolve(null),
+    loadPdpSystemTexts(),
+  ]);
   // Purchase-bonus badge: shown only when the OE `purchase-of-goods` rule
   // applies to this product. Loaded server-side so the block is either
   // rendered with the computed points or omitted entirely.
   const purchaseBonus = oeProductRaw ? await loadPurchaseBonusForProduct(oeProductRaw) : null;
+  // Reviews used to be pre-seeded here with a sync `loadProductReviews(50)`
+  // for the sub-title stars + "(N reviews)" hint, but that added a whole OE
+  // form-data round-trip to TTFB. Now the sub-title stars start at 0 on the
+  // initial paint and hydrate from `<ReviewsAsync>` which streams the same
+  // data — same UX after ~100 ms of streaming, hundreds of ms off TTFB.
   const oeProduct: PdpCatalogProduct | null = oeProductRaw
-    ? { ...adaptCatalogProductToPdpProduct(oeProductRaw), reviews: initialReviews.length > 0 ? initialReviews : undefined }
+    ? adaptCatalogProductToPdpProduct(oeProductRaw)
     : null;
   const product = oeProduct;
   // Build breadcrumb labels from the product's OE category path so each
@@ -131,7 +150,6 @@ export default async function Page({ params }: Props) {
   const categoryBreadcrumbs = oeProductRaw
     ? categoryPathToBreadcrumbs(oeProductRaw.categories?.[0])
     : [];
-  const pdpLabels = await loadPdpSystemTexts();
 
   // Aggregate rating computed from OE product reviews. Empty cohort defaults
   // to 0 — schema.org consumers handle a 0-count rating gracefully.
@@ -271,7 +289,7 @@ export default async function Page({ params }: Props) {
   ) : null;
   const recommendationsSlot = numericId !== null ? (
     <Suspense fallback={<RecommendationsSkeleton />}>
-      <FrequentlyOrderedAsync productId={numericId} categoryViewAllHref={categoryViewAllHref} productGender={effectiveGender} categoryPath={productCategoryPath} />
+      <FrequentlyOrderedAsync productId={numericId} categoryViewAllHref={categoryViewAllHref} productGender={effectiveGender} />
     </Suspense>
   ) : null;
 

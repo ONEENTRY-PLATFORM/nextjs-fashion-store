@@ -13,9 +13,6 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
-  const [headline, setHeadline] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [occasions, setOccasions] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -34,10 +31,6 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
     const e: Record<string, string> = {};
     if (!rating) e.rating = L.requiredFieldsNote;
     if (!reviewText.trim()) e.review = L.requiredFieldsNote;
-    if (!headline.trim()) e.headline = L.requiredFieldsNote;
-    if (!name.trim()) e.name = L.requiredFieldsNote;
-    if (!email.trim()) e.email = L.requiredFieldsNote;
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = L.requiredFieldsNote;
     return e;
   };
 
@@ -47,15 +40,17 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
     setSubmitError('');
     startTransition(async () => {
       const ratingRes = await submitForm('review_rating', [
-        { marker: 'rating', value: String(rating), type: 'string' },
+        { marker: 'rating', value: String(rating), type: 'integer' },
       ]);
       if (!ratingRes.ok) { setSubmitError(ratingRes.error); return; }
+      // OE `review_feedback` (id 8) — fields the tenant currently ships:
+      //   body (text), occasions (list), add_media (groupOfImages)
+      // `add_media` needs binary uploads that the storefront doesn't wire
+      // yet — sending an empty payload keeps the form valid while the file
+      // pipeline is a follow-up.
       const feedbackRes = await submitForm('review_feedback', [
-        { marker: 'headline',  value: headline.trim(),       type: 'string' },
-        { marker: 'body',      value: reviewText.trim(),     type: 'string' },
-        { marker: 'name',      value: name.trim(),           type: 'string' },
-        { marker: 'email',     value: email.trim(),          type: 'string' },
-        { marker: 'occasions', value: occasions.join(', '),  type: 'string' },
+        { marker: 'body',      value: reviewText.trim(),      type: 'text' },
+        { marker: 'occasions', value: occasions,              type: 'list' },
       ]);
       if (!feedbackRes.ok) { setSubmitError(feedbackRes.error); return; }
       trackActivity({
@@ -158,47 +153,6 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
             </div>
 
             <div>
-              <label className={fieldLabel}>
-                {L.headlineLabel} <span className="text-[var(--sale)]">*</span>
-              </label>
-              <input
-                value={headline}
-                onChange={e => { setHeadline(e.target.value); setErrors(err => ({ ...err, headline: '' })); }}
-                placeholder={L.headlinePlaceholder}
-                className={inputClass(!!errors.headline)}
-              />
-              {errors.headline && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.headline}</p>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={fieldLabel}>
-                  {L.nameLabel} <span className="text-[var(--sale)]">*</span>
-                </label>
-                <input
-                  value={name}
-                  onChange={e => { setName(e.target.value); setErrors(err => ({ ...err, name: '' })); }}
-                  placeholder={L.namePlaceholder}
-                  className={inputClass(!!errors.name)}
-                />
-                {errors.name && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.name}</p>}
-              </div>
-              <div>
-                <label className={fieldLabel}>
-                  {L.emailLabel} <span className="text-[var(--sale)]">*</span>
-                </label>
-                <input
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setErrors(err => ({ ...err, email: '' })); }}
-                  placeholder={L.emailPlaceholder}
-                  type="email"
-                  className={inputClass(!!errors.email)}
-                />
-                {errors.email && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.email}</p>}
-              </div>
-            </div>
-
-            <div>
               <label className={fieldLabel}>{L.mediaLabel}</label>
               <label className="flex flex-col items-center justify-center gap-2 w-full py-5 border border-dashed border-gray-300 cursor-pointer hover:border-black transition-colors rounded-none">
                 <input type="file" multiple accept="image/*,video/*" className="hidden" />
@@ -217,16 +171,16 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
               </label>
               <div className="flex flex-wrap gap-2">
                 {OCCASIONS.map(o => {
-                  const active = occasions.includes(o);
+                  const active = occasions.includes(o.value);
                   return (
                     <button
-                      key={o}
-                      onClick={() => toggleOccasion(o)}
+                      key={o.value}
+                      onClick={() => toggleOccasion(o.value)}
                       className={`px-3 py-1.5 text-xs transition-colors border whitespace-nowrap rounded-none ${
                         active ? 'bg-black text-white border-black' : 'bg-white text-black border-[#d1d5db]'
                       }`}
                     >
-                      {o}
+                      {o.label}
                     </button>
                   );
                 })}

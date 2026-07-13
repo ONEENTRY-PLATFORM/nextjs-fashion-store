@@ -85,7 +85,7 @@ export default async function Page({ searchParams }: Props) {
     <>
       <JsonLd data={breadcrumb} />
       <SalePageLabelsProvider data={labels}>
-        <SalePage initialProducts={initialProducts} saleEndsAt={saleEndsAt ?? undefined} />
+        <SalePage initialProducts={initialProducts} saleEndsAt={saleEndsAt ?? undefined} gender={genderFilter} />
       </SalePageLabelsProvider>
     </>
   );

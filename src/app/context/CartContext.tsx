@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { cartActions } from '../store/cartSlice';
 import {
@@ -25,6 +25,13 @@ export interface CartItem {
   originalPrice?: number;
   image: string;
   bundleId?: string;
+  /** Maximum orderable quantity for this variant — snapshotted at add-time
+   *  from OE's `stockqty` attribute. `undefined` means "unknown, uncapped
+   *  client-side" (older carts persisted before this field existed, or
+   *  server-hydrated placeholders with no stock context); the reducer treats
+   *  `undefined` as `Infinity`. When set, `updateQuantity` / `addItem` clamp
+   *  totals to this ceiling so the shopper can't overshoot inventory. */
+  stockLimit?: number;
 }
 
 interface CartContextType {
@@ -72,6 +79,13 @@ interface CartContextType {
   applyCoupon: (code: string) => Promise<void>;
   /** Drop the current coupon and refresh the preview without it. */
   removeCoupon: () => void;
+  /** Items dropped by the once-per-session availability check because their
+   *  OneEntry record is gone (deleted product, wrong env, etc.). Empty until
+   *  the check runs — a Providers-level notice component reads this so the
+   *  shopper is told what disappeared instead of just seeing a smaller cart. */
+  unavailableRemoved: CartItem[];
+  /** Dismiss the availability notice — clears `unavailableRemoved`. */
+  dismissUnavailableNotice: () => void;
 }
 
 /**
@@ -99,6 +113,18 @@ export function useCart(): CartContextType {
   const dispatch = useDispatch<AppDispatch>();
   const items = useSelector((state: RootState) => state.cart.items);
   const miniCartOpen = useSelector((state: RootState) => state.cart.miniCartOpen);
+  // Scope the hydrate flag to the current OE user identifier — a raw `'1'`
+  // flag survived across sign-ins and stopped the merge from running for the
+  // second user, whose mobile-added items got wiped by the sync-back effect
+  // below (empty local Redux → syncCart([]) → OE cleared).
+  const userIdentifier = useSelector((s: RootState) => s.user.data.userIdentifier);
+  // `?? []` guards against older persisted state (pre-migration cart blobs in
+  // localStorage that were written before this field existed) — otherwise the
+  // notice component crashes on `.length` reading undefined.
+  const unavailableRemoved = useSelector(
+    (state: RootState) => state.cart.unavailableRemoved ?? [],
+    shallowEqual,
+  );
   const { isLoggedIn, user, syncCart } = useAuth();
 
   // Hydrate Redux from /me/cart on login. Server returns productId+qty; we
@@ -111,22 +137,41 @@ export function useCart(): CartContextType {
   // Use sessionStorage so the merge runs at most once per browser session.
   const hydratedRef = useRef(false);
   useEffect(() => {
-    if (!isLoggedIn || !user?.cartItems) return;
+    if (!isLoggedIn || !user?.cartItems || !userIdentifier) return;
     if (hydratedRef.current) return;
-    if (typeof window !== 'undefined' && sessionStorage.getItem('oe_cart_merged') === '1') {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('oe_cart_merged') === userIdentifier) {
       hydratedRef.current = true;
       return;
     }
     hydratedRef.current = true;
-    if (typeof window !== 'undefined') sessionStorage.setItem('oe_cart_merged', '1');
-    const localIds = new Set(items.map((i) => i.id));
+    if (typeof window !== 'undefined') sessionStorage.setItem('oe_cart_merged', userIdentifier);
+    // Prune first: OE is authoritative, so any local cart entry with a numeric
+    // productId not in the OE cart was removed on another device. Non-numeric
+    // ids (playground stubs) are left alone — OE never saw them.
+    const oeProductIdSet = new Set(user.cartItems.map((i) => String(i.productId)));
+    for (const local of items) {
+      const cmsId = getCmsProductId(local.id);
+      if (cmsId === null) continue;
+      if (!oeProductIdSet.has(String(cmsId))) {
+        dispatch(cartActions.removeItem(local.id));
+      }
+    }
+    const localById = new Map(items.map((i) => [i.id, i]));
     const productIds: number[] = [];
     for (const srv of user.cartItems) {
       const playgroundId = getPlaygroundProductId(srv.productId);
       const id = playgroundId ?? String(srv.productId);
-      // Skip items already in the local cart — overwriting with a placeholder
-      // would erase the price/name we already had.
-      if (localIds.has(id)) continue;
+      const local = localById.get(id);
+      if (local) {
+        // Already in local — but OE is authoritative, so re-align the quantity
+        // when it drifted (mobile app reduced qty, another tab already synced,
+        // etc.). Keep the enriched name/image/etc. so the tile doesn't flash.
+        if (local.quantity !== srv.qty) {
+          dispatch(cartActions.removeItem(id));
+          dispatch(cartActions.addItem({ ...local, quantity: srv.qty }));
+        }
+        continue;
+      }
       dispatch(cartActions.addItem(placeholderFromCmsId(srv.productId, srv.qty)));
       productIds.push(srv.productId);
     }
@@ -165,13 +210,24 @@ export function useCart(): CartContextType {
         dispatch(cartActions.removeItem(localId));
       }
     });
-  }, [isLoggedIn, user, dispatch]);
+  }, [isLoggedIn, user, userIdentifier, dispatch]);
   useEffect(() => {
     if (!isLoggedIn) {
       hydratedRef.current = false;
+      // Also drop the sessionStorage cache so a fresh sign-in — including the
+      // implicit re-sign-in that happens on every hard reload — re-hydrates
+      // from OE instead of trusting stale local Redux (which could be out of
+      // date with what another device pushed while this tab was quiet).
       if (typeof window !== 'undefined') sessionStorage.removeItem('oe_cart_merged');
     }
   }, [isLoggedIn]);
+  // Cross-user safety: if the signed-in identifier changes without going
+  // through a `!isLoggedIn` transition (edge case, but cheap to defend), the
+  // stored flag from the previous user is no longer valid — reset so the
+  // check above runs the merge again.
+  useEffect(() => {
+    hydratedRef.current = false;
+  }, [userIdentifier]);
 
   // Push local cart → /me/cart on every change (debounced) so the server
   // mirrors the optimistic Redux state.
@@ -286,11 +342,32 @@ export function useCart(): CartContextType {
         ...(guestId ? { guestId } : {}),
       });
       if (cancelled) return;
-      if (r.ok) setPreview(r);
+      if (r.ok) {
+        setPreview(r);
+      } else if (r.missingProductIds && r.missingProductIds.length > 0) {
+        // OE told us the cart contains products that no longer exist. Prune
+        // them locally so the next preview succeeds (otherwise we'd be stuck
+        // in an infinite failure loop: same cart → same "not found" error →
+        // Place Order button stuck as disabled spinner). Snapshot the local
+        // CartItem before removing so the notice banner can name what went.
+        const missing = new Set(r.missingProductIds.map(String));
+        const dropped: CartItem[] = [];
+        for (const it of items) {
+          const cmsId = getCmsProductId(it.id);
+          if (cmsId !== null && missing.has(String(cmsId))) dropped.push(it);
+        }
+        if (dropped.length > 0) {
+          for (const it of dropped) dispatch(cartActions.removeItem(it.id));
+          dispatch(cartActions.setUnavailableRemoved(dropped));
+        }
+      }
       setPreviewLoading(false);
     }, 300);
     return () => { cancelled = true; clearTimeout(t); };
     // productsKey covers the array; effect re-fires on cart / login / coupon.
+    // `items` is intentionally read from the closure (only needed to snapshot
+    // dropped item details) — including it would re-fire the preview on every
+    // mutation, which productsKey already handles.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, productsKey, couponCode]);
 
@@ -357,6 +434,10 @@ export function useCart(): CartContextType {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productsKey]);
 
+  const dismissUnavailableNotice = useCallback(() => {
+    dispatch(cartActions.dismissUnavailableRemoved());
+  }, [dispatch]);
+
   const removeCoupon = useCallback(() => {
     // Clear preview so the summary rows render as skeletons while OE
     // recomputes without the coupon — otherwise the shopper briefly sees
@@ -393,6 +474,8 @@ export function useCart(): CartContextType {
     couponError,
     applyCoupon,
     removeCoupon,
+    unavailableRemoved,
+    dismissUnavailableNotice,
   }), [
     items, miniCartOpen, openMiniCart, closeMiniCart,
     addItem, addBundle, removeItem, removeBundle,
@@ -401,5 +484,6 @@ export function useCart(): CartContextType {
     preview, previewLoading, personalDiscount, totalDue,
     couponCode, couponDiscount, couponError,
     applyCoupon, removeCoupon,
+    unavailableRemoved, dismissUnavailableNotice,
   ]);
 }

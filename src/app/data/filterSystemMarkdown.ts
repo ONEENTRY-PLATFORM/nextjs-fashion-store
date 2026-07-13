@@ -2,7 +2,7 @@ export const FILTER_SYSTEM_MARKDOWN = `# KEKIMORO — Filter System Documentatio
 
 ## Overview
 
-The filter system is implemented inside the universal catalog engine **\`CatalogTemplate\`** (\`/src/app/components/CatalogTemplate.tsx\`) and its companion mobile components (\`/src/app/components/MobileFilterPanel.tsx\`, \`/src/app/components/MobileFilterBody.tsx\`). Every catalog page (\`WomenCatalogPage\`, \`MenCatalogPage\`, \`WomenShoesPage\`, \`MenShoesPage\`, \`WomenBagsPage\`, \`WomenAccessoriesPage\`, \`MenBagsPage\`, \`MenAccessoriesPage\`, etc.) is a thin config wrapper that hands \`CatalogTemplate\` its own \`FILTER_GROUPS\`, \`QUICK_CHIPS\`, accent color and product list. The filter UI is split into two distinct experiences: a **desktop horizontal filter bar** with mega-dropdown panels, and a **mobile full-screen accordion panel**. Both share the same filter state (Redux \`catalogSlice\`) and the same \`FILTER_GROUPS\` data structure.
+The filter system is implemented inside the universal catalog engine **\`CatalogTemplate\`** (\`/src/app/components/CatalogTemplate.tsx\`) and its companion mobile components (\`/src/app/components/MobileFilterPanel.tsx\`, \`/src/app/components/MobileFilterBody.tsx\`). Every catalog page (\`WomenCatalogPage\`, \`MenCatalogPage\`, \`WomenShoesPage\`, \`MenShoesPage\`, \`WomenBagsPage\`, \`WomenAccessoriesPage\`, \`MenBagsPage\`, \`MenAccessoriesPage\`, etc.) is a thin config wrapper that hands \`CatalogTemplate\` its own \`FILTER_GROUPS\`, \`initialQuickChips\`, accent color and product list. The filter UI is split into two distinct experiences: a **desktop horizontal filter bar** with mega-dropdown panels, and a **mobile full-screen accordion panel**. Both share the same filter state (Redux \`catalogSlice\`) and the same \`FILTER_GROUPS\` data structure.
 
 ---
 
@@ -37,8 +37,9 @@ Sticky offsets by breakpoint:
 
 A horizontally scrollable row of pill-shaped shortcut chips. Scrollbar is hidden (\`scrollbar-hide\`).
 
-**Chips available:**
-- Best Sellers · Dresses · Tops · Bottoms · Outerwear · Winter Outfits · Party Outfits
+**Chip source:** chips are no longer hardcoded in each page component. The RSC shell at \`app/[...slug]/page.tsx\` calls \`loadFilterChips(entry.catalogKey, lang)\` (\`src/lib/oneentry/blocks/filter-chips.ts\`), which fetches the OneEntry filter marker \`filter_chips_<catalogKey>\` (e.g. \`filter_chips_men_bags\`) and returns \`FilterChip[] | null\`. Each \`FilterChip\` is \`{ label, type: 'page' | 'attribute', url?, marker?, value? }\`. Labels only (\`chips.map(c => c.label)\`) are passed as \`initialQuickChips?: string[]\` to the catalog page component and forwarded into \`CatalogTemplate\` as \`quickChips: string[]\`. The chip list is therefore CMS-controlled and can differ per catalog without a code deploy. \`CatalogTemplate\` renders chips via \`QUICK_CHIPS.map((chip) => ...)\` where \`QUICK_CHIPS\` is the \`quickChips\` prop value.
+
+**Server-side filter effect:** the RSC shell reads \`filters.chip\` from \`parseCatalogSearchParams\`, calls \`chipToFilterPatch(label, chips)\`, and merges the patch into \`CatalogFilters\` before \`loadFilteredProducts\` runs. \`type: 'page'\` chips set \`filters.category\`; \`type: 'attribute'\` chips (e.g. \`material_14\` / \`"Leather"\`) append the value to the corresponding list field (\`materials\`, \`productDetails\`, etc.).
 
 **Toggle behaviour:** clicking a chip toggles \`activeChip\` state. Only one chip can be active at a time; clicking the active chip deselects it.
 
@@ -380,13 +381,13 @@ Applied to the desktop filter buttons scroll container. The 1 px horizontal bar 
 | File                                          | Role                                              |
 |-----------------------------------------------|---------------------------------------------------|
 | \`src/app/components/CatalogTemplate.tsx\`      | Universal catalog engine: desktop filter bar, mega-dropdown, sort, pagination, Redux wiring |
-| \`src/app/components/CatalogTemplate.types.ts\` | \`FilterGroup\`, \`FilterOption\`, \`ChipFilter\`, \`SORT_OPTIONS\`, \`CatalogTemplateProps\` |
+| \`src/app/components/CatalogTemplate.types.ts\` | \`FilterGroup\`, \`FilterOption\`, \`SORT_OPTIONS\`, \`CatalogTemplateProps\`. \`ChipFilter\` is now \`type ChipFilter = string\`; \`CatalogTemplateProps.quickChips\` is \`string[]\`. |
 | \`src/app/components/CatalogTemplate.parts.tsx\`| \`ColsIcon\`, \`CheckboxUI\`, \`SortOptionBtn\` UI primitives |
 | \`src/app/components/MobileFilterPanel.tsx\`    | Full-screen mobile filter accordion shell         |
 | \`src/app/components/MobileFilterBody.tsx\`     | Mobile accordion body (groups + options grid)     |
 | \`src/app/components/CatalogMobileSort.tsx\`    | Mobile sort bottom-sheet                          |
 | \`src/app/store/catalogSlice.ts\`               | Per-catalog filter / sort / page / view state     |
-| \`src/app/pages/WomenCatalogPage.tsx\` (etc.)   | Thin per-category config — passes \`FILTER_GROUPS\`, accent, products into \`CatalogTemplate\` |
-| \`src/app/data/filterUtils.ts\`                 | \`filterProducts\`, \`buildOptions\`, \`buildColorOptions\` helpers |
+| \`src/app/pages/WomenCatalogPage.tsx\` (etc.)   | Thin per-category config — accepts \`initialQuickChips?: string[]\` from the RSC shell and passes \`FILTER_GROUPS\`, accent, products, and \`quickChips\` into \`CatalogTemplate\`. No longer contains a hardcoded \`QUICK_CHIPS\` const. |
+| \`src/lib/oneentry/blocks/filter-chips.ts\`     | \`loadFilterChips(catalogKey, lang)\` → \`FilterChip[] | null\`. Each \`FilterChip\` is \`{ label, type: 'page' | 'attribute', url?, marker?, value? }\`. Two chip flavours: \`type: 'page'\` sets \`filters.category\`; \`type: 'attribute'\` appends \`value\` to the matching \`CatalogFilters\` list field via \`chipToFilterPatch\`. Labels only (\`chips.map(c => c.label)\`) are forwarded as \`initialQuickChips: string[]\` to the catalog page component. |
 | \`app/globals.css\`                             | \`.scrollbar-pink\`, \`.scrollbar-red\`, \`.scrollbar-hide\` utilities |
 `;

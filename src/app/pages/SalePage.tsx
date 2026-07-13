@@ -11,7 +11,8 @@ import { ColsIcon, SortOptionBtn as SortOption } from '../components/CatalogTemp
 import {
   ChevronDown, ChevronLeft, ChevronRight, X, SlidersHorizontal,
 } from 'lucide-react';
-import { SALE_END_DATE, SALE_CATEGORIES, type SaleCategory, DISCOUNT_OPTIONS, SALE_SIZE_OPTIONS, SALE_COLOR_OPTIONS, SALE_BRAND_OPTIONS, SALE_SORT_OPTIONS } from '../data/saleConfig';
+import { SALE_END_DATE, SALE_CATEGORIES, type SaleCategory, SALE_COLOR_OPTIONS, SALE_SORT_OPTIONS } from '../data/saleConfig';
+import { SALE_DISCOUNT_LABELS as DL } from '../data/salePageLabels';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   toggleFilter as dispatchToggleFilter,
@@ -32,7 +33,7 @@ import { useSalePageT } from '../../lib/oneentry/labels/SalePageLabelsContext';
 const SALE_KEY = 'sale';
 
 type SaleProduct = Product & { category?: string };
-export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: SaleProduct[]; saleEndsAt?: number } = {}) {
+export function SalePage({ initialProducts, saleEndsAt, gender }: { initialProducts?: SaleProduct[]; saleEndsAt?: number; gender?: 'W' | 'M' | null } = {}) {
   // Countdown target: OE-driven `page_sale_top_banner_timer` first, then the
   // hardcoded fallback so the banner still runs if the admin hasn't set it.
   const countdown = useCountdown(saleEndsAt ?? SALE_END_DATE);
@@ -93,7 +94,7 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
     recDragging.current = false;
     if (recRef.current) recRef.current.style.cursor = 'grab';
   };
-  const TOTAL_PAGES = 8;
+  const PRODUCTS_PER_PAGE = 16;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -105,12 +106,86 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
     return () => { document.removeEventListener('mousedown', fn); document.removeEventListener('keydown', ky); };
   }, []);
 
-  /* ── Filtered products ── */
+  /* ── Discount % from price/salePrice strings ── */
+  const priceNum = (s?: string) => {
+    if (!s) return 0;
+    const n = Number.parseFloat(s.replace(/[^0-9.]/g, ''));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const discountPct = (p: SaleProduct): number => {
+    const orig = priceNum(p.price);
+    const sale = priceNum(p.salePrice);
+    if (!orig || !sale || sale >= orig) return 0;
+    return ((orig - sale) / orig) * 100;
+  };
+  const inDiscountBucket = (label: string, pct: number): boolean => {
+    if (label === DL.d10_20) return pct >= 10 && pct < 20;
+    if (label === DL.d20_30) return pct >= 20 && pct < 30;
+    if (label === DL.d30_40) return pct >= 30 && pct < 40;
+    if (label === DL.d40_50) return pct >= 40 && pct < 50;
+    if (label === DL.d50plus) return pct >= 50;
+    return false;
+  };
+
+  /* ── Filter options derived from the products that are actually on this
+     page. `?gender=women` already narrowed the source list on the server,
+     so buckets are guaranteed to reflect real inventory (no dead options). */
+  const categoryScoped = useMemo(
+    () => (activeCategory === CAT.all ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory)),
+    [PRODUCTS, activeCategory],
+  );
+  const discountOptions = useMemo(() => {
+    const buckets = [DL.d10_20, DL.d20_30, DL.d30_40, DL.d40_50, DL.d50plus];
+    return buckets.filter(bucket => categoryScoped.some(p => inDiscountBucket(bucket, discountPct(p))));
+  }, [categoryScoped]);
+  const sizeOptions = useMemo(() => {
+    const order = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    const seen = new Set<string>();
+    categoryScoped.forEach(p => p.sizes?.forEach(s => seen.add(s)));
+    const known = order.filter(s => seen.has(s));
+    const numeric = [...seen].filter(s => !order.includes(s)).sort((a, b) => {
+      const na = Number.parseFloat(a); const nb = Number.parseFloat(b);
+      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+      return a.localeCompare(b);
+    });
+    return [...known, ...numeric];
+  }, [categoryScoped]);
+  const colorOptions = useMemo(() => {
+    const seen = new Set<string>();
+    categoryScoped.forEach(p => p.colors?.forEach(c => seen.add(c)));
+    // Keep any pre-configured swatches whose hex actually appears; append
+    // remaining unmapped hexes with the hex string itself as their label.
+    const mapped = SALE_COLOR_OPTIONS.filter(o => seen.has(o.color));
+    const knownHexes = new Set(SALE_COLOR_OPTIONS.map(o => o.color));
+    const extras = [...seen].filter(h => !knownHexes.has(h)).map(h => ({ label: h, color: h }));
+    return [...mapped, ...extras];
+  }, [categoryScoped]);
+  const brandOptions = useMemo(() => {
+    const seen = new Set<string>();
+    categoryScoped.forEach(p => { if (p.brand) seen.add(p.brand); });
+    return [...seen].sort((a, b) => a.localeCompare(b));
+  }, [categoryScoped]);
+
+  // ColorPillDropdown emits the swatch label (e.g. "Black"); products store
+  // raw hex in `p.colors`. Build a hex→label lookup once so the matcher can
+  // translate before comparing. Falls through to the hex itself when the
+  // color has no friendly label.
+  const hexToLabel = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const opt of colorOptions) map[opt.color] = opt.label;
+    return map;
+  }, [colorOptions]);
+
+  /* ── Filtered products (category + discount + size + color + brand) ── */
   const filtered = useMemo(() =>
-    activeCategory === CAT.all
-      ? PRODUCTS
-      : PRODUCTS.filter(p => p.category === activeCategory),
-    [PRODUCTS, activeCategory]
+    categoryScoped.filter(p => {
+      if (selDiscount.length && !selDiscount.some(d => inDiscountBucket(d, discountPct(p)))) return false;
+      if (selSize.length && !p.sizes?.some(s => selSize.includes(s))) return false;
+      if (selColor.length && !p.colors?.some(c => selColor.includes(hexToLabel[c] ?? c))) return false;
+      if (selBrand.length && !(p.brand && selBrand.includes(p.brand))) return false;
+      return true;
+    }),
+    [categoryScoped, selDiscount, selSize, selColor, selBrand, hexToLabel],
   );
 
   /* ── Active filter chips (combined list for display below bar) ── */
@@ -131,10 +206,10 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
   };
   const mobileFilterGroups = [
     { key: 'category', label: L.filterCategoryHeading, type: 'checkbox' as const, options: SALE_CATEGORIES.filter(c => c !== CAT.all).map(c => ({ label: c })) },
-    { key: 'discount', label: L.filterDiscountHeading, type: 'checkbox' as const, options: DISCOUNT_OPTIONS.map(o => ({ label: o })) },
-    { key: 'size', label: L.filterSizeHeading, type: 'size_chips' as const, options: SALE_SIZE_OPTIONS.map(o => ({ label: o })) },
-    { key: 'color', label: L.filterColorHeading, type: 'color' as const, options: SALE_COLOR_OPTIONS },
-    { key: 'brand', label: L.filterBrandHeading, type: 'checkbox' as const, options: SALE_BRAND_OPTIONS.map(o => ({ label: o })) },
+    { key: 'discount', label: L.filterDiscountHeading, type: 'checkbox' as const, options: discountOptions.map(o => ({ label: o })) },
+    { key: 'size', label: L.filterSizeHeading, type: 'size_chips' as const, options: sizeOptions.map(o => ({ label: o })) },
+    { key: 'color', label: L.filterColorHeading, type: 'color' as const, options: colorOptions },
+    { key: 'brand', label: L.filterBrandHeading, type: 'checkbox' as const, options: brandOptions.map(o => ({ label: o })) },
   ];
   const handleMobileToggle = (key: string, val: string) => {
     if (key === 'category') { setActiveCategory(val as SaleCategory); return; }
@@ -150,8 +225,23 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
 
   const activeSortLabel = SALE_SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? L.sortFallback;
 
+  /* ── Pagination derived from real filtered length ── */
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
+  // Clamp `currentPage` if the shopper's saved page is now out of range
+  // (e.g. after applying filters that shrink the list). Prefer the last
+  // valid page over falling through to an empty grid.
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  useEffect(() => {
+    if (safePage !== currentPage) {
+      dispatch(dispatchSetPage({ catalogKey: SALE_KEY, page: safePage }));
+    }
+  }, [safePage, currentPage, dispatch]);
   const changePage = (p: number) => { dispatch(dispatchSetPage({ catalogKey: SALE_KEY, page: p })); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const pages = Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1);
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pagedFiltered = useMemo(() => {
+    const start = (safePage - 1) * PRODUCTS_PER_PAGE;
+    return filtered.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [filtered, safePage]);
 
   return (
     <div
@@ -182,7 +272,16 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
                 below the bar. Keep the scrollable strip narrow (tabs only) and
                 lift the pill filters into the outer, unclipped flex row. */}
             <div className="flex items-center overflow-x-auto scrollbar-hide gap-0 min-w-0">
-              {SALE_CATEGORIES.map(cat => {
+              {SALE_CATEGORIES.filter(cat => {
+                // Hide the opposite gender's category tabs so the shopper's
+                // filter navigation reflects the URL scope (`?gender=women`
+                // → only Women's tabs, plus gender-neutral Bags / Accessories
+                // and the "All" umbrella). No `gender` = show everything.
+                if (!gender) return true;
+                if (gender === 'W' && (cat === CAT.menClothing || cat === CAT.menShoes)) return false;
+                if (gender === 'M' && (cat === CAT.womenClothing || cat === CAT.womenShoes)) return false;
+                return true;
+              }).map(cat => {
                 const count = cat === CAT.all ? PRODUCTS.length : PRODUCTS.filter(p => p.category === cat).length;
                 return (
                   <button
@@ -212,26 +311,27 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
             <div className="hidden md:flex items-center gap-2 flex-shrink-0 py-2">
               <PillDropdown
                 label={L.filterDiscount}
-                options={DISCOUNT_OPTIONS}
+                options={discountOptions}
                 selected={selDiscount}
                 onToggle={toggleDiscount}
                 onClear={() => clearFilter('discount')}
               />
               <PillDropdown
                 label={L.filterSize}
-                options={SALE_SIZE_OPTIONS}
+                options={sizeOptions}
                 selected={selSize}
                 onToggle={toggleSize}
                 onClear={() => clearFilter('size')}
               />
               <ColorPillDropdown
+                options={colorOptions}
                 selected={selColor}
                 onToggle={toggleColor}
                 onClear={() => clearFilter('color')}
               />
               <PillDropdown
                 label={L.filterBrand}
-                options={SALE_BRAND_OPTIONS}
+                options={brandOptions}
                 selected={selBrand}
                 onToggle={toggleBrand}
                 onClear={() => clearFilter('brand')}
@@ -369,7 +469,7 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
           </div>
         ) : (
           <div className={`grid ${gridCols} gap-px bg-white`}>
-            {filtered.map(product => (
+            {pagedFiltered.map(product => (
               <div key={product.id} className="bg-white">
                 <ProductCard product={product} accentColor={SALE_RED} />
               </div>
@@ -408,8 +508,8 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
         {/* Pagination */}
         <div className="px-4 lg:px-8 flex items-center justify-center gap-0 mt-8">
           <button
-            onClick={() => changePage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
+            onClick={() => changePage(Math.max(1, safePage - 1))}
+            disabled={safePage === 1}
             className="w-9 h-9 flex items-center justify-center border border-black hover:bg-black hover:text-white transition-colors disabled:opacity-30 focus-visible:outline-none rounded-none"
             aria-label={L.prevPageAria}
           >
@@ -420,15 +520,15 @@ export function SalePage({ initialProducts, saleEndsAt }: { initialProducts?: Sa
               key={p}
               onClick={() => changePage(p)}
               className={`w-9 h-9 flex items-center justify-center border text-xs focus-visible:outline-none transition-colors rounded-none border-black -ml-px ${
-                currentPage === p ? 'bg-black text-white' : 'bg-white text-black'
+                safePage === p ? 'bg-black text-white' : 'bg-white text-black'
               }`}
             >
               {p}
             </button>
           ))}
           <button
-            onClick={() => changePage(Math.min(TOTAL_PAGES, currentPage + 1))}
-            disabled={currentPage === TOTAL_PAGES}
+            onClick={() => changePage(Math.min(totalPages, safePage + 1))}
+            disabled={safePage === totalPages}
             className="w-9 h-9 flex items-center justify-center border border-black hover:bg-black hover:text-white transition-colors disabled:opacity-30 focus-visible:outline-none rounded-none -ml-px"
             aria-label={L.nextPageAria}
           >

@@ -13,7 +13,7 @@ src/app/store/
 ├── selectors.ts              — memoised selectors
 ├── catalogSlice.ts           — catalog UI state per catalogKey
 ├── uiSlice.ts                — QuickView + mobile menu
-├── cartSlice.ts              — cart items + miniCartOpen flag
+├── cartSlice.ts              — cart items, miniCartOpen flag, unavailableRemoved
 ├── wishlistSlice.ts          — wishlist items
 ├── recentlyViewedSlice.ts    — recently viewed (TTL 30d, cap 100)
 ├── userSlice.ts              — loyalty defaults + auth identifier
@@ -45,7 +45,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 
 ### 2.1 `cartSlice` (`src/app/store/cartSlice.ts`)
 
-**State:** `{ items: CartItem[], miniCartOpen: boolean }`.
+**State:** `{ items: CartItem[], miniCartOpen: boolean, unavailableRemoved: CartItem[] }`.
 
 **CartItem shape:**
 ```ts
@@ -61,19 +61,22 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
   originalPrice?: number;
   image: string;
   bundleId?: string;
+  stockLimit?: number;     // max orderable qty snapshotted at add-time; undefined = uncapped
 }
 ```
 
 **Actions:**
-- `addItem(item)` — merge or append by id + size, accumulating quantity.
-- `addBundle(items)` — bulk add with shared `bundleId`.
+- `addItem(item)` — merge or append by id + size, accumulating quantity clamped at `stockLimit ?? Infinity`. Also refreshes `stockLimit` on the existing line when the incoming payload carries a fresh value.
+- `addBundle(items)` — bulk add with shared `bundleId`; quantity of each item is clamped at its `stockLimit`.
 - `removeItem(id)`, `removeBundle(bundleId)`.
-- `updateQuantity({id, delta})` — deltas can be negative; min 1.
+- `updateQuantity({id, delta})` — deltas can be negative; result is clamped to `[1, stockLimit ?? Infinity]`.
 - `updateSize({id, size})`.
 - `clearCart()`.
 - `openMiniCart()`, `closeMiniCart()`.
+- `setUnavailableRemoved(items: CartItem[])` — stores a snapshot of items that were auto-pruned because OE reported them as not found during `previewOrder`.
+- `dismissUnavailableRemoved()` — clears `unavailableRemoved` after the shopper acknowledges the notice.
 
-**Persistence:** ✅ persisted, minus `miniCartOpen` (stripped in `saveToStorage` to avoid re-opening the drawer on every navigation).
+**Persistence:** ✅ persisted, minus `miniCartOpen` and `unavailableRemoved` (both stripped in `saveToStorage` — `miniCartOpen` to avoid re-opening the drawer on every navigation; `unavailableRemoved` because it is ephemeral session state only needed for the one-time banner).
 
 ### 2.2 `wishlistSlice` (`src/app/store/wishlistSlice.ts`)
 
@@ -197,7 +200,7 @@ Both middlewares are still concatenated in `makeStore()` — removing them would
 
 - **Key:** `oe_store` in `localStorage`.
 - **Schema version:** **5** (`STORAGE_VERSION = 5`).
-- **Persisted slices:** `cart` (minus `miniCartOpen`), `wishlist`, `recentlyViewed`, `catalog`.
+- **Persisted slices:** `cart` (minus `miniCartOpen` and `unavailableRemoved`), `wishlist`, `recentlyViewed`, `catalog`.
 - **Not persisted:** `ui`, `user` (session lives in cookies).
 
 ### Migrations

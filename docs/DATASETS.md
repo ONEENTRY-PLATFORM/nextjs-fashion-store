@@ -66,11 +66,15 @@ Most homepage content is fetched from OneEntry Blocks (see [ONEENTRY_INTEGRATION
 
 | File | Exports | Consumers |
 |---|---|---|
-| `productCatalog.ts` | `Product` and PDP-specific interfaces (`CatalogProduct`, `SizeOption`, `ProductSpec`, `ProductReview`) — type-only for the transitional period | Storybook, tests, occasional fallback where OE data is missing |
+| `productCatalog.ts` | `Product` and PDP-specific interfaces (`CatalogProduct`, `SizeOption`, `ProductSpec`, `ProductReview`, `PdpProductVariant`) — type-only for the transitional period | Storybook, tests, occasional fallback where OE data is missing |
 | `specialOffers.ts` | Bundle / offer interface types (data deprecated) | `ProductSpecialOffers` (types only) |
 | `serviceData.ts` | Types only — `SERVICE_REQUESTS` array removed; live data comes from OneEntry `FormData` API (form `service_request`) via `getServiceRequestsAction()` | `ServiceMaintenanceSection` (type reference) |
 
 The concrete product arrays that lived in this folder (`women-clothing.ts`, `men-shoes.ts`, etc.) have all been removed — catalog listings now come from OneEntry Products API.
+
+**`salePrice` field — now populated from OE Discounts.** `CatalogProduct` and `CatalogProductVariant` (in `src/lib/oneentry/catalog/products.ts`) and `PdpProductVariant` (in `productCatalog.ts`) all carry an optional `salePrice?: number`. Previously declared but never populated, this field is now set by a post-normalise pass in `fetchFullCatalog` and `loadProductById` via `applyProductDiscount` (`src/lib/oneentry/discounts/product-discount.ts`). The value represents the lowest active OE Discounts rule price for that product or variant. It is `undefined` when no rule applies. `adaptCatalogProductToUiProduct` forwards it as a formatted string (for catalog cards and Quick View); `adaptCatalogProductToPdpProduct` forwards the raw number (for the PDP price block). In both cases the field is only forwarded when strictly below `price` — the UI uses its presence to conditionally render a strike-through.
+
+**`discountAttributes` field on `CatalogProduct`.** `CatalogProduct` carries a required `discountAttributes: Record<string, string>` field. `normalize()` populates it during catalog load by scanning every OE `attributeValues` entry whose marker starts with `discount_` (or equals `discount`) and whose stringified value is non-empty. Before storing, `normalize()` strips a trailing `%` (and surrounding whitespace) from the parsed value, so the map holds the semantic tier in numeric-string form (e.g. `"10"`, not `"10%"`) — matching the bare numeric string that OE Discounts rules use in their `ATTRIBUTE.value.value` condition. These attribute values are what gate `ATTRIBUTE`-kind OE discount conditions — for example, attributes `discount_12` and `discount_13` in the storefront tenant hold the per-product discount tier that selects which `off_N` rule applies.
 
 ## 8. Labels (UI copy — many CMS-mirrored)
 
@@ -165,6 +169,7 @@ If a component still imports from one of these paths, that's an unfinished migra
 | Analytics tracking | OE `user-activity/track` | ✅ live |
 | Coupons (checkout Delivery step) | OE `previewOrder` — server-validated + priced | ✅ live |
 | Coupons (`/cart` promo entry) | OE `previewOrder` via `CartContext.applyCoupon` | ✅ live |
+| Product-level `salePrice` (storefront discount overlay) | OE Discounts module — `loadProductDiscounts` + `applyProductDiscount` in `src/lib/oneentry/discounts/product-discount.ts`; applied in `fetchFullCatalog` and `loadProductById` | ✅ live |
 | Pickup stores + parcel lockers | Local `checkoutConfig.ts` | ❌ static |
 
 ## 13. Cross-references

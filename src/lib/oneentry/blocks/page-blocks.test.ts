@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // SDK mock — `getBlockByMarker` drives `loadBlockWithProducts`.
 const getBlockByMarker = vi.fn();
 const getTrending = vi.fn();
-const fakeApi = { Blocks: { getBlockByMarker, getTrending } };
+const getFrequentlyOrderedProducts = vi.fn();
+const fakeApi = { Blocks: { getBlockByMarker, getTrending, getFrequentlyOrderedProducts } };
 
 vi.mock('../index', () => ({
   oneentry: fakeApi,
@@ -35,8 +36,12 @@ const importFresh = async () => {
 beforeEach(() => {
   getBlockByMarker.mockReset();
   getTrending.mockReset();
+  getFrequentlyOrderedProducts.mockReset();
   loadProducts.mockReset();
   adaptCatalogProductToUiProduct.mockReset();
+  // Clear any leftover in-flight dedup state from previous tests.
+  const g = globalThis as typeof globalThis & { __oneentryFrequentlyOrderedInflight__?: unknown };
+  delete g.__oneentryFrequentlyOrderedInflight__;
 });
 
 describe('loadBlockWithProducts — homepage fallback', () => {
@@ -213,5 +218,89 @@ describe('loadBlockWithProducts — trending_block path', () => {
     expect(loadProducts).not.toHaveBeenCalled();
     expect(block).not.toBeNull();
     expect(block!.products).toEqual([]);
+  });
+});
+
+describe('loadFrequentlyOrderedBlock — 2 s timeout ceiling', () => {
+  it('returns products:[] when getFrequentlyOrderedProducts never resolves within 2 s', async () => {
+    vi.useFakeTimers();
+
+    const blockDescriptor = {
+      type: 'frequently_ordered_block',
+      position: 1,
+      quantity: 12,
+      localizeInfos: { title: 'Bought Together' },
+    };
+    getBlockByMarker.mockResolvedValue(blockDescriptor);
+
+    // A promise that intentionally never settles — simulates a hung OE endpoint.
+    getFrequentlyOrderedProducts.mockReturnValue(new Promise(() => { /* never */ }));
+
+    const { loadFrequentlyOrderedBlock } = await importFresh();
+    const blockP = loadFrequentlyOrderedBlock('freq_block', 10, 'en_US');
+
+    // Advance fake clock past the 2 s ceiling; the async variant flushes
+    // queued microtasks between each tick so Promise.race settles correctly.
+    await vi.advanceTimersByTimeAsync(2001);
+
+    const block = await blockP;
+
+    expect(block).not.toBeNull();
+    expect(block!.products).toEqual([]);
+    // loadProducts must NOT have been called — timeout branch takes over.
+    expect(loadProducts).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+});
+
+describe('loadFrequentlyOrderedBlock — in-flight dedup', () => {
+  it('collapses two concurrent cold-miss calls into a single SDK request', async () => {
+    // Block descriptor — needed because _loadFrequentlyOrderedBlock calls
+    // getCachedBlock (getBlockByMarker) before getFrequentlyOrderedProducts.
+    const blockDescriptor = {
+      type: 'frequently_ordered_block',
+      position: 1,
+      quantity: 12,
+      localizeInfos: { title: 'Bought Together' },
+    };
+    getBlockByMarker.mockResolvedValue(blockDescriptor);
+
+    // A manually-controlled promise lets us keep both callers in-flight
+    // simultaneously before the SDK responds.
+    let resolveFreq!: (v: { items: Array<{ id: number }> }) => void;
+    const freqPromise = new Promise<{ items: Array<{ id: number }> }>((res) => {
+      resolveFreq = res;
+    });
+    getFrequentlyOrderedProducts.mockReturnValue(freqPromise);
+
+    loadProducts.mockResolvedValue({ total: 1, items: [{ id: 42 }], fromCms: true });
+    adaptCatalogProductToUiProduct.mockImplementation((p: { id: number }) => ({
+      id: String(p.id),
+      name: 'ui',
+    }));
+
+    const { loadFrequentlyOrderedBlock } = await importFresh();
+
+    // Kick off two concurrent calls with the SAME (marker, productId, lang) key
+    // — both should share the single in-flight promise, not fire two SDK calls.
+    const call1 = loadFrequentlyOrderedBlock('freq_block', 10, 'en_US');
+    const call2 = loadFrequentlyOrderedBlock('freq_block', 10, 'en_US');
+
+    // Neither call has resolved yet — the SDK mock is still pending.
+    // Now let the in-flight promise settle.
+    resolveFreq({ items: [{ id: 42 }] });
+
+    const [block1, block2] = await Promise.all([call1, call2]);
+
+    // The core assertion: the SDK was hit exactly once, not twice.
+    expect(getFrequentlyOrderedProducts).toHaveBeenCalledTimes(1);
+    expect(getFrequentlyOrderedProducts).toHaveBeenCalledWith(10, 'freq_block', 'en_US');
+
+    // Both callers still got the right result.
+    expect(block1).not.toBeNull();
+    expect(block2).not.toBeNull();
+    expect(block1!.products).toEqual([{ id: '42', name: 'ui' }]);
+    expect(block2!.products).toEqual([{ id: '42', name: 'ui' }]);
   });
 });

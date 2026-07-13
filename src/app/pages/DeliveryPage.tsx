@@ -17,7 +17,7 @@ const DeliveryOrderSummary = dynamic(
 );
 import { useAuth } from '../context/AuthContext';
 import type { OeAddress } from '../../lib/oneentry/auth/actions';
-import { PICKUP_STORES, PARCEL_LOCKERS, DELIVERY_TIME_SLOTS } from '../data/checkoutConfig';
+import { PICKUP_STORES, PARCEL_LOCKERS, DELIVERY_TIME_SLOTS, type PickupStore } from '../data/checkoutConfig';
 import { addressSchema, guestContactSchema } from '../utils/schemas';
 
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
@@ -44,9 +44,21 @@ function getDeliveryDates(count = 7): Date[] {
 }
 
 
-export function DeliveryPage() {
+interface DeliveryPageProps {
+  /** Pickup stores loaded from OE by the server layer. When OE has none the
+   *  server passes the hardcoded `PICKUP_STORES` fallback so the picker still
+   *  renders. */
+  pickupStores?: PickupStore[];
+}
+
+export function DeliveryPage({ pickupStores }: DeliveryPageProps = {}) {
   const router = useRouter();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
+  // Fall back to the literal list if the server layer didn't hand any down —
+  // keeps Storybook and unit tests that render <DeliveryPage /> bare working.
+  const stores: PickupStore[] = pickupStores && pickupStores.length > 0
+    ? pickupStores
+    : PICKUP_STORES;
   const {
     total, personalDiscount, totalDue,
     couponCode, couponDiscount, couponError, applyCoupon, removeCoupon,
@@ -58,7 +70,7 @@ export function DeliveryPage() {
   const savedAddresses = user?.addresses ?? [];
 
   const [method, setMethod] = useState<DeliveryMethod>('home');
-  const [selectedStore, setSelectedStore] = useState(PICKUP_STORES[0]);
+  const [selectedStore, setSelectedStore] = useState<PickupStore>(stores[0]);
   const [selectedLocker, setSelectedLocker] = useState(PARCEL_LOCKERS[0]);
   const [storeDropOpen, setStoreDropOpen] = useState(false);
   const [lockerDropOpen, setLockerDropOpen] = useState(false);
@@ -205,7 +217,11 @@ export function DeliveryPage() {
       isGuest: !isLoggedIn,
       guestContact: !isLoggedIn ? guestContact : null,
       homeAddress,
-      storeId: method === 'store' ? selectedStore.id : null,
+      // OE expects the numeric page id for the store `entity` form field.
+      // Fall back to `.id` only when the store record has no `oeId` (i.e. the
+      // hardcoded PICKUP_STORES fallback fired) — OE will reject it, which is
+      // the correct outcome because there's no matching store in the tenant.
+      storeId: method === 'store' ? (selectedStore.oeId ?? selectedStore.id) : null,
       lockerId: method === 'locker' ? PARCEL_LOCKERS.indexOf(selectedLocker) : null,
       deliveryDate: selectedDate.toISOString(),
       deliverySlot: selectedSlot,
@@ -278,6 +294,7 @@ export function DeliveryPage() {
             <DeliveryMethodStore
               checked={method === 'store'}
               onChange={() => setMethod('store')}
+              stores={stores}
               selectedStore={selectedStore}
               setSelectedStore={setSelectedStore}
               storeDropOpen={storeDropOpen}

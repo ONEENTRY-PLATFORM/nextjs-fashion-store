@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { oneentry, isOneEntryEnabled, isError, getUserApi, getGuestApi } from '../index';
 import { loadProductsByIds } from '../catalog/products';
 import { DEFAULT_LOCALE } from '../locale';
+import { pickImage, type RawPicture } from './pick-image';
 
 const AUTH_MARKER = 'email';
 const SIGNUP_FORM_IDENTIFIER = 'signin';
@@ -91,25 +92,6 @@ export interface OeOrder {
 }
 
 export interface OeUserState {
-  /** Profile fields not covered by the sign-in form */
-  profile?: {
-    lastName?: string;
-    dob?: string;
-    shoeSize?: string;
-    clothingSize?: string;
-  };
-  /** Deprecated — addresses now live in the user_addresses form. Kept so old
-   *  accounts that wrote to state.addresses still render until they re-save. */
-  addresses?: OeAddress[];
-  /** The five subscription flags that aren't in the sign-in form */
-  subscriptionsExtra?: {
-    pushNotifications?: boolean;
-    orderUpdates?: boolean;
-    newArrivals?: boolean;
-    saleAlerts?: boolean;
-    loyaltyUpdates?: boolean;
-  };
-  consent?: OeConsent;
   /** Recently viewed product IDs with timestamps — order: index 0 is most
    *  recent. Stored on the user record so the trail follows the account
    *  across devices. Bounded to ~100 entries on write. */
@@ -131,13 +113,13 @@ export interface OeUser {
   gender?: string;
   /** raw signin formData (marker → value) */
   formData: Record<string, unknown>;
-  /** subscriptions assembled from signin formData (email/sms) + state.subscriptionsExtra */
+  /** subscriptions assembled from signin formData (email/sms) + subscription_management form record */
   subscriptions: OeSubscriptions;
-  /** addresses from state */
+  /** addresses from the `user_addresses` form records */
   addresses: OeAddress[];
-  /** consent from state */
+  /** consent from the `user_data` form record */
   consent: OeConsent;
-  /** extra profile fields from state */
+  /** extra profile fields from the `user_data` form record */
   lastName?: string;
   dob?: string;
   shoeSize?: string;
@@ -240,7 +222,7 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
     quantity?: number;
     price?: number;
     sku?: string | null;
-    previewImage?: { downloadLink?: string } | null;
+    previewImage?: RawPicture | RawPicture[] | null;
   };
   type RawOrder = {
     id?: number;
@@ -297,7 +279,7 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
               quantity: p.quantity ?? 1,
               price: p.price ?? 0,
               sku: p.sku ?? null,
-              image: p.previewImage?.downloadLink ?? '',
+              image: pickImage(p.previewImage),
             })),
             formData: formDataMap,
           });
@@ -460,25 +442,26 @@ async function fetchMe(accessToken: string): Promise<OeUser | null> {
   const radioBool = (v: unknown): boolean => v === 'true' || v === true;
 
   const state: OeUserState = data.state ?? {};
-  const subsExtra = state.subscriptionsExtra ?? {};
-  // Subscriptions: prefer form-data record, fallback to signin formData (email/sms)
-  // and legacy state.subscriptionsExtra for the other five.
+  // Subscriptions come exclusively from the `subscription_management` form
+  // (email/sms) and the sign-in formData for the two boolean flags — no more
+  // `state.subscriptionsExtra` fallback.
   const fromForm = subsRec.extras;
   const subscriptions: OeSubscriptions = {
     emailNewsletter: fromForm.emailNewsletter ?? radioBool(formDataMap['users_subscribe_to_promotional_email']),
     smsNotifications: fromForm.smsNotifications ?? radioBool(formDataMap['users_subscribe_to_promotional_sms']),
-    pushNotifications: fromForm.pushNotifications ?? subsExtra.pushNotifications ?? false,
-    orderUpdates: fromForm.orderUpdates ?? subsExtra.orderUpdates ?? false,
-    newArrivals: fromForm.newArrivals ?? subsExtra.newArrivals ?? false,
-    saleAlerts: fromForm.saleAlerts ?? subsExtra.saleAlerts ?? false,
-    loyaltyUpdates: fromForm.loyaltyUpdates ?? subsExtra.loyaltyUpdates ?? false,
+    pushNotifications: fromForm.pushNotifications ?? false,
+    orderUpdates: fromForm.orderUpdates ?? false,
+    newArrivals: fromForm.newArrivals ?? false,
+    saleAlerts: fromForm.saleAlerts ?? false,
+    loyaltyUpdates: fromForm.loyaltyUpdates ?? false,
   };
 
-  // Profile extras: prefer user_data form record, fallback to legacy state.profile.
+  // Profile extras + consent come exclusively from the `user_data` form
+  // record — no more `state.profile` / `state.consent` fallback.
   const userExtras = userDataRec.extras;
   const consent: OeConsent = {
-    dataProcessing: userExtras.consentDataProcessing ?? state.consent?.dataProcessing ?? false,
-    crossBorder: userExtras.consentCrossBorder ?? state.consent?.crossBorder ?? false,
+    dataProcessing: userExtras.consentDataProcessing ?? false,
+    crossBorder: userExtras.consentCrossBorder ?? false,
   };
 
   return {
@@ -489,11 +472,12 @@ async function fetchMe(accessToken: string): Promise<OeUser | null> {
     phone: asString(formDataMap['phone']),
     gender: asGender(formDataMap['gender']),
     formData: formDataMap,
-    lastName: userExtras.lastName || state.profile?.lastName,
-    dob: userExtras.dob || state.profile?.dob,
-    shoeSize: userExtras.shoeSize || state.profile?.shoeSize,
-    clothingSize: userExtras.clothingSize || state.profile?.clothingSize,
-    addresses: addrRecords.length > 0 ? addrRecords : (state.addresses ?? []),
+    lastName: userExtras.lastName,
+    dob: userExtras.dob,
+    shoeSize: userExtras.shoeSize,
+    clothingSize: userExtras.clothingSize,
+    // Addresses come exclusively from the `user_addresses` form records now.
+    addresses: addrRecords,
     subscriptions,
     consent,
     cart: cart?.items ?? [],
@@ -1459,14 +1443,6 @@ export async function updateProfileAction(
     extrasOk = await upsertUserDataRecord(access, userIdentifier, extrasPatch);
   }
 
-  // 3) Drop legacy state.profile copy once migration is done
-  const stateNow = await readStateFromMe(access);
-  if (stateNow.profile) {
-    const { profile: _drop, ...rest } = stateNow;
-    void _drop;
-    await putUser(access, { formIdentifier: SIGNUP_FORM_IDENTIFIER, state: rest });
-  }
-
   return signinOk && extrasOk ? { ok: true } : { ok: false, error: 'Update failed' };
 }
 
@@ -1509,15 +1485,6 @@ export async function updateAddressesAction(
     }
   }
 
-  // Clean up the legacy state.addresses copy so it doesn't shadow form data
-  // for accounts that were saved before the form-data migration.
-  const stateNow = await readStateFromMe(access);
-  if (stateNow.addresses && stateNow.addresses.length > 0) {
-    const { addresses: _drop, ...rest } = stateNow;
-    void _drop;
-    await putUser(access, { formIdentifier: SIGNUP_FORM_IDENTIFIER, state: rest });
-  }
-
   if (errors.length > 0) {
     return { ok: false, error: errors.join('; '), addresses: finalised };
   }
@@ -1544,14 +1511,6 @@ export async function updateSubscriptionsAction(
   // 2) All 7 toggles live in the subscription_management form-data record
   const formOk = userIdentifier ? await upsertSubsRecord(access, userIdentifier, subs) : false;
 
-  // 3) Drop legacy state.subscriptionsExtra after first save
-  const stateNow = await readStateFromMe(access);
-  if (stateNow.subscriptionsExtra) {
-    const { subscriptionsExtra: _drop, ...rest } = stateNow;
-    void _drop;
-    await putUser(access, { formIdentifier: SIGNUP_FORM_IDENTIFIER, state: rest });
-  }
-
   return signinOk && formOk ? { ok: true } : { ok: false, error: 'Update failed' };
 }
 
@@ -1571,14 +1530,6 @@ export async function updateConsentAction(
     consentDataProcessing: consent.dataProcessing,
     consentCrossBorder: consent.crossBorder,
   });
-
-  // Drop legacy state.consent copy
-  const stateNow = await readStateFromMe(access);
-  if (stateNow.consent) {
-    const { consent: _drop, ...rest } = stateNow;
-    void _drop;
-    await putUser(access, { formIdentifier: SIGNUP_FORM_IDENTIFIER, state: rest });
-  }
 
   return ok ? { ok: true } : { ok: false, error: 'Update failed' };
 }
@@ -1779,10 +1730,21 @@ export interface PreviewOrderResult {
    *  no code was passed or OE didn't apply it. */
   couponDiscountAmount: number;
 }
-export type PreviewOrderResponse = PreviewOrderResult | { ok: false; error: string };
+export type PreviewOrderResponse =
+  | PreviewOrderResult
+  | {
+      ok: false;
+      error: string;
+      /** OE-numeric productIds this preview failed on because the products no
+       *  longer exist server-side. Extracted from the OE error message (which
+       *  is shaped as `"Product <id> not found"`). Clients use this to prune
+       *  their local cart so subsequent previews succeed. Empty for other
+       *  kinds of failures (network, coupon, etc.). */
+      missingProductIds: number[];
+    };
 
 export async function previewOrderAction(input: PreviewOrderInput): Promise<PreviewOrderResponse> {
-  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
+  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured', missingProductIds: [] };
 
   const access = await readAccessFromCookies();
   // Auth wins when both are present. For guests we still call OE via
@@ -1820,7 +1782,18 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
         ? { bonusAmount: input.bonusAmount } : {}),
     } as unknown as Parameters<typeof api.Orders.previewOrder>[0];
     const result = await api.Orders.previewOrder(body, DEFAULT_LOCALE);
-    if (isError(result)) return { ok: false, error: result.message ?? 'previewOrder failed' };
+    if (isError(result)) {
+      const message = result.message ?? 'previewOrder failed';
+      // OE surfaces missing products as `"Product 9171 not found"` (one id per
+      // message, but scanning globally future-proofs if the format changes to
+      // list several). Callers use this to prune the local cart so the next
+      // preview succeeds instead of getting stuck retrying the same dead id.
+      const missingProductIds = Array.from(
+        message.matchAll(/product\s+(\d+)\s+not\s+found/gi),
+        (m) => Number(m[1]),
+      ).filter((n) => Number.isFinite(n));
+      return { ok: false, error: message, missingProductIds };
+    }
     const obj = result as unknown as Record<string, unknown>;
     const totalSum = Number(obj.totalSum ?? 0);
     let totalSumWithDiscount = Number(obj.totalSumWithDiscount ?? totalSum);
@@ -1990,7 +1963,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       couponDiscountAmount,
     };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+    return { ok: false, error: err instanceof Error ? err.message : 'Network error', missingProductIds: [] };
   }
 }
 

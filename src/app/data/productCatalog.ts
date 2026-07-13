@@ -34,6 +34,11 @@ export interface CatalogProduct {
   colorStock?: boolean[];
   badge?: string;
   inStock?: boolean;
+  /** Family stock from OE's `stockqty` attribute. Snapshotted into
+   *  `CartItem.stockLimit` at add-time so the cart reducer clamps the
+   *  quantity at real inventory. `undefined` when the tenant tracks
+   *  availability via `statusIdentifier` only. */
+  stock?: number;
   /** Product-specific gallery images (5 photos). From OE `pictures_22`. */
   galleryImages?: string[];
   /** Product-specific size options. From OE `size_10`. */
@@ -74,9 +79,20 @@ export interface PdpProductVariant {
   /** Whether this specific variant is buyable (`stock > 0` or the OE status
    *  flag isn't `out_of_stock`). Copied from `CatalogProductVariant`. */
   inStock: boolean;
+  /** Variant stock from OE's `stockqty` attribute. Snapshotted into
+   *  `CartItem.stockLimit` when the shopper adds this variant to cart so
+   *  the reducer clamps quantity at real inventory. `undefined` when the
+   *  tenant tracks availability via `statusIdentifier` only. */
+  stock?: number;
   /** Per-variant sale price / regular price / SKU / imagery so the PDP can
    *  swap them in when the shopper picks a colour or size. */
   price?: number;
+  /** Per-variant discounted price when an OE `Discounts` rule
+   *  (`type: DISCOUNT`, `applicability: TO_PRODUCT`) matches this
+   *  variant's id or category. Snapshotted at load time by
+   *  `applyProductDiscount` — see `src/lib/oneentry/discounts/product-discount.ts`.
+   *  `undefined` when no active rule applies. */
+  salePrice?: number;
   sku?: string;
   image?: string;
   images?: string[];

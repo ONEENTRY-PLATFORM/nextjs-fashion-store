@@ -109,6 +109,16 @@ const FILTER_GROUP_KEY: Record<string, string> = {
   Country: 'brandCountry',
   Label: 'label',
   Price: 'price',
+  // Shoe-specific groups shipped by OE's `women_shoes` / `men_shoes` filters.
+  // Map to the corresponding fields already present on `Product` so counting
+  // and matching work without further plumbing.
+  Sole: 'soleMaterial',
+  Insole: 'insoleMaterial',
+  // "Discount" is surfaced as a boolean-ish filter (has salePrice or not).
+  // We keep the key stable so `filterProducts` can special-case it. Counting
+  // via the generic branch would compare against the label — for now leave
+  // it mapped and treat as a section pending a full sale-price integration.
+  Discount: 'discount',
 };
 
 // Explicit name→hex for the values OE actually emits in the `clothing`
@@ -169,7 +179,10 @@ function countMatches(products: CountableProduct[], key: string, label: string):
 
 const FILTER_TYPE_BY_KEY: Partial<Record<string, ClothingFilterGroup['type']>> = {
   color: 'color',
-  size: 'size_chips',
+  // `size` used to map to `'size_chips'`, but CatalogTemplate has no
+  // renderer for that type — the dropdown came up empty. Falling through
+  // to the default `checkbox` branch surfaces the OE-declared sizes as
+  // regular checkboxes. Swap back once a chip-style renderer lands.
   details: 'search_checkbox',
   productDetails: 'search_checkbox',
   careInstructions: 'search_checkbox',
@@ -259,18 +272,21 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[]): Clot
 }
 
 /**
- * Fetch the `clothing` filter from OneEntry and adapt to the storefront's
- * FilterGroup shape. Returns `null` when OE is unreachable so callers fall
- * back to the static filter definition.
+ * Fetch an OE filter by marker and adapt to the storefront's FilterGroup
+ * shape. Callers pass a section-specific marker like `women_clothing`,
+ * `men_shoes`, `women_bags`, etc. Returns `null` when OE is unreachable
+ * or the marker isn't found, so callers can fall back to a static filter
+ * definition or an empty row.
  */
-export const loadClothingFilter = cache(
+export const loadCatalogFilter = cache(
   async (
     products: CountableProduct[],
+    marker: string,
     lang: string = DEFAULT_LOCALE,
   ): Promise<ClothingFilterGroup[] | null> => {
     if (!isOneEntryEnabled) return null;
     try {
-      const result = await getApi().Filters.getFilterByMarker('clothing', lang);
+      const result = await getApi().Filters.getFilterByMarker(marker, lang);
       if (isError(result)) return null;
       // SDK's `IContentFilter` types the response with a rich `items[].children`
       // tree, but for adaptFilterToGroups we only need a subset — cast to the
@@ -281,3 +297,13 @@ export const loadClothingFilter = cache(
     }
   },
 );
+
+/**
+ * @deprecated Use `loadCatalogFilter(products, marker)` with a
+ * section-specific marker (`women_clothing`, `men_shoes`, …). Kept for
+ * transitional callers — defaults to the `women_clothing` marker.
+ */
+export const loadClothingFilter = (
+  products: CountableProduct[],
+  lang: string = DEFAULT_LOCALE,
+) => loadCatalogFilter(products, 'women_clothing', lang);

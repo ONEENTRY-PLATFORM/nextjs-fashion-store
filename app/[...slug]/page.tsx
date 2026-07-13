@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import {
   PAGE_REGISTRY,
@@ -17,7 +17,8 @@ import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../
 import { parseCatalogSearchParams, type CatalogFilters } from '../../src/lib/oneentry/catalog/filters';
 import { resolveSeasonalTrend, applySeasonalTrend } from '../../src/lib/oneentry/catalog/seasonal-trend';
 import type { Product } from '../../src/app/components/ProductCard';
-import { loadClothingFilter, type ClothingFilterGroup } from '../../src/lib/oneentry/blocks/clothing-filter';
+import { loadCatalogFilter, type ClothingFilterGroup } from '../../src/lib/oneentry/blocks/clothing-filter';
+import { loadFilterChips, chipToFilterPatch } from '../../src/lib/oneentry/blocks/filter-chips';
 import { loadBlockWithProducts, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';
 
 /* ─── Catalog page components (dataset configs) ─── */
@@ -35,6 +36,7 @@ import { InfoPage }             from '../../src/app/pages/InfoPage';
 type CatalogProps = {
   initialProducts?: Product[];
   initialFilterGroups?: ClothingFilterGroup[];
+  initialQuickChips?: string[];
   initialTotalStyles?: number;
   currentFilters?: CatalogFilters;
   currentPage?: number;
@@ -129,7 +131,40 @@ const faqSchema = {
 export default async function Page({ params, searchParams }: Props) {
   const { slug } = await params;
   const path = slug.join('/');
-  const entry = PAGE_REGISTRY[path];
+  // OE hosting and mega-menu deep-links use a `/category/<slug>` suffix on
+  // top of the base catalog path (e.g. `/women/clothing/category/outerwear`).
+  // Redirect these to the canonical `?chip=<Prettified>` form so the client's
+  // chip / breadcrumb / share-link machinery — which is query-driven — lights
+  // up correctly. Preserves any other query params on the incoming URL.
+  const entryFromExact = PAGE_REGISTRY[path];
+  if (!entryFromExact) {
+    const catIdx = slug.lastIndexOf('category');
+    if (catIdx >= 0 && catIdx < slug.length - 1) {
+      const basePath = slug.slice(0, catIdx).join('/');
+      const baseEntry = PAGE_REGISTRY[basePath];
+      if (baseEntry) {
+        const chipLabel = (slug[catIdx + 1] ?? '')
+          .split(/[-_]/)
+          .filter(Boolean)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+        const sp = await searchParams;
+        const nextParams = new URLSearchParams();
+        for (const [k, v] of Object.entries(sp)) {
+          if (v == null) continue;
+          if (Array.isArray(v)) {
+            for (const item of v) if (typeof item === 'string') nextParams.append(k, item);
+          } else if (typeof v === 'string') {
+            nextParams.set(k, v);
+          }
+        }
+        if (chipLabel && !nextParams.has('chip')) nextParams.set('chip', chipLabel);
+        const qs = nextParams.toString();
+        redirect(`/${basePath}${qs ? `?${qs}` : ''}`);
+      }
+    }
+  }
+  const entry = entryFromExact;
 
   if (!entry) notFound();
 
@@ -152,6 +187,41 @@ export default async function Page({ params, searchParams }: Props) {
       const trend = await resolveSeasonalTrend(filters.category);
       if (trend) filters = applySeasonalTrend(filters, trend);
     }
+
+    // Load OE quick-filter chip descriptors up-front — we need them both to
+    // seed the client UI (rendered as labels only) and to translate a
+    // `?chip=<label>` URL param into the real filter effect below.
+    const chips = await loadFilterChips(entry.catalogKey);
+    const initialQuickChips = chips && chips.length > 0
+      ? chips.map((c) => c.label)
+      : undefined;
+
+    // Chip clicks land as `?chip=<label>`. Look up the descriptor and merge
+    // its effect into `filters`:
+    //   - `type: 'page'`      → `filters.category = <url>` (chip wins over
+    //     any earlier category so a fresh chip click always narrows to that
+    //     category page).
+    //   - `type: 'attribute'` → append `value` into the list field matching
+    //     the attribute marker (`material_14` → `filters.materials`).
+    // `loadFilteredProducts` runs the resulting filter set through the
+    // shared `matchesCatalogFilters` predicate.
+    if (filters.chip) {
+      const patch = chipToFilterPatch(filters.chip, chips);
+      if (patch) {
+        if (patch.category) filters = { ...filters, category: patch.category };
+        if (patch.attributeField && patch.attributeValue) {
+          const field = patch.attributeField as keyof CatalogFilters;
+          const existing = (filters[field] as string[] | undefined) ?? [];
+          if (!existing.some((v) => v.toLowerCase() === patch.attributeValue!.toLowerCase())) {
+            filters = {
+              ...filters,
+              [field]: [...existing, patch.attributeValue],
+            } as CatalogFilters;
+          }
+        }
+      }
+    }
+
     const currentPage = filters.page ?? 1;
 
     const categoryPath = catalogKeyToCategoryPath(entry.catalogKey) ?? undefined;
@@ -164,6 +234,29 @@ export default async function Page({ params, searchParams }: Props) {
       page: currentPage,
       limit: PRODUCTS_PER_PAGE,
     });
+    // Direct URL navigation to `?page=N` beyond the last valid page (e.g.
+    // shared/bookmarked link, guess-and-type, changed catalog size) lands the
+    // shopper on a `NoFilterResults` placeholder even though results DO exist —
+    // just on other pages. Clamp to the last valid page and redirect, keeping
+    // any other query params (color / size / sort / …) intact.
+    if (currentPage > 1 && filtered.items.length === 0 && filtered.total > 0) {
+      const totalPages = Math.max(1, Math.ceil(filtered.total / PRODUCTS_PER_PAGE));
+      const targetPage = Math.min(currentPage, totalPages);
+      if (targetPage !== currentPage) {
+        const nextParams = new URLSearchParams();
+        for (const [k, v] of Object.entries(sp)) {
+          if (v == null || k === 'page') continue;
+          if (Array.isArray(v)) {
+            for (const item of v) if (typeof item === 'string') nextParams.append(k, item);
+          } else if (typeof v === 'string') {
+            nextParams.set(k, v);
+          }
+        }
+        if (targetPage > 1) nextParams.set('page', String(targetPage));
+        const qs = nextParams.toString();
+        redirect(`/${path}${qs ? `?${qs}` : ''}`);
+      }
+    }
     const initialProducts: Product[] | undefined =
       filtered.items.length > 0
         ? filtered.items.map(adaptCatalogProductToUiProduct)
@@ -186,8 +279,14 @@ export default async function Page({ params, searchParams }: Props) {
     // / Care / Season / Country / Label / Price) is generic enough for every
     // category, and `adaptFilterToGroups` re-counts each option against the
     // products on the page so irrelevant rows stay empty.
+    // Filter marker in OE mirrors `catalogKey` with hyphens swapped for
+    // underscores (`women-clothing` → `women_clothing`, `men-shoes` →
+    // `men_shoes`). That's how the OE tenant currently ships the six
+    // filter definitions — one per gender × category. Section-less catalogs
+    // fall through to a `null` result and hide the row entirely.
     let initialFilterGroups: ClothingFilterGroup[] | undefined;
-    const groups = await loadClothingFilter(countingProducts);
+    const filterMarker = entry.catalogKey.replace(/-/g, '_');
+    const groups = await loadCatalogFilter(countingProducts, filterMarker);
     if (groups && groups.length > 0) initialFilterGroups = groups;
 
     // OE-managed trending block shown under the product grid. One marker per
@@ -226,6 +325,7 @@ export default async function Page({ params, searchParams }: Props) {
         <CatalogComponent
           initialProducts={initialProducts}
           initialFilterGroups={initialFilterGroups}
+          initialQuickChips={initialQuickChips}
           initialTotalStyles={total || initialProducts?.length}
           currentFilters={filters}
           currentPage={currentPage}

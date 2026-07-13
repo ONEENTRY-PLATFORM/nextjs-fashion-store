@@ -115,6 +115,7 @@ export function MiniCart() {
                         <div className="flex items-center justify-between mt-3">
                           <QtyControl
                             value={item.quantity}
+                            max={item.stockLimit}
                             onMinus={() => updateQuantity(item.id, -1)}
                             onPlus={() => updateQuantity(item.id, +1)}
                             size="sm"
@@ -175,6 +176,7 @@ export function MiniCart() {
                     <div className="flex items-center justify-between px-6 pb-4 pt-3 border-t border-[#f0f0f0]">
                       <QtyControl
                         value={qty}
+                        max={row.items[0]?.stockLimit}
                         onMinus={() => updateQuantity(row.items[0].id, -1)}
                         onPlus={() => updateQuantity(row.items[0].id, +1)}
                         size="sm"

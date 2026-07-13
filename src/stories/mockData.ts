@@ -71,6 +71,45 @@ export const MOCK_MULTICOLOR_PRODUCT: Product = {
   sizes: ['XS', 'S', 'M', 'L', 'XL'],
 };
 
+/** Product not yet released — renders "Coming soon" badge in QuickViewModal. */
+export const MOCK_COMING_SOON_PRODUCT: Product = {
+  id: 'wc-cs',
+  name: 'Structured Wool Blazer',
+  brand: 'Toteme',
+  price: '$420.00',
+  label: 'COMING SOON',
+  colors: ['#1A1A1A', '#C4A882'],
+  colorImages: [
+    'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+    'https://images.unsplash.com/photo-1617038220319-276d3cfab638?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+  ],
+  colorStock: [true, true],
+  image:
+    'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+  sizes: ['XS', 'S', 'M', 'L'],
+  statusIdentifier: 'coming_soon',
+};
+
+/** Product available for pre-order — renders "Pre-order" badge in QuickViewModal. */
+export const MOCK_PREORDER_PRODUCT: Product = {
+  id: 'wc-pre',
+  name: 'Cashmere Turtleneck',
+  brand: 'Johnstons of Elgin',
+  price: '$280.00',
+  label: 'PRE-ORDER',
+  colors: ['#F5F0EB', '#2C2C2C', '#8B3A3A'],
+  colorImages: [
+    'https://images.unsplash.com/photo-1576566588028-4147f3842f27?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+    'https://images.unsplash.com/photo-1609081219090-a6d81d3085bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+    'https://images.unsplash.com/photo-1620799140188-3b2a02fd9a77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+  ],
+  colorStock: [true, true, true],
+  image:
+    'https://images.unsplash.com/photo-1576566588028-4147f3842f27?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+  sizes: ['XS', 'S', 'M', 'L', 'XL'],
+  statusIdentifier: 'preorder',
+};
+
 /** Product that ships a single size — used to verify auto-selection behaviour. */
 export const MOCK_SINGLE_SIZE_PRODUCT: Product = {
   id: 'wc-onesize',

@@ -42,10 +42,17 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     colors: v.colors,
     sizes: v.sizes,
     price: formatPrice(v.price),
+    ...(v.salePrice !== undefined && v.salePrice < v.price && { salePrice: formatPrice(v.salePrice) }),
     sku: v.sku,
     image: v.preview,
     images: v.images,
     inStock: variantHasStock(v),
+    // Forward numeric stock so QuickView's Add-to-Cart can seed the cart
+    // item's `stockLimit`. Zero + status-only tracking leaves `stock`
+    // undefined (cart falls back to product-level stock or leaves the item
+    // uncapped, matching PDP behaviour).
+    ...(v.stock > 0 && { stock: v.stock }),
+    ...(v.statusIdentifier && { statusIdentifier: v.statusIdentifier }),
   }));
   // Per-swatch availability: a colour is buyable when at least one linked
   // variant carrying it has stock. Without this every swatch is clickable and
@@ -59,6 +66,7 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     name: p.title,
     brand: p.brand || undefined,
     price: formatPrice(p.price),
+    ...(p.salePrice !== undefined && p.salePrice < p.price && { salePrice: formatPrice(p.salePrice) }),
     image: p.preview,
     colorImages: p.images.slice(0, p.colors.length || 1),
     label: label || undefined,
@@ -80,6 +88,12 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     // items slip into the opposite gender's carousels/filters.
     gender: p.gender || genderFromCategoryPath(p.categories[0]) || undefined,
     ...(variants && variants.length > 0 && { variants }),
+    // Forward product-level stock — QuickView uses it as a fallback for
+    // `stockLimit` when the product has no variants (single-SKU items).
+    ...(p.stock > 0 && { stock: p.stock }),
+    // OE status flag so QuickView/PDP can render Coming Soon / Pre-order
+    // copy instead of just In Stock / Out of Stock.
+    ...(p.statusIdentifier && { statusIdentifier: p.statusIdentifier }),
   };
 }
 
@@ -144,7 +158,17 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
         colors: v.colors.map(colorToHex),
         sizes: v.sizes,
         inStock: variantHasStock(v),
+        // Only forward numeric stock when OE tracks it (> 0). Zero + a
+        // truthy `statusIdentifier !== 'out_of_stock'` means "tenant tracks
+        // availability via status, not qty" — leaving `stock` undefined
+        // signals the cart to fall back to the family stock or leave the
+        // item uncapped (server `previewOrder` still validates).
+        ...(v.stock > 0 && { stock: v.stock }),
         price: v.price,
+        // Per-variant discounted price from `applyProductDiscount`. Only
+        // forward when strictly below the original — the UI conditions its
+        // strike-through on `salePrice` being present.
+        ...(v.salePrice !== undefined && v.salePrice < v.price && { salePrice: v.salePrice }),
         sku: v.sku,
         image: v.preview,
         images: v.images,
@@ -157,6 +181,10 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
     name: p.title,
     brand: p.brand,
     price: p.price,
+    // Discounted price snapshot from `applyProductDiscount` (OE Discounts
+    // module). Only forward when strictly below the original — PDP renders
+    // the strike-through conditionally on `salePrice` being present.
+    ...(p.salePrice !== undefined && p.salePrice < p.price && { salePrice: p.salePrice }),
     image: p.preview,
     colors: p.colors.map(colorToHex),
     colorImages: p.images.length >= p.colors.length ? p.images.slice(0, p.colors.length) : undefined,
@@ -165,6 +193,11 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
     // and leave the numeric stock field at 0. Accept either signal so a
     // status-only product doesn't render as universally out-of-stock.
     inStock: p.stock > 0 || p.statusIdentifier !== 'out_of_stock',
+    // Only forward numeric stock when OE tracks it (> 0). Used as a
+    // fallback for `CartItem.stockLimit` when the shopper adds a product
+    // that has no variant-level stock. Zero + status-only tracking leaves
+    // `stock` undefined so the cart doesn't cap at 0.
+    ...(p.stock > 0 && { stock: p.stock }),
     galleryImages: p.images.length > 0 ? p.images : undefined,
     sizeOptions: p.sizes.map((s) => ({ label: s, available: sizeAvailability ? sizeAvailability.get(s) ?? true : true })),
     // The detail accordion expects an array of short bullets — `productDetails`

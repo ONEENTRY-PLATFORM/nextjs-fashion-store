@@ -35,3 +35,8 @@ export const AtMinimum: Story = {
   name: 'At Minimum (disabled minus)',
   args: { value: 1, size: 'md' },
 };
+
+export const AtStockCap: Story = {
+  name: 'At Stock Cap (disabled plus)',
+  args: { value: 3, max: 3, size: 'md' },
+};

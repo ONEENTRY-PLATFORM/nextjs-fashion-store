@@ -234,6 +234,9 @@ Opening either modal closes the other — this prevents both from ever showing s
 Trigger points:
 - Header "profile" icon → `openLoginModal()` when logged out.
 - Checkout `<GuestCheckoutModal>` "Sign in" button → `openLoginModal()`.
+- QuickView "Be the first to review" button → closes QuickView, calls `openLoginModal()` when `isLoggedIn === false`; if signed in but no delivered order, shows an inline amber notice instead of opening `WriteReviewModal`.
+- PDP "N reviews" button (top-of-page, sub-title area) → always smooth-scrolls to the reviews section. All auth and purchase gating is handled inside `ReviewsClient`.
+- PDP reviews section "Write a Review" CTA → `ReviewsClient.requestWriteReview` runs a **three-way gate**: (1) `isLoggedIn === false` → `openLoginModal()`; (2) signed in but `canReviewProduct(orders, productId) === false` → sets an inline amber `purchaseRequired` notice that auto-dismisses after 4 s; (3) signed in with a qualifying delivered order → opens `WriteReviewModal`. `canReviewProduct` (`src/app/utils/review-eligibility.ts`) returns `true` when the shopper has at least one order whose `statusIdentifier` matches `/deliver|complete|done|closed|finish|received|arrived/i` and whose `products[]` contains the given `productId`.
 - Header profile icon → `/account` when logged in (no modal).
 
 ---

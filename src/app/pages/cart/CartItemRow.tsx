@@ -65,7 +65,7 @@ export function CartItemRow({
           <SizeDropdown value={item.size} onChange={onUpdateSize} isShoe={isShoe} availableSizes={availableSizes} />
         </div>
         <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
-          <QtyControl value={item.quantity} onMinus={() => onUpdateQuantity(-1)} onPlus={() => onUpdateQuantity(+1)} />
+          <QtyControl value={item.quantity} max={item.stockLimit} onMinus={() => onUpdateQuantity(-1)} onPlus={() => onUpdateQuantity(+1)} />
           <div className="flex items-center gap-4">
             <button
               onClick={onToggleWishlist}

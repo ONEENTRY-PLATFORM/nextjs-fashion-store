@@ -83,7 +83,18 @@ Actions per row:
 - **Reorder** — `handleReorder(order)` iterates `order.orderItems`, calls `useCart().addItem(...)` for each row that carries a numeric `productId`, then routes to `/cart`. The button is hidden when no item has a `productId` (mock rows).
 - **Cancel** — red link that opens a confirmation modal ("Do you want to cancel order X?" + Confirm / No). On confirm, calls the `cancelOrderAction(orderId, storage)` server action and, on `{ok:true}`, adds the order id to a local `locallyCancelledIds` set so the badge flips to `Cancelled` immediately without waiting for `oeOrders` to refetch. Server-side, `cancelOrderAction` first reads the existing order (OE's `updateOrderByMarkerAndId` requires a full `IOrderData` body, not a partial patch — otherwise validators reject with `"Order must have a payment"`) and resubmits it with only the `statusIdentifier` swapped for the tenant's cancellation marker.
 
-Image fallback: if the OE order product lacks a `preview`, `MyOrdersSection` falls back to the catalog product image via `getProductsByIdsAction`. Guarded so the fallback runs once per order id.
+**Product thumbnail extraction (`fetchUserOrders` in `src/lib/oneentry/auth/actions.ts`):**
+OE ships `previewImage` as an **array** of picture objects on the wire (`RawPicture[]`), even though the SDK types the field as a single `IPicture | null`. The local `pickImage` extractor handles both shapes:
+
+```ts
+const pickImage = (v: RawPicture | RawPicture[] | null | undefined): string => {
+  if (!v) return '';
+  const pic = Array.isArray(v) ? v[0] : v;
+  return pic?.downloadLink || pic?.previewLink || '';
+};
+```
+
+This runs at parse time for every order product. If `image` is still empty after extraction (OE often omits the picture snapshot from order records), `fetchUserOrders` collects the affected product ids and calls `loadProductsByIds` to fetch the missing previews from the catalog layer, building an `imageMap` that backfills `p.image` in-place. The two-stage approach means real thumbnails appear in My Orders even when the order snapshot carries no `previewImage`. Previously, accessing `.downloadLink` on the wire array returned `undefined` and all thumbnails fell back to placeholder icons.
 
 ---
 
@@ -245,7 +256,7 @@ To make it real: (1) add the `refer` case back to the `AccountPage` section swit
 | `src/lib/oneentry/auth/actions.ts` | `updateProfile / updateAddresses / updateSubscriptions / updateConsent / getGoogleAuthUrl / exchangeGoogleCode / getCurrentUser / signOut / getCart / getWishlist / pushRecentlyViewed / getRecentlyViewed / mergeRecentlyViewed` |
 | `src/lib/oneentry/catalog/service-requests-action.ts` + `service-request-submit-action.ts` | Service tab Server Actions |
 | `src/lib/oneentry/catalog/waiting-list-action.ts` | Waiting list resolver |
-| `src/lib/oneentry/catalog/products-action.ts` | `getProductsByIdsAction` — used by My Orders image fallback |
+| `src/lib/oneentry/catalog/products-action.ts` | `getProductsByIdsAction` — available for client-side product lookups (My Orders image fallback was moved to `fetchUserOrders` in `actions.ts`, which calls `loadProductsByIds` directly on the server) |
 | `src/app/utils/schemas.ts` | `profileSchema`, `addressSchema`, `promoSchema` |
 | `src/lib/google-auth.ts` | `startGoogleOAuth(returnTo?)` — server-action-driven authorize-URL redirect used by Social networks and by Login / Register modals |
 | `app/auth/callback/google/route.ts` | GET route that receives Google's `?code=&state=`, calls `exchangeGoogleCodeAction`, redirects to `returnTo` or to `/?googleAuthError=` |

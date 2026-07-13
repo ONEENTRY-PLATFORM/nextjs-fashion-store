@@ -4,6 +4,7 @@ import { RadioCard } from '../../components/RadioCard';
 import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
 import { DELIVERY_METHOD_LOCKER_LABELS as L, GUEST_CONTACT_LABELS as GC } from '../../data/checkoutLabels';
 import { GuestContactForm, type GuestContactFormState } from './GuestContactForm';
+import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 interface DeliveryMethodLockerProps {
   checked: boolean;
@@ -24,14 +25,18 @@ export function DeliveryMethodLocker({
   lockerDropOpen, setLockerDropOpen,
   isLoggedIn, guestContact, setGuestContact, guestContactErrors,
 }: DeliveryMethodLockerProps) {
+  const info = useDeliveryMethodInfo();
+  const title    = info?.locker.title    ?? L.title;
+  const subtitle = info?.locker.subtitle ?? L.subtitle;
+  const pinHint  = info?.locker.pinHint  ?? L.pinHint;
   return (
     <RadioCard
       id="locker"
       checked={checked}
       onChange={onChange}
       icon={<Package size={20} />}
-      title={L.title}
-      subtitle={L.subtitle}
+      title={title}
+      subtitle={subtitle}
     >
       <div className="pt-4">
         <label className="block text-xs tracking-wide uppercase mb-1.5 font-semibold text-[#555]">
@@ -66,7 +71,7 @@ export function DeliveryMethodLocker({
             </div>
           )}
         </div>
-        <p className="text-xs text-gray-400 mt-2">{L.pinHint}</p>
+        <p className="text-xs text-gray-400 mt-2">{pinHint}</p>
 
         {/* Guest contact form temporarily disabled — checkout is sign-in-only.
         {!isLoggedIn && (

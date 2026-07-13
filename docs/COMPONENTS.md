@@ -46,7 +46,7 @@ Component counts (excluding tests and `.stories.tsx`):
 |---|---|---|
 | `CatalogTemplate.tsx` (740 loc) | Universal catalog engine. Grid + list view, sticky filter bar, quick chips, sort dropdown, pagination, cross-sell block, trending blocks. Consumes `state.catalog[catalogKey]` from `catalogSlice`. Every `WomenXxxPage` / `MenXxxPage` is a wrapper that receives 7 pre-fetched props from the RSC shell (see §2.2) and passes the per-catalog UI config plus those props into this component. | [CATALOG_FILTERS.md](./CATALOG_FILTERS.md), [FILTER_SYSTEM.md](./FILTER_SYSTEM.md) |
 | `CatalogTemplate.parts.tsx` | Sub-components: `ColsIcon`, `CheckboxUI`, `SortOptionBtn`. | — |
-| `CatalogTemplate.types.ts` | Shared types: `FilterGroup`, `FilterOption`, `CrossSellCategory`, `BreadcrumbItem`. | — |
+| `CatalogTemplate.types.ts` | Shared types: `FilterGroup`, `FilterOption`, `CrossSellCategory`, `BreadcrumbItem`. `ChipFilter` is now `type ChipFilter = string`; `CatalogTemplateProps.quickChips` is `string[]`. | — |
 | `CatalogListProductCard.tsx` | List-view (compact) variant of the product card — used when `state.catalog[key].listMode === true`. | — |
 | `CatalogCrossSell.tsx` | Bottom-of-catalog cross-sell grid (`CrossSellCategory[]` — e.g. "Also popular in Men's Bags"). Copy from `CATALOG_VIEW_LABELS`. | — |
 | `CatalogMobileSort.tsx` | Mobile-only sort picker (opens as a sheet). | — |
@@ -54,8 +54,8 @@ Component counts (excluding tests and `.stories.tsx`):
 | `MobileFilterBody.tsx` | Content renderer for the mobile filter panel. Exports `CheckboxUI` (the tick / dash checkbox shared with desktop) and `FilterBody` (per-group renderer that dispatches by `group.type`). Handles **4 of the 7** type variants declared in `MobileFilterGroup['type']`: `size_chips`, `search_checkbox`, `color`, and the default `checkbox`. `section` is rendered by `MobileFilterPanel` as a header (not by `FilterBody`); `price_range` and `measure_range` are declared in the type union but not yet wired to a renderer — they fall through to the default `checkbox` layout. | [FILTER_SYSTEM.md](./FILTER_SYSTEM.md) |
 | `NoFilterResults.tsx` | Empty state with "Clear all filters" CTA. Accepts an `onClearAll: () => void` callback prop — the parent (`CatalogTemplate`) is responsible for dispatching `catalogActions.clearFilters`. | [CATALOG_FILTERS.md §11](./CATALOG_FILTERS.md#11-empty-state) |
 | `PriceRangeSlider.tsx` | Dual-thumb range slider for the Price filter group. Emits `[min, max]` — passed as `between` condition. Currency label from `CURRENCY.symbol`. Copy from `PRICE_RANGE_LABELS`. | — |
-| `ShoesCatalog.tsx` | Catalog wrapper for shoe pages — passes shoes-specific `FILTER_GROUPS` / `QUICK_CHIPS` / accent into `<CatalogTemplate>`. Re-exports `FilterOption`, `FilterGroup`, `CrossSellCategory` types for use by page shells. Also used as the delegate target for `<AccessoriesCatalog>`. | — |
-| `AccessoriesCatalog.tsx` | Thin alias wrapper (`AccessoriesCatalogProps = ShoesCatalogProps`) — internally renders `<ShoesCatalog>` with `chipField="accessoryType"` and the `ACCESSORY_CHIP_MAP` lookup. | — |
+| `ShoesCatalog.tsx` | Catalog wrapper for shoe pages — passes shoes-specific `FILTER_GROUPS`, `quickChips: string[]`, and accent into `<CatalogTemplate>`. Re-exports `FilterOption`, `FilterGroup`, `CrossSellCategory` types for use by page shells. Also used as the delegate target for `<AccessoriesCatalog>`. The `chipField` and `chipAliasMap` props have been removed. | — |
+| `AccessoriesCatalog.tsx` | Thin alias wrapper — internally renders `<ShoesCatalog>` and passes `quickChips: string[]` straight through. The removed `chipField="accessoryType"` and `ACCESSORY_CHIP_MAP` props are no longer used. | — |
 
 ### 1.4 Product surfaces
 
@@ -66,14 +66,14 @@ Component counts (excluding tests and `.stories.tsx`):
 | `ColorSwatch.tsx` | Circular colour swatch with selected-state ring. Used on PDP + QuickView. Does NOT render the OOS strike overlay — that logic lives in `ColorSwatchButton`. | — |
 | `ColorSwatchButton.tsx` | Button variant used inside ProductCard's hover swatch row and add-to-bag flow. Uses `strikeColor()` (`utils/colorUtils.ts`) to render the OOS diagonal-strike overlay with the right contrast against the swatch. Copy from `CATALOG_VIEW_LABELS`. | — |
 | `SizeDropdown.tsx` | Size picker consumed by `CartItemRow` only. Neither `ProductCard` (inline size chips) nor `QuickViewModal` (inline 3-column size grid) use it. Props: `{value, onChange, isShoe, availableSizes?}`. When `availableSizes` is supplied, it overrides the built-in XS…XXL / EU 36…46 fallback; an empty array hides the widget (products without sizes, e.g. jewelry) and a single-item array renders as static text instead of an interactive dropdown. Copy from `SIZE_DROPDOWN_LABELS`. | — |
-| `QuickViewModal.tsx` (430 loc) | Modal PDP surrogate. Shares Add-to-Cart / Wishlist rules with PDP. `useFocusTrap` for keyboard nav. | [PRODUCT_DETAIL.md §15](./PRODUCT_DETAIL.md#15-quick-view-quickviewmodal) |
+| `QuickViewModal.tsx` (430 loc) | Modal PDP surrogate. Shares Add-to-Cart / Wishlist rules with PDP. `useFocusTrap` for keyboard nav. **Review summary:** on modal open, calls `getProductReviewSummary(productId)` (server action in `src/lib/oneentry/catalog/reviews-actions.ts`) and shows a pulse placeholder while in-flight. The rating row layout now matches the PDP sub-title exactly: the shared `<StarRating>` SVG component (5-star strip, half-star support, empty grey when `count === 0`) is always rendered, followed by an underlined "N reviews" link (no parentheses), a `|` divider, and a stock-status label (four-way: `out_of_stock` → grey "Out of Stock", `coming_soon` → grey "Coming soon", `preorder` → amber "Pre-order", else → green "In Stock"). The label prefers `activeVariant.statusIdentifier` and falls back to `product.statusIdentifier`; both are forwarded from OE by `adaptCatalogProductToUiProduct`. If `count === 0` the "N reviews" link runs `startWriteReview`: unauthenticated users get the QuickView closed and `openLoginModal()` called; signed-in users without a qualifying delivered order for the product (`canReviewProduct` from `src/app/utils/review-eligibility.ts`) see an inline amber `showPurchaseNotice` under the rating row; signed-in users with a delivered order get `WriteReviewModal` stacked on top of QuickView, and on that modal's close the summary is refetched so the row updates immediately. If `count > 0` the link navigates to `/product/{id}#reviews` (not auth-gated). No hardcoded star or review-count fallbacks remain. | [PRODUCT_DETAIL.md §15](./PRODUCT_DETAIL.md#15-quick-view-quickviewmodal) |
 | `QuickViewSizeGuide.tsx` | Compact size-conversion table shown inside QuickView (in-place swap). | — |
 
 ### 1.5 Cart / checkout / auth
 
 | Component | Purpose | Deep dive |
 |---|---|---|
-| `MiniCart.tsx` (223 loc) | Slide-in cart drawer opened from header + Add-to-Cart. `useFocusTrap` + backdrop close. Bundle rows render collapsed (single quantity control). | [PRODUCT_DETAIL.md §16](./PRODUCT_DETAIL.md#16-mini-cart-minicart) |
+| `MiniCart.tsx` (223 loc) | Slide-in cart drawer opened from header + Add-to-Cart. `useFocusTrap` + backdrop close. Bundle rows render collapsed (single quantity control). Passes `max={item.stockLimit}` (or `max={row.items[0]?.stockLimit}` for bundle rows) to each `<QtyControl>` so the `+` button is disabled at the stock cap. | [PRODUCT_DETAIL.md §16](./PRODUCT_DETAIL.md#16-mini-cart-minicart) |
 | `CheckoutStepper.tsx` | Progress indicator that renders **4 stages** (Cart → Delivery → Payment → Confirmation). The actual checkout **funnel is 3 steps** — the Cart is the starting point outside the funnel, but the stepper shows it as stage 1 for the user. Completed steps are **clickable for backward navigation** (`router.push()`); the active + future steps are inert. | [CHECKOUT.md](./CHECKOUT.md) |
 | `LoginModal.tsx` | Sign-in form: single login field (accepts email, phone, or OE identifier — the OE email auth provider has `isLogin: true` on all three) + password + Google button + "Forgot password?" (stub, `alert()`) + link to `RegisterModal`. Google flow: click calls **`startGoogleOAuth()`** from `src/lib/google-auth.ts` — the browser navigates to Google's authorize page and comes back through `app/auth/callback/google/route.ts` (server-side authorization-code exchange). The modal itself does not see the outcome. Consumes `useSignInT()` for CMS labels; falls back to `AUTH_LABELS`. | [AUTH.md §4](./AUTH.md#4-sign-in) |
 | `RegisterModal.tsx` | Sign-up form rendered from `SignUpFormSchemaContext` (CMS attribute set `users_sign_in_sign_up`). Zod client validation via `registerSchema.safeParse()`. Calls **`useAuth().signUp(input)`** (context method), which internally awaits `signUpAction`. Google button calls `startGoogleOAuth()` — the same authorization-code redirect as `LoginModal`. Consumes `useCreateAccountT()` labels. | [AUTH.md §5](./AUTH.md#5-sign-up) |
@@ -84,7 +84,7 @@ Component counts (excluding tests and `.stories.tsx`):
 | Component | Purpose |
 |---|---|
 | `FormField.tsx` | Generic labelled input (text / email / tel / password). Auto-generated `id` via `useId()`. Focus / error styles, red border from `SALE_COLOR` on error. Used in RegisterModal, GuestContactForm, address forms. |
-| `QtyControl.tsx` | `−` / `+` buttons around a numeric value. Sizes `sm` / `md`. Copy from `QTY_CONTROL_LABELS`. |
+| `QtyControl.tsx` | `−` / `+` buttons around a numeric value. Sizes `sm` / `md`. Optional `max?: number` prop — the `+` button is disabled when `value >= max`. Copy from `QTY_CONTROL_LABELS`. |
 | `RadioCard.tsx` | Card-style radio option (border highlight, icon, title, subtitle, collapsible children). Used across DeliveryPage and PaymentPage. |
 
 ### 1.7 Utility
@@ -112,7 +112,7 @@ Each `app/*/page.tsx` is a thin route shell that renders one of these client com
 
 ### 2.2 Catalog + PDP
 
-All eight catalog pages are wrapper client components that accept **seven props** from their RSC route shell (`app/[...slug]/page.tsx`) and pass them into `<CatalogTemplate>` with the per-catalog config:
+All eight catalog pages are wrapper client components that accept **eight props** from their RSC route shell (`app/[...slug]/page.tsx`) and pass them into `<CatalogTemplate>` with the per-catalog config:
 
 ```ts
 {
@@ -123,6 +123,7 @@ All eight catalog pages are wrapper client components that accept **seven props*
   currentPage?: number;
   total?: number;
   trendingBlock?: unknown;            // pre-fetched trending block for the catalog
+  initialQuickChips?: string[];       // OE-driven chip labels from filter_chips_<catalogKey>
 }
 ```
 
@@ -193,7 +194,7 @@ All eight catalog pages are wrapper client components that accept **seven props*
 
 | File | Role | Deep dive |
 |---|---|---|
-| `CartItemRow.tsx` | Single line item — image, brand + name, colour **name** rendered from hex via `hexToColorName()` (no swatch dot), `<SizeDropdown>` (receives an optional `availableSizes?: string[]` pass-through, supplied by `CartPage` from its `sizesById` map), `<QtyControl>`, selection checkbox (`isSelected` / `onToggleSelect`), wishlist heart toggle (`inWishlist` / `onToggleWishlist`), remove trash. 9 callback props total. | [CHECKOUT.md §11](./CHECKOUT.md#11-cart-page--promo--selection) |
+| `CartItemRow.tsx` | Single line item — image, brand + name, colour **name** rendered from hex via `hexToColorName()` (no swatch dot), `<SizeDropdown>` (receives an optional `availableSizes?: string[]` pass-through, supplied by `CartPage` from its `sizesById` map), `<QtyControl max={item.stockLimit}>` (caps the `+` button at the snapshotted stock limit; `undefined` = uncapped), selection checkbox (`isSelected` / `onToggleSelect`), wishlist heart toggle (`inWishlist` / `onToggleWishlist`), remove trash. 9 callback props total. | [CHECKOUT.md §11](./CHECKOUT.md#11-cart-page--promo--selection) |
 | `CartBundleRow.tsx` | Bundle collapse row — one `QtyControl` for all bundle items, remove-bundle CTA. | [CART_WISHLIST.md §13](./CART_WISHLIST.md#13-bundles) |
 
 ### 3.3 Checkout — `pages/checkout/`
@@ -235,18 +236,18 @@ All PDP pieces are covered in [PRODUCT_DETAIL.md](./PRODUCT_DETAIL.md).
 | `AccordionSection.tsx` | Collapsible section (Specs / Description / Delivery / Care). |
 | `ProductSpecialOffers.tsx` | `bought_together` bundle block. |
 | `ProductShareDropdown.tsx` | Copy link + social share links. |
-| `ProductReviewsSection.tsx` | Average rating + histogram + review list wrapper. |
+| `ProductReviewsSection.tsx` | Average rating + histogram + review list wrapper. Accepts optional `purchaseNotice?: string | null` prop — when set, renders a small amber paragraph under the left-column "Write a Review" CTA. When `productReviews.length === 0` the right column renders a dashed-border empty-state card (`L.emptyHeading` / `L.emptyBody`) — heading and body only, no button. When non-empty, renders `<ReviewCard>` tiles via `visibleReviews.map`. |
 | `ReviewsAsync.tsx` | RSC that calls `loadProductReviews`. |
-| `ReviewsClient.tsx` | Client-side pagination + Write Review trigger. |
+| `ReviewsClient.tsx` | Always mounted (no early `null` return on empty reviews). Calls `useAuth()` and reads the shopper's orders. Exposes `requestWriteReview(_open)` which applies a three-way gate: guest → `openLoginModal()`; signed in but no delivered order for this product (`canReviewProduct` from `src/app/utils/review-eligibility.ts`) → sets `purchaseNotice` state forwarded to `<ProductReviewsSection>` as the `purchaseNotice` prop (auto-dismisses after 4 s); delivered order present → `setShowReviewModal(true)`. Hosts `<WriteReviewModal>` exclusively (PDP level no longer mounts it). |
 | `ReviewsSkeleton.tsx` | Suspense fallback. |
 | `ReviewCard.tsx` | Single review tile. |
 | `StarRating.tsx` | 5-star SVG with half-star support. |
-| `WriteReviewModal.tsx` | Review submit form → `submitForm('review_rating')` + `submitForm('review_feedback')`. |
+| `WriteReviewModal.tsx` | Review submit form → `submitForm('review_rating')` + `submitForm('review_feedback')`. Fields: `rating` (integer, 1–5); `body` (text); `occasions` (list — `string[]` of OE marker values, rendered as chips with display labels from `WRITE_REVIEW_LABELS.occasions`); `add_media` (UI present, file upload is a follow-up). `headline`, `name`, `email` removed — no longer in the OE schema. |
 | `ReserveInStoreModal.tsx` | Reserve form → `submitForm('reserve_in_store')`. |
 | `SizeGuideModal.tsx` | Size-conversion table modal. |
 | `RecommendationsCarousel.tsx` | Horizontal carousel wrapper for "You may also like". |
 | `RecommendationsSkeleton.tsx` | Suspense fallback. |
-| `FrequentlyOrderedAsync.tsx` | RSC that loads `pdp_you_may_also_like` block + backfill. |
+| `FrequentlyOrderedAsync.tsx` | RSC that loads `pdp_you_may_also_like` block; hides when OE returns nothing (no backfill). |
 | `FrequentlyOrderedClient.tsx` | Client wrapper around the carousel. |
 | `RecentlyViewedSection.tsx` | Receives `{products: Product[], accentColor}` from the parent PDP and renders up to N tiles when scrolled into view (IntersectionObserver). **Does not itself dispatch or push** — the PDP dispatches `recentlyViewedActions.addProduct` on mount and calls `pushRecentlyViewedAction(numeric)` when `isLoggedIn`. |
 

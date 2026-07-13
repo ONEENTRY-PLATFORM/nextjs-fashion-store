@@ -89,57 +89,6 @@ export const FILTER_PRICE_LABELS = {
   over: (min: number) => `Over ${CURRENCY.formatInteger(min)}`,
 } as const;
 
-/** Quick-chip labels — shown as filter pills on each catalog page */
-export const FILTER_QUICK_CHIPS = {
-  // Women bags
-  shoulderBags: 'Shoulder Bags',
-  toteBags: 'Tote Bags',
-  clutches: 'Clutches',
-  crossbody: 'Crossbody',
-  backpacks: 'Backpacks',
-  beltBags: 'Belt Bags',
-  summerBags: 'Summer Bags',
-  // Men bags
-  briefcases: 'Briefcases',
-  laptopBags: 'Laptop Bags',
-  travelBags: 'Travel Bags',
-  suitcases: 'Suitcases',
-  // Clothing (shared)
-  bestSellers: 'Best Sellers',
-  dresses: 'Dresses',
-  tops: 'Tops',
-  bottoms: 'Bottoms',
-  outerwear: 'Outerwear',
-  winterOutfits: 'Winter Outfits',
-  partyOutfits: 'Party Outfits',
-  suits: 'Suits',
-  jeans: 'Jeans',
-  shirts: 'Shirts',
-  sportswear: 'Sportswear',
-  casualWear: 'Casual Wear',
-  // Shoes (shared)
-  boots: 'Boots',
-  sneakers: 'Sneakers',
-  sandals: 'Sandals',
-  loafers: 'Loafers',
-  balletFlats: 'Ballet Flats',
-  pumps: 'Pumps',
-  ankleBoots: 'Ankle Boots',
-  oxford: 'Oxford',
-  trainers: 'Trainers',
-  chelsea: 'Chelsea',
-  // Accessories (shared)
-  jewelry: 'Jewelry',
-  scarves: 'Scarves',
-  gloves: 'Gloves',
-  belts: 'Belts',
-  sunglasses: 'Sunglasses',
-  headwear: 'Headwear',
-  wallets: 'Wallets',
-  caps: 'Caps',
-  watches: 'Watches',
-} as const;
-
 /** City labels — reused across all catalog pages */
 export const FILTER_CITY_NAMES = {
   newYork: 'New York',

@@ -468,6 +468,31 @@ export function ProductDetailPage({
     };
   }, []);
 
+  // Deep-link support for `/product/{id}#reviews` — used by QuickView's
+  // "N reviews" chip so shoppers land directly on the reviews block. The
+  // reviews slot is streamed via <Suspense>, so we retry the scroll until
+  // the section actually mounts (or the retry budget expires) instead of
+  // firing once on load and missing when the section is still empty.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#reviews') return;
+    let cancelled = false;
+    let tries = 0;
+    const attempt = () => {
+      if (cancelled) return;
+      const el = reviewsRef.current;
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 120;
+        window.scrollTo({ top, behavior: 'smooth' });
+        return;
+      }
+      tries += 1;
+      if (tries < 40) setTimeout(attempt, 100);
+    };
+    attempt();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleAddToCart = () => {
     if (!selectedSize) {
       setSizeError(true);
@@ -475,6 +500,17 @@ export function ProductDetailPage({
       sizeErrorTimerRef.current = setTimeout(() => setSizeError(false), 2000);
       return;
     }
+    // Snapshot the active variant's `stockqty` so the reducer can cap
+    // `updateQuantity` at OE inventory. Fall back to the family stock when a
+    // specific variant isn't resolved (e.g. product without variants). Leaves
+    // `stockLimit` undefined only when OE truly doesn't track a number for
+    // this product — which the reducer treats as uncapped (belt-and-braces
+    // still applies server-side at `previewOrder` / `createOrder`).
+    const variantStock = activeVariant?.stock;
+    const familyStock = catalogProduct?.stock;
+    const stockLimit = Number.isFinite(variantStock) && (variantStock as number) > 0
+      ? (variantStock as number)
+      : (Number.isFinite(familyStock) && (familyStock as number) > 0 ? (familyStock as number) : undefined);
     cart.addItem({
       id: productId || 'pdp-ribbed-cashmere-knit',
       name: dynamicName,
@@ -486,6 +522,7 @@ export function ProductDetailPage({
       price: dynamicPrice,
       originalPrice: dynamicOriginalPrice ?? undefined,
       image: activeColorImage,
+      ...(stockLimit !== undefined && { stockLimit }),
     });
     cart.openMiniCart();
     markAddedToCart();
@@ -571,6 +608,11 @@ export function ProductDetailPage({
                 <StarRating rating={avgRating} size={15} />
                 <button
                   onClick={() => {
+                    // Reviews section is now always mounted (even for 0
+                    // reviews), so we can always scroll. All auth / purchase
+                    // gating lives inside ReviewsClient's own CTA — clicking
+                    // that button surfaces the login modal (guest) or the
+                    // "purchase required" notice (signed-in, unpurchased).
                     if (!reviewsRef.current) return;
                     const top = reviewsRef.current.getBoundingClientRect().top + window.scrollY - 120;
                     window.scrollTo({ top, behavior: 'smooth' });

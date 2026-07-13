@@ -85,6 +85,45 @@ const getCachedFrequentlyOrdered = unstable_cache(
   { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
 );
 
+// Process-wide in-flight de-duplication for `getCachedFrequentlyOrdered`.
+// `unstable_cache` handles cross-request caching (hits are ~free), but under
+// concurrent load we still saw p95 ≈ 19 s on this loader in perf-dump — a
+// symptom of many VU's landing on the SAME cold (marker,productId,lang) key
+// simultaneously, each firing a fresh OE call to the notoriously slow
+// `getFrequentlyOrderedProducts` endpoint. This map collapses concurrent
+// cold misses onto a single in-flight promise (same pattern used by
+// `loadFullCatalog`). Pinned to `globalThis` for the same reason as the
+// profiling ring buffer — Next.js emits multiple bundles for this file and
+// each one would otherwise get its own private Map, defeating the dedup.
+interface FreqOrderedState {
+  inflight: Map<string, Promise<{ items?: Array<{ id?: number }> } | null>>;
+}
+const FREQ_ORDERED_KEY = '__oneentryFrequentlyOrderedInflight__';
+type GlobalWithFreqOrdered = typeof globalThis & { [FREQ_ORDERED_KEY]?: FreqOrderedState };
+function getFreqOrderedInflight(): FreqOrderedState['inflight'] {
+  const g = globalThis as GlobalWithFreqOrdered;
+  let s = g[FREQ_ORDERED_KEY];
+  if (!s) {
+    s = { inflight: new Map() };
+    g[FREQ_ORDERED_KEY] = s;
+  }
+  return s.inflight;
+}
+async function getFrequentlyOrderedDedup(
+  marker: string,
+  productId: number,
+  lang: string,
+): Promise<{ items?: Array<{ id?: number }> } | null> {
+  const inflight = getFreqOrderedInflight();
+  const key = `${marker}::${productId}::${lang}`;
+  const existing = inflight.get(key);
+  if (existing) return existing;
+  const p = getCachedFrequentlyOrdered(marker, productId, lang)
+    .finally(() => { inflight.delete(key); });
+  inflight.set(key, p);
+  return p;
+}
+
 const getCachedPageById = unstable_cache(
   async (pageId: number, lang: string) => {
     const result = await getApi().Pages.getPageById(pageId, lang);
@@ -264,7 +303,20 @@ async function _loadFrequentlyOrderedBlock(
   const type = block?.type ?? 'frequently_ordered_block';
   const position = Number(block?.position ?? 0);
 
-  const data = await getCachedFrequentlyOrdered(marker, productId, lang);
+  // OE's `getFrequentlyOrderedProducts` recomputes cross-purchase stats
+  // server-side on every cold miss — perf-dump measured p95 ≈ 8.6 s and
+  // max ≈ 12.9 s per fresh (productId,lang) under 20 VU load. That drives
+  // PDP body-complete over the k6 3 s threshold on any newly-hit product.
+  // We hard-cap the wait at 2 s so the PDP body streams to completion
+  // even when OE is slow — the abandoned fetch keeps running (dedup +
+  // `unstable_cache` above hold on to it) so its result still lands in the
+  // Data Cache and warms future requests for the same key. Only the very
+  // first user for a cold id sees an empty recommendations block; every
+  // subsequent request gets an instant cache hit.
+  const data = await Promise.race([
+    getFrequentlyOrderedDedup(marker, productId, lang),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+  ]);
   const ids = (data?.items ?? [])
     .map((it) => Number(it?.id))
     .filter((n) => Number.isFinite(n) && n > 0);

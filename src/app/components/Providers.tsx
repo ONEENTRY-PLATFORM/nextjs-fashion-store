@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar'
 import { ErrorBoundary } from './ErrorBoundary'
 import { PageViewTracker } from './PageViewTracker'
+import { CartUnavailableNotice } from './CartUnavailableNotice'
 import { ProductCardLabelsProvider } from '../../lib/oneentry/labels/ProductCardLabelsContext'
 import type { ProductCardDict } from '../../lib/oneentry/labels/product-card-types'
 import { SignInLabelsProvider } from '../../lib/oneentry/labels/SignInLabelsContext'
@@ -89,6 +90,7 @@ export function Providers({
       <AuthProvider>
         <WishlistSyncEffect />
         <PageViewTracker />
+        <CartUnavailableNotice />
         <ProductCardLabelsProvider data={productCardLabels}>
           <SignInLabelsProvider data={signInLabels}>
             <CreateAccountLabelsProvider data={createAccountLabels}>

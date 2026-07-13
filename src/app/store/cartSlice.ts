@@ -15,11 +15,16 @@ function generateId(): string {
 interface CartState {
   items: CartItem[];
   miniCartOpen: boolean;
+  /** Items removed by the once-per-session availability check because their
+   *  OneEntry product record is gone. Populated by CartContext's validation
+   *  effect and rendered as a top-of-page notice — dismissed by the shopper. */
+  unavailableRemoved: CartItem[];
 }
 
 const initialState: CartState = {
   items: [],
   miniCartOpen: false,
+  unavailableRemoved: [],
 };
 
 const cartSlice = createSlice({
@@ -32,15 +37,22 @@ const cartSlice = createSlice({
         i => i.id === item.id && i.size === item.size
       );
       if (existing) {
-        existing.quantity += item.quantity;
+        // Refresh stockLimit from the newer add — the shopper may have opened
+        // a fresh PDP and the inventory could have shifted since the previous
+        // add. `undefined` in the incoming payload preserves the existing cap.
+        if (item.stockLimit !== undefined) existing.stockLimit = item.stockLimit;
+        const cap = existing.stockLimit ?? Infinity;
+        existing.quantity = Math.min(existing.quantity + item.quantity, cap);
       } else {
-        state.items.push(item);
+        const cap = item.stockLimit ?? Infinity;
+        state.items.push({ ...item, quantity: Math.min(item.quantity, cap) });
       }
     },
     addBundle(state, action: PayloadAction<Omit<CartItem, 'bundleId'>[]>) {
       const bundleId = `bundle-${generateId()}`;
       action.payload.forEach(item => {
-        state.items.push({ ...item, bundleId });
+        const cap = item.stockLimit ?? Infinity;
+        state.items.push({ ...item, bundleId, quantity: Math.min(item.quantity, cap) });
       });
     },
     removeItem(state, action: PayloadAction<string>) {
@@ -56,12 +68,16 @@ const cartSlice = createSlice({
         const bundleId = target.bundleId;
         state.items.forEach(i => {
           if (i.bundleId === bundleId) {
-            i.quantity = Math.max(1, i.quantity + delta);
+            const cap = i.stockLimit ?? Infinity;
+            i.quantity = Math.max(1, Math.min(i.quantity + delta, cap));
           }
         });
       } else {
         const item = state.items.find(i => i.id === id);
-        if (item) item.quantity = Math.max(1, item.quantity + delta);
+        if (item) {
+          const cap = item.stockLimit ?? Infinity;
+          item.quantity = Math.max(1, Math.min(item.quantity + delta, cap));
+        }
       }
     },
     updateSize(state, action: PayloadAction<{ id: string; size: string }>) {
@@ -76,6 +92,12 @@ const cartSlice = createSlice({
     },
     closeMiniCart(state) {
       state.miniCartOpen = false;
+    },
+    setUnavailableRemoved(state, action: PayloadAction<CartItem[]>) {
+      state.unavailableRemoved = action.payload;
+    },
+    dismissUnavailableRemoved(state) {
+      state.unavailableRemoved = [];
     },
   },
 });

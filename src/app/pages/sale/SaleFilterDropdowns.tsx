@@ -92,9 +92,12 @@ export interface ColorPillDropdownProps {
   selected: string[];
   onToggle: (val: string) => void;
   onClear: () => void;
+  /** Optional list of `{label, color}` swatches derived from the visible
+   *  products. When omitted, falls back to the static SALE_COLOR_OPTIONS. */
+  options?: readonly { label: string; color: string }[];
 }
 
-export function ColorPillDropdown({ selected, onToggle, onClear }: ColorPillDropdownProps) {
+export function ColorPillDropdown({ selected, onToggle, onClear, options }: ColorPillDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -141,7 +144,7 @@ export function ColorPillDropdown({ selected, onToggle, onClear }: ColorPillDrop
             </div>
           )}
           <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-            {SALE_COLOR_OPTIONS.map(opt => {
+            {(options ?? SALE_COLOR_OPTIONS).map(opt => {
               const checked = selected.includes(opt.label);
               return (
                 <label key={opt.label} className="flex items-center gap-2 py-1.5 cursor-pointer group">

@@ -41,6 +41,12 @@ export interface CatalogFilters {
   productDetails?: string[];
   careInstructions?: string[];
   insulations?: string[];
+  /** Shoe filters shipped by OE's `women_shoes` / `men_shoes` filter defs. */
+  soleMaterials?: string[];
+  insoleMaterials?: string[];
+  /** Discount toggle — surfaces the OE filter group of the same name. Truthy
+   *  when the shopper has picked any value in the group. */
+  discountOnly?: boolean;
   sort?: string;
   page?: number;
   chip?: string;
@@ -68,6 +74,8 @@ const LIST_KEYS: Record<string, keyof CatalogFilters> = {
   details: 'productDetails',
   careInstructions: 'careInstructions',
   insulation: 'insulations',
+  soleMaterial: 'soleMaterials',
+  insoleMaterial: 'insoleMaterials',
 };
 
 /** Inverse of LIST_KEYS — used by serializeCatalogSearchParams to flip a
@@ -261,6 +269,8 @@ const FE_GROUP_TO_FILTER_FIELD: Record<string, keyof CatalogFilters> = {
   productDetails: 'productDetails',
   careInstructions: 'careInstructions',
   insulation: 'insulations',
+  soleMaterial: 'soleMaterials',
+  insoleMaterial: 'insoleMaterials',
 };
 
 /** Returns true if the filter group key has a backing OE marker we know about
