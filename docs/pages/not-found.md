@@ -2,6 +2,8 @@
 
 404 error page (`NotFoundPage.tsx`). Rendered by Next.js when a route is not found (`app/not-found.tsx` → `<NotFoundPage />`, `SEO.notFound` metadata). Static UI — no CMS loaders. Mount effect: `window.scrollTo(0, 0)` to defeat scroll-restore when the client-side router lands on a missing route. All copy comes from `NOT_FOUND_LABELS` in `data/notFoundLabels.ts`.
 
+> **Build note:** `NotFoundPage` includes `<Header />`, which calls `useSearchParams()` to sync `?gender=` state. `<Header />` is wrapped in `<Suspense fallback={null}>` here so that `next build` can prerender `/_not-found` as a static page without triggering a `missing-suspense-with-csr-bailout` error.
+
 ## SEO / social networks
 
 - **Meta title**: string

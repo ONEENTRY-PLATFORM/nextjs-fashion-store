@@ -100,22 +100,26 @@ This runs at parse time for every order product. If `image` is still empty after
 
 ## 4. My Bonuses (`BonusesSection.tsx`)
 
-Loyalty summary card + empty transactions table.
+Loyalty summary card + bonus transaction history.
 
-**Real fields (from OE `user.*`):**
-- `status` (`Bronze` / `Silver` / `Gold` / `Platinum`)
-- `bonuses` (numeric points)
+**Real fields (from OE `user.*` via `fetchLoyalty`):**
+- `status` (`Bronze` / `Silver` / `Gold` / `Platinum`) — the shopper's current personal tier, determined by lifetime revenue (`ltvThreshold`) via `AuthContext.pickActiveTier`.
+- `bonuses` / `bonusBalance` (numeric points) — `fetchLoyalty` now always returns `{ tiers, bonusBalance }` (never `null`) so a tenant with a bonus programme but no personal-tier configuration no longer silently drops the shopper's balance.
 - `discount` (integer percent)
-- `totalPurchases`, `nextLevelAmount` — progress-bar inputs
+- `totalPurchases`, `nextLevelAmount` — progress-bar inputs. `nextLevelAmount` surfaces the lower of the next tier's `ltvThreshold` and its `minCartAmount` (when present) so the progress bar shows a concrete target even for cart-gated tiers.
 
-**Bonus transactions:** loaded via `fetchBonusHistoryAction()` (`src/lib/oneentry/auth/actions.ts`), which calls `api.Discounts.getBonusHistory()`. OE actually returns a paginated envelope `{ items: IBonusTransactionEntity[], total: number }` — the action unwraps `.items` (and still accepts a bare array as a graceful fallback) despite the SDK typing the return as a plain array. Each row maps to `OeBonusTransaction { amount, type, createdAt, comment, sign }`; `sign` is `+1` for accrual-family `type` values (see `POSITIVE_BONUS_TYPES`) and `-1` otherwise. Empty history still renders the "No bonus transactions yet" placeholder.
+**Loyalty ladder — `OeLoyaltyTier` shape.** `fetchLoyalty` in `auth/actions.ts` now extracts both `USER_LTV` (lifetime-revenue threshold → `ltvThreshold`) and `MIN_CART_AMOUNT` (per-order cart threshold → `minCartAmount`) from each discount-rule condition. Both fields are present on `OeLoyaltyTier`. `FALLBACK_TIER_LTV` defaults: Silver 500, Gold 1000, Platinum 2000.
+
+**Tier selection — two contexts.**
+- **`AuthContext.pickActiveTier`** (status display, `LoyaltyCard`, `BonusesSection`) evaluates only `ltvThreshold` against the user's lifetime revenue. Cart-gated tiers (`minCartAmount` only) are intentionally excluded because they are not a permanent identity signal.
+- **`previewOrderAction` personal-tier fallback** evaluates every gate present on the tier at order time — `ltvThreshold` against lifetime revenue AND `minCartAmount` against the current cart total — so Silver / Gold / Platinum tiers gated by cart size are now reachable and their discount is applied when the cart qualifies. Previously only Bronze was reachable (the ladder collapsed because `MIN_CART_AMOUNT` gates were never evaluated).
+
+**Bonus transactions:** loaded via `fetchBonusHistoryAction()` (`src/lib/oneentry/auth/actions.ts`), which calls `api.Discounts.getBonusHistory()`. OE returns a paginated envelope `{ items: IBonusTransactionEntity[], total: number }` — the action unwraps `.items` (and still accepts a bare array as a graceful fallback). Each row maps to `OeBonusTransaction { amount, type, createdAt, comment, sign }`; `sign` is `+1` for accrual-family `type` values (see `POSITIVE_BONUS_TYPES`) and `-1` otherwise. Empty history renders the "No bonus transactions yet" placeholder.
 
 **Mock:**
 - Points redemption UI is a placeholder.
 
 The `LoyaltyCard` sub-component (`src/app/pages/account/LoyaltyCard.tsx`) also renders on the My Data page as the header banner and reads the same fields.
-
-**Caveat:** on this tenant the loyalty attributes are not backed by real values. `AuthContext` seeds them from `EMPTY_USER_DEFAULTS` (zeros) — so a fresh signed-in user sees `Bronze / 0 pts / 0 % discount`. When the CMS loyalty attribute set lands, `getCurrentUserAction` will start returning real values without any client change.
 
 ---
 
@@ -237,8 +241,10 @@ To make it real: (1) add the `refer` case back to the `AccountPage` section swit
 
 1. Clears local `isLoggedIn` / `user` state.
 2. Dispatches `clearAuth()` to `userSlice`.
-3. Fires `signOutAction()` in the background, which reads `oe_refresh` and calls `AuthProvider.logout(refreshToken)`, then clears `oe_access` / `oe_refresh` / `oe_user` cookies.
-4. No redirect — the sidebar re-renders as the `SignInPrompt`.
+3. Dispatches `cartActions.clearCart()`, `wishlistActions.clearAll()`, and `recentlyViewedActions.hydrate([])`.
+4. Clears `oe_cart_merged`, `oe_wishlist_merged`, `oe_checkout_payload`, `oe_coupon_code`, and `oe_last_order_id` from `sessionStorage`.
+5. Fires `signOutAction()` in the background, which reads `oe_refresh` and calls `AuthProvider.logout(refreshToken)`, then clears `oe_access` / `oe_refresh` / `oe_user` cookies.
+6. No redirect — the sidebar re-renders as the `SignInPrompt`.
 
 ---
 

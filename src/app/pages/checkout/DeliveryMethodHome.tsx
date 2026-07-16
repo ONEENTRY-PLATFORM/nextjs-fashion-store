@@ -3,6 +3,7 @@ import { MapPin } from 'lucide-react';
 import { RadioCard } from '../../components/RadioCard';
 import { FormField } from '../../components/FormField';
 import { DELIVERY_TIME_SLOTS, DELIVERY_PERKS } from '../../data/checkoutConfig';
+import type { DeliveryTimeSlot } from '../../../lib/oneentry/checkout/delivery-schedule';
 import { DELIVERY_METHOD_HOME_LABELS as L } from '../../data/checkoutLabels';
 import type { UserAddress } from '../../data/userData';
 import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
@@ -41,6 +42,9 @@ interface DeliveryMethodHomeProps {
   setSelectedDate: (d: Date) => void;
   selectedSlot: string;
   setSelectedSlot: (id: string) => void;
+  /** OE-driven time slots; falls back to the hardcoded set when the parent
+   *  didn't supply anything (Storybook / bare render). */
+  timeSlots?: DeliveryTimeSlot[];
 }
 
 export function DeliveryMethodHome({
@@ -50,7 +54,9 @@ export function DeliveryMethodHome({
   newAddrConfirmed, setNewAddrConfirmed,
   saveNewAddr, setSaveNewAddr, onConfirmNewAddr,
   deliveryDates, selectedDate, setSelectedDate, selectedSlot, setSelectedSlot,
+  timeSlots,
 }: DeliveryMethodHomeProps) {
+  const slots = timeSlots && timeSlots.length > 0 ? timeSlots : DELIVERY_TIME_SLOTS;
   const updateAddr = (key: keyof NewAddressForm) => (v: string) => {
     setNewAddrForm(f => ({ ...f, [key]: v }));
     setAddrErrors(e => ({ ...e, [key]: '' }));
@@ -213,7 +219,7 @@ export function DeliveryMethodHome({
           {L.deliveryTime}
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
-          {DELIVERY_TIME_SLOTS.map(slot => {
+          {slots.map(slot => {
             const isSelected = selectedSlot === slot.id;
             return (
               <button

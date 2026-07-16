@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo } from 'react';
 import { fmt } from '../utils/formatPrice';
-import Image from 'next/image';
+import { ImageWithFallback } from './ImageWithFallback';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { X, ShoppingBag, Link as LinkIcon } from 'lucide-react';
 import { QtyControl } from './QtyControl';
@@ -17,6 +17,14 @@ type RenderRow =
 
 export function MiniCart() {
   const { items, miniCartOpen, closeMiniCart, removeItem, removeBundle, updateQuantity, subtotal, totalItems, personalDiscount, totalDue, couponCode, couponDiscount, preview, previewLoading } = useCart();
+  // Line items already reflect the sale price (item.price) with the
+  // strike-through UX; keep the summary aligned so the shopper sees the
+  // same numbers here and in the catalog / PDP. OE's `totalDue` is used
+  // when OE actually knocked something extra off — loyalty tier, coupon,
+  // or the shopper spent bonus points. Matches the CartPage /
+  // DeliveryPage `finalTotal` logic.
+  const bonusBurned = (preview?.bonusApplied ?? 0) > 0;
+  const displayTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : subtotal;
   const router = useRouter();
   const trapRef = useFocusTrap(miniCartOpen, closeMiniCart);
   const lHeading      = useYourBagT('your_bag_title',          L.heading);
@@ -100,7 +108,7 @@ export function MiniCart() {
                   return (
                     <div key={item.id} className="flex gap-4 px-6 py-5 border-b border-gray-100">
                       <div className="relative flex-shrink-0 w-20 h-24">
-                        <Image src={item.image} alt={item.name} fill sizes="80px" className="object-cover" />
+                        <ImageWithFallback src={item.image} alt={item.name} fill sizes="80px" className="object-cover" />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
                         <div>
@@ -122,7 +130,9 @@ export function MiniCart() {
                           />
                           <div className="text-right">
                             <span className="text-sm font-semibold">{fmt(item.price * item.quantity)}</span>
-                            {item.originalPrice && <span className="block text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</span>}
+                            {item.originalPrice && item.originalPrice > item.price && (
+                              <span className="block text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -158,15 +168,26 @@ export function MiniCart() {
                     {row.items.map((item, idx) => (
                       <div key={item.id} className={`flex gap-3 px-6 py-3 ${idx > 0 ? 'border-t border-dashed border-[#f0f0f0]' : ''}`}>
                         <div className="relative flex-shrink-0 w-16 h-20">
-                          <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
+                          <ImageWithFallback src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
                           <p className="text-xs leading-tight font-semibold mb-0.5">{item.name}</p>
                           <p className="text-xs text-gray-400">{item.color} · Size {item.size}</p>
+                          {/* Multiply by qty like every other line-item
+                              price surface (single items + bundle footer);
+                              without it a bundle line showed the per-unit
+                              price while the surrounding rows summed a
+                              qty-adjusted total, breaking the visual math.
+                              Also guard the strike so it never renders
+                              when `originalPrice <= item.price` — a stale
+                              catalog entry with equal or lower "was" price
+                              used to strike a smaller number. */}
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs font-semibold">{fmt(item.price)}</span>
-                            {item.originalPrice && <span className="text-xs text-gray-400 line-through">{fmt(item.originalPrice)}</span>}
+                            <span className="text-xs font-semibold">{fmt(item.price * item.quantity)}</span>
+                            {item.originalPrice && item.originalPrice > item.price && (
+                              <span className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -196,7 +217,11 @@ export function MiniCart() {
         {/* Footer */}
         {items.length > 0 && (
           <div className="flex-shrink-0 px-6 py-5 border-t border-gray-200 bg-white">
-            {/* Subtotal */}
+            {/* Subtotal = sum of `item.price` (already sale price when
+                the catalog / PDP overlay produced one). Line items above
+                render the strike-through UX, so no redundant "Items
+                discount" row here — that was the original math bug
+                ("$31.5 − $3.5 = $35"). */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-500 tracking-wide">{lSubtotal}</span>
               <span className="text-base font-semibold">{fmt(subtotal)}</span>
@@ -231,11 +256,12 @@ export function MiniCart() {
                     <span className="font-semibold">−{fmt(couponDiscount)}</span>
                   </div>
                 )}
-                {(personalDiscount > 0 || couponDiscount > 0) && (
-                  <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
-                    <span className="text-sm font-bold">Total</span>
-                    <span className="text-base font-bold">{fmt(totalDue)}</span>
-                  </div>
+                <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
+                  <span className="text-sm font-bold">Total</span>
+                  <span className="text-base font-bold">{fmt(displayTotal)}</span>
+                </div>
+                {(personalDiscount > 0 || couponDiscount > 0) && preview && (preview.totalDue !== subtotal) && (
+                  <p className="text-[10px] text-gray-400 mb-3">Applied at checkout</p>
                 )}
               </>
             )}

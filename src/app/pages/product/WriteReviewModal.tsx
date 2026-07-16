@@ -39,9 +39,22 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
     if (Object.keys(e).length) { setErrors(e); return; }
     setSubmitError('');
     startTransition(async () => {
+      // Bind both submissions to the same product-scoped module config
+      // ids the READER uses (`reviews.ts::FEEDBACK_MODULE_CONFIG=13`,
+      // `RATING_MODULE_CONFIG=12`) with `moduleEntityIdentifier` set to
+      // the numeric product id — without these bindings OE stores the
+      // submission with `formModuleConfigId=0` and the reader (which
+      // filters on `configId + entityIdentifier=productId`) never sees
+      // it. Result before the fix: reviews vanished into limbo.
+      const productBinding = productId !== undefined
+        ? { moduleConfigId: 12, moduleEntityIdentifier: String(productId) }
+        : undefined;
+      const feedbackBinding = productId !== undefined
+        ? { moduleConfigId: 13, moduleEntityIdentifier: String(productId) }
+        : undefined;
       const ratingRes = await submitForm('review_rating', [
         { marker: 'rating', value: String(rating), type: 'integer' },
-      ]);
+      ], productBinding);
       if (!ratingRes.ok) { setSubmitError(ratingRes.error); return; }
       // OE `review_feedback` (id 8) — fields the tenant currently ships:
       //   body (text), occasions (list), add_media (groupOfImages)
@@ -51,7 +64,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
       const feedbackRes = await submitForm('review_feedback', [
         { marker: 'body',      value: reviewText.trim(),      type: 'text' },
         { marker: 'occasions', value: occasions,              type: 'list' },
-      ]);
+      ], feedbackBinding);
       if (!feedbackRes.ok) { setSubmitError(feedbackRes.error); return; }
       trackActivity({
         type: 'product_rating',

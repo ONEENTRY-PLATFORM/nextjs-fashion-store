@@ -95,6 +95,12 @@ export function QuickViewModal() {
   );
 
   const activePrice = activeVariant?.price ?? product.price;
+  // Prefer the variant's own sale — otherwise the strike-through pair
+  // would mix variant.price ("was") with family salePrice ("now") for a
+  // completely different variant. Adapter only forwards
+  // `variant.salePrice` when `variant.salePrice < variant.price`, so
+  // falling through to family salePrice is a display-only trade-off.
+  const activeSalePrice = activeVariant?.salePrice ?? product.salePrice;
   // Prefer the variant's own gallery so the picked colour matches the images.
   const productImages = activeVariant?.images?.length
     ? activeVariant.images
@@ -345,16 +351,34 @@ export function QuickViewModal() {
               </p>
             )}
 
-            {/* Price */}
+            {/* Price — variant salePrice takes precedence over family so
+                the strike-through pair is consistent for the currently
+                picked variant (matches ProductCard / PDP). Runtime guard
+                on numeric `sale < original` so a family fallback with a
+                broken adapter contract (or a rule that priced the family
+                sale at or above the variant "was") can never render a
+                "-0%" strike pair. Prices ride as formatted strings
+                (`"$65.00"`) on the UI `Product` shape, so parse the
+                leading number before comparing — a string compare here
+                is lexicographic and `"$100.00" < "$90.00"` is true. */}
             <div className="flex items-center gap-3 mb-4">
-              {product.salePrice ? (
-                <>
-                  <span className="text-2xl font-semibold text-primary-men">{product.salePrice}</span>
-                  <span className="text-lg text-gray-400 line-through">{activePrice}</span>
-                </>
-              ) : (
-                <span className="text-2xl font-semibold">{activePrice}</span>
-              )}
+              {(() => {
+                const originalPriceRef = activeVariant?.salePrice
+                  ? activeVariant.price
+                  : product.price;
+                const parseAmount = (s: string | undefined): number =>
+                  parseFloat(s?.match(/[\d.]+/)?.[0] ?? '0') || 0;
+                const showSale = activeSalePrice !== undefined
+                  && parseAmount(activeSalePrice) < parseAmount(originalPriceRef);
+                return showSale ? (
+                  <>
+                    <span className="text-2xl font-semibold text-primary-men">{activeSalePrice}</span>
+                    <span className="text-lg text-gray-400 line-through">{originalPriceRef}</span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-semibold">{activePrice}</span>
+                );
+              })()}
             </div>
 
             {/* Badges */}
@@ -487,8 +511,14 @@ export function QuickViewModal() {
                       setErrors({ color: colorErr, size: sizeErr });
                       return;
                     }
-                    const cartPrice = parseFloat((product.salePrice ?? activePrice).match(/[\d.]+/)?.[0] ?? '0') || 0;
-                    const originalPriceRaw = product.salePrice ? parseFloat(activePrice.match(/[\d.]+/)?.[0] ?? '0') || 0 : undefined;
+                    // Use the variant-aware sale price so the cart stores
+                    // the same number the price block above shows.
+                    // `originalPrice` is only set when there's a
+                    // strike-through UX pair — variant's own strike takes
+                    // precedence over the family strike.
+                    const cartPrice = parseFloat((activeSalePrice ?? activePrice).match(/[\d.]+/)?.[0] ?? '0') || 0;
+                    const originalPriceSource = activeVariant?.salePrice ? activeVariant.price : product.price;
+                    const originalPriceRaw = activeSalePrice ? parseFloat(originalPriceSource.match(/[\d.]+/)?.[0] ?? '0') || 0 : undefined;
                     const stockLimit = activeVariant?.stock ?? product.stock;
                     addItem({
                       id: activeVariant?.id ?? `${product.id}-quick`,

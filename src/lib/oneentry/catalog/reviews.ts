@@ -3,14 +3,21 @@ import { unstable_cache } from 'next/cache';
 import { getApi, isError, isOneEntryEnabled } from '../index';
 import { withTiming } from '../profiling';
 import { loadProductById } from './products';
+import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 import { REVALIDATE_HOME } from '../../isr';
 import type { ProductReview } from '../../../app/data/productCatalog';
 
+type RawFormDataField = { marker: string; type: string; value: unknown };
 interface RawFormDataItem {
   id: number;
   time?: string;
   userIdentifier?: string;
-  formData?: { en_US?: Array<{ marker: string; type: string; value: unknown }> };
+  // OE historically shipped review form-data as `{ en_US: [...] }` (a
+  // language-wrapped bag) but currently returns the flat `FormDataType[]`
+  // shape that matches the SDK typings. Accept either so the loader stays
+  // resilient to the wrapping toggling back.
+  formData?: RawFormDataField[] | { en_US?: RawFormDataField[] };
 }
 
 interface RawFormDataResp {
@@ -45,18 +52,19 @@ const cachedFetchFormData = unstable_cache(
         configId,
         { entityIdentifier: productId },
         1,
-        'en_US',
+        DEFAULT_LOCALE,
         0,
         limit,
       );
       if (isError(result)) return [];
-      // SDK typings for `IFormByMarkerDataEntity` narrow `formData` to
-      // `FormDataType[]` (flat array), but the review endpoints ship the
-      // wrapped `{ en_US: [...] }` shape. Cast to the local RawFormDataResp
-      // that already tolerates both.
+      // Cast through `unknown` to the local `RawFormDataResp`: the SDK types
+      // `formData` as `FormDataType[]`, but the review endpoints have
+      // toggled between that flat shape and a wrapped `{ en_US: [...] }`
+      // bag depending on OE version. `value()` below tolerates both.
       const data = result as unknown as RawFormDataResp;
       return Array.isArray(data.items) ? data.items : [];
-    } catch {
+    } catch (err) {
+      logCaught(`reviews.cachedFetchFormData(${marker}, ${productId})`, err);
       return [];
     }
   },
@@ -65,7 +73,11 @@ const cachedFetchFormData = unstable_cache(
 );
 
 function value(it: RawFormDataItem, marker: string): unknown {
-  return it.formData?.en_US?.find((f) => f.marker === marker)?.value;
+  const raw = it.formData;
+  const fields: RawFormDataField[] | undefined = Array.isArray(raw)
+    ? raw
+    : raw?.en_US;
+  return fields?.find((f) => f.marker === marker)?.value;
 }
 
 /** Extract plain text from OE `text` type field which stores values as

@@ -1,5 +1,6 @@
 import { oneentry, isError } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 import type { CatalogFilters } from './filters';
 
 /** `CatalogFilters` keys that hold multi-value lists — SEASONAL TRENDS
@@ -87,7 +88,8 @@ export async function resolveSeasonalTrend(pageUrl: string): Promise<SeasonalTre
   let result: unknown;
   try {
     result = await oneentry.Pages.getPageByUrl(pageUrl, DEFAULT_LOCALE);
-  } catch {
+  } catch (err) {
+    logCaught(`seasonal-trend.resolveSeasonalTrend(${pageUrl})`, err);
     return null;
   }
   if (!result || isError(result)) return null;

@@ -219,7 +219,7 @@ JSON-LD blocks are injected via the `<JsonLd>` helper (`src/app/components/JsonL
 | `/` (`app/page.tsx:75-82`) | `app/page.tsx:78-79` | `ClothingStore` (via `ORG_SCHEMA_COPY.schemaType`) + `WebSite` | Org: `contactPoint`, `address`, `hasOfferCatalog → OfferCatalog[]`, `potentialAction: BuyAction`, `knowsAbout[]`, `paymentAccepted`, `currenciesAccepted`. WebSite: `potentialAction: SearchAction` with `urlTemplate` pointing at `/women/clothing?q=…`. |
 | `/sale` (`app/sale/page.tsx`) | line 20 | `BreadcrumbList` | Home → Sale |
 | `/new` (`app/new/page.tsx`) | line 20 | `BreadcrumbList` | Home → New Arrivals |
-| `/product/[id]` (`app/product/[id]/page.tsx`) | lines 200, 201 | `Product` + `BreadcrumbList` | Product: `name`, `image[]` (cover + gallery), `brand`, `sku`, `material`, `additionalProperty[] (PropertyValue)`, `aggregateRating`, `review[]`, `offers: Offer { price, priceCurrency=GBP, availability, shippingDetails, hasMerchantReturnPolicy }`. `priceValidUntil` = today + 30d. Breadcrumb: Home → Brand → Product. |
+| `/product/[id]` (`app/product/[id]/page.tsx`) | lines 200, 201 | `Product` + `BreadcrumbList` | Product: `name`, `image[]` (cover + gallery), `brand`, `sku`, `material`, `additionalProperty[] (PropertyValue)`, `aggregateRating`, `review[]`, `offers: Offer { price, priceCurrency=USD, availability, shippingDetails, hasMerchantReturnPolicy }`. `priceValidUntil` = today + 30d. Breadcrumb: Home → Brand → Product. |
 | `/[...slug]` catalog (`app/[...slug]/page.tsx`) | lines 112, 113 | `BreadcrumbList` + `ItemList` | `ItemList`: up to 10 in-stock products fetched at runtime via `loadProducts({ categoryPath, limit: 10 })` using `catalogKeyToCategoryPath(entry.catalogKey)`; products with `statusIdentifier === 'out_of_stock'` are filtered out. Each entry is `ListItem { position, url, name, image }`. |
 | `/[...slug]` info/faq (`app/[...slug]/page.tsx:120-138`) | line 133 (+134 only for faq) | `BreadcrumbList`, conditionally `FAQPage` | FAQPage `mainEntity[]: Question → acceptedAnswer.Answer` from `FAQ_ITEMS`. |
 | `/stores` (`app/stores/page.tsx`) | line 60 (one per store) | `ClothingStore` per store (reusing `ORG_SCHEMA_COPY.schemaType`) | `address`, `telephone`, `email`, `openingHoursSpecification[]` (day-of-week mapped via `mapDayLabel`), `hasMap`, `currenciesAccepted`, `paymentAccepted`, `priceRange`. |
@@ -236,8 +236,6 @@ For the full picture (where each constant is declared, where it surfaces, why it
 
 ---
 
-## Currency mismatch — JSON-LD says GBP, UI shows USD
+## Currency alignment — JSON-LD and UI both use USD
 
-There are two independent currency declarations: `seoData.ts:11` (`CURRENCY = 'GBP'`, used in JSON-LD / OG / `llms.txt`) and `currencyConfig.ts:6-15` (`CURRENCY = { code: 'USD', symbol: '$' }`, used by every visible UI price). A crawler reading the structured data sees `priceCurrency: "GBP"`; a human sees `$99.00`.
-
-Full divergence map, authoritative-runtime currency, and cleanup direction (collapse to one constant, fix copy strings, re-derive `llms.txt` delivery copy from `DELIVERY_MIN_DAYS` / `DELIVERY_MAX_DAYS`) — see [`./I18N.md`](./I18N.md) §5 "Currency".
+`seoData.ts` (`CURRENCY = 'USD'`) and `currencyConfig.ts` (`CURRENCY = { code: 'USD', symbol: '$' }`) are now in agreement. All JSON-LD schemas (`priceCurrency`, `currenciesAccepted`, `priceRange`), OG/Facebook product tags, `llms.txt` copy, Organization schema, and per-store `LocalBusiness` schemas use USD. `STORE_SCHEMA_DEFAULTS.priceRange` is `'$$'`. Every visible UI price was already `$`-formatted via `currencyConfig.ts` — this batch closes the previous GBP/USD split that caused Google Merchant / Facebook Catalog validation failures.

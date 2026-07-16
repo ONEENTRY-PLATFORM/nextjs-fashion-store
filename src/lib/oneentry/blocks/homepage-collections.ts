@@ -3,6 +3,7 @@ import { oneentry, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 import { REVALIDATE_HOME } from '../../isr';
 
 export interface HomepageCollectionItem {
@@ -54,7 +55,8 @@ export const loadHomepageCollections = withTiming('loadHomepageCollections', uns
       const result = raw as RawSlidesResponse;
       const items = Array.isArray(result) ? result : result?.items ?? [];
       return items.map(normalize).filter((s) => s.image.length > 0);
-    } catch {
+    } catch (err) {
+      logCaught('homepage-collections.loadHomepageCollections', err);
       return [];
     }
   },

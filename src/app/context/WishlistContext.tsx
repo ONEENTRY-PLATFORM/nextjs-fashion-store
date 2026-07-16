@@ -50,7 +50,7 @@ function placeholderFromCmsId(productId: number): WishlistItem {
     name: playgroundId ?? `Product #${productId}`,
     brand: '',
     price: '—',
-    image: '/placeholder.svg',
+    image: '/icons/ui/bag-placeholder.svg',
     colors: [],
     sizes: [],
     inStock: true,
@@ -156,6 +156,10 @@ export function useWishlist(): WishlistContextType {
   const lastPushedRef = useRef<string>('');
   useEffect(() => {
     if (!isLoggedIn) return;
+    // Same guard as CartContext: don't push local wishlist to OE until
+    // the hydration effect finished, or a cold sign-in with an empty
+    // local wishlist would wipe items other devices already synced.
+    if (!hydratedRef.current) return;
     const oeItems = items.flatMap((it) => {
       const cmsId = getCmsProductId(it.id);
       return cmsId !== null ? [{ productId: cmsId }] : [];

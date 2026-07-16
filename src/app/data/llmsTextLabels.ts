@@ -5,7 +5,7 @@ export const LLMS_TXT_COPY = {
   /** Brand positioning paragraph */
   brandIntroTpl: (siteName: string, currency: string, threshold: number, returnDays: number) =>
     `${siteName} is a premium UK fashion e-commerce brand selling clothing, shoes, bags and accessories for men and women. ` +
-    `All prices are in ${currency}. Free UK delivery on orders over £${threshold}. ${returnDays}-day free returns.`,
+    `All prices are in ${currency}. Free UK delivery on orders over $${threshold}. ${returnDays}-day free returns.`,
 
   sectionShopCategories: '## Shop Categories',
   sectionProductCatalogue: '## Product Catalogue',
@@ -21,7 +21,7 @@ export const LLMS_TXT_COPY = {
   sitemapLabel: '- Full XML sitemap:',
 
   deliveryBullets: {
-    free: (threshold: number) => `- Free UK standard delivery on orders over £${threshold}`,
+    free: (threshold: number) => `- Free UK standard delivery on orders over $${threshold}`,
     standard: (min: number, max: number) => `- Standard delivery: ${min}–${max} working days`,
     returns: (days: number) => `- ${days}-day free returns for UK customers`,
     returnMethods: '- Returns by post or in-store',

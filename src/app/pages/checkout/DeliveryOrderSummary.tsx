@@ -49,7 +49,7 @@ export function DeliveryOrderSummary({
   previewLoading,
   hasPreview,
 }: Props) {
-  const { items, discount } = useCart();
+  const { items } = useCart();
   const lHeading      = useT('checkout_delivery', 'checkout_delivery_order_summary_title',          L.heading);
   const lPromoLabel   = useT('checkout_delivery', 'checkout_delivery_promo_code',                   L.promoCodeLabel);
   const lPromoPh      = useT('checkout_delivery', 'checkout_delivery_enter_promo_code',             L.promoPlaceholder);
@@ -102,7 +102,12 @@ export function DeliveryOrderSummary({
                   )}
                 </div>
               </div>
-              <p className="text-xs flex-shrink-0 font-semibold">{fmt(item.price * item.quantity)}</p>
+              <div className="text-right flex-shrink-0">
+                <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
+                {item.originalPrice && item.originalPrice > item.price && (
+                  <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
+                )}
+              </div>
             </div>
           ))}
 
@@ -161,12 +166,6 @@ export function DeliveryOrderSummary({
           </div>
 
           <div className="border-t border-[#e5e7eb] pt-3 space-y-2">
-            {discount > 0 && (
-              <div className="flex justify-between text-xs text-[var(--sale)]">
-                <span>{L.discount}</span>
-                <span className="font-semibold">−{fmt(discount)}</span>
-              </div>
-            )}
             {previewLoading && !hasPreview ? (
               <div className="flex justify-between text-xs" aria-busy="true">
                 <div className="h-3 w-24 bg-gray-100 animate-pulse" />

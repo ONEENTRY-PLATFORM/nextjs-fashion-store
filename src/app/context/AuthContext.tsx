@@ -4,6 +4,9 @@ import { useDispatch } from 'react-redux';
 import { type LoyaltyStatus, type Gender } from '../data/userData';
 import type { AppDispatch } from '../store';
 import { setAuth, clearAuth } from '../store/userSlice';
+import { cartActions } from '../store/cartSlice';
+import { wishlistActions } from '../store/wishlistSlice';
+import { recentlyViewedActions } from '../store/recentlyViewedSlice';
 import {
   signInAction,
   signUpAction,
@@ -28,6 +31,7 @@ import {
   type OeLoyaltyTier,
   type OeRecentlyViewedItem,
 } from '../../lib/oneentry/auth/actions';
+import { clearGuestId } from '../utils/guest-id';
 
 export interface User {
   firstName: string;
@@ -76,6 +80,11 @@ interface AuthContextType {
   registerModalOpen: boolean;
   openLoginModal: () => void;
   closeLoginModal: () => void;
+  /** Human-readable error surfaced to the LoginModal when a login attempt
+   *  (typically the Google OAuth callback) failed via redirect. Null when
+   *  no error is pending. Consumers clear it by calling `setAuthError(null)`. */
+  authError: string | null;
+  setAuthError: (msg: string | null) => void;
   openRegisterModal: () => void;
   closeRegisterModal: () => void;
   login: (emailOrPhone: string, password: string) => Promise<boolean>;
@@ -154,6 +163,11 @@ function computeLtv(orders: OeUser['orders'] | undefined): number {
  *  brand-new shopper with LTV=$0 ended up Platinum.
  *
  *  Returns `null` when the shopper hasn't cleared even the lowest bar. */
+/** Pick the highest tier the shopper's LTV clears. Cart-amount-gated rungs
+ *  (silver/gold/… with `MIN_CART_AMOUNT`) are intentionally excluded from
+ *  the STATUS display — those apply per-order and don't confer a permanent
+ *  identity. `previewOrderAction` evaluates them separately at cart time
+ *  (see the fallback loop there). */
 function pickActiveTier(tiers: OeLoyaltyTier[], ltv: number): OeLoyaltyTier | null {
   const gated = tiers.filter((t) => typeof t.ltvThreshold === 'number');
   if (gated.length === 0) return null;
@@ -171,8 +185,8 @@ function pickActiveTier(tiers: OeLoyaltyTier[], ltv: number): OeLoyaltyTier | nu
 const FALLBACK_TIER_LTV: Record<Exclude<LoyaltyStatus, 'Member'>, number> = {
   Bronze: 100,
   Silver: 500,
-  Gold: 1500,
-  Platinum: 5000,
+  Gold: 1000,
+  Platinum: 2000,
 };
 
 /** Next-tier threshold for the loyalty progress bar. Reads OE first; when
@@ -190,9 +204,14 @@ function nextTierThreshold(tiers: OeLoyaltyTier[], activeStatus: LoyaltyStatus):
   const idx = TIER_LADDER.indexOf(activeStatus);
   if (idx < 0 || idx === TIER_LADDER.length - 1) return 0;
   const nextName = TIER_LADDER[idx + 1];
-  // Prefer OE's real threshold when the tier actually exists.
-  const oe = gated.find((t) => t.tier.toLowerCase() === nextName.toLowerCase());
+  // Prefer OE's real threshold when the tier actually exists. When the
+  // next rung is cart-amount-gated instead of LTV-gated we still surface
+  // the number so the progress bar has a concrete target — treating the
+  // MIN_CART_AMOUNT gate as "spend N in a single order" is close enough
+  // to the LTV mental model for the bar copy.
+  const oe = tiers.find((t) => t.tier.toLowerCase() === nextName.toLowerCase());
   if (oe && typeof oe.ltvThreshold === 'number') return oe.ltvThreshold;
+  if (oe && typeof oe.minCartAmount === 'number') return oe.minCartAmount;
   return FALLBACK_TIER_LTV[nextName];
 }
 
@@ -274,11 +293,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [dispatch]);
 
+  const [authError, setAuthError] = useState<string | null>(null);
   const openLoginModal = useCallback(() => {
     setRegisterModalOpen(false);
     setLoginModalOpen(true);
   }, []);
-  const closeLoginModal = useCallback(() => setLoginModalOpen(false), []);
+  const closeLoginModal = useCallback(() => {
+    setLoginModalOpen(false);
+    // A user-triggered close discards any pending auth error so the next
+    // open (e.g. from a fresh login CTA) doesn't inherit the old banner.
+    setAuthError(null);
+  }, []);
 
   const openRegisterModal = useCallback(() => {
     setLoginModalOpen(false);
@@ -342,6 +367,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoggedIn(false);
     setUser(null);
     dispatch(clearAuth());
+    // Clear shopper-scoped local state so nothing leaks into the next
+    // session on this browser. Without this, user A's cart / wishlist /
+    // recently-viewed persist through `oe_store` localStorage and — worse
+    // — get pushed UP into user B's OE account by `syncCart` /
+    // `syncWishlist` when B signs in on the same device. Everything
+    // authoritative already lives on OE, so wiping local state costs
+    // nothing on re-login (it hydrates from `/me/cart`, `/me/wishlist`,
+    // `user.recentlyViewedItems`).
+    dispatch(cartActions.clearCart());
+    dispatch(wishlistActions.clearAll());
+    dispatch(recentlyViewedActions.hydrate([]));
+    if (typeof window !== 'undefined') {
+      try {
+        // Cart/wishlist hydration guards — see `CartContext` /
+        // `WishlistContext` sessionStorage flags. Without clearing them
+        // the next sign-in on the same tab would skip the merge step.
+        sessionStorage.removeItem('oe_cart_merged');
+        sessionStorage.removeItem('oe_wishlist_merged');
+        sessionStorage.removeItem('oe_checkout_payload');
+        sessionStorage.removeItem('oe_coupon_code');
+        sessionStorage.removeItem('oe_last_order_id');
+      } catch { /* private mode / quota — silent no-op */ }
+      // Drop the anonymous fingerprint too — otherwise post-logout guest
+      // activity (browsing, add-to-cart, orders placed as guest) keeps
+      // aggregating under the just-signed-out user's `oe_guest_id` and
+      // OE sees the two sessions as the same visitor.
+      clearGuestId();
+    }
     void signOutAction();
   }, [dispatch]);
 
@@ -397,6 +450,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loginModalOpen, registerModalOpen,
       openLoginModal, closeLoginModal,
       openRegisterModal, closeRegisterModal,
+      authError, setAuthError,
       login, startGoogleOAuth, signUp, logout, updateUser,
       updateProfile, updateAddresses, updateSubscriptions, updateConsent,
       syncCart, syncWishlist,

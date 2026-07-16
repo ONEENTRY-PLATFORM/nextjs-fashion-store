@@ -33,8 +33,13 @@ const cartSlice = createSlice({
   reducers: {
     addItem(state, action: PayloadAction<CartItem>) {
       const item = action.payload;
+      // Match on id + size + color so the shopper can hold two different
+      // colours of the same size in the cart. Without color in the key,
+      // adding a Red S after a Blue S silently merged them into a single
+      // line whose color stayed Blue — the shopper then received Blue on
+      // delivery even though they last picked Red on the PDP.
       const existing = state.items.find(
-        i => i.id === item.id && i.size === item.size
+        i => i.id === item.id && i.size === item.size && i.color === item.color
       );
       if (existing) {
         // Refresh stockLimit from the newer add — the shopper may have opened

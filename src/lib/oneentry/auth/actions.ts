@@ -1,15 +1,23 @@
 'use server';
 import { cookies } from 'next/headers';
+import { revalidateTag } from 'next/cache';
 import { oneentry, isOneEntryEnabled, isError, getUserApi, getGuestApi } from '../index';
 import { loadProductsByIds } from '../catalog/products';
 import { DEFAULT_LOCALE } from '../locale';
 import { pickImage, type RawPicture } from './pick-image';
+import {
+  AUTH_MARKER,
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  IDENTIFIER_COOKIE,
+  type CookieJar,
+  type OeAuthEntity,
+  setSessionCookies,
+  clearSessionCookies,
+  readAccessOrRefresh,
+} from './session';
 
-const AUTH_MARKER = 'email';
 const SIGNUP_FORM_IDENTIFIER = 'signin';
-const ACCESS_COOKIE = 'oe_access';
-const REFRESH_COOKIE = 'oe_refresh';
-const IDENTIFIER_COOKIE = 'oe_user';
 
 export interface AuthSuccess {
   ok: true;
@@ -151,6 +159,12 @@ export interface OeLoyaltyTier {
   /** LTV threshold to qualify (from `conditions[type=USER_LTV].value.amount`).
    *  `null` when the tier isn't gated by LTV — treat as always-available. */
   ltvThreshold: number | null;
+  /** Cart-total threshold from `conditions[type=MIN_CART_AMOUNT].value.amount`.
+   *  Some tenants ladder personal-discount rungs by cart size (silver at $500,
+   *  gold at $1000, …) instead of user lifetime value. `null` when the tier
+   *  has no such gate. Consumed by `previewOrderAction`'s fallback so the
+   *  shopper actually gets the discount at cart time. */
+  minCartAmount: number | null;
   /** OE user-group ids the tier belongs to (`userGroups[].id`). Reserved for
    *  a future group-based selector; today we still pick by LTV. */
   userGroupIds: number[];
@@ -164,40 +178,12 @@ export interface OeLoyalty {
   bonusBalance: number;
 }
 
-interface OeAuthEntity {
-  userIdentifier: string;
-  authProviderIdentifier: string;
-  accessToken: string;
-  refreshToken: string;
-}
-
-interface CookieJar {
-  set(name: string, value: string, opts: Record<string, unknown>): void;
-  delete(name: string): void;
-  get(name: string): { value: string } | undefined;
-}
-
-async function setSessionCookies(jar: CookieJar, entity: OeAuthEntity): Promise<void> {
-  const baseOpts = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
-    path: '/',
-  };
-  jar.set(ACCESS_COOKIE, entity.accessToken, { ...baseOpts, maxAge: 60 * 60 * 24 });
-  jar.set(REFRESH_COOKIE, entity.refreshToken, { ...baseOpts, maxAge: 60 * 60 * 24 * 7 });
-  jar.set(IDENTIFIER_COOKIE, entity.userIdentifier, {
-    ...baseOpts,
-    httpOnly: false,
-    maxAge: 60 * 60 * 24 * 7,
-  });
-}
-
-async function clearSessionCookies(jar: CookieJar): Promise<void> {
-  jar.delete(ACCESS_COOKIE);
-  jar.delete(REFRESH_COOKIE);
-  jar.delete(IDENTIFIER_COOKIE);
-}
+// Cookie constants + `CookieJar` / `OeAuthEntity` types + session-cookie
+// helpers live in `./session.ts` — this file re-imports them at the top.
+// Kept here originally as private helpers; extracted so mutation-side
+// actions in other `'use server'` files can share `readAccessOrRefresh`
+// without duplicating the refresh logic. See `session.ts` for the
+// "why not a `'use server'` re-export" rationale.
 
 const DEFAULT_SUBSCRIPTIONS: OeSubscriptions = {
   emailNewsletter: false,
@@ -326,11 +312,21 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
  *  Tier is a marker guess (`bronze` → `silver` → …) — walked in order and
  *  the first non-404 hit wins. Returns `null` when none of the markers
  *  resolve or the tenant has no discounts configured. */
+/** Loyalty tier markers configured on this OE tenant, in ascending order
+ *  of "prestige". Shared by `fetchLoyalty` (to fan-out the tier fetch), and
+ *  by `previewOrderAction` / `createOrderAction` (as
+ *  `additionalDiscountsMarkers` so OE has a chance to apply the shopper's
+ *  personal discount at cart time). Change this in ONE place if the
+ *  merchant renames a rung.
+ *  Not exported — Next.js 16 `use server` files must only export async
+ *  functions. Module-scoped is enough for the three intra-file callers. */
+const TIER_MARKERS = ['bronze', 'silver', 'gold', 'platinum'] as const;
+
 async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
   const api = getUserApi(accessToken);
   if (!api) return null;
 
-  const TIER_MARKERS = ['bronze', 'silver', 'gold', 'platinum'];
+
   // Fetch every tier in parallel via SDK `Discounts.getDiscountByMarker` and
   // the bonus balance via `Discounts.getBonusBalance`. The SDK normalises
   // localizeInfos + fields for us, so downstream code sees a clean shape.
@@ -358,12 +354,26 @@ async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
       const dv = r.discountValue ?? {};
       const isPercent = (dv.discountType ?? '').toUpperCase() === 'PERCENTAGE'
         || (dv.discountType ?? '').toUpperCase() === 'PERCENT';
+      const readAmount = (cond: { value?: unknown } | undefined): number | null => {
+        if (!cond) return null;
+        if (typeof cond.value === 'object' && cond.value !== null) {
+          const a = (cond.value as { amount?: number }).amount;
+          return typeof a === 'number' && Number.isFinite(a) ? a : null;
+        }
+        if (typeof cond.value === 'string' || typeof cond.value === 'number') {
+          const n = Number(cond.value);
+          return Number.isFinite(n) ? n : null;
+        }
+        return null;
+      };
       const ltvCond = (r.conditions ?? []).find(
         (c) => c.conditionType === 'USER_LTV' || c.type === 'USER_LTV',
       );
-      const ltvValue = typeof ltvCond?.value === 'object' && ltvCond.value !== null
-        ? (ltvCond.value as { amount?: number }).amount ?? null
-        : (typeof ltvCond?.value === 'string' ? Number(ltvCond.value) || null : null);
+      const minCartCond = (r.conditions ?? []).find(
+        (c) => c.conditionType === 'MIN_CART_AMOUNT' || c.type === 'MIN_CART_AMOUNT',
+      );
+      const ltvValue = readAmount(ltvCond);
+      const minCartValue = readAmount(minCartCond);
       const groupsRaw = Array.isArray(r.userGroups) ? r.userGroups : [];
       return {
         tier: r.identifier ?? '',
@@ -372,12 +382,18 @@ async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
         discountMaxAmount: dv.maxAmount ?? null,
         applicability: dv.applicability ?? '',
         ltvThreshold: ltvValue,
+        minCartAmount: minCartValue,
         userGroupIds: groupsRaw.map((g) => Number(g?.id ?? 0)).filter((n) => n > 0),
       };
     })
-    .sort((a, b) => (a.ltvThreshold ?? -1) - (b.ltvThreshold ?? -1));
-
-  if (tiers.length === 0) return null;
+    // Sort by ascending "effective threshold" so higher rungs land later.
+    // Prefer LTV when set, else fall back to the cart-amount gate, else
+    // `-1` (always-available tiers sit at the bottom of the ladder).
+    .sort((a, b) => {
+      const at = a.ltvThreshold ?? a.minCartAmount ?? -1;
+      const bt = b.ltvThreshold ?? b.minCartAmount ?? -1;
+      return at - bt;
+    });
 
   // SDK returns bonus balance as either `{ balance }` or `[{ balance }, ...]`
   // depending on how the tenant sliced things. Sum whatever comes back.
@@ -388,6 +404,10 @@ async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
     balance = list.reduce((sum, b) => sum + Number(b?.balance ?? 0), 0);
   }
 
+  // Return the object even when `tiers` is empty — a tenant may have a
+  // configured bonus programme without any personal-discount rungs, and
+  // dropping the balance here would hide it from the storefront (bonus
+  // input on PaymentPage would render `0 available` forever).
   return {
     tiers,
     bonusBalance: Number.isFinite(balance) ? balance : 0,
@@ -1246,7 +1266,7 @@ export async function cancelOrderAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry is not configured' };
   if (!orderId || !storage) return { ok: false, error: 'Missing order id or storage' };
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, error: 'Not signed in' };
   const api = getUserApi(access);
   if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
@@ -1342,7 +1362,7 @@ const POSITIVE_BONUS_TYPES = new Set(['ACCRUAL', 'REVERSAL_USAGE']);
 
 export async function fetchBonusHistoryAction(): Promise<OeBonusTransaction[]> {
   if (!isOneEntryEnabled) return [];
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return [];
   const api = getUserApi(access);
   if (!api) return [];
@@ -1417,7 +1437,7 @@ export interface ProfileUpdate {
 export async function updateProfileAction(
   patch: ProfileUpdate,
 ): Promise<{ ok: boolean; error?: string }> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, error: 'Not authenticated' };
   const jar = (await cookies()) as unknown as CookieJar;
   const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
@@ -1449,7 +1469,7 @@ export async function updateProfileAction(
 export async function updateAddressesAction(
   addresses: OeAddress[],
 ): Promise<{ ok: boolean; error?: string; addresses?: OeAddress[] }> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, error: 'Not authenticated' };
   const jar = (await cookies()) as unknown as CookieJar;
   const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
@@ -1494,7 +1514,7 @@ export async function updateAddressesAction(
 export async function updateSubscriptionsAction(
   subs: OeSubscriptions,
 ): Promise<{ ok: boolean; error?: string }> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, error: 'Not authenticated' };
   const jar = (await cookies()) as unknown as CookieJar;
   const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
@@ -1517,7 +1537,7 @@ export async function updateSubscriptionsAction(
 export async function updateConsentAction(
   consent: OeConsent,
 ): Promise<{ ok: boolean; error?: string }> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, error: 'Not authenticated' };
   const jar = (await cookies()) as unknown as CookieJar;
   const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
@@ -1539,7 +1559,7 @@ export async function updateConsentAction(
 export async function syncCartAction(
   items: OeCartItem[],
 ): Promise<{ ok: boolean; items: OeCartItem[] }> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, items: [] };
   const api = getUserApi(access);
   if (!api) return { ok: false, items: [] };
@@ -1549,7 +1569,7 @@ export async function syncCartAction(
 }
 
 export async function getCartAction(): Promise<OeCartItem[]> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return [];
   const api = getUserApi(access);
   if (!api) return [];
@@ -1561,7 +1581,7 @@ export async function getCartAction(): Promise<OeCartItem[]> {
 export async function syncWishlistAction(
   items: OeWishlistItem[],
 ): Promise<{ ok: boolean; items: OeWishlistItem[] }> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, items: [] };
   const api = getUserApi(access);
   if (!api) return { ok: false, items: [] };
@@ -1571,7 +1591,7 @@ export async function syncWishlistAction(
 }
 
 export async function getWishlistAction(): Promise<OeWishlistItem[]> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return [];
   const api = getUserApi(access);
   if (!api) return [];
@@ -1593,7 +1613,7 @@ export async function pushRecentlyViewedAction(
   productId: number,
 ): Promise<{ ok: boolean; items: OeRecentlyViewedItem[] }> {
   if (!Number.isFinite(productId) || productId <= 0) return { ok: false, items: [] };
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, items: [] };
   const currentState = await readStateFromMe(access);
   const prev = Array.isArray(currentState.recentlyViewed) ? currentState.recentlyViewed : [];
@@ -1613,7 +1633,7 @@ export async function pushRecentlyViewedAction(
 
 /** Read the user's recently-viewed trail straight from OE user state. */
 export async function getRecentlyViewedAction(): Promise<OeRecentlyViewedItem[]> {
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return [];
   const state = await readStateFromMe(access);
   return Array.isArray(state.recentlyViewed) ? state.recentlyViewed : [];
@@ -1628,7 +1648,7 @@ export async function mergeRecentlyViewedAction(
   if (!Array.isArray(incoming) || incoming.length === 0) {
     return { ok: true, items: await getRecentlyViewedAction() };
   }
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, items: [] };
   const currentState = await readStateFromMe(access);
   const server = Array.isArray(currentState.recentlyViewed) ? currentState.recentlyViewed : [];
@@ -1746,7 +1766,7 @@ export type PreviewOrderResponse =
 export async function previewOrderAction(input: PreviewOrderInput): Promise<PreviewOrderResponse> {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured', missingProductIds: [] };
 
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   // Auth wins when both are present. For guests we still call OE via
   // `getGuestApi(guestId)` so guest-eligible coupons (SUMMER2026 etc.) can
   // validate and the shopper sees the same discount line the logged-in one
@@ -1773,10 +1793,11 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
     // Skipped for guests because personal tiers are user-gated and passing
     // them alongside a `couponCode` empirically prevents OE from applying
     // the coupon (observed with `SUMMER2026` on this tenant).
-    const TIER_MARKERS = ['bronze', 'silver', 'gold', 'platinum'];
     const body = {
       products: input.products,
-      ...(access ? { additionalDiscountsMarkers: TIER_MARKERS } : {}),
+      // Use the shared TIER_MARKERS constant so a rename in `fetchLoyalty`
+      // propagates here without a stale copy silently dropping tiers.
+      ...(access ? { additionalDiscountsMarkers: [...TIER_MARKERS] } : {}),
       ...(input.couponCode ? { couponCode: input.couponCode } : {}),
       ...(typeof input.bonusAmount === 'number' && input.bonusAmount > 0
         ? { bonusAmount: input.bonusAmount } : {}),
@@ -1906,10 +1927,24 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
         const n = Number(o.totalSum);
         return Number.isFinite(n) ? sum + n : sum;
       }, 0);
-      const gated = (loyalty?.tiers ?? []).filter((t) => typeof t.ltvThreshold === 'number');
-      let activeTier: typeof gated[number] | null = null;
-      for (let i = gated.length - 1; i >= 0; i--) {
-        if (ltv >= (gated[i].ltvThreshold ?? Infinity)) { activeTier = gated[i]; break; }
+      // Consider every tier that has AT LEAST ONE gate (either LTV or cart
+      // amount). For each we check every configured gate — LTV against the
+      // shopper's lifetime revenue, MIN_CART_AMOUNT against the current
+      // `totalSum`. A tier is eligible only when EVERY gate it declares
+      // passes. This unblocks tenants that ladder silver/gold/platinum by
+      // cart size instead of LTV — the pre-fix filter dropped them entirely
+      // because `ltvThreshold === null`.
+      const tiersAll = (loyalty?.tiers ?? []).filter(
+        (t) => typeof t.ltvThreshold === 'number' || typeof t.minCartAmount === 'number',
+      );
+      const isEligible = (t: typeof tiersAll[number]): boolean => {
+        if (typeof t.ltvThreshold === 'number' && ltv < t.ltvThreshold) return false;
+        if (typeof t.minCartAmount === 'number' && totalSum < t.minCartAmount) return false;
+        return true;
+      };
+      let activeTier: typeof tiersAll[number] | null = null;
+      for (let i = tiersAll.length - 1; i >= 0; i--) {
+        if (isEligible(tiersAll[i])) { activeTier = tiersAll[i]; break; }
       }
       if (activeTier && activeTier.discountPct > 0) {
         let d = totalSum * (activeTier.discountPct / 100);
@@ -2008,7 +2043,7 @@ export async function createOrderAction(
 > {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
 
-  const access = await readAccessFromCookies();
+  const access = await readAccessOrRefresh();
   const isGuest = !access;
   const storageMarker = isGuest ? `${input.storage}_guest` : input.storage;
   const formIdentifier = isGuest
@@ -2050,7 +2085,7 @@ export async function createOrderAction(
     // apply the shopper's `PERSONAL_DISCOUNT` at order-creation time. OE
     // still validates conditions server-side; markers the shopper doesn't
     // qualify for are ignored.
-    body.additionalDiscountsMarkers = ['bronze', 'silver', 'gold', 'platinum'];
+    body.additionalDiscountsMarkers = [...TIER_MARKERS];
     const result = await api.Orders.createOrder(
       storageMarker,
       body as unknown as Parameters<typeof api.Orders.createOrder>[1],
@@ -2065,6 +2100,18 @@ export async function createOrderAction(
     const orderId = typeof raw.id === 'number' ? raw.id : Number(raw.id ?? 0);
     let paymentUrl = typeof raw.paymentUrl === 'string' ? raw.paymentUrl : null;
     let paymentSessionError: string | undefined;
+
+    // Order placed — invalidate every ISR / `unstable_cache` surface that
+    // may have gone stale as a result. Skip on payment-provider redirect
+    // errors below since the order still landed in OE.
+    try {
+      // Product listing may show stock qty / status changes for the
+      // items just purchased.
+      revalidateTag('oe-products', 'max');
+      // Discount rules can be single-use coupons or usage-capped tiers —
+      // the applied one may just have consumed a slot.
+      revalidateTag('oe-discounts', 'max');
+    } catch { /* revalidateTag is a no-op outside a request context */ }
 
     if (!paymentUrl && orderId && input.paymentAccountType === 'stripe') {
       // Stripe-backed accounts: mint a Checkout session via SDK. The SDK's

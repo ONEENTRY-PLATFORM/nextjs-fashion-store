@@ -59,7 +59,7 @@ export const INFO_PAGE_SECTIONS = [
   {
     eyebrow: 'Delivery & Returns',
     heading: 'Fast Shipping. Hassle-Free Returns.',
-    body: "Standard delivery in 3–5 working days, free on orders over £50. Next-day express available. We ship to 50+ countries worldwide.\n\nNot happy with your order? Return any item within 30 days for a full refund — no questions asked. Start a return from your account in seconds, and we'll email a prepaid label immediately.",
+    body: "Standard delivery in 3–5 working days, free on orders over $50. Next-day express available. We ship to 50+ countries worldwide.\n\nNot happy with your order? Return any item within 30 days for a full refund — no questions asked. Start a return from your account in seconds, and we'll email a prepaid label immediately.",
     image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=900&q=80',
     imageAlt: 'Parcel delivery and logistics',
     imageRight: false,

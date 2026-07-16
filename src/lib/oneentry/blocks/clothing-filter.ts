@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { getApi, isError, isOneEntryEnabled } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 
 // Local copy of the hex→name map. Importing the canonical map from
 // `src/app/utils/colorNames` indirectly pulls a client-tagged module into
@@ -292,7 +293,8 @@ export const loadCatalogFilter = cache(
       // tree, but for adaptFilterToGroups we only need a subset — cast to the
       // local `RawFilter` shape rather than pull in the full interface.
       return adaptFilterToGroups(result as unknown as RawFilter, products);
-    } catch {
+    } catch (err) {
+      logCaught(`clothing-filter.loadCatalogFilter(${marker}, ${lang})`, err);
       return null;
     }
   },

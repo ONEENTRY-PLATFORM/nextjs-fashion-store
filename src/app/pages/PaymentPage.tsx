@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -18,11 +18,12 @@ import { ORDER_SUMMARY_LABELS as OS } from '../data/checkoutLabels';
 import { CART_LINE_LABELS as CLL } from '../data/commonLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '../../lib/oneentry/payments/accounts';
+import { extractCmsProductId } from '../data/cms-product-id-map';
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
 
 export function PaymentPage() {
   const router = useRouter();
-  const { items, discount, total, clearCart, couponCode, couponDiscount, previewLoading: cartPreviewLoading } = useCart();
+  const { items, discount, total, subtotal, clearCart, couponCode, preview: cartPreview, previewLoading: cartPreviewLoading } = useCart();
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [method, setMethod] = useState<string>('');
@@ -64,12 +65,60 @@ export function PaymentPage() {
     ? Math.min(bonusBalance, bonusMaxAmount)
     : bonusBalance;
 
+  // Prefer the LOCAL `preview` over the CartContext-wide `cartPreview` for
+  // every totals derivation on this page. The local one is refreshed on
+  // bonus edits AND re-fetched authoritatively right before `createOrder`
+  // (see `handlePlaceOrder`), so it reflects the freshest OE numbers.
+  // Falling back to `cartPreview` covers the first render before the local
+  // preview has landed. Without this, a stale sale-price rule that OE
+  // dropped mid-session would surface in the warning banner ("we now show
+  // $35") but leave the CTA + Order Summary showing the old optimistic
+  // $31.5, and the Confirmation snapshot would record the wrong amount.
+  const activePreview = preview ?? cartPreview;
+  const activePersonalDiscount = Math.max(
+    0,
+    (activePreview?.discountAmount ?? 0) - (activePreview?.couponDiscountAmount ?? 0),
+  );
+  const activeCouponDiscount = activePreview?.couponDiscountAmount ?? 0;
+  const activeTotalDue = activePreview?.totalDue ?? total;
+  // Trust OE's `totalDue` unconditionally when a preview is available.
+  //
+  // The previous shape mirrored CartPage / DeliveryPage and only surfaced
+  // `activeTotalDue` when at least one discount was applied — otherwise
+  // fell back to client `total`. That worked when the only OE↔client gap
+  // was "OE knocked something off"; it broke the opposite direction.
+  //
+  // Concrete failure: the catalog optimistic overlay marks a product on
+  // sale ($31.5) client-side, but the OE `Discounts` rule requires a
+  // user-group the shopper isn't in, so OE ships `productDiscounts: []`
+  // and quotes the full $35. Fresh preview arrives with `discountAmount=0`
+  // AND `totalDue=35`, all three flags stay false, `finalTotal` collapses
+  // to client `total=31.5`, the CTA and `oe_last_order_total` snapshot
+  // show 31.5 — even though the warning banner just told the shopper OE
+  // will charge $35. Confirmation then records 31.5 as the paid amount.
+  //
+  // OE `previewOrder` is authoritative for what the shopper will actually
+  // be charged; if we have a preview, we quote its number.
+  const finalTotal = activePreview ? activeTotalDue : total;
+
   // Redux cart hydrates from localStorage inside makeStore(), so the client's
   // first paint already has the real items while SSR HTML has an empty cart.
   // Gate every cart-derived value on `mounted` so the initial client render
   // matches the server, then reveal totals after the mount effect fires.
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+
+  // Route-level guard: deep-linking `/checkout/payment` with an empty
+  // cart used to render the whole payment picker (and a $0 total from
+  // `previewOrder({products:[]})`) and only bounce at click-time. Send
+  // the shopper back to the cart page as soon as the client knows the
+  // cart is empty — keeps the picker from painting confusing state.
+  // Same intent as the cart-empty check inside `handlePlaceOrder` at
+  // line ~150, but earlier.
+  useEffect(() => {
+    if (!mounted) return;
+    if (items.length === 0) router.push('/cart');
+  }, [mounted, items.length, router]);
 
   // Load payment accounts from OE on mount. The default selection is the
   // first visible account so "Place Order" is immediately actionable.
@@ -87,11 +136,14 @@ export function PaymentPage() {
   const selectedAccount = accounts.find((a) => a.identifier === method);
 
   // Cart → OE products list. Preview endpoint takes the same shape as
-  // createOrder — quantity + numeric productId.
+  // createOrder — quantity + numeric productId. Cart items sometimes carry
+  // suffixed ids (`${cmsId}-fav`, `-quick`, …) from Favorites / QuickView
+  // add paths — `extractCmsProductId` strips those and leaves the leading
+  // numeric productId.
   const productsForPreview = items.flatMap((it) => {
-    const match = /\d+/.exec(it.id);
-    if (!match) return [];
-    return [{ productId: Number(match[0]), quantity: it.quantity }];
+    const cmsId = extractCmsProductId(it.id);
+    if (cmsId === null) return [];
+    return [{ productId: cmsId, quantity: it.quantity }];
   });
   // Requested vs. sendable amount:
   //   - `bonusRequested` is what the shopper typed (used for the "you need
@@ -172,12 +224,13 @@ export function PaymentPage() {
     // route through Stripe hosted checkout after the order is created.
     const paymentAccountIdentifier = selectedAccount.identifier;
 
-    // Map cart-item ids to numeric OE productIds. Mock ids (`wc-16`) silently
-    // drop — once the catalog moves to numeric ids the line just works.
+    // Map cart-item ids to numeric OE productIds via the same suffix-tolerant
+    // helper `productsForPreview` uses so a Favorites/QuickView/-fav/-quick
+    // cart line resolves to a real OE product instead of silently dropping.
     const products = items.flatMap((it) => {
-      const match = /\d+/.exec(it.id);
-      if (!match) return [];
-      return [{ productId: Number(match[0]), quantity: it.quantity }];
+      const cmsId = extractCmsProductId(it.id);
+      if (cmsId === null) return [];
+      return [{ productId: cmsId, quantity: it.quantity }];
     });
 
     // Build formData per checkout form schema. Guest forms additionally
@@ -282,6 +335,29 @@ export function PaymentPage() {
       setSubmitError(`Order total changed to ${fmt(fresh.totalDue)} since you last reviewed it. Please check the summary and place the order again.`);
       return;
     }
+    // Client-optimistic sale (catalog `applyProductDiscount` overlay) may
+    // disagree with what OE actually charges — a common case is a tenant
+    // whose Discount rule requires a user_group the shopper isn't in, so
+    // OE ships `productDiscounts: []` while the cart already reflects the
+    // sale. The previous OE↔OE check misses this because both totals come
+    // from OE. Compare OE's `totalSum` (its own subtotal) against the
+    // client `subtotal` (sum of sale-baked `item.price`) and surface the
+    // gap so the shopper explicitly re-confirms the higher amount.
+    //
+    // Skip when the on-screen `preview` already matches `fresh` — a previous
+    // click surfaced the banner, `setPreview(fresh)` propagated the honest
+    // number to Total + CTA, and the shopper's second click IS the re-confirm.
+    // Without this skip the guard fires on every click (client `subtotal`
+    // never catches up to the OE-honest total) and the order cannot be placed.
+    const alreadyReconciled = preview
+      && Math.abs(fresh.totalSum - preview.totalSum) < 0.01
+      && Math.abs(fresh.totalDue - preview.totalDue) < 0.01;
+    if (!alreadyReconciled && Math.abs(fresh.totalSum - subtotal) > 0.01) {
+      setPreview(fresh);
+      setPlacing(false);
+      setSubmitError(`We now show ${fmt(fresh.totalDue)} at checkout — some sale prices no longer apply for this session. Please review the summary and place the order again.`);
+      return;
+    }
     setPreview(fresh);
 
     const res = await createOrderAction({
@@ -322,6 +398,14 @@ export function PaymentPage() {
     // useless in a support call). Falls back to a random id only if this
     // read fails, e.g. after the Stripe round-trip when sessionStorage cleared.
     try { sessionStorage.setItem('oe_last_order_id', String(res.orderId)); } catch { /* ignore */ }
+    // Snapshot the actual charged amount for the Confirmation page — cart
+    // is cleared above, so reading `useCart().total` on the next screen
+    // returns 0 and the "Total Paid" line renders $0. Pass the OE-side
+    // `preview.totalDue` (falls back to client `total` when preview
+    // wasn't hydrated) so the shopper sees the real charge.
+    try {
+      sessionStorage.setItem('oe_last_order_total', String(finalTotal));
+    } catch { /* ignore */ }
     // Stripe / online payment methods: OE returns a hosted checkout URL.
     // Redirect to it; the user finishes the payment on Stripe and OE marks
     // the order completed via webhook. Cash / card-on-delivery have no URL —
@@ -420,7 +504,7 @@ export function PaymentPage() {
                     />
                   )}
                   <span>
-                    {lPlaceOrder}{mounted ? ` · ${fmt(preview ? preview.totalDue : total)}` : ''}
+                    {lPlaceOrder}{mounted ? ` · ${fmt(finalTotal)}` : ''}
                   </span>
                 </button>
               </div>
@@ -439,53 +523,52 @@ export function PaymentPage() {
                 {mounted && items.map(item => (
                   <div key={item.id} className="flex gap-3">
                     <div className="relative flex-shrink-0 w-12 h-14">
-                      <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
+                      <ImageWithFallback src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs leading-snug font-medium">{item.name}</p>
                       <p className="text-xs text-gray-400">{CLL.qtyLabel} {item.quantity} · {CLL.sizeLabel} {item.size}</p>
                     </div>
-                    <p className="text-xs flex-shrink-0 font-semibold">{fmt(item.price * item.quantity)}</p>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
+                      {item.originalPrice && item.originalPrice > item.price && (
+                        <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <div className="border-t border-[#e5e7eb] pt-3 space-y-2">
-                  {mounted && discount > 0 && (
-                    <div className="flex justify-between text-xs text-[var(--sale)]">
-                      <span>{OS.discount}</span>
-                      <span className="font-semibold">−{fmt(discount)}</span>
-                    </div>
-                  )}
                   {/* Loyalty (personal tier) vs Promo (coupon) split so the
                       shopper can see which discount is which. `preview.
                       discountAmount` is the total OE deducted before bonuses;
                       `couponDiscountAmount` is the coupon's slice of that.
                       Skeleton while first preview is in flight so the panel
                       doesn't jump when discounts land. */}
-                  {mounted && cartPreviewLoading && !preview ? (
+                  {mounted && cartPreviewLoading && !activePreview ? (
                     <div className="flex justify-between text-xs" aria-busy="true">
                       <div className="h-3 w-24 bg-gray-100 animate-pulse" />
                       <div className="h-3 w-12 bg-gray-100 animate-pulse" />
                     </div>
                   ) : (
                     <>
-                      {mounted && preview && (preview.discountAmount - preview.couponDiscountAmount) > 0 && (
+                      {mounted && activePersonalDiscount > 0 && (
                         <div className="flex justify-between text-xs text-[var(--sale)]">
                           <span>{user?.status ?? 'Loyalty'} discount</span>
-                          <span className="font-semibold">−{fmt(preview.discountAmount - preview.couponDiscountAmount)}</span>
+                          <span className="font-semibold">−{fmt(activePersonalDiscount)}</span>
                         </div>
                       )}
-                      {mounted && couponDiscount > 0 && couponCode && (
+                      {mounted && activeCouponDiscount > 0 && couponCode && (
                         <div className="flex justify-between text-xs text-[var(--sale)]">
                           <span>Promo ({couponCode})</span>
-                          <span className="font-semibold">−{fmt(couponDiscount)}</span>
+                          <span className="font-semibold">−{fmt(activeCouponDiscount)}</span>
                         </div>
                       )}
                     </>
                   )}
-                  {mounted && preview && preview.bonusApplied > 0 && (
+                  {mounted && activePreview && activePreview.bonusApplied > 0 && (
                     <div className="flex justify-between text-xs text-[var(--sale)]">
                       <span>Bonuses used</span>
-                      <span className="font-semibold">−{fmt(preview.bonusApplied)}</span>
+                      <span className="font-semibold">−{fmt(activePreview.bonusApplied)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-xs">
@@ -534,10 +617,10 @@ export function PaymentPage() {
                   )}
                   <div className="flex justify-between items-baseline pt-1 border-t border-[#e5e7eb]">
                     <span className="text-sm font-bold">{OS.total}</span>
-                    {mounted && cartPreviewLoading && !preview ? (
+                    {mounted && cartPreviewLoading && !activePreview ? (
                       <div className="h-5 w-20 bg-gray-100 animate-pulse" aria-busy="true" />
                     ) : (
-                      <span className="text-lg font-bold">{mounted ? fmt(preview ? preview.totalDue : total) : ''}</span>
+                      <span className="text-lg font-bold">{mounted ? fmt(finalTotal) : ''}</span>
                     )}
                   </div>
                 </div>

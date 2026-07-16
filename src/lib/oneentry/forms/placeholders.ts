@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 
 /**
  * Placeholders pulled from a OE form's attribute `additionalFields`.
@@ -24,8 +25,23 @@ type RawAttribute = {
 type RawForm = { attributes?: RawAttribute[] } | null | undefined;
 
 const TTL_MS = 5 * 60 * 1000;
+// LRU cap on the process-wide in-memory cache. Form markers × lang combos are
+// finite in practice (~10–20 forms per tenant), but a buggy caller that
+// synthesises new marker strings (path typos, template loops) could otherwise
+// grow the Map unbounded and slowly leak memory. Insertion-order-based
+// eviction gives LRU-on-write semantics via the delete/set pair below.
+const FORM_CACHE_MAX_ENTRIES = 200;
 const formCache = new Map<string, { at: number; value: FormPlaceholders }>();
 const inflight = new Map<string, Promise<FormPlaceholders>>();
+
+function touchFormCache(key: string, entry: { at: number; value: FormPlaceholders }) {
+  if (formCache.has(key)) formCache.delete(key);
+  formCache.set(key, entry);
+  if (formCache.size > FORM_CACHE_MAX_ENTRIES) {
+    const oldest = formCache.keys().next().value;
+    if (oldest !== undefined) formCache.delete(oldest);
+  }
+}
 
 async function fetchFormPlaceholders(
   marker: string,
@@ -51,7 +67,8 @@ async function fetchFormPlaceholders(
       if (Object.keys(inner).length > 0) out[attrMarker] = inner;
     }
     return out;
-  } catch {
+  } catch (err) {
+    logCaught(`placeholders.fetchFormPlaceholders(${marker}, ${lang})`, err);
     return {};
   }
 }
@@ -66,7 +83,7 @@ export const loadFormPlaceholders = cache(
     if (pending) return pending;
     const p = fetchFormPlaceholders(marker, lang)
       .then((value) => {
-        formCache.set(key, { at: Date.now(), value });
+        touchFormCache(key, { at: Date.now(), value });
         return value;
       })
       .finally(() => {

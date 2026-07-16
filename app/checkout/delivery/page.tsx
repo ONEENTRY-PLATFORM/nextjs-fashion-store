@@ -9,16 +9,32 @@ import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
 import type { PickupStore } from '../../../src/app/data/checkoutConfig';
 import { loadDeliveryMethodInfo } from '../../../src/lib/oneentry/checkout/delivery-methods';
 import { DeliveryMethodInfoProvider } from '../../../src/lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { loadDeliverySchedule, buildDeliveryDates } from '../../../src/lib/oneentry/checkout/delivery-schedule';
 
 export const metadata: Metadata = SEO.checkoutDelivery;
 
 export default async function Page() {
-  const [labels, userAddresses, stores, deliveryMethodInfo] = await Promise.all([
+  const [labels, userAddresses, stores, deliveryMethodInfo, scheduleAuthed, scheduleGuest] = await Promise.all([
     loadCheckoutSystemTexts(),
     loadFormPlaceholders('user_addresses'),
     loadStores(),
     loadDeliveryMethodInfo(),
+    loadDeliverySchedule('authed'),
+    loadDeliverySchedule('guest'),
   ]);
+  // Serialise dates for hand-off to the client component — `Date` objects
+  // survive the RSC boundary in Next.js 15+, but ISO strings are cheaper
+  // and preserve the "no timezone drift on hydrate" guarantee. Both
+  // variants are precomputed here so the client can flip strips based on
+  // auth state without any client-side data fetching.
+  const deliveryDatesIsoAuthed = buildDeliveryDates(
+    scheduleAuthed.daysAhead,
+    scheduleAuthed.disabledWeekdays,
+  ).map((d) => d.toISOString());
+  const deliveryDatesIsoGuest = buildDeliveryDates(
+    scheduleGuest.daysAhead,
+    scheduleGuest.disabledWeekdays,
+  ).map((d) => d.toISOString());
   // Adapt the full Store record into the slim shape the pickup picker needs.
   // Only stores that carry an OE numeric id are kept — a mock fallback entry
   // would have no way to reference a real store when the order is placed and
@@ -37,7 +53,13 @@ export default async function Page() {
     <CheckoutLabelsProvider data={labels}>
       <FormPlaceholdersProvider forms={{ user_addresses: userAddresses }}>
         <DeliveryMethodInfoProvider data={deliveryMethodInfo}>
-          <DeliveryPage pickupStores={pickupStores} />
+          <DeliveryPage
+            pickupStores={pickupStores}
+            deliveryDatesIsoAuthed={deliveryDatesIsoAuthed}
+            deliveryDatesIsoGuest={deliveryDatesIsoGuest}
+            deliverySlotsAuthed={scheduleAuthed.slots}
+            deliverySlotsGuest={scheduleGuest.slots}
+          />
         </DeliveryMethodInfoProvider>
       </FormPlaceholdersProvider>
     </CheckoutLabelsProvider>

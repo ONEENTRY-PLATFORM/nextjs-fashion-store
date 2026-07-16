@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -12,7 +12,14 @@ export function NotFoundPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Header />
+      {/* `Header` reads `useSearchParams()` for its `?gender=` state. Without a
+          Suspense boundary here Next.js can't statically prerender `/_not-found`
+          and the production build fails with "missing-suspense-with-csr-bailout".
+          A `null` fallback keeps the layout jump minimal — the Header hydrates
+          quickly on the client anyway. */}
+      <Suspense fallback={null}>
+        <Header />
+      </Suspense>
 
       <main id="main-content" className="flex-1 flex flex-col items-center justify-center px-6 py-24">
         {/* Large 404 */}

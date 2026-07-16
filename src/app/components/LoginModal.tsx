@@ -41,7 +41,7 @@ function SocialBtn({
 }
 
 export function LoginModal() {
-  const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth } = useAuth();
+  const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth, authError, setAuthError } = useAuth();
   const lTitle      = useSignInT('sign_in_title',          L.title);
   const lOr         = useSignInT('sign_in_or',             L.dividerOr);
   const lForgot     = useSignInT('sign_in_forgot_password', L.forgotPassword);
@@ -142,11 +142,16 @@ export function LoginModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200">
           <h2 id="login-modal-title" className="text-lg tracking-[0.12em] uppercase font-bold">{lTitle}</h2>
-          {/* Close button temporarily hidden — sign-in required while guest checkout is disabled.
-          <button onClick={closeLoginModal} className="hover:opacity-60 transition-opacity focus-visible:outline-none">
+          {/* Close button — guest checkout is enabled, so a visible X
+              mirrors the backdrop-click behaviour and matches shopper
+              expectations for a dismissable modal. */}
+          <button
+            aria-label="Close"
+            onClick={closeLoginModal}
+            className="hover:opacity-60 transition-opacity focus-visible:outline-none"
+          >
             <X size={20} strokeWidth={1.5} />
           </button>
-          */}
         </div>
 
         <div className="px-8 py-6 space-y-5">
@@ -246,7 +251,25 @@ export function LoginModal() {
             </div>
           </div>
 
-          {error && <p className="text-xs text-primary-men">{error}</p>}
+          {/* Prefer the OAuth-callback error banner over the transient
+              inline validation error — a redirect back from Google is
+              the only path that populates `authError`, and typing in
+              either input clears the local `error` state anyway. */}
+          {authError ? (
+            <div className="text-xs text-primary-men bg-red-50 border border-red-100 px-3 py-2 rounded-none flex items-start justify-between gap-2">
+              <span>{authError}</span>
+              <button
+                type="button"
+                onClick={() => setAuthError(null)}
+                aria-label="Dismiss error"
+                className="text-gray-500 hover:text-black transition-colors focus-visible:outline-none"
+              >
+                <X size={12} strokeWidth={1.5} />
+              </button>
+            </div>
+          ) : (
+            error && <p className="text-xs text-primary-men">{error}</p>
+          )}
 
           {/* CTA */}
           <button

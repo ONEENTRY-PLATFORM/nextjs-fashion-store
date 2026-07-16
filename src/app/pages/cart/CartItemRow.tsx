@@ -1,5 +1,6 @@
 'use client'
 import Image from 'next/image';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 import { Trash2, Heart } from 'lucide-react';
 import { QtyControl } from '../../components/QtyControl';
 import { SizeDropdown } from '../../components/SizeDropdown';
@@ -50,7 +51,7 @@ export function CartItemRow({
       </div>
 
       <div className="relative flex-shrink-0 w-[110px] h-[140px]">
-        <Image src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
+        <ImageWithFallback src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -87,8 +88,12 @@ export function CartItemRow({
 
       <div className="flex-shrink-0 text-right">
         <p className="text-base font-bold">{fmt(item.price * item.quantity)}</p>
-        {item.originalPrice && <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>}
-        {item.originalPrice && <p className="text-xs mt-0.5 text-[var(--sale)] font-semibold">-{fmt((item.originalPrice - item.price) * item.quantity)}</p>}
+        {item.originalPrice && item.originalPrice > item.price && (
+          <>
+            <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
+            <p className="text-xs mt-0.5 text-[var(--sale)] font-semibold">-{fmt((item.originalPrice - item.price) * item.quantity)}</p>
+          </>
+        )}
       </div>
     </div>
   );

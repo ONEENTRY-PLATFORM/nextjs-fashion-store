@@ -1,4 +1,5 @@
 'use server';
+import { revalidateTag } from 'next/cache';
 import { oneentry, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -57,6 +58,17 @@ export async function submitForm(
       lang,
     );
     if (isError(result)) return { ok: false, error: result.message ?? `HTTP ${result.statusCode}` };
+    // Invalidate the read-side cache for the affected surface so the
+    // newly-posted submission surfaces immediately instead of hiding
+    // behind the loader's 5-minute TTL. `oe-reviews` covers the
+    // `loadProductReviews` chain; `oe-forms` covers form-data readers
+    // used by `service-requests-action`, waiting-list etc.
+    try {
+      if (marker === 'review_rating' || marker === 'review_feedback') {
+        revalidateTag('oe-reviews', 'max');
+      }
+      revalidateTag('oe-forms', 'max');
+    } catch { /* revalidateTag is a no-op outside a request context */ }
     return { ok: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';

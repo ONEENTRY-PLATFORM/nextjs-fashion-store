@@ -235,6 +235,14 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const candidateImage = variantImage || product.colorImages?.[safeColorIdx] || product.image;
   const activeImage = candidateImage || '/icons/ui/bag-placeholder.svg';
   const activePrice = activeVariant?.price ?? product.price;
+  // Prefer the picked variant's own sale price when it has one — otherwise
+  // the card would show a strike-through pair mixing variant.price
+  // ($40, "was") with the family salePrice ($30, "now") for a completely
+  // different variant. Adapter only forwards `variant.salePrice` when
+  // `variant.salePrice < variant.price` (see `adapt.ts:171`), so falling
+  // through to family salePrice is only a display trade-off, not a
+  // correctness one.
+  const activeSalePrice = activeVariant?.salePrice ?? product.salePrice;
   const activeSku = activeVariant?.sku || product.id;
   // When OE returns no picture for the product we skip Next/Image entirely
   // and render the placeholder directly — Next/Image with `fill` on a small
@@ -284,8 +292,15 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
     // Parse the display-formatted price (e.g. "$35") into a number for cart
     // math. When there's a sale price, keep the original as `originalPrice`.
     const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^\d.]/g, '')) || 0;
-    const priceNumber = parsePrice(activeVariant?.price ?? product.salePrice ?? product.price);
-    const originalPriceNumber = product.salePrice ? parsePrice(product.price) : undefined;
+    // Prefer variant.salePrice → variant.price → family salePrice → family
+    // price so the cart stores the SAME number the price block above
+    // shows. `originalPrice` is only set when there's a strike-through UX
+    // pair — that means we're either using variant's own sale or the
+    // family sale; either way the strike shows the corresponding "was".
+    const priceNumber = parsePrice(activeSalePrice ?? activePrice);
+    const originalPriceNumber = activeSalePrice
+      ? parsePrice(activeVariant?.salePrice ? activeVariant.price : product.price)
+      : undefined;
     const activeColorHex = product.colors?.[safeColorIdx];
     addToCart({
       id: activeVariant?.id ?? product.id,
@@ -416,7 +431,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
           <div className="absolute top-3 left-3">
             <span
               className={`px-2 py-1 text-white text-xs tracking-wider uppercase font-medium ${
-                product.label === 'SALE' ? 'bg-primary-men' : 'bg-black'
+                product.label === 'SALE' ? 'bg-[var(--sale)]' : 'bg-black'
               }`}
             >
               {product.label || product.badge}
@@ -508,12 +523,14 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
           )}
         </div>
 
-        {/* Price */}
+        {/* Price — variant salePrice takes precedence over family so the
+            strike-through pair is consistent for the currently picked
+            variant (matches PDP behaviour). */}
         <div className="flex items-center gap-2 mb-2">
-          {product.salePrice ? (
+          {activeSalePrice ? (
             <>
-              <span className="text-sm font-medium text-primary-men">{stripTrailingZeros(product.salePrice)}</span>
-              <span className="text-xs text-gray-400 line-through">{stripTrailingZeros(activePrice)}</span>
+              <span className="text-sm font-medium text-primary-men">{stripTrailingZeros(activeSalePrice)}</span>
+              <span className="text-xs text-gray-400 line-through">{stripTrailingZeros(activeVariant?.salePrice ? activeVariant.price : product.price)}</span>
             </>
           ) : (
             <span className="text-sm text-black font-medium">{stripTrailingZeros(activePrice)}</span>

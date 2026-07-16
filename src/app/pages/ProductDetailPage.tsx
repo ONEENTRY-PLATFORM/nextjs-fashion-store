@@ -259,11 +259,24 @@ export function ProductDetailPage({
   // Price / gallery / SKU follow the active variant when the linked product
   // carries its own copy; otherwise we fall back to the parent product
   // (mirrors how the shopper sees the swatch as picking a whole variant).
-  const dynamicPrice = activeVariant?.price
-    ?? catalogProduct?.salePrice
-    ?? catalogProduct?.price
-    ?? 0;
-  const dynamicOriginalPrice = catalogProduct?.salePrice ? catalogProduct.price : null;
+  // Effective full/sale must come from the SAME source so the rendered
+  // percent isn't off by a variant. Previously `dynamicPrice` fell through
+  // `activeVariant.price ?? catalogProduct.salePrice ?? catalogProduct.price`
+  // (variant full → family sale) while `dynamicOriginalPrice` only looked at
+  // `catalogProduct.salePrice`, so an OE tenant that stored a family-level
+  // discount would render "$35 / $35 / −0%" whenever a variant reported the
+  // full price. Anchor both derivations to the same `activeVariant` (fall
+  // back to the family) and only surface the sale UI when the discount
+  // rounds to at least 1% — sub-cent OE discounts otherwise ship as `−0%`.
+  const effectiveFull = activeVariant?.price ?? catalogProduct?.price ?? 0;
+  const effectiveSale = activeVariant?.salePrice ?? catalogProduct?.salePrice;
+  const hasVisibleDiscount =
+    typeof effectiveSale === 'number' &&
+    effectiveFull > 0 &&
+    effectiveSale < effectiveFull &&
+    Math.round((1 - effectiveSale / effectiveFull) * 100) >= 1;
+  const dynamicPrice = hasVisibleDiscount ? effectiveSale! : effectiveFull;
+  const dynamicOriginalPrice = hasVisibleDiscount ? effectiveFull : null;
   const dynamicGallery = (activeVariant?.images && activeVariant.images.length > 0)
     ? activeVariant.images
     : catalogProduct?.galleryImages
@@ -343,7 +356,7 @@ export function ProductDetailPage({
 
   const cart = useCart();
   const dispatch = useDispatch<AppDispatch>();
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, user, openLoginModal } = useAuth();
   const recentlyViewed = useSelector((state: RootState) => state.recentlyViewed.items);
   // Different OE variant IDs of the same product (Pink XL / White M / …) each
   // push their own Recently-Viewed entry, so the trail can list the same
@@ -776,7 +789,19 @@ export function ProductDetailPage({
                 )}
 
                 <button
-                  onClick={() => setShowReserveModal(true)}
+                  onClick={() => {
+                    // Auth-gate the reservation like reviews (see ReviewsClient).
+                    // The reserve form collects contact info that OE ties to
+                    // the shopper; without a login the record has no owner and
+                    // the shopper can't later look up their reservation. Guest
+                    // shoppers get bounced into the login modal; on success
+                    // they land back on the PDP with modal state intact.
+                    if (!isLoggedIn) {
+                      openLoginModal();
+                      return;
+                    }
+                    setShowReserveModal(true);
+                  }}
                   className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-black border border-black hover:bg-black hover:text-white focus-visible:outline-none transition-colors duration-200 rounded-lg"
                 >
                   <Store size={15} /> {lReserveInStore}
@@ -917,8 +942,10 @@ export function ProductDetailPage({
         <div ref={reviewsRef}>{reviewsSlot}</div>
 
         {/* "You May Also Like" — same pattern: skeleton first, then the
-            statistics-driven product list streams in. */}
-        {recommendationsSlot}
+            statistics-driven product list streams in. Wrapped in the same
+            `<div>` shape as `reviewsSlot` above so React 19's key-tracking
+            heuristic treats both streaming boundaries uniformly. */}
+        <div>{recommendationsSlot}</div>
 
         <RecentlyViewedSection products={allRecentlyViewed} accentColor={ACCENT} />
       </main>

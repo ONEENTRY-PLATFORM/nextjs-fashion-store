@@ -3,6 +3,9 @@ import { useRef } from 'react';
 import { ImageWithFallback } from '../../components/ImageWithFallback';
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { HORIZONTAL_SCROLLER_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
+import { useCart } from '../../context/CartContext';
+import { hexToColorName } from '../../utils/colorNames';
+import { extractCmsProductId } from '../../data/cms-product-id-map';
 
 export interface CarouselProduct {
   id: string;
@@ -12,13 +15,44 @@ export interface CarouselProduct {
   salePrice?: string;
   image: string;
   colors: string[];
+  sizes?: string[];
+  stock?: number;
 }
 
 export function FavoritesCarousel({ title, products }: { title: string; products: CarouselProduct[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { addItem, openMiniCart } = useCart();
   const scroll = (dir: 'left' | 'right') => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' });
+  };
+  const handleQuickAdd = (p: CarouselProduct) => {
+    // Cart stores prices as numbers — strip currency formatting first.
+    // `originalPrice` is only set when there's an active sale (produces
+    // the strike-through UX downstream).
+    const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^\d.]/g, '')) || 0;
+    const priceNumber = parsePrice(p.salePrice ?? p.price);
+    const originalPrice = p.salePrice ? parsePrice(p.price) : undefined;
+    // Numeric cmsId keeps `productsForPreview` / `syncCart` in sync — the
+    // helper strips any accidental UI suffix. Falls back to the raw id
+    // string so downstream Redux still keys the cart entry.
+    const cmsId = extractCmsProductId(p.id);
+    const cartId = cmsId !== null ? String(cmsId) : p.id;
+    const firstColorHex = p.colors?.[0];
+    addItem({
+      id: cartId,
+      name: p.name,
+      brand: p.brand ?? '',
+      color: firstColorHex ? hexToColorName(firstColorHex) : '',
+      sku: cartId,
+      size: p.sizes?.[0] ?? '',
+      quantity: 1,
+      price: priceNumber,
+      ...(originalPrice !== undefined && { originalPrice }),
+      ...(typeof p.stock === 'number' && p.stock > 0 && { stockLimit: p.stock }),
+      image: p.image,
+    });
+    openMiniCart();
   };
 
   return (
@@ -57,7 +91,10 @@ export function FavoritesCarousel({ title, products }: { title: string; products
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-x-0 bottom-0 p-2 transition-all duration-300 opacity-0 group-hover:opacity-100">
-                <button className="w-full py-2 text-white text-xs tracking-widest uppercase flex items-center justify-center gap-1.5 focus-visible:outline-none bg-black">
+                <button
+                  onClick={() => handleQuickAdd(p)}
+                  className="w-full py-2 text-white text-xs tracking-widest uppercase flex items-center justify-center gap-1.5 focus-visible:outline-none bg-black"
+                >
                   <ShoppingBag size={12} /> {CVL.quickAdd}
                 </button>
               </div>

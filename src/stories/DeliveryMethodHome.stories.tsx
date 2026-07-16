@@ -130,3 +130,25 @@ export const Unchecked: Story = {
   name: 'Unchecked (collapsed)',
   args: { ...sharedArgs, checked: false },
 };
+
+/** OE-driven time slots and a shortened 3-date strip supplied from the server
+ *  layer — demonstrates the `timeSlots` and `deliveryDates` props that the
+ *  OE `checkout_home_delivery` schedule config now feeds into the component. */
+export const OEDrivenConfig: Story = {
+  name: 'OE-driven slots & date strip',
+  args: {
+    ...sharedArgs,
+    deliveryDates: Array.from({ length: 3 }, (_, i) => {
+      const d = new Date('2026-07-15');
+      d.setDate(d.getDate() + i);
+      return d;
+    }),
+    selectedDate: (() => { const d = new Date('2026-07-15'); return d; })(),
+    timeSlots: [
+      { id: 'morning-express', label: '07:00 – 10:00', sub: 'Morning Express' },
+      { id: 'afternoon',       label: '12:00 – 16:00', sub: 'Afternoon' },
+      { id: 'late-evening',    label: '19:00 – 22:00', sub: 'Late Evening' },
+    ],
+    selectedSlot: 'morning-express',
+  },
+};

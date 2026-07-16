@@ -29,7 +29,7 @@ export interface Store {
 export const STORE_SCHEMA_DEFAULTS = {
   currenciesAccepted: CURRENCY,
   paymentAccepted: 'Cash, Credit Card, Debit Card',
-  priceRange: '££',
+  priceRange: '$$',
   addressCountry: 'GB',
 } as const;
 

@@ -7,16 +7,25 @@ import { TIMINGS } from '../constants/timings';
 import { PRODUCT_CARD_LABELS } from '../data/commonLabels';
 import { useProductCardT } from '../../lib/oneentry/labels/ProductCardLabelsContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { hexToColorName } from '../utils/colorNames';
+import { stripTrailingZeros } from '../utils/formatPrice';
+import { QUICK_VIEW_LABELS } from '../data/productPageLabels';
 
 /* ─── List-view card (only when showListMode=true) ─── */
 export function CatalogListProductCard({ product, accent }: { product: Product; accent: string }) {
   const [addedToCart, setAddedToCart] = useState(false);
-  const [wishlisted, setWishlisted] = useState(false);
   const [cartHovered, setCartHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const addedToCartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lAddToCart = useProductCardT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
   const { addItem } = useCart();
+  const { toggleItem, isWishlisted } = useWishlist();
+  // `isWishlisted` returns Redux state that only lives on the client;
+  // reading it during SSR/hydration would emit a mismatch warning. Gate
+  // the heart-filled state on `mounted` the same way `ProductCard` does.
+  useEffect(() => { setMounted(true); }, []);
+  const wishlisted = mounted && isWishlisted(product.id);
 
   useEffect(() => {
     return () => { if (addedToCartTimerRef.current) clearTimeout(addedToCartTimerRef.current); };
@@ -73,11 +82,11 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
           <div className="flex items-center gap-2 mb-3">
             {product.salePrice ? (
               <>
-                <span className="text-sm font-medium text-[var(--sale)]">{product.salePrice}</span>
-                <span className="text-xs text-gray-400 line-through">{product.price}</span>
+                <span className="text-sm font-medium text-[var(--sale)]">{stripTrailingZeros(product.salePrice)}</span>
+                <span className="text-xs text-gray-400 line-through">{stripTrailingZeros(product.price)}</span>
               </>
             ) : (
-              <span className="text-sm font-medium">{product.price}</span>
+              <span className="text-sm font-medium">{stripTrailingZeros(product.price)}</span>
             )}
           </div>
           <div className="flex items-center gap-1.5">
@@ -103,7 +112,31 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
             {addedToCart ? PRODUCT_CARD_LABELS.added : lAddToCart}
           </button>
           <button
-            onClick={() => setWishlisted(w => !w)}
+            onClick={() => {
+              // Real wishlist persistence — mirrors `ProductCard.handleWishlist`.
+              // Per-colour thumbnail: pick the linked variant's image, then
+              // parallel `colorImages`, then the primary product image.
+              const colorImages = product.colors.map((c, i) =>
+                product.variants?.find((v) => v.colors.includes(c))?.image
+                || product.colorImages?.[i]
+                || product.image,
+              );
+              toggleItem({
+                id: product.id,
+                name: product.name,
+                brand: product.brand ?? QUICK_VIEW_LABELS.defaultBrand,
+                price: product.price,
+                salePrice: product.salePrice,
+                image: product.image,
+                colors: product.colors,
+                colorImages,
+                colorStock: product.colorStock,
+                sizes: product.sizes ?? [],
+                badge: product.badge ?? product.label,
+                inStock: product.inStock !== false,
+                selectedColor: product.colors[0],
+              });
+            }}
             className="p-2 border border-gray-200 hover:border-black transition-colors rounded-none"
           >
             <Image

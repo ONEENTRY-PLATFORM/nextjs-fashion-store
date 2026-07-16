@@ -462,6 +462,18 @@ describe('applyProductDiscount — ATTRIBUTE condition: eq operator', () => {
     expect(applyProductDiscount(p({ discountAttributes: { discount_12: '10' } }), [r])).toBe(90);
     expect(applyProductDiscount(p({ discountAttributes: { discount_12: '99' } }), [r])).toBeUndefined();
   });
+
+  // Regression: OE tenant stored `discount_13: '10%'` on the product while the
+  // discount rule carried `eq "10"`. The old normalize() stripped the trailing `%`
+  // so the catalog showed a sale price that OE then refused to honour at checkout
+  // (visible as a mysterious "Adjustments +$X" row). Fix: normalize() now forwards
+  // the value verbatim; `attributeOperatorMatches('eq', '10%', '10')` must be false.
+  it('does not match when product value "10%" is compared to rule value "10" via eq', () => {
+    const r = percentRule(10, {
+      conditions: [attrCond('discount_13', { value: '10', condition: 'eq' })],
+    });
+    expect(applyProductDiscount(p({ discountAttributes: { discount_13: '10%' } }), [r])).toBeUndefined();
+  });
 });
 
 describe('applyProductDiscount — ATTRIBUTE condition: neq operator', () => {

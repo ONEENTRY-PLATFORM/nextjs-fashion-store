@@ -32,6 +32,10 @@ Section error boundary: `app/checkout/error.tsx` catches any unhandled throw in 
 
 ## 2. Delivery step (`DeliveryPage.tsx`)
 
+### 2.0 Empty-cart route guard
+
+On mount, both `DeliveryPage` and `PaymentPage` check `items.length === 0` (from `useCart()`). When the cart is empty the component calls `router.push('/cart')` before rendering any form UI. This prevents deep-linking to `/checkout/delivery` or `/checkout/payment` with an empty cart, which previously showed a `$0` total and let the shopper begin filling in the delivery form or payment details for a phantom order.
+
 ### 2.1 Auth gate
 
 If `!isLoggedIn`, `<GuestCheckoutModal>` renders on mount with three options:
@@ -86,13 +90,75 @@ PARCEL_LOCKERS = [
   ...
 ]
 DELIVERY_TIME_SLOTS = [
-  { id: 'morning',   label: '09:00 – 13:00' },
-  { id: 'afternoon', label: '13:00 – 17:00' },
-  { id: 'evening',   label: '17:00 – 21:00' },
+  { id: 'morning',   label: '09:00 – 13:00', sub: 'Morning' },
+  { id: 'afternoon', label: '13:00 – 17:00', sub: 'Afternoon' },
+  { id: 'evening',   label: '17:00 – 21:00', sub: 'Evening' },
 ]
 ```
 
-Delivery dates are computed client-side by `getDeliveryDates(count=7)` — earliest is tomorrow, Sundays skipped, up to 60 iteration guard for safety.
+`DELIVERY_TIME_SLOTS` is the **hardcoded fallback** only — time slots and calendar configuration are normally loaded from OE at request time (see §2.2a below).
+
+**§2.2a OE-driven delivery schedule**
+
+`src/lib/oneentry/checkout/delivery-schedule.ts` provides two exports:
+
+- `loadDeliverySchedule(variant?, lang?)` — cached async loader. `variant` is `'authed'` (default) or `'guest'`; it selects the **attribute-set** (aset) and attribute markers to read:
+
+  | variant | aset marker | timeInterval attr |
+  |---|---|---|
+  | `authed` | `checkout_home` | `delivery_date-time` |
+  | `guest` | `checkout_home_guest` | `delivery_date-time_guest` |
+
+  **Why asets, not forms.** `Forms.getFormByMarker(...)` strips the `value` field of every attribute down to a placeholder; the actual storefront-shaped values live on the attribute-set schema. The loader therefore calls `AttributesSets.getAttributesByMarker(asetMarker, lang)`, which returns a per-attribute list carrying the full `.value`.
+
+  **Reading the timeInterval attribute.** The loader finds the entry whose `marker` matches `dateAttr` and `type === 'timeInterval'`. From that entry it reads `value[0].values[0]`, which carries two fields:
+
+  - `dates: [startISO, endISO]` — the admin-configured availability window. The loader walks every UTC day from `start` through `end` (inclusive), using `getUTCDay()` for the weekday check and `setUTCDate` for the day increment — both operations use UTC so a timezone offset (e.g. Vladivostok UTC+10 where local Sunday 21:00 is UTC Monday) cannot shift the active-weekday set. The loader records which UTC weekday numbers appear across the window and computes `disabledWeekdays = [0…6] \ active`. A Mon–Fri range produces `disabledWeekdays: [0, 6]`; Mon–Sat produces `[0]`. `buildDeliveryDates` also uses `getUTCDay()` + `setUTCDate` throughout, so the two sides always agree. When the `dates` array is absent or unparseable, `FALLBACK.disabledWeekdays` (`[0]`) is used instead.
+  - `times: [[startHM, endHM], …]` — one entry per delivery slot, each element being `{hours, minutes}` pairs. The loader maps each pair to a `DeliveryTimeSlot`:
+    - `id` — `HHMM-HHMM` (colons stripped), e.g. `0900-1300`.
+    - `label` — `HH:MM – HH:MM`, e.g. `09:00 – 13:00`.
+    - `sub` — start-hour bucketed: `< 12` → `'Morning'`, `< 17` → `'Afternoon'`, `< 22` → `'Evening'`, else `''`.
+    Slots are sorted by label (lexicographic, which equals chronological for zero-padded HH:MM). Missing or empty `times[]` → `DELIVERY_TIME_SLOTS` fallback.
+
+  **`daysAhead` is fixed at `7`.** OE's `timeInterval` attribute is a recurrence rule, not a bounded list of allowed dates, so there is no admin field from which to read a configurable look-ahead. The value `7` is taken from the `FALLBACK` constant and remains the same regardless of the aset contents.
+
+  Returns a `DeliverySchedule` `{ slots, daysAhead, disabledWeekdays }`. Any OE error, missing aset, or missing attribute falls back to the hardcoded `FALLBACK` constant (7 days, skip Sundays, three-slot list). Cached under key `oe-delivery-schedule`, tag `oe-forms`, TTL `REVALIDATE_STORES`.
+
+- `buildDeliveryDates(daysAhead, disabledWeekdays, now?)` — pure function (no hooks, server- and test-safe). Starts from tomorrow, skips weekdays in `disabledWeekdays`, and collects `daysAhead` dates. Safety cap: `daysAhead * 4 + 14` iterations maximum.
+
+`app/checkout/delivery/page.tsx` calls `loadDeliverySchedule('authed')` and `loadDeliverySchedule('guest')` **in parallel** inside its `Promise.all` alongside `loadStores()` and the other loaders. It then calls `buildDeliveryDates` for each result and serialises both strips to ISO strings:
+
+```ts
+const [scheduleAuthed, scheduleGuest] = await Promise.all([
+  loadDeliverySchedule('authed'),
+  loadDeliverySchedule('guest'),
+  // …loadStores, loadDeliveryMethodInfo, etc.
+]);
+const deliveryDatesIsoAuthed = buildDeliveryDates(scheduleAuthed.daysAhead, scheduleAuthed.disabledWeekdays).map(d => d.toISOString());
+const deliveryDatesIsoGuest  = buildDeliveryDates(scheduleGuest.daysAhead,  scheduleGuest.disabledWeekdays ).map(d => d.toISOString());
+```
+
+Four props are passed to `<DeliveryPage>`:
+
+| Prop | Source |
+|---|---|
+| `deliveryDatesIsoAuthed` | ISO date strip derived from the `checkout_home` aset schedule |
+| `deliveryDatesIsoGuest` | ISO date strip derived from the `checkout_home_guest` aset schedule |
+| `deliverySlotsAuthed` | `scheduleAuthed.slots` — time slots decoded from `delivery_date-time` |
+| `deliverySlotsGuest` | `scheduleGuest.slots` — time slots decoded from `delivery_date-time_guest` |
+
+`DeliveryPage` selects the active pair from `isLoggedIn` (read from `AuthContext`):
+
+```ts
+const activeDatesIso = isLoggedIn ? deliveryDatesIsoAuthed : deliveryDatesIsoGuest;
+const activeSlots    = isLoggedIn ? deliverySlotsAuthed    : deliverySlotsGuest;
+```
+
+Authed users see dates/slots from the `checkout_home` aset; guests see dates/slots from `checkout_home_guest`. The flip is a pure prop swap — no client-side data fetching on auth-state change.
+
+When no strip was supplied at all (Storybook / bare unit test), a client-only `getDeliveryDates(count=7)` function generates a 7-day strip skipping Sundays, and `DELIVERY_TIME_SLOTS` is used as the slot fallback — matching `FALLBACK.disabledWeekdays`.
+
+`DeliveryMethodHome` accepts an optional `timeSlots?: DeliveryTimeSlot[]` prop; when provided and non-empty, it is used instead of `DELIVERY_TIME_SLOTS`.
 
 `<DeliveryOrderSummary>` is loaded via `next/dynamic({ssr:false})` — its content reads from the Redux cart slice that hydrates from `localStorage` **after** client mount, so SSR would produce an empty snapshot that conflicts with the post-hydration tree.
 
@@ -279,6 +345,18 @@ Two guards are applied on the fresh response:
 
 1. **`!fresh.ok`** — OE rejected the preview (e.g. a line item is unavailable or its price is undefined). `handlePlaceOrder` surfaces `fresh.error` (or a generic re-validation message) and returns without calling `createOrderAction`. Note: "Product not found" failures are handled earlier — `CartContext`'s ambient `previewOrder` effect double-checks each reported id against the catalog via `getProductsByIdsAction` and only prunes items that the catalog also cannot find, so valid products are not removed due to a spurious `Orders.previewOrder` error (see [CART_WISHLIST.md §4a](./CART_WISHLIST.md#4a-checkout-preview--coupons)).
 2. **Total drift** — if `preview` exists and `Math.abs(fresh.totalDue - preview.totalDue) > 0.01`, the `preview` state is updated to the fresh figures and a message is shown: _"Order total changed to $X since you last reviewed it — please check the summary and place the order again."_ The shopper must click **Place Order** a second time with the corrected total visible on screen.
+3. **Sale-price mismatch guard.** `PaymentPage` additionally compares OE's authoritative `fresh.totalSum` (the pre-discount gross) against the client `subtotal` (`Math.abs(fresh.totalSum - subtotal) > 0.01`). This catches the "guest whose OE Discount rule requires a logged-in tier" case — the catalog optimistically showed a sale price OE will not honour — which the `totalDue` vs `totalDue` guard alone could not detect because OE's `totalDue` was already consistent with the non-discounted total. When this guard fires the "We now show $X at checkout" banner is shown, `preview` is updated to the fresh figures, and the order is not submitted.
+
+   **`alreadyReconciled` skip.** When this guard fires on the first click, `setPreview(fresh)` propagates OE's authoritative totals to the Order Summary and CTA. On the shopper's second click, `fresh` is re-fetched and will again differ from client `subtotal` — so without an additional check the guard would re-fire indefinitely. To prevent this, `handlePlaceOrder` computes:
+
+   ```ts
+   const alreadyReconciled = preview
+     && Math.abs(fresh.totalSum - preview.totalSum) < 0.01
+     && Math.abs(fresh.totalDue - preview.totalDue) < 0.01;
+   if (!alreadyReconciled && Math.abs(fresh.totalSum - subtotal) > 0.01) { … }
+   ```
+
+   If the on-screen `preview` already matches the fresh OE response (both `totalSum` and `totalDue` within $0.01), the shopper has already seen the reconciled total — their second click **is** the re-confirmation, so the sale-price guard is skipped and `createOrderAction` proceeds.
 
 This makes the fresh preview the authoritative pre-flight check for every order, regardless of how long the shopper spent on the page or how stale the ISR-cached PDP was.
 
@@ -331,11 +409,25 @@ The cart is actually cleared in **two places**, in order:
 
 Server cart is NOT wiped by these calls directly — the `syncCart` sync effect will push the empty cart on the next tick. If OneEntry order creation happens outside the sync window (e.g. Stripe success redirect), the server cart is only cleared when the user returns to a page mounted `useCart()`.
 
-### 4.3 Loyalty points
+### 4.3 Order total on the receipt
 
-Rendered as `Math.floor(total * 10)` points earned. This is a static marketing calculation — it does not credit the user's OE loyalty balance.
+`ConfirmationPage` reads `sessionStorage['oe_last_order_total']` (written by `PaymentPage.handlePlaceOrder` immediately after `createOrderAction` resolves, using the `finalTotal` that was presented to the shopper). Because the cart is cleared before the page loads, `useCart().total` would be `$0`; this snapshot is the only reliable source of the paid amount. The entry is consumed and removed on first mount. When the key is absent (direct navigation or Stripe-round-trip `sessionStorage` clear), `paidTotal` stays `null` and the receipt falls back to `useCart().total` — which may be `$0` on that session.
 
-### 4.4 Order-confirmed heading — copy precedence chain
+**`activePreview` derivation.** `finalTotal` (and the `sessionStorage['oe_last_order_total']` snapshot written at order creation) is computed as:
+
+```ts
+const finalTotal = activePreview ? activeTotalDue : total;
+```
+
+`activePreview = preview ?? cartPreview`, where `preview` is `PaymentPage`'s own local `previewOrder` state and `cartPreview` is `CartContext.preview`. When `PaymentPage`'s debounced fetch has returned at least one result, `preview` takes precedence; before the first local fetch resolves, `cartPreview` provides a non-null value so the summary and CTA are never gated on the cold-start delay. `activeTotalDue` is read from `activePreview`. Whenever an OE preview is available, `finalTotal` equals OE's authoritative `totalDue` — regardless of whether any discount field is non-zero. This fixes the "OE quotes MORE than the client optimistic" direction: when a catalog `applyProductDiscount` overlay marks a product on sale but an OE Discount rule requires a user-group the shopper isn't in, OE returns `productDiscounts: []` and `totalDue` equal to full price. The previous three-flag guard (`activePersonalDiscount > 0 || activeCouponDiscount > 0 || activeBonusBurned`) stayed false in that case, collapsing `finalTotal` back to the optimistic client `total` even though the "total changed" warning banner correctly showed the higher OE figure. Now the CTA, Order Summary, and `oe_last_order_total` snapshot all consistently reflect OE's charge. `activeBonusBurned` has been removed as it was only used by the old formula.
+
+> **CartPage / DeliveryPage divergence.** Those pages still use the three-flag shape (`personalDiscount > 0 || couponDiscount > 0 || preview.bonusApplied > 0 ? totalDue : subtotal`) because no fresh re-check preview is triggered there. The `PaymentPage` pre-flight guard (`handlePlaceOrder` → `previewOrderAction`) remains the point where OE's figure becomes authoritative.
+
+### 4.4 Loyalty points
+
+Rendered as `Math.floor((paidTotal ?? total) * 10)` points earned, using the same `paidTotal` snapshot. This is a static marketing calculation — it does not credit the user's OE loyalty balance.
+
+### 4.5 Order-confirmed heading — copy precedence chain
 
 The heading shown on the Confirmation page ("Order Confirmed!" or equivalent) is resolved at three levels, in priority order:
 
@@ -429,7 +521,9 @@ Client validation runs on the DeliveryPage "Continue to Payment" click. Server v
 |---|---|---|---|
 | `oe_checkout_payload` | `sessionStorage` | Until Payment redirects / order created | Delivery → Payment handoff |
 | `oe_last_order_id` | `sessionStorage` | Written by PaymentPage after `createOrderAction`; removed by ConfirmationPage on mount | Real OE `orderId` surfaced on the receipt |
-| `oe_cart_merged` / `oe_wishlist_merged` | `sessionStorage` | Session | Prevent re-merge on tree remounts |
+| `oe_last_order_total` | `sessionStorage` | Written by PaymentPage (`String(finalTotal)`) immediately before redirect/push; removed by ConfirmationPage on mount | `finalTotal` snapshot used by ConfirmationPage so the receipt shows the real paid amount after the cart is cleared |
+| `oe_cart_merged` / `oe_wishlist_merged` | `sessionStorage` | Session; cleared on logout | Prevent re-merge on tree remounts; cleared by `AuthContext.logout()` to prevent cross-user leakage |
+| `oe_coupon_code` | `sessionStorage` | Until `clearCart()` or logout | Applied coupon code persisted across cart → delivery navigation; cleared on logout |
 | `oe_guest_id` | `localStorage` | Persistent | Link guest orders / activity |
 | `oe_access` / `oe_refresh` / `oe_user` | Cookies | Server-managed | Auth session |
 | `oe_store` | `localStorage` | Persistent | Redux persisted slices (cart, wishlist, recentlyViewed, catalog) |
@@ -466,11 +560,12 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 | `app/checkout/confirmation/page.tsx` | Route shell — `Promise.all`s `loadCheckoutSuccessMessage()` alongside `loadCheckoutSystemTexts()`; passes result as `successMessage` prop to `<ConfirmationPage />` |
 | `app/checkout/payment/page.tsx` | Route shell (SEO metadata + client component) |
 | `app/checkout/error.tsx` | Segment error boundary |
-| `src/app/pages/DeliveryPage.tsx` | Delivery step client component; accepts `pickupStores?: PickupStore[]` prop |
+| `src/app/pages/DeliveryPage.tsx` | Delivery step client component; accepts `pickupStores?: PickupStore[]`, `deliveryDatesIsoAuthed?: string[]`, `deliveryDatesIsoGuest?: string[]`, `deliverySlotsAuthed?: DeliveryTimeSlot[]`, and `deliverySlotsGuest?: DeliveryTimeSlot[]` props; selects the active pair based on `isLoggedIn` from `AuthContext` |
 | `src/app/pages/PaymentPage.tsx` | Payment step client component; writes real `orderId` to `sessionStorage['oe_last_order_id']` on success |
 | `src/app/pages/ConfirmationPage.tsx` | Confirmation step; reads real `orderId` from `sessionStorage['oe_last_order_id']`, falls back to `randomOrderId()`; accepts optional `successMessage?: string | null` prop used as secondary source for the confirmed-order heading (see §4.4) |
-| `src/app/pages/checkout/DeliveryMethodHome.tsx` / `Locker.tsx` / `Store.tsx` | Method-specific sub-forms; `Store.tsx` now takes a `stores: PickupStore[]` prop; all three read OE copy via `useDeliveryMethodInfo()` with literal-label fallback |
+| `src/app/pages/checkout/DeliveryMethodHome.tsx` / `Locker.tsx` / `Store.tsx` | Method-specific sub-forms; `Store.tsx` takes a `stores: PickupStore[]` prop; `DeliveryMethodHome.tsx` accepts optional `timeSlots?: DeliveryTimeSlot[]` (falls back to `DELIVERY_TIME_SLOTS` when absent); all three read OE copy via `useDeliveryMethodInfo()` with literal-label fallback |
 | `src/lib/oneentry/checkout/delivery-methods.ts` | `loadDeliveryMethodInfo()` — cached OE form loader; returns `DeliveryMethodInfo`. Also exports `loadCheckoutSuccessMessage(lang)` — reads `checkout_home_delivery` form's `localizeInfos.successMessage`; cached under key `oe-checkout-success-message`, tag `oe-forms`, TTL `REVALIDATE_STORES`; returns `null` on error/empty (see §4.4) |
+| `src/lib/oneentry/checkout/delivery-schedule.ts` | `loadDeliverySchedule(variant?, lang?)` — cached OE loader for the date-strip + time-slot config; `variant` selects the `authed` or `guest` aset/attribute marker pair (see §2.2a). `buildDeliveryDates(daysAhead, disabledWeekdays, now?)` — pure date-strip generator, server and test safe |
 | `src/lib/oneentry/checkout/DeliveryMethodInfoContext.tsx` | `DeliveryMethodInfoProvider` + `useDeliveryMethodInfo()` |
 | `src/app/data/stores.ts` | `Store` interface — carries optional `oeId?: number` (numeric OE page id) |
 | `src/lib/oneentry/catalog/stores.ts` | `normalize()` populates `oeId: raw.id` on every store returned from OE |
@@ -481,7 +576,7 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 | `src/app/components/CheckoutStepper.tsx` | Step indicator |
 | `src/app/data/checkoutConfig.ts` | Pickup stores, lockers, time slots, coupon dict, delivery perks |
 | `src/app/data/paymentMethodsConfig.ts` | Stylistic copy for payment badges |
-| `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction`, `previewOrderAction` (returns `missingProductIds` on failure) |
+| `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction`, `previewOrderAction` (returns `missingProductIds` on failure). `TIER_MARKERS` (`['bronze','silver','gold','platinum']`) is now a single module-scoped `const` consumed by `fetchLoyalty`, `previewOrderAction`, and `createOrderAction` — not exported (Next.js 16 `'use server'` files reject non-async exports). |
 | `src/app/components/CartUnavailableNotice.tsx` | Top-of-page banner that displays auto-pruned items and lets the shopper dismiss; mounted in `Providers.tsx` |
 | `src/lib/oneentry/payments/accounts.ts` | `getPaymentAccountsAction` |
 | `src/app/utils/guest-id.ts` | `getOrCreateGuestId()` |

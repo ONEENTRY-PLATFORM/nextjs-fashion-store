@@ -23,6 +23,7 @@ These blocks are rendered on every page via the root layout.
 ## 1. Header (desktop)
 
 > Source of constants: `data/headerConfig.ts`. Sticky `top-0`.
+> **Suspense requirement:** `Header` reads `useSearchParams()` to sync the `?gender=` query param. Any page that mounts `<Header />` outside the normal layout (e.g. `NotFoundPage`) must wrap it in `<Suspense fallback={null}>`; otherwise `next build` cannot statically prerender that page.
 
 ### Top Bar (black strip, md+ only)
 

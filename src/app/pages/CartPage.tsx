@@ -170,11 +170,13 @@ export function CartPage() {
     setPromoInput('');
   };
 
-  // Preview already includes coupon + personal loyalty discount + bonuses,
-  // so `totalDue` is the single source of truth. Falls back to the naive
-  // client-computed `total` only when the preview isn't available yet
-  // (guest / empty cart / in-flight request).
-  const finalTotal = personalDiscount > 0 || couponDiscount > 0 ? totalDue : total;
+  // Client sale price is baked into `item.price` (catalog / PDP overlay),
+  // so the client `total` already reflects the sale. Prefer OE's
+  // `totalDue` when OE actually knocked something extra off — a loyalty
+  // tier discount, a valid coupon, OR the shopper burned some bonus
+  // points. Any of those three land honestly on the visible total.
+  const bonusBurned = (preview?.bonusApplied ?? 0) > 0;
+  const finalTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : total;
 
   return (
     <div
@@ -335,14 +337,8 @@ export function CartPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">{lSubtotal} ({items.length} {lItemCount})</span>
-                      <span className="font-medium">{fmt(subtotal + discount)}</span>
+                      <span className="font-medium">{fmt(subtotal)}</span>
                     </div>
-                    {discount > 0 && (
-                      <div className="flex justify-between text-sm text-[var(--sale)]">
-                        <span>{L.itemsDiscount}</span>
-                        <span className="font-semibold">−{fmt(discount)}</span>
-                      </div>
-                    )}
                     {/* Preview skeleton — only on the very first load. Once
                         `preview` is set, refetches don't flash: we keep the
                         old numbers visible. */}

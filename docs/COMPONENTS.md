@@ -3,7 +3,7 @@
 Systematic inventory of every React component in the storefront: role, key props, key consumers, and the doc that describes its deeper business rules (when there is one). Grouped by folder.
 
 Component counts (excluding tests and `.stories.tsx`):
-- `src/app/components/*` — **48** global components + `figma/ImageWithFallback.tsx`
+- `src/app/components/*` — **48** global components
 - `src/app/pages/*.tsx` — **22** page components (8 catalog shells, 14 unique routes)
 - `src/app/pages/{account,cart,checkout,favorites,new,product,sale,stores}/*` — **59** page sub-components (account 21, product 20, checkout 8, cart 2, favorites 3, new 1, sale 3, stores 1)
 
@@ -93,7 +93,6 @@ Component counts (excluding tests and `.stories.tsx`):
 |---|---|
 | `HorizontalScroller.tsx` | Horizontal-scroll container with prev / next chevron buttons and edge fade. Uses `useDragScroll()` for desktop drag-scroll. `ChevronLeft` / `ChevronRight` from `lucide-react`. Copy from `HORIZONTAL_SCROLLER_LABELS`. |
 | `ImageWithFallback.tsx` | Wrapper around `next/image` with an `onError` handler that swaps to a placeholder. Optional `grayscale` prop. Used everywhere product images are rendered. |
-| `figma/ImageWithFallback.tsx` | Figma-imported duplicate — retained for stories that reference the design-system primitive by path. |
 
 ---
 
@@ -271,8 +270,7 @@ All PDP pieces are covered in [PRODUCT_DETAIL.md](./PRODUCT_DETAIL.md).
 
 Every file in `src/app/{components,pages}` has a line above. If a new component lands, add a row here in the same PR — otherwise this registry drifts.
 
-- **Global components (`src/app/components/*.tsx`)** — 48/48 covered.
-- **Figma primitives (`src/app/components/figma/*.tsx`)** — 1/1 covered.
+- **Global components (`src/app/components/*.tsx`)** — 48/48 covered. (The `figma/` subfolder has been removed — `figma/ImageWithFallback.tsx` was deleted as a dead duplicate.)
 - **Page components (`src/app/pages/*.tsx`)** — 22/22 covered.
 - **Page sub-components (`src/app/pages/*/**.tsx`)** — 59/59 covered. Breakdown: account 21 (11 sections + `LoyaltyCard` + `shared.tsx` + `history/` 1 + `myData/` 6 + `service/` 2), cart 2, checkout 8, favorites 3, new 1, product 20 (19 components + 1 hook module `useProductPageUIState.ts`), sale 3, stores 1.
 

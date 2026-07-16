@@ -3,6 +3,7 @@ import { oneentry, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 import { REVALIDATE_HOME } from '../../isr';
 
 export interface CategoryItemFromCms {
@@ -79,7 +80,8 @@ export const loadCategorySection = withTiming('loadCategorySection', unstable_ca
         });
       }
       return { chips, categories };
-    } catch {
+    } catch (err) {
+      logCaught('category-section.loadCategorySection', err);
       return { chips: [], categories: [] };
     }
   },

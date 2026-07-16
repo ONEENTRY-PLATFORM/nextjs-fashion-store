@@ -156,94 +156,17 @@ export function serializeCatalogSearchParams(filters: CatalogFilters): string {
   return params.toString();
 }
 
-/** Single record for the OE `Products.getProducts(filter, ...)` body. */
-export interface OEFilterRecord {
-  attributeMarker: string;
-  conditionMarker: 'mth' | 'lth' | 'in' | 'eq' | 'nin' | 'lke';
-  conditionValue: string | number;
-  statusMarker?: string;
-}
-
-/**
- * Build the filter body for OneEntry `Products.getProducts(...)`.
+/* Removed: `OEFilterRecord`, `STATUS_IN_STOCK`, `LIST_FIELD_TO_OE_MARKER`,
+ * `PRICE_MARKER`, `buildOEFilterBody`.
  *
- * Notes on quirks:
- *  - OE applies `statusMarker` from any record to the whole query, but it
- *    must appear in a filter record — the SDK ignores `statusMarker` on the
- *    query object itself (confirmed by the create-product-list skill).
- *  - When the only condition is "in stock", the body still needs at least one
- *    filter record. We add a catch-all `price mth -1` carrying the status.
- *  - Price boundaries use ±0.01 so the user-typed boundary is inclusive
- *    (`mth = more than`, `lth = less than` — both strict).
+ * These were scaffolding for a server-side filter path against OE
+ * `Products.getProducts(filter, ...)` that never landed — the storefront
+ * filters `loadFullCatalog` locally in `products.ts` via
+ * `matchesCatalogFilters`. Nothing imported the exports, and the OE marker
+ * table risked drifting from the actually-used values. Keeping the file
+ * lean makes it clear which path is live. Restore from git history if we
+ * ever revive the server-side filter route.
  */
-const STATUS_IN_STOCK = 'in_stock';
-
-// OE markers in this tenant carry a numeric suffix
-// (`color_9`, `size_10`, etc.) — confirmed by the `/clothing` filter spec
-// and a direct product attribute dump. The filter API requires these exact
-// markers; the suffixless equivalents (`colors`, `sizes`) silently match
-// zero rows.
-const LIST_FIELD_TO_OE_MARKER: Partial<Record<keyof CatalogFilters, string>> = {
-  colors: 'color_9',
-  sizes: 'size_10',
-  brands: 'brand_7',
-  styles: 'style_3',
-  materials: 'material_15',
-  seasons: 'season_19',
-  fits: 'fitrise_4',
-  liningMaterials: 'lining_16',
-  brandCountries: 'country_20',
-  labels: 'lable_23',
-  productDetails: 'details_5',
-  careInstructions: 'careinstructions_18',
-  insulations: 'insulation_17',
-};
-
-const PRICE_MARKER = 'price_14';
-
-export function buildOEFilterBody(filters: CatalogFilters): OEFilterRecord[] {
-  const body: OEFilterRecord[] = [];
-  const status = filters.inStockOnly ? STATUS_IN_STOCK : undefined;
-  const withStatus = <T extends OEFilterRecord>(rec: T): T =>
-    status ? ({ ...rec, statusMarker: status } as T) : rec;
-
-  if (filters.minPrice !== undefined) {
-    body.push(withStatus({
-      attributeMarker: PRICE_MARKER,
-      conditionMarker: 'mth',
-      conditionValue: filters.minPrice - 0.01,
-    }));
-  }
-  if (filters.maxPrice !== undefined) {
-    body.push(withStatus({
-      attributeMarker: PRICE_MARKER,
-      conditionMarker: 'lth',
-      conditionValue: filters.maxPrice + 0.01,
-    }));
-  }
-
-  for (const [field, marker] of Object.entries(LIST_FIELD_TO_OE_MARKER)) {
-    const vals = (filters as Record<string, unknown>)[field] as string[] | undefined;
-    if (vals && vals.length > 0) {
-      body.push(withStatus({
-        attributeMarker: marker as string,
-        conditionMarker: 'in',
-        conditionValue: vals.join(','),
-      }));
-    }
-  }
-
-  if (status && body.length === 0) {
-    body.push({
-      attributeMarker: PRICE_MARKER,
-      conditionMarker: 'mth',
-      conditionValue: -1,
-      statusMarker: status,
-    });
-  }
-
-  return body;
-}
 
 /**
  * Mapping from the storefront `CatalogTemplate` filter group `key` (used by

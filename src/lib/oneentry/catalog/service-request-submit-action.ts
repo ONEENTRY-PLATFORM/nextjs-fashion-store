@@ -1,9 +1,8 @@
 'use server';
 import { cookies } from 'next/headers';
 import { getUserApi, isError, isOneEntryEnabled } from '../index';
+import { readAccessOrRefresh, IDENTIFIER_COOKIE } from '../auth/session';
 
-const ACCESS_COOKIE = 'oe_access';
-const IDENTIFIER_COOKIE = 'oe_user';
 const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
 
 export interface SubmitServiceRequestInput {
@@ -31,9 +30,13 @@ export async function submitServiceRequestAction(
 ): Promise<SubmitServiceRequestResult> {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
 
-  const jar = await cookies();
-  const access = jar.get(ACCESS_COOKIE)?.value;
+  // Transparently rotate the access token from the 7 d refresh cookie when
+  // the 24 h access cookie expired — otherwise a shopper who came back the
+  // next day sees a bogus "Not authenticated" when submitting Book Service
+  // even though their session is still valid.
+  const access = await readAccessOrRefresh();
   if (!access) return { ok: false, error: 'Not authenticated' };
+  const jar = await cookies();
   const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
 
   const api = getUserApi(access);

@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -35,6 +35,11 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
   const router = useRouter();
   const { items, total, clearCart } = useCart();
   const [orderId, setOrderId] = useState<string | null>(null);
+  // Snapshot of the actually-charged amount stashed by `PaymentPage.
+  // handlePlaceOrder` right before it clears the cart. Without it, `total`
+  // reads 0 (cart empty by the time we get here) and the "Total Paid"
+  // line renders $0 / the loyalty-points hint uses $0 as the base.
+  const [paidTotal, setPaidTotal] = useState<number | null>(null);
 
   const lHeading       = useT('checkout_confirmed', 'checkout_confirmed_titel',                    successMessage || L.heading);
   const lSub           = useT('checkout_confirmed', 'checkout_confirmed_text',                     L.subheading);
@@ -68,6 +73,16 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
     try { realId = sessionStorage.getItem('oe_last_order_id'); } catch { /* ignore */ }
     setOrderId(realId && realId.length > 0 ? realId : randomOrderId());
     try { sessionStorage.removeItem('oe_last_order_id'); } catch { /* ignore */ }
+    let savedTotal: number | null = null;
+    try {
+      const raw = sessionStorage.getItem('oe_last_order_total');
+      if (raw) {
+        const n = Number(raw);
+        if (Number.isFinite(n) && n >= 0) savedTotal = n;
+      }
+    } catch { /* ignore */ }
+    setPaidTotal(savedTotal);
+    try { sessionStorage.removeItem('oe_last_order_total'); } catch { /* ignore */ }
     const timer = setTimeout(() => clearCart(), 200);
     return () => clearTimeout(timer);
   }, [clearCart]);
@@ -139,7 +154,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
                   className="flex items-center gap-4 px-5 py-4 border-b border-[#f0f0f0]"
                 >
                   <div className="relative w-12 h-14 flex-shrink-0">
-                    <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
+                    <ImageWithFallback src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{item.name}</p>
@@ -152,7 +167,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
               ))}
               <div className="flex justify-between items-center px-5 py-4">
                 <span className="text-sm tracking-wide uppercase font-bold">{L.totalPaid}</span>
-                <span className="text-lg font-bold">{fmt(total)}</span>
+                <span className="text-lg font-bold">{fmt(paidTotal ?? total)}</span>
               </div>
             </div>
           )}
@@ -161,7 +176,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
           <div className="flex items-center justify-center gap-2 px-6 py-3 mb-8 bg-[#fff8f8] border border-[var(--accent)]">
             <span className="text-base text-[var(--accent)]">★</span>
             <span className="text-sm text-[#555]">
-              {lLoyaltyPre} <strong className="text-black">{Math.floor(total * 10)} {lLoyaltyAmt}</strong> {lLoyaltySuf}
+              {lLoyaltyPre} <strong className="text-black">{Math.floor((paidTotal ?? total) * 10)} {lLoyaltyAmt}</strong> {lLoyaltySuf}
             </span>
           </div>
 

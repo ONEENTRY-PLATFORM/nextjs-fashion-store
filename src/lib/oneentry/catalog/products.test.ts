@@ -693,8 +693,16 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
     expect(product.discountAttributes).toEqual({});
   });
 
-  // ── % stripping regression tests (OE ships "10%" / "15%" / "20%" from the
-  //    display list; Discounts rules carry the numeric-only form "10" / "15" / "20")
+  // ── Verbatim-forwarding regression tests. Values are handed to
+  //    `applyProductDiscount` exactly as OE ships them so client match
+  //    mirrors OE server match — a rule with condition `eq "10"` only
+  //    fires if the product attribute is literally `"10"`. Previously
+  //    we stripped a trailing `%` to "help" the match, but that made
+  //    the catalog show a sale price OE then refused to honour at
+  //    checkout (surfacing as a mysterious "Adjustments +$X" row on
+  //    payment). Root cause was OE-side data (`"10%"` on the product
+  //    but `"10"` on the rule); the fix is to mirror OE's comparison,
+  //    not paper over the mismatch.
   const makeDiscountProduct = (id: number, discountValue: string) => ({
     id,
     statusIdentifier: 'in_stock',
@@ -708,35 +716,33 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
     },
   });
 
-  it('strips trailing "%" from discount list value: "10%" → "10"', async () => {
+  it('forwards "10%" verbatim (mirrors OE — rule with eq "10" would not fire)', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5010, '10%')] });
     const { loadProducts } = await import('./products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
-    expect(product.discountAttributes).toEqual({ discount_12: '10' });
+    expect(product.discountAttributes).toEqual({ discount_12: '10%' });
   });
 
-  it('strips space-before-% from discount list value: "15 %" → "15"', async () => {
+  it('forwards "15 %" verbatim (internal whitespace preserved)', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5011, '15 %')] });
     const { loadProducts } = await import('./products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
-    expect(product.discountAttributes).toEqual({ discount_12: '15' });
+    expect(product.discountAttributes).toEqual({ discount_12: '15 %' });
   });
 
-  it('strips surrounding whitespace and trailing "%" from " 20% ": → "20"', async () => {
-    // The list option value may arrive with surrounding whitespace from OE.
-    // stringValue() trims the overall result, but the inner replace chain
-    // must also handle leading/trailing spaces before the strip.
+  it('trims surrounding whitespace but keeps "%": " 20% " → "20%"', async () => {
+    // Surrounding whitespace still gets normalised (matches how OE itself
+    // treats leading/trailing spaces in `eq` comparisons).
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5012, ' 20% ')] });
     const { loadProducts } = await import('./products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
-    expect(product.discountAttributes).toEqual({ discount_12: '20' });
+    expect(product.discountAttributes).toEqual({ discount_12: '20%' });
   });
 
-  it('leaves numeric-only value untouched (backward compat): "10" → "10"', async () => {
-    // Merchants that stored the option without the % display suffix still work.
+  it('leaves numeric-only value untouched: "10" → "10" (matches a rule with eq "10")', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5013, '10')] });
     const { loadProducts } = await import('./products');
     const result = await loadProducts({ unique: false });
@@ -744,12 +750,12 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
     expect(product.discountAttributes).toEqual({ discount_12: '10' });
   });
 
-  it('strips double trailing "%%" via the %+ regex: "20%%" → "20"', async () => {
+  it('forwards double trailing "%%" verbatim: "20%%" → "20%%"', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5014, '20%%')] });
     const { loadProducts } = await import('./products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
-    expect(product.discountAttributes).toEqual({ discount_12: '20' });
+    expect(product.discountAttributes).toEqual({ discount_12: '20%%' });
   });
 
   it('omits key when picked list option is empty (title:"", value:"")', async () => {
@@ -802,12 +808,145 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
     const product = result.items[0] as {
       discountAttributes: Record<string, string>;
     };
-    // Only discount_12 is in discountAttributes (stripped to "15").
-    // The `humidity` attribute is not in discountAttributes at all.
-    expect(product.discountAttributes).toEqual({ discount_12: '15' });
+    // Only `discount_12` is in `discountAttributes` (value forwarded
+    // verbatim as "15%"). The `humidity` attribute is not in
+    // `discountAttributes` at all — the isolation check is on which
+    // attributes get harvested, not on the value shape.
+    expect(product.discountAttributes).toEqual({ discount_12: '15%' });
     // Verify humidity is absent from discountAttributes (it goes to a
-    // different field path and is not affected by the stripping logic).
+    // different field path and is not affected by the discount harvest).
     expect('humidity' in product.discountAttributes).toBe(false);
+  });
+});
+
+// ─── searchProducts — extractProductIdList regression ────────────────────────
+//
+// Before the fix, `getProductsByVectorSearch` returned a `{items, total}`
+// wrapper which the old flat-array cast caused to throw inside `.map()`.
+// The try/catch swallowed the error and `vectorSearchIds` always returned [].
+//
+// Fix: `extractProductIdList()` now accepts both shapes.  These tests pin the
+// merged output and the vector-first ordering guarantee end-to-end.
+describe('searchProducts — extractProductIdList regression', () => {
+  // Each test needs a fresh module import to avoid React.cache memoisation
+  // from earlier suites, so we reset modules and re-register mocks here.
+  beforeEach(() => {
+    vi.resetModules();
+    vi.doMock('../index', () => ({
+      oneentry: fakeApi,
+      isOneEntryEnabled: true,
+      getApi: () => fakeApi,
+      isError: (v: unknown) =>
+        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+    }));
+    vi.doMock('next/cache', () => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      unstable_cache: (fn: any) => fn,
+    }));
+    getProductsByVectorSearch.mockReset();
+    searchProduct.mockReset();
+    getProducts.mockReset();
+  });
+
+  // Helper: a minimal raw product that normalize() can process.
+  const makeRawCatalog = (id: number) => ({
+    id,
+    statusIdentifier: 'in_stock',
+    price: id * 10,
+    categories: [],
+    localizeInfos: { en_US: { title: `Product ${id}` } },
+    attributeValues: { en_US: {} },
+  });
+
+  // ── shape 1: flat array ───────────────────────────────────────────────────
+
+  it('returns enriched results when getProductsByVectorSearch returns a flat array', async () => {
+    // Vector returns flat array; quick returns no extra results.
+    getProductsByVectorSearch.mockResolvedValue([{ id: 100 }, { id: 101 }]);
+    searchProduct.mockResolvedValue([]);
+    // Full catalog for enrichment (getProducts drives loadFullCatalog).
+    getProducts.mockResolvedValue({
+      total: 2,
+      items: [makeRawCatalog(100), makeRawCatalog(101)],
+    });
+
+    const { searchProducts } = await import('./products');
+    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    const ids = results.map((p) => p.id);
+    expect(ids).toContain(100);
+    expect(ids).toContain(101);
+  });
+
+  // ── shape 2: wrapped {items, total} — the regression case ────────────────
+
+  it('returns enriched results when getProductsByVectorSearch returns {items, total}', async () => {
+    // This was the broken shape — the old flat cast made .map() throw.
+    getProductsByVectorSearch.mockResolvedValue({ items: [{ id: 100 }, { id: 101 }], total: 2 });
+    searchProduct.mockResolvedValue([]);
+    getProducts.mockResolvedValue({
+      total: 2,
+      items: [makeRawCatalog(100), makeRawCatalog(101)],
+    });
+
+    const { searchProducts } = await import('./products');
+    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    const ids = results.map((p) => p.id);
+    expect(ids).toContain(100);
+    expect(ids).toContain(101);
+  });
+
+  // ── merge order: vector first, then quick, deduped ────────────────────────
+
+  it('places vector ids before quick ids in the merged output, deduping overlaps', async () => {
+    // vector: [200, 201]; quick: [201, 202] — 201 is in both.
+    // Expected order: 200, 201, 202 (vector-first, 201 deduped, 202 appended).
+    getProductsByVectorSearch.mockResolvedValue({ items: [{ id: 200 }, { id: 201 }], total: 2 });
+    searchProduct.mockResolvedValue([{ id: 201 }, { id: 202 }]);
+    getProducts.mockResolvedValue({
+      total: 3,
+      items: [makeRawCatalog(200), makeRawCatalog(201), makeRawCatalog(202)],
+    });
+
+    const { searchProducts } = await import('./products');
+    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+
+    const ids = results.map((p) => p.id);
+    // 200 must appear before 201, and 201 before 202.
+    expect(ids.indexOf(200)).toBeLessThan(ids.indexOf(201));
+    expect(ids.indexOf(201)).toBeLessThan(ids.indexOf(202));
+    // 201 must appear exactly once (deduped).
+    expect(ids.filter((id) => id === 201)).toHaveLength(1);
+  });
+
+  // ── quick path still works when vector path returns nothing ───────────────
+
+  it('falls back to quick results only when vector search returns empty', async () => {
+    getProductsByVectorSearch.mockResolvedValue({ items: [], total: 0 });
+    searchProduct.mockResolvedValue([{ id: 300 }]);
+    getProducts.mockResolvedValue({
+      total: 1,
+      items: [makeRawCatalog(300)],
+    });
+
+    const { searchProducts } = await import('./products');
+    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+
+    const ids = results.map((p) => p.id);
+    expect(ids).toContain(300);
+  });
+
+  // ── short query guard (< 2 chars) ─────────────────────────────────────────
+
+  it('returns [] immediately for a single-character query without calling the SDK', async () => {
+    const { searchProducts } = await import('./products');
+    const results = await searchProducts('g', { limit: 12 });
+    expect(results).toEqual([]);
+    expect(getProductsByVectorSearch).not.toHaveBeenCalled();
+    expect(searchProduct).not.toHaveBeenCalled();
   });
 });
 

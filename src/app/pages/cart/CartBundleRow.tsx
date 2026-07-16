@@ -1,5 +1,5 @@
 'use client'
-import Image from 'next/image';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 import { Trash2, Link as LinkIcon } from 'lucide-react';
 import { QtyControl } from '../../components/QtyControl';
 import type { CartItem } from '../../context/CartContext';
@@ -48,7 +48,7 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
           <div className="flex-shrink-0 pt-1 w-4" />
 
           <div className="relative flex-shrink-0 w-[110px] h-[140px]">
-            <Image src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
+            <ImageWithFallback src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
           </div>
 
           <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -71,7 +71,9 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
 
           <div className="flex-shrink-0 text-right">
             <p className="text-base font-bold">{fmt(item.price * item.quantity)}</p>
-            {item.originalPrice && <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>}
+            {item.originalPrice && item.originalPrice > item.price && (
+              <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
+            )}
           </div>
         </div>
       ))}

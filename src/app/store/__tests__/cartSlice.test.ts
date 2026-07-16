@@ -46,6 +46,38 @@ describe('cartSlice', () => {
       state = cartReducer(state, cartActions.addItem(makeItem({ size: 'L' })));
       expect(state.items).toHaveLength(2);
     });
+
+    // ── color keying (HIGH fix) ────────────────────────────────────────────────
+    it('keeps same-id+same-size items separate when colors differ', () => {
+      // Before the HIGH fix, adding Red S after Blue S silently merged them
+      // into a single Blue S line.
+      let state = cartReducer(emptyState, cartActions.addItem(makeItem({ size: 'S', color: 'Blue' })));
+      state = cartReducer(state, cartActions.addItem(makeItem({ size: 'S', color: 'Red' })));
+      expect(state.items).toHaveLength(2);
+      expect(state.items.find(i => i.color === 'Blue')).toBeDefined();
+      expect(state.items.find(i => i.color === 'Red')).toBeDefined();
+    });
+
+    it('merges when id + size + color all match', () => {
+      let state = cartReducer(emptyState, cartActions.addItem(makeItem({ size: 'S', color: 'Blue', quantity: 1 })));
+      state = cartReducer(state, cartActions.addItem(makeItem({ size: 'S', color: 'Blue', quantity: 2 })));
+      expect(state.items).toHaveLength(1);
+      expect(state.items[0].quantity).toBe(3);
+    });
+
+    it('keeps same-id+same-color items separate when sizes differ', () => {
+      let state = cartReducer(emptyState, cartActions.addItem(makeItem({ size: 'S', color: 'Blue' })));
+      state = cartReducer(state, cartActions.addItem(makeItem({ size: 'M', color: 'Blue' })));
+      expect(state.items).toHaveLength(2);
+    });
+
+    it('clamps merged quantity to stockLimit even when colors match', () => {
+      // Confirm that the stockLimit cap still applies on the color-keyed merge path
+      let state = cartReducer(emptyState, cartActions.addItem(makeItem({ size: 'S', color: 'Red', quantity: 3, stockLimit: 4 })));
+      state = cartReducer(state, cartActions.addItem(makeItem({ size: 'S', color: 'Red', quantity: 3, stockLimit: 4 })));
+      expect(state.items).toHaveLength(1);
+      expect(state.items[0].quantity).toBe(4);
+    });
   });
 
   describe('removeItem', () => {

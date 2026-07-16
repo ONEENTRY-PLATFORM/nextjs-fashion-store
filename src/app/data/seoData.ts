@@ -8,11 +8,15 @@ export const SITE_URL = 'https://oneentry-fashion.com';
 const BASE = SITE_URL;
 
 // ─── Currency & Twitter handle ─────────────────────────────────────────────
-export const CURRENCY = 'GBP';
+// Kept in sync with `currencyConfig.ts` — SEO / JSON-LD used to advertise
+// GBP while the storefront actually formatted every price with `$` (USD),
+// which trips Google Merchant / Facebook Catalog feed validation. Align
+// to what the shopper actually sees.
+export const CURRENCY = 'USD';
 export const TWITTER_HANDLE = '@KekimoroFashion';
 
 // ─── Shipping & returns ────────────────────────────────────────────────────
-export const FREE_SHIPPING_THRESHOLD = 50;   // £50+ = free UK delivery
+export const FREE_SHIPPING_THRESHOLD = 50;   // $50+ = free delivery
 export const RETURN_WINDOW_DAYS = 28;
 export const DELIVERY_COUNTRY = 'GB';
 export const DELIVERY_MIN_DAYS = 2;
@@ -98,7 +102,7 @@ export const SCHEMA_BREADCRUMBS = {
 // ─── Product page metadata copy ───────────────────────────────────────────
 export const PRODUCT_META_COPY = {
   fallbackDescription: 'Premium quality fashion item.',
-  shippingNote: 'Free UK delivery on orders over £50.',
+  shippingNote: 'Free delivery on orders over $50.',
   keywordBuyOnline: 'buy online',
   twitterPriceLabel: 'Price',
   twitterAvailLabel: 'Availability',
@@ -106,9 +110,9 @@ export const PRODUCT_META_COPY = {
   inStock: 'In Stock',
   specCompositionLabel: 'Composition',
   specMaterialLabel: 'Material',
-  displaySymbol: '£',
+  displaySymbol: '$',
   pricedAsTpl: (sale: string | number | undefined, price: string | number) =>
-    sale ? `£${sale} (was £${price})` : `£${price}`,
+    sale ? `$${sale} (was $${price})` : `$${price}`,
   buyTpl: (name: string, brand: string, price: string) => `Buy ${name} by ${brand} for ${price}.`,
   notFoundTitleTpl: (siteName: string) => `Product Not Found | ${siteName}`,
 } as const;
@@ -117,7 +121,7 @@ export const PRODUCT_META_COPY = {
 export const ORG_SCHEMA_COPY = {
   schemaType: 'ClothingStore',
   areaServed: ['IE', 'EU'] as const,
-  priceRange: '££',
+  priceRange: '$$',
   paymentAccepted: 'Credit Card, Debit Card, PayPal',
   knowsAbout: [
     "Women's Fashion", "Men's Fashion",
@@ -128,7 +132,7 @@ export const ORG_SCHEMA_COPY = {
   availableLanguage: 'English',
   collectionsSuffix: 'Collections',
   shippingDescriptionTpl: (country: string, threshold: number, returnDays: number) =>
-    `Free ${country} delivery over £${threshold}. ${returnDays}-day returns.`,
+    `Free ${country} delivery over $${threshold}. ${returnDays}-day returns.`,
 } as const;
 
 // ─── Helper: canonical + og:url for a given path ──────────────────────────
@@ -143,7 +147,7 @@ export const SEO: Record<string, Metadata> = {
   home: {
     title: `${SITE_NAME} | Premium Women's & Men's Clothing`,
     description:
-      "Shop the latest fashion from Kekimoro. Women's and men's clothing, shoes, bags and accessories. Free delivery on orders over £50.",
+      "Shop the latest fashion from Kekimoro. Women's and men's clothing, shoes, bags and accessories. Free delivery on orders over $50.",
     keywords:
       'fashion, clothing, women clothing, men clothing, shoes, bags, accessories, Kekimoro, online fashion store',
     alternates: { canonical: pageUrl('/') },
@@ -169,7 +173,7 @@ export const SEO: Record<string, Metadata> = {
   womenClothing: {
     title: `Women's Clothing | Dresses, Tops & Coats | ${SITE_NAME}`,
     description:
-      "Browse Kekimoro women's clothing: dresses, tops, coats, blazers, jeans and more. New season styles with free UK delivery over £50.",
+      "Browse Kekimoro women's clothing: dresses, tops, coats, blazers, jeans and more. New season styles with free delivery over $50.",
     keywords:
       'women clothing, dresses, tops, coats, blazers, jeans, women fashion, Kekimoro women',
     alternates: { canonical: pageUrl('/women/clothing') },

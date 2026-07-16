@@ -66,7 +66,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 ```
 
 **Actions:**
-- `addItem(item)` — merge or append by id + size, accumulating quantity clamped at `stockLimit ?? Infinity`. Also refreshes `stockLimit` on the existing line when the incoming payload carries a fresh value.
+- `addItem(item)` — merge or append by **id + size + color**, accumulating quantity clamped at `stockLimit ?? Infinity`. Without `color` in the key, adding a Red S after a Blue S silently merged them — the shopper received Blue on delivery even though they last picked Red. Also refreshes `stockLimit` on the existing line when the incoming payload carries a fresh value.
 - `addBundle(items)` — bulk add with shared `bundleId`; quantity of each item is clamped at its `stockLimit`.
 - `removeItem(id)`, `removeBundle(bundleId)`.
 - `updateQuantity({id, delta})` — deltas can be negative; result is clamped to `[1, stockLimit ?? Infinity]`.

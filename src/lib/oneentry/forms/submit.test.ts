@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const postFormsData = vi.fn();
+const revalidateTag = vi.fn();
 
 vi.mock('../index', () => ({
   oneentry: { FormData: { postFormsData } },
   isOneEntryEnabled: true,
   isError: (v: unknown): v is { message?: string; statusCode?: number } =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+}));
+
+vi.mock('next/cache', () => ({
+  revalidateTag,
 }));
 
 const importFresh = async () => {
@@ -16,6 +21,7 @@ const importFresh = async () => {
 
 beforeEach(() => {
   postFormsData.mockReset();
+  revalidateTag.mockReset();
 });
 
 describe('submitForm', () => {
@@ -85,3 +91,6 @@ describe('submitForm — disabled', () => {
     vi.doUnmock('../index');
   });
 });
+
+// ── revalidateTag tests — separate file to avoid module-cache contamination ───
+// These live in submit.revalidateTag.test.ts

@@ -3,6 +3,7 @@ import { oneentry, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 import { REVALIDATE_HOME } from '../../isr';
 
 export interface DiscountBannerFromCms {
@@ -52,14 +53,18 @@ export const loadDiscountBanner = withTiming('loadDiscountBanner', unstable_cach
         badge:        asString(attrs.hp_b_b_lable?.value),
         discountText: asString(attrs.hp_b_b_title?.value),
         category:     asString(attrs.hp_b_b_sub_title?.value),
-        // OneEntry has a typo on this marker: ph_b_b_description (not hp_b_b_…)
-        description:  asString(attrs.ph_b_b_description?.value),
+        // OneEntry currently ships a typo marker `ph_b_b_description` for
+        // this field (all the other markers on the block use `hp_b_b_…`).
+        // Accept EITHER so the storefront stays live if the admin later
+        // fixes the typo without a code deploy.
+        description:  asString(attrs.hp_b_b_description?.value ?? attrs.ph_b_b_description?.value),
         cta:          asString(attrs.hp_b_b_cta_text?.value),
         href:         asString(attrs.hp_b_b_cta_link?.value),
       };
       if (!banner.image) return null;
       return banner;
-    } catch {
+    } catch (err) {
+      logCaught(`discount-banner.loadDiscountBanner(${lang})`, err);
       return null;
     }
   },

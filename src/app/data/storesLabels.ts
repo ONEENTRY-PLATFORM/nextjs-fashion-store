@@ -37,7 +37,7 @@ export const STORE_LOCATIONS_LABELS = {
   flagshipDirections: 'Get Directions',
   flagshipBookStyling: 'Book Styling',
   // Bottom CTA
-  shopOnlineCopy: "Can't make it in? Shop everything online with free UK delivery over £80.",
+  shopOnlineCopy: "Can't make it in? Shop everything online with free delivery over $80.",
   shopOnlineCta: 'Shop Online',
   shopOnlineHref: '/women/clothing',
 } as const;

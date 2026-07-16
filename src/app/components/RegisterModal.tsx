@@ -129,11 +129,16 @@ export function RegisterModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-5 sticky top-0 bg-white z-10 border-b border-gray-200">
           <h2 id="register-modal-title" className="text-lg tracking-[0.12em] uppercase font-bold">{lTitle}</h2>
-          {/* Close button temporarily hidden — registration required while guest checkout is disabled.
-          <button onClick={closeRegisterModal} className="hover:opacity-60 transition-opacity focus-visible:outline-none">
+          {/* Close button — guest checkout is enabled, so a visible X
+              mirrors the backdrop-click behaviour and matches shopper
+              expectations for a dismissable modal. */}
+          <button
+            aria-label="Close"
+            onClick={closeRegisterModal}
+            className="hover:opacity-60 transition-opacity focus-visible:outline-none"
+          >
             <X size={20} strokeWidth={1.5} />
           </button>
-          */}
         </div>
 
         <div className="px-8 py-6 space-y-5">

@@ -554,7 +554,7 @@ export function SalePage({ initialProducts, saleEndsAt, gender }: { initialProdu
           >
             {PRODUCTS.slice(0, 6).map(product => (
               <div key={`rec-${product.id}`} className="flex-shrink-0 w-[220px]">
-                <ProductCard product={{ ...product, salePrice: undefined, label: undefined }} accentColor={SALE_RED} />
+                <ProductCard product={product} accentColor={SALE_RED} />
               </div>
             ))}
           </div>

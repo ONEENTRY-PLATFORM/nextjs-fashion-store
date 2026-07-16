@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Provider } from 'react-redux';
 import { AuthProvider } from '../context/AuthContext'
 import { makeStore, loadCatalogFromStorage, type AppStore } from '../store'
@@ -35,6 +36,46 @@ function WishlistSyncEffect() {
   const { isLoggedIn } = useAuth();
   void isLoggedIn;
 
+  return null;
+}
+
+/** Surface the `?googleAuthError=…` param the OAuth callback route sets on
+ *  failure (see `app/auth/callback/google/route.ts:22-38`). Without this
+ *  the shopper lands back on `/` with the login modal already closed and
+ *  no explanation for why sign-in didn't take. We re-open the modal so
+ *  they can retry, and strip the query param so a hard refresh doesn't
+ *  loop the modal open. */
+/** Map the `?googleAuthError=…` query into a friendly banner shown on
+ *  the LoginModal. OE's callback route surfaces codes like
+ *  `access_denied` / `token_exchange_failed` — translate the common ones
+ *  and default to the raw code when we don't have a matching phrase. */
+function humaniseGoogleAuthError(code: string): string {
+  const c = code.toLowerCase();
+  if (c === 'access_denied') return 'Google sign-in was cancelled. Please try again.';
+  if (c.includes('token')) return "We couldn't verify your Google account. Please try again.";
+  if (c.includes('state')) return 'Sign-in session expired. Please try again.';
+  return "We couldn't complete Google sign-in. Please try again.";
+}
+
+function GoogleAuthErrorSurface() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { openLoginModal, setAuthError } = useAuth();
+  const rawErr = searchParams?.get('googleAuthError');
+  useEffect(() => {
+    if (!rawErr) return;
+    setAuthError(humaniseGoogleAuthError(rawErr));
+    openLoginModal();
+    // Drop the query param without a full navigation.
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('googleAuthError');
+      router.replace(url.pathname + url.search);
+    } else {
+      router.replace(pathname ?? '/');
+    }
+  }, [rawErr, openLoginModal, setAuthError, router, pathname]);
   return null;
 }
 
@@ -89,6 +130,15 @@ export function Providers({
       />
       <AuthProvider>
         <WishlistSyncEffect />
+        {/* `useSearchParams()` inside `GoogleAuthErrorSurface` opts the tree
+             into per-request rendering; without a Suspense boundary the
+             static prerender of `/_not-found` (and any other 404 fallback)
+             fails at build time with "missing-suspense-with-csr-bailout".
+             The component itself renders nothing — the boundary's fallback
+             is intentionally empty. */}
+        <Suspense fallback={null}>
+          <GoogleAuthErrorSurface />
+        </Suspense>
         <PageViewTracker />
         <CartUnavailableNotice />
         <ProductCardLabelsProvider data={productCardLabels}>

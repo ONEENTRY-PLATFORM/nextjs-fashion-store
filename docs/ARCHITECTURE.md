@@ -88,7 +88,7 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | Folder | Purpose |
 |---|---|
 | `src/app/pages/` | Page components imported by `app/.../page.tsx`. Subfolders `account/`, `cart/`, `checkout/`, `product/`, `favorites/`, `new/`, `sale/`, `stores/` hold per-page composition pieces. Also holds the 8 catalog page shells (`WomenCatalogPage`, `MenShoesPage`, …). |
-| `src/app/components/` | ~50 cross-page UI components (Header, HeaderMegaMenu, HeaderTopBar, HeaderSearch, HeaderMobileDrawer, MiniCart, ProductCard, CatalogTemplate, HeroSlider, LoginModal, RegisterModal, QuickViewModal, CheckoutStepper, Footer, ErrorBoundary, JsonLd, ServiceWorkerRegistrar, PageViewTracker, Providers, WishlistSyncEffect…). Subfolder `figma/` holds Figma-imported primitives. |
+| `src/app/components/` | ~48 cross-page UI components (Header, HeaderMegaMenu, HeaderTopBar, HeaderSearch, HeaderMobileDrawer, MiniCart, ProductCard, CatalogTemplate, HeroSlider, LoginModal, RegisterModal, QuickViewModal, CheckoutStepper, Footer, ErrorBoundary, JsonLd, ServiceWorkerRegistrar, PageViewTracker, Providers, WishlistSyncEffect…). The `figma/` subfolder has been removed — `figma/ImageWithFallback.tsx` was a dead duplicate of `ImageWithFallback.tsx` with no importers. |
 | `src/app/context/` | React Context providers for transient UI state and per-user session: `AuthContext`, `CartContext`, `WishlistContext`, `QuickViewContext`, `CatalogAccentContext`. |
 | `src/app/store/` | Redux Toolkit store + six slices + two RTK Query APIs (see §4 + [REDUX.md](./REDUX.md)). |
 | `src/app/store/api/` | `cartApi` and `wishlistApi` (`fetchBaseQuery` slices — currently kept as scaffolding, live sync is done through the Auth Server Actions `syncCart` / `syncWishlist`). |

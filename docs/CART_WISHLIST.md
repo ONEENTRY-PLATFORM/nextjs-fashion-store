@@ -96,17 +96,21 @@ The Platform payload is minimal (`{productId: number, qty: number}` for cart, `{
 
 `stockLimit` is snapshotted from `activeVariant?.stock` (or `catalogProduct?.stock` for products without variants) when the shopper clicks "Add to cart" on `ProductDetailPage`. Both `CatalogProduct` and `PdpProductVariant` now carry an optional `stock?: number` field populated by `adaptCatalogProductToPdpProduct`, so the PDP-to-cart path delivers a real value. `undefined` means uncapped — this is the state for items re-hydrated from the server (the OE `users/me` cart payload carries no stock field) or for tenants that track availability via `statusIdentifier` only (in which case `adaptCatalogProductToPdpProduct` intentionally omits the `stock` field rather than forwarding a zero). When a duplicate line is detected on `addItem`, the reducer refreshes `stockLimit` from the incoming payload if it carries a fresh value, so a shopper who revisits the PDP picks up any inventory changes.
 
-**Current coverage gap:** `QuickViewModal` and `CatalogListProductCard` do not yet snapshot `stockLimit` because the UI `Product` type (used by the catalog-list path) doesn't carry a `stock` field — plumbing it would require updating `adaptCatalogProductToUiProduct` and the `Product`/`CatalogProductVariant` UI types. `previewOrderAction` triggers catalog-verified pruning for items OE reports as not found (see §4a); `createOrderAction` still relies on OE to reject on hard OOS at submit time.
+**Current coverage gap:** `QuickViewModal` does not yet snapshot `stockLimit` because the UI `Product` type (used by the catalog-list path) doesn't carry a `stock` field — plumbing it would require updating `adaptCatalogProductToUiProduct` and the `Product`/`CatalogProductVariant` UI types. `previewOrderAction` triggers catalog-verified pruning for items OE reports as not found (see §4a); `createOrderAction` still relies on OE to reject on hard OOS at submit time.
 
-### 3.1 Cart line dedup rule (id + size)
+**`CatalogListProductCard` wishlist.** The list-view card (`src/app/components/CatalogListProductCard.tsx`) now uses `useWishlist().toggleItem` and reads `isWishlisted(product.id)` gated on a `mounted` flag, matching the SSR-safe pattern used by `ProductCard`. Previously it held a local `useState<wishlisted>` that was never persisted. Prices in the list view now run through `stripTrailingZeros` for visual parity with the grid card.
 
-`cartSlice::addItem` treats a line as a **duplicate only when both `id` AND `size` match**:
+### 3.1 Cart line dedup rule (id + size + color)
+
+`cartSlice::addItem` treats a line as a **duplicate only when `id`, `size`, AND `color` all match**:
 
 ```ts
 // src/app/store/cartSlice.ts
 addItem(state, action) {
   const item = action.payload;
-  const existing = state.items.find(i => i.id === item.id && i.size === item.size);
+  const existing = state.items.find(
+    i => i.id === item.id && i.size === item.size && i.color === item.color
+  );
   if (existing) existing.quantity += item.quantity;
   else state.items.push(item);
 }
@@ -115,7 +119,8 @@ addItem(state, action) {
 Consequences:
 
 - The same product added in size `M` and size `L` renders as **two lines**, each with independent quantity controls.
-- Changing size via `updateSize` does NOT re-run the dedup — it can leave two lines with the same `id + size`, which is a caller responsibility (the Cart UI never triggers this because sizes come from a bounded dropdown).
+- The same product added in `Red S` and `Blue S` also renders as **two lines** — without `color` in the key, `Blue S` silently merged into `Red S`, so the shopper received Blue on delivery even though they last picked Red.
+- Changing size via `updateSize` does NOT re-run the dedup — it can leave two lines with the same `id + size + color`, which is a caller responsibility (the Cart UI never triggers this because sizes come from a bounded dropdown).
 - Wishlist has no size dimension — `wishlistSlice::addItem` dedupes by `id` alone and performs an **upsert-merge** on repeat inserts so a placeholder→enriched hydration doesn't wipe user-selected `selectedColor` / `selectedSize` (they are preserved from the previous entry).
 
 ---
@@ -150,7 +155,7 @@ Mutations exposed by `useCart()`:
 | `removeBundle(id)` | `cartActions.removeBundle` | one `product_remove_from_cart` per removed item |
 | `updateQuantity(id, delta)` | `cartActions.updateQuantity` | none (would spam the endpoint) |
 | `updateSize(id, size)` | `cartActions.updateSize` | none |
-| `clearCart()` | `cartActions.clearCart` + resets coupon state (`couponCode=null`, `couponError=null`, drops `sessionStorage['oe_coupon_code']`) | none |
+| `clearCart()` | `cartActions.clearCart` + resets coupon state (`couponCode=null`, `couponError=null`, drops `sessionStorage['oe_coupon_code']`) + removes `sessionStorage['oe_checkout_payload']` so a fresh order never inherits a stale delivery/coupon payload from an abandoned checkout | none |
 | `openMiniCart()` / `closeMiniCart()` | `cartActions.openMiniCart` / `closeMiniCart` | — |
 | `dismissUnavailableNotice()` | `cartActions.dismissUnavailableRemoved` | — |
 
@@ -177,6 +182,8 @@ Derived values also exposed: `totalItems`, `subtotal`, `discount` (= `originalTo
 
 A `useEffect` reruns `previewOrder` whenever the cart's `productsKey` or `couponCode` changes.
 
+**Race-guard (`previewSeqRef`).** A shared `useRef<number>` counter (`previewSeqRef`) prevents late-arriving responses from clobbering fresher state. Every entry point that triggers a `previewOrder` call (the auto-preview `useEffect`, `applyCoupon`, `removeCoupon`, and the restore-on-failure branch) captures the counter's current value into a local `mySeq = ++previewSeqRef.current` immediately before the async call. On resolution, each branch checks `if (mySeq !== previewSeqRef.current)` and bails out silently if a newer request has already fired. This prevents the race that occurred when a shopper rapidly typed a coupon code, clicked Apply, then cleared the field — the debounced auto-preview from the cart edit could land _after_ the Apply response and overwrite the fresh coupon-applied state.
+
 #### Auto-pruning stale product ids
 
 When `previewOrderAction` returns `!ok` and the response includes `missingProductIds: number[]`, `CartContext` runs a **catalog double-check** before touching the cart:
@@ -196,13 +203,14 @@ After pruning confirmed-missing items, the `productsKey` dependency changes and 
 
 ## 5. Debounced sync to OneEntry
 
-Both contexts run an identical effect:
+Both contexts run an identical effect. The sync is additionally gated on `hydratedRef.current` so a cold sign-in with an empty local cart cannot push `[]` up to OE and wipe items the shopper added from another device — the effect returns early until the hydration pass (§6) has finished merging the server cart:
 
 ```ts
 // src/app/context/CartContext.tsx (excerpt)
 const lastPushedRef = useRef<string>('');
 useEffect(() => {
   if (!isLoggedIn) return;
+  if (!hydratedRef.current) return;   // wait for login-time server merge to complete
   const oeItems = items.flatMap((it) => {
     const cmsId = getCmsProductId(it.id);
     return cmsId !== null ? [{ productId: cmsId, qty: it.quantity }] : [];
@@ -252,11 +260,11 @@ Logic:
 2. A mismatch (different user, stale or missing value) means the merge runs again. The stored value is the OE `userIdentifier` string, not the literal `'1'` used before this fix.
 3. **Prune first (OE is authoritative).** For every local Redux item whose `id` maps to a numeric CMS product id (`getCmsProductId` returns non-null), the effect checks whether that id is present in the OE list. If it is absent, the item is dispatched with `cartActions.removeItem` / `wishlistActions.removeItem` immediately. This reflects cross-device deletions — e.g. a shopper deleted an item in the mobile app while the web tab was closed; on next page load / re-sign-in the local stale entry is pruned. Items with non-numeric ids (playground stubs) are left untouched because OE never held them.
 4. For each server item after pruning, two sub-cases apply:
-   - **Id not in local cart** — insert a placeholder (`name: 'Platform product #N'`, `price: 0`, `image: '/placeholder.svg'`).
+   - **Id not in local cart** — insert a placeholder (`name: 'Platform product #N'`, `price: 0`, `image: '/icons/ui/bag-placeholder.svg'`).
    - **Id already in local cart but `quantity` differs from OE** — re-align to OE's qty by calling `removeItem(local.id)` followed by `addItem({...local, quantity: srv.qty})`. The enriched `name` / `image` / `size` fields are taken from the existing local entry so they are not lost. This handles cross-device quantity changes (e.g. the shopper adjusted qty on mobile while this browser tab was closed).
    - **Id already in local cart with matching `quantity`** — no action; the local entry is kept as-is.
 5. Call `getProductsByIdsAction(productIds)` — a Server Action that maps OE product IDs to `Product` shape.
-6. Swap each placeholder for the enriched product.
+6. Swap each placeholder for the enriched product. During the swap, `originalPrice` is derived from the enriched product's `salePrice` field: when `salePriceNumber < priceNumber`, `price` is set to `salePriceNumber` and `originalPrice` is set to `priceNumber` — matching the catalog / PDP strike-through UX. `stockLimit` is forwarded when `ui.stock > 0` so the `+` button cap is restored after a page reload (without this, a hydrated cart would allow the shopper to exceed OE-reported stock via the plus button until OE rejected the order at preview time).
 7. Drop any server placeholder whose id did NOT come back from the catalog fetch — that indicates a deleted product on the OE side, and leaving it in the cart would raise a `$0` line and break order placement.
 
 **Cross-user safety (added fix).** Before this change, the flag stored a raw `'1'`. If two different users signed in during the same browser session, the `'1'` flag from user A prevented the merge from running for user B. Worse, the debounced sync effect then pushed the empty local Redux to OE as an absolute PUT, wiping user B's mobile-added items from the server. The fix scopes the flag to `userIdentifier` so a different user always gets a fresh merge.
@@ -271,10 +279,11 @@ Wishlist follows the same pattern with `oe_wishlist_merged`.
 
 ## 7. Numeric id conversion helpers
 
-`src/app/data/cms-product-id-map.ts` exposes two thin conversion helpers (the static mapping table has been removed; all UI item ids are already the OneEntry numeric id as a string):
+`src/app/data/cms-product-id-map.ts` exposes three conversion helpers (the static mapping table has been removed; all UI item ids are already the OneEntry numeric id as a string):
 
 - `getCmsProductId(id: string): number | null` — returns `Number(id)` when `id` matches `/^\d+$/`, otherwise `null`.
 - `getPlaygroundProductId(cmsId: number): string | null` — returns `String(cmsId)` when `cmsId` is finite, otherwise `null`.
+- `extractCmsProductId(id: string): number | null` — extracts the **leading** numeric segment from suffixed cart ids such as `${cmsId}-fav`, `${cmsId}-quick`, `${cmsId}-auto`, `${cmsId}-waiting`, `${cmsId}-item-N`. Uses `/^(\d+)/.exec(id)` so the first captured group is always the productId prefix. `CartContext.productsForPreview` and the `products` build in `PaymentPage` both use this helper; a bare `/\d+/.exec(id)` would return the first digit run anywhere in the string (e.g. `42` from `p-99-blue-42`), which is wrong for non-leading ids.
 
 Items for which `getCmsProductId` returns `null` (non-numeric id strings) are silently dropped from `syncCart` / `syncWishlist` payloads and produce no `trackActivity` call.
 
@@ -431,15 +440,24 @@ Empty wishlist short-circuits to `[]` without a catalog call. Products the catal
 `FavoritesPage` (`src/app/pages/FavoritesPage.tsx`) exposes two bulk operations on the wishlist:
 
 - **`handleMoveAllToCart`** — iterates `items.filter(i => i.inStock)` and dispatches `useCart().addItem(...)` per row, synthesizing a CartItem with:
-  - `id: `${item.id}-auto`` — suffix marks it as a bulk-added line, but does NOT create a new dedup key beyond what `id + size` already provides.
-  - `size: item.sizes[0] ?? ''` — first available size. Wishlist items without a saved `selectedSize` end up with a blank size, which the cart row's `SizeDropdown` treats as an unselected placeholder.
+  - `id` derived via `extractCmsProductId(item.id)` — strips any `-fav`, `-auto`, or other suffix so `syncCart` / `previewOrder` see a clean numeric id. Falls back to `item.id` when extraction returns null.
+  - `size: item.selectedSize ?? item.sizes?.[0] ?? ''` — respects the saved selection from the wishlist entry; falls back to the first available size.
   - `price` parsed from the formatted `salePrice ?? price` string via `parseFloat(str.replace(/[^0-9.]/g, ''))`.
+  - `originalPrice` parsed from `price` when a `salePrice` is present, so the cart line renders the strike-through "was" amount rather than a plain current price.
   - Out-of-stock items are skipped silently (no toast).
 - **`clearAll`** — from `useWishlist()`, dispatches `wishlistActions.clearAll()`. Gated by an inline confirmation UI (`showClearConfirm`) rather than a modal.
 
 Bundles are NOT a concept on the favourites page (wishlist has no `bundleId` field) — bulk move-to-cart therefore adds every item as an independent cart line, even if the shopper originally arrived via a PDP bundle CTA.
 
 The "Recently viewed" strip on `FavoritesPage` reads `state.recentlyViewed.items` and dedupes by lowercased `name` (fallback `id`) so variants of the same product don't monopolise the row.
+
+**`FavoritesCarousel` Quick Add button.** The horizontal carousel of favourites (`src/app/pages/favorites/FavoritesCarousel.tsx`) renders a "Quick Add" button per card. The button calls `useCart().addItem(...)` with:
+- `id` via `extractCmsProductId(product.id)` — produces a clean numeric id string, avoiding the `-fav` suffix that would confuse `previewOrder`.
+- `price` from the sale price when present (matches PDP / catalog UX); `originalPrice` set to the full price when a sale is active so the cart line shows the strike-through "was" amount.
+- `stockLimit` from `product.stockLimit` when present, so the `+` button cap is respected.
+- After `addItem`, `openMiniCart()` opens the slide-in drawer.
+
+`FavoriteCard` (`src/app/pages/favorites/FavoriteCard.tsx`) follows the same `extractCmsProductId` + `originalPrice` forwarding pattern for its own "Add to Cart" CTA, ensuring the cart line is indistinguishable from one added directly via the PDP.
 
 ## 16. CartPage promo section (independent from Delivery)
 
@@ -449,12 +467,35 @@ The "Recently viewed" strip on `FavoritesPage` reads `state.recentlyViewed.items
 - `handleApplyPromo` guards against re-entry with a `promoBusy` flag, then calls `useCart().applyCoupon(input)`.
 - On success, the panel switches to a "coupon applied" chip with a `Remove` button that calls `useCart().removeCoupon()` and clears `promoInput`.
 - `couponError` renders under the input only while `!couponCode` (i.e. no active coupon).
-- `finalTotal` uses `totalDue` from `preview` when either `personalDiscount > 0` or `couponDiscount > 0`; otherwise falls back to the client-computed `total`. This avoids a flash of the pre-preview number after `applyCoupon()` clears `preview`.
-- The Delivery step (`CheckoutDeliveryPage`) has its own, structurally identical promo section. Both write to the same `couponCode` in `useCart()`, so applying the code on one page immediately reflects on the other via Redux + `sessionStorage['oe_coupon_code']`. The two inputs are **independent React state** (`promoInput`, `promoChecked`) — closing the cart page and reopening it re-reads only `couponCode`, not the last-typed raw string.
+- **Line item price** — each cart line is rendered at `item.price` (the client-side sale price, matching catalog / PDP / QuickView). When `item.originalPrice` is present (a sale is active), it is displayed as a struck-through amount alongside the sale price. This is the same two-number UX the shopper saw on the catalog card or PDP; there is intentionally no separate "Items discount" row below — such a row double-counted the reduction already baked into the line price (the original "$31.5 − $3.5 = $35" math bug).
+- **Subtotal** — the client `subtotal` (`sum(item.price * qty)`) matches the displayed line-item prices exactly.
+- **Loyalty and coupon rows** — appear in the summary only when OE has applied an *extra* reduction beyond the client-side sale price: `personalDiscount − couponDiscount > 0` shows a "Loyalty discount" line; `couponDiscount > 0 && couponCode` shows a "Promo (CODE)" line. These values come from `previewOrder`.
+- **`finalTotal`** — `personalDiscount > 0 || couponDiscount > 0 || preview.bonusApplied > 0 ? totalDue : total`. OE's `totalDue` overrides when OE applied a loyalty-tier discount, a coupon, **or** redeemed bonus points. Previously a shopper who burned points saw the pre-bonus subtotal on the "Place Order" button while OE charged less at order creation — a mismatch now closed. Before the first `previewOrder` response arrives (`previewLoading && !preview`), a skeleton pulse bar replaces the discount rows so the layout does not jump.
+- The Delivery step (`DeliveryPage`) has its own, structurally identical promo section backed by `DeliveryOrderSummary`. Both write to the same `couponCode` in `useCart()`, so applying the code on one page immediately reflects on the other via Redux + `sessionStorage['oe_coupon_code']`. The two inputs are **independent React state** (`promoInput`, `promoChecked`) — closing the cart page and reopening it re-reads only `couponCode`, not the last-typed raw string.
 
 **Coupon math source of truth.** Discount amounts are NOT computed client-side — the client sends `products + couponCode` to `previewOrderAction()`, and OE returns `totalSum`, `totalSumWithDiscount`, `discountConfig.coupon.applied`. `couponDiscountAmount = couponApplied ? (totalSum − totalSumWithDiscount) : 0`. There is no `(subtotal * pct / 100)` fallback in the current code path — the client never sees the coupon's percentage.
 
-## 17. Cross-references
+**Guest / no-loyalty case.** When OE's `previewOrder` returns full price for a shopper whose session falls outside a discount rule's user-group (e.g. a guest where the rule is scoped to registered accounts), the line items still show the catalog/PDP sale price (`item.price` / `item.originalPrice` strike-through) and `finalTotal = activePreview.totalDue ?? total` — OE's authoritative `totalDue` with no additional client-side adjustment. The `PaymentPage.handlePlaceOrder` pre-flight guard re-runs `previewOrderAction` immediately before `createOrderAction` and surfaces a "total changed" error if OE's authoritative figure differs by more than $0.01 from what the shopper saw — catching any price or availability drift at the last possible moment. See [CHECKOUT.md §3.5a](./CHECKOUT.md#35a-pre-flight-preview-check).
+
+## 17. MiniCart summary math
+
+`MiniCart` (`src/app/components/MiniCart.tsx`) is the slide-in drawer opened from the header. Its summary uses the same client-sale-price model as `CartPage`, `DeliveryPage`, and `PaymentPage`, so every surface shows the same numbers.
+
+**Product images.** `MiniCart`, `CartItemRow`, `CartBundleRow`, `PaymentPage` summary, and `ConfirmationPage` summary all use `<ImageWithFallback>` (instead of a bare `<Image>`) so that an empty or broken image `src` renders the bag placeholder silently rather than crashing with a Next.js Image `src` assertion. The placeholder path used throughout is `/icons/ui/bag-placeholder.svg` (not `/placeholder.svg`, which does not exist in `public/`).
+
+**Line item price.** Each non-bundle item renders `fmt(item.price * item.quantity)`. When `item.originalPrice` is present **and strictly greater than `item.price`**, a struck-through `fmt(item.originalPrice * item.quantity)` appears below it — the `> item.price` guard prevents an accidentally-lower `originalPrice` (stale catalog entry) from rendering a struck-through smaller number that implies a negative discount. Bundle line items follow the same rule per child line. The bundle footer shows `bundleTotal` (sum of `item.price * qty`) with a strike-through `bundleOriginal` when savings exist. The same `originalPrice > item.price` guard is applied in `CartItemRow`, `CartBundleRow`, `PaymentPage` order summary, and `DeliveryOrderSummary`.
+
+**Subtotal row.** Always shows `subtotal` (`sum(item.price * qty)`) — the same value driving the line-item math. There is no "Items discount" row; the sale is already reflected in the line prices.
+
+**Skeleton.** When `previewLoading && !preview` (first in-flight preview, no stale data), two pulse-bar skeleton rows replace the discount and Total rows. Subsequent refetches leave the old numbers visible, so the layout never jumps mid-session.
+
+**Loyalty and coupon rows.** Rendered between Subtotal and Total when `personalDiscount − couponDiscount > 0` or `couponDiscount > 0 && couponCode` — OE-reported extra reductions beyond the client sale.
+
+**`displayTotal`.** `(personalDiscount > 0 || couponDiscount > 0 || preview.bonusApplied > 0) ? totalDue : subtotal`. Mirrors `finalTotal` logic on `CartPage` / `DeliveryPage` / `PaymentPage`: OE's `totalDue` overrides when OE applied a loyalty-tier discount, a coupon, or redeemed bonus points. Otherwise the displayed Total equals the client subtotal.
+
+**"Applied at checkout" note.** A `text-[10px]` note appears below the Total row only when `(personalDiscount > 0 || couponDiscount > 0) && preview && preview.totalDue !== subtotal`, confirming that the extra OE deduction will be reflected on the final charge.
+
+## 18. Cross-references
 
 - [REDUX.md](./REDUX.md) — full store layout, migrations
 - [AUTH.md](./AUTH.md) — how session cookies gate `syncCart` / `syncWishlist`

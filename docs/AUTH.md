@@ -55,7 +55,9 @@ The `client_secret` for the Google OAuth client lives inside the OneEntry provid
 
 ## 3. Cookies
 
-All cookies are set/cleared by Server Actions in `src/lib/oneentry/auth/actions.ts`.
+Cookie constants (`AUTH_MARKER`, `ACCESS_COOKIE`, `REFRESH_COOKIE`, `IDENTIFIER_COOKIE`), shared types (`CookieJar`, `OeAuthEntity`), and the helpers `setSessionCookies`, `clearSessionCookies`, and `readAccessOrRefresh` live in the dedicated module `src/lib/oneentry/auth/session.ts`. That module is **not** `'use server'` — this keeps `readAccessOrRefresh` off the RPC surface so the raw access token is never callable as a Next.js action. `src/lib/oneentry/auth/actions.ts` imports everything from `./session`; call-sites are identical to the pre-extraction state.
+
+All cookies are set/cleared via the helpers in `src/lib/oneentry/auth/session.ts`, called by Server Actions in `src/lib/oneentry/auth/actions.ts`.
 
 | Cookie | Flags | Purpose |
 |---|---|---|
@@ -102,6 +104,12 @@ The Google integration is a **standard OAuth 2.0 authorization-code flow** — n
 6. The route handler `redirect()`s to `returnTo` on success, or to `/?googleAuthError=<code>` on failure. `AuthContext` re-bootstraps `/me` on the next mount and the user is signed in.
 
 Because the browser navigates away, `AuthContext.startGoogleOAuth` does not return a result — the login modal never sees the outcome. Error surfacing happens on the landing page via the `?googleAuthError=` query param.
+
+**`GoogleAuthErrorSurface` (in `src/app/components/Providers.tsx`).** A lightweight component mounted inside `Providers` reads `?googleAuthError=` from the URL on client mount. Because it calls `useSearchParams()`, it is wrapped in `<Suspense fallback={null}>` inside `Providers` — without this boundary `next build` fails to prerender static pages (including `/_not-found`) with a `missing-suspense-with-csr-bailout` error. When the param is present it calls `setAuthError(humaniseGoogleAuthError(rawErr))` — mapping the raw OAuth error code to a human-readable string — and then calls `openLoginModal()` so the shopper sees the auth modal already populated with the banner. `router.replace(pathname)` strips the query param immediately so a hard refresh does not loop.
+
+`AuthContext` exposes `authError: string | null` and `setAuthError` as part of its public surface. `LoginModal` reads `authError` and renders it as a persistent banner with a dismiss button (`setAuthError(null)`). The banner takes priority over the transient inline validation error — only one of the two is shown at a time. `closeLoginModal()` calls `setAuthError(null)` so a re-open of the modal after the error was seen does not re-display the stale message.
+
+Previously the shopper landed on `/` with the modal closed and no visible explanation of why the Google sign-in failed.
 
 **Linking Google to an existing account:** `AccountPage → My Data → Social networks` also uses `startGoogleOAuth('/account?googleLinked=1')`. There is **no** separate "connect" Server Action — the same authorize / callback path is reused. Because `exchangeGoogleCodeAction` is called with an active `oe_access` cookie present, OneEntry associates the Google identity with the current user rather than opening a fresh session. The mount effect in `SocialNetworksSection` reads the `?googleLinked=1` query flag on return and marks Google as linked in local state.
 
@@ -163,6 +171,8 @@ On mount, `AuthContext` calls `getCurrentUserAction()`:
 
 `authReady` is critical: components that gate on "logged out for sure" (e.g. account page's sign-in prompt) must wait for `authReady === true` — otherwise they briefly flash sign-in UI during hydration.
 
+`AuthContext` also exposes `authError: string | null` (default `null`) and `setAuthError(msg)`. `authError` carries a human-readable OAuth failure message set by `GoogleAuthErrorSurface` in `Providers.tsx`; `LoginModal` renders it as a dismissible banner. `closeLoginModal()` clears `authError` so the next open is clean.
+
 ---
 
 ## 7. Post-sign-in mutations
@@ -200,10 +210,13 @@ Each returns `{ok, error?}`; the `sync*` variants are fire-and-forget.
 
 1. `AuthContext.logout()` sets local state to `{isLoggedIn:false, user:null}` immediately (optimistic).
 2. Dispatches `clearAuth()` to `userSlice`.
-3. Fires `signOutAction()` in the background — the action reads `oe_refresh`, calls `getApi().AuthProvider.logout(refreshToken)`, then clears all three cookies.
-4. No redirect. The Header re-renders with the sign-in prompt.
+3. Dispatches `cartActions.clearCart()`, `wishlistActions.clearAll()`, and `recentlyViewedActions.hydrate([])` to wipe in-memory state immediately.
+4. Clears `oe_cart_merged`, `oe_wishlist_merged`, `oe_checkout_payload`, `oe_coupon_code`, and `oe_last_order_id` from `sessionStorage` so a subsequent user-B sign-in on the same browser starts with a clean state and does not inherit user-A's cart, wishlist, or checkout data.
+5. Calls `clearGuestId()` (`src/app/utils/guest-id.ts`) to remove `oe_guest_id` from `localStorage`. This ensures that any post-logout anonymous activity mints a fresh guest fingerprint rather than being aggregated under the previous authenticated user's identifier.
+6. Fires `signOutAction()` in the background — the action reads `oe_refresh`, calls `getApi().AuthProvider.logout(refreshToken)`, then clears all three cookies.
+7. No redirect. The Header re-renders with the sign-in prompt.
 
-Logout is optimistic on purpose: even if the Platform is unreachable, the user is logged out locally, and the cookies are best-effort cleared.
+Logout is optimistic on purpose: even if the Platform is unreachable, the user is logged out locally and the cookies are best-effort cleared. The in-memory + `sessionStorage` wipe in steps 3–4 is the primary cross-user data-leakage guard — without it, user B signing in after user A would inherit A's cart / wishlist / recently-viewed via `localStorage 'oe_store'` and the sync effects would push them into B's OE account. Step 5 closes a separate gap: without the `oe_guest_id` reset, OneEntry would attribute the signed-out shopper's guest activity to the same visitor as the previously logged-in user.
 
 ---
 
@@ -215,7 +228,7 @@ Guest users are identified by a UUID minted client-side and stored in `localStor
 - Attached as `x-guest-id` header on:
   - `trackActivityAction` (all activity events)
   - `createOrderAction` (guest checkout)
-- Persistent across sessions; cleared by users who wipe site data.
+- Persistent across sessions; cleared automatically on logout via `clearGuestId()`, or manually by users who wipe site data.
 
 Guest cart / wishlist are held in Redux (persisted to `localStorage` via `oe_store`) but **not** synced to OneEntry — sync only turns on when `isLoggedIn === true`.
 
@@ -239,6 +252,8 @@ Trigger points:
 - PDP reviews section "Write a Review" CTA → `ReviewsClient.requestWriteReview` runs a **three-way gate**: (1) `isLoggedIn === false` → `openLoginModal()`; (2) signed in but `canReviewProduct(orders, productId) === false` → sets an inline amber `purchaseRequired` notice that auto-dismisses after 4 s; (3) signed in with a qualifying delivered order → opens `WriteReviewModal`. `canReviewProduct` (`src/app/utils/review-eligibility.ts`) returns `true` when the shopper has at least one order whose `statusIdentifier` matches `/deliver|complete|done|closed|finish|received|arrived/i` and whose `products[]` contains the given `productId`.
 - Header profile icon → `/account` when logged in (no modal).
 
+**Modal X buttons.** Both `LoginModal` and `RegisterModal` render a visible close `×` button that calls `closeLoginModal()` / `closeRegisterModal()`. The buttons had been commented out under a stale note claiming "guest checkout is disabled" — that is no longer true. Backdrop click already closed the modals; the X button now matches expected behaviour and is the primary keyboard-accessible close affordance.
+
 ---
 
 ## 11. Route protection
@@ -246,8 +261,9 @@ Trigger points:
 There is **no `middleware.ts`** for auth. Routes are not blocked at the network layer; instead:
 
 - `/account/*` client component reads `useAuth().isLoggedIn`; if `authReady && !isLoggedIn`, renders a `<SignInPrompt>` block.
-- `/checkout/*` routes show `<GuestCheckoutModal>` on load when `!isLoggedIn`, offering Sign In / Register / Continue-as-Guest.
+- `/checkout/*` routes show `<GuestCheckoutModal>` on load when `!isLoggedIn`, offering Sign In / Register / Continue-as-Guest. Both `/checkout/delivery` and `/checkout/payment` additionally redirect to `/cart` when `items.length === 0` on mount (see [CHECKOUT.md §2.0](./CHECKOUT.md)).
 - `/favorites`, `/cart` are accessible to guests; their content is guest-only Redux state until sign-in.
+- **Reserve in Store** (PDP) — the "Reserve in Store" CTA now calls `openLoginModal()` and returns early when `!isLoggedIn`, mirroring the reviews auth gate (`ReviewsClient.requestWriteReview`). The reservation form collects contact info that OE ties to the shopper; without a session the record has no owner. On successful sign-in the shopper returns to the PDP with the reserve modal intact.
 
 Server Actions themselves enforce auth via the `oe_access` cookie — anonymous calls to `updateProfileAction` etc. return `{ok:false, error:'unauthenticated'}`.
 
@@ -263,7 +279,16 @@ Server Actions themselves enforce auth via the `oe_access` cookie — anonymous 
 | Missing env vars at server boot | `getApi()` throws `'OneEntry SDK is not configured'`. Every auth action fails immediately. |
 | `oe_access` expired | Any authenticated Server Action returns `{ok:false, error:'unauthenticated'}`. `AuthContext` shows the sign-in prompt on next mount. |
 
-There is currently **no automatic token refresh** on the client. Sessions last as long as `oe_access` is valid, then the user must sign in again. Adding a refresh loop would require calling `AuthProvider.refresh(refreshToken)` from a middleware-level layer.
+**Token refresh for mutations — `readAccessOrRefresh`.** All mutation-side Server Actions call `readAccessOrRefresh()` (from `src/lib/oneentry/auth/session.ts`) instead of the bare `readAccessFromCookies()`. `readAccessOrRefresh` reads the `oe_access` cookie and, when it is absent or expired, calls `AuthProvider.refresh(refreshToken)` transparently and re-writes fresh `oe_access` / `oe_refresh` cookies before returning the new token. Without this, 24 hours after login every mutation silently fell into the guest branch — `createOrderAction` would post to the `checkout_home_delivery_guest` form while the client-side UI still showed the user as authenticated. Read-only loaders (product fetches, label loads, etc.) continue to use `readAccessFromCookies()` unchanged.
+
+Coverage of `readAccessOrRefresh` spans four files:
+
+| File | Actions covered |
+|---|---|
+| `src/lib/oneentry/auth/actions.ts` | `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist`, `previewOrder`, `createOrder`, `cancelOrder`, `pushRecentlyViewed`, `fetchBonusHistory`, and others (15 mutation actions total) |
+| `src/lib/oneentry/activity/actions.ts` | `trackActivityAction` — activity events now rotate the token from the 7-day refresh cookie; previously they fell into the guest branch silently after 24 h |
+| `src/lib/oneentry/catalog/service-request-submit-action.ts` | `submitServiceRequestAction` — Book Service now remains authenticated across the 24-hour `oe_access` lifetime |
+| `src/lib/oneentry/catalog/service-requests-action.ts` | `getServiceRequestsAction` — previously read the raw `oe_access` cookie via a local `ACCESS_COOKIE` constant; after expiry at 24 h the read returned `undefined`, the action fell through to the app-token instance, and real service requests were returned as `[]`. Migrated to `readAccessOrRefresh()`. Local `ACCESS_COOKIE` / `IDENTIFIER_COOKIE` constants removed and imported from `../auth/session` instead. Top-level `catch` now instrumented with `logCaught`. |
 
 ---
 

@@ -1,8 +1,6 @@
 'use server';
-import { cookies } from 'next/headers';
 import { getGuestApi, getUserApi, isError, isOneEntryEnabled } from '../index';
-
-const ACCESS_COOKIE = 'oe_access';
+import { readAccessOrRefresh } from '../auth/session';
 
 export type TUserActivityType =
   | 'product_view'
@@ -36,8 +34,12 @@ export async function trackActivityAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
 
-  const jar = await cookies();
-  const access = jar.get(ACCESS_COOKIE)?.value ?? null;
+  // Prefer the authed path when the shopper has any auth material — even
+  // after the 24 h ACCESS_COOKIE expired, `readAccessOrRefresh` transparently
+  // rotates the token from the 7 d refresh cookie. Without this, activity
+  // events silently fall into the guest branch and stop attaching to the
+  // user account for the rest of the browser life.
+  const access = await readAccessOrRefresh();
 
   try {
     if (access) {

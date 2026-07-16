@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { getApi, isError, isOneEntryEnabled } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
 import { withTiming } from '../profiling';
+import { logCaught } from '../log';
 
 type RawLocalize = { en_US?: { title?: string }; title?: string };
 type RawItem = {
@@ -87,7 +88,8 @@ export const loadFilterChips = cache(
         }
       }
       return chips;
-    } catch {
+    } catch (err) {
+      logCaught(`filter-chips.loadFilterChips(${marker}, ${lang})`, err);
       return null;
     }
   }),

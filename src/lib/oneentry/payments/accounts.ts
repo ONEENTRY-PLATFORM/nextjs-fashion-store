@@ -1,5 +1,6 @@
 'use server';
 import { oneentry, isError } from '../index';
+import { logCaught } from '../log';
 
 export interface PaymentAccount {
   id: number;
@@ -29,7 +30,8 @@ export async function getPaymentAccountsAction(): Promise<PaymentAccount[]> {
         description: (acc.localizeInfos?.plainValue ?? '') || '',
         isVisible: acc.isVisible ?? true,
       }));
-  } catch {
+  } catch (err) {
+    logCaught('accounts.getPaymentAccountsAction', err);
     return [];
   }
 }

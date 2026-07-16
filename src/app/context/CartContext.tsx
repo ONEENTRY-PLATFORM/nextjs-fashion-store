@@ -6,6 +6,7 @@ import { cartActions } from '../store/cartSlice';
 import {
   getCmsProductId,
   getPlaygroundProductId,
+  extractCmsProductId,
 } from '../data/cms-product-id-map';
 import { useAuth } from './AuthContext';
 import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
@@ -105,7 +106,7 @@ function placeholderFromCmsId(productId: number, qty: number): CartItem {
     size: '',
     quantity: qty,
     price: 0,
-    image: '/placeholder.svg',
+    image: '/icons/ui/bag-placeholder.svg',
   };
 }
 
@@ -184,6 +185,9 @@ export function useCart(): CartContextType {
         const srv = user.cartItems.find((c) => String(c.productId) === ui.id);
         if (!srv) continue;
         const priceNumber = parseFloat(String(ui.price).replace(/[^\d.]/g, '')) || 0;
+        const salePriceNumber = ui.salePrice
+          ? parseFloat(String(ui.salePrice).replace(/[^\d.]/g, '')) || 0
+          : undefined;
         const playgroundId = getPlaygroundProductId(srv.productId);
         const localId = playgroundId ?? String(srv.productId);
         dispatch(cartActions.removeItem(localId));
@@ -195,7 +199,15 @@ export function useCart(): CartContextType {
           sku: ui.id,
           size: ui.sizes?.[0] ?? '',
           quantity: srv.qty,
-          price: priceNumber,
+          // Prefer the sale price (matches catalog / PDP UX) and record
+          // the "was" as `originalPrice` so the strike-through renders
+          // downstream. `stockLimit` mirrors the enriched product so
+          // `updateQuantity` can cap the `+` button — otherwise a
+          // hydrated cart lets shoppers set 999 through the plus button
+          // until OE rejects it at preview.
+          price: salePriceNumber !== undefined && salePriceNumber < priceNumber ? salePriceNumber : priceNumber,
+          ...(salePriceNumber !== undefined && salePriceNumber < priceNumber && { originalPrice: priceNumber }),
+          ...(typeof ui.stock === 'number' && ui.stock > 0 && { stockLimit: ui.stock }),
           image: ui.image,
         }));
       }
@@ -234,6 +246,13 @@ export function useCart(): CartContextType {
   const lastPushedRef = useRef<string>('');
   useEffect(() => {
     if (!isLoggedIn) return;
+    // Wait until the hydration effect above finished merging OE's server
+    // cart into the local Redux state — otherwise a cold sign-in with an
+    // empty local cart would push `[]` UP into OE, wiping any items the
+    // shopper added from another device. `hydratedRef.current` flips to
+    // `true` right after we finish enrichment and it is also mirrored in
+    // sessionStorage `oe_cart_merged` for the current userIdentifier.
+    if (!hydratedRef.current) return;
     const oeItems = items.flatMap((it) => {
       const cmsId = getCmsProductId(it.id);
       return cmsId !== null ? [{ productId: cmsId, qty: it.quantity }] : [];
@@ -300,7 +319,15 @@ export function useCart(): CartContextType {
     // next `previewOrder` fires without a `couponCode`.
     setCouponCode(null);
     setCouponError(null);
-    try { sessionStorage.removeItem(COUPON_STORAGE_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(COUPON_STORAGE_KEY);
+      // Also wipe the checkout-payload cache left by DeliveryPage. If the
+      // shopper abandoned checkout mid-way and later starts a fresh
+      // order, stale delivery / coupon fields from the previous attempt
+      // would otherwise land in the new order without them touching the
+      // form.
+      sessionStorage.removeItem('oe_checkout_payload');
+    } catch { /* ignore */ }
   }, [dispatch]);
 
   // OE `previewOrder` — reruns whenever the cart or applied coupon changes
@@ -317,10 +344,19 @@ export function useCart(): CartContextType {
     return sessionStorage.getItem(COUPON_STORAGE_KEY);
   });
   const [couponError, setCouponError] = useState<string | null>(null);
+  // Shared sequence counter across the auto-preview effect and every manual
+  // applyCoupon / removeCoupon call — a late response from a stale request
+  // used to overwrite the freshest one (rapid Apply → clear → Apply, or
+  // Apply landing after the debounced auto-preview from a cart edit).
+  const previewSeqRef = useRef(0);
   const productsForPreview = items.flatMap((it) => {
-    const match = /\d+/.exec(it.id);
-    if (!match) return [];
-    return [{ productId: Number(match[0]), quantity: it.quantity }];
+    // Cart items sometimes carry suffixed ids (`${cmsId}-fav`, `-quick`,
+    // `-auto`, `-item-N`, …) that leak from downstream Add-to-Cart UX.
+    // Extract the leading numeric productId — matches how OE preview /
+    // createOrder identify products server-side.
+    const cmsId = extractCmsProductId(it.id);
+    if (cmsId === null) return [];
+    return [{ productId: cmsId, quantity: it.quantity }];
   });
   const productsKey = JSON.stringify(productsForPreview);
   useEffect(() => {
@@ -331,6 +367,7 @@ export function useCart(): CartContextType {
     }
     setPreviewLoading(true);
     let cancelled = false;
+    const mySeq = ++previewSeqRef.current;
     const t = setTimeout(async () => {
       // Guests get their session id from `localStorage` so OE can validate
       // guest-eligible coupons (SUMMER2026 etc.). For logged-in users the
@@ -341,7 +378,7 @@ export function useCart(): CartContextType {
         ...(couponCode ? { couponCode } : {}),
         ...(guestId ? { guestId } : {}),
       });
-      if (cancelled) return;
+      if (cancelled || mySeq !== previewSeqRef.current) return;
       if (r.ok) {
         setPreview(r);
       } else if (r.missingProductIds && r.missingProductIds.length > 0) {
@@ -390,6 +427,7 @@ export function useCart(): CartContextType {
     // at the pre-coupon numbers for ~500ms which reads as "nothing changed".
     setPreview(null);
     setPreviewLoading(true);
+    const mySeq = ++previewSeqRef.current;
     // Validate via `previewOrder` — OE returns IError for unknown/expired
     // codes and `discountConfig.coupon = null` when the code is valid but
     // conditions (cart total, applicability, expiry) aren't met.
@@ -399,16 +437,21 @@ export function useCart(): CartContextType {
       couponCode: code,
       ...(guestId ? { guestId } : {}),
     });
+    // A newer preview / applyCoupon / removeCoupon has already fired since we
+    // started — drop this stale response so we don't overwrite fresher state.
+    if (mySeq !== previewSeqRef.current) return;
     const setFailure = async (message: string) => {
       setCouponError(message);
       // OE rejected the code — restore a preview WITHOUT the coupon so the
       // summary stops showing a skeleton. `couponCode` never changed here,
       // so the useEffect won't refire on its own.
+      const restoreSeq = ++previewSeqRef.current;
       const restored = await previewOrderAction({
         products: productsForPreview,
         ...(couponCode ? { couponCode } : {}),
         ...(guestId ? { guestId } : {}),
       });
+      if (restoreSeq !== previewSeqRef.current) return;
       if (restored.ok) setPreview(restored);
       setPreviewLoading(false);
     };
@@ -441,7 +484,10 @@ export function useCart(): CartContextType {
   const removeCoupon = useCallback(() => {
     // Clear preview so the summary rows render as skeletons while OE
     // recomputes without the coupon — otherwise the shopper briefly sees
-    // the pre-remove totals and thinks nothing happened.
+    // the pre-remove totals and thinks nothing happened. Bumping the seq
+    // here also invalidates any in-flight applyCoupon that would otherwise
+    // land after removeCoupon and re-set a coupon the shopper just cleared.
+    ++previewSeqRef.current;
     setPreview(null);
     setPreviewLoading(true);
     setCouponCode(null);

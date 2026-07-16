@@ -12,7 +12,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'How long does standard delivery take?',
     answer:
-      'Standard UK delivery takes 3–5 working days and is free on orders over £50. Express next-day delivery is available for orders placed before 2 pm Monday–Friday. International delivery to 40+ countries takes 5–10 working days.',
+      'Standard UK delivery takes 3–5 working days and is free on orders over $50. Express next-day delivery is available for orders placed before 2 pm Monday–Friday. International delivery to 40+ countries takes 5–10 working days.',
   },
   {
     question: 'How do I find my correct size?',
@@ -52,6 +52,6 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: 'Do you offer gift wrapping or gift cards?',
     answer:
-      'Yes! You can add premium gift wrapping to any order at checkout for £5. We also offer digital and physical gift cards from £25 to £500, available to purchase from our Gift Certificates page.',
+      'Yes! You can add premium gift wrapping to any order at checkout for $5. We also offer digital and physical gift cards from $25 to $500, available to purchase from our Gift Certificates page.',
   },
 ];

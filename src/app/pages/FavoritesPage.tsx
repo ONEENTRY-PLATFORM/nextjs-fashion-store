@@ -5,6 +5,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
+import { extractCmsProductId } from '../data/cms-product-id-map';
 import {
   ShoppingBag, ChevronRight,
   ArrowRight, Trash2, AlertTriangle,
@@ -113,17 +114,27 @@ export function FavoritesPage({
   const TRENDING_PRODUCTS_SCOPED       = mounted ? trending.filter(matchesPreferredGender)    : trending;
 
   const handleMoveAllToCart = () => {
+    // Forward `originalPrice` so sale items keep the strike-through UX
+    // downstream; strip suffix from id so `syncCart` / preview see a
+    // clean numeric productId (previous `${id}-auto` id dropped the
+    // line from `getCmsProductId`-based checks).
+    const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^0-9.]/g, '')) || 0;
     items.filter(i => i.inStock).forEach(item => {
+      const priceNumber = parsePrice(item.salePrice ?? item.price);
+      const originalPrice = item.salePrice ? parsePrice(item.price) : undefined;
+      const cmsId = extractCmsProductId(item.id);
+      const cartId = cmsId !== null ? String(cmsId) : item.id;
       addToCart({
-        id: `${item.id}-auto`,
+        id: cartId,
         name: item.name,
-        price: parseFloat((item.salePrice ?? item.price).replace(/[^0-9.]/g, '')) || 0,
+        price: priceNumber,
+        ...(originalPrice !== undefined && { originalPrice }),
         image: item.image,
-        size: item.sizes[0] ?? '',
-        color: '',
+        size: item.selectedSize ?? item.sizes[0] ?? '',
+        color: item.colors[0] ?? '',
         quantity: 1,
         brand: item.brand ?? '',
-        sku: item.id,
+        sku: cartId,
       });
     });
   };

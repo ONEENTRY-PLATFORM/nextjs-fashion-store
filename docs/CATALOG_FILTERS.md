@@ -110,7 +110,7 @@ Combination logic:
 
 The mapping is intentionally marker-neutral in the URL — the OE marker is not exposed to the user or bookmarkable URLs.
 
-### 4a. OE `conditionMarker` set (as emitted by `buildOEFilterBody`)
+### 4a. OE `conditionMarker` set
 
 The OE `Products.getProducts` filter DSL used by this codebase supports six condition markers. Reference:
 
@@ -157,16 +157,16 @@ The catalog page picks the current `sortBy` from `state.catalog[catalogKey]` and
 Preset ranges shown as quick-select chips in the filter drawer (`FILTER_GROUPS` config for each catalog):
 
 ```
-Under £50
-£50 – £100
-£100 – £200
-£200 – £500
-Over £500
+Under $50
+$50 – $100
+$100 – $200
+$200 – $500
+Over $500
 ```
 
-Each bucket is passed to OE as `between` with `[min, max]`. The `Over £500` bucket sends `[500, 99999]`.
+Each bucket is passed to OE as `between` with `[min, max]`. The `Over $500` bucket sends `[500, 99999]`.
 
-Currency: prices are stored in the CMS as decimals under the `price_14` marker. Display currency is USD (`CURRENCY = 'USD'`) — see `src/app/data/currencyConfig.ts` and [I18N.md](./I18N.md) §6 for the USD-in-UI / GBP-in-JSON-LD divergence.
+Currency: prices are stored in the CMS as decimals under the `price_14` marker. Display currency and JSON-LD currency are both USD (`CURRENCY = 'USD'`) — see `src/app/data/currencyConfig.ts`.
 
 ---
 
@@ -274,9 +274,9 @@ The filter drawer previews option counts (e.g. "Color · 18 options"). Currently
 | File | Role |
 |---|---|
 | `src/lib/oneentry/catalog/products.ts` | List / vector / quick search loaders |
-| `src/lib/oneentry/catalog/filters.ts` | URL ↔ OE marker mapping, chip presets, sort keys |
-| `src/lib/oneentry/catalog/adapt.ts` | `ProductEntity` → UI `Product` normaliser; forwards `salePrice` from the Discounts overlay |
-| `src/lib/oneentry/discounts/product-discount.ts` | `loadProductDiscounts` (rule fetcher) + `applyProductDiscount` (per-product resolver) |
+| `src/lib/oneentry/catalog/filters.ts` | URL ↔ OE marker mapping, chip presets, sort keys. `buildOEFilterBody` and its supporting types removed (dead code — no importers). |
+| `src/lib/oneentry/catalog/adapt.ts` | `ProductEntity` → UI `Product` normaliser; forwards `salePrice` from `CatalogProduct` when it is strictly below `price` |
+| `src/lib/oneentry/discounts/product-discount.ts` | `loadProductDiscounts` (rule fetcher) + `applyProductDiscount` (per-product resolver) — imported by `catalog/products.ts` and applied in `fetchFullCatalog` and `loadProductById` |
 | `src/app/components/CatalogTemplate.tsx` | Main catalog engine (grid, filters, sort, pagination) |
 | `src/app/components/CatalogTemplate.parts.tsx` | Filter drawer pieces, sort button, view mode toggle |
 | `src/app/components/MobileFilterPanel.tsx` + `MobileFilterBody.tsx` | Mobile full-screen filter accordion |
@@ -400,10 +400,10 @@ Used by `ProductDetailPage.tsx` so each PDP renders the exact category chain the
 
 Two adapters ride on top:
 
-- `adaptCatalogProductToUiProduct` (`adapt.ts`) — for `ProductCard` / grid. Formats price via `CURRENCY.format`, uppercases `tag` (`Sale → SALE` via `TAG_TO_LABEL`), derives per-swatch `colorStock` from `variants`, fills `gender` from `p.categories[0]` when the OE attr is blank (via `genderFromCategoryPath`). Forwards `salePrice` (formatted string) for both the top-level product and each variant entry when the value is strictly below `price` — the card renders a strike-through on the original price and highlights the sale price.
-- `adaptCatalogProductToPdpProduct` (`adapt.ts`) — for `ProductDetailPage`. Additionally converts colour names to hex (via a local `COLOR_NAME_TO_HEX` distinct from `HEX_COLOR_NAMES`), computes per-size availability from variants, builds a `specs` table with `buildProductSpecs`, and emits a slim `pdpVariants` list carrying `descriptionHtml` per variant so the PDP can swap rich text on colour change. Forwards `salePrice` as a raw number for both the top-level product and each `PdpProductVariant` entry when strictly below `price`. The PDP price block conditions its strike-through rendering on `salePrice` being present.
+- `adaptCatalogProductToUiProduct` (`adapt.ts`) — for `ProductCard` / grid. Formats price via `CURRENCY.format`, uppercases `tag` (`Sale → SALE` via `TAG_TO_LABEL`), derives per-swatch `colorStock` from `variants`, fills `gender` from `p.categories[0]` when the OE attr is blank (via `genderFromCategoryPath`). Forwards `salePrice` (formatted string) only when the incoming `CatalogProduct.salePrice` is strictly below `price`. `salePrice` is populated by the loader's optimistic discount overlay (see `fetchFullCatalog` below), so catalog cards correctly render a strike-through for products matched by an OE Discounts rule.
+- `adaptCatalogProductToPdpProduct` (`adapt.ts`) — for `ProductDetailPage`. Additionally converts colour names to hex (via a local `COLOR_NAME_TO_HEX` distinct from `HEX_COLOR_NAMES`), computes per-size availability from variants, builds a `specs` table with `buildProductSpecs`, and emits a slim `pdpVariants` list carrying `descriptionHtml` per variant so the PDP can swap rich text on colour change. Forwards `salePrice` as a raw number only when the incoming value is strictly below `price`. Again populated by the loader overlay, so the PDP price block renders the strike-through when a rule matches.
 
-`salePrice` on both adapters is sourced exclusively from the OE Discounts module overlay (`applyProductDiscount` in `src/lib/oneentry/discounts/product-discount.ts`) — it is no longer read from any product attribute.
+**`salePrice` — optimistic catalog overlay.** Both `fetchFullCatalog` (used by `loadProducts` / `loadFilteredProducts` / `searchProducts`) and `loadProductById` call `loadProductDiscounts()` then iterate every normalised product through `applyProductDiscount(p, rules)`, writing back `p.salePrice` when a rule matches. This is the client-side discount overlay that powers the strike-through UX across catalog cards, the PDP, and QuickView. When a shopper adds an item to the cart, `item.price` is set to the overlay's `salePrice` (or the full price when no rule matched) and `item.originalPrice` carries the full price when a sale exists. Cart and checkout summaries display line items at `item.price` with a strike-through on `item.originalPrice`, mirroring the catalog UX exactly — **the overlay is now used on the summary side** for line-item display. The summary **Total** (`finalTotal` / `displayTotal`) defers to OE's `totalDue` only when OE has applied an *additional* reduction (loyalty tier or coupon); see [CART_WISHLIST.md §16–§17](./CART_WISHLIST.md). The `PaymentPage` pre-flight guard re-runs `previewOrderAction` before submitting and catches price drift at that point. Do **not** remove this overlay — without it catalog cards and the PDP show no strike-through even when a discount rule matches. See also [PRODUCT_DETAIL.md §1 "Two sources of truth"](./PRODUCT_DETAIL.md).
 
 ## 15d. Variant aggregation (`aggregateByName`)
 
@@ -457,6 +457,7 @@ Both live in `products.ts`. They target overlapping shapes but differ in intent:
 
 - Trims the query; **returns `[]` for < 2 chars**.
 - Fires `vectorSearchIds` (semantic — `Products.getProductsByVectorSearch`) and `quickSearchIds` (literal substring — `Products.searchProduct`) **in parallel** via `Promise.all`.
+- Both helpers normalise the OE response through a shared `extractProductIdList(result)` helper that accepts either the flat `IProductsEntity[]` shape promised by the SDK typings **or** the wrapped `{items: IProductsEntity[], total: number}` envelope that `/vectorSearch` actually ships. This prevents a `TypeError` on `.map()` when the endpoint returns the wrapper — which was previously swallowed silently by the surrounding `try/catch`, causing semantic queries to return empty results.
 - Merges ids **vector-first, then quick**, dedup by `Set<number>` — so semantic matches always rank above literal ones.
 - Enriches ids against `loadFullCatalog` (image / price / brand / colors / sizes — none of which the quick endpoint returns).
 - Collapses variants via `aggregateByName` before slicing to `limit` (default 30, HeaderSearch server action passes 12).
@@ -481,13 +482,13 @@ Both live in `products.ts`. They target overlapping shapes but differ in intent:
 - **Scalar attributes** (`brands`, `seasons`, `fits`, `liningMaterials`, `brandCountries`, `labels`, `insulations`) — pass if any selected value case-insensitively equals the product's single string field (`eqCI`).
 - Across groups: implicit AND (each `if` early-returns `false`).
 
-Why this exists at all: `buildOEFilterBody` hard-codes clothing attribute suffixes (`color_9`, `size_10`, `brand_7`, …), but shoes / bags / accessories carry the same attributes under different suffixes (`color_8`, `size_9`, `brand_6`). Pushing filters to OE would silently zero-match those categories, so `loadFilteredProducts` runs the whole thing in-memory over the cached 5-minute full-catalog snapshot — fast enough for SSR against ~2000 products.
+Why this exists at all: a server-side OE filter body would need to hard-code clothing attribute suffixes (`color_9`, `size_10`, `brand_7`, …), but shoes / bags / accessories carry the same attributes under different suffixes (`color_8`, `size_9`, `brand_6`). Pushing conditions to OE would silently zero-match those categories, so `loadFilteredProducts` runs the whole thing in-memory over the cached 5-minute full-catalog snapshot — fast enough for SSR against ~2000 products.
 
 ---
 
 ## 17. Known gaps in filter transport
 
-- **`loadFilteredProducts` does not currently call `buildOEFilterBody`.** The SSR shell filters in-memory against the cached full catalog for the reasons in §15h. `buildOEFilterBody` is retained for the future clothing-only OE-native path but is not on the request path today.
+- **`loadFilteredProducts` does not call OE-native filter conditions.** The SSR shell filters in-memory against the cached full catalog for the reasons in §15h. `buildOEFilterBody` and its supporting types (`OEFilterRecord`, `STATUS_IN_STOCK`, `LIST_FIELD_TO_OE_MARKER`, `PRICE_MARKER`) have been removed from `src/lib/oneentry/catalog/filters.ts` as dead code — no callers remained. Restore from git history if an OE-native server-side filter path is revived in future.
 - **`unstable_cache` bypass for the 2000-row dump** — `loadFullCatalog` (used by `loadProducts` / `loadFilteredProducts` / `searchProducts`) explicitly skips `unstable_cache` because Next.js caps a single entry at 2 MB and the payload is ~30 MB. If the merchant grows the catalog materially, this bypass needs revisiting (Redis, page-based paging). `loadProductById` and `loadProductsByIds` are **not** affected — they write individual small entries to `unstable_cache` via `cachedGetProductById`, `cachedGetRelated`, and `cachedGetByIds`, all tagged `oe-products` with `REVALIDATE_PRODUCT` TTL.
 - **`loadFullCatalog` return type is `Promise<CatalogProduct[] | null>`.** `null` means the OE SDK threw, returned a null response, or returned an error shape — i.e. the catalog endpoint was unreachable or failed. An empty array `[]` means OE responded successfully with zero products. Null results are **not** written to `fullCatalogCache` so the next request retries; successful `[]` responses are cached normally. When `loadFullCatalog` returns null, both `loadProducts` and `loadFilteredProducts` return `{ total: 0, items: [], fromCms: false }` — signalling an outage rather than masking it as an OE-sourced empty grid (`fromCms: true`). The vector-search enrichment path likewise returns `[]` on null so `searchProducts` degrades gracefully.
 - **OE-native facet counts still unwired.** The filter drawer counts come from `loadClothingFilter` (`src/lib/oneentry/blocks/clothing-filter.ts`) which pulls the OE `clothing` filter marker and recounts each option locally against `countingProducts`. Real OE facet counts would collapse this into one endpoint call.

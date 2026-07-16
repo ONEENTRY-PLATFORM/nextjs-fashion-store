@@ -1,12 +1,13 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { loadProductDiscounts, applyProductDiscount } from '../discounts/product-discount';
 import { getApi, isError, oneentry } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
 import { DEFAULT_LOCALE } from '../locale';
 import { REVALIDATE_CATALOG, REVALIDATE_PRODUCT } from '../../isr';
+import { loadProductDiscounts, applyProductDiscount } from '../discounts/product-discount';
+import { logCaught } from '../log';
 
 /**
  * Normalized OneEntry product for the storefront. Mirrors the actual
@@ -349,19 +350,21 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
   // together on the normalized product lets `applyProductDiscount` run
   // synchronously without a second SDK trip.
   //
-  // Merchants pick discount tiers from a display-oriented list where each
-  // option renders as `"10%"` / `"20%"` etc. — OE ships both `title` and
-  // `value` with the `%` suffix. The matching Discounts rules, however,
-  // store the numeric-only form (`value: "10"` / `"20"`) in their
-  // `ATTRIBUTE.value.value` condition. Strip a trailing `%` (plus any
-  // surrounding whitespace) here so `discountAttributes` carries the
-  // semantic tier the rule expects. Non-discount attributes go through
-  // `stringValue` untouched.
+  // Values are forwarded VERBATIM (only surrounding whitespace stripped).
+  // OE `Discounts` rules compare condition value against the raw attribute
+  // string via strict equality — if OE ships `"10%"` on the product and the
+  // rule expects `"10"`, the merchant has a data mismatch that OE itself
+  // won't apply the discount for. We used to strip the trailing `%` here to
+  // "help" the client-side match succeed, but that made catalog show a
+  // sale price that OE then refused to honour at checkout — the shopper
+  // saw a $3.50 "Adjustments +" row on payment they had no context for.
+  // Mirroring OE's comparison keeps client and server in sync; the sale
+  // renders correctly once the merchant fixes the OE data.
   const discountAttributes: Record<string, string> = {};
   for (const key of Object.keys(attrs)) {
     if (!key.startsWith('discount_') && !key.startsWith('discount')) continue;
     const rawValue = stringValue(attrs[key]);
-    const cleaned = rawValue.replace(/\s+/g, '').replace(/%+$/, '');
+    const cleaned = rawValue.trim();
     if (cleaned) discountAttributes[key] = cleaned;
   }
   return {
@@ -494,11 +497,15 @@ async function fetchFullCatalog(lang: Lang): Promise<CatalogProduct[] | null> {
     if (!result || isError(result)) return null;
     const items = (result as unknown as ListResponse).items ?? [];
     const normalized = items.map((r) => normalize(r, lang));
-    // Overlay per-product discounts from the OE Discounts module onto the
-    // freshly normalized catalog. Rules are cached separately (5-min TTL),
-    // so this is a single cross-request lookup even for a 2000-row dump.
-    // A rule that doesn't apply leaves `salePrice` undefined — the UI
-    // only renders a strike-through when `salePrice < price`.
+    // Optimistically compute a client-side `salePrice` from the OE Discounts
+    // rules — this is what powers the catalog / PDP strike-through UX. OE's
+    // `Orders.previewOrder` may or may not honour the same rule for a given
+    // shopper (guests routinely get `productDiscounts: []` back for
+    // ATTRIBUTE-only rules), so the CHECKOUT summaries deliberately do NOT
+    // trust this field — they render line items at `originalPrice ?? price`
+    // and derive the "Sale" row from `preview.totalSumWithDiscount`. Two
+    // sources of truth on purpose: catalog stays attractive, cart stays
+    // honest about what OE will actually charge.
     const rules = await loadProductDiscounts();
     if (rules.length > 0) {
       for (const p of normalized) {
@@ -507,7 +514,8 @@ async function fetchFullCatalog(lang: Lang): Promise<CatalogProduct[] | null> {
       }
     }
     return normalized;
-  } catch {
+  } catch (err) {
+    logCaught(`products.fetchFullCatalog(${lang})`, err);
     return null;
   }
 }
@@ -690,7 +698,13 @@ const cachedGetByIds = unstable_cache(
     if (!oneentry || !idsCsv) return [];
     const result = await getApi().Products.getProductsByIds(idsCsv, lang);
     if (isError(result)) return [];
-    return (result as unknown as RawProduct[]) ?? [];
+    // OE has repeatedly toggled other list endpoints between flat and
+    // `{items, total}` (see `vectorSearchIds` / `searchProduct` in the
+    // same file, `getFormsDataByMarker` for reviews). Accept both so a
+    // future OE update doesn't silently drop related-product enrichment.
+    if (Array.isArray(result)) return result as RawProduct[];
+    const wrapped = (result as unknown as { items?: unknown })?.items;
+    return Array.isArray(wrapped) ? (wrapped as RawProduct[]) : [];
   },
   ['oe-products-by-ids'],
   { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
@@ -731,9 +745,10 @@ export const loadProductById = withTiming('loadProductById', cache(
       }
     }
 
-    // Overlay OE Discounts on every family member (target + siblings) —
-    // `loadProductById` doesn't route through `loadFullCatalog`'s cache,
-    // so the rules must be applied here too. Cross-request cached, cheap.
+    // Same optimistic overlay as `fetchFullCatalog` — powers the PDP
+    // strike-through UX. Cart summaries still ignore this and defer to
+    // `preview.totalSumWithDiscount` so the shopper never sees a "phantom
+    // sale" line at checkout when OE refused to apply the rule for them.
     const rules = await loadProductDiscounts();
     if (rules.length > 0) {
       for (const p of family) {
@@ -790,6 +805,17 @@ export const loadProductsByIds = withTiming('loadProductsByIds', cache(
   },
 ));
 
+/** Normalise the two shapes OE returns from product-list endpoints: the flat
+ *  `IProductsEntity[]` promised by the SDK typings, or the wrapped
+ *  `{items: IProductsEntity[], total: number}` that some endpoints
+ *  (notably `/vectorSearch`) actually ship. Returns a plain array we can
+ *  `.map()` over. */
+function extractProductIdList(result: unknown): Array<{ id?: number }> {
+  if (Array.isArray(result)) return result as Array<{ id?: number }>;
+  const wrapped = (result as { items?: unknown })?.items;
+  return Array.isArray(wrapped) ? (wrapped as Array<{ id?: number }>) : [];
+}
+
 async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise<number[]> {
   if (!oneentry) return [];
   try {
@@ -800,10 +826,12 @@ async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise
       limit,
     );
     if (isError(result)) return [];
-    // SDK types the result as `IProductsEntity[]`; we only sample `id`.
-    const items = result as unknown as Array<{ id?: number }>;
+    // SDK types the result as `IProductsEntity[]`, but `/vectorSearch` ships
+    // a `{items, total}` wrapper. Accept either shape.
+    const items = extractProductIdList(result);
     return items.map((p) => p.id ?? 0).filter((n) => n > 0);
-  } catch {
+  } catch (err) {
+    logCaught(`products.vectorSearchIds("${text}", ${lang})`, err);
     return [];
   }
 }
@@ -813,12 +841,13 @@ async function quickSearchIds(text: string, lang: Lang): Promise<number[]> {
   try {
     const result = await getApi().Products.searchProduct(text, lang);
     if (isError(result)) return [];
-    // `searchProduct` returns `IProductsEntity[]` — but the SDK's own quick
-    // search post-processing pipes through /ids to reorder. We only need
-    // ids in whatever order it returned.
-    const items = result as unknown as Array<{ id?: number }>;
+    // `searchProduct` typed as `IProductsEntity[]`. Tolerate the wrapped
+    // `{items, total}` shape too — several OE list endpoints toggle between
+    // both across versions (see `vectorSearchIds` note above).
+    const items = extractProductIdList(result);
     return items.map((p) => p.id ?? 0).filter((n) => n > 0);
-  } catch {
+  } catch (err) {
+    logCaught(`products.quickSearchIds("${text}", ${lang})`, err);
     return [];
   }
 }

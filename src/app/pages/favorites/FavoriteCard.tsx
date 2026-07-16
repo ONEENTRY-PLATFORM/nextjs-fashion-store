@@ -12,6 +12,7 @@ import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS, CATALOG_VIEW_LABELS as C
 import { FAVORITE_CARD_LABELS as FCL } from '../../data/favoritesLabels';
 import { ColorSwatchButton } from '../../components/ColorSwatchButton';
 import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
+import { extractCmsProductId } from '../../data/cms-product-id-map';
 
 export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const item = rawItem;
@@ -46,16 +47,30 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Forward `originalPrice` so the cart line renders the same
+    // strike-through UX as the catalog / PDP for sale items. Previously
+    // dropped, so a favourited sale item added to cart showed as a plain
+    // sale price with no "was" reference.
+    const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^0-9.]/g, '')) || 0;
+    const priceNumber = parsePrice(item.salePrice ?? item.price);
+    const originalPrice = item.salePrice ? parsePrice(item.price) : undefined;
+    // Use a clean numeric id so `productsForPreview` / `syncCart` /
+    // `createOrder` all see the same OE productId — the previous
+    // `${item.id}-fav` suffix worked for React keys but dropped the item
+    // from `syncCart` (which requires a fully-numeric id).
+    const cmsId = extractCmsProductId(item.id);
+    const cartId = cmsId !== null ? String(cmsId) : item.id;
     addToCart({
-      id: `${item.id}-fav`,
+      id: cartId,
       name: item.name,
-      price: parseFloat((item.salePrice ?? item.price).replace(/[^0-9.]/g, '')) || 0,
+      price: priceNumber,
+      ...(originalPrice !== undefined && { originalPrice }),
       image: item.image,
       size: item.selectedSize ?? item.sizes[0] ?? 'M',
       color: item.colors[selectedColor] ?? '',
       quantity: 1,
       brand: item.brand ?? '',
-      sku: item.id,
+      sku: cartId,
     });
     if (addedToCartTimerRef.current) clearTimeout(addedToCartTimerRef.current);
     setAddedToCart(true);

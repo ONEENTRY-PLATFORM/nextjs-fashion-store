@@ -1,13 +1,13 @@
 'use server';
 import { cookies } from 'next/headers';
-import { getApi, isError, isOneEntryEnabled } from '../index';
+import { getApi, getUserApi, isError, isOneEntryEnabled } from '../index';
+import { readAccessOrRefresh, IDENTIFIER_COOKIE } from '../auth/session';
+import { logCaught } from '../log';
 import type {
   ServiceRequest,
   ServiceCategory,
   ServiceStatus,
 } from '../../../app/data/serviceData';
-
-const IDENTIFIER_COOKIE = 'oe_user';
 
 const STATUS_MAP: Record<string, ServiceStatus> = {
   new: 'open',
@@ -59,7 +59,17 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
   const userIdentifier = decodeURIComponent(cookieUser);
 
   try {
-    const result = await getApi().FormData.getFormsDataByMarker(
+    // Prefer the user-scoped SDK instance so OE sees the shopper's own
+    // token — if the tenant tightens the form-data read policy to require
+    // it, `getApi()` (app-token) would silently return `[]`. Transparently
+    // rotate the access token from the 7 d refresh cookie when the 24 h
+    // access cookie expired — the previous raw-cookie read fell through
+    // to the app-token instance the day after login and the "My Service
+    // Requests" list came back empty for real users.
+    const accessToken = await readAccessOrRefresh();
+    const api = accessToken ? getUserApi(accessToken) : null;
+    const target = api ?? getApi();
+    const result = await target.FormData.getFormsDataByMarker(
       'service_request',
       SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
       { userIdentifier },
@@ -124,10 +134,11 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
         status: STATUS_MAP[statusRaw] ?? 'open',
         cost: null,
         notes: '',
-        img: '/placeholder.svg',
+        img: '/icons/ui/bag-placeholder.svg',
       };
     });
-  } catch {
+  } catch (err) {
+    logCaught('service-requests-action.getServiceRequestsAction', err);
     return [];
   }
 }

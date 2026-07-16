@@ -55,6 +55,26 @@ vi.mock('./QuickViewSizeGuide', () => ({
   QuickViewSizeGuide: () => null,
 }));
 
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({ isLoggedIn: false, openLoginModal: vi.fn(), user: null }),
+}));
+
+vi.mock('../pages/product/WriteReviewModal', () => ({
+  WriteReviewModal: () => null,
+}));
+
+vi.mock('../pages/product/StarRating', () => ({
+  StarRating: () => null,
+}));
+
+vi.mock('../../lib/oneentry/catalog/reviews-actions', () => ({
+  getProductReviewSummary: vi.fn().mockResolvedValue({ count: 0, avg: null }),
+}));
+
+vi.mock('../utils/review-eligibility', () => ({
+  canReviewProduct: vi.fn().mockReturnValue(false),
+}));
+
 vi.mock('next/image', () => ({
   // Render a plain <img> so we don't need the Next.js image optimisation pipeline.
   default: ({ src, alt, fill: _fill, sizes: _sizes, ...rest }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; sizes?: string }) => (
@@ -67,7 +87,7 @@ vi.mock('next/image', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeProduct(sizes: string[], colors: string[] = ['#000000']): unknown {
+function makeProduct(sizes: string[], colors: string[] = ['#000000'], extra: Record<string, unknown> = {}): unknown {
   return {
     id: 'test-product',
     name: 'Test Dress',
@@ -78,6 +98,7 @@ function makeProduct(sizes: string[], colors: string[] = ['#000000']): unknown {
     sizes,
     inStock: true,
     reviews: [],
+    ...extra,
   };
 }
 
@@ -151,6 +172,44 @@ describe('QuickViewModal — size auto-selection', () => {
     // Size must remain selected after the color change
     expect(sizeBtn.className).toMatch(/bg-black/);
     expect(sizeBtn.className).toMatch(/text-white/);
+  });
+
+  // ------------------------------------------------------------------
+  // Regression: lexicographic string comparison bug in sale-price guard
+  // ------------------------------------------------------------------
+
+  it('does NOT show strike-through when salePrice >= originalPrice (broken family fallback)', async () => {
+    // product.salePrice '$100' is NOT less than product.price '$90' numerically,
+    // but was incorrectly less when compared as strings ('$1' < '$9').
+    const product = makeProduct(['One Size'], ['#000000'], {
+      price: '$90',
+      salePrice: '$100',
+      // variant has no own salePrice → falls back to product.salePrice
+      variants: undefined,
+    });
+    await openModal(product);
+
+    // No line-through element should be in the DOM
+    const strikeElements = document.querySelectorAll('.line-through');
+    // Filter to only the price strike-through (exclude size-OOS strikethroughs
+    // which also use line-through but appear inside button elements)
+    const priceStrike = Array.from(strikeElements).filter(
+      (el) => el.tagName.toLowerCase() === 'span'
+    );
+    expect(priceStrike).toHaveLength(0);
+  });
+
+  it('DOES show strike-through when salePrice < originalPrice (normal sale)', async () => {
+    const product = makeProduct(['One Size'], ['#000000'], {
+      price: '$100',
+      salePrice: '$50',
+      variants: undefined,
+    });
+    await openModal(product);
+
+    const strikeSpans = Array.from(document.querySelectorAll('span.line-through'));
+    expect(strikeSpans.length).toBeGreaterThanOrEqual(1);
+    expect(strikeSpans[0].textContent).toBe('$100');
   });
 
   it('clears the size selection after a color swatch click on a multi-size product', async () => {

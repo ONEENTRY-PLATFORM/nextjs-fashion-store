@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
@@ -28,16 +28,23 @@ import { DeliveryMethodLocker } from './checkout/DeliveryMethodLocker';
 import { DeliveryMethodHome } from './checkout/DeliveryMethodHome';
 import { DELIVERY_PAGE_LABELS as L, DELIVERY_METHOD_HOME_LABELS as DH } from '../data/checkoutLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
+import type { DeliveryTimeSlot } from '../../lib/oneentry/checkout/delivery-schedule';
 
 type DeliveryMethod = 'home' | 'store' | 'locker';
 
+/** Client-only fallback: when the server layer didn't hand a date strip
+ *  down (e.g. Storybook / bare unit test render), synthesise the same
+ *  "tomorrow, skip Sundays, 7 dates" shape the OE loader would produce
+ *  from its own fallback config. Kept in sync with `FALLBACK` in
+ *  `delivery-schedule.ts` — do NOT re-derive from OE here, this branch
+ *  only fires when there is no server layer at all. */
 function getDeliveryDates(count = 7): Date[] {
   const dates: Date[] = [];
   const d = new Date();
-  d.setDate(d.getDate() + 1); // earliest: tomorrow
+  d.setDate(d.getDate() + 1);
   let maxIterations = 60;
   while (dates.length < count && maxIterations-- > 0) {
-    if (d.getDay() !== 0) dates.push(new Date(d)); // skip Sundays
+    if (d.getDay() !== 0) dates.push(new Date(d));
     d.setDate(d.getDate() + 1);
   }
   return dates;
@@ -49,9 +56,28 @@ interface DeliveryPageProps {
    *  server passes the hardcoded `PICKUP_STORES` fallback so the picker still
    *  renders. */
   pickupStores?: PickupStore[];
+  /** ISO-serialised date strip for the authed variant — built server-side
+   *  from `checkout_home_delivery`'s schedule config. When omitted —
+   *  Storybook / bare unit tests — the component regenerates it from the
+   *  same 7-days/skip-Sun defaults. */
+  deliveryDatesIsoAuthed?: string[];
+  /** ISO-serialised date strip for the guest variant — built from
+   *  `checkout_home_delivery_guest`'s schedule config. Same fallback. */
+  deliveryDatesIsoGuest?: string[];
+  /** Slots from `checkout_home_delivery.delivery_slot`. Fallback:
+   *  `DELIVERY_TIME_SLOTS`. */
+  deliverySlotsAuthed?: DeliveryTimeSlot[];
+  /** Slots from `checkout_home_delivery_guest.delivery_slot_guest`. */
+  deliverySlotsGuest?: DeliveryTimeSlot[];
 }
 
-export function DeliveryPage({ pickupStores }: DeliveryPageProps = {}) {
+export function DeliveryPage({
+  pickupStores,
+  deliveryDatesIsoAuthed,
+  deliveryDatesIsoGuest,
+  deliverySlotsAuthed,
+  deliverySlotsGuest,
+}: DeliveryPageProps = {}) {
   const router = useRouter();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
   // Fall back to the literal list if the server layer didn't hand any down —
@@ -60,6 +86,7 @@ export function DeliveryPage({ pickupStores }: DeliveryPageProps = {}) {
     ? pickupStores
     : PICKUP_STORES;
   const {
+    items,
     total, personalDiscount, totalDue,
     couponCode, couponDiscount, couponError, applyCoupon, removeCoupon,
     preview, previewLoading,
@@ -75,9 +102,23 @@ export function DeliveryPage({ pickupStores }: DeliveryPageProps = {}) {
   const [storeDropOpen, setStoreDropOpen] = useState(false);
   const [lockerDropOpen, setLockerDropOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const deliveryDates = getDeliveryDates(7);
+  // Pick the OE schedule for the current auth state. Guests hit the
+  // `_guest`-suffixed form on OE (`checkout_home_delivery_guest`); authed
+  // users get the plain form. Server-side both strips are precomputed and
+  // handed down as ISO arrays so the flip is a pure prop swap — no client
+  // data fetching. Falls back to the client's `getDeliveryDates(7)` when
+  // no strip was supplied at all (Storybook, bare unit test).
+  const activeDatesIso = isLoggedIn ? deliveryDatesIsoAuthed : deliveryDatesIsoGuest;
+  const activeSlots = isLoggedIn ? deliverySlotsAuthed : deliverySlotsGuest;
+  const deliveryDates = useMemo<Date[]>(
+    () => (activeDatesIso && activeDatesIso.length > 0
+      ? activeDatesIso.map((iso) => new Date(iso))
+      : getDeliveryDates(7)),
+    [activeDatesIso],
+  );
+  const timeSlots = activeSlots && activeSlots.length > 0 ? activeSlots : DELIVERY_TIME_SLOTS;
   const [selectedDate, setSelectedDate] = useState<Date>(deliveryDates[0]);
-  const [selectedSlot, setSelectedSlot] = useState<string>(DELIVERY_TIME_SLOTS[0].id);
+  const [selectedSlot, setSelectedSlot] = useState<string>(timeSlots[0].id);
   const [showGuestModal, setShowGuestModal] = useState(false);
 
   // Coupon UI is a thin wrapper over CartContext — same code powers the
@@ -88,10 +129,14 @@ export function DeliveryPage({ pickupStores }: DeliveryPageProps = {}) {
   const couponStatus: 'idle' | 'success' | 'error' =
     couponCode ? 'success' : couponError ? 'error' : 'idle';
 
-  // `couponDiscount` is what OE actually deducted (from `previewOrder`).
-  // Falls back to `totalDue` when only the personal tier is in play.
-  const baseTotal = personalDiscount > 0 || couponDiscount > 0 ? totalDue : total;
-  const finalTotal = baseTotal;
+  // Client `total` already reflects the sale price (line items use
+  // `item.price` with the strike-through UX). Prefer OE's `totalDue`
+  // when OE actually applied an EXTRA reduction — a loyalty tier, a
+  // coupon, OR the shopper spent bonus points. All three land honestly
+  // on the visible total; ignoring `bonusApplied` here would leave the
+  // Total row bigger than what OE actually charges.
+  const bonusBurned = (preview?.bonusApplied ?? 0) > 0;
+  const finalTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : total;
 
   const handleApplyCoupon = async () => {
     if (couponLoading) return;
@@ -123,6 +168,17 @@ export function DeliveryPage({ pickupStores }: DeliveryPageProps = {}) {
       setSelectedAddressId(savedAddresses[0].id);
     }
   }, [isLoggedIn, savedAddresses.length]);
+
+  // Route-level guard: deep-linking `/checkout/delivery` with an empty
+  // cart used to render the whole address form (and a $0 total). Bounce
+  // back to the cart page as soon as the client knows the cart is
+  // empty. Mirrors the PaymentPage guard.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    if (!mounted) return;
+    if (items.length === 0) router.push('/cart');
+  }, [mounted, items.length, router]);
 
   const handleConfirmNewAddr = () => {
     const result = addressSchema.safeParse(newAddrForm);
@@ -289,6 +345,7 @@ export function DeliveryPage({ pickupStores }: DeliveryPageProps = {}) {
               setSelectedDate={setSelectedDate}
               selectedSlot={selectedSlot}
               setSelectedSlot={setSelectedSlot}
+              timeSlots={timeSlots}
             />
 
             <DeliveryMethodStore

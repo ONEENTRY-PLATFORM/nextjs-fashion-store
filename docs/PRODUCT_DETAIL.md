@@ -17,7 +17,9 @@
 - `ProductCard.tsx` builds `cardHref` as `/product/{id}?gender=men|women` derived from `product.gender` (`'M'` → `men`, `'W'` → `women`), so clicks from any men's / women's catalog carry the gender forward.
 - `ProductDetailPage.tsx` has a `useEffect` that, when `currentGender` is `'M'` or `'W'` and no `gender` param is present in the URL (deep link, search hit, external referrer), injects it via `router.replace(path, { scroll: false })` so the Header re-derives WOMEN/MEN correctly. Unisex / kids products leave the URL untouched.
 
-**`salePrice` — OE Discounts overlay.** `loadProductById` calls `loadProductDiscounts()` (`src/lib/oneentry/discounts/product-discount.ts`) and applies `applyProductDiscount` to every member of the product family (target variant + related siblings). `loadProductDiscounts` fetches all `type: DISCOUNT` / `applicability: TO_PRODUCT` rules via `getApi().Discounts.getAllDiscounts`, filtered to the active date window and to rules that gate on `PRODUCT`, `CATEGORY`, or `ATTRIBUTE` conditions. The result is `unstable_cache`-wrapped (TTL `REVALIDATE_CATALOG`, tag `oe-discounts`), so this is a cheap cross-request lookup even when the PDP is the first cold hit. `applyProductDiscount` returns the lowest discounted price across all matching rules (rules do **not** stack). The returned `salePrice` is forwarded into each `CatalogProductVariant` and ultimately into the `PdpProductVariant.salePrice` field. Cart-scoped and user-scoped conditions (`MIN_CART_AMOUNT`, `USER_LTV`, `PRODUCT_IN_CART`, `TO_ORDER` rules) are excluded from the storefront overlay — they are evaluated by `previewOrder` at checkout where the full cart and user context are available. `ATTRIBUTE` conditions are evaluated against `CatalogProduct.discountAttributes` — a map populated from all OE attributes whose marker starts with `discount_` (or equals `discount`); the marker id is taken from `condition.entityIds[0].id` and the comparison uses the rule's operator (`eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `like`, `exists`, `not_exists`, defaulting to `eq`).
+**`salePrice` — optimistic overlay, set by the loader.** `loadProductById` calls `loadProductDiscounts()` to fetch the active OE Discounts rules, then passes each family member through `applyProductDiscount(p, rules)`. When a rule matches — by product id, category, or `ATTRIBUTE` condition (e.g. `discount_12 = "10"`) — the computed discounted price is written back as `p.salePrice`. This powers the PDP strike-through UX (original price crossed out, sale price highlighted). The overlay runs on every product in the family so per-variant sale prices are also populated correctly.
+
+**Two sources of truth — intentional design.** The catalog/PDP `salePrice` is *optimistic*: it reflects what OE's discount engine *would* apply under ideal conditions. Cart and checkout summaries use this same field (`item.price` = the client-side sale price) for line-item display, mirroring the catalog / PDP / QuickView two-number UX (`item.price` with a strike-through on `item.originalPrice`). However, the summary **Total** uses OE's `totalDue` only when OE has applied an *extra* reduction beyond the client sale — a loyalty-tier discount or a coupon (`personalDiscount > 0 || couponDiscount > 0 ? totalDue : subtotal`). If a shopper sees `$31.50 / $35` on a PDP card and the same `$31.50` in the cart, but OE's `previewOrder` returns full price for that session (e.g. the rule is scoped to a user group the shopper doesn't belong to), the cart Total will show `$31.50` (the client subtotal). The `PaymentPage` pre-flight guard re-runs `previewOrderAction` immediately before placing the order and surfaces a "total changed" error if OE's charge differs — so the charge-accurate check happens at the last possible moment rather than during browsing. Do **not** remove the `applyProductDiscount` overlay from `loadProductById` or `fetchFullCatalog` — without it the catalog cards and PDP show no strike-through even when a discount rule matches. See [CART_WISHLIST.md §16–§17](./CART_WISHLIST.md) for the summary-side math and the `PaymentPage` guard detail.
 
 **PDP fetch pattern.** `loadProductById` does **not** download the full catalog. It issues at most three targeted OE calls, each wrapped in its own `unstable_cache` layer with `REVALIDATE_PRODUCT` TTL and tag `oe-products`:
 1. `cachedGetProductById(id, lang)` — wraps `Products.getProductById()`.
@@ -92,7 +94,21 @@ Side effects on success:
 - `trackActivity({type:'product_add_to_cart', productId, meta:{quantity}})` is emitted by `CartContext.addItem` itself (not the PDP file) — resolved via `getCmsProductId(item.id)` and skipped when the id isn't numeric.
 - Debounced 400 ms sync to OE user-state via `CartContext`'s effect (see [CART_WISHLIST.md](./CART_WISHLIST.md) §5).
 
-The active `price` fed into the cart follows the active variant when the linked product carries its own copy (`activeVariant?.price ?? catalogProduct.salePrice ?? catalogProduct.price`); `originalPrice` is only sent when the product has a sale price. The gallery image seeded into the cart is `activeColorImage` — variant image → per-colour image → parent image, so the cart tile always matches the picked swatch.
+**Price-block derivation.** `dynamicPrice` and `dynamicOriginalPrice` are both anchored to the same source to prevent a cross-source mismatch that previously rendered `−0%` sale badges. The rule is:
+
+```ts
+const effectiveFull = activeVariant?.price ?? catalogProduct?.price ?? 0;
+const effectiveSale = activeVariant?.salePrice ?? catalogProduct?.salePrice;
+const hasVisibleDiscount =
+  typeof effectiveSale === 'number' &&
+  effectiveFull > 0 &&
+  effectiveSale < effectiveFull &&
+  Math.round((1 - effectiveSale / effectiveFull) * 100) >= 1;
+const dynamicPrice = hasVisibleDiscount ? effectiveSale! : effectiveFull;
+const dynamicOriginalPrice = hasVisibleDiscount ? effectiveFull : null;
+```
+
+`hasVisibleDiscount` requires the rounded percentage to be ≥ 1% so a rounding artefact can never surface a `−0%` badge. The active `price` fed into the cart is `dynamicPrice`; `originalPrice` is only sent when `hasVisibleDiscount` is true. The gallery image seeded into the cart is `activeColorImage` — variant image → per-colour image → parent image, so the cart tile always matches the picked swatch.
 
 ---
 
@@ -161,7 +177,7 @@ Trigger label goes through `useProductCardT('product-card_share', L.triggerLabel
 
 ## 7. Reserve in store (`ReserveInStoreModal`)
 
-Modal opens from the "Reserve in Store" CTA (below the primary Add-to-Cart button). CTA is always enabled — including on OOS / coming-soon products — because a reserve is a lightweight lead, not a stock hold.
+Modal opens from the "Reserve in Store" CTA (below the primary Add-to-Cart button). The CTA is visible to all shoppers — including on OOS / coming-soon products — because a reserve is a lightweight lead, not a stock hold. However the CTA is **auth-gated**: guests who click it are bounced to `openLoginModal()` instead of seeing the form. On successful sign-in the shopper returns to the PDP and can open the modal. This matches the reviews auth gate (`ReviewsClient.requestWriteReview`) and ensures every reservation record has a registered owner on the OE side.
 
 Flow:
 
@@ -218,7 +234,7 @@ No server-side inventory hold — the storefront just records the reservation as
    - Build `ratingsPerUser: Map<userIdentifier, Array<{rating, time}>>` — same reviewer may have posted multiple ratings over successive seed runs.
    - For each feedback, walk that user's rating list and pick the entry with the smallest `|rating.time - feedback.time|` that hasn't been consumed yet (`used = Set<'user:index'>`). Consumed pairs cannot rematch — guarantees 1-to-1 pairing per user.
    - **Fallback rating** when the user's rating list is empty or fully consumed: `Math.round(mean(allRatings))` clamped to `[1, 5]`; defaults to `5` when no ratings exist at all.
-4. Body plain-text extraction via `textValue()` — OE `text`-type cells arrive as `[{plainValue|htmlValue|mdValue}]`; the helper prefers `plainValue`, then strips `<[^>]+>` from `htmlValue`, then `mdValue`.
+4. Field extraction via `value(item, marker)` — reads from `item.formData`. The SDK typing declares `formData` as a flat `FormDataType[]` array; older OE versions returned it wrapped as `{ en_US: FormDataType[] }`. The helper accepts both shapes (flat array primary, `en_US` key fallback) so the loader stays resilient if the wrapping toggles between OE releases. Body plain-text is then extracted via `textValue()` — OE `text`-type cells arrive as `[{plainValue|htmlValue|mdValue}]`; the helper prefers `plainValue`, then strips `<[^>]+>` from `htmlValue`, then `mdValue`.
 5. Deterministic size stamp — `pickSize(reviewId, sizes) = sizes[reviewId % sizes.length]`. Same review id always maps to the same size, but different reviewers see different sizes.
 6. Date formatting via `toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'})`.
 7. Return `ProductReview[]` — `{id, author, rating, date, title, body, size, helpful: 0, verified: true}`.
@@ -457,6 +473,13 @@ The rating row layout matches the PDP sub-title: the shared `<StarRating>` SVG c
 - `count > 0` — the "N reviews" link navigates to `/product/{id}#reviews`. Viewing existing reviews is **not** auth-gated.
 
 No hardcoded star or review-count values remain.
+
+**Strike-through price guard.** `QuickViewModal` derives an `originalPriceRef` that anchors both numbers to the same source before deciding whether to render a sale pair:
+
+- When the matched `activeVariant` carries its own `salePrice`, `originalPriceRef = activeVariant.price` and `activeSalePrice = activeVariant.salePrice`.
+- Otherwise (family-level sale rule or no variant match), `originalPriceRef = product.price` and `activeSalePrice = activeVariant?.salePrice ?? product.salePrice`.
+
+The strike pair renders **only** when `activeSalePrice < originalPriceRef`. If the family sale price is at or above the variant's "was" price (e.g. a bulk rule that already priced the variant lower), the modal falls back to a plain-price render rather than showing `−0%` or an inverted badge. This mirrors the `hasVisibleDiscount` guard on the PDP (§4).
 
 **Deliberate omissions vs PDP:**
 - No `product_view` analytics (Quick View isn't a page).
