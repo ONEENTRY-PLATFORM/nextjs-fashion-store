@@ -1,7 +1,7 @@
 'use client'
 import Image from 'next/image';
 import { CheckCircle, ChevronDown, X, Tag } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
+import { useCart, type GiftCartItem } from '../../context/CartContext';
 import { DELIVERY_SUMMARY_LABELS as L } from '../../data/checkoutLabels';
 import { SALE_COLOR } from '../../constants/colors';
 import { fmt } from '../../utils/formatPrice';
@@ -30,6 +30,12 @@ interface Props {
   previewLoading: boolean;
   /** `true` once the first preview has arrived; suppresses skeleton for subsequent refetches. */
   hasPreview: boolean;
+  /** Free gifts OE appended to the order (hydrated with product name/image).
+   *  Passed from the parent so an in-session Apply Coupon fires the parent's
+   *  `useCart` instance while this component reads its own — otherwise the
+   *  gift wouldn't appear until the shopper reloads and both instances re-init
+   *  from the persisted coupon. */
+  giftItems: GiftCartItem[];
 }
 
 export function DeliveryOrderSummary({
@@ -48,6 +54,7 @@ export function DeliveryOrderSummary({
   finalTotal,
   previewLoading,
   hasPreview,
+  giftItems,
 }: Props) {
   const { items } = useCart();
   const lHeading      = useT('checkout_delivery', 'checkout_delivery_order_summary_title',          L.heading);
@@ -106,6 +113,29 @@ export function DeliveryOrderSummary({
                 <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
                 {item.originalPrice && item.originalPrice > item.price && (
                   <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {giftItems.map(gift => (
+            <div key={`gift-${gift.productId}`} className="flex gap-3">
+              <div className="relative flex-shrink-0 w-12 h-14">
+                <Image src={gift.image} alt={gift.name} fill sizes="48px" className="object-cover" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs leading-snug font-medium">{gift.name}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
+                    Free gift
+                  </span>
+                  <p className="text-xs text-gray-400">{L.qtyPrefix} {gift.quantity}</p>
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Free</p>
+                {gift.price > 0 && (
+                  <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
                 )}
               </div>
             </div>

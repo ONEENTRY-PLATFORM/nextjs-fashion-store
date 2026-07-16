@@ -28,7 +28,7 @@ export function CartPage() {
     items, removeItem, removeBundle, updateQuantity, updateSize,
     subtotal, discount, total, personalDiscount, totalDue,
     couponCode, couponDiscount, couponError, applyCoupon, removeCoupon,
-    preview, previewLoading,
+    preview, previewLoading, giftItems,
   } = useCart();
   const router = useRouter();
 
@@ -291,7 +291,7 @@ export function CartPage() {
               {/* Items */}
               <div className="flex flex-col border border-[#e5e7eb]">
                 {rows.map((row, rowIdx) => {
-                  const isLast = rowIdx === rows.length - 1;
+                  const isLast = rowIdx === rows.length - 1 && giftItems.length === 0;
                   if (row.kind === 'item') {
                     return (
                       <CartItemRow
@@ -320,6 +320,31 @@ export function CartPage() {
                     />
                   );
                 })}
+                {giftItems.map((gift, idx) => (
+                  <div
+                    key={`gift-${gift.productId}`}
+                    className={`flex items-center gap-4 p-4 sm:p-5 ${idx < giftItems.length - 1 ? 'border-b border-[#e5e7eb]' : ''}`}
+                  >
+                    <div className="relative flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24">
+                      <Image src={gift.image} alt={gift.name} fill sizes="80px" className="object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{gift.name}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
+                          Free gift
+                        </span>
+                        <span className="text-xs text-gray-500">Qty {gift.quantity}</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-semibold text-green-600 uppercase tracking-wide">Free</p>
+                      {gift.price > 0 && (
+                        <p className="text-xs text-gray-400 line-through mt-0.5">{fmt(gift.price * gift.quantity)}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

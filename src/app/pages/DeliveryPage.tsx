@@ -88,7 +88,7 @@ export function DeliveryPage({
   const {
     items,
     total, personalDiscount, totalDue,
-    couponCode, couponDiscount, couponError, applyCoupon, removeCoupon,
+    couponCode, couponDiscount, couponError, applyCoupon, removeCoupon, giftItems,
     preview, previewLoading,
   } = useCart();
   const lBackToCart  = useT('checkout_delivery', 'checkout_delivery_back_to_cart',        L.backToCart);
@@ -409,6 +409,7 @@ export function DeliveryPage({
             finalTotal={finalTotal}
             previewLoading={previewLoading}
             hasPreview={preview !== null}
+            giftItems={giftItems}
           />
         </div>
       </main>

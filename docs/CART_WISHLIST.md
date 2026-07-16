@@ -72,6 +72,19 @@ interface CartItem {
                            // undefined = uncapped (legacy items or server-hydrated placeholders).
 }
 
+/** Free-gift line produced by `CartContext` from `preview.giftItems` and
+ *  enriched with product name + image via `getProductsByIdsAction`. Not stored
+ *  in Redux — it's ephemeral; the shopper cannot remove or requantify a gift,
+ *  and it disappears once the triggering coupon is removed. */
+export interface GiftCartItem {
+  productId: number;
+  name: string;
+  image: string;
+  /** Original catalogue price — rendered struck-through next to "FREE". */
+  price: number;
+  quantity: number;
+}
+
 // src/app/context/WishlistContext.tsx
 interface WishlistItem {
   id: string;
@@ -175,10 +188,11 @@ Derived values also exposed: `totalItems`, `subtotal`, `discount` (= `originalTo
 | `previewLoading` | `true` while a `previewOrder` request is in flight. |
 | `personalDiscount`, `totalDue` | Derived from `preview` — loyalty tier discount and final amount. |
 | `couponCode` | Currently applied coupon (survives cart mutations and page navigation via `sessionStorage['oe_coupon_code']`; re-sent on every `previewOrder`/`createOrder`). Wiped by `clearCart()` so the next order starts without an implicit coupon. |
-| `couponDiscount` | `preview.couponDiscountAmount` — what OE actually deducted. |
+| `couponDiscount` | `preview.couponDiscountAmount` — monetary deduction attributable to the coupon alone. Zero for gift-only coupons (see [CHECKOUT.md §7a](./CHECKOUT.md#7a-gift-only-coupons-gift-style)). |
 | `couponError` | Server-provided rejection message from the last `applyCoupon` attempt (e.g. "Add $61 more to unlock SUMMER2026"); `null` after a successful apply or `removeCoupon()`. |
 | `applyCoupon(code)` | Clears `preview` and flips `previewLoading=true` before calling `previewOrderAction`. Success → sets the new `preview` and `couponCode`. Failure → sets `couponError` and re-fetches `previewOrder` without the code so the summary doesn't get stuck showing the discount-row skeleton (the `useEffect` doesn't rerun on failure because `couponCode` never changed). |
 | `removeCoupon()` | Clears `preview` and flips `previewLoading=true` before setting `couponCode=null`. The `productsKey`/`couponCode` `useEffect` then re-fetches without the coupon; the discount-row skeleton fires during recompute instead of momentarily showing the stale coupon discount. |
+| `giftItems` | `GiftCartItem[]` — free products OE appended to this order, hydrated from `preview.giftItems` via `getProductsByIdsAction` (name + image). Empty when no gift-bearing coupon is active. Not stored in Redux; the UI renders these as separate "FREE GIFT" rows alongside regular cart items. |
 
 A `useEffect` reruns `previewOrder` whenever the cart's `productsKey` or `couponCode` changes.
 
@@ -473,7 +487,7 @@ The "Recently viewed" strip on `FavoritesPage` reads `state.recentlyViewed.items
 - **`finalTotal`** — `personalDiscount > 0 || couponDiscount > 0 || preview.bonusApplied > 0 ? totalDue : total`. OE's `totalDue` overrides when OE applied a loyalty-tier discount, a coupon, **or** redeemed bonus points. Previously a shopper who burned points saw the pre-bonus subtotal on the "Place Order" button while OE charged less at order creation — a mismatch now closed. Before the first `previewOrder` response arrives (`previewLoading && !preview`), a skeleton pulse bar replaces the discount rows so the layout does not jump.
 - The Delivery step (`DeliveryPage`) has its own, structurally identical promo section backed by `DeliveryOrderSummary`. Both write to the same `couponCode` in `useCart()`, so applying the code on one page immediately reflects on the other via Redux + `sessionStorage['oe_coupon_code']`. The two inputs are **independent React state** (`promoInput`, `promoChecked`) — closing the cart page and reopening it re-reads only `couponCode`, not the last-typed raw string.
 
-**Coupon math source of truth.** Discount amounts are NOT computed client-side — the client sends `products + couponCode` to `previewOrderAction()`, and OE returns `totalSum`, `totalSumWithDiscount`, `discountConfig.coupon.applied`. `couponDiscountAmount = couponApplied ? (totalSum − totalSumWithDiscount) : 0`. There is no `(subtotal * pct / 100)` fallback in the current code path — the client never sees the coupon's percentage.
+**Coupon math source of truth.** Discount amounts are NOT computed client-side — the client sends `products + couponCode` to `previewOrderAction()`, and OE returns `totalSum`, `totalSumWithDiscount`, `discountConfig.coupon.applied`. `couponDiscountAmount = couponApplied && !couponIsGiftOnly ? (totalSum − totalSumWithDiscount) : 0`. For gift-only coupons (`discountValue: null`), `couponDiscountAmount` is forced to `0` even if OE's `discountAmount` is non-zero (because that delta belongs to the loyalty tier, not the coupon — see [CHECKOUT.md §7a](./CHECKOUT.md#7a-gift-only-coupons-gift-style)). There is no `(subtotal * pct / 100)` fallback in the current code path — the client never sees the coupon's percentage.
 
 **Guest / no-loyalty case.** When OE's `previewOrder` returns full price for a shopper whose session falls outside a discount rule's user-group (e.g. a guest where the rule is scoped to registered accounts), the line items still show the catalog/PDP sale price (`item.price` / `item.originalPrice` strike-through) and `finalTotal = activePreview.totalDue ?? total` — OE's authoritative `totalDue` with no additional client-side adjustment. The `PaymentPage.handlePlaceOrder` pre-flight guard re-runs `previewOrderAction` immediately before `createOrderAction` and surfaces a "total changed" error if OE's authoritative figure differs by more than $0.01 from what the shopper saw — catching any price or availability drift at the last possible moment. See [CHECKOUT.md §3.5a](./CHECKOUT.md#35a-pre-flight-preview-check).
 

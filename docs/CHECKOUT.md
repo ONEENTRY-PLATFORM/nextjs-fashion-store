@@ -172,7 +172,7 @@ When no strip was supplied at all (Storybook / bare unit test), a client-only `g
 
 Validated server-side via OE `previewOrder`. The Delivery page pulls `couponCode`, `couponDiscount`, `couponError`, `applyCoupon`, `removeCoupon`, and `previewLoading` from `useCart()` (see [CART_WISHLIST.md §4a](./CART_WISHLIST.md#4a-checkout-preview--coupons)). On "Apply", `applyCoupon(code)` calls `previewOrderAction` with the code — success sets `couponCode` (persisted in the cart context so subsequent `previewOrder`/`createOrder` calls include it); an `IError` response populates `couponError` with the server's message (e.g. "Add $61 more to unlock SUMMER2026").
 
-Discount math: `couponDiscount = preview.couponDiscountAmount` (whatever OE actually deducted). Not stored in Redux — the applied code lives in `CartContext` state and is included in the Delivery → Payment handoff payload.
+Discount math: `couponDiscount = preview.couponDiscountAmount` — the monetary deduction attributable to the coupon alone. This is **zero for gift-only coupons** (OE `discountValue: null`) so that loyalty-tier discounts present in the same order are not misattributed to the coupon line (see §7a). Not stored in Redux — the applied code lives in `CartContext` state and is included in the Delivery → Payment handoff payload.
 
 While a `previewOrder` is in flight and no preview is present (`previewLoading && !hasPreview`), `<DeliveryOrderSummary>` renders **skeleton** placeholders for the discount rows and the Total. `applyCoupon`/`removeCoupon` both clear `preview` and set `previewLoading=true` before firing, so the skeleton now also runs during apply/remove (and on `applyCoupon` failure the context re-fetches without the code to release the skeleton). The applied-coupon panel shows the raw code (no local label lookup).
 
@@ -370,6 +370,25 @@ type PreviewOrderResponse =
 
 `missingProductIds` is populated by parsing OE's `"Product <id> not found"` error messages via regex. An empty array (`[]`) is always present on the failure branch so callers can safely check `.length > 0` without a null guard.
 
+**`PreviewOrderResult` key fields** (the `ok: true` branch):
+
+| Field | Type | Notes |
+|---|---|---|
+| `couponApplied` | `boolean` | `true` when OE confirmed it applied the code. |
+| `couponDiscountAmount` | `number` | Monetary deduction attributable to the coupon alone. **Zero for gift-only coupons** (where OE's `discountValue` is `null`) so that any loyalty-tier discount visible in `discountAmount` is not wrongly attributed to the coupon line. |
+| `giftItems` | `PreviewGiftItem[]` | Free products OE appended to the order. Sourced from `orderPreview[]` entries where `isGift === true`. Empty when no gift-bearing discount is active. |
+
+```ts
+export interface PreviewGiftItem {
+  productId: number;
+  quantity: number;
+  /** Original catalogue price — displayed struck-through next to "FREE". */
+  price: number;
+}
+```
+
+Gift items are never merged into the local Redux cart — they are OE-owned, the shopper cannot remove or requantify them, and they disappear as soon as the triggering coupon is removed or its conditions are no longer met.
+
 The delivery-step coupon input uses a different mechanism: the shopper explicitly clicks "Apply", which awaits `CartContext.applyCoupon(code)` → `previewOrderAction`. `CartContext` has its own separate 300 ms debounce for the ambient preview refresh when the cart changes (`CartContext.tsx:291`). There is no "900 ms coupon debounce" — coupon codes are validated by OE server-side on click, not by any client timer, and the legacy `CHECKOUT_COUPONS` local dictionary has been removed (see §7).
 
 ### 3.6 SSR hydration guard
@@ -495,6 +514,16 @@ Coupons on the Delivery step are validated and priced by OneEntry via `previewOr
 
 The `/cart` promo entry (§11) uses the same OE-backed flow via `CartContext.applyCoupon`. The former local `CHECKOUT_COUPONS` mock in `src/app/data/checkoutConfig.ts` has been removed; there is no client-side coupon validation left.
 
+### 7a. Gift-only coupons ("GIFT" style)
+
+Some OE coupon discount configs award a free product rather than a price reduction (`discountValue: null` or `{ value: null }` with a non-empty `gifts[]` array). `previewOrderAction` detects this pattern after a successful `couponApplied === true` response by fetching the discount config via `Discounts.getDiscountByMarker`. When the coupon is gift-only:
+
+- `couponDiscountAmount` is set to `0` (even though OE's `discountAmount` may be non-zero because a loyalty-tier discount is also in play). This prevents the UI from rendering a "Promo (CODE) −$X" line where the dollar figure actually belongs to the shopper's loyalty tier, not the coupon.
+- `preview.giftItems` is populated from `orderPreview[]` entries with `isGift === true` — each entry carries `productId`, `quantity`, and the catalogue `price`.
+- `CartContext` enriches each gift item with `name` and `image` via `getProductsByIdsAction`, producing `GiftCartItem[]` which is exposed as `useCart().giftItems`.
+- `DeliveryOrderSummary`, `CartPage`, `MiniCart`, and `PaymentPage` all render gift items as distinct "FREE GIFT" rows: product image, name, a `FREE GIFT` badge, "Free" as the effective price, and the catalogue price struck-through next to it.
+- Because `useCart()` is a plain hook (no `Context.Provider`), each consumer gets its own independent `useState` — so `DeliveryOrderSummary` receives `giftItems` as an explicit prop from `DeliveryPage` (mirroring how `couponDiscount`, `personalDiscount`, and `finalTotal` are already passed down) rather than calling `useCart()` itself.
+
 ---
 
 ## 8. Validations
@@ -547,6 +576,7 @@ Client validation runs on the DeliveryPage "Continue to Payment" click. Server v
 - Cart items appear grouped as `RenderRow[]` — singles + bundles (bundles rendered by `CartBundleRow`).
 - `selectedIds: Set<string>` tracks which lines are ticked for checkout (currently informational; checkout still uses the whole cart).
 - Promo entry has three local UI states (`promoChecked`, `promoInput`, `promoBusy`); the applied code, discount and error live on `CartContext` (`couponCode`, `couponDiscount`, `couponError`). `handleApplyPromo()` calls `applyCoupon(promoInput)` — OE `previewOrder` validates and prices the code; `handleRemovePromo()` calls `removeCoupon()`.
+- When a gift-bearing coupon is applied, `useCart().giftItems` (a `GiftCartItem[]`) is non-empty. `CartPage` renders each gift below the regular item list as a distinct "FREE GIFT" row (image, name, badge, catalogue price struck-through, effective price "Free"). Gift rows have no qty control or remove button — they are OE-owned.
 - A local `wishlist: Set<string>` state mirrors the wishlist for the row's "heart" toggle (the actual mutation still goes through `useWishlist()`).
 - `mounted` flag suppresses the SSR pass to avoid hydration mismatch when the persisted cart differs from `[]`.
 
@@ -576,7 +606,7 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 | `src/app/components/CheckoutStepper.tsx` | Step indicator |
 | `src/app/data/checkoutConfig.ts` | Pickup stores, lockers, time slots, coupon dict, delivery perks |
 | `src/app/data/paymentMethodsConfig.ts` | Stylistic copy for payment badges |
-| `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction`, `previewOrderAction` (returns `missingProductIds` on failure). `TIER_MARKERS` (`['bronze','silver','gold','platinum']`) is now a single module-scoped `const` consumed by `fetchLoyalty`, `previewOrderAction`, and `createOrderAction` — not exported (Next.js 16 `'use server'` files reject non-async exports). |
+| `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction`, `previewOrderAction` (returns `missingProductIds` on failure). `TIER_MARKERS` (`['bronze','silver','gold','platinum']`) is now a single module-scoped `const` consumed by `fetchLoyalty`, `previewOrderAction`, and `createOrderAction` — not exported (Next.js 16 `'use server'` files reject non-async exports). Exports `PreviewGiftItem` and an extended `PreviewOrderResult` with `giftItems: PreviewGiftItem[]` and a corrected `couponDiscountAmount` (zero for gift-only coupons — see §7a). |
 | `src/app/components/CartUnavailableNotice.tsx` | Top-of-page banner that displays auto-pruned items and lets the shopper dismiss; mounted in `Providers.tsx` |
 | `src/lib/oneentry/payments/accounts.ts` | `getPaymentAccountsAction` |
 | `src/app/utils/guest-id.ts` | `getOrCreateGuestId()` |

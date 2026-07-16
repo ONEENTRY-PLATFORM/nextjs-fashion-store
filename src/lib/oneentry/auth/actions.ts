@@ -1713,6 +1713,18 @@ export interface PreviewBonusConfig {
   minOrderAmount: number | null;
 }
 
+/** Gift item OE appends to the order when a `gift`-type coupon (or gift-bearing
+ *  discount) applies. Sourced from `orderPreview[]` entries with `isGift: true`.
+ *  Rendered by the cart / checkout UI as a separate free line — never merged
+ *  into the local cart because the shopper can't remove or requantify a gift. */
+export interface PreviewGiftItem {
+  productId: number;
+  quantity: number;
+  /** Original catalogue price — displayed struck-through next to the "FREE"
+   *  badge so the shopper can see the value of what they're getting. */
+  price: number;
+}
+
 export interface PreviewOrderResult {
   ok: true;
   /** Subtotal before any discounts / bonuses (in currency units). */
@@ -1747,8 +1759,16 @@ export interface PreviewOrderResult {
    *  `null` when we can't infer a reason. */
   couponReason: string | null;
   /** How much the coupon alone knocked off (before tier fallback). Zero when
-   *  no code was passed or OE didn't apply it. */
+   *  no code was passed, OE didn't apply it, OR the coupon is gift-only
+   *  (server-side `discountValue: null`) — in that case the coupon awards a
+   *  gift instead of reducing price, and any `discountAmount > 0` belongs to
+   *  loyalty tiers, not the coupon. */
   couponDiscountAmount: number;
+  /** Free products OE appends to the order because a gift-bearing coupon (or
+   *  personal discount) applied. Empty when no gift is active. Rendered by
+   *  the cart / checkout UI as separate "FREE GIFT" lines outside the local
+   *  cart — the shopper can't remove or requantify a gift. */
+  giftItems: PreviewGiftItem[];
 }
 export type PreviewOrderResponse =
   | PreviewOrderResult
@@ -1779,7 +1799,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       totalDue: 0, discountAmount: 0, currency: input.currency ?? 'USD',
       bonus: { availableBalance: 0, maxAmount: 0, minAmount: null, minOrderAmount: null },
       couponApplied: false, couponValidButNotApplied: false,
-      couponReason: null, couponDiscountAmount: 0,
+      couponReason: null, couponDiscountAmount: 0, giftItems: [],
     };
   }
 
@@ -1841,14 +1861,33 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
     // aren't met. Distinguish so we can surface the right error message.
     const couponValidButNotApplied = input.couponCode != null
       && rawCoupon?.valid === true && rawCoupon?.applied !== true;
-    const couponDiscountAmount = couponApplied ? discountAmount : 0;
 
-    // When OE says "valid but not applied", follow up with a
-    // `getDiscountByMarker` call so we can tell the shopper WHY. Costs one
-    // extra request but only fires on the failure path (typically once when
-    // the user hits "Apply"). Skipped on success — no reason needed.
+    // Extract free-gift lines from `orderPreview[]` (each item with
+    // `isGift: true`). OE appends them to the order server-side when a
+    // gift-bearing discount/coupon applies — they are never present in the
+    // local cart, so the UI needs this array to render them as separate
+    // "FREE GIFT" rows.
+    const rawOrderPreview = Array.isArray(obj.orderPreview)
+      ? (obj.orderPreview as Array<Record<string, unknown>>)
+      : [];
+    const giftItems: PreviewGiftItem[] = rawOrderPreview
+      .filter((it) => it?.isGift === true)
+      .map((it) => ({
+        productId: Number(it.id),
+        quantity: Number(it.quantity ?? 1),
+        price: Number(it.price ?? 0),
+      }))
+      .filter((g) => Number.isFinite(g.productId) && g.productId > 0);
+
+    // Fetch the discount config when a code was passed at all — we use it for
+    //   (a) the "why didn't it apply" reason on the failure path, and
+    //   (b) detecting gift-only coupons on the success path (so we don't
+    //       misattribute the tier discount to the coupon line).
+    // One extra request per applied/rejected coupon; the app-token client is
+    // shared and OE caches the config, so the cost is negligible.
     let couponReason: string | null = null;
-    if (couponValidButNotApplied && rawCoupon?.discountIdentifier) {
+    let couponIsGiftOnly = false;
+    if ((couponValidButNotApplied || couponApplied) && rawCoupon?.discountIdentifier) {
       try {
         // Use the app-token singleton for the config lookup — for guests
         // the user-scoped call returns 403 "Permission data not found"
@@ -1862,47 +1901,67 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
             // so we survive either shape.
             conditions?: Array<{ type?: string; conditionType?: string; value?: unknown }>;
             endDate?: string | null;
+            discountValue?: { value?: number | null } | null;
+            gifts?: Array<unknown> | null;
           };
-          const codeLabel = input.couponCode ?? rawCoupon.discountIdentifier;
-          const conditions = Array.isArray(cfgObj.conditions) ? cfgObj.conditions : [];
-          // Order matters: check gates the shopper can actually resolve first.
-          for (const c of conditions) {
-            const type = String(c.conditionType ?? c.type ?? '').toUpperCase();
-            const val = c.value;
-            if (type === 'MIN_CART_AMOUNT') {
-              const min = typeof val === 'object' && val !== null
-                ? Number((val as { amount?: number }).amount ?? 0)
-                : Number(val ?? 0);
-              if (min > 0 && totalSum < min) {
-                const remaining = min - totalSum;
-                couponReason = `Add $${remaining.toFixed(2)} more to unlock ${codeLabel} (minimum $${min.toFixed(2)})`;
+          // Gift-only coupon = discount awards a gift, not a price reduction.
+          // `discountValue` is `null` (or `{ value: null/0 }`) and `gifts[]`
+          // holds the products OE will splice into the order.
+          const dv = cfgObj.discountValue;
+          const hasMonetaryValue = dv != null
+            && typeof dv.value === 'number'
+            && dv.value > 0;
+          const hasGifts = Array.isArray(cfgObj.gifts) && cfgObj.gifts.length > 0;
+          couponIsGiftOnly = couponApplied && !hasMonetaryValue && hasGifts;
+
+          if (couponValidButNotApplied) {
+            const codeLabel = input.couponCode ?? rawCoupon.discountIdentifier;
+            const conditions = Array.isArray(cfgObj.conditions) ? cfgObj.conditions : [];
+            // Order matters: check gates the shopper can actually resolve first.
+            for (const c of conditions) {
+              const type = String(c.conditionType ?? c.type ?? '').toUpperCase();
+              const val = c.value;
+              if (type === 'MIN_CART_AMOUNT') {
+                const min = typeof val === 'object' && val !== null
+                  ? Number((val as { amount?: number }).amount ?? 0)
+                  : Number(val ?? 0);
+                if (min > 0 && totalSum < min) {
+                  const remaining = min - totalSum;
+                  couponReason = `Add $${remaining.toFixed(2)} more to unlock ${codeLabel} (minimum $${min.toFixed(2)})`;
+                  break;
+                }
+              } else if (type === 'USER_LTV') {
+                const threshold = typeof val === 'object' && val !== null
+                  ? Number((val as { amount?: number }).amount ?? 0)
+                  : Number(val ?? 0);
+                if (threshold > 0) {
+                  couponReason = `${codeLabel} unlocks after $${threshold.toFixed(2)} in lifetime purchases`;
+                  break;
+                }
+              } else if (type === 'PRODUCT' || type === 'PRODUCT_IN_CART'
+                || type === 'CATEGORY' || type === 'CATEGORY_IN_CART' || type === 'ATTRIBUTE') {
+                couponReason = `${codeLabel} doesn't apply to items in your cart`;
                 break;
               }
-            } else if (type === 'USER_LTV') {
-              const threshold = typeof val === 'object' && val !== null
-                ? Number((val as { amount?: number }).amount ?? 0)
-                : Number(val ?? 0);
-              if (threshold > 0) {
-                couponReason = `${codeLabel} unlocks after $${threshold.toFixed(2)} in lifetime purchases`;
-                break;
-              }
-            } else if (type === 'PRODUCT' || type === 'PRODUCT_IN_CART'
-              || type === 'CATEGORY' || type === 'CATEGORY_IN_CART' || type === 'ATTRIBUTE') {
-              couponReason = `${codeLabel} doesn't apply to items in your cart`;
-              break;
             }
-          }
-          if (!couponReason && cfgObj.endDate) {
-            const end = new Date(cfgObj.endDate).getTime();
-            if (Number.isFinite(end) && end < Date.now()) {
-              couponReason = `${codeLabel} has expired`;
+            if (!couponReason && cfgObj.endDate) {
+              const end = new Date(cfgObj.endDate).getTime();
+              if (Number.isFinite(end) && end < Date.now()) {
+                couponReason = `${codeLabel} has expired`;
+              }
             }
           }
         }
       } catch {
-        /* config lookup failed — fall back to generic message on client */
+        /* config lookup failed — fall back to generic message on client
+         * and treat coupon as non-gift-only (safer default). */
       }
     }
+    // Gift-only coupons carry no monetary discount — any `discountAmount > 0`
+    // on the response comes from loyalty tier / other discounts. Attributing
+    // it to the coupon would mislabel the summary line ("Promo (GIFT) −$25"
+    // when the shopper actually got a Bronze tier discount).
+    const couponDiscountAmount = couponApplied && !couponIsGiftOnly ? discountAmount : 0;
 
     // Fallback: when OE returns no discount despite the shopper qualifying
     // for a personal tier (Bronze/Silver/…) we compute it ourselves from
@@ -1996,6 +2055,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       couponValidButNotApplied,
       couponReason,
       couponDiscountAmount,
+      giftItems,
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Network error', missingProductIds: [] };

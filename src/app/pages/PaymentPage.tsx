@@ -23,7 +23,7 @@ import { PaymentMethodsList } from './checkout/PaymentMethodsList';
 
 export function PaymentPage() {
   const router = useRouter();
-  const { items, discount, total, subtotal, clearCart, couponCode, preview: cartPreview, previewLoading: cartPreviewLoading } = useCart();
+  const { items, discount, total, subtotal, clearCart, couponCode, preview: cartPreview, previewLoading: cartPreviewLoading, giftItems } = useCart();
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [method, setMethod] = useState<string>('');
@@ -533,6 +533,28 @@ export function PaymentPage() {
                       <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
                       {item.originalPrice && item.originalPrice > item.price && (
                         <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {mounted && giftItems.map(gift => (
+                  <div key={`gift-${gift.productId}`} className="flex gap-3">
+                    <div className="relative flex-shrink-0 w-12 h-14">
+                      <ImageWithFallback src={gift.image} alt={gift.name} fill sizes="48px" className="object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs leading-snug font-medium">{gift.name}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
+                          Free gift
+                        </span>
+                        <span className="text-xs text-gray-400">{CLL.qtyLabel} {gift.quantity}</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Free</p>
+                      {gift.price > 0 && (
+                        <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
                       )}
                     </div>
                   </div>

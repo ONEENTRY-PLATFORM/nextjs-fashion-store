@@ -16,7 +16,7 @@ type RenderRow =
   | { kind: 'bundle'; bundleId: string; items: CartItem[] };
 
 export function MiniCart() {
-  const { items, miniCartOpen, closeMiniCart, removeItem, removeBundle, updateQuantity, subtotal, totalItems, personalDiscount, totalDue, couponCode, couponDiscount, preview, previewLoading } = useCart();
+  const { items, miniCartOpen, closeMiniCart, removeItem, removeBundle, updateQuantity, subtotal, totalItems, personalDiscount, totalDue, couponCode, couponDiscount, preview, previewLoading, giftItems } = useCart();
   // Line items already reflect the sale price (item.price) with the
   // strike-through UX; keep the summary aligned so the shopper sees the
   // same numbers here and in the catalog / PDP. OE's `totalDue` is used
@@ -210,6 +210,32 @@ export function MiniCart() {
                   </div>
                 );
               })}
+              {giftItems.map((gift) => (
+                <div key={`gift-${gift.productId}`} className="flex gap-4 px-6 py-5 border-b border-gray-100">
+                  <div className="relative flex-shrink-0 w-20 h-24">
+                    <ImageWithFallback src={gift.image} alt={gift.name} fill sizes="80px" className="object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <p className="text-sm leading-tight mb-1 font-semibold">{gift.name}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
+                          Free gift
+                        </span>
+                        <span className="text-xs text-gray-500">Qty {gift.quantity}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end mt-3">
+                      <div className="text-right">
+                        <span className="text-sm font-semibold text-green-600 uppercase tracking-wide">Free</span>
+                        {gift.price > 0 && (
+                          <span className="block text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

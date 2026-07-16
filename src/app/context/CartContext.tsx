@@ -14,6 +14,20 @@ import { previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/
 import { trackActivity } from '../utils/track-activity';
 import { getOrCreateGuestId } from '../utils/guest-id';
 
+/** Free-gift line derived from `preview.giftItems` and enriched with product
+ *  details (name, image) so the UI can render it next to regular cart rows.
+ *  Not stored in Redux — it's ephemeral and OE-owned; the shopper cannot
+ *  remove or requantify a gift, and it disappears the moment the triggering
+ *  coupon is removed or the trigger product leaves the cart. */
+export interface GiftCartItem {
+  productId: number;
+  name: string;
+  image: string;
+  /** Original catalogue price — rendered struck-through next to "FREE". */
+  price: number;
+  quantity: number;
+}
+
 export interface CartItem {
   id: string;
   name: string;
@@ -87,6 +101,11 @@ interface CartContextType {
   unavailableRemoved: CartItem[];
   /** Dismiss the availability notice — clears `unavailableRemoved`. */
   dismissUnavailableNotice: () => void;
+  /** Free gifts OE appended to the order (from `preview.giftItems`, enriched
+   *  with product name / image). Rendered in the cart & checkout summaries
+   *  as separate "FREE GIFT" rows. Empty when no gift-bearing discount is
+   *  active. */
+  giftItems: GiftCartItem[];
 }
 
 /**
@@ -495,6 +514,50 @@ export function useCart(): CartContextType {
     try { sessionStorage.removeItem(COUPON_STORAGE_KEY); } catch { /* ignore */ }
   }, []);
 
+  // Hydrate gift lines from `preview.giftItems` with real product data
+  // (name, image) so the UI can render them next to regular cart rows.
+  // Server-side we only get `{ productId, quantity, price }`; the catalog
+  // fetch fills in the rest. Falls back to a placeholder tile while pending
+  // so the "FREE GIFT" row appears immediately instead of after a round-trip.
+  const [giftDetails, setGiftDetails] = useState<Record<number, { name: string; image: string }>>({});
+  const previewGifts = preview?.giftItems ?? [];
+  const previewGiftsKey = JSON.stringify(previewGifts.map((g) => g.productId));
+  useEffect(() => {
+    if (previewGifts.length === 0) return;
+    const missing = previewGifts
+      .map((g) => g.productId)
+      .filter((id) => !giftDetails[id]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    void getProductsByIdsAction(missing).then((enriched) => {
+      if (cancelled) return;
+      setGiftDetails((prev) => {
+        const next = { ...prev };
+        for (const ui of enriched) {
+          const numeric = Number(ui.id);
+          if (!Number.isFinite(numeric)) continue;
+          next[numeric] = { name: ui.name, image: ui.image };
+        }
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+    // Depend on the id list rather than the array identity — otherwise the
+    // fresh `preview.giftItems` array on every previewOrder response would
+    // refetch even when the gift set is unchanged.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewGiftsKey]);
+  const giftItems: GiftCartItem[] = previewGifts.map((g) => {
+    const details = giftDetails[g.productId];
+    return {
+      productId: g.productId,
+      name: details?.name ?? 'Free gift',
+      image: details?.image ?? '/icons/ui/bag-placeholder.svg',
+      price: g.price,
+      quantity: g.quantity,
+    };
+  });
+
   return useMemo(() => ({
     items,
     miniCartOpen,
@@ -522,6 +585,7 @@ export function useCart(): CartContextType {
     removeCoupon,
     unavailableRemoved,
     dismissUnavailableNotice,
+    giftItems,
   }), [
     items, miniCartOpen, openMiniCart, closeMiniCart,
     addItem, addBundle, removeItem, removeBundle,
@@ -531,5 +595,6 @@ export function useCart(): CartContextType {
     couponCode, couponDiscount, couponError,
     applyCoupon, removeCoupon,
     unavailableRemoved, dismissUnavailableNotice,
+    giftItems,
   ]);
 }

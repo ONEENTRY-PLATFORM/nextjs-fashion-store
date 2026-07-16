@@ -3,7 +3,7 @@
  * Uses real product shapes matching the app's type definitions.
  */
 import type { Product } from '../app/components/ProductCard';
-import type { CartItem } from '../app/context/CartContext';
+import type { CartItem, GiftCartItem } from '../app/context/CartContext';
 
 // ─── Products ───────────────────────────────────────────────────────────────
 
@@ -187,4 +187,19 @@ export const MOCK_CART_ITEM_SALE: CartItem = {
   originalPrice: 65.0,
   image:
     'https://images.unsplash.com/photo-1765248148786-358026d6994d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+};
+
+/** Free gift appended by OE when a gift-bearing coupon is applied.
+ *  `price` is the catalogue price rendered struck-through next to "FREE".
+ *  Not stored in Redux — derived from `preview.giftItems` inside `useCart()`.
+ *  Cannot be seeded via Redux dispatch; use this fixture in Vitest unit tests
+ *  that mock `useCart` directly (see `CartUnavailableNotice.test.tsx` for the
+ *  mock pattern). */
+export const MOCK_GIFT_CART_ITEM: GiftCartItem = {
+  productId: 42,
+  name: 'Silk Hair Scrunchie',
+  image:
+    'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
+  price: 18.0,
+  quantity: 1,
 };
