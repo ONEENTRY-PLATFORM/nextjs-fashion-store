@@ -10,17 +10,19 @@ import type { PickupStore } from '../../../src/app/data/checkoutConfig';
 import { loadDeliveryMethodInfo } from '../../../src/lib/oneentry/checkout/delivery-methods';
 import { DeliveryMethodInfoProvider } from '../../../src/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { loadDeliverySchedule, buildDeliveryDates } from '../../../src/lib/oneentry/checkout/delivery-schedule';
+import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
 
 export const metadata: Metadata = SEO.checkoutDelivery;
 
 export default async function Page() {
-  const [labels, userAddresses, stores, deliveryMethodInfo, scheduleAuthed, scheduleGuest] = await Promise.all([
+  const [labels, userAddresses, stores, deliveryMethodInfo, scheduleAuthed, scheduleGuest, pageBlocks] = await Promise.all([
     loadCheckoutSystemTexts(),
     loadFormPlaceholders('user_addresses'),
     loadStores(),
     loadDeliveryMethodInfo(),
     loadDeliverySchedule('authed'),
     loadDeliverySchedule('guest'),
+    loadPageBlocksByUrl('delivery_method'),
   ]);
   // Serialise dates for hand-off to the client component — `Date` objects
   // survive the RSC boundary in Next.js 15+, but ISO strings are cheaper
@@ -59,6 +61,7 @@ export default async function Page() {
             deliveryDatesIsoGuest={deliveryDatesIsoGuest}
             deliverySlotsAuthed={scheduleAuthed.slots}
             deliverySlotsGuest={scheduleGuest.slots}
+            pageBlocks={pageBlocks}
           />
         </DeliveryMethodInfoProvider>
       </FormPlaceholdersProvider>

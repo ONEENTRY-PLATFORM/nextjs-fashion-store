@@ -22,9 +22,10 @@ How the storefront authenticates users against the OneEntry Platform. Every user
                                                 │ writes/reads
                                                 ▼
                                       httpOnly cookies (server-managed):
-                                       - oe_access   (Bearer token)
-                                       - oe_refresh  (refresh token)
-                                       - oe_user     (identifier — non-httpOnly)
+                                       - oe_access        (Bearer token)
+                                       - oe_refresh       (refresh token)
+                                       - oe_auth_provider (auth provider marker)
+                                       - oe_user          (identifier — non-httpOnly)
 ```
 
 Zero direct fetches from browser to OneEntry — everything goes through Next.js Server Actions.
@@ -55,14 +56,15 @@ The `client_secret` for the Google OAuth client lives inside the OneEntry provid
 
 ## 3. Cookies
 
-Cookie constants (`AUTH_MARKER`, `ACCESS_COOKIE`, `REFRESH_COOKIE`, `IDENTIFIER_COOKIE`), shared types (`CookieJar`, `OeAuthEntity`), and the helpers `setSessionCookies`, `clearSessionCookies`, and `readAccessOrRefresh` live in the dedicated module `src/lib/oneentry/auth/session.ts`. That module is **not** `'use server'` — this keeps `readAccessOrRefresh` off the RPC surface so the raw access token is never callable as a Next.js action. `src/lib/oneentry/auth/actions.ts` imports everything from `./session`; call-sites are identical to the pre-extraction state.
+Cookie constants (`AUTH_MARKER`, `ACCESS_COOKIE`, `REFRESH_COOKIE`, `IDENTIFIER_COOKIE`, `PROVIDER_COOKIE`), shared types (`CookieJar`, `OeAuthEntity`), and the helpers `setSessionCookies`, `clearSessionCookies`, `getAuthProviderMarker`, and `readAccessOrRefresh` live in the dedicated module `src/lib/oneentry/auth/session.ts`. That module is **not** `'use server'` — this keeps `readAccessOrRefresh` off the RPC surface so the raw access token is never callable as a Next.js action. `src/lib/oneentry/auth/actions.ts` imports everything from `./session`; call-sites are identical to the pre-extraction state.
 
 All cookies are set/cleared via the helpers in `src/lib/oneentry/auth/session.ts`, called by Server Actions in `src/lib/oneentry/auth/actions.ts`.
 
 | Cookie | Flags | Purpose |
 |---|---|---|
-| `oe_access` | httpOnly, secure, sameSite=lax | Short-lived access token — forwarded as Bearer to every authenticated OneEntry call. |
-| `oe_refresh` | httpOnly, secure, sameSite=lax | Refresh token — used by `signOutAction` to invalidate the session on the Platform side. |
+| `oe_access` | httpOnly, secure, sameSite=lax | Short-lived access token (24 h) — forwarded as Bearer to every authenticated OneEntry call. |
+| `oe_refresh` | httpOnly, secure, sameSite=lax | Refresh token (7 d) — used by `readAccessOrRefresh` to silently rotate `oe_access`, and by `signOutAction` to invalidate the session on the Platform side. |
+| `oe_auth_provider` | httpOnly, secure, sameSite=lax | The OneEntry auth-provider marker that issued the session (`'email'`, `'google'`, …). Read by `getAuthProviderMarker()` so that `AuthProvider.refresh` and `AuthProvider.logout` are called with the correct marker. Without this, Google-issued sessions failed refresh (OE rejected the call when the marker was hardcoded to `'email'`). |
 | `oe_user` | secure, sameSite=lax (readable) | User identifier — the client reads it (via cookie header on RSC) to render "Logged in as X" without waiting for `/me`. |
 
 Tokens are **never** written to `localStorage`, Redux persisted state, or `sessionStorage`. Redux `userSlice` still declares `authToken` / `refreshToken` fields on `state.user.data` (both `null` initially; `setAuth` writes empty strings after successful sign-in) — legacy from an older client-side auth model, retained so components that read from selectors don't crash but no longer used on the live path.
@@ -78,7 +80,7 @@ Tokens are **never** written to `localStorage`, Redux persisted state, or `sessi
 3. Inside the action:
    - `getApi().AuthProvider.auth('email', { authData: [{marker:'login',value},{marker:'password',value}] })`.
    - On success, response contains `accessToken`, `refreshToken`, `userIdentifier`.
-   - Server sets the three cookies.
+   - Server sets the four cookies (`oe_access`, `oe_refresh`, `oe_auth_provider` with marker `'email'`, `oe_user`).
    - Server issues `getCurrentUserAction()` internally and returns `{ok:true, user, userIdentifier}` to the client.
 4. `AuthContext` sets `isLoggedIn = true`, closes the modal, dispatches `setAuth({userIdentifier})` to `userSlice` (accessToken / refreshToken kept empty).
 
@@ -97,10 +99,11 @@ The Google integration is a **standard OAuth 2.0 authorization-code flow** — n
    - Builds the authorize URL with `client_id=NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `redirect_uri=${origin}/auth/callback/google`, `response_type=code`, `scope=openid email profile`, and a CSRF `state`.
    - Sets two httpOnly cookies: `oe_google_state` (CSRF token — must match on callback) and `oe_google_return_to` (the `returnTo` path).
 4. Google shows its account chooser / consent screen, then redirects to `GET /auth/callback/google?code=…&state=…` (route handler at `app/auth/callback/google/route.ts`).
+   The handler first calls `externalOrigin(request)` to reconstruct the externally-visible origin. Behind a reverse proxy (e.g. OE cloud hosting), `new URL(request.url).origin` returns the container-internal address (`http://localhost:3000`) because Node.js only sees the internal socket — not the public host the browser hit. `externalOrigin` reads `x-forwarded-host` (falling back to `host`) for the hostname. The scheme is determined purely by a **loopback check on the host value** — `x-forwarded-proto` is **not consulted**: `localhost`, `127.0.0.1`, and `[::1]` (with an optional port) use `http`; every other host unconditionally uses `https`. This avoids a class of bug observed on OE cloud hosting where the reverse proxy forwards `x-forwarded-proto: http` (the literal container-internal scheme, not the public-facing TLS scheme) — trusting that header produced `redirect_uri = http://nextjs-fashion-store.oneentry.cloud/auth/callback/google` at code-exchange time, which did not match the `https://…` used at Google authorization time, causing Google to reject the exchange and OE to surface "We couldn't pass the oauth authentication with provided data". In local dev there are no forwarded headers, so `request.headers.get('host')` is `localhost` and `http` is preserved — behaviour is unchanged. Passing the wrong origin as `redirect_uri` at code-exchange time causes Google to reject the exchange ("redirect_uri mismatch") and failure redirects to land on `http://localhost:3000/` instead of the real app URL.
 5. The route handler calls `exchangeGoogleCodeAction({code, state, origin})`, which:
    - Verifies `state` matches the `oe_google_state` cookie (rejects on mismatch).
    - Calls `getApi().AuthProvider.oauth('google', { code, redirect_uri: `${origin}/auth/callback/google` })`. OneEntry performs the server-to-Google code exchange using the `client_secret` from its provider config, then resolves / creates the user.
-   - On success writes `oe_access` / `oe_refresh` / `oe_user`, clears the two Google cookies, and returns `{ok:true, user, userIdentifier, returnTo}`.
+   - On success writes `oe_access` / `oe_refresh` / `oe_auth_provider` (marker `'google'`) / `oe_user`, clears the two Google cookies, and returns `{ok:true, user, userIdentifier, returnTo}`.
 6. The route handler `redirect()`s to `returnTo` on success, or to `/?googleAuthError=<code>` on failure. `AuthContext` re-bootstraps `/me` on the next mount and the user is signed in.
 
 Because the browser navigates away, `AuthContext.startGoogleOAuth` does not return a result — the login modal never sees the outcome. Error surfacing happens on the landing page via the `?googleAuthError=` query param.
@@ -213,7 +216,7 @@ Each returns `{ok, error?}`; the `sync*` variants are fire-and-forget.
 3. Dispatches `cartActions.clearCart()`, `wishlistActions.clearAll()`, and `recentlyViewedActions.hydrate([])` to wipe in-memory state immediately.
 4. Clears `oe_cart_merged`, `oe_wishlist_merged`, `oe_checkout_payload`, `oe_coupon_code`, and `oe_last_order_id` from `sessionStorage` so a subsequent user-B sign-in on the same browser starts with a clean state and does not inherit user-A's cart, wishlist, or checkout data.
 5. Calls `clearGuestId()` (`src/app/utils/guest-id.ts`) to remove `oe_guest_id` from `localStorage`. This ensures that any post-logout anonymous activity mints a fresh guest fingerprint rather than being aggregated under the previous authenticated user's identifier.
-6. Fires `signOutAction()` in the background — the action reads `oe_refresh`, calls `getApi().AuthProvider.logout(refreshToken)`, then clears all three cookies.
+6. Fires `signOutAction()` in the background — the action reads `oe_refresh` and `oe_auth_provider` (via `getAuthProviderMarker`), calls `getApi().AuthProvider.logout(providerMarker, refreshToken)`, then clears all four cookies (including `oe_auth_provider`).
 7. No redirect. The Header re-renders with the sign-in prompt.
 
 Logout is optimistic on purpose: even if the Platform is unreachable, the user is logged out locally and the cookies are best-effort cleared. The in-memory + `sessionStorage` wipe in steps 3–4 is the primary cross-user data-leakage guard — without it, user B signing in after user A would inherit A's cart / wishlist / recently-viewed via `localStorage 'oe_store'` and the sync effects would push them into B's OE account. Step 5 closes a separate gap: without the `oe_guest_id` reset, OneEntry would attribute the signed-out shopper's guest activity to the same visitor as the previously logged-in user.
@@ -279,7 +282,7 @@ Server Actions themselves enforce auth via the `oe_access` cookie — anonymous 
 | Missing env vars at server boot | `getApi()` throws `'OneEntry SDK is not configured'`. Every auth action fails immediately. |
 | `oe_access` expired | Any authenticated Server Action returns `{ok:false, error:'unauthenticated'}`. `AuthContext` shows the sign-in prompt on next mount. |
 
-**Token refresh for mutations — `readAccessOrRefresh`.** All mutation-side Server Actions call `readAccessOrRefresh()` (from `src/lib/oneentry/auth/session.ts`) instead of the bare `readAccessFromCookies()`. `readAccessOrRefresh` reads the `oe_access` cookie and, when it is absent or expired, calls `AuthProvider.refresh(refreshToken)` transparently and re-writes fresh `oe_access` / `oe_refresh` cookies before returning the new token. Without this, 24 hours after login every mutation silently fell into the guest branch — `createOrderAction` would post to the `checkout_home_delivery_guest` form while the client-side UI still showed the user as authenticated. Read-only loaders (product fetches, label loads, etc.) continue to use `readAccessFromCookies()` unchanged.
+**Token refresh for mutations — `readAccessOrRefresh`.** All mutation-side Server Actions call `readAccessOrRefresh()` (from `src/lib/oneentry/auth/session.ts`) instead of the bare `readAccessFromCookies()`. `readAccessOrRefresh` reads the `oe_access` cookie and, when it is absent or expired, reads `oe_auth_provider` via `getAuthProviderMarker()` and calls `AuthProvider.refresh(providerMarker, refreshToken)` transparently, then re-writes fresh `oe_access` / `oe_refresh` / `oe_auth_provider` cookies before returning the new token. Using the correct provider marker is critical: passing `'email'` for a Google-issued refresh token causes OneEntry to reject the refresh, silently clearing the session. Without `readAccessOrRefresh`, 24 hours after login every mutation silently fell into the guest branch — `createOrderAction` would post to the `checkout_home_delivery_guest` form while the client-side UI still showed the user as authenticated. Read-only loaders (product fetches, label loads, etc.) continue to use `readAccessFromCookies()` unchanged.
 
 Coverage of `readAccessOrRefresh` spans four files:
 

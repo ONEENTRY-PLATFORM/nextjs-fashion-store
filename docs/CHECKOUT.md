@@ -19,6 +19,18 @@ Each `app/checkout/<step>/page.tsx` is a thin route shell that re-exports SEO me
 - `src/app/pages/PaymentPage.tsx` — loads payment accounts from OneEntry, submits `createOrderAction`, redirects to Stripe if needed
 - `src/app/pages/ConfirmationPage.tsx` — receipt view + `clearCart()` on mount
 
+**OE page-block wiring for checkout routes.** The cart and the first two checkout steps load CMS-attached blocks from OneEntry and render them via `<PageBlocksRenderer>` after the main content, immediately before `<Footer>`:
+
+| Next.js route | `loadPageBlocksByUrl(pageUrl)` call | Page component prop |
+|---|---|---|
+| `app/cart/page.tsx` | `'cart'` | `<CartPage pageBlocks={pageBlocks} />` |
+| `app/checkout/delivery/page.tsx` | `'delivery_method'` (OE marker — not the route path) | `<DeliveryPage pageBlocks={pageBlocks} />` |
+| `app/checkout/payment/page.tsx` | `'payment'` | `<PaymentPage pageBlocks={pageBlocks} />` |
+
+`app/checkout/confirmation/page.tsx` is not wired — the OE `confirmation` page currently has no attached blocks.
+
+`CartPage`, `DeliveryPage`, and `PaymentPage` each declare an optional `pageBlocks?: PageBlock[]` prop (declared in their respective `*Props` interface) and render `<PageBlocksRenderer blocks={pageBlocks} />` at the bottom of their JSX, after all primary UI. This placement matches the convention established for catalog, `/sale`, `/new`, `/stores`, `/favorites`, and info-page routes.
+
 Two client-side handoff channels move state between steps:
 
 - `sessionStorage['oe_checkout_payload']` — Delivery → Payment (JSON of address / delivery method / date / slot / coupon / guest contact).

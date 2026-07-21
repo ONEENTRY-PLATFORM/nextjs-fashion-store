@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { CheckoutStepper } from '../components/CheckoutStepper';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
 import { useCart } from '../context/CartContext';
 
 // Render Order Summary client-only — its content reads from the Redux cart
@@ -69,6 +70,8 @@ interface DeliveryPageProps {
   deliverySlotsAuthed?: DeliveryTimeSlot[];
   /** Slots from `checkout_home_delivery_guest.delivery_slot_guest`. */
   deliverySlotsGuest?: DeliveryTimeSlot[];
+  /** OE-attached blocks for the `delivery_method` page. */
+  pageBlocks?: import('../../lib/oneentry/blocks/page-blocks').PageBlock[];
 }
 
 export function DeliveryPage({
@@ -77,6 +80,7 @@ export function DeliveryPage({
   deliveryDatesIsoGuest,
   deliverySlotsAuthed,
   deliverySlotsGuest,
+  pageBlocks,
 }: DeliveryPageProps = {}) {
   const router = useRouter();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
@@ -413,6 +417,12 @@ export function DeliveryPage({
           />
         </div>
       </main>
+
+      {/* OE-attached blocks for the `delivery_method` page — rendered
+          below the form, before the footer. */}
+      {pageBlocks && pageBlocks.length > 0 && (
+        <PageBlocksRenderer blocks={pageBlocks} />
+      )}
 
       <Footer />
     </div>

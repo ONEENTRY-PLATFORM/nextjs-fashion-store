@@ -6,6 +6,8 @@ import { loadNewArrivalsPageSystemTexts } from '../../src/lib/oneentry/labels/ne
 import { NewArrivalsPageLabelsProvider } from '../../src/lib/oneentry/labels/NewArrivalsPageLabelsContext';
 import { loadProducts } from '../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToUiProduct, newArrivalCategoryFor } from '../../src/lib/oneentry/catalog/adapt';
+import { loadPageBlocksByUrl } from '../../src/lib/oneentry/blocks/page-blocks';
+import { loadNewArrivalsPage } from '../../src/lib/oneentry/catalog/new-arrivals-page';
 
 export const metadata: Metadata = SEO.newArrivals;
 
@@ -26,9 +28,15 @@ export default async function Page({ searchParams }: Props) {
   const { gender } = await searchParams;
   const genderFilter: 'W' | 'M' | null =
     gender === 'men' ? 'M' : gender === 'women' ? 'W' : null;
-  const [labels, products] = await Promise.all([
+  const [labels, products, cmsPage, pageBlocks] = await Promise.all([
     loadNewArrivalsPageSystemTexts(),
     loadProducts({ tags: ['New'], limit: 200 }),
+    // Page-level attributes (top hero + footer editorial). Cached 60s so
+    // admin edits surface without redeploy.
+    loadNewArrivalsPage(),
+    // OE-attached blocks for the `new` page. Empty when admin hasn't attached
+    // anything — safe fallback, nothing renders.
+    loadPageBlocksByUrl('new'),
   ]);
   // Scope to the currently active gender (from `?gender=` in the header).
   // Prefer the OE `gender` attribute when set; fall back to the OE category
@@ -53,7 +61,7 @@ export default async function Page({ searchParams }: Props) {
     <>
       <JsonLd data={breadcrumb} />
       <NewArrivalsPageLabelsProvider data={labels}>
-        <NewArrivalsPage initialProducts={initialProducts} />
+        <NewArrivalsPage initialProducts={initialProducts} pageBlocks={pageBlocks} cmsPage={cmsPage} />
       </NewArrivalsPageLabelsProvider>
     </>
   );

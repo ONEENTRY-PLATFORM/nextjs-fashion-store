@@ -42,6 +42,9 @@ export interface ShoesCatalogProps {
   /** Parsed filters object (from URL `searchParams`). */
   currentFilters?: CatalogFilters;
   trendingBlock?: PageBlock | null;
+  /** All OE-attached page blocks (`Pages.getBlocksByPageUrl`). Forwarded
+   *  to CatalogTemplate → PageBlocksRenderer. */
+  pageBlocks?: PageBlock[];
   /** Override catalog title (default: "SHOES") */
   catalogTitle?: string;
   /** Override breadcrumb category label (default: "Shoes") */
@@ -63,6 +66,7 @@ export function ShoesCatalog({
   currentPage,
   currentFilters,
   trendingBlock,
+  pageBlocks,
   catalogTitle = CL.shoes,
   breadcrumbCategory = CL.breadcrumbShoes,
 }: ShoesCatalogProps) {
@@ -88,6 +92,7 @@ export function ShoesCatalog({
       currentPage={currentPage}
       currentFilters={currentFilters}
       trendingBlock={trendingBlock}
+      pageBlocks={pageBlocks}
       productsPerPage={productsPerPage}
       breadcrumbs={breadcrumbs}
       priceMax={priceMax}

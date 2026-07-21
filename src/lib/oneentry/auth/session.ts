@@ -18,6 +18,12 @@ export const AUTH_MARKER = 'email';
 export const ACCESS_COOKIE = 'oe_access';
 export const REFRESH_COOKIE = 'oe_refresh';
 export const IDENTIFIER_COOKIE = 'oe_user';
+// Remembers which OE auth provider issued the current session ('email',
+// 'google', …). `AuthProvider.refresh` and `AuthProvider.logout` require
+// the same marker that minted the token — using the wrong marker (e.g.
+// hard-coded 'email' for a Google-issued refresh token) makes OE reject
+// the call and silently logs the shopper out on the next token refresh.
+export const PROVIDER_COOKIE = 'oe_auth_provider';
 
 export interface OeAuthEntity {
   userIdentifier: string;
@@ -32,7 +38,11 @@ export interface CookieJar {
   get(name: string): { value: string } | undefined;
 }
 
-export async function setSessionCookies(jar: CookieJar, entity: OeAuthEntity): Promise<void> {
+export async function setSessionCookies(
+  jar: CookieJar,
+  entity: OeAuthEntity,
+  providerMarker: string = AUTH_MARKER,
+): Promise<void> {
   const baseOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -41,6 +51,7 @@ export async function setSessionCookies(jar: CookieJar, entity: OeAuthEntity): P
   };
   jar.set(ACCESS_COOKIE, entity.accessToken, { ...baseOpts, maxAge: 60 * 60 * 24 });
   jar.set(REFRESH_COOKIE, entity.refreshToken, { ...baseOpts, maxAge: 60 * 60 * 24 * 7 });
+  jar.set(PROVIDER_COOKIE, providerMarker, { ...baseOpts, maxAge: 60 * 60 * 24 * 7 });
   jar.set(IDENTIFIER_COOKIE, entity.userIdentifier, {
     ...baseOpts,
     httpOnly: false,
@@ -51,7 +62,12 @@ export async function setSessionCookies(jar: CookieJar, entity: OeAuthEntity): P
 export async function clearSessionCookies(jar: CookieJar): Promise<void> {
   jar.delete(ACCESS_COOKIE);
   jar.delete(REFRESH_COOKIE);
+  jar.delete(PROVIDER_COOKIE);
   jar.delete(IDENTIFIER_COOKIE);
+}
+
+export function getAuthProviderMarker(jar: CookieJar): string {
+  return jar.get(PROVIDER_COOKIE)?.value || AUTH_MARKER;
 }
 
 /**
@@ -72,13 +88,14 @@ export async function readAccessOrRefresh(): Promise<string | null> {
   if (access) return access;
   const refresh = jar.get(REFRESH_COOKIE)?.value ?? null;
   if (!refresh || !oneentry) return null;
+  const providerMarker = getAuthProviderMarker(jar);
   try {
-    const refreshed = await oneentry.AuthProvider.refresh(AUTH_MARKER, refresh);
+    const refreshed = await oneentry.AuthProvider.refresh(providerMarker, refresh);
     if (isError(refreshed)) {
       await clearSessionCookies(jar);
       return null;
     }
-    await setSessionCookies(jar, refreshed);
+    await setSessionCookies(jar, refreshed, providerMarker);
     return refreshed.accessToken ?? null;
   } catch {
     await clearSessionCookies(jar);

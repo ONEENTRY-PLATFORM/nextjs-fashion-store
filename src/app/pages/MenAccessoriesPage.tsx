@@ -14,6 +14,7 @@ export function MenAccessoriesPage({
   currentPage,
   total,
   trendingBlock,
+  pageBlocks,
 }: {
   initialProducts?: Product[];
   initialFilterGroups?: FilterGroup[];
@@ -23,9 +24,11 @@ export function MenAccessoriesPage({
   currentPage?: number;
   total?: number;
   trendingBlock?: PageBlock | null;
+  pageBlocks?: PageBlock[];
 } = {}) {
   return (
     <AccessoriesCatalog
+      pageBlocks={pageBlocks}
       catalogKey="men-accessories"
       gender="men"
       accentColor={ACCENT}

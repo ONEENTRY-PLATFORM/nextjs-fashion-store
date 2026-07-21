@@ -4363,10 +4363,10 @@ obug@^2.1.1:
   resolved "https://registry.npmjs.org/obug/-/obug-2.1.1.tgz"
   integrity sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==
 
-oneentry@^1.0.154:
-  version "1.0.154"
-  resolved "https://registry.npmjs.org/oneentry/-/oneentry-1.0.154.tgz"
-  integrity sha512-56o0cOLDYQIEBe8q96Cf47zTP1EAc0ljBKesVFnvbhaYz45sMamFgFCNHWSrzf3kTjE+fvw9cUb3i3NMWYaIjA==
+oneentry@^1.0.156:
+  version "1.0.156"
+  resolved "https://registry.npmjs.org/oneentry/-/oneentry-1.0.156.tgz"
+  integrity sha512-Ny0OWWKtz2ZIZ9r7oJoEEcC6ISyFhT/0cySqAIb627z4l1Y1azJ6oWOjqbYvj6mFunYP4Q5iwsHyXrBAhCtvqQ==
   dependencies:
     socket.io-client "^4.8.3"
     zod "^4.3.6"

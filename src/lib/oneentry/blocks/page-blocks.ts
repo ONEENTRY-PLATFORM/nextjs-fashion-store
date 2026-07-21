@@ -9,8 +9,10 @@ import { DEFAULT_LOCALE } from '../locale';
 import { REVALIDATE_HOME } from '../../isr';
 
 /** Block descriptor returned by `loadPageBlocks`. Generic enough that the
- *  consumer (HomePage) can switch on `type` + `marker` to pick the right
- *  storefront component. */
+ *  consumer (HomePage / PageBlocksRenderer) can switch on `type` + `marker`
+ *  to pick the right storefront component AND drive content from
+ *  `attributeValues` for admin-created blocks that don't match a hardcoded
+ *  marker in the renderer. */
 export interface PageBlock {
   marker: string;
   type: string;
@@ -20,12 +22,24 @@ export interface PageBlock {
   /** For product-list blocks (`trending_block`, `similar_products_block`,
    *  `product_block`) the resolved products. Empty array otherwise. */
   products: Product[];
+  /** Raw `attributeValues` from OE — passed through so generic type-based
+   *  renderers can extract image / eyebrow / subtitle / description / CTA
+   *  / href without hardcoding the marker. Shape is admin-defined
+   *  (per `attributeSetIdentifier`), so the renderer reads heuristically. */
+  attributeValues?: Record<string, unknown>;
+  /** For `slider_block` type — raw slides array from `Blocks.getSlides(marker)`,
+   *  each carrying its own `attributeValues`. Empty/undefined otherwise. */
+  slides?: Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
 }
 
 const PRODUCT_BLOCK_TYPES = new Set([
   'trending_block',
   'similar_products_block',
   'product_block',
+  // `cart_complement_block` is deliberately NOT here — resolution requires
+  // the caller's OE session (user access token or guest `x-guest-id`), which
+  // the shared server singleton doesn't carry. The renderer resolves it
+  // client-side via `<CartComplementBlockSlot>` + `loadCartComplementProductsAction`.
 ]);
 
 /**
@@ -49,6 +63,7 @@ const getCachedBlock = unstable_cache(
       localizeInfos?: { title?: string } & Record<string, { title?: string } | undefined>;
       similarProducts?: { items?: Array<{ id?: number }> };
       products?: Array<{ id?: number }>;
+      attributeValues?: Record<string, unknown>;
     };
   },
   ['oe-block-by-marker'],
@@ -59,6 +74,22 @@ const getCachedBlock = unstable_cache(
 // list through its dedicated `getTrending` endpoint that reads user-activity
 // (product_view / product_add_to_cart / product_purchase) over the block's
 // configured period.
+// `slider_block` type carries its content as a separate slides tree, not
+// inline on the block itself. `Blocks.getSlides` returns each slide with
+// its own `attributeValues` — the generic renderer walks those.
+const getCachedSlides = unstable_cache(
+  async (marker: string) => {
+    const result = await getApi().Blocks.getSlides(marker);
+    if (isError(result)) return [] as Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
+    const arr = Array.isArray(result)
+      ? result
+      : (result as unknown as { items?: Array<{ id?: number; attributeValues?: Record<string, unknown> }> })?.items ?? [];
+    return arr;
+  },
+  ['oe-block-slides'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+);
+
 const getCachedTrending = unstable_cache(
   async (marker: string, lang: string) => {
     const result = await getApi().Blocks.getTrending(marker, lang);
@@ -215,7 +246,14 @@ async function _loadBlockWithProducts(
     }
   }
 
-  return { marker, type, title, position, products };
+  // Slider blocks carry their content as a separate tree — fetch alongside
+  // the block metadata so `<GenericSliderBlock>` doesn't need a follow-up
+  // round-trip on the client.
+  const slides = type === 'slider_block'
+    ? await getCachedSlides(marker)
+    : undefined;
+
+  return { marker, type, title, position, products, attributeValues: block.attributeValues, slides };
 }
 
 /** Marker → product `label` used as the fallback tag when OE's similarity
@@ -279,6 +317,78 @@ export const loadPageBlocksById = withTiming('loadPageBlocksById', cache(
 export const HOME_PAGE_ID = 1;
 
 /**
+ * Fetch the blocks attached to a page identified by `pageUrl` (the OE
+ * pageUrl marker, NOT a Next.js route path — e.g. `women_clothing`, not
+ * `/women/clothing`). Mirrors `loadPageBlocksById` but avoids one extra
+ * round-trip: OE's `getBlocksByPageUrl` returns the block list directly.
+ * Each block is then normalized via `loadBlockWithProducts` so product
+ * lists are resolved for product-typed blocks.
+ */
+const getCachedBlocksByPageUrl = unstable_cache(
+  async (pageUrl: string, lang: string) => {
+    const result = await getApi().Pages.getBlocksByPageUrl(pageUrl, lang);
+    if (isError(result)) return [];
+    return (result as unknown as Array<{ identifier?: string; position?: number }>).slice();
+  },
+  ['oe-page-blocks-by-url'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-page', 'oe-block'] },
+);
+
+export const loadPageBlocksByUrl = withTiming('loadPageBlocksByUrl', cache(
+  async (pageUrl: string, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+    if (!isOneEntryEnabled) return [];
+    if (!pageUrl || typeof pageUrl !== 'string') return [];
+    const raw = await getCachedBlocksByPageUrl(pageUrl, lang);
+    if (raw.length === 0) return [];
+    const markers = raw
+      .map((b) => (typeof b.identifier === 'string' ? b.identifier.trim() : ''))
+      .filter((m): m is string => m.length > 0);
+    if (markers.length === 0) return [];
+    const blocks = await Promise.all(
+      markers.map((m) => loadBlockWithProducts(m, { lang })),
+    );
+    return blocks
+      .filter((b): b is PageBlock => b !== null)
+      .sort((a, b) => a.position - b.position || markers.indexOf(a.marker) - markers.indexOf(b.marker));
+  },
+));
+
+/**
+ * Fetch the blocks attached to a specific product entity in OE (e.g. a
+ * curated "matching accessories" block that only shows on this product's
+ * PDP). Returned block descriptors carry the same shape as page blocks so
+ * `<PageBlocksRenderer>` can render them uniformly.
+ */
+const getCachedProductBlocks = unstable_cache(
+  async (productId: number) => {
+    const result = await getApi().Products.getProductBlockById(productId);
+    if (isError(result)) return [];
+    return (result as unknown as Array<{ identifier?: string; position?: number }>).slice();
+  },
+  ['oe-product-blocks'],
+  { revalidate: REVALIDATE_HOME, tags: ['oe-product', 'oe-block'] },
+);
+
+export const loadProductBlocks = withTiming('loadProductBlocks', cache(
+  async (productId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+    if (!isOneEntryEnabled) return [];
+    if (!Number.isFinite(productId) || productId <= 0) return [];
+    const raw = await getCachedProductBlocks(productId);
+    if (raw.length === 0) return [];
+    const markers = raw
+      .map((b) => (typeof b.identifier === 'string' ? b.identifier.trim() : ''))
+      .filter((m): m is string => m.length > 0);
+    if (markers.length === 0) return [];
+    const blocks = await Promise.all(
+      markers.map((m) => loadBlockWithProducts(m, { lang })),
+    );
+    return blocks
+      .filter((b): b is PageBlock => b !== null)
+      .sort((a, b) => a.position - b.position || markers.indexOf(a.marker) - markers.indexOf(b.marker));
+  },
+));
+
+/**
  * Resolve a `frequently_ordered_block` for a specific product. OE aggregates
  * cross-purchase stats from real orders and returns products commonly bought
  * together with `productId`. No similarProductRules involved — the result is
@@ -326,5 +436,5 @@ async function _loadFrequentlyOrderedBlock(
     const { items } = await loadProducts({ ids, limit: ids.length });
     products = items.map(adaptCatalogProductToUiProduct);
   }
-  return { marker, type, title, position, products };
+  return { marker, type, title, position, products, attributeValues: block?.attributeValues };
 }

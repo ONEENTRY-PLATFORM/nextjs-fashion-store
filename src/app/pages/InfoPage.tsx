@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { ChevronRight, Edit3, LayoutTemplate, Globe, Zap } from 'lucide-react';
 import {
   INFO_PAGE_LABELS as IPL,
@@ -25,7 +27,7 @@ const ICON_MAP = {
 const FEATURE_CARDS = INFO_PAGE_FEATURE_CARDS.map(c => ({ ...c, icon: ICON_MAP[c.iconKey] }));
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
-export function InfoPage() {
+export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const router = useRouter();
 
   return (
@@ -191,6 +193,11 @@ export function InfoPage() {
           </a>
         </div>
       </section>
+
+      {/* OE-attached page blocks — rendered at the bottom, below the CTA. */}
+      {pageBlocks && pageBlocks.length > 0 && (
+        <PageBlocksRenderer blocks={pageBlocks} />
+      )}
 
       <Footer />
     </>

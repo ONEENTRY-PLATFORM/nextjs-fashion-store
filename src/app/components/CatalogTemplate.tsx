@@ -19,6 +19,7 @@ import { CatalogListProductCard } from './CatalogListProductCard';
 import { CatalogCrossSell } from './CatalogCrossSell';
 import { NewArrivals } from './NewArrivals';
 import { CatalogMobileSort } from './CatalogMobileSort';
+import { PageBlocksRenderer } from './PageBlocksRenderer';
 import { COMMON_EMPTY_STATES, CATALOG_PAGINATION_LABELS, CATALOG_VIEW_LABELS as CVL } from '../data/commonLabels';
 import { CURRENCY } from '../data/currencyConfig';
 import { ColorSwatch } from './ColorSwatch';
@@ -56,6 +57,7 @@ export function CatalogTemplate({
   currentFilters: currentFiltersProp,
   productsPerPage: PRODUCTS_PER_PAGE = 16,
   trendingBlock,
+  pageBlocks,
   breadcrumbs,
   priceMax = 600,
   priceDefault,
@@ -789,6 +791,14 @@ export function CatalogTemplate({
         {/* ══ Trend Blocks (optional) ══ */}
         {trendingBlock && trendingBlock.products.length > 0 && (
           <NewArrivals products={trendingBlock.products} title={trendingBlock.title} />
+        )}
+
+        {/* OE-attached page blocks (admin-ordered by `position`). Rendered
+            at the bottom of the catalog UI — think of them as content the
+            admin drops in below the grid rather than a hero. When no blocks
+            are attached, `<PageBlocksRenderer>` collapses to nothing. */}
+        {pageBlocks && pageBlocks.length > 0 && (
+          <PageBlocksRenderer blocks={pageBlocks} />
         )}
       </main>
 

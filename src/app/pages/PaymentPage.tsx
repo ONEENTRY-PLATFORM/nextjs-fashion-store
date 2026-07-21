@@ -20,8 +20,10 @@ import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '../../lib/oneentry/payments/accounts';
 import { extractCmsProductId } from '../data/cms-product-id-map';
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
-export function PaymentPage() {
+export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const router = useRouter();
   const { items, discount, total, subtotal, clearCart, couponCode, preview: cartPreview, previewLoading: cartPreviewLoading, giftItems } = useCart();
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
@@ -651,6 +653,12 @@ export function PaymentPage() {
           </div>
         </div>
       </main>
+
+      {/* OE-attached blocks for the `payment` page — rendered below the
+          payment form. Empty → nothing renders. */}
+      {pageBlocks && pageBlocks.length > 0 && (
+        <PageBlocksRenderer blocks={pageBlocks} />
+      )}
 
       <Footer />
     </div>

@@ -19,7 +19,7 @@ import { resolveSeasonalTrend, applySeasonalTrend } from '../../src/lib/oneentry
 import type { Product } from '../../src/app/components/ProductCard';
 import { loadCatalogFilter, type ClothingFilterGroup } from '../../src/lib/oneentry/blocks/clothing-filter';
 import { loadFilterChips, chipToFilterPatch } from '../../src/lib/oneentry/blocks/filter-chips';
-import { loadBlockWithProducts, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';
+import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';
 
 /* ─── Catalog page components (dataset configs) ─── */
 import { WomenCatalogPage }     from '../../src/app/pages/WomenCatalogPage';
@@ -42,6 +42,7 @@ type CatalogProps = {
   currentPage?: number;
   total?: number;
   trendingBlock?: PageBlock | null;
+  pageBlocks?: PageBlock[];
 };
 const CATALOG_COMPONENTS: Record<string, React.ComponentType<CatalogProps>> = {
   'women-clothing':     WomenCatalogPage,
@@ -318,6 +319,19 @@ export default async function Page({ params, searchParams }: Props) {
         products: fallbackProducts,
       };
     }
+
+    // OE-attached page blocks for this catalog. The tenant's pageUrl mirrors
+    // `catalogKey` with hyphens swapped for underscores (`women-clothing` →
+    // `women_clothing`) — same convention already used for filter markers.
+    // Empty when admin hasn't attached any blocks to the catalog page in OE.
+    // Filter out `catalog_trend_blocks` because it is already loaded and
+    // rendered separately via `trendingBlock` above (with a gender-scoped
+    // fallback the generic loader doesn't do). Rendering it in both places
+    // would double the "We Think You'll Love" carousel.
+    const pageBlocksUrl = entry.catalogKey.replace(/-/g, '_');
+    const pageBlocks = (await loadPageBlocksByUrl(pageBlocksUrl))
+      .filter(b => b.marker !== 'catalog_trend_blocks');
+
     return (
       <>
         <JsonLd data={breadcrumb} />
@@ -331,6 +345,7 @@ export default async function Page({ params, searchParams }: Props) {
           currentPage={currentPage}
           total={total}
           trendingBlock={trendingBlock}
+          pageBlocks={pageBlocks}
         />
       </>
     );
@@ -348,11 +363,16 @@ export default async function Page({ params, searchParams }: Props) {
         : [{ name: INFO_PAGE_SCHEMA.breadcrumbHome, href: '/' }, { name: pageTitle }]
     );
 
+    // OE-attached blocks for the info page. `entry.slug` matches the OE
+    // pageUrl marker (e.g. 'about-us', 'faq', 'contact'). Hub landing has
+    // no OE page — skip loading and pass empty.
+    const infoPageBlocks = isHub ? [] : await loadPageBlocksByUrl(entry.slug);
+
     return (
       <>
         <JsonLd data={breadcrumbSchema} />
         {entry.slug === 'faq' && <JsonLd data={faqSchema} />}
-        <InfoPage />
+        <InfoPage pageBlocks={infoPageBlocks} />
       </>
     );
   }

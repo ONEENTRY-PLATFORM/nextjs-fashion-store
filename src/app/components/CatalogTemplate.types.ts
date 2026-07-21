@@ -60,6 +60,10 @@ export interface CatalogTemplateProps {
   /** OE-managed trending block (server-fetched). Rendered as a product
    *  carousel under the grid when products are present. */
   trendingBlock?: import('../../lib/oneentry/blocks/page-blocks').PageBlock | null;
+  /** All OE-attached page blocks for this catalog (`Pages.getBlocksByPageUrl`).
+   *  Rendered at the top of the main content area via `<PageBlocksRenderer>`
+   *  in admin-defined `position` order. Empty when no blocks are attached. */
+  pageBlocks?: import('../../lib/oneentry/blocks/page-blocks').PageBlock[];
   breadcrumbs?: BreadcrumbItem[];
   priceMax?: number;
   priceDefault?: [number, number];

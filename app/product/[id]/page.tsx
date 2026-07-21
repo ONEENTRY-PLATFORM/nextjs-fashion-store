@@ -18,6 +18,7 @@ import { ReviewsAsync } from '../../../src/app/pages/product/ReviewsAsync';
 import { ReviewsSkeleton } from '../../../src/app/pages/product/ReviewsSkeleton';
 import { FrequentlyOrderedAsync } from '../../../src/app/pages/product/FrequentlyOrderedAsync';
 import { RecommendationsSkeleton } from '../../../src/app/pages/product/RecommendationsSkeleton';
+import { loadProductBlocks } from '../../../src/lib/oneentry/blocks/page-blocks';
 import type { CatalogProduct as PdpCatalogProduct } from '../../../src/app/data/productCatalog';
 
 interface Props {
@@ -293,6 +294,11 @@ export default async function Page({ params }: Props) {
     </Suspense>
   ) : null;
 
+  // OE-attached product blocks (`Products.getProductBlockById`). Rendered
+  // via `<PageBlocksRenderer>` inside `ProductDetailPage`. Empty when the
+  // product has no admin-attached blocks.
+  const productBlocks = numericId !== null ? await loadProductBlocks(numericId) : [];
+
   return (
     <>
       {productSchema && <JsonLd data={productSchema} />}
@@ -306,6 +312,7 @@ export default async function Page({ params }: Props) {
           currentGender={oeProductRaw?.gender}
           bonusPoints={purchaseBonus?.points}
           categoryViewAllHref={categoryViewAllHref}
+          productBlocks={productBlocks}
         />
       </PdpLabelsProvider>
     </>

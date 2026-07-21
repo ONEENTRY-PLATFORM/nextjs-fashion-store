@@ -29,11 +29,14 @@ import { useCountdown } from './sale/SaleCountdown';
 import { SaleHero } from './sale/SaleHero';
 import { SALE_PAGE_LABELS as L, SALE_CATEGORY_LABELS as CAT } from '../data/salePageLabels';
 import { useSalePageT } from '../../lib/oneentry/labels/SalePageLabelsContext';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import type { SalePageFromCms } from '../../lib/oneentry/catalog/sale-page';
 
 const SALE_KEY = 'sale';
 
 type SaleProduct = Product & { category?: string };
-export function SalePage({ initialProducts, saleEndsAt, gender }: { initialProducts?: SaleProduct[]; saleEndsAt?: number; gender?: 'W' | 'M' | null } = {}) {
+export function SalePage({ initialProducts, saleEndsAt, gender, pageBlocks, cmsPage }: { initialProducts?: SaleProduct[]; saleEndsAt?: number; gender?: 'W' | 'M' | null; pageBlocks?: PageBlock[]; cmsPage?: SalePageFromCms | null } = {}) {
   // Countdown target: OE-driven `page_sale_top_banner_timer` first, then the
   // hardcoded fallback so the banner still runs if the admin hasn't set it.
   const countdown = useCountdown(saleEndsAt ?? SALE_END_DATE);
@@ -250,7 +253,7 @@ export function SalePage({ initialProducts, saleEndsAt, gender }: { initialProdu
     >
       <Header />
 
-      <SaleHero countdown={countdown} endsAt={saleEndsAtDate} />
+      <SaleHero countdown={countdown} endsAt={saleEndsAtDate} cms={cmsPage} />
 
       {/* ── Breadcrumb ── */}
       <div className="px-4 lg:px-8 py-3 border-b border-gray-100">
@@ -477,11 +480,13 @@ export function SalePage({ initialProducts, saleEndsAt, gender }: { initialProdu
           </div>
         )}
 
-        {/* Mid promo block */}
+        {/* Mid promo block — copy + image pulled from OE `sale` page
+            `page_sale_footer_banner_*` attributes; `L.promo*` are the
+            fallbacks when the admin hasn't filled a field. */}
         <div className="px-4 lg:px-8">
           <div className="my-10 relative overflow-hidden group min-h-[180px] max-h-[260px]">
             <Image
-              src="https://images.unsplash.com/photo-1739424464070-63b6cc9086aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGZhc2hpb24lMjBlZGl0b3JpYWwlMjBtaW5pbWFsJTIwYmxhY2slMjBvdXRmaXR8ZW58MXx8fHwxNzcyMDMwNjUwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+              src={cmsPage?.promo.image || 'https://images.unsplash.com/photo-1739424464070-63b6cc9086aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGZhc2hpb24lMjBlZGl0b3JpYWwlMjBtaW5pbWFsJTIwYmxhY2slMjBvdXRmaXR8ZW58MXx8fHwxNzcyMDMwNjUwfDA&ixlib=rb-4.1.0&q=80&w=1080'}
               alt={L.promoImageAlt}
               fill
               sizes="(max-width: 1024px) 100vw, 80vw"
@@ -490,16 +495,16 @@ export function SalePage({ initialProducts, saleEndsAt, gender }: { initialProdu
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.75)_35%,rgba(0,0,0,0.15))]" />
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16">
               <span className="inline-block mb-3 px-2.5 py-1 text-white tracking-widest uppercase bg-[var(--sale)] text-[10px] font-bold rounded-none w-fit">
-                {L.promoLimitedTime}
+                {cmsPage?.promo.eyebrow || L.promoLimitedTime}
               </span>
               <h3 className="text-white tracking-widest uppercase mb-2 text-[clamp(1rem,3vw,1.75rem)] font-extrabold">
-                {L.promoHeading}
+                {cmsPage?.promo.title || L.promoHeading}
               </h3>
               <p className="text-white mb-4 text-xs opacity-75 max-w-[340px]">
-                {L.promoBody}
+                {cmsPage?.promo.subtitle || L.promoBody}
               </p>
-              <Link href={L.promoHref} className="inline-flex items-center gap-2 text-white text-xs tracking-widest uppercase hover:gap-3 transition-all no-underline font-bold">
-                {L.promoCta} <ChevronRight size={13} />
+              <Link href={cmsPage?.promo.ctaHref || L.promoHref} className="inline-flex items-center gap-2 text-white text-xs tracking-widest uppercase hover:gap-3 transition-all no-underline font-bold">
+                {cmsPage?.promo.ctaLabel || L.promoCta} <ChevronRight size={13} />
               </Link>
             </div>
           </div>
@@ -537,29 +542,55 @@ export function SalePage({ initialProducts, saleEndsAt, gender }: { initialProdu
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div className="border-t border-gray-100 py-12 px-4 lg:px-8 bg-gray-50">
-        <div className="max-w-screen-2xl mx-auto">
-          <div className="mb-6">
-            <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{L.recsEyebrow}</p>
-            <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.25rem)] font-bold">{L.recsHeading}</h2>
-          </div>
-          <div
-            ref={recRef}
-            className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 select-none cursor-grab"
-            onMouseDown={onRecMouseDown}
-            onMouseMove={onRecMouseMove}
-            onMouseUp={stopRecDrag}
-            onMouseLeave={stopRecDrag}
-          >
-            {PRODUCTS.slice(0, 6).map(product => (
-              <div key={`rec-${product.id}`} className="flex-shrink-0 w-[220px]">
-                <ProductCard product={product} accentColor={SALE_RED} />
+      {/* Recommendations — driven by the OE block attached to the `sale`
+          page (typically `pdp_you_may_also_like`, type `frequently_ordered_block`).
+          Title comes from the block's `localizeInfos.title`; products from
+          the block itself when OE resolved any, otherwise fall back to the
+          first six sale products so the section never renders empty. */}
+      {(() => {
+        const recBlock = pageBlocks?.find(b => b.type === 'frequently_ordered_block') ?? null;
+        const recHeading = recBlock?.title || L.recsHeading;
+        const recProducts = (recBlock?.products?.length ?? 0) > 0
+          ? recBlock!.products
+          : PRODUCTS.slice(0, 6);
+        if (recProducts.length === 0) return null;
+        return (
+          <div className="border-t border-gray-100 py-12 px-4 lg:px-8 bg-gray-50">
+            <div className="max-w-screen-2xl mx-auto">
+              <div className="mb-6">
+                <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{L.recsEyebrow}</p>
+                <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.25rem)] font-bold">{recHeading}</h2>
               </div>
-            ))}
+              <div
+                ref={recRef}
+                className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 select-none cursor-grab"
+                onMouseDown={onRecMouseDown}
+                onMouseMove={onRecMouseMove}
+                onMouseUp={stopRecDrag}
+                onMouseLeave={stopRecDrag}
+              >
+                {recProducts.map(product => (
+                  <div key={`rec-${product.id}`} className="flex-shrink-0 w-[220px]">
+                    <ProductCard product={product as Product} accentColor={SALE_RED} />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
+
+      {/* OE-attached blocks for the sale page — rendered at the bottom so
+          any promo / cross-sell content sits below the sale grid.
+          `frequently_ordered_block` is already consumed above (recs
+          section), so filter it out to avoid a duplicate "You May Also
+          Like" header stub from PageBlocksRenderer's default branch. */}
+      {(() => {
+        const remaining = (pageBlocks ?? []).filter(b => b.type !== 'frequently_ordered_block');
+        return remaining.length > 0
+          ? <PageBlocksRenderer blocks={remaining} />
+          : null;
+      })()}
 
       <Footer />
 

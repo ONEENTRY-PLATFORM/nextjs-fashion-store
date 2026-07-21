@@ -18,6 +18,8 @@ import { RecentlyViewedSection } from './product/RecentlyViewedSection';
 import { FAVORITES_PAGE_LABELS as L } from '../data/favoritesLabels';
 import { useFavoritesPageT } from '../../lib/oneentry/labels/FavoritesPageLabelsContext';
 import type { Product } from '../components/ProductCard';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { useAuth } from '../context/AuthContext';
@@ -27,9 +29,13 @@ import { useAuth } from '../context/AuthContext';
 export function FavoritesPage({
   recommended = [],
   trending = [],
+  pageBlocks,
 }: {
   recommended?: Product[];
   trending?: Product[];
+  /** OE-attached blocks for the `favorites` page. Rendered above the
+   *  wishlist header via `<PageBlocksRenderer>`. */
+  pageBlocks?: PageBlock[];
 } = {}) {
   const RECOMMENDATION_PRODUCTS = recommended;
   const TRENDING_PRODUCTS = trending;
@@ -147,7 +153,6 @@ export function FavoritesPage({
       <Header />
 
       <main id="main-content" className="pb-20">
-
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs text-gray-400 px-4 lg:px-8 pt-6 mb-6 tracking-wide">
           <button onClick={() => router.push('/')} className="hover:text-black transition-colors focus-visible:outline-none">{L.breadcrumbHome}</button>
@@ -266,6 +271,12 @@ export function FavoritesPage({
             {lBottom} <ArrowRight size={16} />
           </button>
         </div>
+
+        {/* OE-attached blocks for the `favorites` page — rendered at the
+            bottom below the wishlist / recommendations. Empty → nothing. */}
+        {pageBlocks && pageBlocks.length > 0 && (
+          <PageBlocksRenderer blocks={pageBlocks} />
+        )}
       </main>
 
       <Footer />

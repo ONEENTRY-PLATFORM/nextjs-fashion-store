@@ -18,11 +18,14 @@ import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
 import { NEW_ARRIVALS_PAGE_LABELS as L, NEW_ARRIVALS_CATEGORY_LABELS as NACL } from '../data/newArrivalsLabels';
 import { CURRENCY } from '../data/currencyConfig';
 import { useNewArrivalsPageT } from '../../lib/oneentry/labels/NewArrivalsPageLabelsContext';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import type { NewArrivalsPageFromCms } from '../../lib/oneentry/catalog/new-arrivals-page';
 
 const NEW_KEY = 'new-arrivals';
 type NewProduct = Product & { category: Exclude<NewArrivalCategory, 'All'> };
 
-export function NewArrivalsPage({ initialProducts }: { initialProducts?: NewProduct[] } = {}) {
+export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { initialProducts?: NewProduct[]; pageBlocks?: PageBlock[]; cmsPage?: NewArrivalsPageFromCms | null } = {}) {
   // UI-only state
   const [sortOpen, setSortOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -91,7 +94,7 @@ export function NewArrivalsPage({ initialProducts }: { initialProducts?: NewProd
       <Header />
 
       <main id="main-content">
-        <NewArrivalsHero />
+        <NewArrivalsHero cms={cmsPage} />
 
         {/* ── Breadcrumb ── */}
         <div className="px-4 lg:px-8 py-3 flex items-center justify-between border-b border-gray-100">
@@ -263,16 +266,18 @@ export function NewArrivalsPage({ initialProducts }: { initialProducts?: NewProd
           )}
         </div>
 
-        {/* ── Editorial strip ── */}
+        {/* ── Editorial strip — copy pulled from OE `new` page
+             `page_new_arrivals_footer_banner_*` attributes; `L.editorial*`
+             are the fallbacks when the admin hasn't filled a field. */}
         <div className="border-t border-gray-100 py-12 px-4 lg:px-8 text-center bg-[#e4e8ee]">
           <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-3">
-            {L.editorialEyebrow}
+            {cmsPage?.footer.eyebrow || L.editorialEyebrow}
           </p>
           <h2 className="tracking-widest uppercase text-black text-[clamp(1.1rem,2.5vw,1.5rem)] font-semibold">
-            {L.editorialHeading}
+            {cmsPage?.footer.heading || L.editorialHeading}
           </h2>
           <p className="mt-3 text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
-            {L.editorialBody}
+            {cmsPage?.footer.body || L.editorialBody}
           </p>
           <div className="mt-6 flex items-center justify-center gap-0 max-w-sm mx-auto">
             <input
@@ -285,6 +290,12 @@ export function NewArrivalsPage({ initialProducts }: { initialProducts?: NewProd
             </button>
           </div>
         </div>
+
+        {/* OE-attached blocks for the `new` page — rendered at the bottom
+            below the main new-arrivals grid. Empty → nothing renders. */}
+        {pageBlocks && pageBlocks.length > 0 && (
+          <PageBlocksRenderer blocks={pageBlocks} />
+        )}
       </main>
 
       <Footer />

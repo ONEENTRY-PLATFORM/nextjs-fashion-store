@@ -10,15 +10,19 @@ import { StoreCard } from './stores/StoreCard';
 import { STORE_LOCATIONS_LABELS as L } from '../data/storesLabels';
 import { useStoresT } from '../../lib/oneentry/labels/StoresLabelsContext';
 import type { StoreLocationsPageFromCms } from '../../lib/oneentry/catalog/store-locations-page';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 import { ACCENT_WOMEN as ACCENT, ACCENT_MEN, BANNER_BG } from '../constants/colors';
 
 type StoreLocationsPageProps = {
   initialStores?: Store[];
   cmsPage?: StoreLocationsPageFromCms | null;
+  /** OE-attached blocks for the `stores` page. Rendered above the hero. */
+  pageBlocks?: PageBlock[];
 };
 
-export function StoreLocationsPage({ initialStores, cmsPage }: StoreLocationsPageProps = {}) {
+export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: StoreLocationsPageProps = {}) {
   const router = useRouter();
   const stores = initialStores ?? [];
   const flagshipStore: Store | undefined = stores.find(s => s.isflagship) ?? stores[0];
@@ -235,6 +239,12 @@ export function StoreLocationsPage({ initialStores, cmsPage }: StoreLocationsPag
           </button>
         </div>
       </main>
+
+      {/* OE-attached blocks for the `stores` page — rendered at the
+          bottom below the store list. Empty → nothing renders. */}
+      {pageBlocks && pageBlocks.length > 0 && (
+        <PageBlocksRenderer blocks={pageBlocks} />
+      )}
 
       <Footer />
     </div>

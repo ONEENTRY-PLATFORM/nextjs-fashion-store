@@ -22,8 +22,10 @@ import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
 import { fmt } from '../utils/formatPrice';
 import { CART_PAGE_LABELS as L } from '../data/cartLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
-export function CartPage() {
+export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const {
     items, removeItem, removeBundle, updateQuantity, updateSize,
     subtotal, discount, total, personalDiscount, totalDue,
@@ -489,6 +491,12 @@ export function CartPage() {
           </div>
         )}
       </main>
+
+      {/* OE-attached blocks for the `cart` page — rendered at the bottom
+          below the cart contents. Empty → nothing renders. */}
+      {pageBlocks && pageBlocks.length > 0 && (
+        <PageBlocksRenderer blocks={pageBlocks} />
+      )}
 
       <Footer />
     </div>

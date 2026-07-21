@@ -17,6 +17,7 @@ export function MenCatalogPage({
   currentPage,
   total,
   trendingBlock,
+  pageBlocks,
 }: {
   initialProducts?: Product[];
   initialFilterGroups?: FilterGroup[];
@@ -26,6 +27,7 @@ export function MenCatalogPage({
   currentPage?: number;
   total?: number;
   trendingBlock?: PageBlock | null;
+  pageBlocks?: PageBlock[];
 } = {}) {
   return (
     <CatalogTemplate
@@ -39,6 +41,7 @@ export function MenCatalogPage({
       totalStyles={initialTotalStyles}
       total={total}
       trendingBlock={trendingBlock}
+      pageBlocks={pageBlocks}
       currentPage={currentPage}
       currentFilters={currentFilters}
       productsPerPage={PRODUCTS_PER_PAGE}

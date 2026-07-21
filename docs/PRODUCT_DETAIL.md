@@ -221,7 +221,7 @@ No server-side inventory hold — the storefront just records the reservation as
 
 ### 8.1 Load
 
-`app/product/[id]/page.tsx` does **not** call `loadProductReviews` during its own render — reviews are off the critical path entirely. The sub-title `<StarRating>` and review count start at `0` on initial paint and hydrate once `<ReviewsAsync>` streams in.
+`app/product/[id]/page.tsx` does **not** call `loadProductReviews` during its own render — reviews are off the critical path entirely. The sub-title `<StarRating>` and review count are hydrated client-side by a `useEffect` that calls `getProductReviewSummary(productId)` (`src/lib/oneentry/catalog/reviews-actions.ts`, `'use server'`) immediately after mount. The chip and star row display `0` on initial paint and update to the real `{count, avg}` when the cached server action resolves (~100–300 ms after mount). This is independent of the `<ReviewsAsync>` streaming slot — the summary chip no longer depends on the Suspense boundary to become accurate.
 
 `<ReviewsAsync productId={n} />` (RSC) calls `loadProductReviews(productId, 20)` from `src/lib/oneentry/catalog/reviews.ts` (page passes `limit=20`; the exported default is `100`). It is served through the `reviewsSlot` `<Suspense>` boundary and arrives as a streaming chunk roughly 100 ms after first byte — the same data, but removed from the synchronous render to reduce TTFB. Internals:
 

@@ -3,13 +3,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // ---- SDK mocks ---------------------------------------------------------------
 const getAuthProviderByMarker = vi.fn();
 const oauth = vi.fn();
+const authFn = vi.fn();
+const refreshFn = vi.fn();
+const logoutFn = vi.fn();
 const isErrorMock = vi.fn((v: unknown): v is { message?: string; statusCode?: number } => {
   return !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>);
 });
 
 vi.mock('../index', () => ({
   oneentry: {
-    AuthProvider: { getAuthProviderByMarker, oauth, logout: vi.fn() },
+    AuthProvider: {
+      getAuthProviderByMarker,
+      oauth,
+      auth: authFn,
+      refresh: refreshFn,
+      logout: logoutFn,
+    },
     Users: { getUser: vi.fn() },
   },
   isOneEntryEnabled: true,
@@ -56,6 +65,9 @@ beforeEach(() => {
   store = new Map();
   getAuthProviderByMarker.mockReset();
   oauth.mockReset();
+  authFn.mockReset();
+  refreshFn.mockReset();
+  logoutFn.mockReset();
   cookieGet.mockClear();
   cookieSet.mockClear();
   cookieDelete.mockClear();
@@ -243,5 +255,81 @@ describe('exchangeGoogleCodeAction', () => {
     // CSRF pair consumed on success too.
     expect(cookieDelete).toHaveBeenCalledWith('oe_google_oauth_state');
     expect(cookieDelete).toHaveBeenCalledWith('oe_google_oauth_return');
+  });
+
+  it('sets PROVIDER_COOKIE to "google" on success', async () => {
+    store.set('oe_google_oauth_state', 'saved-state');
+    store.set('oe_google_oauth_return', '/account');
+    oauth.mockResolvedValue({
+      userIdentifier: 'jane@example.com',
+      authProviderIdentifier: 'google',
+      accessToken: 'access-xyz',
+      refreshToken: 'refresh-xyz',
+    });
+    const { exchangeGoogleCodeAction } = await importFresh();
+    const res = await exchangeGoogleCodeAction({
+      code: 'g-code',
+      state: 'saved-state',
+      origin: 'https://shop.example.com',
+    });
+    expect(res.ok).toBe(true);
+    expect(cookieSet).toHaveBeenCalledWith(
+      'oe_auth_provider',
+      'google',
+      expect.objectContaining({ httpOnly: true }),
+    );
+  });
+});
+
+// -----------------------------------------------------------------------------
+// signInAction — provider marker
+// -----------------------------------------------------------------------------
+describe('signInAction', () => {
+  it('sets PROVIDER_COOKIE to "email" on successful sign-in', async () => {
+    authFn.mockResolvedValue({
+      userIdentifier: 'bob@example.com',
+      authProviderIdentifier: 'email',
+      accessToken: 'acc',
+      refreshToken: 'ref',
+    });
+    const { signInAction } = await importFresh();
+    const res = await signInAction('bob@example.com', 'password123');
+    expect(res.ok).toBe(true);
+    expect(cookieSet).toHaveBeenCalledWith(
+      'oe_auth_provider',
+      'email',
+      expect.objectContaining({ httpOnly: true }),
+    );
+  });
+});
+
+// -----------------------------------------------------------------------------
+// signOutAction — passes stored provider marker to AuthProvider.logout
+// -----------------------------------------------------------------------------
+describe('signOutAction', () => {
+  it('passes the stored provider marker to AuthProvider.logout', async () => {
+    store.set('oe_refresh', 'google-refresh');
+    store.set('oe_auth_provider', 'google');
+    const { signOutAction } = await importFresh();
+    await signOutAction();
+    expect(logoutFn).toHaveBeenCalledWith('google', 'google-refresh');
+  });
+
+  it('passes "email" (AUTH_MARKER fallback) when PROVIDER_COOKIE is absent', async () => {
+    store.set('oe_refresh', 'email-refresh');
+    const { signOutAction } = await importFresh();
+    await signOutAction();
+    expect(logoutFn).toHaveBeenCalledWith('email', 'email-refresh');
+  });
+
+  it('clears all session cookies including PROVIDER_COOKIE on sign-out', async () => {
+    store.set('oe_refresh', 'any-refresh');
+    store.set('oe_auth_provider', 'google');
+    const { signOutAction } = await importFresh();
+    await signOutAction();
+    expect(cookieDelete).toHaveBeenCalledWith('oe_auth_provider');
+    expect(cookieDelete).toHaveBeenCalledWith('oe_access');
+    expect(cookieDelete).toHaveBeenCalledWith('oe_refresh');
+    expect(cookieDelete).toHaveBeenCalledWith('oe_user');
   });
 });

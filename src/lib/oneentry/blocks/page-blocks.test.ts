@@ -3,8 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // SDK mock — `getBlockByMarker` drives `loadBlockWithProducts`.
 const getBlockByMarker = vi.fn();
 const getTrending = vi.fn();
+const getSlides = vi.fn();
+const getCartComplement = vi.fn();
 const getFrequentlyOrderedProducts = vi.fn();
-const fakeApi = { Blocks: { getBlockByMarker, getTrending, getFrequentlyOrderedProducts } };
+const getBlocksByPageUrl = vi.fn();
+const getProductBlockById = vi.fn();
+const fakeApi = {
+  Blocks: { getBlockByMarker, getTrending, getSlides, getCartComplement, getFrequentlyOrderedProducts },
+  Pages: { getBlocksByPageUrl },
+  Products: { getProductBlockById },
+};
 
 vi.mock('../index', () => ({
   oneentry: fakeApi,
@@ -36,7 +44,11 @@ const importFresh = async () => {
 beforeEach(() => {
   getBlockByMarker.mockReset();
   getTrending.mockReset();
+  getSlides.mockReset();
+  getCartComplement.mockReset();
   getFrequentlyOrderedProducts.mockReset();
+  getBlocksByPageUrl.mockReset();
+  getProductBlockById.mockReset();
   loadProducts.mockReset();
   adaptCatalogProductToUiProduct.mockReset();
   // Clear any leftover in-flight dedup state from previous tests.
@@ -302,5 +314,330 @@ describe('loadFrequentlyOrderedBlock — in-flight dedup', () => {
     expect(block2).not.toBeNull();
     expect(block1!.products).toEqual([{ id: '42', name: 'ui' }]);
     expect(block2!.products).toEqual([{ id: '42', name: 'ui' }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Helpers shared by the two new suites below.
+// ---------------------------------------------------------------------------
+
+/** Minimal block descriptor returned by getBlockByMarker for product-free blocks. */
+const makeBlockDescriptor = (position: number) => ({
+  type: 'content_block',
+  position,
+  quantity: 12,
+  localizeInfos: { title: `Block at ${position}` },
+  similarProducts: { items: [] },
+  products: [],
+});
+
+// ---------------------------------------------------------------------------
+
+describe('loadPageBlocksByUrl', () => {
+  it('happy path: two blocks returned in ascending position order', async () => {
+    // SDK returns two raw block entries — position 2 first, then position 1.
+    getBlocksByPageUrl.mockResolvedValue([
+      { identifier: 'block_b', position: 2 },
+      { identifier: 'block_a', position: 1 },
+    ]);
+
+    // getBlockByMarker is called once per marker via loadBlockWithProducts.
+    getBlockByMarker.mockImplementation((_marker: string) => {
+      if (_marker === 'block_a') return Promise.resolve(makeBlockDescriptor(1));
+      if (_marker === 'block_b') return Promise.resolve(makeBlockDescriptor(2));
+      return Promise.resolve(null);
+    });
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('women_clothing', 'en_US');
+
+    expect(result).toHaveLength(2);
+    // Must be sorted ascending by position.
+    expect(result[0].marker).toBe('block_a');
+    expect(result[0].position).toBe(1);
+    expect(result[1].marker).toBe('block_b');
+    expect(result[1].position).toBe(2);
+    expect(getBlocksByPageUrl).toHaveBeenCalledWith('women_clothing', 'en_US');
+  });
+
+  it('returns [] and does not call the SDK for empty pageUrl', async () => {
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('');
+    expect(result).toEqual([]);
+    expect(getBlocksByPageUrl).not.toHaveBeenCalled();
+  });
+
+  it('returns [] and does not call the SDK for non-string pageUrl', async () => {
+    const { loadPageBlocksByUrl } = await importFresh();
+    // Cast to bypass TS — runtime guard must still fire.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (loadPageBlocksByUrl as any)(42);
+    expect(result).toEqual([]);
+    expect(getBlocksByPageUrl).not.toHaveBeenCalled();
+  });
+
+  it('returns [] when SDK returns an IError (statusCode present)', async () => {
+    getBlocksByPageUrl.mockResolvedValue({ statusCode: 404, message: 'Not Found' });
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('missing_page', 'en_US');
+
+    expect(result).toEqual([]);
+    // getBlockByMarker must not be called — we bailed out after isError check.
+    expect(getBlockByMarker).not.toHaveBeenCalled();
+  });
+
+  it('skips items with missing or whitespace-only identifier', async () => {
+    getBlocksByPageUrl.mockResolvedValue([
+      { identifier: '', position: 1 },
+      { position: 2 },                          // no identifier key
+      { identifier: '   ', position: 3 },       // whitespace only
+      { identifier: 'real_block', position: 4 },
+    ]);
+    getBlockByMarker.mockResolvedValue(makeBlockDescriptor(4));
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('some_page', 'en_US');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].marker).toBe('real_block');
+    // getBlockByMarker called only for the one valid marker.
+    expect(getBlockByMarker).toHaveBeenCalledTimes(1);
+    expect(getBlockByMarker).toHaveBeenCalledWith('real_block', 'en_US', expect.anything(), expect.anything());
+  });
+
+  it('filters out blocks whose loadBlockWithProducts resolves to null', async () => {
+    getBlocksByPageUrl.mockResolvedValue([
+      { identifier: 'ghost_block', position: 1 },
+      { identifier: 'real_block', position: 2 },
+    ]);
+    getBlockByMarker.mockImplementation((_marker: string) => {
+      if (_marker === 'ghost_block') return Promise.resolve(null);  // triggers null from loadBlockWithProducts
+      return Promise.resolve(makeBlockDescriptor(2));
+    });
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('some_page', 'en_US');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].marker).toBe('real_block');
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe('loadProductBlocks', () => {
+  it('happy path: two blocks returned in ascending position order', async () => {
+    getProductBlockById.mockResolvedValue([
+      { identifier: 'accessory_b', position: 2 },
+      { identifier: 'accessory_a', position: 1 },
+    ]);
+    getBlockByMarker.mockImplementation((_marker: string) => {
+      if (_marker === 'accessory_a') return Promise.resolve(makeBlockDescriptor(1));
+      if (_marker === 'accessory_b') return Promise.resolve(makeBlockDescriptor(2));
+      return Promise.resolve(null);
+    });
+
+    const { loadProductBlocks } = await importFresh();
+    const result = await loadProductBlocks(99, 'en_US');
+
+    expect(result).toHaveLength(2);
+    expect(result[0].marker).toBe('accessory_a');
+    expect(result[0].position).toBe(1);
+    expect(result[1].marker).toBe('accessory_b');
+    expect(result[1].position).toBe(2);
+    expect(getProductBlockById).toHaveBeenCalledWith(99);
+  });
+
+  it('returns [] without calling SDK for productId = NaN', async () => {
+    const { loadProductBlocks } = await importFresh();
+    const result = await loadProductBlocks(NaN);
+    expect(result).toEqual([]);
+    expect(getProductBlockById).not.toHaveBeenCalled();
+  });
+
+  it('returns [] without calling SDK for productId = 0', async () => {
+    const { loadProductBlocks } = await importFresh();
+    const result = await loadProductBlocks(0);
+    expect(result).toEqual([]);
+    expect(getProductBlockById).not.toHaveBeenCalled();
+  });
+
+  it('returns [] without calling SDK for productId = -1', async () => {
+    const { loadProductBlocks } = await importFresh();
+    const result = await loadProductBlocks(-1);
+    expect(result).toEqual([]);
+    expect(getProductBlockById).not.toHaveBeenCalled();
+  });
+
+  it('returns [] when SDK returns an IError (statusCode present)', async () => {
+    getProductBlockById.mockResolvedValue({ statusCode: 500, message: 'Internal Error' });
+
+    const { loadProductBlocks } = await importFresh();
+    const result = await loadProductBlocks(5, 'en_US');
+
+    expect(result).toEqual([]);
+    expect(getBlockByMarker).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+
+describe('loadPageBlocksByUrl — attributeValues pass-through', () => {
+  it('passes attributeValues from getBlockByMarker through to the returned PageBlock', async () => {
+    const avPayload = { hp_b_b_title: { value: 'Sale Now' }, hp_b_b_pic: [{ downloadLink: '/img/sale.jpg' }] };
+
+    getBlocksByPageUrl.mockResolvedValue([{ identifier: 'sale_banner', position: 1 }]);
+    getBlockByMarker.mockResolvedValue({
+      type: 'common_block',
+      position: 1,
+      quantity: 12,
+      localizeInfos: { title: 'Sale Banner' },
+      similarProducts: { items: [] },
+      products: [],
+      attributeValues: avPayload,
+    });
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('sale_page', 'en_US');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].attributeValues).toEqual(avPayload);
+  });
+
+  it('returns attributeValues: undefined when the block carries no attributeValues', async () => {
+    getBlocksByPageUrl.mockResolvedValue([{ identifier: 'plain_block', position: 1 }]);
+    getBlockByMarker.mockResolvedValue({
+      type: 'content_block',
+      position: 1,
+      quantity: 12,
+      localizeInfos: { title: 'Plain Block' },
+      similarProducts: { items: [] },
+      products: [],
+      // attributeValues deliberately absent — the spread gives undefined
+    });
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('plain_page', 'en_US');
+
+    expect(result).toHaveLength(1);
+    // The loader does `attributeValues: block.attributeValues` — undefined when absent.
+    expect(result[0].attributeValues).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+
+describe('loadBlockWithProducts — slider_block path', () => {
+  const sliderBlockDescriptor = {
+    type: 'slider_block',
+    position: 1,
+    quantity: 12,
+    localizeInfos: { title: 'Hero Slider' },
+    similarProducts: { items: [] },
+    products: [],
+  };
+
+  it('calls getSlides and populates PageBlock.slides when type is slider_block (plain-array response)', async () => {
+    getBlockByMarker.mockResolvedValue(sliderBlockDescriptor);
+    const mockSlides = [
+      { id: 1, attributeValues: { hp_b_b_title: { value: 'Slide 1' } } },
+      { id: 2, attributeValues: { hp_b_b_title: { value: 'Slide 2' } } },
+    ];
+    getSlides.mockResolvedValue(mockSlides);
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('hero_slider');
+
+    expect(getSlides).toHaveBeenCalledOnce();
+    expect(getSlides).toHaveBeenCalledWith('hero_slider');
+    expect(block).not.toBeNull();
+    expect(block!.slides).toEqual(mockSlides);
+  });
+
+  it('calls getSlides and populates PageBlock.slides from { items: [...] } response shape', async () => {
+    getBlockByMarker.mockResolvedValue(sliderBlockDescriptor);
+    const mockItems = [
+      { id: 10, attributeValues: { hp_b_b_title: { value: 'Item Slide A' } } },
+    ];
+    // SDK may return `{ items: [...] }` instead of a bare array.
+    getSlides.mockResolvedValue({ items: mockItems });
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('hero_slider');
+
+    expect(getSlides).toHaveBeenCalledOnce();
+    expect(block!.slides).toEqual(mockItems);
+  });
+
+  it('returns slides: [] when getSlides signals an error', async () => {
+    getBlockByMarker.mockResolvedValue(sliderBlockDescriptor);
+    // isError returns true when statusCode is present.
+    getSlides.mockResolvedValue({ statusCode: 500, message: 'Server error' });
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('hero_slider');
+
+    expect(block).not.toBeNull();
+    expect(block!.slides).toEqual([]);
+  });
+
+  it('does NOT call getSlides and leaves slides undefined for non-slider block types', async () => {
+    getBlockByMarker.mockResolvedValue({
+      type: 'content_block',
+      position: 2,
+      quantity: 12,
+      localizeInfos: { title: 'Content Block' },
+      similarProducts: { items: [] },
+      products: [],
+    });
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('some_content_block');
+
+    expect(getSlides).not.toHaveBeenCalled();
+    expect(block).not.toBeNull();
+    expect(block!.slides).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe('loadBlockWithProducts — cart_complement_block path', () => {
+  // `cart_complement_block` was removed from PRODUCT_BLOCK_TYPES: OE now
+  // resolves cross-sell products client-side via `loadCartComplementProductsAction`
+  // (called from <CartComplementBlockSlot>) because the endpoint requires a
+  // per-user context (access token or guest-id) that the shared server
+  // singleton doesn't carry. The SSR loader must therefore:
+  //   • NOT call `getCartComplement` at all.
+  //   • Return a valid PageBlock with `products: []`.
+
+  const cartComplementDescriptor = {
+    type: 'cart_complement_block',
+    position: 5,
+    quantity: 8,
+    localizeInfos: { title: 'Complete the Look' },
+    similarProducts: { items: [] },
+    products: [],
+  };
+
+  it('does NOT call getCartComplement and returns empty products', async () => {
+    getBlockByMarker.mockResolvedValue(cartComplementDescriptor);
+
+    const { loadBlockWithProducts } = await importFresh();
+    const block = await loadBlockWithProducts('cart_complement_shoes', { lang: 'en_US' });
+
+    // The SDK cross-sell endpoint must never be touched by the SSR loader.
+    expect(getCartComplement).not.toHaveBeenCalled();
+    // loadProducts must not be called either (no ids were fetched).
+    expect(loadProducts).not.toHaveBeenCalled();
+    // Block shape is still populated for the renderer to mount the client slot.
+    expect(block).not.toBeNull();
+    expect(block!.type).toBe('cart_complement_block');
+    expect(block!.products).toEqual([]);
   });
 });

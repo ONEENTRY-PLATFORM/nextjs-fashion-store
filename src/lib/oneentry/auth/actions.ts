@@ -15,6 +15,7 @@ import {
   setSessionCookies,
   clearSessionCookies,
   readAccessOrRefresh,
+  getAuthProviderMarker,
 } from './session';
 
 const SIGNUP_FORM_IDENTIFIER = 'signin';
@@ -1042,7 +1043,7 @@ export async function signInAction(
       return { ok: false, error: result.message ?? 'Sign-in failed' };
     }
     const jar = (await cookies()) as unknown as CookieJar;
-    await setSessionCookies(jar, result);
+    await setSessionCookies(jar, result, AUTH_MARKER);
     const user = await fetchMe(result.accessToken);
     return { ok: true, userIdentifier: result.userIdentifier, user };
   } catch (err) {
@@ -1229,7 +1230,7 @@ export async function exchangeGoogleCodeAction(
       return { ok: false, error: result.message ?? 'Google sign-in rejected by OneEntry' };
     }
     const entity = result as OeAuthEntity;
-    await setSessionCookies(jar, entity);
+    await setSessionCookies(jar, entity, GOOGLE_AUTH_MARKER);
     const user = await fetchMe(entity.accessToken);
     return { ok: true, userIdentifier: entity.userIdentifier, user, returnTo };
   } catch (err) {
@@ -1242,8 +1243,9 @@ export async function signOutAction(): Promise<{ ok: boolean }> {
   const jar = (await cookies()) as unknown as CookieJar;
   const refresh = jar.get(REFRESH_COOKIE)?.value;
   if (oneentry && refresh) {
+    const providerMarker = getAuthProviderMarker(jar);
     try {
-      await oneentry.AuthProvider.logout(AUTH_MARKER, refresh);
+      await oneentry.AuthProvider.logout(providerMarker, refresh);
     } catch {
       /* ignore — clearing cookies is the source of truth client-side */
     }
@@ -1407,13 +1409,14 @@ export async function getCurrentUserAction(): Promise<OeUser | null> {
   // Access token may have expired — try refresh.
   const refresh = jar.get(REFRESH_COOKIE)?.value;
   if (!refresh || !oneentry) return null;
+  const providerMarker = getAuthProviderMarker(jar);
   try {
-    const refreshed = await oneentry.AuthProvider.refresh(AUTH_MARKER, refresh);
+    const refreshed = await oneentry.AuthProvider.refresh(providerMarker, refresh);
     if (isError(refreshed)) {
       await clearSessionCookies(jar);
       return null;
     }
-    await setSessionCookies(jar, refreshed);
+    await setSessionCookies(jar, refreshed, providerMarker);
     return await fetchMe(refreshed.accessToken);
   } catch {
     await clearSessionCookies(jar);

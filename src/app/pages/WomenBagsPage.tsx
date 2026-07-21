@@ -17,6 +17,7 @@ export function WomenBagsPage({
   currentPage,
   total,
   trendingBlock,
+  pageBlocks,
 }: {
   initialProducts?: Product[];
   initialFilterGroups?: FilterGroup[];
@@ -26,9 +27,11 @@ export function WomenBagsPage({
   currentPage?: number;
   total?: number;
   trendingBlock?: PageBlock | null;
+  pageBlocks?: PageBlock[];
 } = {}) {
   return (
     <CatalogTemplate
+      pageBlocks={pageBlocks}
       catalogKey="women-bags"
       products={initialProducts ?? []}
       filterGroups={initialFilterGroups ?? []}

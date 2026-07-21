@@ -7,6 +7,7 @@ import { loadStoresSystemTexts } from '../../src/lib/oneentry/labels/stores-labe
 import { StoresLabelsProvider } from '../../src/lib/oneentry/labels/StoresLabelsContext';
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';
 import { loadStoreLocationsPage } from '../../src/lib/oneentry/catalog/store-locations-page';
+import { loadPageBlocksByUrl } from '../../src/lib/oneentry/blocks/page-blocks';
 
 export const metadata: Metadata = SEO.stores;
 
@@ -62,10 +63,13 @@ function mapDayLabel(day: string): string[] {
 }
 
 export default async function Page() {
-  const [labels, stores, cmsPage] = await Promise.all([
+  const [labels, stores, cmsPage, pageBlocks] = await Promise.all([
     loadStoresSystemTexts(),
     loadStores(),
     loadStoreLocationsPage(),
+    // OE-attached blocks for the `stores` page. Empty when nothing is
+    // attached — safe fallback.
+    loadPageBlocksByUrl('stores'),
   ]);
   const schemas = stores.map(buildStoreSchema);
   return (
@@ -74,7 +78,7 @@ export default async function Page() {
         <JsonLd key={i} data={schema} />
       ))}
       <StoresLabelsProvider data={labels}>
-        <StoreLocationsPage initialStores={stores} cmsPage={cmsPage} />
+        <StoreLocationsPage initialStores={stores} cmsPage={cmsPage} pageBlocks={pageBlocks} />
       </StoresLabelsProvider>
     </>
   );

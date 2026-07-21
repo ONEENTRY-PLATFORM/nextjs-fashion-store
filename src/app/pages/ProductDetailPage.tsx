@@ -8,11 +8,14 @@ import {
 import { type SpecialOffer } from '../data/specialOffers';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
+import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { recentlyViewedActions } from '../store/recentlyViewedSlice';
 import { pushRecentlyViewedAction } from '../../lib/oneentry/auth/actions';
 import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
+import { getProductReviewSummary } from '../../lib/oneentry/catalog/reviews-actions';
 import { trackActivity } from '../utils/track-activity';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -74,6 +77,7 @@ export function ProductDetailPage({
   currentGender,
   bonusPoints,
   categoryViewAllHref = '/',
+  productBlocks,
 }: {
   initialProduct?: CatalogProduct;
   /** Breadcrumb labels derived from the product's OE category path
@@ -97,6 +101,10 @@ export function ProductDetailPage({
    *  OE `categories` path server-side. When absent (or `'/'`), used as a
    *  passthrough to the recommendations carousel. */
   categoryViewAllHref?: string;
+  /** OE-attached product blocks (`Products.getProductBlockById`). Rendered
+   *  via `<PageBlocksRenderer>` right after the streaming recommendations
+   *  slot, in admin-defined `position` order. */
+  productBlocks?: PageBlock[];
 } = {}) {
   const router = useRouter();
   const lReviewsSuffix  = useProductCardT('product-card-reviews',                  PRODUCT_ACTION_LABELS.reviewsSuffix);
@@ -542,12 +550,29 @@ export function ProductDetailPage({
     announce(PRODUCT_ACTION_LABELS.announceAddedToCart(dynamicName));
   };
 
-  // Small star-rating summary next to the title — uses whatever reviews the
-  // initial OE catalog product carries. The full reviews block (with its own
-  // aggregation) streams in via `reviewsSlot` below.
-  const avgRating = productReviews.length > 0
+  // Small star-rating summary next to the title. The full reviews block
+  // streams in as a `<Suspense>` slot; to keep the title-row count in sync
+  // without pre-loading the full review list on the server (which used to
+  // add hundreds of ms to TTFB), fetch a lightweight `{count, avg}` summary
+  // client-side after mount. Cached server-side via `unstable_cache` in
+  // `loadProductReviews`, so this is a cheap follow-up request.
+  const [reviewSummary, setReviewSummary] = useState<{ count: number; avg: number | null } | null>(null);
+  useEffect(() => {
+    const numeric = Number(catalogProduct?.id);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    let cancelled = false;
+    void getProductReviewSummary(numeric).then((s) => {
+      if (cancelled) return;
+      setReviewSummary(s);
+    });
+    return () => { cancelled = true; };
+  }, [catalogProduct?.id]);
+  // Prefer the freshly-fetched summary; fall back to whatever the initial OE
+  // catalog product carries (usually empty since reviews aren't pre-seeded).
+  const displayReviewCount = reviewSummary?.count ?? productReviews.length;
+  const avgRating = reviewSummary?.avg ?? (productReviews.length > 0
     ? productReviews.reduce((s, r) => s + r.rating, 0) / productReviews.length
-    : 0;
+    : 0);
 
   return (
     <div
@@ -632,7 +657,7 @@ export function ProductDetailPage({
                   }}
                   className="text-xs text-gray-500 hover:text-black underline transition-colors"
                 >
-                  {productReviews.length} {lReviewsSuffix}
+                  {displayReviewCount} {lReviewsSuffix}
                 </button>
                 <span className="text-xs text-gray-300">|</span>
                 <span className={`text-xs font-medium ${isComingSoon ? 'text-[#8B8B8B]' : isPreOrder ? 'text-[#B8860B]' : 'text-[#2E8B57]'}`}>
@@ -946,6 +971,15 @@ export function ProductDetailPage({
             `<div>` shape as `reviewsSlot` above so React 19's key-tracking
             heuristic treats both streaming boundaries uniformly. */}
         <div>{recommendationsSlot}</div>
+
+        {/* OE-attached product blocks (admin-ordered by `position`).
+            Renders below the recommendations carousel so any curated
+            "you'll also love" / "matching accessories" blocks attached
+            to this product in OE surface without displacing the streamed
+            frequently-ordered section. */}
+        {productBlocks && productBlocks.length > 0 && (
+          <PageBlocksRenderer blocks={productBlocks} />
+        )}
 
         <RecentlyViewedSection products={allRecentlyViewed} accentColor={ACCENT} />
       </main>

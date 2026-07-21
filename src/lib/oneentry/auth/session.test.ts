@@ -35,7 +35,13 @@ import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
   IDENTIFIER_COOKIE,
+  PROVIDER_COOKIE,
+  AUTH_MARKER,
   readAccessOrRefresh,
+  setSessionCookies,
+  clearSessionCookies,
+  getAuthProviderMarker,
+  type CookieJar,
 } from './session';
 
 const refresh = vi.mocked(oneentry!.AuthProvider.refresh);
@@ -112,5 +118,109 @@ describe('readAccessOrRefresh', () => {
     expect(cookieDelete).toHaveBeenCalledWith(ACCESS_COOKIE);
     expect(cookieDelete).toHaveBeenCalledWith(REFRESH_COOKIE);
     expect(cookieDelete).toHaveBeenCalledWith(IDENTIFIER_COOKIE);
+  });
+
+  it('calls refresh with the stored provider marker (google), not hardcoded "email"', async () => {
+    store.set(REFRESH_COOKIE, 'google-refresh');
+    store.set(PROVIDER_COOKIE, 'google');
+    refresh.mockResolvedValue({
+      userIdentifier: 'jane@example.com',
+      authProviderIdentifier: 'google',
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+    });
+    await readAccessOrRefresh();
+    expect(refresh).toHaveBeenCalledWith('google', 'google-refresh');
+  });
+
+  it('on successful refresh: writes PROVIDER_COOKIE with the stored marker', async () => {
+    store.set(REFRESH_COOKIE, 'google-refresh');
+    store.set(PROVIDER_COOKIE, 'google');
+    refresh.mockResolvedValue({
+      userIdentifier: 'jane@example.com',
+      authProviderIdentifier: 'google',
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+    });
+    await readAccessOrRefresh();
+    expect(cookieSet).toHaveBeenCalledWith(PROVIDER_COOKIE, 'google', expect.any(Object));
+  });
+});
+
+// -----------------------------------------------------------------------------
+// setSessionCookies
+// -----------------------------------------------------------------------------
+
+/** Minimal CookieJar backed by the same in-memory store used in the suite. */
+function makeJar(): CookieJar {
+  return {
+    get: (name: string) => {
+      const v = store.get(name);
+      return v === undefined ? undefined : { value: v };
+    },
+    set: cookieSet,
+    delete: cookieDelete,
+  };
+}
+
+describe('setSessionCookies', () => {
+  const ENTITY = {
+    userIdentifier: 'user@example.com',
+    authProviderIdentifier: 'email',
+    accessToken: 'acc-tok',
+    refreshToken: 'ref-tok',
+  };
+
+  it('writes PROVIDER_COOKIE with the supplied providerMarker', async () => {
+    const jar = makeJar();
+    await setSessionCookies(jar, ENTITY, 'google');
+    expect(cookieSet).toHaveBeenCalledWith(PROVIDER_COOKIE, 'google', expect.any(Object));
+  });
+
+  it('defaults PROVIDER_COOKIE to AUTH_MARKER ("email") when no marker is supplied', async () => {
+    const jar = makeJar();
+    await setSessionCookies(jar, ENTITY);
+    expect(cookieSet).toHaveBeenCalledWith(PROVIDER_COOKIE, AUTH_MARKER, expect.any(Object));
+  });
+
+  it('sets PROVIDER_COOKIE with httpOnly:true and 7-day maxAge', async () => {
+    const jar = makeJar();
+    await setSessionCookies(jar, ENTITY, 'google');
+    expect(cookieSet).toHaveBeenCalledWith(
+      PROVIDER_COOKIE,
+      'google',
+      expect.objectContaining({ httpOnly: true, maxAge: 60 * 60 * 24 * 7 }),
+    );
+  });
+});
+
+// -----------------------------------------------------------------------------
+// clearSessionCookies
+// -----------------------------------------------------------------------------
+describe('clearSessionCookies', () => {
+  it('deletes PROVIDER_COOKIE along with the other session cookies', async () => {
+    const jar = makeJar();
+    await clearSessionCookies(jar);
+    expect(cookieDelete).toHaveBeenCalledWith(PROVIDER_COOKIE);
+    expect(cookieDelete).toHaveBeenCalledWith(ACCESS_COOKIE);
+    expect(cookieDelete).toHaveBeenCalledWith(REFRESH_COOKIE);
+    expect(cookieDelete).toHaveBeenCalledWith(IDENTIFIER_COOKIE);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// getAuthProviderMarker
+// -----------------------------------------------------------------------------
+describe('getAuthProviderMarker', () => {
+  it('returns the stored cookie value when PROVIDER_COOKIE is present', () => {
+    store.set(PROVIDER_COOKIE, 'google');
+    const jar = makeJar();
+    expect(getAuthProviderMarker(jar)).toBe('google');
+  });
+
+  it('falls back to AUTH_MARKER ("email") when PROVIDER_COOKIE is absent', () => {
+    const jar = makeJar();
+    expect(getAuthProviderMarker(jar)).toBe(AUTH_MARKER);
+    expect(getAuthProviderMarker(jar)).toBe('email');
   });
 });
