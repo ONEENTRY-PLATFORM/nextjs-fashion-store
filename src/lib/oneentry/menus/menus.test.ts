@@ -5,6 +5,8 @@ const getMenusByMarker = vi.fn();
 vi.mock('../index', () => ({
   oneentry: { Menus: { getMenusByMarker } },
   isOneEntryEnabled: true,
+  isError: (v: unknown) =>
+    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {

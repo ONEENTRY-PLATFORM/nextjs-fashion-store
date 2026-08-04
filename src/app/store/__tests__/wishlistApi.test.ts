@@ -1,7 +1,31 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import { wishlistApi, isWishlistApiEnabled } from '../api/wishlistApi';
 import userReducer, { setAuth } from '../userSlice';
+
+/**
+ * `wishlistApi` captures `process.env.NEXT_PUBLIC_API_URL` into `baseUrl` at
+ * module load. Production leaves that var unset on purpose — the slice is
+ * dormant scaffolding (`isWishlistApiEnabled()` is `false`, the live path goes
+ * through Server Actions). But an empty `baseUrl` makes `fetchBaseQuery` hand
+ * `Request` a bare `/users/me/wishlist` path, and undici rejects a relative URL
+ * with "Invalid URL" before the `fetch` spy is ever reached. So these tests stub
+ * the env and re-import the module to get a slice that produces absolute URLs.
+ */
+const API_BASE = 'http://api.test';
+
+type WishlistApiModule = typeof import('../api/wishlistApi');
+let wishlistApi: WishlistApiModule['wishlistApi'];
+let isWishlistApiEnabled: WishlistApiModule['isWishlistApiEnabled'];
+
+beforeAll(async () => {
+  vi.stubEnv('NEXT_PUBLIC_API_URL', API_BASE);
+  vi.resetModules();
+  ({ wishlistApi, isWishlistApiEnabled } = await import('../api/wishlistApi'));
+});
+
+afterAll(() => {
+  vi.unstubAllEnvs();
+});
 
 /**
  * Minimal Redux store wired up only with the user reducer (auth source)

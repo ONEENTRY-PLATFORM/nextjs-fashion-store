@@ -1,7 +1,31 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import { cartApi, isCartApiEnabled } from '../api/cartApi';
 import userReducer, { setAuth } from '../userSlice';
+
+/**
+ * `cartApi` captures `process.env.NEXT_PUBLIC_API_URL` into `baseUrl` at module
+ * load. Production leaves that var unset on purpose — the slice is dormant
+ * scaffolding (`isCartApiEnabled()` is `false`, the live path goes through
+ * Server Actions). But an empty `baseUrl` makes `fetchBaseQuery` hand `Request`
+ * a bare `/users/me/cart` path, and undici rejects a relative URL with
+ * "Invalid URL" before the `fetch` spy is ever reached. So these tests stub the
+ * env and re-import the module to get a slice that produces absolute URLs.
+ */
+const API_BASE = 'http://api.test';
+
+type CartApiModule = typeof import('../api/cartApi');
+let cartApi: CartApiModule['cartApi'];
+let isCartApiEnabled: CartApiModule['isCartApiEnabled'];
+
+beforeAll(async () => {
+  vi.stubEnv('NEXT_PUBLIC_API_URL', API_BASE);
+  vi.resetModules();
+  ({ cartApi, isCartApiEnabled } = await import('../api/cartApi'));
+});
+
+afterAll(() => {
+  vi.unstubAllEnvs();
+});
 
 function makeTestStore() {
   return configureStore({

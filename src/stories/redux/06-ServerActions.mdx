@@ -21,10 +21,10 @@ All actions are marked `'use server'`. Every authenticated action reads / writes
     <tr><th>Action</th><th>OneEntry call</th><th>Redux effect</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>signInAction(login, password)</code></td><td><code>AuthProvider.auth('email', …)</code> — sets 3 cookies</td><td><code>setAuth({ userIdentifier })</code></td></tr>
-    <tr><td><code>signInWithGoogleAction(accessToken)</code></td><td><code>AuthProvider.oauth('google', …)</code></td><td><code>setAuth({ userIdentifier })</code></td></tr>
+    <tr><td><code>signInAction(login, password)</code></td><td><code>AuthProvider.auth('email', …)</code> — sets 3 cookies</td><td><code>{'setAuth({ userIdentifier })'}</code></td></tr>
+    <tr><td><code>signInWithGoogleAction(accessToken)</code></td><td><code>AuthProvider.oauth('google', …)</code></td><td><code>{'setAuth({ userIdentifier })'}</code></td></tr>
     <tr><td><code>connectGoogleAccountAction(accessToken)</code></td><td>Links Google to the current user</td><td>—</td></tr>
-    <tr><td><code>signUpAction(input)</code></td><td><code>AuthProvider.signUp('signin', formData)</code></td><td><code>setAuth({ userIdentifier })</code></td></tr>
+    <tr><td><code>signUpAction(input)</code></td><td><code>AuthProvider.signUp('signin', formData)</code></td><td><code>{'setAuth({ userIdentifier })'}</code></td></tr>
     <tr><td><code>signOutAction()</code></td><td><code>AuthProvider.logout(refreshToken)</code> — clears cookies</td><td><code>clearAuth()</code></td></tr>
     <tr><td><code>getCurrentUserAction()</code></td><td><code>Users.getUser</code> + form-data reads + orders lookup</td><td>Seeds <code>AuthContext.user</code>; sets <code>authReady=true</code></td></tr>
     <tr><td><code>updateProfileAction(patch)</code></td><td>Multiple field updates on <code>user_data</code></td><td>Refreshes <code>AuthContext.user</code> via <code>getCurrentUserAction</code></td></tr>
@@ -35,10 +35,10 @@ All actions are marked `'use server'`. Every authenticated action reads / writes
     <tr><td><code>getCartAction()</code></td><td>Reads <code>OeCartItem[]</code></td><td>—</td></tr>
     <tr><td><code>syncWishlistAction(items)</code></td><td>Same for wishlist</td><td>Fire-and-forget</td></tr>
     <tr><td><code>getWishlistAction()</code></td><td>Reads <code>OeWishlistItem[]</code></td><td>—</td></tr>
-    <tr><td><code>pushRecentlyViewedAction(item)</code></td><td>Appends <code>{productId, viewedAt}</code> to server trail</td><td>—</td></tr>
+    <tr><td><code>pushRecentlyViewedAction(item)</code></td><td>Appends <code>{'{productId, viewedAt}'}</code> to server trail</td><td>—</td></tr>
     <tr><td><code>getRecentlyViewedAction()</code></td><td>Reads the server trail</td><td>Feeds <code>recentlyViewedActions.hydrate</code></td></tr>
     <tr><td><code>mergeRecentlyViewedAction(local)</code></td><td>Dedupe merge of guest trail + server trail</td><td>Dispatches <code>recentlyViewedActions.hydrate(merged)</code></td></tr>
-    <tr><td><code>createOrderAction(input)</code></td><td><code>POST /orders-storage/marker/{home|store_pickup|locker}/orders</code> + optional Stripe session</td><td>Returns <code>{orderId, paymentUrl}</code>; PaymentPage redirects if Stripe</td></tr>
+    <tr><td><code>createOrderAction(input)</code></td><td><code>{'POST /orders-storage/marker/{home|store_pickup|locker}/orders'}</code> + optional Stripe session</td><td>Returns <code>{'{orderId, paymentUrl}'}</code>; PaymentPage redirects if Stripe</td></tr>
   </tbody>
 </table>
 
@@ -51,7 +51,7 @@ All actions are marked `'use server'`. Every authenticated action reads / writes
     <tr><th>Action</th><th>Effect</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>trackActivityAction({type, productId?, meta?})</code></td><td>POST to <code>/user-activity/track</code>. Guest users are identified by <code>x-guest-id</code> header (from <code>src/app/utils/guest-id.ts</code>).</td></tr>
+    <tr><td><code>{'trackActivityAction({type, productId?, meta?})'}</code></td><td>POST to <code>/user-activity/track</code>. Guest users are identified by <code>x-guest-id</code> header (from <code>src/app/utils/guest-id.ts</code>).</td></tr>
   </tbody>
 </table>
 
@@ -72,7 +72,7 @@ RSC loaders — not Server Actions. Cached via React `cache()` + a 5-minute proc
     <tr><th>Loader / Server Action</th><th>OneEntry API</th><th>Cache</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>loadProducts({pageUrl, lang, filters, sort, page})</code></td><td><code>POST /products/all</code></td><td>React <code>cache()</code> + 5 min TTL</td></tr>
+    <tr><td><code>{'loadProducts({pageUrl, lang, filters, sort, page})'}</code></td><td><code>POST /products/all</code></td><td>React <code>cache()</code> + 5 min TTL</td></tr>
     <tr><td><code>loadProductById(id, lang)</code></td><td><code>Products.getProductById</code></td><td>React <code>cache()</code></td></tr>
     <tr><td><code>loadProductsByIds(ids, lang)</code></td><td>Bulk resolver</td><td>React <code>cache()</code></td></tr>
     <tr><td><code>searchProducts(query, lang)</code></td><td><code>POST /products/vector/search</code> + <code>POST /products/quick/search</code></td><td>React <code>cache()</code></td></tr>
@@ -137,7 +137,7 @@ Order-domain form submissions (`checkout_home_delivery` + `_guest` variants, sig
     <tr><th>Action</th><th>Effect</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>getPaymentAccountsAction()</code></td><td>Returns visible <code>PaymentAccount[]</code> — <code>{id, identifier, type: 'stripe'|'custom', title, description}</code>. Consumed by <code>PaymentPage</code>.</td></tr>
+    <tr><td><code>getPaymentAccountsAction()</code></td><td>Returns visible <code>PaymentAccount[]</code> — <code>{"{id, identifier, type: 'stripe'|'custom', title, description}"}</code>. Consumed by <code>PaymentPage</code>.</td></tr>
   </tbody>
 </table>
 

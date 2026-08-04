@@ -65,6 +65,15 @@ vi.mock('./MenCollection', () => ({ MenCollection: () => <div data-testid="men-c
 vi.mock('./WomenCollection', () => ({ WomenCollection: () => <div data-testid="women-collection" /> }));
 vi.mock('./NewArrivals', () => ({ NewArrivals: () => <div data-testid="new-arrivals" /> }));
 
+// `cart_complement_block` renders through CartComplementBlockSlot, which calls
+// `useAuth()` (throws outside <AuthProvider>) and fires a server action on
+// mount. Both are stubbed so the test exercises the empty-products guard rather
+// than the auth plumbing or a live OE round-trip.
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ isLoggedIn: false }) }));
+vi.mock('../../lib/oneentry/blocks/cart-complement-action', () => ({
+  loadCartComplementProductsAction: vi.fn().mockResolvedValue([]),
+}));
+
 // RecentlyViewedSection: render product names so the test can assert on them.
 vi.mock('../pages/product/RecentlyViewedSection', () => ({
   RecentlyViewedSection: ({ products }: { products: Array<{ name?: string }> }) => (

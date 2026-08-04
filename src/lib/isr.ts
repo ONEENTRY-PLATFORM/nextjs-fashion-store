@@ -1,29 +1,32 @@
 /**
- * ISR (Incremental Static Regeneration) TTL config.
+ * OE data-cache TTL config.
  *
- * Every page exports `revalidate` from here so all cache windows live in one
- * place. Each constant can be overridden per-environment via `.env`
- * (`ISR_<NAME>_TTL_SEC=<seconds>`) — useful for staging where you want a
- * shorter window than production, or for tuning after profiling.
+ * These constants are consumed **only** by `unstable_cache({ revalidate })`
+ * inside the OneEntry loaders — they are not route-segment config. Route
+ * shells must declare `export const revalidate` as a plain literal, because
+ * Next.js AST-parses segment config at build time and rejects imported or
+ * computed values with "Invalid segment configuration export detected"
+ * (`app/page.tsx` → 300, `app/product/[id]/page.tsx` → 120,
+ * `app/[...slug]/page.tsx` → 60, `app/stores/page.tsx` → 3600). So tuning
+ * the env overrides below changes how long loader responses are reused, not
+ * how long the page HTML stays cached.
  *
  * Available env overrides (all optional):
- *   ISR_HOME_TTL_SEC     — homepage HTML   (default 300 = 5 min)
- *   ISR_PRODUCT_TTL_SEC  — product detail  (default 120 = 2 min)
- *   ISR_CATALOG_TTL_SEC  — catalog listing (default 60  = 1 min)
- *   ISR_SALE_TTL_SEC     — sale page       (default 60)
- *   ISR_NEW_TTL_SEC      — new arrivals    (default 600 = 10 min)
- *   ISR_STORES_TTL_SEC   — store locator   (default 3600 = 60 min)
- *   ISR_INFO_TTL_SEC     — info pages      (default 3600 = 60 min)
- *   ISR_DISABLED=1       — bypass ISR entirely (each request re-fetches from OE)
+ *   ISR_HOME_TTL_SEC     — homepage blocks  (default 300 = 5 min)
+ *   ISR_PRODUCT_TTL_SEC  — product detail   (default 120 = 2 min)
+ *   ISR_CATALOG_TTL_SEC  — catalog listing  (default 60  = 1 min)
+ *   ISR_STORES_TTL_SEC   — stores / forms   (default 3600 = 60 min)
+ *   ISR_DISABLED=1       — collapse every window to 1 s (re-fetch per request)
  *
- * The env check runs at module load, so the value is a constant Next.js can
- * statically analyse (it must be, otherwise the framework falls back to
- * dynamic rendering and the whole point is lost).
+ * Only knobs with a live consumer are kept here. A constant nothing imports
+ * is a knob that silently does nothing when turned — SALE / NEW / INFO were
+ * exactly that and were removed; `/sale` and `/new` loaders hold their own
+ * literal `revalidate: 60`.
  *
- * When disabled we emit `1` (not `0`) because these constants are also fed
- * to `unstable_cache({ revalidate })`, which rejects `0` at runtime with
- * "Invariant revalidate: 0 can not be passed to unstable_cache()". A 1 s
- * window is functionally equivalent to disabled for a human clicking around.
+ * When disabled we emit `1` (not `0`) because `unstable_cache` rejects `0`
+ * at runtime with "Invariant revalidate: 0 can not be passed to
+ * unstable_cache()". A 1 s window is functionally equivalent to disabled for
+ * a human clicking around.
  */
 const disabled = process.env.ISR_DISABLED === '1';
 
@@ -43,19 +46,13 @@ export function _ttl(envKey: string, fallback: number): number {
 // Internal alias kept for readability at the call sites below.
 const ttl = _ttl;
 
-/** Homepage blocks. Fresh enough for catalog changes, cheap for OE. */
+/** Homepage blocks (hero, collections, discount banner, category section). */
 export const REVALIDATE_HOME    = ttl('ISR_HOME_TTL_SEC',    300);
-/** PDP: shorter window because stale price / stock can turn into a paid stale
- *  order. Checkout's pre-flight `previewOrder` is the belt-and-braces guard. */
+/** PDP loaders: shorter window because stale price / stock can turn into a
+ *  paid stale order. Checkout's pre-flight `previewOrder` is the
+ *  belt-and-braces guard. */
 export const REVALIDATE_PRODUCT = ttl('ISR_PRODUCT_TTL_SEC', 120);
-/** Catalog listings (women/men/*) — clean URLs only; filter/sort/page URLs
- *  still SSR each request (`dynamic = 'auto'`). */
+/** Catalog product lists, purchase bonuses, product discounts. */
 export const REVALIDATE_CATALOG = ttl('ISR_CATALOG_TTL_SEC',  60);
-/** Sale page (time-sensitive banners, countdown, discount %). */
-export const REVALIDATE_SALE    = ttl('ISR_SALE_TTL_SEC',     60);
-/** New arrivals. */
-export const REVALIDATE_NEW     = ttl('ISR_NEW_TTL_SEC',     600);
-/** Store locator (stores barely change). */
+/** Store locator + checkout delivery methods / schedule (rarely change). */
 export const REVALIDATE_STORES  = ttl('ISR_STORES_TTL_SEC', 3600);
-/** Info pages (about, faq, policies, sitemap-driven). */
-export const REVALIDATE_INFO    = ttl('ISR_INFO_TTL_SEC',   3600);
