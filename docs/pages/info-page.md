@@ -21,8 +21,7 @@ Catch-all route for all info pages. A single template `InfoPage.tsx` serves 23+ 
 - **Twitter creator**: string
 - **Twitter title**: string
 - **Twitter description**: text
-- **JSON-LD FAQPage Question name** (for slug `faq`): string
-- **JSON-LD FAQPage Answer text** (for slug `faq`): text
+- **JSON-LD FAQPage** (for slug `faq`): not authored separately — derived from the rendered `info_section_*` blocks. A section whose heading ends in `?` and has body copy becomes a `Question` / `acceptedAnswer` pair; with no such section the page emits no `FAQPage` node.
 
 ## 1. Hero (top section)
 

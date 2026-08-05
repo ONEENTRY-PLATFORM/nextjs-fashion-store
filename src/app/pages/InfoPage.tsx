@@ -13,9 +13,10 @@ import {
   INFO_PAGE_FEATURE_CARDS,
 } from '../data/infoPageLabels';
 import { useInfoPageT } from '../../lib/oneentry/labels/InfoPageLabelsContext';
-
-/** Marker prefix of the OE `common_block`s that carry the editorial sections. */
-const SECTION_BLOCK_PREFIX = 'info_section_';
+import {
+  INFO_SECTION_BLOCK_PREFIX,
+  infoSectionsFromBlocks,
+} from '../../lib/oneentry/blocks/info-sections';
 
 /* Offline fallbacks for the two long-form paragraphs. Short one-off strings are
    passed inline at the `useInfoPageT` call site — a separate dictionary file for
@@ -38,34 +39,20 @@ interface InfoSection {
   imageRight: boolean;
 }
 
-const attrString = (block: PageBlock, marker: string): string => {
-  const av = block.attributeValues as Record<string, { value?: unknown }> | undefined;
-  const v = av?.[marker]?.value;
-  return typeof v === 'string' ? v : '';
-};
-
 /**
  * Adapt OE section blocks to the layout's shape.
  *
- * The blocks are authored in the admin panel (set `info_section`), so editors
- * control the copy and imagery. `imageRight` is not stored — the layout simply
- * alternates sides, which keeps the zig-zag intact no matter how many sections
- * the tenant adds or reorders.
+ * Content extraction lives in `blocks/info-sections.ts` so the FAQ
+ * structured-data builder describes exactly the sections rendered here.
+ * `imageRight` is presentation only — the layout alternates sides, which keeps
+ * the zig-zag intact no matter how many sections the tenant adds or reorders.
  */
 function sectionsFromBlocks(blocks: PageBlock[] | undefined): InfoSection[] {
-  if (!blocks?.length) return [];
-  return blocks
-    .filter((b) => b.marker?.startsWith(SECTION_BLOCK_PREFIX))
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-    .map((b, i) => ({
-      eyebrow: attrString(b, 'info_section_eyebrow'),
-      heading: attrString(b, 'info_section_title') || b.title || '',
-      body: attrString(b, 'info_section_body'),
-      image: attrString(b, 'info_section_image'),
-      imageAlt: attrString(b, 'info_section_title') || b.title || '',
-      imageRight: i % 2 === 1,
-    }))
-    .filter((s) => s.heading.length > 0 || s.body.length > 0);
+  return infoSectionsFromBlocks(blocks).map((s, i) => ({
+    ...s,
+    imageAlt: s.heading,
+    imageRight: i % 2 === 1,
+  }));
 }
 
 const ICON_MAP = {
@@ -88,7 +75,7 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
   // Section blocks are rendered by the bespoke layout above, so keep them out
   // of the generic renderer at the bottom — otherwise they'd appear twice.
-  const otherBlocks = (pageBlocks ?? []).filter((b) => !b.marker?.startsWith(SECTION_BLOCK_PREFIX));
+  const otherBlocks = (pageBlocks ?? []).filter((b) => !b.marker?.startsWith(INFO_SECTION_BLOCK_PREFIX));
 
   // Page chrome copy from the OE `info_page` set; the local dataset is the
   // offline fallback. Icon choice for the feature cards stays in code — it

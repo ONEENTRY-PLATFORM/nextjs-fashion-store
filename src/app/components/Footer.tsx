@@ -10,6 +10,11 @@ import logoImage from '../../assets/kekimoro-logo-white.png';
 import { NewsletterForm } from './NewsletterForm';
 import { useFooterMenu } from '../../lib/oneentry/menus/FooterMenuContext';
 import {
+  footerColumnsFromMenu,
+  footerBottomLinksFromMenu,
+  type FooterColumn,
+} from '../../lib/oneentry/menus/adapt-footer';
+import {
   QuestionMarkCircleIcon,
   DevicePhoneMobileIcon,
   ChatBubbleLeftRightIcon,
@@ -38,14 +43,23 @@ const SOCIAL_ICON_SRC: Record<string, string> = {
 export function Footer() {
   const lLogoAlt = useHeaderT('header_logo_alt', LOGO_ALT);
   const cmsFooterMenu = useFooterMenu();
-  const bottomLinks: { key: string; label: string; href: string }[] = cmsFooterMenu.length > 0
-    ? cmsFooterMenu
-        .map((p) => ({
-          key: String(p.id),
-          label: p.menuTitle || p.title,
-          href: `/info/${p.pageUrl}`,
-        }))
-        .filter((it) => it.label.length > 0)
+
+  // Both halves of the footer navigation come from the single OE `footer`
+  // menu: nested root nodes are the link columns, flat ones are the legal
+  // bottom bar. Each half falls back to its local dataset independently, so a
+  // tenant with a flat menu keeps CMS-driven legal links and coded columns.
+  const cmsColumns = footerColumnsFromMenu(cmsFooterMenu);
+  const columns: FooterColumn[] = cmsColumns.length > 0
+    ? cmsColumns
+    : Object.entries(FOOTER_LINKS).map(([title, links]) => ({
+        key: title,
+        title,
+        links: links.map((l: FooterLink) => ({ key: l.href + l.label, label: l.label, href: l.href })),
+      }));
+
+  const cmsBottomLinks = footerBottomLinksFromMenu(cmsFooterMenu);
+  const bottomLinks = cmsBottomLinks.length > 0
+    ? cmsBottomLinks
     : BOTTOM_LINKS.map((l) => ({ key: l.href, label: l.label, href: l.href }));
   return (
     <footer className="bg-black text-white">
@@ -95,15 +109,15 @@ export function Footer() {
           </div>
 
           {/* Link Columns */}
-          {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-            <nav key={title} aria-label={title}>
-              <h4 className="text-xs tracking-widest uppercase font-medium mb-4 text-white/80">
-                {title}
+          {columns.map((column) => (
+            <nav key={column.key} aria-label={column.title} data-testid="footer-column">
+              <h4 className="text-xs tracking-widest uppercase font-medium mb-4 text-white/80" data-testid="footer-column-title">
+                {column.title}
               </h4>
               <ul className="space-y-2">
-                {links.map((link: FooterLink) => (
-                  <li key={link.label}>
-                    <Link href={link.href} className="text-xs text-white/50 hover:text-white transition-colors block">
+                {column.links.map((link) => (
+                  <li key={link.key}>
+                    <Link href={link.href} className="text-xs text-white/50 hover:text-white transition-colors block" data-testid="footer-column-link">
                       {link.label}
                     </Link>
                   </li>
@@ -171,10 +185,10 @@ export function Footer() {
 
       {/* Bottom Bar */}
       <div className="border-t border-white/10">
-        <nav aria-label={FOOTER_ARIA.legalLinks} className="max-w-screen-xl mx-auto px-4 lg:px-8 py-4 flex flex-wrap items-center justify-center gap-4">
+        <nav aria-label={FOOTER_ARIA.legalLinks} className="max-w-screen-xl mx-auto px-4 lg:px-8 py-4 flex flex-wrap items-center justify-center gap-4" data-testid="footer-bottom-bar">
           {bottomLinks.map((link, i, arr) => (
             <span key={link.key} className="flex items-center gap-4">
-              <Link href={link.href} className="text-xs text-white/40 hover:text-white/70 transition-colors">{link.label}</Link>
+              <Link href={link.href} className="text-xs text-white/40 hover:text-white/70 transition-colors" data-testid="footer-bottom-link">{link.label}</Link>
               {i < arr.length - 1 && <span className="text-white/20 text-xs">|</span>}
             </span>
           ))}

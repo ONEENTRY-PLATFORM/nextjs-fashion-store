@@ -45,10 +45,12 @@ Pickup stores/lockers are still local; a future refactor may pull them from OneE
 | File | Exports | Consumers |
 |---|---|---|
 | `headerConfig.ts` | Regions, languages, support phone, logo alt, gender nav hrefs | `Header`, `HeaderTopBar` |
-| `footerConfig.ts` | Footer link groups (About / Service / Help / Customer support) | `Footer` |
+| `footerConfig.ts` | Footer link groups (`FOOTER_LINKS`) + legal links (`BOTTOM_LINKS`) — **both are fallbacks now**; primary source is the OE `footer` menu (see below). Payment / social / support / company constants are still static. | `Footer` |
 | `categories.ts` | `MEGA_DATA` (women/men taxonomy fallback used only if OE menu load fails) | `HeaderMegaMenu` (fallback path) |
 
 `categories.ts` is a **fallback** — primary source is the OneEntry `Menus` API via `src/lib/oneentry/menus/`.
+
+The single OE `footer` menu drives both halves of the footer navigation, split by shape in `menus/adapt-footer.ts`: root nodes **with** children become the link columns (`footerColumnsFromMenu`), childless root nodes become the legal bottom bar (`footerBottomLinksFromMenu`). Each half falls back to its local dataset independently, so a flat menu (today's shape) keeps CMS-driven legal links while the columns come from `FOOTER_LINKS`. `footerHref()` resolves an OE `pageUrl` to the canonical `/{slug}` route — info pages answer on both `/{slug}` and `/info/{slug}`, and the bare form is canonical.
 
 ## 6. Homepage / catalog metadata
 
@@ -84,7 +86,7 @@ Local label constants used as fallbacks when the corresponding OneEntry label co
 |---|---|
 | `commonLabels.ts` | Shared widgets (price range, qty control, carousel, mini-cart aria) |
 | `cartLabels.ts` | Mini-cart + cart page |
-| `favoritesLabels.ts` | Favourites page |
+| `favoritesLabels.ts` | Favourites page — every string is now read through `useFavoritesPageT(key, fallback)` against the OE `favorites_page` set (page chrome, empty state and card badges alike), so this file only supplies the offline defaults |
 | `accountLabels.ts` | Account sections (profile, addresses, orders, loyalty, security, preferences) |
 | `authLabels.ts` | Sign-in + registration |
 | `productPageLabels.ts` | Product detail + quick-view |
@@ -116,10 +118,11 @@ Primary source of these labels is the OneEntry AttributesSets → the 12 label l
 
 | File | Exports | Consumers |
 |---|---|---|
-| `faqData.ts` | FAQ Q&A array | `FAQ` info page (fallback) |
 | `stores.ts` | `Store` type + `DEFAULT_STORE_SCHEMA` (LocalBusiness JSON-LD) + mock store list | `StoreLocationsPage` (mock fallback), `stores.ts` OneEntry loader (adapts to same shape) |
 
-FAQ and stores are primarily served from OneEntry now — these files are fallback + schema helpers.
+Stores are primarily served from OneEntry — this file is fallback + schema helper.
+
+`faqData.ts` was **deleted**. Its Q&A array fed only the `FAQPage` JSON-LD on `/faq` while the visible page came from OE blocks, so the markup described content no visitor could see. Both the rendered sections and the schema now come from `blocks/info-sections.ts` (`infoSectionsFromBlocks` / `faqItemsFromBlocks`) — see [SEO_OPTIMIZATION.md](./SEO_OPTIMIZATION.md).
 
 ## 11. Removed files
 
@@ -150,7 +153,11 @@ If a component still imports from one of these paths, that's an unfinished migra
 | Product detail | OE `Products.getProductById` + form-data reviews | ✅ live |
 | Info pages | Local static (`INFO_PAGE_LABELS` in `data/infoPageLabels.ts`) — `loadPageByUrl` exists in SDK layer but is dead code | ⚠ static |
 | Header / footer menus | OE `Menus.getMenusByMarker` | ✅ live (categories.ts is fallback) |
-| Header / footer branding config | `headerConfig.ts` / `footerConfig.ts` | ❌ static |
+| Footer link columns + legal links | OE `footer` menu via `menus/adapt-footer.ts` | ✅ live (`FOOTER_LINKS` / `BOTTOM_LINKS` are fallbacks) |
+| Footer branding (payment / social / support / phone / copyright) | `footerConfig.ts` | ❌ static |
+| Header branding config | `headerConfig.ts` | ❌ static |
+| Favorites page copy | OE `favorites_page` set via `useFavoritesPageT` | ✅ live (`favoritesLabels.ts` is the fallback) |
+| FAQ structured data | Derived from the rendered OE `info_section_*` blocks | ✅ live (no static source) |
 | Auth / session | OE `AuthProvider` + cookies | ✅ live |
 | Cart / wishlist per user | OE user state + `syncCart` / `syncWishlist` | ✅ live |
 | Payment accounts | OE `Payments.getAccounts` | ✅ live |

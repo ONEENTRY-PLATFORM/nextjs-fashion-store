@@ -43,10 +43,24 @@ export function FavoritesPage({
   const router = useRouter();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const mounted = useMounted();
-  const lItems    = useFavoritesPageT('favorites_page_items',           L.itemPlural);
-  const lMoveAll  = useFavoritesPageT('favorites_page_move_all_to_bag', L.moveAllToBag);
-  const lClearAll = useFavoritesPageT('favorites_page_clear_all',       L.clearAll);
-  const lBottom   = useFavoritesPageT('favorites_page_bottom_link',     L.ctaContinue);
+  // Every visible string resolves through the OE `favorites_page` set, with the
+  // local dictionary as the offline fallback — a partially wired page would let
+  // an editor change some labels while others stayed frozen in code.
+  const lItems     = useFavoritesPageT('favorites_page_items',              L.itemPlural);
+  const lItem      = useFavoritesPageT('favorites_page_item',               L.itemSingular);
+  const lMoveAll   = useFavoritesPageT('favorites_page_move_all_to_bag',    L.moveAllToBag);
+  const lClearAll  = useFavoritesPageT('favorites_page_clear_all',          L.clearAll);
+  const lBottom    = useFavoritesPageT('favorites_page_bottom_link',        L.ctaContinue);
+  const lCrumbHome = useFavoritesPageT('favorites_page_breadcrumb_home',    L.breadcrumbHome);
+  const lCrumbCurr = useFavoritesPageT('favorites_page_breadcrumb_current', L.breadcrumbCurrent);
+  const lTitle     = useFavoritesPageT('favorites_page_title',              L.pageTitle);
+  const lConfirm   = useFavoritesPageT('favorites_page_confirm_clear',      L.confirmClear);
+  const lYes       = useFavoritesPageT('favorites_page_confirm_yes',        L.confirmYes);
+  const lCancel    = useFavoritesPageT('favorites_page_confirm_cancel',     L.confirmCancel);
+  const lDropTitle = useFavoritesPageT('favorites_page_price_drop_title',   L.priceDropTitle);
+  const lDropBody  = useFavoritesPageT('favorites_page_price_drop_body',    L.priceDropBody);
+  const lRecommend = useFavoritesPageT('favorites_page_recommended',        L.recommendedHeading);
+  const lTrending  = useFavoritesPageT('favorites_page_trending',           L.trendingHeading);
 
   // Live Recently-Viewed trail from Redux (shared with PDP). Dedupe by title
   // so different variants of the same product (Pink XL / White M / …) don't
@@ -153,16 +167,16 @@ export function FavoritesPage({
       <main id="main-content" className="pb-20">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs text-gray-400 px-4 lg:px-8 pt-6 mb-6 tracking-wide">
-          <button onClick={() => router.push('/')} className="hover:text-black transition-colors focus-visible:outline-none">{L.breadcrumbHome}</button>
+          <button onClick={() => router.push('/')} className="hover:text-black transition-colors focus-visible:outline-none" data-testid="favorites-breadcrumb-home">{lCrumbHome}</button>
           <ChevronRight size={12} />
-          <span className="text-black font-semibold">{L.breadcrumbCurrent}</span>
+          <span className="text-black font-semibold" data-testid="favorites-breadcrumb-current">{lCrumbCurr}</span>
         </nav>
 
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-4 lg:px-8 border-b-2 border-black pb-4">
           <div className="flex items-baseline gap-3">
-            <h1 className="text-2xl tracking-[0.12em] uppercase font-bold">{L.pageTitle}</h1>
-            <span className="text-sm text-gray-400">({mounted ? count : 0} {mounted && count === 1 ? L.itemSingular : lItems})</span>
+            <h1 className="text-2xl tracking-[0.12em] uppercase font-bold" data-testid="favorites-title">{lTitle}</h1>
+            <span className="text-sm text-gray-400">({mounted ? count : 0} {mounted && count === 1 ? lItem : lItems})</span>
           </div>
 
           {mounted && count > 0 && (
@@ -184,18 +198,18 @@ export function FavoritesPage({
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{L.confirmClear}</span>
+                  <span className="text-xs text-gray-500">{lConfirm}</span>
                   <button
                     onClick={() => { clearAll(); setShowClearConfirm(false); }}
                     className="px-3 py-1.5 text-white text-xs uppercase focus-visible:outline-none bg-[var(--sale)] font-bold"
                   >
-                    {L.confirmYes}
+                    {lYes}
                   </button>
                   <button
                     onClick={() => setShowClearConfirm(false)}
                     className="px-3 py-1.5 text-xs uppercase focus-visible:outline-none hover:bg-gray-50 border border-[#d1d5db]"
                   >
-                    {L.confirmCancel}
+                    {lCancel}
                   </button>
                 </div>
               )}
@@ -232,8 +246,8 @@ export function FavoritesPage({
               <div className="flex items-center gap-3 px-4 py-3 mb-0 text-sm bg-[#FFFBEB] border border-[#FDE68A]">
                 <AlertTriangle size={16} className="text-[#D97706] flex-shrink-0" />
                 <p className="text-[#92400E]">
-                  <span className="font-bold">{L.priceDropTitle}</span>
-                  {' '}{L.priceDropBody}
+                  <span className="font-bold">{lDropTitle}</span>
+                  {' '}{lDropBody}
                 </p>
               </div>
             )}
@@ -249,8 +263,8 @@ export function FavoritesPage({
 
         {/* Recommendations */}
         <div className="space-y-12 pt-12 px-4 lg:px-8 border-t border-gray-200">
-          <FavoritesCarousel title={L.recommendedHeading} products={RECOMMENDATION_PRODUCTS_SCOPED} />
-          <FavoritesCarousel title={L.trendingHeading} products={TRENDING_PRODUCTS_SCOPED} />
+          <FavoritesCarousel title={lRecommend} products={RECOMMENDATION_PRODUCTS_SCOPED} />
+          <FavoritesCarousel title={lTrending} products={TRENDING_PRODUCTS_SCOPED} />
         </div>
 
         {/* Recently Viewed — reads the live Redux trail so what the shopper

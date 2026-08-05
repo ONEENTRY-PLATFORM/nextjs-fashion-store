@@ -287,6 +287,8 @@ Twelve CMS-managed label sets. Each pair is `{name}-labels.ts` (loader) + `{name
 
 Each label loader uses `system-text.ts::getSystemSet(marker, lang)` → 5 min TTL + React request cache.
 
+Keys read from `favorites_page_set` (each falls back to `data/favoritesLabels.ts` when absent): `favorites_page_items`, `favorites_page_item`, `favorites_page_move_all_to_bag`, `favorites_page_clear_all`, `favorites_page_bottom_link`, `favorites_page_breadcrumb_home`, `favorites_page_breadcrumb_current`, `favorites_page_title`, `favorites_page_confirm_clear`, `favorites_page_confirm_yes`, `favorites_page_confirm_cancel`, `favorites_page_price_drop_title`, `favorites_page_price_drop_body`, `favorites_page_recommended`, `favorites_page_trending`, `favorites_empty_image_alt`, `favorites_empty_heading`, `favorites_empty_body`, `favorites_empty_cta_women`, `favorites_empty_cta_home`, `favorite_card_price_drop`, `favorite_card_out_of_stock`, `favorite_card_size`.
+
 ### 5.5 Forms placeholders (`src/lib/oneentry/forms/placeholders.ts`)
 
 `loadFormPlaceholders(marker, lang)` returns a nested map `attribute → additionalField → string`. Consumed by `FormPlaceholdersContext` and shared by all form components.

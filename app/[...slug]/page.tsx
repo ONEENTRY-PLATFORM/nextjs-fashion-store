@@ -9,7 +9,6 @@ import {
 } from '../../src/app/data/pageRegistry';
 import { SITE_URL } from '../../src/app/data/seoData';
 import { INFO_PAGE_META } from '../../src/app/data/infoPages';
-import { FAQ_ITEMS } from '../../src/app/data/faqData';
 import { JsonLd } from '../../src/app/components/JsonLd';
 import { loadProducts, loadFilteredProducts } from '../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../src/lib/oneentry/catalog/adapt';
@@ -20,6 +19,7 @@ import { loadCatalogFilter, type ClothingFilterGroup } from '../../src/lib/oneen
 import { loadFilterChips, chipToFilterPatch } from '../../src/lib/oneentry/blocks/filter-chips';
 import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';
 import { loadPageByUrl } from '../../src/lib/oneentry/catalog/pages';
+import { faqItemsFromBlocks, buildFaqSchema } from '../../src/lib/oneentry/blocks/info-sections';
 import { loadInfoPageSystemTexts } from '../../src/lib/oneentry/labels/info-page-labels';
 import { InfoPageLabelsProvider } from '../../src/lib/oneentry/labels/InfoPageLabelsContext';
 
@@ -146,16 +146,6 @@ async function buildCatalogSchemas(entry: CatalogPageEntry) {
 
   return { breadcrumb, itemList };
 }
-
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: FAQ_ITEMS.map(item => ({
-    '@type': 'Question',
-    name: item.question,
-    acceptedAnswer: { '@type': 'Answer', text: item.answer },
-  })),
-};
 
 /* ─── Page component ─── */
 export default async function Page({ params, searchParams }: Props) {
@@ -405,10 +395,16 @@ export default async function Page({ params, searchParams }: Props) {
         : [{ name: crumbHome, href: '/' }, { name: pageTitle }]
     );
 
+    // FAQ structured data is derived from the very blocks `<InfoPage>` renders
+    // below, so the markup can never describe copy the visitor cannot see —
+    // Google treats that mismatch as a structured-data violation. No
+    // question-shaped section in OE means no `FAQPage` node at all.
+    const faqItems = entry.slug === 'faq' ? faqItemsFromBlocks(infoPageBlocks) : [];
+
     return (
       <>
         <JsonLd data={breadcrumbSchema} />
-        {entry.slug === 'faq' && <JsonLd data={faqSchema} />}
+        {faqItems.length > 0 && <JsonLd data={buildFaqSchema(faqItems)} />}
         <InfoPageLabelsProvider data={infoLabels}>
           <InfoPage pageBlocks={infoPageBlocks} />
         </InfoPageLabelsProvider>

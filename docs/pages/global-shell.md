@@ -154,9 +154,13 @@ Grid of 4 cards (`SUPPORT_ITEMS`):
 - **Phone** (`tel:` link): `"+44 20 7946 0958"` (`COMPANY_INFO.phone`)
 - **Copyright** (`COMPANY_INFO.copyright`): `"© 2026 ONEENTRY FASHION. All rights reserved."`
 
-### Link Columns (×4) — exact from `FOOTER_LINKS`
+### Link Columns — from the OE `footer` menu, `FOOTER_LINKS` as fallback
 
-Each column is a `nav` with `aria-label` = column title, **H4** = title.
+Each column is a `nav` (`data-testid="footer-column"`) with `aria-label` = column title, **H4** = title (`data-testid="footer-column-title"`), links carry `data-testid="footer-column-link"`.
+
+Primary source is the OneEntry `footer` menu: every root node **with children** renders as a column (title = `menuTitle` ?? `title`, links = its children, both ordered by `position`). Hrefs resolve through `footerHref()` to the canonical `/{slug}`. When the menu has no nested nodes, the columns below render from `FOOTER_LINKS` instead — see [DATASETS.md §5](../DATASETS.md).
+
+Fallback contents:
 
 **About Company**: `Sitemap`, `About Us`, `Rewards`, `Store Locator`, `Terms`, `Privacy Policy`, `Security`, `Accessibility`, `User Content Policy`
 
@@ -177,10 +181,11 @@ Each column is a `nav` with `aria-label` = column title, **H4** = title.
 - Social media icons (order from `SOCIAL_LINKS`): `TikTok`, `Facebook`, `Instagram`, `YouTube`, `Pinterest`
 - aria-label of each: `"Follow us on {name}"`
 
-### Bottom Legal Links (`BOTTOM_LINKS`)
+### Bottom Legal Links — childless nodes of the OE `footer` menu
 
-- container aria-label: `"Legal links"`
-- Exact links: `Sitemap`, `Terms of Sale`, `Terms of Use`, `Privacy Policy`, `Promo Terms`
+- container aria-label: `"Legal links"` (`data-testid="footer-bottom-bar"`), links carry `data-testid="footer-bottom-link"`
+- Source: root nodes of the `footer` menu that have **no** children, ordered by `position`
+- Fallback links (`BOTTOM_LINKS`): `Sitemap`, `Terms of Sale`, `Terms of Use`, `Privacy Policy`, `Promo Terms`
 
 ## 5. Login Modal (`LoginModal`)
 

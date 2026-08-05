@@ -34,7 +34,7 @@ A summary of all SEO, performance and discoverability improvements applied to th
 | `WebSite` + `SearchAction` | Homepage |
 | `Product` with `AggregateRating`, `Review[]`, `Offer`, `shippingDetails`, `hasMerchantReturnPolicy`, `additionalProperty` | Every product page |
 | `BreadcrumbList` | Product, Info, Info index pages |
-| `FAQPage` | FAQ info page |
+| `FAQPage` | FAQ info page — only when the CMS supplies question-shaped sections |
 | `LocalBusiness` (per store) | Store Locator page |
 | `ItemList` | All category/catalog pages |
 
@@ -224,7 +224,7 @@ JSON-LD blocks are injected via the `<JsonLd>` helper (`src/app/components/JsonL
 | `/new` (`app/new/page.tsx`) | line 20 | `BreadcrumbList` | Home → New Arrivals |
 | `/product/[id]` (`app/product/[id]/page.tsx`) | lines 200, 201 | `Product` + `BreadcrumbList` | Product: `name`, `image[]` (cover + gallery), `brand`, `sku`, `material`, `additionalProperty[] (PropertyValue)`, `aggregateRating`, `review[]`, `offers: Offer { price, priceCurrency=USD, availability, shippingDetails, hasMerchantReturnPolicy }`. `priceValidUntil` = today + 30d. Breadcrumb: Home → Brand → Product. |
 | `/[...slug]` catalog (`app/[...slug]/page.tsx`) | lines 112, 113 | `BreadcrumbList` + `ItemList` | `ItemList`: up to 10 in-stock products fetched at runtime via `loadProducts({ categoryPath, limit: 10 })` using `catalogKeyToCategoryPath(entry.catalogKey)`; products with `statusIdentifier === 'out_of_stock'` are filtered out. Each entry is `ListItem { position, url, name, image }`. |
-| `/[...slug]` info/faq (`app/[...slug]/page.tsx:120-138`) | line 133 (+134 only for faq) | `BreadcrumbList`, conditionally `FAQPage` | FAQPage `mainEntity[]: Question → acceptedAnswer.Answer` from `FAQ_ITEMS`. |
+| `/[...slug]` info/faq (`app/[...slug]/page.tsx`) | `BreadcrumbList` always, `FAQPage` only on `faq` **and** only when the CMS has Q&A sections | `BreadcrumbList`, conditionally `FAQPage` | FAQPage `mainEntity[]: Question → acceptedAnswer.Answer` built by `faqItemsFromBlocks()` from the same OE `info_section_*` blocks `<InfoPage>` renders: a section counts as a Q&A when its heading ends in `?` and it has body copy. No question-shaped section → no `FAQPage` node at all. |
 | `/stores` (`app/stores/page.tsx`) | line 60 (one per store) | `ClothingStore` per store (reusing `ORG_SCHEMA_COPY.schemaType`) | `address`, `telephone`, `email`, `openingHoursSpecification[]` (day-of-week mapped via `mapDayLabel`), `hasMap`, `currenciesAccepted`, `paymentAccepted`, `priceRange`. |
 
 Pages without JSON-LD: `/cart`, `/favorites`, `/account`, `/checkout/*`, `/offline`, `/not-found`, `/error` — all are `noindex` per `SEO.*.robots`.

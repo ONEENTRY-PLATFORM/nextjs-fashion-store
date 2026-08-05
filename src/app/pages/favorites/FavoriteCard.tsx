@@ -12,6 +12,7 @@ import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS, CATALOG_VIEW_LABELS as C
 import { FAVORITE_CARD_LABELS as FCL } from '../../data/favoritesLabels';
 import { ColorSwatchButton } from '../../components/ColorSwatchButton';
 import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
+import { useFavoritesPageT } from '../../../lib/oneentry/labels/FavoritesPageLabelsContext';
 import { extractCmsProductId } from '../../data/cms-product-id-map';
 
 export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
@@ -22,6 +23,11 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const { openQuickView } = useQuickView();
   const router = useRouter();
   const lAddToCart = useProductCardT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
+  // Wishlist-specific badges live in the OE `favorites_page` set alongside the
+  // rest of the page copy; `FAVORITE_CARD_LABELS` is the offline fallback.
+  const lPriceDrop  = useFavoritesPageT('favorite_card_price_drop',   FCL.priceDrop);
+  const lOutOfStock = useFavoritesPageT('favorite_card_out_of_stock', FCL.outOfStock);
+  const lSizeLabel  = useFavoritesPageT('favorite_card_size',         FCL.sizeLabel);
   const initColorIdx = item.selectedColor
     ? Math.max(0, item.colors.indexOf(item.selectedColor))
     : 0;
@@ -143,12 +149,12 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
           {item.priceAlert && (
             <span className="px-2 py-1 text-xs tracking-wider uppercase flex items-center gap-1 bg-[#FFF3CD] text-[#856404] rounded-none">
               <AlertTriangle size={10} />
-              {FCL.priceDrop}
+              {lPriceDrop}
             </span>
           )}
           {!item.inStock && (
             <span className="px-2 py-1 text-xs tracking-wider uppercase bg-[#666] text-white rounded-none">
-              {FCL.outOfStock}
+              {lOutOfStock}
             </span>
           )}
         </div>
@@ -245,7 +251,7 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
         {item.selectedSize && (
           <div className="mt-1.5">
             <span className="text-xs text-gray-500 tracking-wide">
-              Size: <span className="font-medium text-black">{item.selectedSize}</span>
+              {lSizeLabel}: <span className="font-medium text-black">{item.selectedSize}</span>
             </span>
           </div>
         )}
