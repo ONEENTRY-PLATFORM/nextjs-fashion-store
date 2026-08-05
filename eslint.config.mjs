@@ -40,4 +40,11 @@ export default [// ── Ignored paths ──
     'prefer-const': 'error',
     'no-var': 'error',
   },
+}, // ── Tests: fixtures are hand-built, so `!` and `any` are the point ──
+{
+  files: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**/*.ts', '**/__tests__/**/*.tsx'],
+  rules: {
+    '@typescript-eslint/no-non-null-assertion': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+  },
 }, ...storybook.configs["flat/recommended"]];

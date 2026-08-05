@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '../src/app/data/seoData';
 
-const PRIVATE_PATHS = ['/cart', '/favorites', '/account', '/checkout/', '/download/', '/api/'];
+const PRIVATE_PATHS = ['/cart', '/favorites', '/account', '/checkout/', '/api/'];
 
 export default function robots(): MetadataRoute.Robots {
   return {

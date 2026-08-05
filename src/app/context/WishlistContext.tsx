@@ -133,6 +133,11 @@ export function useWishlist(): WishlistContextType {
         }
       }
     });
+    // `items` is deliberately omitted: this is a one-shot merge guarded by
+    // `hydratedRef`, and it reads the local wishlist as it stands at
+    // hydration time. Listing it would re-run the effect on every mutation
+    // the merge itself dispatches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, user, userIdentifier, dispatch]);
   useEffect(() => {
     if (!isLoggedIn) {

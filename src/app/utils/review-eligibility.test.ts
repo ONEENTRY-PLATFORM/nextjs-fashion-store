@@ -20,7 +20,7 @@ type MinOrder = {
 };
 
 /** Cast a MinOrder array to the param type expected by canReviewProduct. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const asOrders = (orders: MinOrder[]) => orders as any;
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

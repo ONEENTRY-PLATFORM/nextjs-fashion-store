@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { useAppDispatch } from '../store/hooks';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -64,7 +63,6 @@ export function AccountPage() {
     { key: 'subscriptions', label: AST.subscriptions, icon: <Mail size={16} /> },
   ];
   const router = useRouter();
-  const dispatch = useAppDispatch();
   const [activeSection, setActiveSection] = useState<Section>('my-data');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sectionLoading, setSectionLoading] = useState(false);

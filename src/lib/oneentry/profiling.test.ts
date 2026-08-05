@@ -50,7 +50,7 @@ describe('withTiming — profiling enabled', () => {
   beforeEach(() => {
     vi.stubEnv('OE_PROFILE', '1');
     vi.stubEnv('OE_PROFILE_SLOW_MS', '');
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
   it('OE_PROFILE_ENABLED is true', async () => {
@@ -78,7 +78,7 @@ describe('withTiming — profiling enabled', () => {
     const { withTiming } = await importFresh();
     const wrapped = withTiming('loadStores', vi.fn(async () => 'ok'));
     await wrapped();
-    expect(console.log).toHaveBeenCalledWith(
+    expect(console.warn).toHaveBeenCalledWith(
       expect.stringMatching(/^\[OE-timing\] loadStores ok \d+\.\dms$/),
     );
   });
@@ -88,7 +88,7 @@ describe('withTiming — profiling enabled', () => {
     const boom = new Error('network failure');
     const wrapped = withTiming('loadProducts', vi.fn(async () => { throw boom; }));
     await expect(wrapped()).rejects.toThrow('network failure');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(console.warn).toHaveBeenCalledWith(
       expect.stringMatching(/^\[OE-timing\] loadProducts FAIL \d+\.\dms$/),
     );
   });
@@ -101,7 +101,7 @@ describe('withTiming — profiling enabled', () => {
 describe('withTiming — slow-ms threshold', () => {
   beforeEach(() => {
     vi.stubEnv('OE_PROFILE', '1');
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
   it('does not log when call is faster than threshold', async () => {
@@ -110,7 +110,7 @@ describe('withTiming — slow-ms threshold', () => {
     // The fn completes near-instantly — well below 9999 ms threshold
     const wrapped = withTiming('fastFn', vi.fn(async () => 'fast'));
     await wrapped();
-    expect(console.log).not.toHaveBeenCalled();
+    expect(console.warn).not.toHaveBeenCalled();
   });
 
   it('logs when threshold is 0 (log everything)', async () => {
@@ -118,7 +118,7 @@ describe('withTiming — slow-ms threshold', () => {
     const { withTiming } = await importFresh();
     const wrapped = withTiming('anyFn', vi.fn(async () => 'x'));
     await wrapped();
-    expect(console.log).toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalled();
   });
 
   it('uses 0 as threshold when OE_PROFILE_SLOW_MS is non-numeric', async () => {
@@ -127,7 +127,7 @@ describe('withTiming — slow-ms threshold', () => {
     const wrapped = withTiming('anyFn', vi.fn(async () => 'x'));
     await wrapped();
     // threshold falls back to 0, so all calls are logged
-    expect(console.log).toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalled();
   });
 });
 
@@ -140,7 +140,7 @@ describe('ring buffer — clearTimings / readTimings', () => {
   beforeEach(() => {
     vi.stubEnv('OE_PROFILE', '1');
     vi.stubEnv('OE_PROFILE_SLOW_MS', '9999'); // suppress console output
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
   it('readTimings() returns [] after clearTimings()', async () => {
@@ -221,7 +221,7 @@ describe('ring buffer — overflow evicts oldest entries', () => {
   beforeEach(() => {
     vi.stubEnv('OE_PROFILE', '1');
     vi.stubEnv('OE_PROFILE_SLOW_MS', '9999');
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
   it('oldest entry is evicted when capacity is exceeded (documented behaviour)', async () => {
@@ -260,7 +260,7 @@ describe('globalThis ring — writes via import#1 are visible via import#2', () 
   it('second dynamic import sees records pushed through the first import', async () => {
     vi.stubEnv('OE_PROFILE', '1');
     vi.stubEnv('OE_PROFILE_SLOW_MS', '9999');
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     // Import #1 — push one record via withTiming
     const mod1 = await importFresh();
@@ -287,7 +287,7 @@ describe('aggregateTimings()', () => {
   beforeEach(() => {
     vi.stubEnv('OE_PROFILE', '1');
     vi.stubEnv('OE_PROFILE_SLOW_MS', '9999');
-    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
   it('returns [] when buffer is empty', async () => {

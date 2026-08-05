@@ -26,7 +26,7 @@ import { useMounted } from '../hooks/useMounted';
 
 export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const router = useRouter();
-  const { items, discount, total, subtotal, clearCart, couponCode, preview: cartPreview, previewLoading: cartPreviewLoading, giftItems } = useCart();
+  const { items, total, subtotal, clearCart, couponCode, preview: cartPreview, previewLoading: cartPreviewLoading, giftItems } = useCart();
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [method, setMethod] = useState<string>('');
@@ -173,7 +173,6 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const hasPreviewableItems = productsForPreview.length > 0;
   const previewSignature = `${productsKey}|${bonusAmount}|${couponCode ?? ''}`;
   const previewInFlight = hasPreviewableItems && previewFor !== previewSignature;
-  const previewLoading = previewInFlight;
   useEffect(() => {
     if (!hasPreviewableItems) return;
     let cancelled = false;

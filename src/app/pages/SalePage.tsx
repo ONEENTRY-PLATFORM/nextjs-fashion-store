@@ -38,7 +38,35 @@ import { useMounted } from '../hooks/useMounted';
 
 const SALE_KEY = 'sale';
 
+// Stable empty defaults — a fresh `[]` / `{}` per render would invalidate every
+// memo that depends on the derived filter arrays.
+const EMPTY_FILTERS: Record<string, string[]> = {};
+const EMPTY_VALUES: string[] = [];
+
+/* ── Discount % from price/salePrice strings ── */
+const priceNum = (s?: string) => {
+  if (!s) return 0;
+  const n = Number.parseFloat(s.replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+const inDiscountBucket = (label: string, pct: number): boolean => {
+  if (label === DL.d10_20) return pct >= 10 && pct < 20;
+  if (label === DL.d20_30) return pct >= 20 && pct < 30;
+  if (label === DL.d30_40) return pct >= 30 && pct < 40;
+  if (label === DL.d40_50) return pct >= 40 && pct < 50;
+  if (label === DL.d50plus) return pct >= 50;
+  return false;
+};
+
 type SaleProduct = Product & { category?: string };
+
+const discountPct = (p: SaleProduct): number => {
+  const orig = priceNum(p.price);
+  const sale = priceNum(p.salePrice);
+  if (!orig || !sale || sale >= orig) return 0;
+  return ((orig - sale) / orig) * 100;
+};
+
 export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: { initialProducts?: SaleProduct[]; saleEndsAt?: number; pageBlocks?: PageBlock[]; cmsPage?: SalePageFromCms | null } = {}) {
   // Gender scope comes from `?gender=` (set by the header switch). Reading it
   // here rather than in the page keeps `/sale` statically renderable — the
@@ -60,22 +88,24 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
   // Redux state
   const dispatch = useAppDispatch();
   const catalogState = useAppSelector(s => s.catalog[SALE_KEY]);
-  const selectedFilters = catalogState?.selectedFilters ?? {};
+  const selectedFilters = catalogState?.selectedFilters ?? EMPTY_FILTERS;
   const sortBy = catalogState?.sortBy ?? 'discount';
   const currentPage = catalogState?.currentPage ?? 1;
   const viewCols = (catalogState?.viewCols ?? 4) as 3 | 4;
 
   // Derived filter state
   const activeCategory = (selectedFilters['category']?.[0] ?? CAT.all) as SaleCategory;
-  const selDiscount = selectedFilters['discount'] ?? [];
-  const selSize = selectedFilters['size'] ?? [];
-  const selColor = selectedFilters['color'] ?? [];
-  const selBrand = selectedFilters['brand'] ?? [];
+  // Memoised so the derived arrays keep a stable identity between renders —
+  // they feed the `filtered` / `activeChips` memos below.
+  const selDiscount = useMemo(() => selectedFilters['discount'] ?? EMPTY_VALUES, [selectedFilters]);
+  const selSize = useMemo(() => selectedFilters['size'] ?? EMPTY_VALUES, [selectedFilters]);
+  const selColor = useMemo(() => selectedFilters['color'] ?? EMPTY_VALUES, [selectedFilters]);
+  const selBrand = useMemo(() => selectedFilters['brand'] ?? EMPTY_VALUES, [selectedFilters]);
 
-  const toggleDiscount = (v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'discount', value: v }));
-  const toggleSize = (v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'size', value: v }));
-  const toggleColor = (v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'color', value: v }));
-  const toggleBrand = (v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'brand', value: v }));
+  const toggleDiscount = useCallback((v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'discount', value: v })), [dispatch]);
+  const toggleSize = useCallback((v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'size', value: v })), [dispatch]);
+  const toggleColor = useCallback((v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'color', value: v })), [dispatch]);
+  const toggleBrand = useCallback((v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'brand', value: v })), [dispatch]);
   const clearFilter = (key: string) => dispatch(setFilters({ catalogKey: SALE_KEY, filters: { ...selectedFilters, [key]: [] } }));
   const setActiveCategory = (cat: SaleCategory) => {
     dispatch(setFilters({ catalogKey: SALE_KEY, filters: { ...selectedFilters, category: cat === CAT.all ? [] : [cat] } }));
@@ -118,27 +148,6 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
     document.addEventListener('keydown', ky);
     return () => { document.removeEventListener('mousedown', fn); document.removeEventListener('keydown', ky); };
   }, []);
-
-  /* ── Discount % from price/salePrice strings ── */
-  const priceNum = (s?: string) => {
-    if (!s) return 0;
-    const n = Number.parseFloat(s.replace(/[^0-9.]/g, ''));
-    return Number.isFinite(n) ? n : 0;
-  };
-  const discountPct = (p: SaleProduct): number => {
-    const orig = priceNum(p.price);
-    const sale = priceNum(p.salePrice);
-    if (!orig || !sale || sale >= orig) return 0;
-    return ((orig - sale) / orig) * 100;
-  };
-  const inDiscountBucket = (label: string, pct: number): boolean => {
-    if (label === DL.d10_20) return pct >= 10 && pct < 20;
-    if (label === DL.d20_30) return pct >= 20 && pct < 30;
-    if (label === DL.d30_40) return pct >= 30 && pct < 40;
-    if (label === DL.d40_50) return pct >= 40 && pct < 50;
-    if (label === DL.d50plus) return pct >= 50;
-    return false;
-  };
 
   /* ── Filter options derived from the products that are actually on this
      page. `?gender=women` already narrowed the source list on the server,
@@ -560,8 +569,8 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
       {(() => {
         const recBlock = pageBlocks?.find(b => b.type === 'frequently_ordered_block') ?? null;
         const recHeading = recBlock?.title || L.recsHeading;
-        const recProducts = (recBlock?.products?.length ?? 0) > 0
-          ? recBlock!.products
+        const recProducts = recBlock?.products?.length
+          ? recBlock.products
           : PRODUCTS.slice(0, 6);
         if (recProducts.length === 0) return null;
         return (

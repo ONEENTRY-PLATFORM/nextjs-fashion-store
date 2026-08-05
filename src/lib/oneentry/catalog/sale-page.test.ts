@@ -15,7 +15,7 @@ vi.mock('../index', async (importActual) => ({
 
 // Strip the ISR cache wrapper so the underlying fetchSalePage runs directly.
 vi.mock('next/cache', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -302,7 +302,7 @@ describe('loadSalePage — disabled', () => {
       isError: () => false,
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     const { loadSalePage } = await import('./sale-page');

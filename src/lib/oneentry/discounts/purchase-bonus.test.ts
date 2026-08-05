@@ -17,7 +17,7 @@ vi.mock('../index', async (importActual) => ({
 
 // unstable_cache: call the wrapped function directly so caching is transparent.
 vi.mock('next/cache', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   unstable_cache: (fn: any) => fn,
 }));
 

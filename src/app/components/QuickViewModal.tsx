@@ -517,10 +517,11 @@ export function QuickViewModal() {
                 <button
                   onClick={() => {
                     const hasColors = product.colors && product.colors.length > 0;
-                    const colorErr = hasColors && selectedColor === null;
-                    const sizeErr = selectedSize === null;
-                    if (colorErr || sizeErr) {
-                      setErrors({ color: colorErr, size: sizeErr });
+                    const colorErr = Boolean(hasColors) && selectedColor === null;
+                    // Compared inline (not via a `sizeErr` const) so TS narrows
+                    // `selectedSize` to a string for the `addItem` payload.
+                    if (colorErr || selectedSize === null) {
+                      setErrors({ color: colorErr, size: selectedSize === null });
                       return;
                     }
                     // Use the variant-aware sale price so the cart stores
@@ -537,8 +538,8 @@ export function QuickViewModal() {
                       name: product.name,
                       brand: product.brand ?? '',
                       sku: activeVariant?.sku || product.id,
-                      color: product.colors?.[selectedColor!] ?? '',
-                      size: selectedSize!,
+                      color: selectedColor !== null ? (product.colors?.[selectedColor] ?? '') : '',
+                      size: selectedSize,
                       quantity: 1,
                       price: cartPrice,
                       ...(originalPriceRaw !== undefined && { originalPrice: originalPriceRaw }),

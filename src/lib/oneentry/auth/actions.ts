@@ -203,7 +203,6 @@ const DEFAULT_SUBSCRIPTIONS: OeSubscriptions = {
   saleAlerts: false,
   loyaltyUpdates: false,
 };
-const DEFAULT_CONSENT: OeConsent = { dataProcessing: false, crossBorder: false };
 
 // User-scoped order storages (non-guest). Probed via Orders.getAllOrdersStorage.
 const USER_ORDER_STORAGE_MARKERS = ['home', 'store_pickup', 'locker'] as const;
@@ -1398,14 +1397,19 @@ export async function updateAddressesAction(
   if (!userIdentifier) return { ok: false, error: 'Missing user identifier' };
 
   const existing = await fetchUserAddresses();
-  const existingById = new Map(existing.map((a) => [a.recordId!, a]));
+  const existingById = new Map(
+    existing
+      .filter((a): a is OeAddress & { recordId: number } => typeof a.recordId === 'number')
+      .map((a) => [a.recordId, a]),
+  );
   const incomingRecordIds = new Set(addresses.map((a) => a.recordId).filter((v): v is number => typeof v === 'number'));
 
   // Delete records that are no longer in the incoming list
   await Promise.all(
     existing
-      .filter((a) => a.recordId !== undefined && !incomingRecordIds.has(a.recordId))
-      .map((a) => deleteUserAddress(a.recordId!)),
+      .filter((a): a is OeAddress & { recordId: number } =>
+        a.recordId !== undefined && !incomingRecordIds.has(a.recordId))
+      .map((a) => deleteUserAddress(a.recordId)),
   );
 
   // POST new (no recordId) and PUT existing

@@ -57,9 +57,9 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
   // Per-swatch availability: a colour is buyable when at least one linked
   // variant carrying it has stock. Without this every swatch is clickable and
   // the shopper only learns a colour is sold out after opening the PDP.
-  const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
-  const colorStock = hasVariants
-    ? p.colors.map((c) => p.variants!.some((v) => v.colors.includes(c) && variantHasStock(v)))
+  const srcVariants = Array.isArray(p.variants) ? p.variants : [];
+  const colorStock = srcVariants.length > 0
+    ? p.colors.map((c) => srcVariants.some((v) => v.colors.includes(c) && variantHasStock(v)))
     : undefined;
   return {
     id: String(p.id),
@@ -136,7 +136,8 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
   // colour is available if at least one linked variant carrying it has
   // stock. Per-size availability is refined client-side by PDP based on the
   // currently selected colour — here we compute the colour-agnostic default.
-  const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+  const srcVariants = Array.isArray(p.variants) ? p.variants : [];
+  const hasVariants = srcVariants.length > 0;
   // Many OE tenants track availability through `statusIdentifier` alone and
   // never write to the numeric `stock` field. Treat a variant as buyable
   // whenever either the count is positive OR the status flag isn't
@@ -144,16 +145,16 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
   const variantHasStock = (v: { stock: number; statusIdentifier: string }) =>
     v.stock > 0 || v.statusIdentifier !== 'out_of_stock';
   const colorStock = hasVariants
-    ? p.colors.map((c) => p.variants!.some((v) => v.colors.includes(c) && variantHasStock(v)))
+    ? p.colors.map((c) => srcVariants.some((v) => v.colors.includes(c) && variantHasStock(v)))
     : undefined;
   const sizeAvailability = hasVariants
-    ? new Map(p.sizes.map((s) => [s, p.variants!.some((v) => v.sizes.includes(s) && variantHasStock(v))]))
+    ? new Map(p.sizes.map((s) => [s, srcVariants.some((v) => v.sizes.includes(s) && variantHasStock(v))]))
     : null;
   // Slim variant list for PDP so it can recompute size availability per the
   // currently selected colour. `hex` mapping happens here so the client
   // matches against the same colour representation the swatches render.
   const pdpVariants = hasVariants
-    ? p.variants!.map((v) => ({
+    ? srcVariants.map((v) => ({
         id: String(v.id),
         colors: v.colors.map(colorToHex),
         sizes: v.sizes,

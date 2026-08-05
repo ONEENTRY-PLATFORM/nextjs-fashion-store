@@ -2,8 +2,8 @@
 import { Package, ChevronDown } from 'lucide-react';
 import { RadioCard } from '../../components/RadioCard';
 import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
-import { DELIVERY_METHOD_LOCKER_LABELS as L, GUEST_CONTACT_LABELS as GC } from '../../data/checkoutLabels';
-import { GuestContactForm, type GuestContactFormState } from './GuestContactForm';
+import { DELIVERY_METHOD_LOCKER_LABELS as L } from '../../data/checkoutLabels';
+import { type GuestContactFormState } from './GuestContactForm';
 import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 interface DeliveryMethodLockerProps {
@@ -23,7 +23,11 @@ export function DeliveryMethodLocker({
   checked, onChange,
   selectedLocker, setSelectedLocker,
   lockerDropOpen, setLockerDropOpen,
-  isLoggedIn, guestContact, setGuestContact, guestContactErrors,
+  // Guest-contact props stay in the signature for the disabled form below.
+  isLoggedIn: _isLoggedIn,
+  guestContact: _guestContact,
+  setGuestContact: _setGuestContact,
+  guestContactErrors: _guestContactErrors,
 }: DeliveryMethodLockerProps) {
   const info = useDeliveryMethodInfo();
   const title    = info?.locker.title    ?? L.title;
@@ -74,6 +78,8 @@ export function DeliveryMethodLocker({
         <p className="text-xs text-gray-400 mt-2">{pinHint}</p>
 
         {/* Guest contact form temporarily disabled — checkout is sign-in-only.
+        To restore: re-import `GuestContactForm` and `GUEST_CONTACT_LABELS as GC`,
+        and drop the `_` prefix from the guest-contact props above.
         {!isLoggedIn && (
           <GuestContactForm
             form={guestContact}

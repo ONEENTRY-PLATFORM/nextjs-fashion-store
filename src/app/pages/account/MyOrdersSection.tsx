@@ -108,16 +108,20 @@ export function MyOrdersSection() {
   };
 
   const handleConfirmCancel = async () => {
-    if (!cancelTarget?.oeId || !cancelTarget.oeStorage) return;
+    // Captured up front so the post-await state updater keeps the narrowed
+    // (non-undefined) ids instead of re-reading the nullable state value.
+    const oeId = cancelTarget?.oeId;
+    const oeStorage = cancelTarget?.oeStorage;
+    if (!oeId || !oeStorage) return;
     setCancelBusy(true);
     setCancelError(null);
-    const res = await cancelOrderAction(cancelTarget.oeId, cancelTarget.oeStorage);
+    const res = await cancelOrderAction(oeId, oeStorage);
     setCancelBusy(false);
     if (!res.ok) {
       setCancelError(res.error);
       return;
     }
-    setLocallyCancelledIds((prev) => new Set(prev).add(cancelTarget.oeId!));
+    setLocallyCancelledIds((prev) => new Set(prev).add(oeId));
     setCancelTarget(null);
   };
 
@@ -189,7 +193,12 @@ export function MyOrdersSection() {
   };
 
   const toggle = (id: string) =>
-    setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    setExpanded(prev => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
 
   return (
     <div

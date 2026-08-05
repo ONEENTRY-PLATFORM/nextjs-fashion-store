@@ -28,7 +28,7 @@ vi.mock('../index', async (importActual) => ({
 // unstable_cache calls the underlying function directly in tests (no real
 // disk/edge cache), so the wrapper is transparent to our assertions.
 vi.mock('next/cache', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -274,7 +274,7 @@ describe('loadProductById', () => {
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     ({ loadProductById, loadProductsByIds } = await import('./products') as {
@@ -382,7 +382,7 @@ describe('loadProductsByIds', () => {
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     ({ loadProductsByIds } = await import('./products') as {
@@ -446,7 +446,7 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();
@@ -550,7 +550,7 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();
@@ -644,7 +644,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();
@@ -848,7 +848,7 @@ describe('searchProducts — extractProductIdList regression', () => {
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     getProductsByVectorSearch.mockReset();
@@ -981,7 +981,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();

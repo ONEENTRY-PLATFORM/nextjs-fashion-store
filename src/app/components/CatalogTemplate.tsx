@@ -22,7 +22,6 @@ import { NewArrivals } from './NewArrivals';
 import { CatalogMobileSort } from './CatalogMobileSort';
 import { PageBlocksRenderer } from './PageBlocksRenderer';
 import { COMMON_EMPTY_STATES, CATALOG_PAGINATION_LABELS, CATALOG_VIEW_LABELS as CVL } from '../data/commonLabels';
-import { CURRENCY } from '../data/currencyConfig';
 import { ColorSwatch } from './ColorSwatch';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { ColsIcon, CheckboxUI, SortOptionBtn } from './CatalogTemplate.parts';
@@ -600,7 +599,7 @@ export function CatalogTemplate({
                           <label key={option.label} className="flex items-center gap-2 cursor-pointer py-0.5 group">
                             <input type="checkbox" checked={selected} onChange={() => toggleFilter(currentFilterGroup.key, option.label)} className="sr-only" />
                             <CheckboxUI checked={selected} />
-                            <ColorSwatch color={option.color!} selected={selected} size={14} />
+                            <ColorSwatch color={option.color} selected={selected} size={14} />
                             <span className={`text-xs group-hover:text-black transition-colors ${selected ? 'text-black' : 'text-[#444]'}`}>
                               {option.label}
                             </span>

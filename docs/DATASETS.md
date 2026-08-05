@@ -100,7 +100,6 @@ Local label constants used as fallbacks when the corresponding OneEntry label co
 | `storesLabels.ts` | Store locator |
 | `llmsTextLabels.ts` | Content for `/llms.txt` |
 | `validationMessages.ts` | Form validation error messages |
-| `filterSystemDownloadLabels.ts` | Filter download / export UI |
 
 Primary source of these labels is the OneEntry AttributesSets → the 12 label loaders under `src/lib/oneentry/labels/**` (see [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) §5.4).
 
@@ -119,7 +118,6 @@ Primary source of these labels is the OneEntry AttributesSets → the 12 label l
 |---|---|---|
 | `faqData.ts` | FAQ Q&A array | `FAQ` info page (fallback) |
 | `stores.ts` | `Store` type + `DEFAULT_STORE_SCHEMA` (LocalBusiness JSON-LD) + mock store list | `StoreLocationsPage` (mock fallback), `stores.ts` OneEntry loader (adapts to same shape) |
-| `filterSystemMarkdown.ts` | Markdown content for filter-system whitepaper | `FilterSystemDownloadPage` |
 
 FAQ and stores are primarily served from OneEntry now — these files are fallback + schema helpers.
 

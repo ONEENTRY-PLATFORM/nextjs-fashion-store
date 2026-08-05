@@ -5,7 +5,7 @@ import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
 import { DEFAULT_LOCALE } from '../locale';
-import { REVALIDATE_CATALOG, REVALIDATE_PRODUCT } from '../../isr';
+import { REVALIDATE_PRODUCT } from '../../isr';
 import { loadProductDiscounts, applyProductDiscount } from '../discounts/product-discount';
 import { logCaught } from '../log';
 
@@ -400,58 +400,6 @@ interface ListResponse {
   items?: RawProduct[];
 }
 
-
-interface RawListOpts {
-  lang: Lang;
-  offset: number;
-  limit: number;
-  sortKey?: string;
-  sortOrder?: string;
-}
-
-/** Underlying SDK-backed fetch. Server-side `aggregate` isn't reachable
- *  through `Products.getProducts` (only `filter` is sent), which is fine
- *  because the codebase aggregates locally in `aggregateByName`. */
-const cachedProductList = unstable_cache(
-  async (filterKey: string, lang: Lang, offset: number, limit: number, sortKey: string, sortOrder: string): Promise<ListResponse | null> => {
-    // Deserialise the filter passed via a cacheable string key.
-    const filter = JSON.parse(filterKey) as unknown[];
-    const userQuery: Record<string, unknown> = { offset, limit };
-    if (sortKey) userQuery.sortKey = sortKey;
-    if (sortOrder) userQuery.sortOrder = sortOrder;
-    const result = await getApi().Products.getProducts(
-      // The typed `IFilterParams[]` shape is stricter than what this codebase
-      // synthesises upstream — cast at the boundary.
-      filter as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[0],
-      lang,
-      userQuery as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[2],
-    );
-    if (isError(result)) return null;
-    // SDK's `IProductsResponse.items` is `IProductsEntity[]`, but downstream
-    // `normalize()` only reads `id`, `sku`, `price`, `categories`,
-    // `statusIdentifier`, `localizeInfos`, `attributeValues`, `relatedIds`.
-    // Cast to the local narrow shape.
-    return result as unknown as ListResponse;
-  },
-  ['oe-products-getProducts'],
-  { revalidate: REVALIDATE_CATALOG, tags: ['oe-products'] },
-);
-
-async function rawProductList(
-  filter: unknown[],
-  opts: RawListOpts,
-): Promise<ListResponse | null> {
-  const api = getApiSafe();
-  if (!api) return null;
-  return cachedProductList(
-    JSON.stringify(filter),
-    opts.lang,
-    opts.offset,
-    opts.limit,
-    opts.sortKey ?? '',
-    opts.sortOrder ?? '',
-  );
-}
 
 /**
  * Pull every product variant in one POST and cache it for the request. We

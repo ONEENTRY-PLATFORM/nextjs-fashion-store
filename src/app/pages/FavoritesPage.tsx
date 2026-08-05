@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -38,8 +38,6 @@ export function FavoritesPage({
    *  wishlist header via `<PageBlocksRenderer>`. */
   pageBlocks?: PageBlock[];
 } = {}) {
-  const RECOMMENDATION_PRODUCTS = recommended;
-  const TRENDING_PRODUCTS = trending;
   const { items, clearAll, count } = useWishlist();
   const { addItem: addToCart } = useCart();
   const router = useRouter();

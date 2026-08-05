@@ -89,10 +89,17 @@ export function adaptHeaderMenuToMega(pages: MenuPageNode[]): HeaderMega | null 
     }
     // Pass 2: positional fill — assign remaining unmatched children to the
     // subcategory slots that are still empty, in order.
-    const usedIds = new Set(Object.values(subNodes).filter(Boolean).map((n) => n!.id));
+    const usedIds = new Set(
+      Object.values(subNodes)
+        .filter((n): n is MenuPageNode => n !== null)
+        .map((n) => n.id),
+    );
     const orphans = children.filter((c) => !usedIds.has(c.id));
     for (const key of SUBCAT_KEYS) {
-      if (!subNodes[key] && orphans.length > 0) subNodes[key] = orphans.shift()!;
+      if (subNodes[key]) continue;
+      const next = orphans.shift();
+      if (!next) break;
+      subNodes[key] = next;
     }
 
     for (const key of SUBCAT_KEYS) {

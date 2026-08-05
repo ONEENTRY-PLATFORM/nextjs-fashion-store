@@ -105,11 +105,19 @@ export function HistorySection() {
   const reorderTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
-    return () => { reorderTimersRef.current.forEach(t => clearTimeout(t)); };
+    // Captured on mount — see the note in WaitingListSection: reading
+    // `.current` inside cleanup resolves after unmount.
+    const reorderTimers = reorderTimersRef.current;
+    return () => { reorderTimers.forEach(t => clearTimeout(t)); };
   }, []);
 
   const toggle = (id: string) =>
-    setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    setExpanded(prev => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
 
   const handleReorder = (id: string) => {
     const order = MOCK_HISTORY_ORDERS.find(o => o.id === id);
@@ -273,7 +281,7 @@ export function HistorySection() {
                     </span>
                     {order.trackingNo && (
                       <button
-                        onClick={() => setTrackingModal({ trackingNo: order.trackingNo!, orderNo: order.orderNo })}
+                        onClick={() => setTrackingModal({ trackingNo: order.trackingNo ?? '', orderNo: order.orderNo })}
                         className="w-8 h-8 flex items-center justify-center focus-visible:outline-none hover:opacity-70 transition-opacity bg-gray-100"
                         title={L.trackTitleTpl(order.trackingNo)}
                       >
@@ -309,7 +317,7 @@ export function HistorySection() {
                         <span className="text-gray-500">{L.trackingPrefix}</span>
                         <span className="font-bold text-black">{order.trackingNo}</span>
                         <button
-                          onClick={() => setTrackingModal({ trackingNo: order.trackingNo!, orderNo: order.orderNo })}
+                          onClick={() => setTrackingModal({ trackingNo: order.trackingNo ?? '', orderNo: order.orderNo })}
                           className="ml-1 underline text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-[var(--accent)] font-[inherit]"
                         >
                           {lViewBtn}

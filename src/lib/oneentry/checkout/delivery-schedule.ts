@@ -128,7 +128,7 @@ async function loadScheduleFor(variant: DeliveryScheduleVariant, lang: Lang): Pr
     // reordered rows.
     const times: Array<[RawHM, RawHM]> = Array.isArray(row.times) ? row.times : [];
     const slots: DeliveryTimeSlot[] = times
-      .map((pair, i): DeliveryTimeSlot | null => {
+      .map((pair): DeliveryTimeSlot | null => {
         if (!Array.isArray(pair) || pair.length < 2) return null;
         const [a, b] = pair;
         const ah = typeof a?.hours === 'number' ? a.hours : NaN;

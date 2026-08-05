@@ -27,7 +27,6 @@ import {
   type OeCartItem,
   type OeWishlistItem,
   type OeOrder,
-  type OeLoyalty,
   type OeLoyaltyTier,
   type OeRecentlyViewedItem,
 } from '../../lib/oneentry/auth/actions';

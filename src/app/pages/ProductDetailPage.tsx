@@ -195,7 +195,9 @@ export function ProductDetailPage({
     }))
   ), [catalogProduct, productIsOOS]);
 
-  const productSizeOptions = catalogProduct?.sizeOptions ?? [];
+  // Memoised: the fallback `[]` would otherwise be a new array each render and
+  // invalidate the size-availability memo below on every pass.
+  const productSizeOptions = useMemo(() => catalogProduct?.sizeOptions ?? [], [catalogProduct]);
   const productSpecs = catalogProduct?.specs ?? [];
   // Reviews now stream in as a slot (`reviewsSlot`) rendered by a Suspense
   // boundary higher up. The page-level component only needs the bundled
@@ -285,7 +287,7 @@ export function ProductDetailPage({
     effectiveFull > 0 &&
     effectiveSale < effectiveFull &&
     Math.round((1 - effectiveSale / effectiveFull) * 100) >= 1;
-  const dynamicPrice = hasVisibleDiscount ? effectiveSale! : effectiveFull;
+  const dynamicPrice = hasVisibleDiscount ? (effectiveSale ?? effectiveFull) : effectiveFull;
   const dynamicOriginalPrice = hasVisibleDiscount ? effectiveFull : null;
   const dynamicGallery = (activeVariant?.images && activeVariant.images.length > 0)
     ? activeVariant.images
@@ -908,7 +910,7 @@ export function ProductDetailPage({
                       )}
                       {(catalogProduct?.productDetails?.length ?? 0) > 0 && (
                         <ul className="space-y-1.5 text-xs text-gray-600 pt-2">
-                          {catalogProduct!.productDetails!.map((d) => (
+                          {catalogProduct?.productDetails?.map((d) => (
                             <li key={d} className="flex items-center gap-2">
                               <span className="w-1 h-1 bg-black rounded-full flex-shrink-0" />
                               {d}
@@ -954,7 +956,7 @@ export function ProductDetailPage({
                           so common phrases like "Do not bleach" still render
                           their icon. The section hides entirely when OE has no
                           care values for this product. */}
-                      {catalogProduct!.careInstructions!.map(text => (
+                      {catalogProduct?.careInstructions?.map(text => (
                         <div key={text} className="flex items-center gap-1.5">
                           <span>{careSymbolFor(text)}</span>
                           <span>{text}</span>

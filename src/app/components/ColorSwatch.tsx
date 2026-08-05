@@ -2,13 +2,15 @@ const MULTI_GRADIENT =
   'conic-gradient(#f00 0deg,#ff0 60deg,#0f0 120deg,#0ff 180deg,#00f 240deg,#f0f 300deg,#f00 360deg)';
 
 interface ColorSwatchProps {
-  color: string;
+  /** Hex string, `'multi'` for the rainbow swatch. Falls back to a
+   *  transparent chip when a `color`-type filter option has no hex. */
+  color?: string;
   selected: boolean;
   /** Diameter in px. Default: 14 */
   size?: number;
 }
 
-export function ColorSwatch({ color, selected, size = 14 }: ColorSwatchProps) {
+export function ColorSwatch({ color = 'transparent', selected, size = 14 }: ColorSwatchProps) {
   const isWhite = color === '#FFFFFF' || color === '#FFFFFFFF';
   const outlineWidth = size >= 20 ? '2.5px' : '2px';
   const outlineOffset = size >= 20 ? 1.5 : 1;

@@ -1,8 +1,10 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export function useCountdown(target: number) {
-  const calc = () => {
+  // Memoised on `target` so the ticking effect restarts against the new
+  // deadline when the OE-driven end date arrives after first paint.
+  const calc = useCallback(() => {
     const diff = Math.max(0, target - Date.now());
     return {
       days: Math.floor(diff / 86_400_000),
@@ -10,12 +12,12 @@ export function useCountdown(target: number) {
       minutes: Math.floor((diff % 3_600_000) / 60_000),
       seconds: Math.floor((diff % 60_000) / 1_000),
     };
-  };
+  }, [target]);
   const [time, setTime] = useState(calc);
   useEffect(() => {
     const id = setInterval(() => setTime(calc()), 1_000);
     return () => clearInterval(id);
-  }, []);
+  }, [calc]);
   return time;
 }
 

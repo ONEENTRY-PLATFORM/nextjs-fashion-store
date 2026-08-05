@@ -176,13 +176,13 @@ export function withTiming<A extends unknown[], R>(
       const dur = performance.now() - t0;
       recordTiming(name, dur, true);
       if (dur >= slowThresholdMs) {
-        console.log(`[OE-timing] ${name} ok ${dur.toFixed(1)}ms`);
+        console.warn(`[OE-timing] ${name} ok ${dur.toFixed(1)}ms`);
       }
       return result;
     } catch (err) {
       const dur = performance.now() - t0;
       recordTiming(name, dur, false);
-      console.log(`[OE-timing] ${name} FAIL ${dur.toFixed(1)}ms`);
+      console.warn(`[OE-timing] ${name} FAIL ${dur.toFixed(1)}ms`);
       throw err;
     }
   };

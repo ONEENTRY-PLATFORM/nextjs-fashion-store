@@ -29,7 +29,7 @@ import { useMounted } from '../hooks/useMounted';
 export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const {
     items, removeItem, removeBundle, updateQuantity, updateSize,
-    subtotal, discount, total, personalDiscount, totalDue,
+    subtotal, total, personalDiscount, totalDue,
     couponCode, couponDiscount, couponError, applyCoupon, removeCoupon,
     preview, previewLoading, giftItems,
   } = useCart();
@@ -121,7 +121,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
         result.push({ kind: 'item', item });
       } else if (!seen.has(item.bundleId)) {
         seen.add(item.bundleId);
-        result.push({ kind: 'bundle', bundleId: item.bundleId, items: bundleMap.get(item.bundleId)! });
+        result.push({ kind: 'bundle', bundleId: item.bundleId, items: bundleMap.get(item.bundleId) ?? [] });
       }
     }
     return result;
@@ -133,7 +133,8 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -151,7 +152,8 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const toggleWishlist = (id: string) => {
     setWishlist(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };

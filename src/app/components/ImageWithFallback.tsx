@@ -21,7 +21,7 @@ interface ImageWithFallbackProps extends Omit<ImageProps, 'onError'> {
  * Drop-in replacement for next/image that shows the standard bag placeholder
  * on load error — same as ProductCard in the catalog.
  */
-export function ImageWithFallback({ grayscale, ...props }: ImageWithFallbackProps) {
+export function ImageWithFallback({ grayscale, alt, ...props }: ImageWithFallbackProps) {
   const [error, setError] = useState(false);
 
   // next/image throws on empty/missing src — short-circuit to the placeholder
@@ -34,6 +34,7 @@ export function ImageWithFallback({ grayscale, ...props }: ImageWithFallbackProp
   return (
     <Image
       {...props}
+      alt={alt}
       onError={() => setError(true)}
     />
   );

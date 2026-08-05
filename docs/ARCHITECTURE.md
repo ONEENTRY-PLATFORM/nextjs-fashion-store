@@ -69,7 +69,6 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | `app/new/page.tsx` | New Arrivals (`force-static`, `revalidate = 60`; `?gender=` is applied client-side) |
 | `app/sale/page.tsx` | Sale (`force-static`, `revalidate = 60`; `?gender=` is applied client-side) |
 | `app/stores/page.tsx` | Store locator (`revalidate = 3600` — ISR) |
-| `app/download/filter-system/page.tsx` | Filter system whitepaper |
 | `app/offline/page.tsx` | PWA offline fallback page (client component) |
 | `app/error.tsx`, `app/not-found.tsx`, `app/loading.tsx` | Route-segment error / 404 / loading |
 | `app/manifest.ts` | PWA Web App Manifest |

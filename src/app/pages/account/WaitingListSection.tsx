@@ -54,7 +54,7 @@ export function WaitingListSection() {
   // during render instead of from inside an effect.
   const hasWishlist = Boolean(isLoggedIn && user?.wishlistItems && user.wishlistItems.length > 0);
   const [loaded, setLoaded] = useState<WaitingItem[] | null>(null);
-  const waitingList = hasWishlist ? loaded ?? [] : [];
+  const waitingList = useMemo(() => (hasWishlist ? loaded ?? [] : []), [hasWishlist, loaded]);
   const loading = hasWishlist && loaded === null;
   useEffect(() => {
     if (!hasWishlist) return;
@@ -74,9 +74,12 @@ export function WaitingListSection() {
   const addTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
+    // Captured on mount — the ref object itself never changes, and reading
+    // `.current` inside cleanup would resolve after the component unmounted.
+    const addTimers = addTimersRef.current;
     return () => {
       if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
-      addTimersRef.current.forEach(t => clearTimeout(t));
+      addTimers.forEach(t => clearTimeout(t));
     };
   }, []);
 
@@ -244,7 +247,7 @@ export function WaitingListSection() {
                     <button
                       onMouseEnter={() => setHoveredAdd(item.id)}
                       onMouseLeave={() => setHoveredAdd(null)}
-                      onClick={(e) => { e.stopPropagation(); canAdd && handleAdd(item); }}
+                      onClick={(e) => { e.stopPropagation(); if (canAdd) handleAdd(item); }}
                       disabled={!canAdd}
                       className={`px-5 py-2 text-xs tracking-[0.15em] uppercase text-white flex items-center gap-1.5 focus-visible:outline-none rounded-none font-bold transition-colors duration-200 ${
                         !canAdd

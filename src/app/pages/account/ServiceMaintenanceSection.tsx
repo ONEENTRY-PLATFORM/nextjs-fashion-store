@@ -70,7 +70,12 @@ export function ServiceMaintenanceSection() {
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
 
   const toggle = (id: string) =>
-    setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    setExpanded(prev => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
 
   const filtered = activeFilter === 'all' ? serviceList : serviceList.filter(s => s.status === activeFilter);
   const activeCount = serviceList.filter(s => ['open', 'in-progress', 'ready'].includes(s.status)).length;

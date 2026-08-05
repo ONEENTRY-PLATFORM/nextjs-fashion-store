@@ -246,6 +246,11 @@ export function useCart(): CartContextType {
         dispatch(cartActions.removeItem(localId));
       }
     });
+    // `items` is deliberately omitted: this is a one-shot merge guarded by
+    // `hydratedRef`, and it reads the local cart as it stands at hydration
+    // time. Listing it would re-run the effect on every cart mutation the
+    // merge itself dispatches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, user, userIdentifier, dispatch]);
   useEffect(() => {
     if (!isLoggedIn) {

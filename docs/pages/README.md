@@ -17,7 +17,6 @@ A brief description of the blocks on each unique page. For each element (where a
 - [new-arrivals.md](new-arrivals.md) — New Arrivals (`/new`)
 - [stores.md](stores.md) — Stores (`/stores`)
 - [info-page.md](info-page.md) — Info page (typical `/[...slug]` — about-us, faq, contact, terms, etc.)
-- [filter-system-download.md](filter-system-download.md) — Utility page for downloading docs (`/download/filter-system`)
 - [not-found.md](not-found.md) — 404 (`Page Not Found`)
 - [offline.md](offline.md) — Offline fallback (`/offline`)
 - [global-shell.md](global-shell.md) — Global blocks (Header, Footer, MiniCart, Login/Register modals) — rendered on all pages

@@ -120,7 +120,7 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
               <label key={option.label} className={rowClass}>
                 <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.label)} className="sr-only" />
                 <CheckboxUI checked={isSelected} />
-                <ColorSwatch color={option.color!} selected={isSelected} size={22} />
+                <ColorSwatch color={option.color} selected={isSelected} size={22} />
                 <span className={optionTextClass}>
                   {option.label}
                   {option.count !== undefined && <span className="text-gray-400"> ({option.count})</span>}

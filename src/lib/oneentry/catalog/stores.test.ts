@@ -23,7 +23,7 @@ vi.mock('../index', async (importActual) => ({
 
 // Strip the ISR cache wrapper so the underlying function runs directly.
 vi.mock('next/cache', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   unstable_cache: (fn: any) => fn,
 }));
 

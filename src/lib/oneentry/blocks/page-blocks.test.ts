@@ -25,7 +25,7 @@ vi.mock('../index', async (importActual) => ({
 
 // unstable_cache is transparent in tests — call the wrapped fn directly.
 vi.mock('next/cache', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -371,7 +371,7 @@ describe('loadPageBlocksByUrl', () => {
   it('returns [] and does not call the SDK for non-string pageUrl', async () => {
     const { loadPageBlocksByUrl } = await importFresh();
     // Cast to bypass TS — runtime guard must still fire.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const result = await (loadPageBlocksByUrl as any)(42);
     expect(result).toEqual([]);
     expect(getBlocksByPageUrl).not.toHaveBeenCalled();

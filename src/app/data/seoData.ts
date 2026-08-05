@@ -473,12 +473,6 @@ export const SEO: Record<string, Metadata> = {
     robots: { index: false, follow: false },
   },
 
-  filterSystemDownload: {
-    title: `Download Filter System | ${SITE_NAME}`,
-    description: 'Download the Kekimoro advanced product filter system.',
-    robots: { index: false, follow: false },
-  },
-
   notFound: {
     title: `Page Not Found | ${SITE_NAME}`,
     description: 'Sorry, the page you are looking for could not be found.',
