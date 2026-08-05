@@ -20,6 +20,9 @@ import type { Product } from '../../src/app/components/ProductCard';
 import { loadCatalogFilter, type ClothingFilterGroup } from '../../src/lib/oneentry/blocks/clothing-filter';
 import { loadFilterChips, chipToFilterPatch } from '../../src/lib/oneentry/blocks/filter-chips';
 import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';
+import { loadPageByUrl } from '../../src/lib/oneentry/catalog/pages';
+import { loadInfoPageSystemTexts } from '../../src/lib/oneentry/labels/info-page-labels';
+import { InfoPageLabelsProvider } from '../../src/lib/oneentry/labels/InfoPageLabelsContext';
 
 /* ─── Catalog page components (dataset configs) ─── */
 import { WomenCatalogPage }     from '../../src/app/pages/WomenCatalogPage';
@@ -83,6 +86,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const path = slug.join('/');
   const entry = PAGE_REGISTRY[path];
   if (!entry) return {};
+
+  // Info pages carry their SEO on the OE page itself (`meta_title`,
+  // `meta_description`, `meta_keywords`, `canonical`), so an editor can tune it
+  // without a deploy. `buildPageMetadata` stays as the offline fallback and
+  // still owns the catalog pages and the `/info` hub.
+  if (entry.type === 'info' && entry.slug !== '__hub') {
+    const page = await loadPageByUrl(entry.slug);
+    const attr = (marker: string): string => {
+      const v = (page?.attributeValues as Record<string, { value?: unknown }> | undefined)?.[marker]?.value;
+      return typeof v === 'string' ? v.trim() : '';
+    };
+    const title = attr('meta_title');
+    const description = attr('meta_description');
+    const keywords = attr('meta_keywords');
+    const canonical = attr('canonical');
+    if (title || description || keywords || canonical) {
+      const fallback = buildPageMetadata(entry);
+      return {
+        ...fallback,
+        ...(title ? { title } : {}),
+        ...(description ? { description } : {}),
+        ...(keywords ? { keywords } : {}),
+        ...(canonical ? { alternates: { canonical } } : {}),
+      };
+    }
+  }
+
   return buildPageMetadata(entry);
 }
 
@@ -354,24 +384,35 @@ export default async function Page({ params, searchParams }: Props) {
   /* ── Info page ── */
   if (entry.type === 'info') {
     const isHub = entry.slug === '__hub';
-    const pageTitle = isHub ? INFO_PAGE_SCHEMA.hubTitle : (INFO_PAGE_META[entry.slug]?.title ?? entry.slug);
+
+    // Page chrome + breadcrumb labels come from the OE `info_page` set; the
+    // local constants remain the offline fallback.
+    const [infoLabels, infoPageBlocks] = await Promise.all([
+      loadInfoPageSystemTexts(),
+      // `entry.slug` matches the OE pageUrl marker (e.g. 'about-us', 'faq').
+      // The hub landing has no OE page — skip loading and pass empty.
+      isHub ? Promise.resolve([] as PageBlock[]) : loadPageBlocksByUrl(entry.slug),
+    ]);
+    const label = (key: string, fallback: string) => infoLabels[key] || fallback;
+
+    const pageTitle = isHub
+      ? label('info_hub_title', INFO_PAGE_SCHEMA.hubTitle)
+      : (INFO_PAGE_META[entry.slug]?.title ?? entry.slug);
+    const crumbHome = label('info_breadcrumb_home', INFO_PAGE_SCHEMA.breadcrumbHome);
 
     const breadcrumbSchema = buildBreadcrumbSchema(
       isHub
-        ? [{ name: INFO_PAGE_SCHEMA.breadcrumbHome, href: '/' }, { name: INFO_PAGE_SCHEMA.breadcrumbInfo }]
-        : [{ name: INFO_PAGE_SCHEMA.breadcrumbHome, href: '/' }, { name: pageTitle }]
+        ? [{ name: crumbHome, href: '/' }, { name: label('info_breadcrumb_info', INFO_PAGE_SCHEMA.breadcrumbInfo) }]
+        : [{ name: crumbHome, href: '/' }, { name: pageTitle }]
     );
-
-    // OE-attached blocks for the info page. `entry.slug` matches the OE
-    // pageUrl marker (e.g. 'about-us', 'faq', 'contact'). Hub landing has
-    // no OE page — skip loading and pass empty.
-    const infoPageBlocks = isHub ? [] : await loadPageBlocksByUrl(entry.slug);
 
     return (
       <>
         <JsonLd data={breadcrumbSchema} />
         {entry.slug === 'faq' && <JsonLd data={faqSchema} />}
-        <InfoPage pageBlocks={infoPageBlocks} />
+        <InfoPageLabelsProvider data={infoLabels}>
+          <InfoPage pageBlocks={infoPageBlocks} />
+        </InfoPageLabelsProvider>
       </>
     );
   }
