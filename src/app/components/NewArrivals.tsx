@@ -4,11 +4,18 @@ import { ChevronRight } from 'lucide-react';
 import { ProductCard, type Product } from './ProductCard';
 import { HorizontalScroller } from './HorizontalScroller';
 import { SECTION_TITLES } from '../data/sectionTitles';
+import { CATALOG_VIEW_LABELS as CVL } from '../data/commonLabels';
 import { ACCENT_WOMEN } from '../constants/colors';
+import type { SectionChrome } from '../../lib/oneentry/blocks/section-chrome';
 
-export function NewArrivals({ products = [], title }: { products?: Product[]; title?: string } = {}) {
+/** `chrome` carries the OE block's own subtitle / view-all link; the
+ *  `SECTION_TITLES` entry is the offline fallback for each field. */
+export function NewArrivals({ products = [], title, chrome }: { products?: Product[]; title?: string; chrome?: SectionChrome } = {}) {
   if (products.length === 0) return null;
   const heading = title?.trim() || SECTION_TITLES.sale.title;
+  const subtitle = chrome?.subtitle ?? SECTION_TITLES.sale.subtitle;
+  const viewAllHref = chrome?.viewAllHref ?? SECTION_TITLES.sale.viewAllHref;
+  const viewAllLabel = chrome?.viewAllLabel ?? CVL.viewAll;
 
   return (
     <section className="w-full">
@@ -16,10 +23,10 @@ export function NewArrivals({ products = [], title }: { products?: Product[]; ti
       <div className="flex items-center justify-between px-4 lg:px-8 mb-6 max-w-screen-2xl mx-auto">
         <div>
           <h2 className="uppercase tracking-[0.04em]">{heading}</h2>
-          <p className="text-xs text-gray-500 tracking-wider mt-1">{SECTION_TITLES.sale.subtitle}</p>
+          <p className="text-xs text-gray-500 tracking-wider mt-1">{subtitle}</p>
         </div>
-        <Link href={SECTION_TITLES.sale.viewAllHref} className="group flex items-center gap-1 text-xs tracking-widest uppercase font-medium border-b border-black pb-0.5">
-          View All <span className="inline-flex transition-transform duration-200 group-hover:translate-x-1"><ChevronRight size={14} /></span>
+        <Link href={viewAllHref} className="group flex items-center gap-1 text-xs tracking-widest uppercase font-medium border-b border-black pb-0.5">
+          {viewAllLabel} <span className="inline-flex transition-transform duration-200 group-hover:translate-x-1"><ChevronRight size={14} /></span>
         </Link>
       </div>
 

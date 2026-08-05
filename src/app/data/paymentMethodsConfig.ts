@@ -1,16 +1,11 @@
 /**
- * Payment-page UI strings. Keep these in one place so marketing/content
- * can edit method names, subtitles, and badges without touching React code.
+ * Payment-page chrome strings — section headings, CTA, trust badges. Method
+ * names and descriptions are not here: those belong to the OE payment
+ * accounts and are rendered straight from `getPaymentAccountsAction`.
+ *
+ * Every entry below is read through `useT('checkout_payment', …)` with the
+ * constant as the offline fallback.
  */
-
-interface PaymentMethodCopy {
-  title: string;
-  subtitle: string;
-  badge?: string;
-  /** Expandable description shown below the radio when the method is active. */
-  description?: string;
-}
-
 export const PAYMENT_PAGE_LABELS = {
   pageTitle: 'Payment Method',
   payOnDeliverySection: 'Pay on Delivery',
@@ -23,41 +18,10 @@ export const PAYMENT_PAGE_LABELS = {
   securityBadges: ['SSL Encrypted', 'PCI DSS Compliant', '3D Secure'] as const,
 } as const;
 
-export const PAYMENT_METHODS_COPY: Record<string, PaymentMethodCopy> = {
-  cash: {
-    title: 'Cash Payment',
-    subtitle: 'Pay in cash upon delivery',
-    badge: 'COD',
-    description: 'Please prepare the exact amount. Our courier accepts cash only for this option.',
-  },
-  'card-delivery': {
-    title: 'Bank Card on Delivery',
-    subtitle: 'Swipe your card when the order arrives',
-    badge: 'COD',
-    description: 'Our courier carries a POS terminal. Visa, Mastercard & Amex accepted.',
-  },
-  qr: {
-    title: 'QR Payment (Faster Payment System)',
-    subtitle: 'Scan & pay instantly from your banking app',
-  },
-  'apple-pay': {
-    title: 'Apple Pay',
-    subtitle: 'Pay with Face ID or Touch ID',
-  },
-  'google-pay': {
-    title: 'Google Pay',
-    subtitle: 'Fast checkout with your Google account',
-  },
-  'card-online': {
-    title: 'Bank Card',
-    subtitle: 'Visa, Mastercard, Amex — powered by CloudPayments',
-  },
-  installment: {
-    title: 'Installment Payment',
-    subtitle: 'Split into 3, 6, or 12 monthly payments · 0% interest',
-    badge: '0%',
-  },
-} as const;
+// `PAYMENT_METHODS_COPY` was removed: `PaymentMethodsList` renders each
+// account's own `title` / `description` from OE (`getPaymentAccountsAction`),
+// so the local per-identifier copy had no reader and only invited drift
+// between the storefront and the accounts configured in the admin panel.
 
 export const WALLET_BUTTON_LABELS = {
   applePay: 'Pay with Apple Pay',

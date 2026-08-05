@@ -231,7 +231,7 @@ export function QuickViewModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center"
+      className="fixed inset-0 z-200 flex items-center justify-center"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT_WOMEN, '--buy': BUY_GREEN, '--buy-hover': BUY_GREEN_HOVER } as React.CSSProperties}
     >
       {/* Backdrop */}
@@ -299,7 +299,7 @@ export function QuickViewModal() {
               <button
                 key={idx}
                 onClick={() => setSelectedImage(idx)}
-                className={`relative flex-1 aspect-[3/4] overflow-hidden transition-all ${
+                className={`relative flex-1 aspect-3/4 overflow-hidden transition-all ${
                   selectedImage === idx ? 'ring-2 ring-black' : 'opacity-60 hover:opacity-100'
                 }`}
               >

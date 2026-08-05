@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '../src/app/data/seoData';
 import { PAGE_REGISTRY } from '../src/app/data/pageRegistry';
 import { loadProducts } from '../src/lib/oneentry/catalog/products';
+import { loadInfoPageSlugs } from '../src/lib/oneentry/catalog/info-pages';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();
@@ -24,6 +25,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: entry.type === 'catalog' ? 0.9 : 0.4,
     }));
 
+  // Info pages the editor added in OE after the last deploy. They resolve at
+  // runtime via `resolveInfoPageSlug`, so the sitemap must list them too —
+  // otherwise a live, crawlable page stays invisible to search engines.
+  // Deduped against the registry, which already covers the known slugs.
+  const registryPaths = new Set(Object.keys(PAGE_REGISTRY));
+  const cmsInfoPages: MetadataRoute.Sitemap = (await loadInfoPageSlugs())
+    .filter((slug) => !registryPaths.has(slug))
+    .map((slug) => ({
+      url: `${SITE_URL}/${slug}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.4,
+    }));
+
   // Product pages — pulled from OE. Use the aggregated (`unique`) catalog so
   // colour/size sibling variants don't produce duplicate URLs. `limit` is set
   // high enough to cover the tenant's current SKU count.
@@ -35,5 +50,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...fixedPages, ...registryPages, ...productPages];
+  return [...fixedPages, ...registryPages, ...cmsInfoPages, ...productPages];
 }

@@ -2,6 +2,7 @@
 import { Package, ChevronDown } from 'lucide-react';
 import { RadioCard } from '../../components/RadioCard';
 import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
+
 import { DELIVERY_METHOD_LOCKER_LABELS as L } from '../../data/checkoutLabels';
 import { type GuestContactFormState } from './GuestContactForm';
 import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
@@ -13,6 +14,9 @@ interface DeliveryMethodLockerProps {
   setSelectedLocker: (l: string) => void;
   lockerDropOpen: boolean;
   setLockerDropOpen: (fn: (o: boolean) => boolean) => void;
+  /** Locker names from OE; omitted (Storybook / bare tests) falls back to the
+   *  local `PARCEL_LOCKERS` list. */
+  lockers?: string[];
   isLoggedIn: boolean;
   guestContact: GuestContactFormState;
   setGuestContact: (next: GuestContactFormState) => void;
@@ -23,6 +27,7 @@ export function DeliveryMethodLocker({
   checked, onChange,
   selectedLocker, setSelectedLocker,
   lockerDropOpen, setLockerDropOpen,
+  lockers,
   // Guest-contact props stay in the signature for the disabled form below.
   isLoggedIn: _isLoggedIn,
   guestContact: _guestContact,
@@ -30,6 +35,7 @@ export function DeliveryMethodLocker({
   guestContactErrors: _guestContactErrors,
 }: DeliveryMethodLockerProps) {
   const info = useDeliveryMethodInfo();
+  const lockerList = lockers && lockers.length > 0 ? lockers : PARCEL_LOCKERS;
   const title    = info?.locker.title    ?? L.title;
   const subtitle = info?.locker.subtitle ?? L.subtitle;
   const pinHint  = info?.locker.pinHint  ?? L.pinHint;
@@ -61,7 +67,7 @@ export function DeliveryMethodLocker({
           </button>
           {lockerDropOpen && (
             <div className="absolute top-full left-0 right-0 bg-white z-20 border border-[#d1d5db] border-t-0">
-              {PARCEL_LOCKERS.map(l => (
+              {lockerList.map(l => (
                 <button
                   key={l}
                   onClick={() => { setSelectedLocker(l); setLockerDropOpen(() => false); }}

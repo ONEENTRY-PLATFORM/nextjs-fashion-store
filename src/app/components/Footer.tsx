@@ -9,6 +9,7 @@ import Image from 'next/image';
 import logoImage from '../../assets/kekimoro-logo-white.png';
 import { NewsletterForm } from './NewsletterForm';
 import { useFooterMenu } from '../../lib/oneentry/menus/FooterMenuContext';
+import { useFooterT } from '../../lib/oneentry/labels/FooterLabelsContext';
 import {
   footerColumnsFromMenu,
   footerBottomLinksFromMenu,
@@ -44,6 +45,44 @@ export function Footer() {
   const lLogoAlt = useHeaderT('header_logo_alt', LOGO_ALT);
   const cmsFooterMenu = useFooterMenu();
 
+  // Branding copy from the OE `footer` set — the fields marketing changes
+  // without a release. `COMPANY_INFO` / `SUPPORT_ITEMS` remain the fallback.
+  const lDescription = useFooterT('footer_company_description', COMPANY_INFO.description);
+  const lPhone       = useFooterT('footer_support_phone',       COMPANY_INFO.phone);
+  const lCopyright   = useFooterT('footer_copyright',           COMPANY_INFO.copyright);
+
+  // Four support cards are a fixed layout slot, so each key is read with its
+  // own top-level hook call — a loop would break the rules of hooks. The icon
+  // stays in code: it selects a component, it is not copy.
+  const support1Title = useFooterT('footer_support_1_title', SUPPORT_ITEMS[0]?.title ?? '');
+  const support1Desc  = useFooterT('footer_support_1_desc',  SUPPORT_ITEMS[0]?.desc ?? '');
+  const support2Title = useFooterT('footer_support_2_title', SUPPORT_ITEMS[1]?.title ?? '');
+  const support2Desc  = useFooterT('footer_support_2_desc',  SUPPORT_ITEMS[1]?.desc ?? '');
+  const support3Title = useFooterT('footer_support_3_title', SUPPORT_ITEMS[2]?.title ?? '');
+  const support3Desc  = useFooterT('footer_support_3_desc',  SUPPORT_ITEMS[2]?.desc ?? '');
+  const support4Title = useFooterT('footer_support_4_title', SUPPORT_ITEMS[3]?.title ?? '');
+  const support4Desc  = useFooterT('footer_support_4_desc',  SUPPORT_ITEMS[3]?.desc ?? '');
+  const supportItems = [
+    { title: support1Title, desc: support1Desc },
+    { title: support2Title, desc: support2Desc },
+    { title: support3Title, desc: support3Desc },
+    { title: support4Title, desc: support4Desc },
+  ].filter((item) => item.title || item.desc);
+
+  // Social profile URLs: the network name keys the icon asset and stays in
+  // code, only the destination is CMS-editable.
+  const tiktokHref    = useFooterT('footer_social_tiktok',    SOCIAL_LINKS[0]?.href ?? '');
+  const facebookHref  = useFooterT('footer_social_facebook',  SOCIAL_LINKS[1]?.href ?? '');
+  const instagramHref = useFooterT('footer_social_instagram', SOCIAL_LINKS[2]?.href ?? '');
+  const youtubeHref   = useFooterT('footer_social_youtube',   SOCIAL_LINKS[3]?.href ?? '');
+  const pinterestHref = useFooterT('footer_social_pinterest', SOCIAL_LINKS[4]?.href ?? '');
+  const socialLinks = SOCIAL_LINKS
+    .map((s, i) => ({
+      name: s.name,
+      href: [tiktokHref, facebookHref, instagramHref, youtubeHref, pinterestHref][i] ?? s.href,
+    }))
+    .filter((s) => s.href.length > 0);
+
   // Both halves of the footer navigation come from the single OE `footer`
   // menu: nested root nodes are the link columns, flat ones are the legal
   // bottom bar. Each half falls back to its local dataset independently, so a
@@ -76,10 +115,10 @@ export function Footer() {
               ChatBubbleLeftRightIcon,
               EnvelopeIcon,
             ];
-            return SUPPORT_ITEMS.map((item, i) => {
+            return supportItems.map((item, i) => {
               const Icon = SUPPORT_ICONS[i];
               return (
-              <div key={item.title} className="text-center">
+              <div key={item.title} className="text-center" data-testid="footer-support-item">
                 <div className="flex justify-center mb-2 text-white">{Icon ? <Icon className="w-6 h-6" /> : null}</div>
                 <p className="text-xs tracking-widest uppercase font-medium mb-1">{item.title}</p>
                 <p className="text-xs text-white/50">{item.desc}</p>
@@ -96,15 +135,15 @@ export function Footer() {
           {/* Brand Column */}
           <div className="col-span-2 lg:col-span-2">
             <Image src={logoImage} alt={lLogoAlt} width={183} height={40} className="object-contain mb-4" />
-            <p className="text-xs text-white/50 mb-4 max-w-xs leading-relaxed">
-              {COMPANY_INFO.description}
+            <p className="text-xs text-white/50 mb-4 max-w-xs leading-relaxed" data-testid="footer-company-description">
+              {lDescription}
             </p>
             <p className="text-xs text-white/40 mb-2">{FL.customerSupport}</p>
-            <a href={`tel:${COMPANY_INFO.phone.replace(/\s/g, '')}`} className="text-sm font-medium hover:text-white/70 transition-colors">
-              {COMPANY_INFO.phone}
+            <a href={`tel:${lPhone.replace(/\s/g, '')}`} className="text-sm font-medium hover:text-white/70 transition-colors" data-testid="footer-support-phone">
+              {lPhone}
             </a>
-            <p className="text-xs text-white/30 mt-4">
-              {COMPANY_INFO.copyright}
+            <p className="text-xs text-white/30 mt-4" data-testid="footer-copyright">
+              {lCopyright}
             </p>
           </div>
 
@@ -162,7 +201,7 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
           <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.followUs}</p>
           <div className="flex flex-wrap justify-center gap-4">
-            {SOCIAL_LINKS.map(({ name, href }) => {
+            {socialLinks.map(({ name, href }) => {
               const src = SOCIAL_ICON_SRC[name];
               return (
                 <a

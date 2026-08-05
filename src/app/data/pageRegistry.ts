@@ -34,7 +34,7 @@ interface InfoPageEntry {
   slug: string;
 }
 
-type PageEntry = CatalogPageEntry | InfoPageEntry;
+export type PageEntry = CatalogPageEntry | InfoPageEntry;
 
 /* ─── Page registry ─── */
 

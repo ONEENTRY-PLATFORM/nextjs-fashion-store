@@ -10,7 +10,7 @@ import { COMMON_EMPTY_STATES } from '../data/commonLabels';
 export function CheckboxUI({ checked }: { checked: boolean }) {
   return (
     <span
-      className={`w-[18px] h-[18px] border-[1.5px] rounded-none flex-shrink-0 flex items-center justify-center transition-[background-color,border-color] duration-150 ${
+      className={`w-4.5 h-4.5 border-[1.5px] rounded-none shrink-0 flex items-center justify-center transition-[background-color,border-color] duration-150 ${
         checked ? 'border-black bg-black' : 'border-[#c8c8c8] bg-white'
       }`}
     >
@@ -46,7 +46,7 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
               <button
                 key={opt.label}
                 onClick={() => onToggleFilter(group.key, opt.label)}
-                className={`focus-visible:outline-none transition-all min-w-[52px] min-h-[44px] px-2.5 py-1 text-[13px] border-[1.5px] rounded-none flex flex-col items-center justify-center leading-[1.1] ${
+                className={`focus-visible:outline-none transition-all min-w-13 min-h-11 px-2.5 py-1 text-[13px] border-[1.5px] rounded-none flex flex-col items-center justify-center leading-[1.1] ${
                   isSelected
                     ? 'font-bold border-black bg-black text-white'
                     : 'font-normal border-[#d1d5db] bg-white text-[#333]'

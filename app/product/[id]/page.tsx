@@ -19,6 +19,7 @@ import { ReviewsSkeleton } from '../../../src/app/pages/product/ReviewsSkeleton'
 import { FrequentlyOrderedAsync } from '../../../src/app/pages/product/FrequentlyOrderedAsync';
 import { RecommendationsSkeleton } from '../../../src/app/pages/product/RecommendationsSkeleton';
 import { loadProductBlocks } from '../../../src/lib/oneentry/blocks/page-blocks';
+import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
 import type { CatalogProduct as PdpCatalogProduct } from '../../../src/app/data/productCatalog';
 import { priceValidUntil } from '../../../src/app/utils/price-valid-until';
 
@@ -298,6 +299,16 @@ export default async function Page({ params }: Props) {
   // product has no admin-attached blocks.
   const productBlocks = numericId !== null ? await loadProductBlocks(numericId) : [];
 
+  // Reserve-in-store picker: real branches from the OE `stores` page tree,
+  // slimmed to what the modal renders. Previously the modal shipped five
+  // hardcoded London stores with invented stock badges.
+  const reserveStores = (await loadStores()).map((s) => ({
+    id: s.id,
+    ...(s.oeId !== undefined && { oeId: s.oeId }),
+    name: s.name,
+    address: [s.address, s.postcode].filter(Boolean).join(', '),
+  }));
+
   return (
     <>
       {productSchema && <JsonLd data={productSchema} />}
@@ -312,6 +323,7 @@ export default async function Page({ params }: Props) {
           bonusPoints={purchaseBonus?.points}
           categoryViewAllHref={categoryViewAllHref}
           productBlocks={productBlocks}
+          reserveStores={reserveStores}
         />
       </PdpLabelsProvider>
     </>

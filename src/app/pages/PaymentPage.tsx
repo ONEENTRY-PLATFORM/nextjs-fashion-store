@@ -37,6 +37,9 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lSsl           = useT('checkout_payment', 'checkout_payment_ssl',                 PAYMENT_PAGE_LABELS.securityBadges[0] ?? '');
   const lPci           = useT('checkout_payment', 'checkout_payment_pci',                 PAYMENT_PAGE_LABELS.securityBadges[1] ?? '');
   const l3d            = useT('checkout_payment', 'checkout_payment_3d',                  PAYMENT_PAGE_LABELS.securityBadges[2] ?? '');
+  const lPageTitle     = useT('checkout_payment', 'checkout_payment_title',               PAYMENT_PAGE_LABELS.pageTitle);
+  const lBackToDeliv   = useT('checkout_payment', 'checkout_payment_back_to_delivery',    PAYMENT_PAGE_LABELS.backToDelivery);
+  const lOrderSummary  = useT('checkout_payment', 'checkout_payment_order_summary',       PAYMENT_PAGE_LABELS.orderSummary);
   const lStripeRedirect = useT(
     'checkout_payment',
     'checkout_payment_stripe_redirect_hint',
@@ -449,7 +452,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
           {/* ── Left: Payment Options ── */}
           <div className="flex-1 min-w-0">
             <h1 className="text-xl tracking-[0.15em] uppercase mb-6 font-bold">
-              {PAYMENT_PAGE_LABELS.pageTitle}
+              {lPageTitle}
             </h1>
 
             {accountsLoading ? (
@@ -490,7 +493,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                 onClick={() => router.push('/checkout/delivery')}
                 className="flex items-center gap-2 text-sm focus-visible:outline-none hover:opacity-70 transition-opacity text-[#555]"
               >
-                {PAYMENT_PAGE_LABELS.backToDelivery}
+                {lBackToDeliv}
               </button>
               <div className="flex flex-col items-end gap-2">
                 {submitError && (
@@ -520,7 +523,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
             <div className="sticky top-32 border border-[#e5e7eb]">
               <div className="px-6 py-4 border-b border-[#e5e7eb]">
                 <h2 className="text-sm tracking-[0.15em] uppercase font-bold">
-                  {PAYMENT_PAGE_LABELS.orderSummary}
+                  {lOrderSummary}
                 </h2>
               </div>
               <div className="px-6 py-5 space-y-3">

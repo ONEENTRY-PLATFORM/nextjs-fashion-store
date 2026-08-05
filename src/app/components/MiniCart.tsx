@@ -56,7 +56,7 @@ export function MiniCart() {
   if (!miniCartOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200]">
+    <div className="fixed inset-0 z-200">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" onClick={closeMiniCart} />
 
@@ -66,11 +66,11 @@ export function MiniCart() {
         role="dialog"
         aria-modal="true"
         aria-label={MINI_CART_ARIA_LABELS.yourBag}
-        className="absolute top-0 right-0 bottom-0 w-full max-w-[420px] bg-white flex flex-col border-l border-gray-200"
+        className="absolute top-0 right-0 bottom-0 w-full max-w-105 bg-white flex flex-col border-l border-gray-200"
       >
 
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <ShoppingBag size={20} />
             <h2 className="text-sm tracking-[0.2em] uppercase font-bold">{lHeading}</h2>
@@ -107,7 +107,7 @@ export function MiniCart() {
                   const item = row.item;
                   return (
                     <div key={item.id} className="flex gap-4 px-6 py-5 border-b border-gray-100">
-                      <div className="relative flex-shrink-0 w-20 h-24">
+                      <div className="relative shrink-0 w-20 h-24">
                         <ImageWithFallback src={item.image} alt={item.name} fill sizes="80px" className="object-cover" />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -136,7 +136,7 @@ export function MiniCart() {
                           </div>
                         </div>
                       </div>
-                      <button onClick={() => removeItem(item.id)} className="flex-shrink-0 self-start mt-0.5 w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity focus-visible:outline-none" aria-label={MINI_CART_DYNAMIC_ARIA.removeFromCart(item.name)}>
+                      <button onClick={() => removeItem(item.id)} className="shrink-0 self-start mt-0.5 w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity focus-visible:outline-none" aria-label={MINI_CART_DYNAMIC_ARIA.removeFromCart(item.name)}>
                         <X size={14} strokeWidth={1.5} />
                       </button>
                     </div>
@@ -167,7 +167,7 @@ export function MiniCart() {
                     {/* Bundle items */}
                     {row.items.map((item, idx) => (
                       <div key={item.id} className={`flex gap-3 px-6 py-3 ${idx > 0 ? 'border-t border-dashed border-[#f0f0f0]' : ''}`}>
-                        <div className="relative flex-shrink-0 w-16 h-20">
+                        <div className="relative shrink-0 w-16 h-20">
                           <ImageWithFallback src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -212,7 +212,7 @@ export function MiniCart() {
               })}
               {giftItems.map((gift) => (
                 <div key={`gift-${gift.productId}`} className="flex gap-4 px-6 py-5 border-b border-gray-100">
-                  <div className="relative flex-shrink-0 w-20 h-24">
+                  <div className="relative shrink-0 w-20 h-24">
                     <ImageWithFallback src={gift.image} alt={gift.name} fill sizes="80px" className="object-cover" />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -242,7 +242,7 @@ export function MiniCart() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="flex-shrink-0 px-6 py-5 border-t border-gray-200 bg-white">
+          <div className="shrink-0 px-6 py-5 border-t border-gray-200 bg-white">
             {/* Subtotal = sum of `item.price` (already sale price when
                 the catalog / PDP overlay produced one). Line items above
                 render the strike-through UX, so no redundant "Items
@@ -271,13 +271,13 @@ export function MiniCart() {
             ) : (
               <>
                 {personalDiscount - couponDiscount > 0 && (
-                  <div className="flex items-center justify-between mb-2 text-sm text-[var(--sale)]">
+                  <div className="flex items-center justify-between mb-2 text-sm text-(--sale)">
                     <span>Loyalty discount</span>
                     <span className="font-semibold">−{fmt(personalDiscount - couponDiscount)}</span>
                   </div>
                 )}
                 {couponDiscount > 0 && couponCode && (
-                  <div className="flex items-center justify-between mb-2 text-sm text-[var(--sale)]">
+                  <div className="flex items-center justify-between mb-2 text-sm text-(--sale)">
                     <span>Promo ({couponCode})</span>
                     <span className="font-semibold">−{fmt(couponDiscount)}</span>
                   </div>

@@ -30,6 +30,8 @@ import { FormPlaceholdersProvider } from '../../lib/oneentry/forms/FormPlacehold
 import type { FormContent } from '../../lib/oneentry/forms/placeholders'
 import { HeaderLabelsProvider } from '../../lib/oneentry/labels/HeaderLabelsContext'
 import type { HeaderDict } from '../../lib/oneentry/labels/header-types'
+import { FooterLabelsProvider } from '../../lib/oneentry/labels/FooterLabelsContext'
+import type { FooterDict } from '../../lib/oneentry/labels/footer-types'
 import type { CmsLocale } from '../../lib/oneentry/locales'
 
 /**
@@ -96,6 +98,7 @@ export function Providers({
   signUpFormSchema,
   forms = {},
   headerLabels = {},
+  footerLabels = {},
   cmsLocales = [],
 }: {
   children: React.ReactNode;
@@ -113,6 +116,8 @@ export function Providers({
   forms?: Record<string, FormContent>;
   /** OE `header` system-text set. */
   headerLabels?: HeaderDict;
+  /** OE `footer` system-text set — branding copy for the global footer. */
+  footerLabels?: FooterDict;
   /** Active project locales — drives the header language switcher. */
   cmsLocales?: CmsLocale[];
 }) {
@@ -168,7 +173,9 @@ export function Providers({
                       <SignUpFormSchemaProvider data={signUpFormSchema}>
                         <FormPlaceholdersProvider forms={forms}>
                           <HeaderLabelsProvider data={{ labels: headerLabels, locales: cmsLocales }}>
-                            <ErrorBoundary>{children}</ErrorBoundary>
+                            <FooterLabelsProvider data={footerLabels}>
+                              <ErrorBoundary>{children}</ErrorBoundary>
+                            </FooterLabelsProvider>
                           </HeaderLabelsProvider>
                         </FormPlaceholdersProvider>
                       </SignUpFormSchemaProvider>

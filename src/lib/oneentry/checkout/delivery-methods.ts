@@ -108,6 +108,43 @@ export const loadCheckoutSuccessMessage = unstable_cache(
   { revalidate: REVALIDATE_STORES, tags: ['oe-forms'] },
 );
 
+/** Attribute markers a tenant may use for the parcel-locker list. Probed in
+ *  order — OE admins name this attribute by hand and the spelling varies. */
+const LOCKER_LIST_MARKERS = ['parcel_locker', 'locker_list', 'lockers', 'locker'];
+
+/**
+ * Parcel-locker pick-up points from the `checkout_home_delivery` form.
+ *
+ * Returns `[]` when the tenant has no such attribute, in which case the caller
+ * keeps the local `PARCEL_LOCKERS` fallback. Locker names are plain strings —
+ * the picker submits the selected index, so ordering is the contract.
+ */
+export const loadParcelLockers = unstable_cache(
+  async (lang: Lang = DEFAULT_LOCALE): Promise<string[]> => {
+    try {
+      const form = await getApi().Forms.getFormByMarker('checkout_home_delivery', lang);
+      if (isError(form)) return [];
+      const attrs = (form as { attributes?: unknown[] }).attributes;
+      if (!Array.isArray(attrs)) return [];
+      for (const marker of LOCKER_LIST_MARKERS) {
+        const attr = attrs.find(
+          (a): a is RawDeliveryMethodAttr =>
+            typeof a === 'object' && a !== null && (a as { marker?: unknown }).marker === marker,
+        );
+        const titles = attr?.listTitles;
+        if (!Array.isArray(titles)) continue;
+        const names = titles.map((it) => asString(it?.title).trim()).filter((s) => s.length > 0);
+        if (names.length > 0) return names;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  },
+  ['oe-parcel-lockers'],
+  { revalidate: REVALIDATE_STORES, tags: ['oe-forms'] },
+);
+
 export const loadDeliveryMethodInfo = unstable_cache(
   async (lang: Lang = DEFAULT_LOCALE): Promise<DeliveryMethodInfo> => {
     try {

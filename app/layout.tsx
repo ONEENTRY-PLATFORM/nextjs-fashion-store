@@ -16,6 +16,7 @@ import { loadSignUpFormSchema } from '../src/lib/oneentry/auth/sign-up-form'
 // root layout rather than a per-page provider.
 import { loadFormContent } from '../src/lib/oneentry/forms/placeholders'
 import { loadHeaderSystemTexts } from '../src/lib/oneentry/labels/header-labels'
+import { loadFooterSystemTexts } from '../src/lib/oneentry/labels/footer-labels'
 import { loadLocales } from '../src/lib/oneentry/locales'
 
 export const viewport: Viewport = {
@@ -89,6 +90,7 @@ export default async function RootLayout({
     signUpFormSchema,
     subscribeForm,
     headerLabels,
+    footerLabels,
     cmsLocales,
   ] = await Promise.all([
     loadProductCardSystemTexts(),
@@ -101,6 +103,7 @@ export default async function RootLayout({
     loadSignUpFormSchema(),
     loadFormContent('subscribe_new_drops'),
     loadHeaderSystemTexts(),
+    loadFooterSystemTexts(),
     loadLocales(),
   ]);
   return (
@@ -145,6 +148,7 @@ export default async function RootLayout({
           signUpFormSchema={signUpFormSchema}
           forms={{ subscribe_new_drops: subscribeForm }}
           headerLabels={headerLabels}
+          footerLabels={footerLabels}
           cmsLocales={cmsLocales}
         >
           {children}

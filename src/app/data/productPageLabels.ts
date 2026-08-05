@@ -73,18 +73,10 @@ export const PRODUCT_ACTION_LABELS = {
 export const RESERVE_MODAL_LABELS = {
   title: 'Reserve in Store',
   closeLabel: 'Close',
-  stockBadge: {
-    in: 'In Stock',
-    low: 'Low Stock',
-    out: 'Out of Stock',
-  } as const,
-  stores: [
-    { id: 1, name: 'Kekimoro – Oxford Street',  address: '312 Oxford St, London W1C 1JF',  stock: 'in'  as const },
-    { id: 2, name: 'Kekimoro – Covent Garden',  address: '14 Long Acre, London WC2E 9LH',  stock: 'low' as const },
-    { id: 3, name: 'Kekimoro – Westfield',      address: 'Ariel Way, London W12 7GF',      stock: 'in'  as const },
-    { id: 4, name: 'Kekimoro – Canary Wharf',   address: 'Canada Square, London E14 5AH', stock: 'out' as const },
-    { id: 5, name: "Kekimoro – King's Road",    address: "145 King's Rd, London SW3 5TX", stock: 'low' as const },
-  ] as const,
+  // Store list comes from OneEntry (`loadStores`) via the PDP route — see
+  // `ReserveInStoreModal`. Per-branch stock badges were removed with it: OE
+  // has no branch-level inventory, so the old "In stock / Low stock" labels
+  // were promising availability the business could not honour.
   // Top blurb under header
   blurbPrefix: 'Reserve your item at a nearby store — free of charge. Your reservation is held for',
   blurbHoldDuration: '48 hours',

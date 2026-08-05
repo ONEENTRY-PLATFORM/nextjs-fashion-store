@@ -7,26 +7,33 @@ import { RESERVE_MODAL_LABELS as L } from '../../data/productPageLabels';
 import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
 import { submitForm } from '../../../lib/oneentry/forms/submit';
 
-const STORES = L.stores;
-
-const STOCK_BADGE: Record<'in' | 'low' | 'out', { label: string; color: string }> = {
-  in: { label: L.stockBadge.in, color: '#16a34a' },
-  low: { label: L.stockBadge.low, color: '#d97706' },
-  out: { label: L.stockBadge.out, color: '#9ca3af' },
-};
+/** Slim store descriptor for the picker — mapped from the OE store pages by
+ *  the PDP route so the modal never carries the full `Store` payload. */
+export interface ReserveStore {
+  /** OE `pageUrl` slug — stable across locales, used as the React key. */
+  id: string;
+  /** Numeric OE page id, submitted with the form when present. */
+  oeId?: number;
+  name: string;
+  address: string;
+}
 
 interface Props {
   onClose: () => void;
   preselectedSize: string | null;
   sizeOptions: SizeOption[];
+  /** Real stores from OneEntry. Per-store stock is deliberately absent: OE
+   *  exposes no branch-level inventory, and the previous hardcoded
+   *  "In stock / Low stock" badges promised availability nobody could honour. */
+  stores: ReserveStore[];
 }
 
-export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions }: Props) {
+export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, stores }: Props) {
   const lTitle    = usePdpT('reserve_in_store', 'reserve_in_store_title',   L.title);
   const lSelStore = usePdpT('reserve_in_store', 'reserve_in_store_select',  L.selectStore);
   const lSelSize  = usePdpT('reserve_in_store', 'reserve_in_store_size',    L.selectSize);
   const lDetails  = usePdpT('reserve_in_store', 'reserve_in_store_details', L.yourDetails);
-  const [selectedStore, setSelectedStore] = useState<number | null>(null);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [size, setSize] = useState<string | null>(preselectedSize);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -77,14 +84,16 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions }: P
         { marker: 'email',                                 value: email.trim(),            type: 'string' },
         { marker: 'pickup_date',                           value: pickupDate,              type: 'string' },
         { marker: 'agreed_terms',                          value: String(agreed),          type: 'string' },
-        { marker: 'reserve_in_store_form_select_store',    value: String(selectedStore),   type: 'string' },
+        // Prefer the numeric OE page id so the admin sees a resolvable store
+        // reference; the slug is the fallback when the id is absent.
+        { marker: 'reserve_in_store_form_select_store',    value: String(store?.oeId ?? selectedStore ?? ''), type: 'string' },
       ]);
       if (!result.ok) { setSubmitError(result.error); return; }
       setSubmitted(true);
     });
   };
 
-  const store = STORES.find(s => s.id === selectedStore);
+  const store = stores.find(s => s.id === selectedStore);
 
   // Input borders depend on per-field error state, so we generate a helper.
   const inputClass = (hasError: boolean) =>
@@ -156,26 +165,20 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions }: P
                 <p className="text-xs tracking-[0.12em] uppercase mb-3 font-semibold">
                   {lSelStore} <span className="text-[var(--sale)]">*</span>
                 </p>
-                <div className="space-y-2">
-                  {STORES.map(s => {
-                    const badge = STOCK_BADGE[s.stock];
+                <div className="space-y-2" data-testid="reserve-store-list">
+                  {stores.map(s => {
                     const active = selectedStore === s.id;
-                    const disabled = s.stock === 'out';
                     return (
                       <button
                         key={s.id}
-                        disabled={disabled}
-                        onClick={() => { if (!disabled) { setSelectedStore(s.id); setErrors(e => ({ ...e, store: '' })); } }}
-                        className={`w-full text-left px-4 py-3 border transition-colors flex items-start justify-between gap-3 rounded-none ${
-                          disabled ? 'opacity-50 cursor-not-allowed' : 'opacity-100 cursor-pointer'
-                        } ${
+                        data-testid="reserve-store-option"
+                        onClick={() => { setSelectedStore(s.id); setErrors(e => ({ ...e, store: '' })); }}
+                        className={`w-full text-left px-4 py-3 border transition-colors flex items-start justify-between gap-3 rounded-none cursor-pointer ${
                           active
                             ? 'border-black bg-black'
                             : errors.store
                               ? 'border-[var(--sale)] bg-white'
-                              : disabled
-                                ? 'border-[#e5e7eb] bg-[#fafafa]'
-                                : 'border-[#e5e7eb] bg-white'
+                              : 'border-[#e5e7eb] bg-white'
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -190,14 +193,6 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions }: P
                             <p className={`text-xs font-semibold ${active ? 'text-white' : 'text-black'}`}>{s.name}</p>
                             <p className={`text-xs mt-0.5 ${active ? 'text-[#c4c4c4]' : 'text-gray-400'}`}>{s.address}</p>
                           </div>
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <p
-                            className="text-xs font-semibold"
-                            style={{ color: active ? '#fff' : badge.color }}
-                          >
-                            {badge.label}
-                          </p>
                         </div>
                       </button>
                     );

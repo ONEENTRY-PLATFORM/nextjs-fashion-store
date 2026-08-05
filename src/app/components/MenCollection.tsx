@@ -4,11 +4,18 @@ import { ChevronRight } from 'lucide-react';
 import { ProductCard, type Product } from './ProductCard';
 import { HorizontalScroller } from './HorizontalScroller';
 import { SECTION_TITLES } from '../data/sectionTitles';
+import { CATALOG_VIEW_LABELS as CVL } from '../data/commonLabels';
 import { ACCENT_MEN as MEN_COLOR } from '../constants/colors';
+import type { SectionChrome } from '../../lib/oneentry/blocks/section-chrome';
 
-export function MenCollection({ products = [], title }: { products?: Product[]; title?: string } = {}) {
+/** `chrome` carries the OE block's own eyebrow / view-all link; the
+ *  `SECTION_TITLES` entry is the offline fallback for each field. */
+export function MenCollection({ products = [], title, chrome }: { products?: Product[]; title?: string; chrome?: SectionChrome } = {}) {
   if (products.length === 0) return null;
   const heading = title?.trim() || SECTION_TITLES.bestSellers.title;
+  const eyebrow = chrome?.eyebrow ?? SECTION_TITLES.bestSellers.eyebrow;
+  const viewAllHref = chrome?.viewAllHref ?? SECTION_TITLES.bestSellers.viewAllHref;
+  const viewAllLabel = chrome?.viewAllLabel ?? CVL.viewAll;
 
   return (
     <section
@@ -18,11 +25,11 @@ export function MenCollection({ products = [], title }: { products?: Product[]; 
       {/* Section Header */}
       <div className="flex items-center justify-between px-4 lg:px-8 mb-6 max-w-screen-2xl mx-auto">
         <div>
-          <p className="text-xs tracking-widest uppercase mb-1 text-[var(--accent)]">{SECTION_TITLES.bestSellers.eyebrow}</p>
+          <p className="text-xs tracking-widest uppercase mb-1 text-[var(--accent)]">{eyebrow}</p>
           <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[0.04em] uppercase">{heading}</h2>
         </div>
-        <Link href={SECTION_TITLES.bestSellers.viewAllHref} className="group flex items-center gap-1 text-xs tracking-widest uppercase font-medium border-b border-black pb-0.5">
-          View All <span className="inline-flex transition-transform duration-200 group-hover:translate-x-1"><ChevronRight size={14} /></span>
+        <Link href={viewAllHref} className="group flex items-center gap-1 text-xs tracking-widest uppercase font-medium border-b border-black pb-0.5">
+          {viewAllLabel} <span className="inline-flex transition-transform duration-200 group-hover:translate-x-1"><ChevronRight size={14} /></span>
         </Link>
       </div>
 

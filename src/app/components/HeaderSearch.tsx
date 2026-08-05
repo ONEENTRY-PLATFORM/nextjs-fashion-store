@@ -136,7 +136,7 @@ export function HeaderSearch({
                         <p className="text-xs text-gray-500 truncate">{p.brand}</p>
                       )}
                     </div>
-                    <p className="text-sm flex-shrink-0 font-semibold">{p.price}</p>
+                    <p className="text-sm shrink-0 font-semibold">{p.price}</p>
                   </button>
                 </li>
               ))}

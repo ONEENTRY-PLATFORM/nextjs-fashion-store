@@ -3,6 +3,7 @@ import { CatalogTemplate, type FilterGroup } from '../components/CatalogTemplate
 import type { Product } from '../components/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
+import { useCatalogPageT } from '../../lib/oneentry/labels/CatalogPageLabelsContext';
 import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
@@ -29,6 +30,12 @@ export function WomenCatalogPage({
   trendingBlock?: PageBlock | null;
   pageBlocks?: PageBlock[];
 } = {}) {
+  // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
+  // offline fallback.
+  const lTitle      = useCatalogPageT('catalog_page_clothing',          CL.clothing);
+  const lGender     = useCatalogPageT('catalog_page_women',             CL.women);
+  const lCrumbHome  = useCatalogPageT('catalog_page_breadcrumb_home',   CL.breadcrumbHome);
+  const lCrumbCat   = useCatalogPageT('catalog_page_breadcrumb_clothing', CL.breadcrumbClothing);
   return (
     <CatalogTemplate
       catalogKey="women-clothing"
@@ -36,8 +43,8 @@ export function WomenCatalogPage({
       filterGroups={initialFilterGroups ?? []}
       quickChips={initialQuickChips ?? []}
       accentColor={ACCENT}
-      title={CL.clothing}
-      genderLabel={CL.women}
+      title={lTitle}
+      genderLabel={lGender}
       totalStyles={initialTotalStyles}
       total={total}
       trendingBlock={trendingBlock}
@@ -48,8 +55,8 @@ export function WomenCatalogPage({
       showListMode={true}
       scrollbarClass="scrollbar-pink"
       breadcrumbs={[
-        { label: CL.breadcrumbHome, href: '/' },
-        { label: CL.breadcrumbClothing },
+        { label: lCrumbHome, href: '/' },
+        { label: lCrumbCat },
       ]}
     />
   );

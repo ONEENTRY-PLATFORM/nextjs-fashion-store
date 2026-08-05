@@ -3,6 +3,7 @@ import { CatalogTemplate, type FilterGroup } from '../components/CatalogTemplate
 import type { Product } from '../components/ProductCard';
 import { ACCENT_MEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
+import { useCatalogPageT } from '../../lib/oneentry/labels/CatalogPageLabelsContext';
 import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
@@ -29,6 +30,13 @@ export function MenBagsPage({
   trendingBlock?: PageBlock | null;
   pageBlocks?: PageBlock[];
 } = {}) {
+  // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
+  // offline fallback.
+  const lTitle     = useCatalogPageT('catalog_page_bags',             CL.bags);
+  const lGender    = useCatalogPageT('catalog_page_men',              CL.men);
+  const lCrumbHome = useCatalogPageT('catalog_page_breadcrumb_home',  CL.breadcrumbHome);
+  const lCrumbMen  = useCatalogPageT('catalog_page_breadcrumb_men',   CL.breadcrumbMen);
+  const lCrumbCat  = useCatalogPageT('catalog_page_breadcrumb_bags',  CL.breadcrumbBags);
   return (
     <CatalogTemplate
       pageBlocks={pageBlocks}
@@ -37,8 +45,8 @@ export function MenBagsPage({
       filterGroups={initialFilterGroups ?? []}
       quickChips={initialQuickChips ?? []}
       accentColor={ACCENT}
-      title={CL.bags}
-      genderLabel={CL.men}
+      title={lTitle}
+      genderLabel={lGender}
       totalStyles={initialTotalStyles}
       total={total}
       trendingBlock={trendingBlock}
@@ -49,9 +57,9 @@ export function MenBagsPage({
       priceDefault={[0, 500]}
       scrollbarClass="scrollbar-red"
       breadcrumbs={[
-        { label: CL.breadcrumbHome, href: '/' },
-        { label: CL.breadcrumbMen, href: '/men' },
-        { label: CL.breadcrumbBags },
+        { label: lCrumbHome, href: '/' },
+        { label: lCrumbMen, href: '/men' },
+        { label: lCrumbCat },
       ]}
     />
   );

@@ -50,7 +50,7 @@ export function HeaderTopBar() {
               <ChevronDownIcon className="w-4 h-4" />
             </button>
             {cityOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white text-black shadow-lg z-50 min-w-[140px] border border-gray-200">
+              <div className="absolute top-full left-0 mt-1 bg-white text-black shadow-lg z-50 min-w-35 border border-gray-200">
                 {regions.map((c) => (
                   <button key={c} onClick={() => setCityOpen(false)} className="block w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors">
                     {c}
@@ -72,7 +72,7 @@ export function HeaderTopBar() {
               {locales.length > 1 && <ChevronDownIcon className="w-4 h-4" />}
             </button>
             {langOpen && locales.length > 1 && (
-              <div className="absolute top-full left-0 mt-1 bg-white text-black shadow-lg z-50 min-w-[100px] border border-gray-200">
+              <div className="absolute top-full left-0 mt-1 bg-white text-black shadow-lg z-50 min-w-25 border border-gray-200">
                 {locales.map((l) => (
                   <button
                     key={l.code}

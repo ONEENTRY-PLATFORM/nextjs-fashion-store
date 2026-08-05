@@ -20,6 +20,7 @@ import type { Product } from './ProductCard';
 import { loadCartComplementProductsAction } from '../../lib/oneentry/blocks/cart-complement-action';
 import { useAuth } from '../context/AuthContext';
 import { getOrCreateGuestId } from '../utils/guest-id';
+import { sectionChromeFromBlock } from '../../lib/oneentry/blocks/section-chrome';
 import { GenericCommonBlock } from './blocks/GenericCommonBlock';
 import { GenericSliderBlock } from './blocks/GenericSliderBlock';
 
@@ -103,7 +104,7 @@ function AnimatedSection({ children, className = '', immediate = false }: { chil
   return (
     <div
       ref={ref}
-      className={`${className ?? ''} transition-[opacity,transform] duration-[650ms] ease-out ${
+      className={`${className ?? ''} transition-[opacity,transform] duration-650 ease-out ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-7'
       }`}
     >
@@ -178,21 +179,21 @@ export function PageBlocksRenderer({
           case 'homepage_best_sellers':
             return (
               <AnimatedSection key={key} className={wrapperCls}>
-                <MenCollection products={block.products} title={block.title} />
+                <MenCollection products={block.products} title={block.title} chrome={sectionChromeFromBlock(block)} />
               </AnimatedSection>
             );
           case 'women_collection':
           case 'homepage_new_arrivals':
             return (
               <AnimatedSection key={key} className={wrapperCls}>
-                <WomenCollection products={block.products} title={block.title} />
+                <WomenCollection products={block.products} title={block.title} chrome={sectionChromeFromBlock(block)} />
               </AnimatedSection>
             );
           case 'new_arrivals':
           case 'homepage_sale':
             return (
               <AnimatedSection key={key} className={wrapperCls}>
-                <NewArrivals products={block.products} title={block.title} />
+                <NewArrivals products={block.products} title={block.title} chrome={sectionChromeFromBlock(block)} />
               </AnimatedSection>
             );
           default:
@@ -256,7 +257,7 @@ export function PageBlocksRenderer({
             if (block.products.length > 0) {
               return (
                 <div key={key} className={wrapperCls}>
-                  <NewArrivals products={block.products} title={block.title} />
+                  <NewArrivals products={block.products} title={block.title} chrome={sectionChromeFromBlock(block)} />
                 </div>
               );
             }

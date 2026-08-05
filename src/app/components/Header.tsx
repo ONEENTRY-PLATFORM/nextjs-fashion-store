@@ -252,7 +252,7 @@ export function Header() {
               >
                 <ShoppingBag size={20} />
                 {mounted && totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-[var(--accent)]">
+                  <span className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-accent">
                     {totalItems}
                   </span>
                 )}

@@ -32,7 +32,7 @@ import { StarRating } from './product/StarRating';
 import { AccordionSection } from './product/AccordionSection';
 import { SizeGuideModal } from './product/SizeGuideModal';
 import { ProductGallery } from './product/ProductGallery';
-import { ReserveInStoreModal } from './product/ReserveInStoreModal';
+import { ReserveInStoreModal, type ReserveStore } from './product/ReserveInStoreModal';
 import { ProductSpecialOffers } from './product/ProductSpecialOffers';
 import { RecentlyViewedSection } from './product/RecentlyViewedSection';
 import { ProductShareDropdown } from './product/ProductShareDropdown';
@@ -80,6 +80,7 @@ export function ProductDetailPage({
   bonusPoints,
   categoryViewAllHref = '/',
   productBlocks,
+  reserveStores = [],
 }: {
   initialProduct?: CatalogProduct;
   /** Breadcrumb labels derived from the product's OE category path
@@ -107,6 +108,10 @@ export function ProductDetailPage({
    *  via `<PageBlocksRenderer>` right after the streaming recommendations
    *  slot, in admin-defined `position` order. */
   productBlocks?: PageBlock[];
+  /** Real store list for the reserve-in-store modal, mapped from the OE store
+   *  pages by the route. Empty hides the reserve CTA — offering a reservation
+   *  with no branch to reserve at is worse than not offering one. */
+  reserveStores?: ReserveStore[];
 } = {}) {
   const router = useRouter();
   const lReviewsSuffix  = useProductCardT('product-card-reviews',                  PRODUCT_ACTION_LABELS.reviewsSuffix);
@@ -822,24 +827,29 @@ export function ProductDetailPage({
                   </button>
                 )}
 
-                <button
-                  onClick={() => {
-                    // Auth-gate the reservation like reviews (see ReviewsClient).
-                    // The reserve form collects contact info that OE ties to
-                    // the shopper; without a login the record has no owner and
-                    // the shopper can't later look up their reservation. Guest
-                    // shoppers get bounced into the login modal; on success
-                    // they land back on the PDP with modal state intact.
-                    if (!isLoggedIn) {
-                      openLoginModal();
-                      return;
-                    }
-                    setShowReserveModal(true);
-                  }}
-                  className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-black border border-black hover:bg-black hover:text-white focus-visible:outline-none transition-colors duration-200 rounded-lg"
-                >
-                  <Store size={15} /> {lReserveInStore}
-                </button>
+                {/* Hidden when OE returned no stores — a reservation CTA with
+                    no branch behind it leads to an empty picker. */}
+                {reserveStores.length > 0 && (
+                  <button
+                    data-testid="pdp-reserve-in-store"
+                    onClick={() => {
+                      // Auth-gate the reservation like reviews (see ReviewsClient).
+                      // The reserve form collects contact info that OE ties to
+                      // the shopper; without a login the record has no owner and
+                      // the shopper can't later look up their reservation. Guest
+                      // shoppers get bounced into the login modal; on success
+                      // they land back on the PDP with modal state intact.
+                      if (!isLoggedIn) {
+                        openLoginModal();
+                        return;
+                      }
+                      setShowReserveModal(true);
+                    }}
+                    className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-black border border-black hover:bg-black hover:text-white focus-visible:outline-none transition-colors duration-200 rounded-lg"
+                  >
+                    <Store size={15} /> {lReserveInStore}
+                  </button>
+                )}
 
                 <button
                   onClick={() => toggleItem({
@@ -996,7 +1006,14 @@ export function ProductDetailPage({
       <Footer />
 
       {showSizeGuide && <SizeGuideModal onClose={() => setShowSizeGuide(false)} />}
-      {showReserveModal && <ReserveInStoreModal onClose={() => setShowReserveModal(false)} preselectedSize={selectedSize} sizeOptions={dynamicSizeOptions} />}
+      {showReserveModal && (
+        <ReserveInStoreModal
+          onClose={() => setShowReserveModal(false)}
+          preselectedSize={selectedSize}
+          sizeOptions={dynamicSizeOptions}
+          stores={reserveStores}
+        />
+      )}
     </div>
   );
 }

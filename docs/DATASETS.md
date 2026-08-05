@@ -34,11 +34,11 @@ Real user data comes exclusively from `AuthContext.user` (populated by `getCurre
 
 | File | Exports | Consumers |
 |---|---|---|
-| `checkoutConfig.ts` | `PICKUP_STORES`, `PARCEL_LOCKERS`, `DELIVERY_TIME_SLOTS`, `DELIVERY_PERKS`, `PICKUP_PERKS` | `DeliveryPage`, `PaymentPage`, `DeliveryOrderSummary`, `CartPage` |
-| `paymentMethodsConfig.ts` | `PAYMENT_METHODS_COPY` (stylistic UI copy per method identifier) | `PaymentMethodsList` (as fallback labels; real accounts come from OE `getPaymentAccountsAction`) |
+| `checkoutConfig.ts` | `PICKUP_STORES`, `PARCEL_LOCKERS`, `DELIVERY_TIME_SLOTS`, `DELIVERY_PERKS`, `PICKUP_PERKS` — **all fallbacks**: stores come from `loadStores`, lockers from `loadParcelLockers` (`checkout_home_delivery` form), slots from `loadDeliverySchedule` | `DeliveryPage`, `PaymentPage`, `DeliveryOrderSummary`, `CartPage` |
+| `paymentMethodsConfig.ts` | `PAYMENT_PAGE_LABELS` (page chrome + trust badges, all read through `useT('checkout_payment', …)`), `WALLET_BUTTON_LABELS`. `PAYMENT_METHODS_COPY` was **deleted** — method names/descriptions render straight from the OE accounts (`getPaymentAccountsAction`) and the local copy had no reader | `PaymentPage` |
 | `currencyConfig.ts` | `CURRENCY = {code:'USD', symbol:'$', fmt, stripTrailingZeros}` frozen object, plus re-exports `fmt`, `stripTrailingZeros` | Every price render (`ProductCard`, `MiniCart`, `CartPage`, `PaymentPage`, `ConfirmationPage`, `PriceRangeSlider.CURRENCY.formatInteger` etc.) |
 
-Pickup stores/lockers are still local; a future refactor may pull them from OneEntry. All coupon validation — on both the Delivery step and the `/cart` promo entry — now goes through OE via `previewOrderAction` (see [CHECKOUT.md §2.4](./CHECKOUT.md#24-coupons-7)); no client-side mock remains.
+Pickup stores and parcel lockers now come from OneEntry — `loadStores()` for the store picker, `loadParcelLockers()` (the `checkout_home_delivery` form, probing the `parcel_locker` / `locker_list` / `lockers` / `locker` attribute markers) for the locker dropdown. Both fall back to the `checkoutConfig.ts` literals when the tenant has no such data, so Storybook and bare unit renders keep working. All coupon validation — on both the Delivery step and the `/cart` promo entry — goes through OE via `previewOrderAction` (see [CHECKOUT.md §2.4](./CHECKOUT.md#24-coupons-7)); no client-side mock remains.
 
 ## 5. Header, footer, navigation
 
@@ -112,7 +112,9 @@ Primary source of these labels is the OneEntry AttributesSets → the 12 label l
 | `seoData.ts` | `SITE`, `SEO` metadata per route, `PRODUCT_DEFAULTS` (aggregate rating / offer / shipping), `DEFAULT_SPECS`, `DEFAULT_REVIEWS`, `OFFER_CATALOG_ITEMS` | `layout.tsx`, `app/**/page.tsx` metadata exports, JSON-LD renderers |
 | `infoPages.ts` | Info page metadata (title / description / keywords) | Info page `generateMetadata` |
 
-`seoData.ts` still contains the JSON-LD source of truth — currency (`GBP`), shipping thresholds (`£50+ free`), return window (`28 days`), delivery range (`2-5 days UK`), Twitter handle (`@KekimoroFashion`). See [SEO_OPTIMIZATION.md](./SEO_OPTIMIZATION.md).
+`seoData.ts` still contains the JSON-LD source of truth — currency (`USD`, matching `currencyConfig.ts`), shipping thresholds, return window, delivery range, Twitter handle. See [SEO_OPTIMIZATION.md](./SEO_OPTIMIZATION.md).
+
+`infoPages.ts` holds `INFO_PAGE_META` + `INFO_SLUGS`. The slug list is now only the **fast path**: `app/[...slug]/page.tsx` falls through to `resolveInfoPageSlug()` (`catalog/info-pages.ts`), which asks OE whether the path is a page it knows, so an info page created in the admin panel renders without a deploy. `app/sitemap.ts` lists those CMS-only slugs too via `loadInfoPageSlugs()`.
 
 ## 10. Content
 
@@ -154,8 +156,15 @@ If a component still imports from one of these paths, that's an unfinished migra
 | Info pages | Local static (`INFO_PAGE_LABELS` in `data/infoPageLabels.ts`) — `loadPageByUrl` exists in SDK layer but is dead code | ⚠ static |
 | Header / footer menus | OE `Menus.getMenusByMarker` | ✅ live (categories.ts is fallback) |
 | Footer link columns + legal links | OE `footer` menu via `menus/adapt-footer.ts` | ✅ live (`FOOTER_LINKS` / `BOTTOM_LINKS` are fallbacks) |
-| Footer branding (payment / social / support / phone / copyright) | `footerConfig.ts` | ❌ static |
+| Footer branding (blurb / phone / copyright / support cards / social hrefs) | OE `footer` system-text set via `useFooterT` | ✅ live (`footerConfig.ts` is the fallback) |
+| Payment method icon list (`PAYMENT_METHOD_NAMES`) | `footerConfig.ts` | ❌ static by design — the names key the SVG assets in `public/icons/payment/` |
 | Header branding config | `headerConfig.ts` | ❌ static |
+| Catalog chrome (gender / category titles, breadcrumbs) | OE `catalog_page` set via `useCatalogPageT` | ✅ live (`catalogPageLabels.ts` is the fallback) |
+| Homepage section chrome (eyebrow / subtitle / view-all link) | The OE block's own `attributeValues` via `blocks/section-chrome.ts` | ✅ live (`sectionTitles.ts` is the fallback) |
+| Info page routing | OE page lookup (`resolveInfoPageSlug`) with the static `INFO_SLUGS` registry as the fast path | ✅ live — a page created in OE resolves without a deploy |
+| Reserve-in-store branches | `loadStores()` (OE `stores` page tree) | ✅ live — per-branch stock badges removed, OE has no branch inventory |
+| Parcel lockers | `loadParcelLockers()` (`checkout_home_delivery` form) | ✅ live (`PARCEL_LOCKERS` is the fallback) |
+| Payment methods | OE payment accounts (`getPaymentAccountsAction`) | ✅ live — local per-method copy deleted |
 | Favorites page copy | OE `favorites_page` set via `useFavoritesPageT` | ✅ live (`favoritesLabels.ts` is the fallback) |
 | FAQ structured data | Derived from the rendered OE `info_section_*` blocks | ✅ live (no static source) |
 | Auth / session | OE `AuthProvider` + cookies | ✅ live |

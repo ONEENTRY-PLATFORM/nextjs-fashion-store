@@ -58,6 +58,10 @@ interface DeliveryPageProps {
    *  server passes the hardcoded `PICKUP_STORES` fallback so the picker still
    *  renders. */
   pickupStores?: PickupStore[];
+  /** Parcel-locker names loaded from OE by the server layer. Empty (or
+   *  omitted, e.g. Storybook / bare unit tests) keeps the local
+   *  `PARCEL_LOCKERS` fallback so the picker still renders. */
+  parcelLockers?: string[];
   /** ISO-serialised date strip for the authed variant — built server-side
    *  from `checkout_home_delivery`'s schedule config. When omitted —
    *  Storybook / bare unit tests — the component regenerates it from the
@@ -77,6 +81,7 @@ interface DeliveryPageProps {
 
 export function DeliveryPage({
   pickupStores,
+  parcelLockers,
   deliveryDatesIsoAuthed,
   deliveryDatesIsoGuest,
   deliverySlotsAuthed,
@@ -90,6 +95,9 @@ export function DeliveryPage({
   const stores: PickupStore[] = pickupStores && pickupStores.length > 0
     ? pickupStores
     : PICKUP_STORES;
+  const lockers: string[] = parcelLockers && parcelLockers.length > 0
+    ? parcelLockers
+    : PARCEL_LOCKERS;
   const {
     items,
     total, personalDiscount, totalDue,
@@ -103,7 +111,7 @@ export function DeliveryPage({
 
   const [method, setMethod] = useState<DeliveryMethod>('home');
   const [selectedStore, setSelectedStore] = useState<PickupStore>(stores[0]);
-  const [selectedLocker, setSelectedLocker] = useState(PARCEL_LOCKERS[0]);
+  const [selectedLocker, setSelectedLocker] = useState(lockers[0]);
   const [storeDropOpen, setStoreDropOpen] = useState(false);
   const [lockerDropOpen, setLockerDropOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -286,7 +294,7 @@ export function DeliveryPage({
       // hardcoded PICKUP_STORES fallback fired) — OE will reject it, which is
       // the correct outcome because there's no matching store in the tenant.
       storeId: method === 'store' ? (selectedStore.oeId ?? selectedStore.id) : null,
-      lockerId: method === 'locker' ? PARCEL_LOCKERS.indexOf(selectedLocker) : null,
+      lockerId: method === 'locker' ? lockers.indexOf(selectedLocker) : null,
       deliveryDate: selectedDate.toISOString(),
       deliverySlot: selectedSlot,
       couponCode: couponCode,
@@ -383,6 +391,7 @@ export function DeliveryPage({
               setSelectedLocker={setSelectedLocker}
               lockerDropOpen={lockerDropOpen}
               setLockerDropOpen={setLockerDropOpen}
+              lockers={lockers}
               isLoggedIn={isLoggedIn}
               guestContact={guestContact}
               setGuestContact={setGuestContact}

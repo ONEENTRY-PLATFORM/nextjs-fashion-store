@@ -12,7 +12,7 @@ function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boo
   return (
     <Link
       href={item.href}
-      className="relative overflow-hidden block aspect-[4/5]"
+      className="relative overflow-hidden block aspect-4/5"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -43,7 +43,7 @@ function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boo
         </h3>
         <p className="text-white/80 tracking-widest uppercase mb-4 text-[0.8125rem]">{item.subtitle}</p>
         <span
-          className={`px-6 py-2 text-xs tracking-widest uppercase font-medium transition-all duration-200 rounded-lg border border-white/80 backdrop-blur-[4px] ${
+          className={`px-6 py-2 text-xs tracking-widest uppercase font-medium transition-all duration-200 rounded-lg border border-white/80 backdrop-blur-xs ${
             hovered ? 'bg-white text-black' : 'bg-white/15 text-white'
           }`}
         >
@@ -75,7 +75,7 @@ export function PromoBlock({ initialItems }: { initialItems?: HomepageCollection
           {[0, 1].map((i) => (
             <div
               key={i}
-              className="bg-gray-100 animate-pulse aspect-[4/5] [animation-delay:var(--delay)]"
+              className="bg-gray-100 animate-pulse aspect-4/5 [animation-delay:var(--delay)]"
               style={{ '--delay': `${i * 100}ms` } as React.CSSProperties}
             />
           ))}

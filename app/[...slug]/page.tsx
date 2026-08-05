@@ -6,8 +6,10 @@ import {
   buildPageMetadata,
   buildBreadcrumbSchema,
   type CatalogPageEntry,
+  type PageEntry,
 } from '../../src/app/data/pageRegistry';
-import { SITE_URL } from '../../src/app/data/seoData';
+import { SITE_URL, SITE_NAME } from '../../src/app/data/seoData';
+import { resolveInfoPageSlug } from '../../src/lib/oneentry/catalog/info-pages';
 import { INFO_PAGE_META } from '../../src/app/data/infoPages';
 import { JsonLd } from '../../src/app/components/JsonLd';
 import { loadProducts, loadFilteredProducts } from '../../src/lib/oneentry/catalog/products';
@@ -22,6 +24,8 @@ import { loadPageByUrl } from '../../src/lib/oneentry/catalog/pages';
 import { faqItemsFromBlocks, buildFaqSchema } from '../../src/lib/oneentry/blocks/info-sections';
 import { loadInfoPageSystemTexts } from '../../src/lib/oneentry/labels/info-page-labels';
 import { InfoPageLabelsProvider } from '../../src/lib/oneentry/labels/InfoPageLabelsContext';
+import { loadCatalogPageSystemTexts } from '../../src/lib/oneentry/labels/catalog-page-labels';
+import { CatalogPageLabelsProvider } from '../../src/lib/oneentry/labels/CatalogPageLabelsContext';
 
 /* ─── Catalog page components (dataset configs) ─── */
 import { WomenCatalogPage }     from '../../src/app/pages/WomenCatalogPage';
@@ -83,7 +87,10 @@ export const revalidate = 60;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const path = slug.join('/');
-  const entry = PAGE_REGISTRY[path];
+  // A path missing from the static registry may still be an info page the
+  // editor created in OE after the last deploy — ask the CMS before giving up.
+  const dynamicSlug = PAGE_REGISTRY[path] ? null : await resolveInfoPageSlug(path);
+  const entry = PAGE_REGISTRY[path] ?? (dynamicSlug ? { type: 'info' as const, slug: dynamicSlug } : undefined);
   if (!entry) return {};
 
   // Info pages carry their SEO on the OE page itself (`meta_title`,
@@ -108,6 +115,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ...(description ? { description } : {}),
         ...(keywords ? { keywords } : {}),
         ...(canonical ? { alternates: { canonical } } : {}),
+      };
+    }
+    // CMS-only page with no `meta_*` attributes: `INFO_PAGE_META` has no entry
+    // for it either, so fall back to the page's own title.
+    if (page?.title && !INFO_PAGE_META[entry.slug]) {
+      return {
+        title: `${page.title} | ${SITE_NAME}`,
+        alternates: { canonical: `${SITE_URL}/${entry.slug}` },
       };
     }
   }
@@ -184,7 +199,12 @@ export default async function Page({ params, searchParams }: Props) {
       }
     }
   }
-  const entry = entryFromExact;
+  // Same CMS-first resolution as `generateMetadata`: an info page created in
+  // OE after the last deploy is absent from the static registry but must still
+  // render. `React.cache` makes this the same lookup the metadata pass did.
+  const dynamicSlug = entryFromExact ? null : await resolveInfoPageSlug(path);
+  const entry: PageEntry | undefined = entryFromExact
+    ?? (dynamicSlug ? { type: 'info', slug: dynamicSlug } : undefined);
 
   if (!entry) notFound();
 
@@ -351,21 +371,28 @@ export default async function Page({ params, searchParams }: Props) {
     const pageBlocks = (await loadPageBlocksByUrl(pageBlocksUrl))
       .filter(b => b.marker !== 'catalog_trend_blocks');
 
+    // Catalog chrome copy (gender / category titles, breadcrumb fragments)
+    // from the OE `catalog_page` set. Empty dict → components keep their
+    // local `CATALOG_PAGE_LABELS` fallback.
+    const catalogLabels = await loadCatalogPageSystemTexts();
+
     return (
       <>
         <JsonLd data={breadcrumb} />
         <JsonLd data={itemList} />
-        <CatalogComponent
-          initialProducts={initialProducts}
-          initialFilterGroups={initialFilterGroups}
-          initialQuickChips={initialQuickChips}
-          initialTotalStyles={total || initialProducts?.length}
-          currentFilters={filters}
-          currentPage={currentPage}
-          total={total}
-          trendingBlock={trendingBlock}
-          pageBlocks={pageBlocks}
-        />
+        <CatalogPageLabelsProvider data={catalogLabels}>
+          <CatalogComponent
+            initialProducts={initialProducts}
+            initialFilterGroups={initialFilterGroups}
+            initialQuickChips={initialQuickChips}
+            initialTotalStyles={total || initialProducts?.length}
+            currentFilters={filters}
+            currentPage={currentPage}
+            total={total}
+            trendingBlock={trendingBlock}
+            pageBlocks={pageBlocks}
+          />
+        </CatalogPageLabelsProvider>
       </>
     );
   }
@@ -376,17 +403,20 @@ export default async function Page({ params, searchParams }: Props) {
 
     // Page chrome + breadcrumb labels come from the OE `info_page` set; the
     // local constants remain the offline fallback.
-    const [infoLabels, infoPageBlocks] = await Promise.all([
+    const [infoLabels, infoPageBlocks, cmsPage] = await Promise.all([
       loadInfoPageSystemTexts(),
       // `entry.slug` matches the OE pageUrl marker (e.g. 'about-us', 'faq').
       // The hub landing has no OE page — skip loading and pass empty.
       isHub ? Promise.resolve([] as PageBlock[]) : loadPageBlocksByUrl(entry.slug),
+      // Cached per request alongside the metadata pass; supplies the crumb
+      // label for pages that exist only in the CMS.
+      isHub ? Promise.resolve(null) : loadPageByUrl(entry.slug),
     ]);
     const label = (key: string, fallback: string) => infoLabels[key] || fallback;
 
     const pageTitle = isHub
       ? label('info_hub_title', 'Content Hub')
-      : (INFO_PAGE_META[entry.slug]?.title ?? entry.slug);
+      : (INFO_PAGE_META[entry.slug]?.title ?? cmsPage?.title ?? entry.slug);
     const crumbHome = label('info_breadcrumb_home', 'Home');
 
     const breadcrumbSchema = buildBreadcrumbSchema(

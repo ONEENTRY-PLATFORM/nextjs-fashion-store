@@ -7,7 +7,7 @@ import { loadFormContent } from '../../../src/lib/oneentry/forms/placeholders';
 import { FormPlaceholdersProvider } from '../../../src/lib/oneentry/forms/FormPlaceholdersContext';
 import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
 import type { PickupStore } from '../../../src/app/data/checkoutConfig';
-import { loadDeliveryMethodInfo } from '../../../src/lib/oneentry/checkout/delivery-methods';
+import { loadDeliveryMethodInfo, loadParcelLockers } from '../../../src/lib/oneentry/checkout/delivery-methods';
 import { DeliveryMethodInfoProvider } from '../../../src/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { loadDeliverySchedule, buildDeliveryDates } from '../../../src/lib/oneentry/checkout/delivery-schedule';
 import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
@@ -15,11 +15,12 @@ import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-block
 export const metadata: Metadata = SEO.checkoutDelivery;
 
 export default async function Page() {
-  const [labels, userAddresses, stores, deliveryMethodInfo, scheduleAuthed, scheduleGuest, pageBlocks] = await Promise.all([
+  const [labels, userAddresses, stores, deliveryMethodInfo, parcelLockers, scheduleAuthed, scheduleGuest, pageBlocks] = await Promise.all([
     loadCheckoutSystemTexts(),
     loadFormContent('user_addresses'),
     loadStores(),
     loadDeliveryMethodInfo(),
+    loadParcelLockers(),
     loadDeliverySchedule('authed'),
     loadDeliverySchedule('guest'),
     loadPageBlocksByUrl('delivery_method'),
@@ -57,6 +58,7 @@ export default async function Page() {
         <DeliveryMethodInfoProvider data={deliveryMethodInfo}>
           <DeliveryPage
             pickupStores={pickupStores}
+            parcelLockers={parcelLockers}
             deliveryDatesIsoAuthed={deliveryDatesIsoAuthed}
             deliveryDatesIsoGuest={deliveryDatesIsoGuest}
             deliverySlotsAuthed={scheduleAuthed.slots}
