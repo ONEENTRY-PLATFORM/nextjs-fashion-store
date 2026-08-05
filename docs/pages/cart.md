@@ -20,10 +20,12 @@ Checkout step indicator.
 ## 3. Cart Items List (if the cart is not empty)
 
 ### Bulk actions row
+
 - **Checkbox**: `"Select All"`
 - **Button** (visible when ≥1 item is selected): `"Remove Selected (N)"` (with `Trash2` icon)
 
 ### Item cards
+
 - **Cart item card** (×N):
   - Image + alt = `name`
   - Brand
@@ -42,6 +44,7 @@ Checkout step indicator.
 ## 4. Summary (right column)
 
 ### Order Summary
+
 - **H2**: `"Order Summary"`
 - `Subtotal ({N} items)` — dynamic caption with quantity
 - `Items discount` (if there are item discounts)
@@ -50,9 +53,11 @@ Checkout step indicator.
 - **Total**: $XX.XX
 
 ### Loyalty bonus block
+
 - ★ icon (accent) + text: `"You'll earn {N} pts with this order"`
 
 ### Promo Code
+
 - **Checkbox with label**: `"I have a promo code"` (with `Tag` icon)
 - When activated, expands to:
   - **Field**: placeholder `"Enter code"`
@@ -61,6 +66,7 @@ Checkout step indicator.
 - Error: `"Invalid promo code"`
 
 ### CTA
+
 - **Button**: `"Proceed to Checkout"` → `/checkout/delivery`
 - **Button/link**: `"Continue Shopping"` → `/`
 

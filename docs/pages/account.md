@@ -42,7 +42,7 @@ List of sections — tabs (from `NAV_ITEMS` in `AccountPage.tsx`, **exact labels
 View and edit personal information (with edit mode).
 
 | Field | Label | Placeholder |
-|---|---|---|
+| --- | --- | --- |
 | `firstName` | `"First Name"` | `"Jane"` |
 | `email` | `"Email"` | `"you@example.com"` |
 | `phone` | `"Phone"` | `"+44 20 0000 0000"` |
@@ -58,6 +58,7 @@ View and edit personal information (with edit mode).
 List of orders as expandable cards.
 
 **Order card fields** (exact labels — all uppercase tracking):
+
 - `Order ID` — e.g. `"ORD-2026-001234"`
 - `Date Placed` — date with icon
 - `Status` — text status (with color)
@@ -67,6 +68,7 @@ List of orders as expandable cards.
 **Items** — list of items in the order with thumbnail, name, price `{price × qty}`.
 
 **Card footer**:
+
 - **Caption**: `"Order Total"` + amount
 - **Button**: aria-label `"View details for order {id}"`
 - **Button**: `"Track Order"` (if tracking is available)
@@ -77,12 +79,14 @@ List of orders as expandable cards.
 Consists of an embedded `LoyaltyCard` at the top + history.
 
 **Loyalty Card (card at the top)**:
+
 - **Label**: `"Loyalty Status"` — status (Bronze/Silver/Gold)
 - **Label**: `"Discount"` — discount %
 - **Label**: `"Bonuses"` — current bonus balance
 - Progress bar to the next level
 
 **History**:
+
 - **H4**: `"Bonus Transaction History"`
 - List of bonus accruals/redemptions
 
@@ -94,7 +98,7 @@ Service/repair requests.
 - **Subtitle/Label**: `"Submit a Service Request"`
 
 | Field | Label | Placeholder |
-|---|---|---|
+| --- | --- | --- |
 | `item` | `"Item"` | `"e.g. Tailored Trench Coat"` |
 | `description` | `"Description"` (textarea) | `"Describe the issue or alteration needed…"` |
 
@@ -153,4 +157,3 @@ List of subscription toggles (role=switch).
 
 - aria-label: `"{label}"` for each toggle
 - Subscriptions: Newsletter / Promo emails / Order updates / Wishlist alerts / etc.
-

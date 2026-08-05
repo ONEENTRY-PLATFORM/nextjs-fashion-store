@@ -54,12 +54,14 @@ Left side of the PDP.
 ## 3. Product Info (right column)
 
 ### 3-0. Brand + Share row
+
 - **Left**: brand link `"ONEENTRY"` (uppercase tracking) → `/women/clothing`
 - **Right**: **`Share`** button (with `Share2` icon) — opens a dropdown
   - List of share links (`SHARE_LINKS` — Facebook, X/Twitter, Email, etc.)
   - At the bottom — the **`Copy link`** button → changes to **`Link copied!`** (with a green checkmark) after click
 
 ### 3-0a. Title + Rating + SKU
+
 - **H1**: product name (`dynamicName`)
 - **Rating row**:
   - Stars (`StarRating`)
@@ -69,13 +71,16 @@ Left side of the PDP.
 - **SKU row**: `"SKU: {value}  ·  Article: {value}"` (e.g. `"SKU: 2024-156-1 · Article: OF-KW-156-BRG"`)
 
 ### 3-0b. Price Block
+
 - Sale price + struck-through regular price + discount percentage
 
 ### 3a. Color Selection
+
 - **Label**: `"Color: {selected color name}"`
 - Swatches (hex circles) — aria-label `"Color {idx+1} (out of stock)"` for OOS
 
 ### 3b. Size Selection
+
 - **Label**: `"Size{: M}"`
 - **Link**: `"Size Guide"` (opens `SizeGuideModal`)
 - Size buttons: `XS` `S` `M` `L` `XL` (disabled for OOS)
@@ -91,6 +96,7 @@ Stack of 3 buttons (or a disabled block if OOS):
 - **`Save to Wishlist`** (with `Heart` icon) → **`Saved to Wishlist`** (heart filled with accent color)
 
 ### 3d. Special Offers (bundles)
+
 - **Label**: `"Special Offers"` (uppercase tracking)
 - Bundle cards (×2) — each with two items
   - Each item: name (line-clamp-2), `originalPrice` (struck-through), `salePrice` (sale color)
@@ -144,6 +150,7 @@ Expandable sections with information. Exact titles:
 ## 8. Modals (invoked from this page)
 
 ### Reserve in Store Modal
+
 - **H2**: `"Reserve in Store"`
 - List of stores with radio selection
 - Size selection field
@@ -156,6 +163,7 @@ Expandable sections with information. Exact titles:
 - After submit — `"Reservation Confirmed"` screen
 
 ### Write Review Modal
+
 - **H2**: `"Share your thoughts"`
 - Stars for rating — aria-label `"{N} star"`
 - Field `"Title"` placeholder `"Summarize your experience"`
@@ -167,11 +175,13 @@ Expandable sections with information. Exact titles:
 - After submit — `"Review Submitted"` screen
 
 ### Size Guide Modal
+
 - **H3**: `"Size Guide"`
 - Table: columns `Size` / `Chest` / `Waist` / `Hips` (cm)
 - Hint: `"Tip: If you are between sizes, we recommend choosing the larger size."`
 
 ### Quick View Modal (from the catalog)
+
 - Opens from a product card in the catalogs
 - **H2**: product name
 - Image + thumbnails (alt = `"View {idx+1}"`)

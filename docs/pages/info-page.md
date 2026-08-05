@@ -35,6 +35,7 @@ Catch-all route for all info pages. A single template `InfoPage.tsx` serves 23+ 
 ## 2. Hero Breadcrumb
 
 Inside the Hero (overlaid on the image):
+
 - `Home` › **`Info`**
 
 ## 3. Demo Notice (banner below Hero)
@@ -43,7 +44,7 @@ Light-beige bar with information about Platform.
 
 - `Edit3` icon
 - **Text**: `"Demo page — This content is managed through the OneEntry Platform. Edit text, images and layout from your dashboard — no code required."`
-- **Link on the right**: `"Explore OneEntry →"` → https://oneentry.cloud (target=_blank)
+- **Link on the right**: `"Explore OneEntry →"` → <https://oneentry.cloud> (target=_blank)
 
 ## 4. Lead Paragraph
 

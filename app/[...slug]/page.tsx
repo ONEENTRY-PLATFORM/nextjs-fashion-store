@@ -8,7 +8,7 @@ import {
   type CatalogPageEntry,
 } from '../../src/app/data/pageRegistry';
 import { SITE_URL } from '../../src/app/data/seoData';
-import { INFO_PAGE_META, INFO_SLUGS } from '../../src/app/data/infoPages';
+import { INFO_PAGE_META } from '../../src/app/data/infoPages';
 import { INFO_PAGE_SCHEMA } from '../../src/app/data/infoPageLabels';
 import { FAQ_ITEMS } from '../../src/app/data/faqData';
 import { JsonLd } from '../../src/app/components/JsonLd';
@@ -355,7 +355,6 @@ export default async function Page({ params, searchParams }: Props) {
   if (entry.type === 'info') {
     const isHub = entry.slug === '__hub';
     const pageTitle = isHub ? INFO_PAGE_SCHEMA.hubTitle : (INFO_PAGE_META[entry.slug]?.title ?? entry.slug);
-    const canonicalPath = isHub ? '/info' : `/${entry.slug}`;
 
     const breadcrumbSchema = buildBreadcrumbSchema(
       isHub

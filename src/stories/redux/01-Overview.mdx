@@ -88,7 +88,6 @@ Component re-renders
 src/app/store/
 ├── index.ts                  ← makeStore(), RootState, AppDispatch, loadFromStorage, migrations (v1→v5)
 ├── hooks.ts                  ← useAppDispatch, useAppSelector
-├── selectors.ts              ← memoised selectors
 ├── catalogSlice.ts
 ├── uiSlice.ts
 ├── cartSlice.ts
@@ -169,40 +168,6 @@ import { useAppDispatch, useAppSelector } from '../app/store/hooks';
 
 const dispatch = useAppDispatch();                        // typed AppDispatch
 const items    = useAppSelector(s => s.cart.items);       // typed RootState
-```
-
----
-
-## Key selectors (`store/selectors.ts`)
-
-Import: `import { selectCartItems } from '../store/selectors';`
-
-```ts
-// Cart
-selectCartItems              → CartItem[]
-selectMiniCartOpen           → boolean
-selectCartTotalItems         → number
-selectCartSubtotal           → number         // sum of price × qty
-selectCartOriginalSubtotal   → number         // sum of originalPrice × qty
-selectCartDiscount           → number         // originalSubtotal − subtotal
-
-// Wishlist
-selectWishlistItems          → WishlistItem[]
-selectWishlistCount          → number
-selectIsWishlisted(s, id)    → boolean
-
-// Recently Viewed
-selectRecentlyViewed         → RecentlyViewedItem[]  // Product & { viewedAt: number }
-
-// User
-selectUserProfile            → UserProfile
-selectUserLoyalty            → LoyaltyCard
-selectUserAddresses          → UserAddress[]
-selectUserData               → UserDataset
-selectUserStatus             → 'idle' | 'loading' | 'succeeded' | 'failed'
-
-// UI
-selectQuickViewProduct       → Product | null
 ```
 
 ---

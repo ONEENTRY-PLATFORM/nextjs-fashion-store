@@ -68,6 +68,24 @@ export const FOOTER_LABELS = {
   acceptedPaymentMethods: 'Accepted Payment Methods',
   followUs: 'Follow Us',
   customerSupport: 'Customer Support:',
+  newsletterHeading: 'Subscribe to new drops',
+} as const;
+
+/**
+ * Offline fallback for the footer newsletter. The live copy comes from the OE
+ * `subscribe_new_drops` form (field label/placeholder + the form's
+ * success/failure messages) — see `docs/HARDCODED_TEXTS.md` §4.3.
+ *
+ * `notConfigured` deliberately has no OE counterpart: it is shown exactly when
+ * OneEntry has no such form, so it could never be read from there.
+ */
+export const NEWSLETTER_FORM_LABELS = {
+  placeholder: 'Your email address',
+  submit: 'Subscribe',
+  pending: '...',
+  success: 'Subscribed!',
+  failure: 'Something went wrong.',
+  notConfigured: "Newsletter isn't set up yet — please check back soon.",
 } as const;
 
 export const A11Y_LABELS = {

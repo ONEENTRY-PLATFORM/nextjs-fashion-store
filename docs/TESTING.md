@@ -9,12 +9,14 @@ Three test surfaces live in this repo, each with a distinct scope. This document
 **Runner:** `vitest ^4.1.2` + `@vitejs/plugin-react` + `@storybook/addon-vitest/vitest-plugin`.
 
 **Config:** `vitest.config.ts`. Two logical projects:
+
 - **Main** (jsdom environment) — glob `src/**/*.{test,spec}.{ts,tsx}`. Excludes `node_modules`, `e2e`, `.next`, `playwright-report`, `storybook-static`.
 - **Storybook addon** — runs every `*.stories.tsx` as a smoke test via the Storybook Vitest addon.
 
 **Path alias:** `@/*` → `./src/*` (from `tsconfig.json`).
 
 **Commands:**
+
 ```bash
 yarn test         # vitest run — one-off
 yarn test:watch   # vitest — watch mode
@@ -23,7 +25,7 @@ yarn test:watch   # vitest — watch mode
 **What's tested (~30 spec files):**
 
 | Area | Location |
-|---|---|
+| --- | --- |
 | Redux slices | `src/app/store/__tests__/*.test.ts` |
 | RTK Query APIs | `src/app/store/api/__tests__/*.test.ts` |
 | OneEntry loaders | `src/lib/oneentry/**/*.test.ts` — `system-text`, `catalog/pages`, `catalog/products`, `blocks/{hero-slides,homepage-collections,category-section}`, `labels/*`, `menus/menus`, `forms/submit` |
@@ -37,6 +39,7 @@ Coverage focus is on data-shape guarantees (adapter output, filter marker mappin
 **Runner:** `@playwright/test` / `playwright` ^1.60.0.
 
 **Setup:**
+
 ```bash
 npm install
 npx playwright install
@@ -45,7 +48,7 @@ npx playwright install
 **Config:** `playwright.config.ts`.
 
 | Setting | Value |
-|---|---|
+| --- | --- |
 | `testDir` | `./e2e` |
 | `baseURL` | `process.env.BASE_URL` or `http://localhost:3001` |
 | `timeout` | 60 s per test |
@@ -59,6 +62,7 @@ npx playwright install
 Projects: `chromium` (Desktop Chrome 1280×720) and `mobile` (iPhone 14, 390×844). Dev server auto-starts on `http://localhost:3001` (`webServer` in the config); if already running, Playwright reuses it (`reuseExistingServer: true`).
 
 **Commands:**
+
 ```bash
 yarn test:e2e           # headless, chromium + mobile
 yarn test:e2e:headed    # visible browser
@@ -76,6 +80,7 @@ npx playwright show-trace test-results/<test-name>/trace.zip
 ```
 
 **Environment for real end-to-end runs:**
+
 ```bash
 ONEENTRY_URL=http://localhost:3013
 ONEENTRY_TOKEN=<app token>
@@ -126,11 +131,13 @@ Upload `playwright-report/` as the artifact.
 **Framework:** `@storybook/nextjs-vite` ^10.3.4 with Vite as the builder.
 
 **Config files:**
+
 - `.storybook/main.ts` — glob `../src/**/*.stories.@(js|jsx|mjs|ts|tsx)`, static dir `../public`.
 - `.storybook/preview.ts` — global decorator wraps every story in `<Provider store={makeStore()}>` + `<AuthProvider>` + `<CatalogAccentContext.Provider>`. Wipes `localStorage['oe_store']` before mounting each story so state does not bleed.
 - `.storybook/remarkGfmPreset.js` — adds `remark-gfm` for Markdown in `*.mdx` files.
 
 **Addons:**
+
 - `@storybook/addon-a11y` — axe-based accessibility checks per story.
 - `@storybook/addon-docs` — Autodocs + custom MDX pages under `src/stories/`.
 - `@storybook/addon-vitest` — runs every story as a smoke test in the Vitest pipeline (see §1).
@@ -138,6 +145,7 @@ Upload `playwright-report/` as the artifact.
 - `@chromatic-com/storybook` — Chromatic visual regression hooks.
 
 **Commands:**
+
 ```bash
 yarn storybook          # dev server on port 6006
 yarn build-storybook    # static build → storybook-static/

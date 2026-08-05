@@ -3,7 +3,7 @@ import { SEO } from '../../../src/app/data/seoData';
 import { DeliveryPage } from '../../../src/app/pages/DeliveryPage';
 import { loadCheckoutSystemTexts } from '../../../src/lib/oneentry/labels/checkout-labels';
 import { CheckoutLabelsProvider } from '../../../src/lib/oneentry/labels/CheckoutLabelsContext';
-import { loadFormPlaceholders } from '../../../src/lib/oneentry/forms/placeholders';
+import { loadFormContent } from '../../../src/lib/oneentry/forms/placeholders';
 import { FormPlaceholdersProvider } from '../../../src/lib/oneentry/forms/FormPlaceholdersContext';
 import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
 import type { PickupStore } from '../../../src/app/data/checkoutConfig';
@@ -17,7 +17,7 @@ export const metadata: Metadata = SEO.checkoutDelivery;
 export default async function Page() {
   const [labels, userAddresses, stores, deliveryMethodInfo, scheduleAuthed, scheduleGuest, pageBlocks] = await Promise.all([
     loadCheckoutSystemTexts(),
-    loadFormPlaceholders('user_addresses'),
+    loadFormContent('user_addresses'),
     loadStores(),
     loadDeliveryMethodInfo(),
     loadDeliverySchedule('authed'),

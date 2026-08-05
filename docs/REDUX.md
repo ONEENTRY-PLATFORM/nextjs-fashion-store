@@ -10,7 +10,6 @@ The Redux store is the client-side optimistic-state layer. Server-authoritative 
 src/app/store/
 ├── index.ts                  — store configuration, types, persistence, migrations
 ├── hooks.ts                  — useAppDispatch, useAppSelector
-├── selectors.ts              — memoised selectors
 ├── catalogSlice.ts           — catalog UI state per catalogKey
 ├── uiSlice.ts                — QuickView + mobile menu
 ├── cartSlice.ts              — cart items, miniCartOpen flag, unavailableRemoved
@@ -48,6 +47,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 **State:** `{ items: CartItem[], miniCartOpen: boolean, unavailableRemoved: CartItem[] }`.
 
 **CartItem shape:**
+
 ```ts
 {
   id: string;              // stringified OE numeric product id
@@ -66,6 +66,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 ```
 
 **Actions:**
+
 - `addItem(item)` — merge or append by **id + size + color**, accumulating quantity clamped at `stockLimit ?? Infinity`. Without `color` in the key, adding a Red S after a Blue S silently merged them — the shopper received Blue on delivery even though they last picked Red. Also refreshes `stockLimit` on the existing line when the incoming payload carries a fresh value.
 - `addBundle(items)` — bulk add with shared `bundleId`; quantity of each item is clamped at its `stockLimit`.
 - `removeItem(id)`, `removeBundle(bundleId)`.
@@ -83,6 +84,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 **State:** `{ items: WishlistItem[] }`.
 
 **Actions:**
+
 - `addItem(item)` — upsert by id, merging richer data while preserving user selections (color / size).
 - `removeItem(id)`.
 - `toggleItem(item)` — add if missing, remove if present.
@@ -97,6 +99,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 **State:** `{ items: (Product & {viewedAt: number})[] }`.
 
 **Actions:**
+
 - `addProduct(product)` — prepend with `viewedAt`, evict items older than 30 days (`RECENTLY_VIEWED_MAX_AGE_MS`), enforce circular buffer of `LIMITS.RECENTLY_VIEWED_MAX = 100`.
 - `hydrate(items)` — replace from server-enriched trail after AuthContext bootstrap.
 
@@ -105,6 +108,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 ### 2.4 `catalogSlice` (`src/app/store/catalogSlice.ts`)
 
 **State:** `Record<catalogKey, CatalogUIState>` where
+
 ```ts
 {
   selectedFilters: Record<string, string[]>;
@@ -115,9 +119,11 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
   activeChip: string;
 }
 ```
+
 `catalogKey` is one of `women-clothing`, `women-shoes`, `women-bags`, `women-accessories`, `men-clothing`, `men-shoes`, `men-bags`, `men-accessories`, plus `sale` / `new` / etc.
 
 **Actions:**
+
 - `toggleFilter({catalogKey, group, value})` — reset to page 1.
 - `setFilters({catalogKey, filters})` — replace all from URL, reset page.
 - `clearFilters({catalogKey})` — wipe filters + `activeChip`, reset page.
@@ -133,6 +139,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 ### 2.5 `uiSlice` (`src/app/store/uiSlice.ts`)
 
 **State:**
+
 ```ts
 {
   quickView: { isOpen: boolean; product: Product | null; initialColorIndex: number | null };
@@ -147,6 +154,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 ### 2.6 `userSlice` (`src/app/store/userSlice.ts`)
 
 **State:**
+
 ```ts
 {
   data: {
@@ -163,6 +171,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 ```
 
 **Actions:**
+
 - `patchUserData(patch)` — merge partial fields.
 - `addAddress(address)`.
 - `setAuth({accessToken, refreshToken, userIdentifier})` — dispatched after successful Server Action sign-in. Tokens are usually empty strings; only `userIdentifier` matters.
@@ -206,7 +215,7 @@ Both middlewares are still concatenated in `makeStore()` — removing them would
 ### Migrations
 
 | From → To | Effect |
-|---|---|
+| --- | --- |
 | `v1 → v2` | No-op — legacy `userAddresses` moved out of `user.data`. |
 | `v2 → v3` | Adds `viewedAt` timestamp to every `recentlyViewed` item. |
 | `v3 → v4` | Defensive bump — auth-token fields were added to `user.data` at this time but are explicitly not persisted. |
@@ -226,30 +235,6 @@ Unknown future versions (`__version > STORAGE_VERSION`) wipe the store to preven
 Consumers should prefer these over untyped `useDispatch` / `useSelector`.
 
 ## 6. Selectors
-
-`src/app/store/selectors.ts` — memoised selectors (`createSelector`) for hot paths:
-
-**Cart:**
-- `selectCartItems` — items array
-- `selectMiniCartOpen`
-- `selectCartTotalItems` — sum of quantities
-- `selectCartSubtotal` — sale/current total
-- `selectCartOriginalSubtotal` — full total
-- `selectCartDiscount` — `originalSubtotal − subtotal`
-
-**Wishlist:**
-- `selectWishlistItems`
-- `selectWishlistCount`
-- `selectIsWishlisted(id)`
-
-**Recently viewed:**
-- `selectRecentlyViewed`
-
-**User:**
-- `selectUserData`, `selectUserStatus`, `selectUserAddresses`, `selectUserProfile`, `selectUserLoyalty`
-
-**UI:**
-- `selectQuickViewProduct`
 
 ## 7. Middleware
 

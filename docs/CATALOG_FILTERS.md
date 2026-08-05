@@ -73,7 +73,7 @@ Response is normalised through `catalog/adapt.ts` into the storefront `Product` 
 **Caching stack (three layers).**
 
 | Layer | Where | Scope | TTL / invalidation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | React `cache()` | `loadProducts`, `loadFullCatalog`, `loadProductById`, `loadProductsByIds`, `searchProducts` | Single HTTP request | Cleared per request |
 | Process-wide `Map<Lang, {at, value}>` | `fullCatalogCache` in `products.ts` | Node process | 5 min (`FULL_CATALOG_TTL_MS`) — deduped by a `fullCatalogInflight` promise map |
 | Next.js `unstable_cache` | `cachedProductList` (catalog list fetch); `cachedGetProductById`, `cachedGetRelated`, `cachedGetByIds` (PDP targeted fetchers) | ISR-persistent | `cachedProductList` → `REVALIDATE_CATALOG`; PDP fetchers → `REVALIDATE_PRODUCT`. All tagged `oe-products`. |
@@ -87,7 +87,7 @@ Notably, the **full catalog dump** (`fetchFullCatalog`, limit=2000, ~30 MB paylo
 `src/lib/oneentry/catalog/filters.ts`. Client URL parameters map 1:1 to OneEntry attribute markers:
 
 | URL param | OE marker | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `color` | `color_9` | Hex codes, multi-select |
 | `size` | `size_10` | String values, multi-select |
 | `brand` | `brand_7` | String, multi-select |
@@ -115,7 +115,7 @@ The mapping is intentionally marker-neutral in the URL — the OE marker is not 
 The OE `Products.getProducts` filter DSL used by this codebase supports six condition markers. Reference:
 
 | Marker | Meaning | Where used |
-|---|---|---|
+| --- | --- | --- |
 | `mth` | more than (strict `>`) | `minPrice` → `mth (minPrice - 0.01)` so the user-typed boundary is inclusive; also used as a catch-all `price mth -1` record when the only condition is `inStockOnly` (OE requires ≥1 filter record even for status-only queries) |
 | `lth` | less than (strict `<`) | `maxPrice` → `lth (maxPrice + 0.01)` |
 | `in` | value in set | Every list attribute (`color_9`, `size_10`, `brand_7`, …) — CSV-joined values |
@@ -140,7 +140,7 @@ The OE tenant reuses the same canonical attribute *name* across attribute sets b
 Declared per-catalog in `src/app/data/salePageLabels.ts` / `newArrivalsConfig.ts` / catalog config sections. Standard set:
 
 | UI label | `sortKey` sent to OE |
-|---|---|
+| --- | --- |
 | Featured | `featured` (server-side default) |
 | Newest First | `date_created_desc` |
 | Price: Low to High | `price_asc` |
@@ -274,7 +274,7 @@ The filter drawer previews option counts (e.g. "Color · 18 options"). Currently
 ## 14. Files touched
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `src/lib/oneentry/catalog/products.ts` | List / vector / quick search loaders |
 | `src/lib/oneentry/catalog/filters.ts` | URL ↔ OE marker mapping, chip presets, sort keys. `buildOEFilterBody` and its supporting types removed (dead code — no importers). |
 | `src/lib/oneentry/catalog/adapt.ts` | `ProductEntity` → UI `Product` normaliser; forwards `salePrice` from `CatalogProduct` when it is strictly below `price` |
@@ -383,7 +383,7 @@ Used by `ProductDetailPage.tsx` so each PDP renders the exact category chain the
 `normalize(raw, lang)` in `products.ts` walks `attributeValues` (both wrapped `{ en_US: {…} }` and flat shapes via `pickAttributes`) and produces a `CatalogProduct` with every field the storefront reads. `findAttr(attrs, prefixes)` handles both exact keys (`brand`) and suffixed variants (`brand_7`) so shoes / clothing / bags all normalise through one code path.
 
 | Field | Attribute prefix(es) | Extractor | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `id` | — | `raw.id` | Numeric OE id |
 | `title` | `title`, `productname` | `stringValue` → falls back to `localizeInfos.title` | |
 | `description` | `description`, `productdescription` | `stringValue` (plain text) | |
@@ -440,7 +440,7 @@ Server-side OE `aggregate=true` isn't used because a product's colour / size var
 Stock signalling is deliberately permissive — a product is considered buyable when **either** the numeric `stock > 0` **or** the `statusIdentifier !== 'out_of_stock'`. This is captured by the `isVariantBuyable` / `variantHasStock` helpers across `products.ts` and `adapt.ts`. Rationale: several OE tenants track availability only via the status flag and never populate the numeric stock column — a strict `stock > 0` check would grey out an entire catalog.
 
 | UI signal | Source |
-|---|---|
+| --- | --- |
 | **Grid card OOS** (`inStock: false`) | `p.statusIdentifier === 'out_of_stock'` (post-aggregation, so family status wins) |
 | **Family-level buyability** | `anyBuyable` inside `aggregateByName` — set on aggregated `statusIdentifier: 'in_stock'` if any variant is buyable |
 | **Per-swatch OOS** (`colorStock[]`) | Each colour flagged buyable when *some* variant carrying that colour is buyable |
@@ -454,7 +454,7 @@ Stock signalling is deliberately permissive — a product is considered buyable 
 Both live in `products.ts`. They target overlapping shapes but differ in intent:
 
 | | `loadProducts(opts)` | `loadFilteredProducts(opts)` |
-|---|---|---|
+| --- | --- | --- |
 | Input | `{ categoryPath?, tags?, ids?, unique, limit, offset, sortKey, sortOrder, lang }` | `{ pageUrl?, categoryPath?, filters: CatalogFilters, page?, limit?, lang }` |
 | Backend fetch | `loadFullCatalog(lang)` (bounded fast path when `opts.ids` is set; `loadProductsByIds` uses `cachedGetByIds` directly) | Always `loadFullCatalog(lang)` |
 | Attribute filtering | `categoryPath.startsWith` + `tag` set | Runs `matchesCatalogFilters(p, filters)` over every attribute (`colors / sizes / brands / styles / materials / seasons / fits / …`) plus category slug fallback |

@@ -37,7 +37,7 @@ A list of radio cards (`OptionCard`) — payment method selection. Exact title/s
 ## 5. Card Form (if "Bank Card" or "Installment Payment" is selected)
 
 | Field | Label | Placeholder |
-|---|---|---|
+| --- | --- | --- |
 | `cardNumber` | `"Card Number"` | `"1234 5678 9012 3456"` |
 | `nameOnCard` | `"Cardholder Name"` | `"Jane Smith"` |
 | `expiry` | `"Expiry Date"` | `"MM/YY"` |

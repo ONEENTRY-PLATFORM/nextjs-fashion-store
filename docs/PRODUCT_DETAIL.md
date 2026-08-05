@@ -14,6 +14,7 @@
 **`#reviews` hash scroll.** `ProductDetailPage.tsx` mounts a `useEffect` that checks `window.location.hash === '#reviews'`. When true it smooth-scrolls to `reviewsRef` (the reviews section anchor). Because the reviews slot streams in under `<Suspense>`, the effect retries in a loop with short intervals for up to 4 seconds, so deep links from QuickView's "N reviews" / "Be the first to review" buttons land correctly even when the section hasn't rendered yet on first paint.
 
 **Gender URL param.** The PDP URL accepts an optional `?gender=men|women` to keep the site `<Header>` highlighting the correct gender tab (Header reads `useSearchParams().get('gender')`). Ingress rules:
+
 - `ProductCard.tsx` builds `cardHref` as `/product/{id}?gender=men|women` derived from `product.gender` (`'M'` → `men`, `'W'` → `women`), so clicks from any men's / women's catalog carry the gender forward.
 - `ProductDetailPage.tsx` has a `useEffect` that, when `currentGender` is `'M'` or `'W'` and no `gender` param is present in the URL (deep link, search hit, external referrer), injects it via `router.replace(path, { scroll: false })` so the Header re-derives WOMEN/MEN correctly. Unisex / kids products leave the URL untouched.
 
@@ -22,6 +23,7 @@
 **Two sources of truth — intentional design.** The catalog/PDP `salePrice` is *optimistic*: it reflects what OE's discount engine *would* apply under ideal conditions. Cart and checkout summaries use this same field (`item.price` = the client-side sale price) for line-item display, mirroring the catalog / PDP / QuickView two-number UX (`item.price` with a strike-through on `item.originalPrice`). However, the summary **Total** uses OE's `totalDue` only when OE has applied an *extra* reduction beyond the client sale — a loyalty-tier discount or a coupon (`personalDiscount > 0 || couponDiscount > 0 ? totalDue : subtotal`). If a shopper sees `$31.50 / $35` on a PDP card and the same `$31.50` in the cart, but OE's `previewOrder` returns full price for that session (e.g. the rule is scoped to a user group the shopper doesn't belong to), the cart Total will show `$31.50` (the client subtotal). The `PaymentPage` pre-flight guard re-runs `previewOrderAction` immediately before placing the order and surfaces a "total changed" error if OE's charge differs — so the charge-accurate check happens at the last possible moment rather than during browsing. Do **not** remove the `applyProductDiscount` overlay from `loadProductById` or `fetchFullCatalog` — without it the catalog cards and PDP show no strike-through even when a discount rule matches. See [CART_WISHLIST.md §16–§17](./CART_WISHLIST.md) for the summary-side math and the `PaymentPage` guard detail.
 
 **PDP fetch pattern.** `loadProductById` does **not** download the full catalog. It issues at most three targeted OE calls, each wrapped in its own `unstable_cache` layer with `REVALIDATE_PRODUCT` TTL and tag `oe-products`:
+
 1. `cachedGetProductById(id, lang)` — wraps `Products.getProductById()`.
 2. `cachedGetRelated(id, lang)` — wraps `Products.getRelatedProductsById()`, used to reconstruct the colour/size family.
 3. `cachedGetByIds(idsCsv, lang)` — wraps `Products.getProductsByIds()`, called only when the product record carries explicit `relatedIds` that weren't already covered by step 2.
@@ -63,7 +65,7 @@ All transient UI state (modals, hover flags, share dropdown, added-flash) is cen
 Availability is signalled per active variant via `activeVariantStatus = activeVariant?.statusIdentifier` plus a product-level `productIsOOS = catalogProduct.inStock === false` short-circuit. When the whole product is OOS, all variant statuses collapse to the out-of-stock render regardless of `statusIdentifier`.
 
 | `statusIdentifier` | Stock chip (green/amber/grey) | Swatches | Primary CTA | Reserve-in-Store CTA |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | (`null` / normal, in stock) | Green "In stock" | Selectable | Black "Add to Cart" (turns sale-colour + check-mark on success) | Enabled |
 | `preorder` | Amber `#B8860B` "Pre-order" | Selectable | Black "Pre-Order" (`lPreOrderButton`, still fires `handleAddToCart`) | Enabled |
 | `coming_soon` | Grey `#8B8B8B` "Coming soon" | Selectable | Grey non-button `<div>` "Coming soon", not clickable | Still enabled (shopper can reserve) |
@@ -159,7 +161,7 @@ A separate `useEffect([selectedColor, selectedSize])` mirrors the picks into the
 Renders a `<Share2>` trigger next to the brand link. Dropdown lists four social channels (icons from `/icons/share/*.svg`, `unoptimized` so Next.js Image doesn't rewrite them) and a copy-link row:
 
 | Channel | href template (URL-encoded `window.location.href`) |
-|---|---|
+| --- | --- |
 | Facebook | `https://www.facebook.com/sharer/sharer.php?u=${encoded}` |
 | X (Twitter) | `https://twitter.com/intent/tweet?url=${encoded}` |
 | Pinterest | `https://pinterest.com/pin/create/button/?url=${encoded}` |
@@ -187,7 +189,7 @@ Flow:
 4. **Submit** → `submitForm('reserve_in_store', [...])` with an explicit `moduleConfigId=0` (default). Fields in submit order:
 
    | marker | source | type |
-   |---|---|---|
+   | --- | --- | --- |
    | `size` | `size ?? ''` | string |
    | `first_name` | `firstName.trim()` | string |
    | `last_name` | `lastName.trim()` | string |
@@ -272,7 +274,7 @@ When `productReviews.length > 0`, the existing `visibleReviews.map` path renders
 The "Write a Review" CTA inside the reviews section (the left-column button) routes through `requestWriteReview` in `ReviewsClient`, which applies a **three-way gate**:
 
 | Shopper state | Behaviour |
-|---|---|
+| --- | --- |
 | `isLoggedIn === false` | Calls `openLoginModal()` — shows the login modal. |
 | Signed in, but `canReviewProduct(orders, productId) === false` | Sets the `purchaseNotice` state to `PRODUCT_REVIEWS_LABELS.purchaseRequired`. The notice text is forwarded to `<ProductReviewsSection>` via the `purchaseNotice` prop and rendered as a small amber paragraph under the left-column CTA. The notice auto-dismisses after 4 s. |
 | Signed in AND has a qualifying delivered order | Calls `setShowReviewModal(true)` — opens `<WriteReviewModal>`. |
@@ -415,7 +417,7 @@ The `Math.floor(total * 10)` formula (1 point per £0.10) is applied only downst
 ## 14. Files touched
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `src/app/pages/ProductDetailPage.tsx` | Main PDP component |
 | `src/app/pages/product/useProductPageUIState.ts` | UI-state hook |
 | `src/app/pages/product/ProductGallery.tsx`, `FullscreenViewer.tsx` | Gallery + zoom + fullscreen |
@@ -447,18 +449,21 @@ The `Math.floor(total * 10)` formula (1 point per £0.10) is applied only downst
 **Open trigger:** `openQuickView(product, initialColorIndex?)` from `QuickViewContext` (`src/app/context/QuickViewContext.tsx`) — invoked by the ProductCard "eye" button. The modal reads its state from `useQuickView()`.
 
 **State:**
+
 - Local `selectedColor: number | null`, `selectedSize: string | null` (initialised from `initialColorIndex` and product defaults).
 - On modal open (`useEffect` on `isOpen`), if `product.sizes.length === 1` the single size is pre-selected as `selectedSize`; otherwise `selectedSize` starts as `null`.
 - `useFocusTrap(isOpen, closeQuickView)` — Tab/Shift-Tab confined, Escape closes, previous focus restored.
 - Variant look-up runs on every change: `product.variants.find(v => v.colors.includes(hex))`, sizes further filtered by `v.sizes.includes(selectedSize)`.
 
 **Actions:**
+
 - **Add to Cart** — **stricter** than PDP: both `selectedColor` AND `selectedSize` must be picked (`colorErr = hasColors && selectedColor === null; sizeErr = selectedSize === null`). Either failure sets the corresponding `errors.color` / `errors.size` and outlines the whole picker sale-colour. On success: adds to cart with `id = activeVariant?.id ?? '${product.id}-quick'`, `sku = activeVariant?.sku || product.id`, `quantity: 1`; then `closeQuickView()` and `openMiniCart()` (used to jump to `/checkout/delivery` but guest checkout is gated, so MiniCart is the current terminal state).
 - **Save to Wishlist** — persists `selectedColor` (as hex) and `selectedSize` via the same `toggleItem({..., selectedColor, selectedSize})` shape as PDP.
 - **View full details** — closes modal and `router.push('/product/[id]?color=&size=')` — preserves both variant params so PDP mounts on the same swatch.
 - **Size guide** — swaps modal content in-place via `QuickViewSizeGuide` (no nested modal). Escape key closes it via a dedicated `keydown` listener.
 
 **Colour / size availability:**
+
 - Colours read `product.colorStock?.[idx] === false` for OOS strikethrough.
 - Sizes cross-check `product.variants` when present: `variants.some(v => v.sizes.includes(size) && (currentColorHex ? v.colors.includes(currentColorHex) : true) && v.inStock !== false)`. When no variants — fall back to the global `product.inStock` flag.
 - Picking a new colour resets `selectedImage = 0` (gallery snaps to the first frame of the new colour). `selectedSize` is reset to `null` unless the product has exactly one size, in which case it is re-set to that size so the single-size pre-selection survives a colour switch.
@@ -482,6 +487,7 @@ No hardcoded star or review-count values remain.
 The strike pair renders **only** when `activeSalePrice < originalPriceRef`. If the family sale price is at or above the variant's "was" price (e.g. a bulk rule that already priced the variant lower), the modal falls back to a plain-price render rather than showing `−0%` or an inverted badge. This mirrors the `hasVisibleDiscount` guard on the PDP (§4).
 
 **Deliberate omissions vs PDP:**
+
 - No `product_view` analytics (Quick View isn't a page).
 - No recently-viewed dispatch / hydrate.
 - No full reviews stream, no "You May Also Like" carousel.
@@ -494,12 +500,14 @@ The strike pair renders **only** when `activeSalePrice < originalPriceRef`. If t
 `src/app/components/MiniCart.tsx` (~223 lines). Slide-in drawer opened from the header cart badge and after any Add-to-Cart action.
 
 **State:** driven by `useCart()`:
+
 - `items`, `subtotal`, `totalItems`, `miniCartOpen`
 - `removeItem(id)`, `removeBundle(bundleId)`, `updateQuantity(id, delta)`
 
 Backdrop click and Escape close the drawer via `useFocusTrap(miniCartOpen, closeMiniCart)`.
 
 **Rendering rules:**
+
 - Bundle rows render once per `bundleId` — a single quantity control drives the whole bundle (see [CART_WISHLIST.md](./CART_WISHLIST.md) §13).
 - Empty state renders a "Your bag is empty" copy with a CTA to `/women/clothing`.
 - Subtotal + total-items badge + primary CTA "Checkout" (routes to `/checkout/delivery` if signed in, otherwise opens `<GuestCheckoutModal>` on the delivery page).

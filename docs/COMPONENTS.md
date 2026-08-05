@@ -3,6 +3,7 @@
 Systematic inventory of every React component in the storefront: role, key props, key consumers, and the doc that describes its deeper business rules (when there is one). Grouped by folder.
 
 Component counts (excluding tests and `.stories.tsx`):
+
 - `src/app/components/*` — **50** global components
 - `src/app/pages/*.tsx` — **22** page components (8 catalog shells, 14 unique routes)
 - `src/app/pages/{account,cart,checkout,favorites,new,product,sale,stores}/*` — **59** page sub-components (account 21, product 20, checkout 8, cart 2, favorites 3, new 1, sale 3, stores 1)
@@ -14,7 +15,7 @@ Component counts (excluding tests and `.stories.tsx`):
 ### 1.1 Layout / shell
 
 | Component | Purpose | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `Providers.tsx` | Client-side root. `<Provider store>` (Redux) → `<ServiceWorkerRegistrar>` → ARIA live regions (2) → `<AuthProvider>` → `<WishlistSyncEffect>` (no-op) → `<PageViewTracker>` → 5 label contexts (`ProductCardLabels`, `SignInLabels`, `CreateAccountLabels`, `InterfaceControlsLabels`, `YourBagLabels`) → `<FooterMenuProvider>` → `<HeaderMenuProvider>` → `<SignUpFormSchemaProvider>` → `<ErrorBoundary>`. | [ARCHITECTURE.md §5](./ARCHITECTURE.md#5-server-vs-client-rendering) |
 | `Header.tsx` (294 loc) | Sticky site header: HeaderTopBar row + logo + gender nav + `<HeaderSearch>` + user/wishlist/bag icons + mobile hamburger + local dropdown-hover state. Uses a `mounted` guard so the wishlist / bag badge counts render only after client hydration (prevents SSR mismatch). **Dynamically imports 4 modals** — `MiniCart`, `LoginModal`, `RegisterModal`, `QuickViewModal` — but does NOT manage their state; each reads open/close from `AuthContext` (login/register), `QuickViewContext`, `useCart().miniCartOpen`. Reads mega-menu tree via `useHeaderMenu()`, adapts through `adaptHeaderMenuToMega()`, and passes the current sub-cat slice to `<HeaderMegaMenu>` as `currentDropdownData`. Uses `useInterfaceControlsT()` for the search placeholder. | — |
 | `HeaderTopBar.tsx` | Region + language + support phone + Store Locator link. Static UI (visible on `md+`). | — |
@@ -31,7 +32,7 @@ Component counts (excluding tests and `.stories.tsx`):
 ### 1.2 Homepage blocks
 
 | Component | Purpose | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `PageBlocksRenderer.tsx` | Shared block-to-component switch used by every content route. Accepts `pageBlocks: PageBlock[]` plus optional pre-fetched homepage payloads (`initialHeroSlides?`, `initialPromoItems?`, `initialDiscountBanner?`, `initialCategorySection?`). Routes blocks through two separate axes: (1) **by marker** — `hero_slider → HeroSlider`, `category_section → CategorySection`, `promo_block → PromoBlock`, `discount_banner → DiscountBanner`, `men_collection` / `homepage_best_sellers → MenCollection`, `women_collection` / `homepage_new_arrivals → WomenCollection`, `new_arrivals` / `homepage_sale → NewArrivals`; (2) **by `block.type`** — `common_block` routes to `<GenericCommonBlock>` (type-based generic banner — no marker required; see entry below); `slider_block` routes to `<GenericSliderBlock slides={block.slides} title={block.title}>` (type-based carousel — marker match runs first, so the flagship `hero_slider` marker still short-circuits to `<HeroSlider>` with auto-advance before this branch is reached; see entry below); `recently_viewed_block` renders an internal `<RecentlyViewedBlockSlot>` that reads `state.recentlyViewed.items` from Redux (same source used by HomePage, PDP and Favorites), dedupes by name/id, and passes the result to `<RecentlyViewedSection>` from `pages/product/RecentlyViewedSection.tsx`; the slot renders nothing when the trail is empty. A second client-resolved slot, `<CartComplementBlockSlot marker title>`, handles `cart_complement_block` type: on mount it reads `useAuth()` for login state, calls `getOrCreateGuestId()` for anonymous visitors, dispatches `loadCartComplementProductsAction(marker, guestId?)` (a `'use server'` action in `src/lib/oneentry/blocks/cart-complement-action.ts` that carries either the user access token or the guest id so OE can resolve the correct cart-driven cross-sell), and renders `<NewArrivals>` when the result is non-empty; hides otherwise. This block type is resolved entirely client-side because the shared server singleton carries only the app token and OE's `getCartComplement` returns empty without a user/guest context. Additional fallbacks: any marker with a non-empty `products` list that has no explicit handler falls back to `NewArrivals`; any block with a `title` but no `products` and no dedicated component renders a plain `<h2>` section with the block title rather than disappearing silently. Truly empty blocks (no title, no products, no matched type) still render nothing. When the optional `initial*` props are omitted (all non-homepage routes), child components fetch their data client-side on mount. Previously this switch was inlined inside `HomePage.tsx`. **Animation scope:** only the marker-matched homepage blocks (`hero_slider`, `category_section`, `promo_block`, `discount_banner`, `*_collection`, `new_arrivals`, `homepage_*`) are wrapped in `<AnimatedSection>` (IntersectionObserver fade-in, ~650 ms); the default-branch cases — `common_block`, `recently_viewed_block`, generic product-list fallback (`NewArrivals` without a known marker), and title-only fallback — render as bare `<div>` / `<section>` and are visible from mount with no viewport-observer gate. This prevents below-fold blocks on checkout and catalog pages from appearing as empty gaps when the user has no reason to scroll. | [ONEENTRY_INTEGRATION.md §5.1](./ONEENTRY_INTEGRATION.md#51-blocks-srcliboneentryblocks) |
 | `GenericCommonBlock.tsx` | Client banner component rendered for any block whose `type === 'common_block'`. Reads display data entirely from `block.attributeValues` using heuristic attribute-name patterns — eyebrow/label (`*_lable`, `*_label`, `*_eyebrow`), headline (`*_title`), sub-headline (`*_sub_title`, `*_subtitle`), body copy (`*_description`, `*_text`, `*_body`), image (`*_pic`, `*_image`, `*_photo`, `*_bg`), CTA text (`*_cta_text`, `*_button`), and CTA link (`*_cta_link`, `*_href`, `*_link`). Handles both flat and lang-wrapped attribute shapes (same dual-path logic as `discount-banner.ts`). Extracts image `downloadLink` from OE image-array attribute values. Self-hides (returns `null`) when neither an image nor a headline is found. **Design principle:** an admin can create any block in OE with `type: 'common_block'` and attach it to any page — it renders as a banner from whatever attribute names the admin chose, with no code deploy required. | — |
 | `GenericSliderBlock.tsx` | Client carousel component rendered for any block whose `type === 'slider_block'`. Receives `slides?: Array<{id?, attributeValues?}>` (populated server-side by `_loadBlockWithProducts` via `getCachedSlides`) and an optional `title`. Per-slide field extraction is heuristic: semantic patterns checked first — image (`*image*`, `*_pic*`, `*photo*`, `*_bg*`), headline (`*headline*`, `*title*`), eyebrow (`*eyebrow*`, `*label*`, `*lable*`), subtext (`*subtext*`, `*subtitle*`, `*description*`, `*_body*`, `*_text*`), CTA text (`*cta_text*`, `*button*`), CTA link (`*cta_link*`, `*_href*`, `*_link*`) — with a positional fallback to attribute keys `string_id1/2/3/5/6` and `image_id4` for tenants where admin used positional naming. Renders a manual prev/next + dot-pagination carousel. **No auto-advance** — distinguishes it from `<HeroSlider>` (which auto-plays every 5 s). Self-hides when `slides` is empty or absent. **Design principle:** an admin creates any marker in OE with `type: 'slider_block'`, attaches slides through OE's slides tree, and assigns it to any page — it renders as a carousel with no code deploy. | — |
@@ -46,7 +47,7 @@ Component counts (excluding tests and `.stories.tsx`):
 ### 1.3 Catalog
 
 | Component | Purpose | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `CatalogTemplate.tsx` (740 loc) | Universal catalog engine. Grid + list view, sticky filter bar, quick chips, sort dropdown, pagination, cross-sell block, trending blocks. Consumes `state.catalog[catalogKey]` from `catalogSlice`. Every `WomenXxxPage` / `MenXxxPage` is a wrapper that receives 7 pre-fetched props from the RSC shell (see §2.2) and passes the per-catalog UI config plus those props into this component. | [CATALOG_FILTERS.md](./CATALOG_FILTERS.md), [FILTER_SYSTEM.md](./FILTER_SYSTEM.md) |
 | `CatalogTemplate.parts.tsx` | Sub-components: `ColsIcon`, `CheckboxUI`, `SortOptionBtn`. | — |
 | `CatalogTemplate.types.ts` | Shared types: `FilterGroup`, `FilterOption`, `CrossSellCategory`, `BreadcrumbItem`. `ChipFilter` is now `type ChipFilter = string`; `CatalogTemplateProps.quickChips` is `string[]`. | — |
@@ -63,29 +64,29 @@ Component counts (excluding tests and `.stories.tsx`):
 ### 1.4 Product surfaces
 
 | Component | Purpose | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `ProductCard.tsx` (503 loc) | Grid card: gallery hover-swap, color swatches (rendered via `ColorSwatchButton`), wishlist heart, QuickView "eye" button, Add-to-Bag with inline **size chips** (not the `SizeDropdown` component), price + strike, single generic badge (`product.label ?? product.badge`). `cardHref` appends `?gender=men` / `?gender=women` when `product.gender` is `'M'` / `'W'` so the PDP keeps the correct Header gender highlight. Memoised via `React.memo`. Exports shared types: `Product`, `ProductVariant`, `ProductSpec`, `ProductReview`. | [CATALOG_FILTERS.md](./CATALOG_FILTERS.md), [PRODUCT_DETAIL.md](./PRODUCT_DETAIL.md) |
 | `ProductCardSkeleton.tsx` | Placeholder skeleton matching the ProductCard grid slot. Used inside `<Suspense fallback>` and during query loading. | — |
 | `ColorSwatch.tsx` | Circular colour swatch with selected-state ring. Used on PDP + QuickView. Does NOT render the OOS strike overlay — that logic lives in `ColorSwatchButton`. | — |
 | `ColorSwatchButton.tsx` | Button variant used inside ProductCard's hover swatch row and add-to-bag flow. Uses `strikeColor()` (`utils/colorUtils.ts`) to render the OOS diagonal-strike overlay with the right contrast against the swatch. Copy from `CATALOG_VIEW_LABELS`. | — |
 | `SizeDropdown.tsx` | Size picker consumed by `CartItemRow` only. Neither `ProductCard` (inline size chips) nor `QuickViewModal` (inline 3-column size grid) use it. Props: `{value, onChange, isShoe, availableSizes?}`. When `availableSizes` is supplied, it overrides the built-in XS…XXL / EU 36…46 fallback; an empty array hides the widget (products without sizes, e.g. jewelry) and a single-item array renders as static text instead of an interactive dropdown. Copy from `SIZE_DROPDOWN_LABELS`. | — |
-| `QuickViewModal.tsx` (430 loc) | Modal PDP surrogate. Shares Add-to-Cart / Wishlist rules with PDP. `useFocusTrap` for keyboard nav. **Review summary:** on modal open, calls `getProductReviewSummary(productId)` (server action in `src/lib/oneentry/catalog/reviews-actions.ts`) and shows a pulse placeholder while in-flight. The rating row layout now matches the PDP sub-title exactly: the shared `<StarRating>` SVG component (5-star strip, half-star support, empty grey when `count === 0`) is always rendered, followed by an underlined "N reviews" link (no parentheses), a `|` divider, and a stock-status label (four-way: `out_of_stock` → grey "Out of Stock", `coming_soon` → grey "Coming soon", `preorder` → amber "Pre-order", else → green "In Stock"). The label prefers `activeVariant.statusIdentifier` and falls back to `product.statusIdentifier`; both are forwarded from OE by `adaptCatalogProductToUiProduct`. If `count === 0` the "N reviews" link runs `startWriteReview`: unauthenticated users get the QuickView closed and `openLoginModal()` called; signed-in users without a qualifying delivered order for the product (`canReviewProduct` from `src/app/utils/review-eligibility.ts`) see an inline amber `showPurchaseNotice` under the rating row; signed-in users with a delivered order get `WriteReviewModal` stacked on top of QuickView, and on that modal's close the summary is refetched so the row updates immediately. If `count > 0` the link navigates to `/product/{id}#reviews` (not auth-gated). No hardcoded star or review-count fallbacks remain. | [PRODUCT_DETAIL.md §15](./PRODUCT_DETAIL.md#15-quick-view-quickviewmodal) |
+| `QuickViewModal.tsx` (430 loc) | Modal PDP surrogate. Shares Add-to-Cart / Wishlist rules with PDP. `useFocusTrap` for keyboard nav. **Review summary:** on modal open, calls `getProductReviewSummary(productId)` (server action in `src/lib/oneentry/catalog/reviews-actions.ts`) and shows a pulse placeholder while in-flight. The rating row layout now matches the PDP sub-title exactly: the shared `<StarRating>` SVG component (5-star strip, half-star support, empty grey when `count === 0`) is always rendered, followed by an underlined "N reviews" link (no parentheses), a ` | ` divider, and a stock-status label (four-way: `out_of_stock` → grey "Out of Stock", `coming_soon` → grey "Coming soon", `preorder` → amber "Pre-order", else → green "In Stock"). The label prefers `activeVariant.statusIdentifier` and falls back to `product.statusIdentifier`; both are forwarded from OE by`adaptCatalogProductToUiProduct`. If`count === 0` the "N reviews" link runs `startWriteReview`: unauthenticated users get the QuickView closed and`openLoginModal()`called; signed-in users without a qualifying delivered order for the product (`canReviewProduct` from `src/app/utils/review-eligibility.ts`) see an inline amber`showPurchaseNotice` under the rating row; signed-in users with a delivered order get `WriteReviewModal` stacked on top of QuickView, and on that modal's close the summary is refetched so the row updates immediately. If `count > 0` the link navigates to `/product/{id}#reviews` (not auth-gated). No hardcoded star or review-count fallbacks remain. | [PRODUCT_DETAIL.md §15](./PRODUCT_DETAIL.md#15-quick-view-quickviewmodal) |
 | `QuickViewSizeGuide.tsx` | Compact size-conversion table shown inside QuickView (in-place swap). | — |
 
 ### 1.5 Cart / checkout / auth
 
 | Component | Purpose | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `MiniCart.tsx` (223 loc) | Slide-in cart drawer opened from header + Add-to-Cart. `useFocusTrap` + backdrop close. Bundle rows render collapsed (single quantity control). Passes `max={item.stockLimit}` (or `max={row.items[0]?.stockLimit}` for bundle rows) to each `<QtyControl>` so the `+` button is disabled at the stock cap. | [PRODUCT_DETAIL.md §16](./PRODUCT_DETAIL.md#16-mini-cart-minicart) |
 | `CheckoutStepper.tsx` | Progress indicator that renders **4 stages** (Cart → Delivery → Payment → Confirmation). The actual checkout **funnel is 3 steps** — the Cart is the starting point outside the funnel, but the stepper shows it as stage 1 for the user. Completed steps are **clickable for backward navigation** (`router.push()`); the active + future steps are inert. | [CHECKOUT.md](./CHECKOUT.md) |
-| `LoginModal.tsx` | Sign-in form: single login field (accepts email, phone, or OE identifier — the OE email auth provider has `isLogin: true` on all three) + password + Google button + "Forgot password?" (stub, `alert()`) + link to `RegisterModal`. Google flow: click calls **`startGoogleOAuth()`** from `src/lib/google-auth.ts` — the browser navigates to Google's authorize page and comes back through `app/auth/callback/google/route.ts` (server-side authorization-code exchange). The modal itself does not see the outcome. Consumes `useSignInT()` for CMS labels; falls back to `AUTH_LABELS`. | [AUTH.md §4](./AUTH.md#4-sign-in) |
+| `LoginModal.tsx` | Sign-in form: single login field (accepts email, phone, or OE identifier — the OE email auth provider has `isLogin: true` on all three) + password + Google button + "Forgot password?" (stub, `alert()`) + link to `RegisterModal`. Google flow: click calls **`startGoogleOAuth()`** from `src/lib/google-auth.ts` — the browser navigates to Google's authorize page and comes back through `app/auth/callback/google/page.tsx` (server-side authorization-code exchange). The modal itself does not see the outcome. Consumes `useSignInT()` for CMS labels; falls back to `AUTH_LABELS`. | [AUTH.md §4](./AUTH.md#4-sign-in) |
 | `RegisterModal.tsx` | Sign-up form rendered from `SignUpFormSchemaContext` (CMS attribute set `users_sign_in_sign_up`). Zod client validation via `registerSchema.safeParse()`. Calls **`useAuth().signUp(input)`** (context method), which internally awaits `signUpAction`. Google button calls `startGoogleOAuth()` — the same authorization-code redirect as `LoginModal`. Consumes `useCreateAccountT()` labels. | [AUTH.md §5](./AUTH.md#5-sign-up) |
 | `NewsletterForm.tsx` | Email subscribe form → `submitForm('subscribe_new_drops', [{marker:'subscribe_new_drops_email', ...}], { moduleConfigId: 52, moduleEntityIdentifier: 'subscribe' })`. **Live end-to-end** — a successful submit returns an OE form-data record id and renders the inline green "Subscribed!" state. The `{ moduleConfigId, moduleEntityIdentifier }` pair binds the form to the OE `subscribe` page; if OE admin ever unbinds or reconfigures it, look up the current pair via `Pages.getPageByUrl('subscribe').moduleFormConfigs[0]`. **Placeholder / CTA are hardcoded English** ("Your email address", "Subscribe") — no label context wired yet. Error messages containing `formIdentifier` are rewritten to a friendly fallback for the shopper. | [ONEENTRY_INTEGRATION.md §4.5](./ONEENTRY_INTEGRATION.md#45-forms-srcliboneentryforms) |
 
 ### 1.6 Form widgets
 
 | Component | Purpose |
-|---|---|
+| --- | --- |
 | `FormField.tsx` | Generic labelled input (text / email / tel / password). Auto-generated `id` via `useId()`. Focus / error styles, red border from `SALE_COLOR` on error. Used in RegisterModal, GuestContactForm, address forms. |
 | `QtyControl.tsx` | `−` / `+` buttons around a numeric value. Sizes `sm` / `md`. Optional `max?: number` prop — the `+` button is disabled when `value >= max`. Copy from `QTY_CONTROL_LABELS`. |
 | `RadioCard.tsx` | Card-style radio option (border highlight, icon, title, subtitle, collapsible children). Used across DeliveryPage and PaymentPage. |
@@ -93,7 +94,7 @@ Component counts (excluding tests and `.stories.tsx`):
 ### 1.7 Utility
 
 | Component | Purpose |
-|---|---|
+| --- | --- |
 | `HorizontalScroller.tsx` | Horizontal-scroll container with prev / next chevron buttons and edge fade. Uses `useDragScroll()` for desktop drag-scroll. `ChevronLeft` / `ChevronRight` from `lucide-react`. Copy from `HORIZONTAL_SCROLLER_LABELS`. |
 | `ImageWithFallback.tsx` | Wrapper around `next/image` with an `onError` handler that swaps to a placeholder. Optional `grayscale` prop. Used everywhere product images are rendered. |
 
@@ -106,7 +107,7 @@ Each `app/*/page.tsx` is a thin route shell that renders one of these client com
 ### 2.1 Landing + info
 
 | Component | Route | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `HomePage.tsx` (165 loc) | `/` — hero + categories + collections + promo blocks + `AnimatedSection` fade-ups (IntersectionObserver, ~650 ms). Props: `{initialHeroSlides, initialPromoItems, initialDiscountBanner, initialCategorySection, pageBlocks}` — all pre-fetched by the RSC shell at `app/page.tsx`. `pageBlocks` for markers `homepage_new_arrivals` / `homepage_best_sellers` / `homepage_sale` gets a label-based fallback in `page-blocks.ts` when OE's similarity engine returns nothing (see [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md)). | [CATALOG_FILTERS.md §15](./CATALOG_FILTERS.md#15-page-specific-behaviours) |
 | `InfoPage.tsx` (198 loc) | Rendered by `app/[...slug]/page.tsx` when the resolved entry is an info page and there is no dedicated section body. It does **not** call `loadPageByUrl` — the content comes from local static tables (`INFO_PAGE_LABELS`, `INFO_PAGE_HERO`, `INFO_PAGE_CTA`, `INFO_PAGE_SECTIONS`, `INFO_PAGE_FEATURE_CARDS`, `INFO_PAGE_DEMO_NOTICE`) in `data/infoPageLabels.ts`. Icon map covers `edit`/`layout`/`zap`/`globe`. | [pages/info-page.md](./pages/info-page.md) |
 | `NotFoundPage.tsx` | Rendered by `app/not-found.tsx`. Copy from `NOT_FOUND_LABELS`. | [pages/not-found.md](./pages/not-found.md) |
@@ -130,7 +131,7 @@ All eight catalog pages are wrapper client components that accept **eight props*
 ```
 
 | Component | Route | Loc | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `WomenCatalogPage.tsx` | `/women/clothing` | 62 | Passes women's clothing config into `<CatalogTemplate>`. |
 | `WomenShoesPage.tsx` | `/women/shoes` | 48 | Delegates to `<ShoesCatalog>`. |
 | `WomenBagsPage.tsx` | `/women/bags` | 67 | Direct `<CatalogTemplate>` with bags config. |
@@ -146,7 +147,7 @@ All eight catalog pages are wrapper client components that accept **eight props*
 ### 2.3 Cart + checkout
 
 | Component | Route | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `CartPage.tsx` (383 loc) | `/cart` — full cart, selection, promo, bundles. On mount fetches real product sizes via `getProductsByIdsAction` for every cart line and stores them in a `sizesById` map, forwarded as `availableSizes` to each `CartItemRow` so the size widget reflects the actual product (jewelry with no sizes hides it, single-size items render as static text). Accepts optional `pageBlocks?: PageBlock[]` — the route shell calls `loadPageBlocksByUrl('cart')` and passes the result; `<PageBlocksRenderer>` renders it after main content, before `<Footer>`. | [CHECKOUT.md §11](./CHECKOUT.md#11-cart-page--promo--selection) |
 | `DeliveryPage.tsx` | `/checkout/delivery` — address + method + time slot + coupon. Accepts optional `pageBlocks?: PageBlock[]` (declared in `DeliveryPageProps`) — the route shell calls `loadPageBlocksByUrl('delivery_method')` and passes the result; `<PageBlocksRenderer>` renders it after the delivery form, before `<Footer>`. | [CHECKOUT.md §2](./CHECKOUT.md#2-delivery-step-deliverypagetsx) |
 | `PaymentPage.tsx` | `/checkout/payment` — payment accounts + `createOrderAction` + Stripe redirect. Place Order CTA is gated by a local `previewInFlight` flag alongside `placing` / `!preview`; shows an `animate-spin` circle while disabled and `handlePlaceOrder` early-returns until the debounced `previewOrder` lands. Accepts optional `pageBlocks?: PageBlock[]` — the route shell calls `loadPageBlocksByUrl('payment')` and passes the result; `<PageBlocksRenderer>` renders it after the payment form, before `<Footer>`. | [CHECKOUT.md §3.5](./CHECKOUT.md#35-place-order-cta-gating) |
@@ -155,7 +156,7 @@ All eight catalog pages are wrapper client components that accept **eight props*
 ### 2.4 Account + favourites + misc
 
 | Component | Route | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `AccountPage.tsx` | `/account` — 9-tab dashboard, tab selection via `?tab=` URL param (default `my-data`). `authReady` gate to avoid signed-out flash. Tabs: `my-data`, `my-orders`, `my-bonuses`, `service`, `history`, `wishlist`, `waiting-list`, `feedback`, `subscriptions`. | [ACCOUNT.md](./ACCOUNT.md) |
 | `FavoritesPage.tsx` (257 loc) | `/favorites` — wishlist grid + bulk Move All / Clear All. Props: `{recommended?: Product[], trending?: Product[]}` — carousel data pre-fetched by the RSC shell. | [CATALOG_FILTERS.md §15](./CATALOG_FILTERS.md#15-page-specific-behaviours) |
 | `StoreLocationsPage.tsx` (242 loc) | `/stores` — city filter + store cards with map link. Receives `{initialStores, cmsPage}` as props; the parent RSC shell at `app/stores/page.tsx` awaits `loadStores` + `loadStoreLocationsPage` + `loadStoresSystemTexts` in parallel and passes them in. **ISR (`revalidate = 3600`) is declared on the route shell**, not the component. | [pages/stores.md](./pages/stores.md) |
@@ -169,7 +170,7 @@ All eight catalog pages are wrapper client components that accept **eight props*
 11 tab-specific sections (10 active + 1 dark `ReferSection`) + `LoyaltyCard` (rendered inline inside My Data, not a tab) + `shared.tsx` helpers + 3 subfolders (`history/` — 1 file, `myData/` — 6 files, `service/` — 2 files). Every section reads / writes the OneEntry-backed user state via Server Actions from `src/lib/oneentry/auth/actions.ts`.
 
 | File | Role | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `shared.tsx` (292 loc) | Shared primitives + 10 loading skeletons: `SectionTitle`, `EditBtn`, `Field`, `FormInput`, `Sk` + `MyDataSkeleton`, `MyOrdersSkeleton`, `BonusesSkeleton`, `ServiceSkeleton`, `HistorySkeleton`, `WishlistSkeleton`, `WaitingListSkeleton`, `ReferSkeleton`, `FeedbackSkeleton`, `SubscriptionsSkeleton`. Also re-exports `ACCENT` and `fmt`. Adapters `adaptOeOrder()` and `adaptOeToHistory()` are **not** here — they live as private helpers inside `MyOrdersSection.tsx` and `HistorySection.tsx` respectively. | [ACCOUNT.md §3](./ACCOUNT.md#3-my-orders-myorderssectiontsx) |
 | `LoyaltyCard.tsx` | Tier badge + progress bar + perks. Accepts `{user}` prop (typed as non-null `AuthContext.user`). Reads `user.status/discount/bonuses/totalPurchases/nextLevelAmount`. Currently mock defaults on this tenant. Also re-exports `TIER_PERKS` and `TIER_ORDER` for back-compat. | [ACCOUNT.md §4](./ACCOUNT.md#4-my-bonuses-bonusessectiontsx) |
 | `MyDataSection.tsx` | Composite: LoyaltyCard header + six sub-forms. | [ACCOUNT.md §2](./ACCOUNT.md#2-my-data-mydatasectiontsx) |
@@ -195,14 +196,14 @@ All eight catalog pages are wrapper client components that accept **eight props*
 ### 3.2 Cart — `pages/cart/`
 
 | File | Role | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `CartItemRow.tsx` | Single line item — image, brand + name, colour **name** rendered from hex via `hexToColorName()` (no swatch dot), `<SizeDropdown>` (receives an optional `availableSizes?: string[]` pass-through, supplied by `CartPage` from its `sizesById` map), `<QtyControl max={item.stockLimit}>` (caps the `+` button at the snapshotted stock limit; `undefined` = uncapped), selection checkbox (`isSelected` / `onToggleSelect`), wishlist heart toggle (`inWishlist` / `onToggleWishlist`), remove trash. 9 callback props total. | [CHECKOUT.md §11](./CHECKOUT.md#11-cart-page--promo--selection) |
 | `CartBundleRow.tsx` | Bundle collapse row — one `QtyControl` for all bundle items, remove-bundle CTA. | [CART_WISHLIST.md §13](./CART_WISHLIST.md#13-bundles) |
 
 ### 3.3 Checkout — `pages/checkout/`
 
 | File | Role | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `GuestCheckoutModal.tsx` | Auth gate: Sign in / Register / Continue as Guest. | [CHECKOUT.md §2.1](./CHECKOUT.md#21-auth-gate) |
 | `DeliveryMethodHome.tsx` (238 loc) | Address list + new-address form + delivery date + time slot. Placeholder copy from `useFormPlaceholder(...)` (OneEntry-managed). | [CHECKOUT.md §2](./CHECKOUT.md#2-delivery-step-deliverypagetsx) |
 | `DeliveryMethodStore.tsx` | Pickup-store picker (`PICKUP_STORES`) + `<GuestContactForm>` when signed out. Reuses `<RadioCard>`. | [CHECKOUT.md §2.2](./CHECKOUT.md#22-delivery-methods) |
@@ -215,7 +216,7 @@ All eight catalog pages are wrapper client components that accept **eight props*
 ### 3.4 Favorites — `pages/favorites/`
 
 | File | Role | Deep dive |
-|---|---|---|
+| --- | --- | --- |
 | `FavoriteCard.tsx` | Item card in `/favorites`: color swatch, add-to-bag, remove, quick-view. | — |
 | `FavoritesCarousel.tsx` | "Recently viewed" / "Trending" horizontal carousel below the wishlist grid. Props: `{title, products: CarouselProduct[]}`. Exports the `CarouselProduct` interface (`{id, name, brand?, price, salePrice?, image, colors}`) — a slimmer product shape than `Product`. | — |
 | `FavoritesEmptyState.tsx` | Empty state with CTA to `/women/clothing`. | [CATALOG_FILTERS.md §15](./CATALOG_FILTERS.md#15-page-specific-behaviours) |
@@ -231,14 +232,14 @@ All eight catalog pages are wrapper client components that accept **eight props*
 All PDP pieces are covered in [PRODUCT_DETAIL.md](./PRODUCT_DETAIL.md).
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `useProductPageUIState.ts` | Centralised UI state hook (modals, hover, share dropdown, added-flash). |
 | `ProductGallery.tsx` | Main gallery + thumbnails + hover zoom. |
 | `FullscreenViewer.tsx` | Fullscreen image carousel. |
 | `AccordionSection.tsx` | Collapsible section (Specs / Description / Delivery / Care). |
 | `ProductSpecialOffers.tsx` | `bought_together` bundle block. |
 | `ProductShareDropdown.tsx` | Copy link + social share links. |
-| `ProductReviewsSection.tsx` | Average rating + histogram + review list wrapper. Accepts optional `purchaseNotice?: string | null` prop — when set, renders a small amber paragraph under the left-column "Write a Review" CTA. When `productReviews.length === 0` the right column renders a dashed-border empty-state card (`L.emptyHeading` / `L.emptyBody`) — heading and body only, no button. When non-empty, renders `<ReviewCard>` tiles via `visibleReviews.map`. |
+| `ProductReviewsSection.tsx` | Average rating + histogram + review list wrapper. Accepts optional `purchaseNotice?: string | null` prop — when set, renders a small amber paragraph under the left-column "Write a Review" CTA. When `productReviews.length === 0`the right column renders a dashed-border empty-state card (`L.emptyHeading` / `L.emptyBody`) — heading and body only, no button. When non-empty, renders`<ReviewCard>` tiles via `visibleReviews.map`. |
 | `ReviewsAsync.tsx` | RSC that calls `loadProductReviews`. |
 | `ReviewsClient.tsx` | Always mounted (no early `null` return on empty reviews). Calls `useAuth()` and reads the shopper's orders. Exposes `requestWriteReview(_open)` which applies a three-way gate: guest → `openLoginModal()`; signed in but no delivered order for this product (`canReviewProduct` from `src/app/utils/review-eligibility.ts`) → sets `purchaseNotice` state forwarded to `<ProductReviewsSection>` as the `purchaseNotice` prop (auto-dismisses after 4 s); delivered order present → `setShowReviewModal(true)`. Hosts `<WriteReviewModal>` exclusively (PDP level no longer mounts it). |
 | `ReviewsSkeleton.tsx` | Suspense fallback. |
@@ -256,8 +257,8 @@ All PDP pieces are covered in [PRODUCT_DETAIL.md](./PRODUCT_DETAIL.md).
 ### 3.7 Sale — `pages/sale/`
 
 | File | Role | Deep dive |
-|---|---|---|
-| `SaleHero.tsx` | Hero block + countdown (renders `CountdownUnit`). Props: `{countdown, endsAt?, cms?}` — `cms` is a `SalePageFromCms | null` value. When present: hero image comes from `cms.hero.image` (Unsplash constant as fallback); eyebrow, CTA label, countdown label, and "Ends …" caption are driven by `cms.hero.*` with `L.*` static fallbacks. **Rendering priority for the hero body:** (1) if `cms.hero.contentHtml` is non-empty, it is rendered via `dangerouslySetInnerHTML`; (2) else `parseHeroPlain(cms.hero.contentPlain)` splits the `plainValue` line-by-line into `{ titleLine1, titleLine2, discount:{prefix,percent,suffix}, subtitle }` — the third line is scanned for `NN%` (e.g. `"UP TO 50% OFF"` → `prefix:"UP TO"`, `percent:"50%"`, `suffix:"OFF"`) and each slot is rendered into the original title / discount / subtitle HTML structure so the banner keeps its visual weight; (3) if `contentPlain` is also blank, all slots fall back to the static `L.*` labels. `endsAt` (epoch ms) drives the formatted "Ends {date}" caption when `cms.hero.timerEndsText` is blank. Copy via `useSalePageT()`. | — |
+| --- | --- | --- |
+| `SaleHero.tsx` | Hero block + countdown (renders `CountdownUnit`). Props: `{countdown, endsAt?, cms?}` — `cms` is a `SalePageFromCms | null` value. When present: hero image comes from `cms.hero.image` (Unsplash constant as fallback); eyebrow, CTA label, countdown label, and "Ends …" caption are driven by `cms.hero.*` with `L.*` static fallbacks. **Rendering priority for the hero body:** (1) if `cms.hero.contentHtml` is non-empty, it is rendered via `dangerouslySetInnerHTML`; (2) else`parseHeroPlain(cms.hero.contentPlain)` splits the `plainValue` line-by-line into `{ titleLine1, titleLine2, discount:{prefix,percent,suffix}, subtitle }` — the third line is scanned for `NN%` (e.g. `"UP TO 50% OFF"` → `prefix:"UP TO"`,`percent:"50%"`,`suffix:"OFF"`) and each slot is rendered into the original title / discount / subtitle HTML structure so the banner keeps its visual weight; (3) if`contentPlain` is also blank, all slots fall back to the static `L.*` labels. `endsAt` (epoch ms) drives the formatted "Ends {date}" caption when `cms.hero.timerEndsText` is blank. Copy via `useSalePageT()`. | — |
 | `SaleCountdown.tsx` | `useCountdown(target)` hook + `CountdownUnit` sub-component. Ticks every second. | [CATALOG_FILTERS.md §15](./CATALOG_FILTERS.md#15-page-specific-behaviours) |
 | `SaleFilterDropdowns.tsx` | Exports two generic pill dropdown components: `PillDropdown` (label + options + `selected` set + `onToggle` + `onClear`) and `ColorPillDropdown` (colour swatch grid variant). Composed on `/sale` into the category / discount / colour / sort filter row. | — |
 

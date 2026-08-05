@@ -45,10 +45,12 @@ Large hero with a photo and a countdown on the right.
 Horizontal sticky bar below the Hero.
 
 ### Category tabs (left, horizontal scroll)
+
 - `All` (without counter) + categories with count: `"{Category} ({N})"`
 - Active tab is underlined in black
 
 ### Filter Pills (desktop, after the separator)
+
 - **`Discount`** (PillDropdown) — options from `DISCOUNT_OPTIONS`
 - **`Size`** (PillDropdown) — size chips
 - **`Color`** (ColorPillDropdown) — color swatches
@@ -56,6 +58,7 @@ Horizontal sticky bar below the Hero.
 - **Button**: `"Clear all"` (with `X` icon, visible when active filters exist)
 
 ### Mobile
+
 - **Button**: `"Filters"` — opens `MobileFilterPanel`
 - Text on the right: `activeSortLabel` (current sort)
 

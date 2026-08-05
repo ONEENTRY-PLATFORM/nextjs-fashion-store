@@ -16,10 +16,12 @@ Favorites page.
 Black separator line at the bottom of the row.
 
 ### Left
+
 - **H1**: `"Favourites"` (uppercase tracking)
 - **Counter**: `"({N} items)"` or `"({N} item)"` (singular)
 
 ### Right (only when there are items in favorites)
+
 - **Button**: `"Move All to Bag"` (with `ShoppingBag` icon, black)
 - **Button**: `"Clear All"` (with `Trash2` icon, outlined)
 - **On click of Clear All** — turns into a confirm:

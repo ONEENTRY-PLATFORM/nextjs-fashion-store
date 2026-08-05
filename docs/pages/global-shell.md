@@ -30,10 +30,12 @@ These blocks are rendered on every page via the root layout.
 Hidden on mobile (`hidden md:block`).
 
 **Left**:
+
 - **Region selector** (dropdown with `GlobeAltIcon` + `ChevronDown`): `Europe` (default), `United Kingdom`, `United States`, `Australia`
 - **Language selector** (dropdown with `ChevronDown`): `EN` (default), `DE`, `FR`, `IT`, `ES`
 
 **Right**:
+
 - **Support phone** (with `PhoneIcon`): `"+44 20 7946 0958"` (`SUPPORT_PHONE`)
 - **Store Locations** (with `MapPinIcon`, button): `"Store Locations"` → `/stores`
 
@@ -43,6 +45,7 @@ Hidden on mobile (`hidden md:block`).
 - **Hamburger** (mobile only, before the logo): aria-label `"Open menu"` → opens `HeaderMobileDrawer`
 
 ### Main Navigation (center, desktop only)
+
 - aria-label: `"Main navigation"`
 - ⚠ **Only two items** — gender toggle:
   - **`WOMEN`** (uppercase) — leads to `/women/clothing`, active — accent `WOMEN_COLOR` + bottom underline
@@ -60,6 +63,7 @@ Layout from `MEGA_DATA[gender][subcat]` (see `data/categories.ts`).
   - Items — subcategory links (examples for women/clothing: `Pants & Shorts`, `Jeans`, `Sheepskin Coats & Fur`, `Jackets`, `Coats`, `Dresses & Skirts`, `Shirts`, `Sweaters`, `Hoodies`, `T-shirts`, `Underwear`)
 
 ### Search (right group)
+
 - **Desktop** (lg+): expand-on-hover field (10px collapsed → 256px expanded)
   - Placeholder `"Search"` (exact from `SEARCH_PLACEHOLDER`)
   - field aria-label: `"Search products"`
@@ -67,6 +71,7 @@ Layout from `MEGA_DATA[gender][subcat]` (see `data/categories.ts`).
 - **Mobile**: only a toggle button with `Search` icon (aria-label `"Toggle search"`) — expands the field into a row under the main header
 
 ### Account / Wishlist / Bag (icons on the right)
+
 - **Account** (`User` icon, hidden md:flex): aria-label `"My account"`
   - Logged in → `/account`
   - Not logged in → opens `LoginModal`
@@ -105,10 +110,12 @@ Opens on click of the bag icon.
 - **Close button**: aria-label `"Close cart"`
 
 ### If the cart is empty
+
 - **Text**: `"Your bag is empty"`
 - **Button**: `"Continue Shopping"` or similar
 
 ### If there are items
+
 - Item cards:
   - Image + alt = `name`
   - Name
@@ -120,6 +127,7 @@ Opens on click of the bag icon.
   - Remove button aria-label — `"Remove bundle"`
 
 ### Mini-cart footer
+
 - `Subtotal`: $XX.XX
 - Hint: `"Shipping & discounts calculated at checkout"`
 - **Button**: `"Checkout"` → `/checkout/delivery`
@@ -139,6 +147,7 @@ Grid of 4 cards (`SUPPORT_ITEMS`):
 - **`EMAIL US`** (icon `Envelope`) — `"Submit via our inquiry form"`
 
 ### Brand Column
+
 - Logo + alt = `"ONEENTRY FASHION"`
 - **Description** (`COMPANY_INFO.description`): `"Premium fashion for men and women. Curated collections with fast worldwide delivery."`
 - **Caption**: `"Customer Support:"`
@@ -158,15 +167,18 @@ Each column is a `nav` with `aria-label` = column title, **H4** = title.
 **Customer Support**: `Help Center`, `E-mail Us`, `Live Chat`, `Call Us`
 
 ### Payment Methods
+
 - **Heading**: `"Accepted Payment Methods"`
 - Icons (8 total, exact from `PAYMENT_METHOD_NAMES`): `Visa`, `Mastercard`, `Amex`, `Maestro`, `Apple Pay`, `Google Pay`, `PayPal`, `Klarna`
 
 ### Social Media
+
 - **Heading**: `"Follow Us"`
 - Social media icons (order from `SOCIAL_LINKS`): `TikTok`, `Facebook`, `Instagram`, `YouTube`, `Pinterest`
 - aria-label of each: `"Follow us on {name}"`
 
 ### Bottom Legal Links (`BOTTOM_LINKS`)
+
 - container aria-label: `"Legal links"`
 - Exact links: `Sitemap`, `Terms of Sale`, `Terms of Use`, `Privacy Policy`, `Promo Terms`
 
@@ -177,13 +189,15 @@ Each column is a `nav` with `aria-label` = column title, **H4** = title.
 - **Close button** (×)
 
 ### Social Login
+
 - **Button**: `"Continue with Google"` (Google logo)
 - **Button**: `"Continue with Apple"` (Apple logo)
 - **Button**: `"Continue with Facebook"` (Facebook logo)
 
 ### Email/Phone form
+
 | Field | Placeholder |
-|---|---|
+| --- | --- |
 | login (email or phone) | `"you@example.com or +44..."` |
 | password | `"••••••••"` |
 
@@ -199,8 +213,9 @@ Each column is a `nav` with `aria-label` = column title, **H4** = title.
 - **Close button** (×)
 
 ### Form fields
+
 | Field | Placeholder |
-|---|---|
+| --- | --- |
 | `firstName` | `"Jane"` |
 | `email` | `"you@example.com"` |
 | `password` | `"Min. 8 characters"` |

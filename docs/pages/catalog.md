@@ -39,17 +39,21 @@ Horizontal row of preset filters.
 Filter bar above the product grid. Groups — section dividers + filters. Actual composition for women/clothing (`WomenCatalogPage.tsx`):
 
 ### `Primary Filters` (section)
+
 - `Clothing Type`, `Brand`, `Season`, `Size`, `Color` (color swatches), `Outer Material`, `Style`
 - `Price` — ranges: `Under $50`, `$50 – $100`, `$100 – $200`, `$200 – $300`, `Over $300`
 - `Material Origin`, `Material Finish`, `Lining Material`, `Fit (Rise)`
 
 ### `Details` (section)
+
 - `Collar`, `Pockets`, `Brand Country`, `Silhouette`, `Hood`, `Neckline`, `Sleeve`, `Product Details`
 
 ### `Store Availability` (section)
+
 - `Availability` (options: `In Stock`, `Out of Stock`)
 
 ### Other
+
 - **In-filter search** (for long lists): field with placeholder `"Search…"`
 - **Price Range** (if range type is set): two fields `"Min price"` / `"Max price"`
 - **Button**: `"Apply"`

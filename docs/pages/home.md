@@ -56,12 +56,12 @@ In OneEntry:
 A block of type "Slider block", name: Shop By Category, containing 5 slides, each slide has:
 
 - attribute set:
-    - string: title chips
+  - string: title chips
 - 6 slides each with an attribute set containing attributes:
-    - image with the selected preview template
-    - string: alt
-    - string: category name
-    - string: category url
+  - image with the selected preview template
+  - string: alt
+  - string: category name
+  - string: category url
 
 validators for all attributes
 
@@ -90,9 +90,9 @@ Horizontal scroll carousel (structure identical to Best Sellers).
 Grid of 4 promo cards. Data arrives via prop `initialItems` from OneEntry `homepage-collections` (fetched server-side); `data/promoBlocks.ts` retains the `PromoItem` type only.
 
 - **Promo card** (×4): image + alt = `title`
-    - **Subtitle** (eyebrow) — e.g. `"Shop Dresses"`
-    - **Title (H3)** — e.g. `"Best Dress for You"`
-    - **CTA button** — e.g. `"Shop Dresses"` → category href
+  - **Subtitle** (eyebrow) — e.g. `"Shop Dresses"`
+  - **Title (H3)** — e.g. `"Best Dress for You"`
+  - **CTA button** — e.g. `"Shop Dresses"` → category href
 
 ## 6. Sale (NewArrivals component)
 

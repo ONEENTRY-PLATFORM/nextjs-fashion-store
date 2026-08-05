@@ -38,7 +38,7 @@ The `context/` filenames are legacy: `CartContext.tsx` and `WishlistContext.tsx`
 ## 2. Files at a glance
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `src/app/store/cartSlice.ts` | Reducers + selectors for cart items, `miniCartOpen`, and `unavailableRemoved` |
 | `src/app/store/wishlistSlice.ts` | Reducers + selectors for wishlist items |
 | `src/app/store/recentlyViewedSlice.ts` | Reducers for the recently-viewed trail (TTL 30d, cap 100) |
@@ -161,7 +161,7 @@ The sync to OneEntry is NOT triggered inline — it comes from a debounced effec
 Mutations exposed by `useCart()`:
 
 | Callback | Redux action | Activity event |
-|---|---|---|
+| --- | --- | --- |
 | `addItem(item)` | `cartActions.addItem` | `product_add_to_cart` |
 | `addBundle(items)` | `cartActions.addBundle` | one `product_add_to_cart` per item (with `bundle: true`) |
 | `removeItem(id)` | `cartActions.removeItem` | `product_remove_from_cart` |
@@ -183,7 +183,7 @@ Derived values also exposed: `totalItems`, `subtotal`, `discount` (= `originalTo
 `useCart()` also owns the OE `previewOrder` snapshot used by the Delivery step:
 
 | Field / callback | Meaning |
-|---|---|
+| --- | --- |
 | `preview` | Latest `PreviewOrderResult` for the current cart (+ applied coupon). |
 | `previewLoading` | `true` while a `previewOrder` request is in flight. |
 | `personalDiscount`, `totalDue` | Derived from `preview` — loyalty tier discount and final amount. |
@@ -317,7 +317,7 @@ Items for which `getCmsProductId` returns `null` (non-numeric id strings) are si
 The trail is also mirrored to OneEntry for signed-in users via three Server Actions in `src/lib/oneentry/auth/actions.ts`:
 
 | Action | Trigger | Effect |
-|---|---|---|
+| --- | --- | --- |
 | `pushRecentlyViewedAction({productId, viewedAt})` | `RecentlyViewedSection` on PDP mount when `isLoggedIn` | Appends one view to `user.recentlyViewedItems` on the OE side. |
 | `getRecentlyViewedAction()` | `AuthContext` after `/me` bootstrap | Reads the server trail. |
 | `mergeRecentlyViewedAction(local)` | `AuthContext` on the first login after guest browsing | Combines the guest's `oe_store.recentlyViewed` items with the server trail — dedupes by `productId`, keeps the most recent `viewedAt`, pushes the merged list back to OE, returns it to the client. |
@@ -358,45 +358,6 @@ If the persisted schema version is unknown (future), the store is wiped to preve
 - **`previewOrder` "Product not found" failure** — when `previewOrderAction` returns `!ok` with `missingProductIds`, `CartContext` cross-checks each id against the catalog via `getProductsByIdsAction`. Only ids the catalog also cannot find are pruned: their snapshots are saved to `unavailableRemoved` and the items are removed from the cart; ids the catalog still returns are left untouched. After pruning, `previewOrder` is re-fired without the removed ids. `CartUnavailableNotice` surfaces the list to the shopper. See §4a for the full flow.
 - **Guest bounce** — logging out while items are in the cart clears the `oe_cart_merged` flag but leaves Redux items intact. Guest continues to see the same cart; sign-in triggers a fresh merge.
 
-### 11.1 `emitSyncWarning` event system
-
-`src/app/utils/syncWarnings.ts` exposes a single helper for surfacing sync-side failures:
-
-```ts
-emitSyncWarning(kind: 'unmapped' | 'mutation' | 'connectivity', message: string, context?)
-```
-
-Behaviour:
-
-- Always logs via `console.warn('[sync:<kind>] <message>', context)`.
-- If `window` is defined, dispatches `CustomEvent('oe:sync-warning', { detail: { kind, message, context } })` (constant `SYNC_WARNING_EVENT`). Silent no-op on non-DOM runtimes and on browsers without the CustomEvent constructor.
-- Returns the `detail` payload so unit tests (`src/app/store/__tests__/syncWarnings.test.ts`) can assert on it.
-
-Kinds:
-
-| Kind | Meaning |
-|---|---|
-| `unmapped` | Playground SKU has no `cmsProductId` — mutation stayed local-only, no server call. |
-| `mutation` | Server rejected an add/remove — optimistic Redux state was (or should be) rolled back. |
-| `connectivity` | Fetch itself failed (network / CORS) — local state preserved, retry on next mutation. |
-
-No toast container subscribes to `oe:sync-warning` in production today; the current sync path (§5) also swallows errors silently rather than routing them through `emitSyncWarning`. The helper is retained so a future toast subscriber can attach without a rewrite.
-
----
-
-## 12. Selectors (`src/app/store/selectors.ts`)
-
-Memoised via `createSelector`:
-
-- `selectCartItems`, `selectMiniCartOpen`
-- `selectCartTotalItems`, `selectCartSubtotal`, `selectCartOriginalSubtotal`, `selectCartDiscount`
-- `selectWishlistItems`, `selectWishlistCount`, `selectIsWishlisted(id)`
-- `selectRecentlyViewed`
-
-Selectors are the preferred read path — direct `useSelector((s) => s.cart.items)` is fine for one-off reads but should be avoided in hot components.
-
----
-
 ## 13. Bundles
 
 Bundle items are cart lines that share a synthetic `bundleId` (e.g. `bundle-x8f2a1`, generated by `cartSlice::addBundle`). Rules:
@@ -409,6 +370,7 @@ Bundle items are cart lines that share a synthetic `bundleId` (e.g. `bundle-x8f2
 Persisted normally through `oe_store`. Server sync via `syncCart` flattens the bundle into individual `{productId, qty}` entries — OneEntry has no bundle concept, only line items. If the bundle is re-hydrated from the server after a re-login, it is NOT re-bundled — items appear as independent lines. This is a known limitation; carrying the `bundleId` through OE requires an `OeCartItem.bundleId` field on the server side.
 
 Bundle sources:
+
 - **PDP Special Offers** (`ProductSpecialOffers`) — "Buy this bundle" CTA calls `useCart().addBundle(bundleItems)`.
 - **CartBundleRow** in `/cart` renders the aggregated bundle row.
 - **MiniCart** renders bundle rows collapsed with the same shared control.
@@ -466,6 +428,7 @@ Bundles are NOT a concept on the favourites page (wishlist has no `bundleId` fie
 The "Recently viewed" strip on `FavoritesPage` reads `state.recentlyViewed.items` and dedupes by lowercased `name` (fallback `id`) so variants of the same product don't monopolise the row.
 
 **`FavoritesCarousel` Quick Add button.** The horizontal carousel of favourites (`src/app/pages/favorites/FavoritesCarousel.tsx`) renders a "Quick Add" button per card. The button calls `useCart().addItem(...)` with:
+
 - `id` via `extractCmsProductId(product.id)` — produces a clean numeric id string, avoiding the `-fav` suffix that would confuse `previewOrder`.
 - `price` from the sale price when present (matches PDP / catalog UX); `originalPrice` set to the full price when a sale is active so the cart line shows the strike-through "was" amount.
 - `stockLimit` from `product.stockLimit` when present, so the `+` button cap is respected.
@@ -483,7 +446,7 @@ The "Recently viewed" strip on `FavoritesPage` reads `state.recentlyViewed.items
 - `couponError` renders under the input only while `!couponCode` (i.e. no active coupon).
 - **Line item price** — each cart line is rendered at `item.price` (the client-side sale price, matching catalog / PDP / QuickView). When `item.originalPrice` is present (a sale is active), it is displayed as a struck-through amount alongside the sale price. This is the same two-number UX the shopper saw on the catalog card or PDP; there is intentionally no separate "Items discount" row below — such a row double-counted the reduction already baked into the line price (the original "$31.5 − $3.5 = $35" math bug).
 - **Subtotal** — the client `subtotal` (`sum(item.price * qty)`) matches the displayed line-item prices exactly.
-- **Loyalty and coupon rows** — appear in the summary only when OE has applied an *extra* reduction beyond the client-side sale price: `personalDiscount − couponDiscount > 0` shows a "Loyalty discount" line; `couponDiscount > 0 && couponCode` shows a "Promo (CODE)" line. These values come from `previewOrder`.
+- **Loyalty and coupon rows** — appear in the summary only when OE has applied an _extra_ reduction beyond the client-side sale price: `personalDiscount − couponDiscount > 0` shows a "Loyalty discount" line; `couponDiscount > 0 && couponCode` shows a "Promo (CODE)" line. These values come from `previewOrder`.
 - **`finalTotal`** — `personalDiscount > 0 || couponDiscount > 0 || preview.bonusApplied > 0 ? totalDue : total`. OE's `totalDue` overrides when OE applied a loyalty-tier discount, a coupon, **or** redeemed bonus points. Previously a shopper who burned points saw the pre-bonus subtotal on the "Place Order" button while OE charged less at order creation — a mismatch now closed. Before the first `previewOrder` response arrives (`previewLoading && !preview`), a skeleton pulse bar replaces the discount rows so the layout does not jump.
 - The Delivery step (`DeliveryPage`) has its own, structurally identical promo section backed by `DeliveryOrderSummary`. Both write to the same `couponCode` in `useCart()`, so applying the code on one page immediately reflects on the other via Redux + `sessionStorage['oe_coupon_code']`. The two inputs are **independent React state** (`promoInput`, `promoChecked`) — closing the cart page and reopening it re-reads only `couponCode`, not the last-typed raw string.
 

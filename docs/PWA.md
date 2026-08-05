@@ -17,7 +17,7 @@ Bottom line: this is a PWA in the sense Chrome Lighthouse awards an installabili
 ## 2. Files
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `app/manifest.ts` | Dynamic manifest emitted at `/manifest.webmanifest` |
 | `public/sw.js` | Service worker source — precache list, install / activate / fetch handlers |
 | `public/offline.html` | Static offline shell used by `sw.js` when a navigation fails |
@@ -32,7 +32,7 @@ Bottom line: this is a PWA in the sense Chrome Lighthouse awards an installabili
 `app/manifest.ts` returns a `MetadataRoute.Manifest`. All copy is sourced from `src/app/data/seoData.ts` — the file has zero hardcoded strings:
 
 | Field | Value | Source |
-|---|---|---|
+| --- | --- | --- |
 | `name` | `'Kekimoro'` | `SITE_NAME` |
 | `short_name` | `'Kekimoro'` | `PWA_MANIFEST_COPY.shortName` |
 | `description` | `'Premium fashion for men and women…'` | `SITE_DESCRIPTION` |
@@ -93,7 +93,7 @@ Mounted once inside `<Providers>` — see `src/app/components/Providers.tsx`.
 There are **two** offline UIs. They render identically by design; the split exists because the SW needs a zero-dependency asset:
 
 | File | Rendered by | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `public/offline.html` | Service worker `caches.match('/offline.html')` fallback | Zero-JS-framework HTML shell served when a navigation fails. Cached at `install`. |
 | `app/offline/page.tsx` | Next.js client route (when app is online, e.g. explicit link) | React twin, sources copy from CMS via `useInterfaceControlsT(marker, fallback)`. |
 

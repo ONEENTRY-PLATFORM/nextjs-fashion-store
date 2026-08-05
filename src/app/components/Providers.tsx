@@ -26,6 +26,8 @@ import { HeaderMenuProvider } from '../../lib/oneentry/menus/HeaderMenuContext'
 import type { MenuPageNode } from '../../lib/oneentry/menus/menus'
 import { SignUpFormSchemaProvider } from '../../lib/oneentry/auth/SignUpFormSchemaContext'
 import type { SignUpFormSchema } from '../../lib/oneentry/auth/sign-up-form'
+import { FormPlaceholdersProvider } from '../../lib/oneentry/forms/FormPlaceholdersContext'
+import type { FormContent } from '../../lib/oneentry/forms/placeholders'
 
 /**
  * No-op placeholder kept for backwards compatibility. Real wishlist
@@ -89,6 +91,7 @@ export function Providers({
   footerMenu = [],
   headerMenu = [],
   signUpFormSchema,
+  forms = {},
 }: {
   children: React.ReactNode;
   productCardLabels?: ProductCardDict;
@@ -99,6 +102,10 @@ export function Providers({
   footerMenu?: MenuPageNode[];
   headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
+  /** OE form content keyed by marker — layout-wide forms only (the footer
+   *  newsletter renders on every route). Route-scoped forms mount their own
+   *  `FormPlaceholdersProvider` closer to the page. */
+  forms?: Record<string, FormContent>;
 }) {
   // Lazy `useState` initializer rather than the write-a-ref-during-render
   // idiom: the initializer runs exactly once and is render-safe, whereas
@@ -150,7 +157,9 @@ export function Providers({
                   <FooterMenuProvider data={footerMenu}>
                     <HeaderMenuProvider data={headerMenu}>
                       <SignUpFormSchemaProvider data={signUpFormSchema}>
-                        <ErrorBoundary>{children}</ErrorBoundary>
+                        <FormPlaceholdersProvider forms={forms}>
+                          <ErrorBoundary>{children}</ErrorBoundary>
+                        </FormPlaceholdersProvider>
                       </SignUpFormSchemaProvider>
                     </HeaderMenuProvider>
                   </FooterMenuProvider>

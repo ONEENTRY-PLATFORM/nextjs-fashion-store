@@ -53,7 +53,11 @@ export const PRODUCT_ACTION_LABELS = {
   articleLabel: 'Article:',
   defaultSku: '2024-156-1',
   defaultArticle: 'OF-KW-156-BRG',
-  bonusHeading: 'Earn {count} bonus points',
+  // `%count%`, not `{count}` — OneEntry casts attribute values to JSON, so a
+  // value containing braces makes the public read of the WHOLE system-text set
+  // fail with `500 invalid input syntax for type json`. Keeping the fallback in
+  // the same shape as the OE value avoids two placeholder dialects.
+  bonusHeading: 'Earn %count% bonus points',
   bonusBody: 'Redeemable on your next order. Join Kekimoro Rewards for free.',
   colorLabel: 'Color:',
   outOfStockTitle: ' — Out of stock',

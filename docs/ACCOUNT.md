@@ -18,7 +18,7 @@ AccountPage
 Sections (query values — 9 active tabs, order matches sidebar):
 
 | Tab | Section component | Source of truth |
-|---|---|---|
+| --- | --- | --- |
 | `my-data` (default) | `MyDataSection` (wraps 6 sub-forms) | `user.*` + form-data upserts |
 | `my-orders` | `MyOrdersSection` | `user.oeOrders` (from `getCurrentUserAction`) |
 | `my-bonuses` | `BonusesSection` | `user.status / discount / bonuses / totalPurchases / nextLevelAmount` — mock defaults |
@@ -42,7 +42,7 @@ Shared helpers live in `src/app/pages/account/shared.tsx` (section title, empty 
 Composite section: renders the `LoyaltyCard` header + the six sub-forms below.
 
 | Sub-form file | OneEntry backing |
-|---|---|
+| --- | --- |
 | `myData/PersonalInfoSection.tsx` | `updateProfileAction({firstName, lastName, email, phone, gender, dob, shoeSize, clothingSize})` — validated with `profileSchema` (Zod) |
 | `myData/PasswordSection.tsx` | **Local only** — no `changePasswordAction` exists yet. The success state is simulated. |
 | `myData/AddressesSection.tsx` | `updateAddressesAction(nextAddresses)` — full replace. Each `OeAddress` carries `recordId` when persisted; new addresses get `recordId: undefined`. Validated with `addressSchema`. |
@@ -103,6 +103,7 @@ This runs at parse time for every order product. If `image` is still empty after
 Loyalty summary card + bonus transaction history.
 
 **Real fields (from OE `user.*` via `fetchLoyalty`):**
+
 - `status` (`Bronze` / `Silver` / `Gold` / `Platinum`) — the shopper's current personal tier, determined by lifetime revenue (`ltvThreshold`) via `AuthContext.pickActiveTier`.
 - `bonuses` / `bonusBalance` (numeric points) — `fetchLoyalty` now always returns `{ tiers, bonusBalance }` (never `null`) so a tenant with a bonus programme but no personal-tier configuration no longer silently drops the shopper's balance.
 - `discount` (integer percent)
@@ -111,12 +112,14 @@ Loyalty summary card + bonus transaction history.
 **Loyalty ladder — `OeLoyaltyTier` shape.** `fetchLoyalty` in `auth/actions.ts` now extracts both `USER_LTV` (lifetime-revenue threshold → `ltvThreshold`) and `MIN_CART_AMOUNT` (per-order cart threshold → `minCartAmount`) from each discount-rule condition. Both fields are present on `OeLoyaltyTier`. `FALLBACK_TIER_LTV` defaults: Silver 500, Gold 1000, Platinum 2000.
 
 **Tier selection — two contexts.**
+
 - **`AuthContext.pickActiveTier`** (status display, `LoyaltyCard`, `BonusesSection`) evaluates only `ltvThreshold` against the user's lifetime revenue. Cart-gated tiers (`minCartAmount` only) are intentionally excluded because they are not a permanent identity signal.
 - **`previewOrderAction` personal-tier fallback** evaluates every gate present on the tier at order time — `ltvThreshold` against lifetime revenue AND `minCartAmount` against the current cart total — so Silver / Gold / Platinum tiers gated by cart size are now reachable and their discount is applied when the cart qualifies. Previously only Bronze was reachable (the ladder collapsed because `MIN_CART_AMOUNT` gates were never evaluated).
 
 **Bonus transactions:** loaded via `fetchBonusHistoryAction()` (`src/lib/oneentry/auth/actions.ts`), which calls `api.Discounts.getBonusHistory()`. OE returns a paginated envelope `{ items: IBonusTransactionEntity[], total: number }` — the action unwraps `.items` (and still accepts a bare array as a graceful fallback). Each row maps to `OeBonusTransaction { amount, type, createdAt, comment, sign }`; `sign` is `+1` for accrual-family `type` values (see `POSITIVE_BONUS_TYPES`) and `-1` otherwise. Empty history renders the "No bonus transactions yet" placeholder.
 
 **Mock:**
+
 - Points redemption UI is a placeholder.
 
 The `LoyaltyCard` sub-component (`src/app/pages/account/LoyaltyCard.tsx`) also renders on the My Data page as the header banner and reads the same fields.
@@ -137,11 +140,13 @@ Two-column view: existing requests on the left, submission form on the right.
 ```
 
 Status mapping (`ServiceStatus`):
+
 - `open`, `in-progress`, `ready`, `completed`, `cancelled`
 
 **Submit:** `submitServiceRequestAction({item, category, description, date, order_id?})` (`src/lib/oneentry/catalog/service-request-submit-action.ts`) POSTs form-data with the same marker/moduleConfigId. Categories: `alteration`, `repair`, `cleaning`, `restoration`, `other`. On success, the UI flashes a check-mark and collapses the form after 2.5 s.
 
 Sub-components:
+
 - `service/ServiceHowItWorks.tsx` — static 4-step explainer (Submit Request → Drop Off → We Get to Work → Collect).
 - `service/ServiceRequestForm.tsx` — the actual form.
 
@@ -191,6 +196,7 @@ Loads via `getWaitingListAction()` (`src/lib/oneentry/catalog/waiting-list-actio
 4. Return only the items whose status is not `in_stock` (that's the "waiting" filter).
 
 Row actions:
+
 - **Bell** — local notification toggle (no server persistence).
 - **Trash** — calls `useWishlist().removeItem(id)`.
 - **Add to Cart** (only when status ≠ `out_of_stock`) — `useCart().addItem(...)`, with a 2 s success flash.
@@ -210,7 +216,7 @@ Submission validates `rating > 0 && message.length >= 20`. Current implementatio
 Seven toggle switches, each mapping to an `OeSubscriptions` boolean:
 
 | Toggle | Field |
-|---|---|
+| --- | --- |
 | Email newsletter | `emailNewsletter` |
 | SMS notifications | `smsNotifications` |
 | Push notifications | `pushNotifications` |
@@ -251,7 +257,7 @@ To make it real: (1) add the `refer` case back to the `AccountPage` section swit
 ## 13. Files touched
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `src/app/pages/AccountPage.tsx` | Shell + tab dispatcher |
 | `src/app/pages/account/{Bonuses,Feedback,History,LoyaltyCard,MyData,MyOrders,ServiceMaintenance,Subscriptions,WaitingList,Wishlist}Section.tsx` | Individual tab sections (10 rendered) |
 | `src/app/pages/account/ReferSection.tsx` | Dark code — not imported by `AccountPage`; see §11 |
@@ -265,7 +271,7 @@ To make it real: (1) add the `refer` case back to the `AccountPage` section swit
 | `src/lib/oneentry/catalog/products-action.ts` | `getProductsByIdsAction` — available for client-side product lookups (My Orders image fallback was moved to `fetchUserOrders` in `actions.ts`, which calls `loadProductsByIds` directly on the server) |
 | `src/app/utils/schemas.ts` | `profileSchema`, `addressSchema`, `promoSchema` |
 | `src/lib/google-auth.ts` | `startGoogleOAuth(returnTo?)` — server-action-driven authorize-URL redirect used by Social networks and by Login / Register modals |
-| `app/auth/callback/google/route.ts` | GET route that receives Google's `?code=&state=`, calls `exchangeGoogleCodeAction`, redirects to `returnTo` or to `/?googleAuthError=` |
+| `app/auth/callback/google/page.tsx` | GET route that receives Google's `?code=&state=`, calls `exchangeGoogleCodeAction`, redirects to `returnTo` or to `/?googleAuthError=` |
 
 ---
 

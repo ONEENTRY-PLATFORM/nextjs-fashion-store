@@ -698,7 +698,10 @@ export function ProductDetailPage({
                 <div className="flex items-center gap-2.5 px-4 py-3 mb-6 bg-[#fff8f0] border border-[#ffe0b2]">
                   <span className="text-base">🎁</span>
                   <div>
-                    <p className="text-xs font-semibold text-[#b45309]">{lBonusHeading.replace('{count}', String(bonusPoints))}</p>
+                    {/* Accept both placeholder dialects: `%count%` is what OE
+                        holds (braces there would break the set's public read),
+                        `{count}` covers any value still authored the old way. */}
+                    <p className="text-xs font-semibold text-[#b45309]">{lBonusHeading.replace(/%count%|\{count\}/g, String(bonusPoints))}</p>
                     <p className="text-xs text-gray-500">{lBonusBody}</p>
                   </div>
                 </div>

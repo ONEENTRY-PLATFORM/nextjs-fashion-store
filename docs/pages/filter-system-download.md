@@ -16,10 +16,12 @@ Utility page for downloading the documentation file `FILTER_SYSTEM.md`. Starts a
 Depends on the `downloaded` state:
 
 ### "Download in progress" state
+
 - **H1**: `"Preparing File…"`
 - **Caption**: `"Generating the markdown file…"`
 
 ### "Downloaded" state
+
 - **H1**: `"Download Started"`
 - **Caption**: `"FILTER_SYSTEM.md has been saved to your Downloads folder."`
 
@@ -33,7 +35,7 @@ Depends on the `downloaded` state:
 Gray card with file metadata.
 
 | Field | Value |
-|---|---|
+| --- | --- |
 | `File` | `FILTER_SYSTEM.md` |
 | `Type` | `Markdown` |
 | `Size` | `~{NN.N} KB` (calculated from blob size) |

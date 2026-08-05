@@ -22,7 +22,7 @@ Each `app/checkout/<step>/page.tsx` is a thin route shell that re-exports SEO me
 **OE page-block wiring for checkout routes.** The cart and the first two checkout steps load CMS-attached blocks from OneEntry and render them via `<PageBlocksRenderer>` after the main content, immediately before `<Footer>`:
 
 | Next.js route | `loadPageBlocksByUrl(pageUrl)` call | Page component prop |
-|---|---|---|
+| --- | --- | --- |
 | `app/cart/page.tsx` | `'cart'` | `<CartPage pageBlocks={pageBlocks} />` |
 | `app/checkout/delivery/page.tsx` | `'delivery_method'` (OE marker — not the route path) | `<DeliveryPage pageBlocks={pageBlocks} />` |
 | `app/checkout/payment/page.tsx` | `'payment'` | `<PaymentPage pageBlocks={pageBlocks} />` |
@@ -63,7 +63,7 @@ Guest users need to fill contact fields inline; logged-in users pick from saved 
 Three methods, selected via radio cards:
 
 | Method | Consumer requirements |
-|---|---|
+| --- | --- |
 | `home` | Full address (saved or new) + delivery date + time slot |
 | `store` | Pickup store (from OE via `loadStores()`, adapted to `PickupStore[]` in the server layer) + guest contact if not logged in |
 | `locker` | Locker id (from `PARCEL_LOCKERS`) + guest contact if not logged in |
@@ -117,7 +117,7 @@ DELIVERY_TIME_SLOTS = [
 - `loadDeliverySchedule(variant?, lang?)` — cached async loader. `variant` is `'authed'` (default) or `'guest'`; it selects the **attribute-set** (aset) and attribute markers to read:
 
   | variant | aset marker | timeInterval attr |
-  |---|---|---|
+  | --- | --- | --- |
   | `authed` | `checkout_home` | `delivery_date-time` |
   | `guest` | `checkout_home_guest` | `delivery_date-time_guest` |
 
@@ -153,7 +153,7 @@ const deliveryDatesIsoGuest  = buildDeliveryDates(scheduleGuest.daysAhead,  sche
 Four props are passed to `<DeliveryPage>`:
 
 | Prop | Source |
-|---|---|
+| --- | --- |
 | `deliveryDatesIsoAuthed` | ISO date strip derived from the `checkout_home` aset schedule |
 | `deliveryDatesIsoGuest` | ISO date strip derived from the `checkout_home_guest` aset schedule |
 | `deliverySlotsAuthed` | `scheduleAuthed.slots` — time slots decoded from `delivery_date-time` |
@@ -276,13 +276,16 @@ Server Action (`src/lib/oneentry/auth/actions.ts:2007`):
 The caller passes `formData` to `createOrderAction` as a **plain array** `[{marker, type, value}, ...]`. The OneEntry SDK's `Orders.createOrder` wraps it into `{ [langCode]: [...] }` internally — do **not** pre-wrap on the client (double nesting causes `formData's marker 'undefined' marker is required`). Assembled in `PaymentPage.handlePlaceOrder` (`src/app/pages/PaymentPage.tsx:186`+). A `guestPrefix = payload.isGuest ? '_guest' : ''` is spliced into the `delivery_method` and `delivery_date-time` markers for the home flow only; the store / locker / guest-contact markers are hard-coded (see below).
 
 **Home delivery (authenticated):**
+
 ```
 delivery_method              type=list          value=['courier']
 delivery_date-time           type=timeInterval  value=[[fromISO, toISO]]
 ```
+
 (Auth users use their saved OE profile address — no address markers travel with the order.)
 
 **Home delivery (guest):**
+
 ```
 delivery_method_guest        type=list          value=['courier']
 delivery_date-time_guest     type=timeInterval  value=[[fromISO, toISO]]
@@ -305,11 +308,13 @@ evening:   [17:00 UTC, 21:00 UTC]
 Format: `${dayIso}T${HH}:00:00.000Z` for both ends; `dayIso = payload.deliveryDate.slice(0, 10)`.
 
 **Store pickup (authenticated):**
+
 ```
 checkout_store_pickup_select_store   type=entity   value=[String(storeId)]
 ```
 
 **Store pickup (guest):**
+
 ```
 checkout_store_pickup_guest_store       type=entity   value=[String(storeId)]
 checkout_store_pickup_guest_full_name   type=string   value=fullName
@@ -320,11 +325,13 @@ checkout_store_pickup_guest_email       type=string   value=email
 Note: the guest variant uses a distinct marker (`..._guest_store`), not a suffix on `select_store`.
 
 **Locker (authenticated):**
+
 ```
 checkout_locker_pickup_point   type=integer   value=lockerId + 1   # 0-based index → 1-based OE integer
 ```
 
 **Locker (guest):**
+
 ```
 checkout_locker_guest_pickup_point   type=integer   value=lockerId + 1
 checkout_locker_guest_full_name      type=string   value=fullName
@@ -356,7 +363,7 @@ Because PDP and catalog routes are now ISR-cached (up to ~2 minutes for PDP, 5 m
 Two guards are applied on the fresh response:
 
 1. **`!fresh.ok`** — OE rejected the preview (e.g. a line item is unavailable or its price is undefined). `handlePlaceOrder` surfaces `fresh.error` (or a generic re-validation message) and returns without calling `createOrderAction`. Note: "Product not found" failures are handled earlier — `CartContext`'s ambient `previewOrder` effect double-checks each reported id against the catalog via `getProductsByIdsAction` and only prunes items that the catalog also cannot find, so valid products are not removed due to a spurious `Orders.previewOrder` error (see [CART_WISHLIST.md §4a](./CART_WISHLIST.md#4a-checkout-preview--coupons)).
-2. **Total drift** — if `preview` exists and `Math.abs(fresh.totalDue - preview.totalDue) > 0.01`, the `preview` state is updated to the fresh figures and a message is shown: _"Order total changed to $X since you last reviewed it — please check the summary and place the order again."_ The shopper must click **Place Order** a second time with the corrected total visible on screen.
+2. **Total drift** — if `preview` exists and `Math.abs(fresh.totalDue - preview.totalDue) > 0.01`, the `preview` state is updated to the fresh figures and a message is shown: *"Order total changed to $X since you last reviewed it — please check the summary and place the order again."* The shopper must click **Place Order** a second time with the corrected total visible on screen.
 3. **Sale-price mismatch guard.** `PaymentPage` additionally compares OE's authoritative `fresh.totalSum` (the pre-discount gross) against the client `subtotal` (`Math.abs(fresh.totalSum - subtotal) > 0.01`). This catches the "guest whose OE Discount rule requires a logged-in tier" case — the catalog optimistically showed a sale price OE will not honour — which the `totalDue` vs `totalDue` guard alone could not detect because OE's `totalDue` was already consistent with the non-discounted total. When this guard fires the "We now show $X at checkout" banner is shown, `preview` is updated to the fresh figures, and the order is not submitted.
 
    **`alreadyReconciled` skip.** When this guard fires on the first click, `setPreview(fresh)` propagates OE's authoritative totals to the Order Summary and CTA. On the shopper's second click, `fresh` is re-fetched and will again differ from client `subtotal` — so without an additional check the guard would re-fire indefinitely. To prevent this, `handlePlaceOrder` computes:
@@ -385,7 +392,7 @@ type PreviewOrderResponse =
 **`PreviewOrderResult` key fields** (the `ok: true` branch):
 
 | Field | Type | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `couponApplied` | `boolean` | `true` when OE confirmed it applied the code. |
 | `couponDiscountAmount` | `number` | Monetary deduction attributable to the coupon alone. **Zero for gift-only coupons** (where OE's `discountValue` is `null`) so that any loyalty-tier discount visible in `discountAmount` is not wrongly attributed to the coupon line. |
 | `giftItems` | `PreviewGiftItem[]` | Free products OE appended to the order. Sourced from `orderPreview[]` entries where `isGift === true`. Empty when no gift-bearing discount is active. |
@@ -543,7 +550,7 @@ Some OE coupon discount configs award a free product rather than a price reducti
 Zod schemas in `src/app/utils/schemas.ts`:
 
 | Schema | Fields |
-|---|---|
+| --- | --- |
 | `loginSchema` | email/phone/identifier + password |
 | `registerSchema` | Sign-up form fields |
 | `addressSchema` | `fullName` (1-100), `phone` (`/^\+?[\d\s\-()\[\]]{7,20}$/`), `line1` (1-200), `city` (1-100), `postcode` (`/^[A-Z0-9\s\-]{3,10}$/i`), `instructions` (optional, ≤500) |
@@ -559,7 +566,7 @@ Client validation runs on the DeliveryPage "Continue to Payment" click. Server v
 ## 9. Session-scoped state
 
 | Key | Scope | Lifetime | Purpose |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `oe_checkout_payload` | `sessionStorage` | Until Payment redirects / order created | Delivery → Payment handoff |
 | `oe_last_order_id` | `sessionStorage` | Written by PaymentPage after `createOrderAction`; removed by ConfirmationPage on mount | Real OE `orderId` surfaced on the receipt |
 | `oe_last_order_total` | `sessionStorage` | Written by PaymentPage (`String(finalTotal)`) immediately before redirect/push; removed by ConfirmationPage on mount | `finalTotal` snapshot used by ConfirmationPage so the receipt shows the real paid amount after the cart is cleared |
@@ -597,7 +604,7 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 ## 12. Files touched
 
 | File | Role |
-|---|---|
+| --- | --- |
 | `app/checkout/delivery/page.tsx` | Delivery route shell — also calls `loadStores()` and adapts the result to `PickupStore[]` before passing to `<DeliveryPage>` |
 | `app/checkout/confirmation/page.tsx` | Route shell — `Promise.all`s `loadCheckoutSuccessMessage()` alongside `loadCheckoutSystemTexts()`; passes result as `successMessage` prop to `<ConfirmationPage />` |
 | `app/checkout/payment/page.tsx` | Route shell (SEO metadata + client component) |

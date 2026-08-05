@@ -86,7 +86,6 @@ src/lib/oneentry/          OneEntry SDK integrations (auth, catalog, orders, pay
 public/                    Static assets + service worker
 e2e/                       Playwright specs
 docs/                      Architecture and integration docs
-guidelines/                Contributor guidelines
 ```
 
 ## Documentation

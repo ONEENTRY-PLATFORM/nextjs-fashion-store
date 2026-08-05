@@ -115,7 +115,7 @@ export function Footer() {
       {/* Newsletter */}
       <div className="border-t border-white/10">
         <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-6">
-          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">Subscribe to new drops</p>
+          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.newsletterHeading}</p>
           <NewsletterForm />
         </div>
       </div>

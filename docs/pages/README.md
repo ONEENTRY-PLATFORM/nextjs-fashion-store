@@ -31,6 +31,7 @@ A brief description of the blocks on each unique page. For each element (where a
 ## SEO / social networks
 
 Each page file has a **"SEO / social networks"** section with page fields:
+
 - Meta title / description / keywords
 - OpenGraph (title / description / image / type / url)
 - Twitter Card (card / title / description / image)

@@ -50,6 +50,7 @@ RSC shell (`app/stores/page.tsx`) is ISR with `export const revalidate = 3600` (
 List of stores as cards (`StoreCard`).
 
 Store card fields:
+
 - Store image + alt = `name`
 - **H3**: store `name` (e.g. `"London Flagship Store"`)
 - **Address** (with `MapPin` icon): `address`

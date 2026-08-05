@@ -26,13 +26,14 @@ Checkout step 2 — choose how to proceed and the delivery address.
 - **H1**: `"Delivery"` (uppercase tracking)
 
 ### 3a. Saved Addresses (if any are in the profile)
+
 - Cards of saved addresses with radio selection
 - Option `"Use a different address"` — expands the new-address form with the hint `"Enter a new delivery address"`
 
 ### 3b. Delivery address form
 
 | Field | Label | Placeholder | Type |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `fullName` | `"Full Name"` | `"Jane Smith"` | text |
 | `phone` | `"Phone"` | `"+44 20 0000 0000"` | tel |
 | `line1` | `"Address Line 1"` | `"Street name and number"` | text |

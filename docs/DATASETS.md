@@ -89,7 +89,6 @@ Local label constants used as fallbacks when the corresponding OneEntry label co
 | `authLabels.ts` | Sign-in + registration |
 | `productPageLabels.ts` | Product detail + quick-view |
 | `catalogPageLabels.ts` | Catalog / filter UI |
-| `catalogFilterLabels.ts` | Filter section / group / chip labels |
 | `checkoutLabels.ts` | Checkout copy |
 | `infoPageLabels.ts` | Info page section copy |
 | `errorPageLabels.ts` | 404 / 500 / offline |

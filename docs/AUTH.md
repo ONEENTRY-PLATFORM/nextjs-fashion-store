@@ -41,7 +41,7 @@ The app token reaches the browser by design (`NEXT_PUBLIC_ONEENTRY_TOKEN`) — t
 The auth path relies on the same three env vars as the rest of the OneEntry integration (see [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) §2):
 
 | Var | Purpose |
-|---|---|
+| --- | --- |
 | `NEXT_PUBLIC_ONEENTRY_URL` | Platform base URL |
 | `NEXT_PUBLIC_ONEENTRY_TOKEN` | App token |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | `langCode` for `/me` bootstrap |
@@ -65,7 +65,7 @@ The `client_secret` for the Google OAuth client lives inside the OneEntry provid
 Session state lives in `localStorage`, written by the SDK and by three small helpers in `src/lib/oneentry/auth/browser-session.ts`.
 
 | Key | Written by | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `refresh-token` | the SDK's `saveFunction` (`src/lib/oneentry/index.ts`) | Rotating refresh token. The SDK rewrites it on every successful `/refresh`; the app only ever *clears* it (`clearTokens()`), because the SDK never touches storage on a failed refresh and a dead token would otherwise replay a `400` on every page load. |
 | `authProviderMarker` | `storeSession()` on sign-in | Marker that minted the session (`'email'`, `'google'`, …). `AuthProvider.refresh` / `.logout` must be called with the same marker, otherwise OneEntry rejects the call and the shopper is silently signed out. |
 | `oe_user_identifier` | `writeUserIdentifier()` on sign-in | OneEntry `userIdentifier`. Required as `moduleEntityIdentifier` when creating form-data records (addresses, profile extras, subscriptions, service requests) — there is no way back to it from the token alone without an extra `/me` round-trip. |
@@ -148,6 +148,7 @@ None of the above is implemented today.
 The sign-up form is driven by the CMS attribute set `users_sign_in_sign_up`. `loadSignUpFormSchema(lang)` (`src/lib/oneentry/auth/sign-up-form.ts`) reads it, and `SignUpFormSchemaProvider` (`src/lib/oneentry/auth/SignUpFormSchemaContext.tsx`) exposes it to `RegisterModal`.
 
 Fields (all CMS-controlled):
+
 - email
 - password
 - first_name
@@ -188,12 +189,12 @@ On mount, `AuthContext` calls `getCurrentUserAction()`:
 
 ## 7. Post-sign-in mutations
 
-`src/lib/oneentry/auth/actions.ts` exports the auth Server Action set. `AuthContext` exposes **11 mutation methods** through the hook: `login`, `startGoogleOAuth`, `signUp`, `logout`, `updateUser` (local optimistic merge, no Server Action), `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist` — plus 4 modal state helpers (`openLoginModal`, `closeLoginModal`, `openRegisterModal`, `closeRegisterModal`) and 3 state fields (`isLoggedIn`, `user`, `authReady`). `startGoogleOAuth` does **not** return a result — it navigates the browser to Google via `getGoogleAuthUrlAction`. The remaining Server Actions (`exchangeGoogleCodeAction`, `getCartAction`, `getWishlistAction`, `pushRecentlyViewedAction`, `getRecentlyViewedAction`, `mergeRecentlyViewedAction`, `createOrderAction`) are called **directly** — `exchangeGoogleCodeAction` from the `app/auth/callback/google/route.ts` route handler, the rest from components (PDP, ProductDetailPage bootstrap, PaymentPage). Grouped:
+`src/lib/oneentry/auth/actions.ts` exports the auth Server Action set. `AuthContext` exposes **11 mutation methods** through the hook: `login`, `startGoogleOAuth`, `signUp`, `logout`, `updateUser` (local optimistic merge, no Server Action), `updateProfile`, `updateAddresses`, `updateSubscriptions`, `updateConsent`, `syncCart`, `syncWishlist` — plus 4 modal state helpers (`openLoginModal`, `closeLoginModal`, `openRegisterModal`, `closeRegisterModal`) and 3 state fields (`isLoggedIn`, `user`, `authReady`). `startGoogleOAuth` does **not** return a result — it navigates the browser to Google via `getGoogleAuthUrlAction`. The remaining Server Actions (`exchangeGoogleCodeAction`, `getCartAction`, `getWishlistAction`, `pushRecentlyViewedAction`, `getRecentlyViewedAction`, `mergeRecentlyViewedAction`, `createOrderAction`) are called **directly** — `exchangeGoogleCodeAction` from the `app/auth/callback/google/page.tsx` route handler, the rest from components (PDP, ProductDetailPage bootstrap, PaymentPage). Grouped:
 
 **Wrapped by `AuthContext` (exposed as hook methods):**
 
 | Callback | Server Action | Effect |
-|---|---|---|
+| --- | --- | --- |
 | `updateProfile(patch)` | `updateProfileAction(patch)` | Persists `firstName / lastName / email / phone / gender / dob / shoeSize / clothingSize`. On success, calls `getCurrentUserAction()` and re-merges. |
 | `updateAddresses(addresses)` | `updateAddressesAction(addresses)` | Full-replace upsert of the user's address list (form-data `user_addresses`, moduleConfigId 24). Returns the canonical list with populated `recordId`s. |
 | `updateSubscriptions(subs)` | `updateSubscriptionsAction(subs)` | Persists the `OeSubscriptions` object into `subscription_management` (moduleConfigId 32). |
@@ -206,7 +207,7 @@ Each returns `{ok, error?}`; the `sync*` variants are fire-and-forget.
 **Called directly from components (not wrapped in the context):**
 
 | Action | Consumer | Effect |
-|---|---|---|
+| --- | --- | --- |
 | `completeGoogleSignIn({code, state, origin})` | `GoogleCallbackClient` (`app/auth/callback/google/page.tsx`) | Captures the browser fingerprint, delegates the exchange to the `exchangeGoogleCodeAction` Server Action, then installs the returned tokens locally and hydrates `/me`. Also links Google to an already-authenticated shopper when a session is live. |
 | `getCartAction()` | E2E specs, future refresher | Reads `OeCartItem[]` from user state. |
 | `getWishlistAction()` | E2E specs, future refresher | Reads `OeWishlistItem[]` from user state. |
@@ -256,6 +257,7 @@ Modal open/close lives in `AuthContext` state, not Redux:
 Opening either modal closes the other — this prevents both from ever showing simultaneously.
 
 Trigger points:
+
 - Header "profile" icon → `openLoginModal()` when logged out.
 - Checkout `<GuestCheckoutModal>` "Sign in" button → `openLoginModal()`.
 - QuickView "Be the first to review" button → closes QuickView, calls `openLoginModal()` when `isLoggedIn === false`; if signed in but no delivered order, shows an inline amber notice instead of opening `WriteReviewModal`.
@@ -283,9 +285,9 @@ Every shopper-scoped call opens with `hasStoredSession()` and returns `{ok:false
 ## 12. Error handling
 
 | Failure | Behaviour |
-|---|---|
+| --- | --- |
 | Wrong password (4xx from OE) | `signInAction` returns `{ok:false, error}`. Modal renders "Wrong credentials". |
-| Google code exchange failure (bad `state`, Google denies, OE `oauth` throws) | `exchangeGoogleCodeAction` returns `{ok:false, error}`. `app/auth/callback/google/route.ts` redirects to `/?googleAuthError=<code>` — the landing page can surface the code inline. |
+| Google code exchange failure (bad `state`, Google denies, OE `oauth` throws) | `exchangeGoogleCodeAction` returns `{ok:false, error}`. `app/auth/callback/google/page.tsx` redirects to `/?googleAuthError=<code>` — the landing page can surface the code inline. |
 | Network failure to OneEntry | Server Action throws; Next.js surfaces it as `{ok:false}`. No mock fallback — configure `ONEENTRY_URL` / `ONEENTRY_TOKEN`. |
 | Missing env vars at server boot | `getApi()` throws `'OneEntry SDK is not configured'`. Every auth action fails immediately. |
 | Refresh token dead / revoked | `getCurrentUserAction()` returns `null` and calls `clearTokens()`; `AuthContext` shows the sign-in prompt on the next mount. |
