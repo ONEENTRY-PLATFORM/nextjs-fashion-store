@@ -11,15 +11,15 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Footer newsletter form', () => {
   test.beforeEach(async ({ page }) => {
-    // `domcontentloaded`, not the default `load`: the homepage pulls remote
-    // hero imagery, so waiting for every subresource makes the dev server time
-    // out well before the footer (which is server-rendered) is inspectable.
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-    // Generous timeout: with both projects running, the dev server compiles the
-    // route on first hit and can take far longer than the default 15s.
+    // Asserted on an info page rather than the homepage: the footer is the same
+    // on every route, but the homepage's hero imagery keeps reflowing the layout
+    // while it loads, so the form never settles long enough to interact with.
+    await page.goto('/about-us', { waitUntil: 'domcontentloaded' });
+    // Wait for attachment only. No explicit scroll: the page is still painting
+    // and Playwright rejects a scroll on an element it considers unstable —
+    // `fill`/`click` scroll into view on their own anyway.
     const form = page.locator('[data-testid="newsletter-form"]');
     await form.waitFor({ state: 'attached', timeout: 60_000 });
-    await form.scrollIntoViewIfNeeded();
   });
 
   test('renders with copy sourced from OneEntry', async ({ page }) => {
@@ -40,15 +40,31 @@ test.describe('Footer newsletter form', () => {
 
   test('submit stays disabled until an email is entered', async ({ page }) => {
     const submit = page.locator('[data-testid="newsletter-submit"]');
+    const email = page.locator('[data-testid="newsletter-email"]');
     await expect(submit).toBeDisabled();
 
-    await page.locator('[data-testid="newsletter-email"]').fill('shopper@example.com');
-    await expect(submit).toBeEnabled();
+    // A plain <input> is editable before React hydrates, so an early `fill`
+    // lands in the DOM but never reaches component state and the button stays
+    // disabled. Retry the fill until the state actually flips.
+    await expect
+      .poll(async () => {
+        await email.fill('shopper@example.com');
+        return submit.isEnabled();
+      }, { timeout: 45_000 })
+      .toBe(true);
   });
 
   test('reports an outcome after submitting', async ({ page }) => {
-    await page.locator('[data-testid="newsletter-email"]').fill(`e2e-${Date.now()}@example.com`);
-    await page.locator('[data-testid="newsletter-submit"]').click();
+    const email = page.locator('[data-testid="newsletter-email"]');
+    const submit = page.locator('[data-testid="newsletter-submit"]');
+    // Same hydration caveat as above — only click once the button has enabled.
+    await expect
+      .poll(async () => {
+        await email.fill(`e2e-${Date.now()}@example.com`);
+        return submit.isEnabled();
+      }, { timeout: 45_000 })
+      .toBe(true);
+    await submit.click();
 
     // Either OE accepts the subscription or it reports a failure — both paths
     // must surface a non-empty message in the live region rather than a silent

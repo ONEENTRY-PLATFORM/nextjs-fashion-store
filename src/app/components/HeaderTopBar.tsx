@@ -6,8 +6,7 @@ import {
 } from '@heroicons/react/24/outline';
 import {
   HEADER_REGIONS, SUPPORT_PHONE,
-  DEFAULT_REGION_LABEL, FALLBACK_LANGUAGE_LABEL,
-  STORE_LOCATIONS_LABEL, STORE_LOCATIONS_HREF,
+  FALLBACK_LANGUAGE_LABEL, STORE_LOCATIONS_HREF,
 } from '../data/headerConfig';
 import { useHeaderT, useHeaderList, useCmsLocales } from '../../lib/oneentry/labels/HeaderLabelsContext';
 
@@ -17,10 +16,10 @@ export function HeaderTopBar() {
   const [langOpen, setLangOpen] = useState(false);
 
   // Copy from the OE `header` set; local constants are the offline fallback.
-  const lRegion = useHeaderT('header_default_region', DEFAULT_REGION_LABEL);
+  const lRegion = useHeaderT('header_default_region', 'Europe');
   const regions = useHeaderList('header_regions', HEADER_REGIONS);
   const lPhone = useHeaderT('header_support_phone', SUPPORT_PHONE);
-  const lStores = useHeaderT('header_store_locations', STORE_LOCATIONS_LABEL);
+  const lStores = useHeaderT('header_store_locations', 'Store Locations');
 
   // Languages are the project's active locales, not a curated list — adding a
   // locale in the admin panel surfaces it here with no code change.

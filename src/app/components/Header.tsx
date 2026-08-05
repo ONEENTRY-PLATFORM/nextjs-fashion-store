@@ -25,10 +25,9 @@ import { adaptHeaderMenuToMega } from '../../lib/oneentry/menus/adapt-header';
 import { HEADER_ARIA } from '../data/commonLabels';
 import {
   LOGO_ALT,
-  SEARCH_PLACEHOLDER, SEARCH_PLACEHOLDER_MOBILE,
+  SEARCH_PLACEHOLDER,
   ACCOUNT_HREF, WISHLIST_HREF,
   GENDER_NAV_HREFS,
-  HEADER_ARIA_LABELS, HEADER_ARIA_KEYS,
   WOMEN_COLOR,
   MEN_COLOR,
 } from '../data/headerConfig';
@@ -40,14 +39,14 @@ export function Header() {
   const lSearch = useInterfaceControlsT('search', SEARCH_PLACEHOLDER);
   // Header copy from the OE `header` set — local constants are the fallback.
   const lLogoAlt      = useHeaderT('header_logo_alt', LOGO_ALT);
-  const lSearchMobile = useHeaderT('header_search_placeholder_mobile', SEARCH_PLACEHOLDER_MOBILE);
-  const aOpenMenu     = useHeaderT(HEADER_ARIA_KEYS.openMenu, HEADER_ARIA_LABELS.openMenu);
-  const aToggleSearch = useHeaderT(HEADER_ARIA_KEYS.toggleSearch, HEADER_ARIA_LABELS.toggleSearch);
-  const aSearchDesk   = useHeaderT(HEADER_ARIA_KEYS.searchDesktop, HEADER_ARIA_LABELS.searchDesktop);
-  const aSearchMob    = useHeaderT(HEADER_ARIA_KEYS.searchMobile, HEADER_ARIA_LABELS.searchMobile);
-  const aAccount      = useHeaderT(HEADER_ARIA_KEYS.account, HEADER_ARIA_LABELS.account);
-  const aWishlist     = useHeaderT(HEADER_ARIA_KEYS.wishlist, HEADER_ARIA_LABELS.wishlist);
-  const aBag          = useHeaderT(HEADER_ARIA_KEYS.bag, HEADER_ARIA_LABELS.bag);
+  const lSearchMobile = useHeaderT('header_search_placeholder_mobile', 'Search...');
+  const aOpenMenu     = useHeaderT('header_aria_open_menu', 'Open menu');
+  const aToggleSearch = useHeaderT('header_aria_toggle_search', 'Toggle search');
+  const aSearchDesk   = useHeaderT('header_aria_search_desktop', 'Search products');
+  const aSearchMob    = useHeaderT('header_aria_search_mobile', 'Search products');
+  const aAccount      = useHeaderT('header_aria_account', 'My account');
+  const aWishlist     = useHeaderT('header_aria_wishlist', 'Wishlist');
+  const aBag          = useHeaderT('header_aria_bag', 'Shopping bag');
   const [activeGender, setActiveGender] = useState<Gender>('women');
   const [activeDropdown, setActiveDropdown] = useState<SubCat>(null);
   const [mobileOpen, setMobileOpen] = useState(false);

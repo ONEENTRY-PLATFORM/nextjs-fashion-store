@@ -50,7 +50,9 @@ test.describe('Header copy from CMS', () => {
 
   test('store locations link navigates to /stores', async ({ page }) => {
     await page.locator('[data-testid="header-store-locations"]').click();
-    await page.waitForURL('**/stores', { timeout: 30_000 });
+    // First hit compiles the /stores route on a dev server, which can exceed
+    // the default navigation budget.
+    await page.waitForURL('**/stores', { timeout: 90_000 });
     expect(page.url()).toContain('/stores');
   });
 });

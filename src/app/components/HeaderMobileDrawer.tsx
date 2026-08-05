@@ -7,8 +7,7 @@ import { SUB_CATEGORIES, type Gender } from '../data/categories';
 import { useHeaderMenu } from '../../lib/oneentry/menus/HeaderMenuContext';
 import { adaptHeaderMenuToMega } from '../../lib/oneentry/menus/adapt-header';
 import {
-  LOGO_ALT, SUPPORT_PHONE, GENDER_NAV_HREFS,
-  MOBILE_FOOTER_LINKS, HEADER_ARIA_LABELS, HEADER_ARIA_KEYS,
+  LOGO_ALT, SUPPORT_PHONE, GENDER_NAV_HREFS, MOBILE_FOOTER_LINKS,
 } from '../data/headerConfig';
 import { useHeaderT } from '../../lib/oneentry/labels/HeaderLabelsContext';
 import { useRouter } from 'next/navigation';
@@ -39,7 +38,7 @@ export function HeaderMobileDrawer({
   // Header copy from the OE `header` set; constants are the offline fallback.
   const lLogoAlt   = useHeaderT('header_logo_alt', LOGO_ALT);
   const lPhone     = useHeaderT('header_support_phone', SUPPORT_PHONE);
-  const aCloseMenu = useHeaderT(HEADER_ARIA_KEYS.closeMenu, HEADER_ARIA_LABELS.closeMenu);
+  const aCloseMenu = useHeaderT('header_aria_close_menu', 'Close menu');
 
   const router = useRouter();
   const cmsHeaderMenu = useHeaderMenu();

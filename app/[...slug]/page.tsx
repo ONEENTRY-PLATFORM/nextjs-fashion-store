@@ -9,7 +9,6 @@ import {
 } from '../../src/app/data/pageRegistry';
 import { SITE_URL } from '../../src/app/data/seoData';
 import { INFO_PAGE_META } from '../../src/app/data/infoPages';
-import { INFO_PAGE_SCHEMA } from '../../src/app/data/infoPageLabels';
 import { FAQ_ITEMS } from '../../src/app/data/faqData';
 import { JsonLd } from '../../src/app/components/JsonLd';
 import { loadProducts, loadFilteredProducts } from '../../src/lib/oneentry/catalog/products';
@@ -396,13 +395,13 @@ export default async function Page({ params, searchParams }: Props) {
     const label = (key: string, fallback: string) => infoLabels[key] || fallback;
 
     const pageTitle = isHub
-      ? label('info_hub_title', INFO_PAGE_SCHEMA.hubTitle)
+      ? label('info_hub_title', 'Content Hub')
       : (INFO_PAGE_META[entry.slug]?.title ?? entry.slug);
-    const crumbHome = label('info_breadcrumb_home', INFO_PAGE_SCHEMA.breadcrumbHome);
+    const crumbHome = label('info_breadcrumb_home', 'Home');
 
     const breadcrumbSchema = buildBreadcrumbSchema(
       isHub
-        ? [{ name: crumbHome, href: '/' }, { name: label('info_breadcrumb_info', INFO_PAGE_SCHEMA.breadcrumbInfo) }]
+        ? [{ name: crumbHome, href: '/' }, { name: label('info_breadcrumb_info', 'Info') }]
         : [{ name: crumbHome, href: '/' }, { name: pageTitle }]
     );
 

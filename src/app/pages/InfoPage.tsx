@@ -8,17 +8,26 @@ import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { ChevronRight, Edit3, LayoutTemplate, Globe, Zap } from 'lucide-react';
 import {
-  INFO_PAGE_LABELS as IPL,
-  INFO_PAGE_DEMO_NOTICE as IDN,
-  INFO_PAGE_HERO as IH,
-  INFO_PAGE_CTA as IC,
   INFO_PAGE_SECTIONS,
+  INFO_PAGE_STATS,
   INFO_PAGE_FEATURE_CARDS,
 } from '../data/infoPageLabels';
 import { useInfoPageT } from '../../lib/oneentry/labels/InfoPageLabelsContext';
 
 /** Marker prefix of the OE `common_block`s that carry the editorial sections. */
 const SECTION_BLOCK_PREFIX = 'info_section_';
+
+/* Offline fallbacks for the two long-form paragraphs. Short one-off strings are
+   passed inline at the `useInfoPageT` call site — a separate dictionary file for
+   a string used once only adds an indirection that drifts out of sync. These two
+   are constants purely because a 300-character literal inside a hook call is
+   unreadable. */
+const FALLBACK_LEAD =
+  "Kekimoro was born from a simple belief: great style should never come at the expense of quality or conscience. "
+  + "Below you'll find everything about who we are, how we work, and how we can help — all managed and updated in real time through the OneEntry Platform.";
+const FALLBACK_CTA_BODY =
+  'Every section above — headings, body text, images, layout order — is stored in the OneEntry Platform and can be updated '
+  + 'by your marketing team in real time, with no code changes and no redeployment required.';
 
 interface InfoSection {
   eyebrow: string;
@@ -84,35 +93,35 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   // Page chrome copy from the OE `info_page` set; the local dataset is the
   // offline fallback. Icon choice for the feature cards stays in code — it
   // selects a component, it is not copy.
-  const heroHeading   = useInfoPageT('info_hero_heading', IH.heading);
-  const heroSubtitle  = useInfoPageT('info_hero_subtitle', IH.subtitle);
-  const heroImageAlt  = useInfoPageT('info_hero_image_alt', IH.heroImageAlt);
-  const crumbHome     = useInfoPageT('info_hero_breadcrumb_home', IH.breadcrumbHome);
-  const crumbCurrent  = useInfoPageT('info_hero_breadcrumb_current', IH.breadcrumbCurrent);
-  const demoStrong    = useInfoPageT('info_demo_strong', IDN.demoPageStrong);
-  const demoMid       = useInfoPageT('info_demo_mid', IDN.demoPageMid);
-  const demoPlatform  = useInfoPageT('info_demo_platform', IDN.platformStrong);
-  const demoSuffix    = useInfoPageT('info_demo_suffix', IDN.platformSuffix);
-  const leadParagraph = useInfoPageT('info_lead_paragraph', IC.leadParagraph);
-  const ctaEyebrow    = useInfoPageT('info_cta_eyebrow', IC.ctaEyebrow);
-  const ctaHeading    = useInfoPageT('info_cta_heading', IC.ctaHeading);
-  const ctaBody       = useInfoPageT('info_cta_body', IC.ctaBody);
-  const ctaExplore    = useInfoPageT('info_cta_explore_label', IC.ctaExplorePlatform);
-  const ctaExploreShort = useInfoPageT('info_cta_explore_short', IC.exploreOneEntryShort);
-  const ctaExploreHref  = useInfoPageT('info_cta_explore_href', IC.exploreOneEntryHref);
-  const ctaSdkLabel   = useInfoPageT('info_cta_sdk_label', IC.ctaSdkDocs);
-  const ctaSdkHref    = useInfoPageT('info_cta_sdk_href', IC.ctaSdkDocsHref);
+  const heroHeading   = useInfoPageT('info_hero_heading', 'About Kekimoro');
+  const heroSubtitle  = useInfoPageT('info_hero_subtitle', 'Our story, our values, delivery, returns, sizing and more — everything you need to know.');
+  const heroImageAlt  = useInfoPageT('info_hero_image_alt', 'Kekimoro editorial');
+  const crumbHome     = useInfoPageT('info_hero_breadcrumb_home', 'Home');
+  const crumbCurrent  = useInfoPageT('info_hero_breadcrumb_current', 'Info');
+  const demoStrong    = useInfoPageT('info_demo_strong', 'Demo page');
+  const demoMid       = useInfoPageT('info_demo_mid', '— This content is managed through the');
+  const demoPlatform  = useInfoPageT('info_demo_platform', 'OneEntry Platform');
+  const demoSuffix    = useInfoPageT('info_demo_suffix', '. Edit text, images and layout from your dashboard — no code required.');
+  const leadParagraph = useInfoPageT('info_lead_paragraph', FALLBACK_LEAD);
+  const ctaEyebrow    = useInfoPageT('info_cta_eyebrow', 'Powered by OneEntry Platform');
+  const ctaHeading    = useInfoPageT('info_cta_heading', 'This entire page is editable from the dashboard');
+  const ctaBody       = useInfoPageT('info_cta_body', FALLBACK_CTA_BODY);
+  const ctaExplore    = useInfoPageT('info_cta_explore_label', 'Explore OneEntry Platform');
+  const ctaExploreShort = useInfoPageT('info_cta_explore_short', 'Explore OneEntry →');
+  const ctaExploreHref  = useInfoPageT('info_cta_explore_href', 'https://oneentry.cloud');
+  const ctaSdkLabel   = useInfoPageT('info_cta_sdk_label', 'View SDK Docs');
+  const ctaSdkHref    = useInfoPageT('info_cta_sdk_href', 'https://js-sdk.oneentry.cloud/docs/index/');
 
   // Four stats and four cards are a fixed layout slot, so each key is read with
   // its own top-level hook call — a loop would break the rules of hooks.
-  const stat1Value = useInfoPageT('info_stat_1_value', IPL.stats[0]?.value ?? '');
-  const stat1Label = useInfoPageT('info_stat_1_label', IPL.stats[0]?.label ?? '');
-  const stat2Value = useInfoPageT('info_stat_2_value', IPL.stats[1]?.value ?? '');
-  const stat2Label = useInfoPageT('info_stat_2_label', IPL.stats[1]?.label ?? '');
-  const stat3Value = useInfoPageT('info_stat_3_value', IPL.stats[2]?.value ?? '');
-  const stat3Label = useInfoPageT('info_stat_3_label', IPL.stats[2]?.label ?? '');
-  const stat4Value = useInfoPageT('info_stat_4_value', IPL.stats[3]?.value ?? '');
-  const stat4Label = useInfoPageT('info_stat_4_label', IPL.stats[3]?.label ?? '');
+  const stat1Value = useInfoPageT('info_stat_1_value', INFO_PAGE_STATS[0]?.value ?? '');
+  const stat1Label = useInfoPageT('info_stat_1_label', INFO_PAGE_STATS[0]?.label ?? '');
+  const stat2Value = useInfoPageT('info_stat_2_value', INFO_PAGE_STATS[1]?.value ?? '');
+  const stat2Label = useInfoPageT('info_stat_2_label', INFO_PAGE_STATS[1]?.label ?? '');
+  const stat3Value = useInfoPageT('info_stat_3_value', INFO_PAGE_STATS[2]?.value ?? '');
+  const stat3Label = useInfoPageT('info_stat_3_label', INFO_PAGE_STATS[2]?.label ?? '');
+  const stat4Value = useInfoPageT('info_stat_4_value', INFO_PAGE_STATS[3]?.value ?? '');
+  const stat4Label = useInfoPageT('info_stat_4_label', INFO_PAGE_STATS[3]?.label ?? '');
   const stats = [
     { value: stat1Value, label: stat1Label },
     { value: stat2Value, label: stat2Label },

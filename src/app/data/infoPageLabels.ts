@@ -1,44 +1,17 @@
 /**
- * Info / About page UI copy.
- * Stats strip displayed across all info-content pages.
+ * Structural fallbacks for the info pages.
+ *
+ * Live content comes from OneEntry — editorial sections from the
+ * `info_section_*` blocks, page chrome from the `info_page` system-text set.
+ * What remains here is only what a plain string cannot express: repeated
+ * shapes (sections, stats, feature cards) rendered by a `.map()`.
+ *
+ * One-off strings are NOT kept here: their fallback is passed inline at the
+ * `use*T` call site, so the OE key and its offline value sit side by side and
+ * cannot drift apart.
  */
-export const INFO_PAGE_DEMO_NOTICE = {
-  demoPageStrong: 'Demo page',
-  demoPageMid: '— This content is managed through the',
-  platformStrong: 'OneEntry Platform',
-  platformSuffix: '. Edit text, images and layout from your dashboard — no code required.',
-} as const;
 
-export const INFO_PAGE_SCHEMA = {
-  hubTitle: 'Content Hub',
-  breadcrumbHome: 'Home',
-  breadcrumbInfo: 'Info',
-} as const;
-
-export const INFO_PAGE_HERO = {
-  breadcrumbHome: 'Home',
-  breadcrumbCurrent: 'Info',
-  heroImageAlt: 'Kekimoro editorial',
-  heading: 'About Kekimoro',
-  subtitle: 'Our story, our values, delivery, returns, sizing and more — everything you need to know.',
-} as const;
-
-export const INFO_PAGE_CTA = {
-  exploreOneEntryShort: 'Explore OneEntry →',
-  exploreOneEntryHref: 'https://oneentry.cloud',
-  leadParagraph:
-    'Kekimoro was born from a simple belief: great style should never come at the expense of quality or conscience. ' +
-    "Below you'll find everything about who we are, how we work, and how we can help — all managed and updated in real time through the OneEntry Platform.",
-  ctaEyebrow: 'Powered by OneEntry Platform',
-  ctaHeading: 'This entire page is editable from the dashboard',
-  ctaBody:
-    'Every section above — headings, body text, images, layout order — is stored in the OneEntry Platform and can be updated ' +
-    'by your marketing team in real time, with no code changes and no redeployment required.',
-  ctaExplorePlatform: 'Explore OneEntry Platform',
-  ctaSdkDocs: 'View SDK Docs',
-  ctaSdkDocsHref: 'https://js-sdk.oneentry.cloud/docs/index/',
-} as const;
-
+/** Editorial sections — mirrors the OE `info_section_*` blocks. */
 export const INFO_PAGE_SECTIONS = [
   {
     eyebrow: 'About Us',
@@ -74,6 +47,18 @@ export const INFO_PAGE_SECTIONS = [
   },
 ] as const;
 
+/** Stats strip — OE keys `info_stat_{n}_value` / `info_stat_{n}_label`. */
+export const INFO_PAGE_STATS = [
+  { value: '40+',     label: 'Countries Shipped' },
+  { value: '120+',    label: 'Partner Brands' },
+  { value: '30 days', label: 'Free Returns' },
+  { value: '24 / 7',  label: 'Customer Support' },
+] as const;
+
+/**
+ * Feature cards — OE keys `info_card_{n}_title` / `info_card_{n}_desc`.
+ * `iconKey` is deliberately code-only: it selects a component, not copy.
+ */
 export const INFO_PAGE_FEATURE_CARDS = [
   {
     iconKey: 'edit' as const,
@@ -96,12 +81,3 @@ export const INFO_PAGE_FEATURE_CARDS = [
     desc: 'Manage content in every language your customers speak, all from one unified dashboard.',
   },
 ] as const;
-
-export const INFO_PAGE_LABELS = {
-  stats: [
-    { value: '40+',     label: 'Countries Shipped' },
-    { value: '120+',    label: 'Partner Brands' },
-    { value: '30 days', label: 'Free Returns' },
-    { value: '24 / 7',  label: 'Customer Support' },
-  ] as const,
-} as const;
