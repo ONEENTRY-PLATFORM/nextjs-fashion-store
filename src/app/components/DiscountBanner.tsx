@@ -15,13 +15,13 @@ export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBann
 
   if (!mounted) {
     return (
-      <section className="relative w-full bg-gray-100 animate-pulse h-[480px]" aria-hidden="true" />
+      <section className="relative w-full bg-gray-100 animate-pulse h-120" aria-hidden="true" />
     );
   }
 
   return (
     <section
-      className="relative w-full overflow-hidden h-[480px]"
+      className="relative w-full overflow-hidden h-120"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

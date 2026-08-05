@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const postFormsData = vi.fn();
 const revalidateTag = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ FormData: { postFormsData } }),
   isOneEntryEnabled: true,
   isError: (v: unknown): v is { message?: string; statusCode?: number } =>
@@ -17,7 +17,7 @@ vi.mock('next/cache', () => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./submit');
+  return import('@/lib/oneentry/forms/submit');
 };
 
 beforeEach(() => {
@@ -85,12 +85,12 @@ describe('submitForm', () => {
 describe('submitForm — disabled', () => {
   it('returns ok:false when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false, isError: () => false }));
-    const { submitForm } = await import('./submit');
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false, isError: () => false }));
+    const { submitForm } = await import('@/lib/oneentry/forms/submit');
     const result = await submitForm('subscribe_new_drops', []);
     expect(result.ok).toBe(false);
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });
 

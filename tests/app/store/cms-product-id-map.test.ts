@@ -3,7 +3,7 @@ import {
   getCmsProductId,
   extractCmsProductId,
   getPlaygroundProductId,
-} from '../../data/cms-product-id-map';
+} from '@/app/data/cms-product-id-map';
 
 describe('getCmsProductId', () => {
   it('converts a numeric string to a number', () => {

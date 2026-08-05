@@ -7,7 +7,7 @@
  * which is tested exhaustively below.
  */
 import { describe, expect, it } from 'vitest';
-import { applyProductDiscount, RawProductDiscount } from './product-discount';
+import { applyProductDiscount, RawProductDiscount } from '@/lib/oneentry/discounts/product-discount';
 
 // ---------------------------------------------------------------------------
 // Helpers

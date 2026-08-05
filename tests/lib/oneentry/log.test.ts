@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./log');
+  return import('@/lib/oneentry/log');
 };
 
 afterEach(() => {

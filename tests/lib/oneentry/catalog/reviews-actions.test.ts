@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock './reviews' at the module boundary so no SDK / network calls are made.
 const loadProductReviews = vi.fn();
-vi.mock('./reviews', () => ({ loadProductReviews }));
+vi.mock('@/lib/oneentry/catalog/reviews', () => ({ loadProductReviews }));
 
 // 'use server' files may reference next/cache — shim it so the import resolves.
 vi.mock('next/cache', () => ({
@@ -11,7 +11,7 @@ vi.mock('next/cache', () => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./reviews-actions');
+  return import('@/lib/oneentry/catalog/reviews-actions');
 };
 
 beforeEach(() => {

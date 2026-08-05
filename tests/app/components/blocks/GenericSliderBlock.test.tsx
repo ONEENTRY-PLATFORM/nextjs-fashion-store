@@ -96,7 +96,7 @@ const positionalSlide = () => ({
 
 describe('GenericSliderBlock — semantic attribute keys', () => {
   it('renders headline, eyebrow, subtext and CTA from hp_b_b_* keys', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(<GenericSliderBlock slides={[semanticSlide()]} title="Hero" />);
 
@@ -110,7 +110,7 @@ describe('GenericSliderBlock — semantic attribute keys', () => {
   });
 
   it('renders image with correct src from hp_b_b_pic array attribute', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(<GenericSliderBlock slides={[semanticSlide()]} />);
 
@@ -120,7 +120,7 @@ describe('GenericSliderBlock — semantic attribute keys', () => {
   });
 
   it('hides CTA when cta_text present but cta_link absent', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     const slide = semanticSlide();
     delete (slide.attributeValues as Record<string, unknown>).hp_b_b_cta_link;
@@ -134,7 +134,7 @@ describe('GenericSliderBlock — semantic attribute keys', () => {
 
 describe('GenericSliderBlock — positional fallback keys', () => {
   it('renders headline, eyebrow, subtext and CTA from string_id*/image_id* keys', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(<GenericSliderBlock slides={[positionalSlide()]} title="Positional Slider" />);
 
@@ -148,7 +148,7 @@ describe('GenericSliderBlock — positional fallback keys', () => {
   });
 
   it('renders image from image_id4 positional key', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(<GenericSliderBlock slides={[positionalSlide()]} />);
 
@@ -161,7 +161,7 @@ describe('GenericSliderBlock — positional fallback keys', () => {
 
 describe('GenericSliderBlock — single-slide carousel controls', () => {
   it('hides prev/next buttons and dots when only one slide is present', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(<GenericSliderBlock slides={[semanticSlide()]} />);
 
@@ -183,7 +183,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
   });
 
   it('shows prev/next buttons and dot buttons when multiple slides are present', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(
       <GenericSliderBlock
@@ -197,7 +197,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
   });
 
   it('clicking Next advances to the next slide headline', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(
       <GenericSliderBlock
@@ -222,7 +222,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
   });
 
   it('clicking Prev wraps around to the last slide from the first', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(
       <GenericSliderBlock
@@ -237,7 +237,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
   });
 
   it('clicking a dot button navigates directly to that slide', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     render(
       <GenericSliderBlock
@@ -256,21 +256,21 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
 
 describe('GenericSliderBlock — edge cases', () => {
   it('returns null when slides prop is an empty array', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     const { container } = render(<GenericSliderBlock slides={[]} />);
     expect(container.firstChild).toBeNull();
   });
 
   it('returns null when slides prop is undefined', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     const { container } = render(<GenericSliderBlock />);
     expect(container.firstChild).toBeNull();
   });
 
   it('filters out slides that have neither image nor headline', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     const validSlide = {
       id: 1,
@@ -290,7 +290,7 @@ describe('GenericSliderBlock — edge cases', () => {
   });
 
   it('returns null when all slides fail the image-or-headline filter', async () => {
-    const { GenericSliderBlock } = await import('./GenericSliderBlock');
+    const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
     const { container } = render(
       <GenericSliderBlock

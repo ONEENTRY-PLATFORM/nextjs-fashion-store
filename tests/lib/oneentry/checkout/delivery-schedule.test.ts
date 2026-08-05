@@ -7,8 +7,8 @@ vi.mock('next/cache', () => ({
 
 const getAttributesByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApi: () => ({ AttributesSets: { getAttributesByMarker } }),
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -16,10 +16,10 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./delivery-schedule');
+  return import('@/lib/oneentry/checkout/delivery-schedule');
 };
 
-import { DELIVERY_TIME_SLOTS } from '../../../app/data/checkoutConfig';
+import { DELIVERY_TIME_SLOTS } from '@/app/data/checkoutConfig';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

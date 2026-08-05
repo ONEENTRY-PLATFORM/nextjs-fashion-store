@@ -7,8 +7,8 @@ vi.mock('next/cache', () => ({
 
 const getFormByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApi: () => ({ Forms: { getFormByMarker } }),
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -16,13 +16,13 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./delivery-methods');
+  return import('@/lib/oneentry/checkout/delivery-methods');
 };
 
 // ── Fallback constants (mirror checkoutLabels / checkoutConfig) ────────────────
 // We import them statically once; the mock above keeps their module untouched.
-import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_METHOD_STORE_LABELS, DELIVERY_METHOD_LOCKER_LABELS } from '../../../app/data/checkoutLabels';
-import { DELIVERY_PERKS, PICKUP_PERKS } from '../../../app/data/checkoutConfig';
+import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_METHOD_STORE_LABELS, DELIVERY_METHOD_LOCKER_LABELS } from '@/app/data/checkoutLabels';
+import { DELIVERY_PERKS, PICKUP_PERKS } from '@/app/data/checkoutConfig';
 
 const FALLBACK_HOME_PERKS  = DELIVERY_PERKS.map((p) => p.text);
 const FALLBACK_STORE_PERKS = PICKUP_PERKS.map((p) => p.text);

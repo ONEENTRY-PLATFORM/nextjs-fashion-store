@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import wishlistReducer, { wishlistActions } from '../wishlistSlice';
-import type { WishlistItem } from '../../context/WishlistContext';
-import type { WishlistItem as DataWishlistItem, WaitingItem } from '../../data/userData';
+import wishlistReducer, { wishlistActions } from '@/app/store/wishlistSlice';
+import type { WishlistItem } from '@/app/context/WishlistContext';
+import type { WishlistItem as DataWishlistItem, WaitingItem } from '@/app/data/userData';
 
 const makeItem = (overrides: Partial<WishlistItem> = {}): WishlistItem => ({
   id: 'item-1',

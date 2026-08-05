@@ -24,7 +24,7 @@ export default defineConfig({
         name: 'unit',
         environment: 'jsdom',
         globals: true,
-        include: ['src/**/*.{test,spec}.{ts,tsx}'],
+        include: ['tests/**/*.{test,spec}.{ts,tsx}'],
         exclude: ['node_modules', 'e2e', '.next', 'playwright-report', 'storybook-static'],
         // Capped deliberately. Vitest's default (~cores-1 forks) starves the
         // pool on this suite: each fork boots its own jsdom + transform

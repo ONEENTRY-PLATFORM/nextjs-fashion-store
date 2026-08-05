@@ -65,7 +65,7 @@ function flatAttrs(overrides: Record<string, unknown> = {}): Record<string, unkn
 
 describe('GenericCommonBlock — flat attribute shape', () => {
   it('renders label, title, subtitle, and description when matching keys are present', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock
@@ -86,7 +86,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
   });
 
   it('renders an <img> when hp_b_b_pic provides a downloadLink', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock
@@ -104,7 +104,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
   });
 
   it('renders CTA <a> when both cta_text and cta_link are set', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock
@@ -124,7 +124,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
   });
 
   it('hides CTA when only cta_text is present (no cta_link)', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock
@@ -141,7 +141,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
   });
 
   it('hides CTA when only cta_link is present (no cta_text)', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock
@@ -158,7 +158,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
   });
 
   it('falls back to the title prop when no attribute matches the title pattern', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock
@@ -174,7 +174,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
   });
 
   it('returns null when no image AND no title/subtitle/description is configured', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     const { container } = render(
       <GenericCommonBlock
@@ -193,7 +193,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
 
 describe('GenericCommonBlock — wrapped attribute shape', () => {
   it('flattens { en_US: { key: { value } } } and renders the same output as the flat shape', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock
@@ -213,7 +213,7 @@ describe('GenericCommonBlock — wrapped attribute shape', () => {
   });
 
   it('renders an image from the wrapped shape', async () => {
-    const { GenericCommonBlock } = await import('./GenericCommonBlock');
+    const { GenericCommonBlock } = await import('@/app/components/blocks/GenericCommonBlock');
 
     render(
       <GenericCommonBlock

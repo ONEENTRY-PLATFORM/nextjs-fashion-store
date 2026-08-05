@@ -10,7 +10,7 @@ Three test surfaces live in this repo, each with a distinct scope. This document
 
 **Config:** `vitest.config.ts`. Two logical projects:
 
-- **Main** (jsdom environment) — glob `src/**/*.{test,spec}.{ts,tsx}`. Excludes `node_modules`, `e2e`, `.next`, `playwright-report`, `storybook-static`.
+- **Main** (jsdom environment) — glob `tests/**/*.{test,spec}.{ts,tsx}`. Excludes `node_modules`, `e2e`, `.next`, `playwright-report`, `storybook-static`. The `tests/` tree mirrors `src/` (`tests/lib/oneentry/…` tests `src/lib/oneentry/…`), and test files reach their subject through the `@/` alias rather than relative paths.
 - **Storybook addon** — runs every `*.stories.tsx` as a smoke test via the Storybook Vitest addon.
 
 **Path alias:** `@/*` → `./src/*` (from `tsconfig.json`).
@@ -26,9 +26,9 @@ yarn test:watch   # vitest — watch mode
 
 | Area | Location |
 | --- | --- |
-| Redux slices | `src/app/store/__tests__/*.test.ts` |
-| RTK Query APIs | `src/app/store/api/__tests__/*.test.ts` |
-| OneEntry loaders | `src/lib/oneentry/**/*.test.ts` — `system-text`, `catalog/pages`, `catalog/products`, `blocks/{hero-slides,homepage-collections,category-section}`, `labels/*`, `menus/menus`, `forms/submit` |
+| Redux slices | `tests/app/store/*.test.ts` |
+| RTK Query APIs | `tests/app/store/{cartApi,wishlistApi}.test.ts` |
+| OneEntry loaders | `tests/lib/oneentry/**/*.test.ts` — `system-text`, `catalog/pages`, `catalog/products`, `blocks/{hero-slides,homepage-collections,category-section}`, `labels/*`, `menus/menus`, `forms/submit` |
 
 Coverage focus is on data-shape guarantees (adapter output, filter marker mapping, cache TTL) rather than UI rendering — the UI is covered by Storybook + Playwright.
 

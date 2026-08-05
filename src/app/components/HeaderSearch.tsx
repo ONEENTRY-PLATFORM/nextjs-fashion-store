@@ -118,7 +118,7 @@ export function HeaderSearch({
                     onClick={() => handleSelect(p.id)}
                     className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors focus-visible:outline-none focus:bg-gray-50"
                   >
-                    <div className="relative flex-shrink-0 w-12 h-14 bg-gray-100">
+                    <div className="relative shrink-0 w-12 h-14 bg-gray-100">
                       {p.image && (
                         <Image
                           src={p.image}

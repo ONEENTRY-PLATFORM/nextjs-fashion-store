@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { canReviewProduct } from './review-eligibility';
+import { canReviewProduct } from '@/app/utils/review-eligibility';
 
 // ── Minimal inline shape ──────────────────────────────────────────────────────
 

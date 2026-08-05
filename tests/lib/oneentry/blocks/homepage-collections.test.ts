@@ -7,8 +7,8 @@ vi.mock('next/cache', () => ({
 
 const getSlides = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Blocks: { getSlides } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -17,7 +17,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./homepage-collections');
+  return import('@/lib/oneentry/blocks/homepage-collections');
 };
 
 beforeEach(() => {

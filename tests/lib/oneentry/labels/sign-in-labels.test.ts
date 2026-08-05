@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
   }),
@@ -14,7 +14,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./sign-in-labels');
+  return import('@/lib/oneentry/labels/sign-in-labels');
 };
 
 beforeEach(() => {
@@ -42,11 +42,11 @@ describe('loadSignInSystemTexts', () => {
 describe('loadSignInSystemTexts — disabled', () => {
   it('returns empty record when SDK disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
-    const { loadSignInSystemTexts } = await import('./sign-in-labels');
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+    const { loadSignInSystemTexts } = await import('@/lib/oneentry/labels/sign-in-labels');
     const result = await loadSignInSystemTexts();
     expect(result).toEqual({});
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });

@@ -1,8 +1,8 @@
 /// <reference types="@testing-library/jest-dom" />
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { SizeDropdown } from './SizeDropdown';
-import { SIZE_DROPDOWN_LABELS as L } from '../data/commonLabels';
+import { SizeDropdown } from '@/app/components/SizeDropdown';
+import { SIZE_DROPDOWN_LABELS as L } from '@/app/data/commonLabels';
 
 describe('SizeDropdown', () => {
   beforeEach(() => {

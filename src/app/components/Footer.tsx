@@ -65,7 +65,7 @@ export function Footer() {
     <footer className="bg-black text-white">
       {/* Support Bar */}
       <div className="border-b border-white/10">
-        <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
           {(() => {
             // Icon *components*, not elements — an array of JSX elements is an
             // array of children React wants keys on, and rendering them by
@@ -91,7 +91,7 @@ export function Footer() {
       </div>
 
       {/* Main Footer Content */}
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 lg:col-span-2">
@@ -130,7 +130,7 @@ export function Footer() {
 
       {/* Newsletter */}
       <div className="border-t border-white/10">
-        <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
           <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.newsletterHeading}</p>
           <NewsletterForm />
         </div>
@@ -138,7 +138,7 @@ export function Footer() {
 
       {/* Payment Methods */}
       <div className="border-t border-white/10">
-        <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
           <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.acceptedPaymentMethods}</p>
           <div className="flex flex-wrap justify-center gap-3">
             {PAYMENT_METHOD_NAMES.map((name) => {
@@ -159,7 +159,7 @@ export function Footer() {
 
       {/* Social Media */}
       <div className="border-t border-white/10">
-        <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
           <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.followUs}</p>
           <div className="flex flex-wrap justify-center gap-4">
             {SOCIAL_LINKS.map(({ name, href }) => {
@@ -185,7 +185,7 @@ export function Footer() {
 
       {/* Bottom Bar */}
       <div className="border-t border-white/10">
-        <nav aria-label={FOOTER_ARIA.legalLinks} className="max-w-screen-xl mx-auto px-4 lg:px-8 py-4 flex flex-wrap items-center justify-center gap-4" data-testid="footer-bottom-bar">
+        <nav aria-label={FOOTER_ARIA.legalLinks} className="max-w-7xl mx-auto px-4 lg:px-8 py-4 flex flex-wrap items-center justify-center gap-4" data-testid="footer-bottom-bar">
           {bottomLinks.map((link, i, arr) => (
             <span key={link.key} className="flex items-center gap-4">
               <Link href={link.href} className="text-xs text-white/40 hover:text-white/70 transition-colors" data-testid="footer-bottom-link">{link.label}</Link>

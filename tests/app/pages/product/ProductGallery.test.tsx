@@ -14,7 +14,7 @@ vi.mock('next/image', () => ({
 // The viewer uses createPortal and key-listeners that do not initialise in
 // jsdom. Stub it out — it is never rendered on the placeholder path anyway,
 // and for the real-gallery case we only care that the placeholder is absent.
-vi.mock('./FullscreenViewer', () => ({
+vi.mock('@/app/pages/product/FullscreenViewer', () => ({
   FullscreenViewer: () => null,
 }));
 
@@ -23,11 +23,11 @@ vi.mock('./FullscreenViewer', () => ({
 // provider the hook falls back to the static string — that is fine for tests,
 // but we mock the module to avoid pulling in React context machinery that might
 // fail in isolation.
-vi.mock('../../../lib/oneentry/labels/ProductCardLabelsContext', () => ({
+vi.mock('@/lib/oneentry/labels/ProductCardLabelsContext', () => ({
   useProductCardT: (_key: string, fallback: string) => fallback,
 }));
 
-import { ProductGallery } from './ProductGallery';
+import { ProductGallery } from '@/app/pages/product/ProductGallery';
 
 // ---------------------------------------------------------------------------
 

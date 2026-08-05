@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getPageByUrl = vi.fn();
 const fakeApi = { Pages: { getPageByUrl } };
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
@@ -21,7 +21,7 @@ vi.mock('next/cache', () => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./sale-page');
+  return import('@/lib/oneentry/catalog/sale-page');
 };
 
 beforeEach(() => {
@@ -294,8 +294,8 @@ describe('loadSalePage — error paths', () => {
 describe('loadSalePage — disabled', () => {
   it('returns null when OE is not enabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (null),
       isOneEntryEnabled: false,
       getApi: () => { throw new Error('SDK not configured'); },
@@ -305,9 +305,9 @@ describe('loadSalePage — disabled', () => {
        
       unstable_cache: (fn: any) => fn,
     }));
-    const { loadSalePage } = await import('./sale-page');
+    const { loadSalePage } = await import('@/lib/oneentry/catalog/sale-page');
     expect(await loadSalePage('en_US')).toBeNull();
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
     vi.doUnmock('next/cache');
   });
 });

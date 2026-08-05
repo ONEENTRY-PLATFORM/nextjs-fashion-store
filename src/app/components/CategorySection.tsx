@@ -44,9 +44,9 @@ export function CategorySection({
 
   return (
     <section className="py-0 font-[Inter,sans-serif]">
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Title */}
-        <h2 className="text-center mb-6 text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[0.05em] uppercase">
+        <h2 className="text-center mb-6 text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-wider uppercase">
           {CATEGORY_SECTION_LABELS.heading}
         </h2>
 
@@ -56,7 +56,7 @@ export function CategorySection({
             <button
               key={chip}
               onClick={() => setActiveFilter(chip)}
-              className={`flex-shrink-0 px-4 py-2 text-xs tracking-wider uppercase border transition-all duration-200 rounded-md ${
+              className={`shrink-0 px-4 py-2 text-xs tracking-wider uppercase border transition-all duration-200 rounded-md ${
                 activeFilter === chip
                   ? 'bg-black text-white border-black font-semibold'
                   : 'bg-white text-black border-[#ccc] font-normal'
@@ -72,7 +72,7 @@ export function CategorySection({
           {!mounted ? Array.from({ length: 6 }).map((_, i) => (
             <div
               key={`category-skeleton-${i}`}
-              className="bg-gray-100 animate-pulse aspect-[2/3]"
+              className="bg-gray-100 animate-pulse aspect-2/3"
               style={{ animationDelay: `${i * 55}ms` }}
               aria-hidden="true"
             />
@@ -80,7 +80,7 @@ export function CategorySection({
             <Link
               key={cat.id}
               href={cat.href}
-              className="relative group overflow-hidden block transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg aspect-[2/3]"
+              className="relative group overflow-hidden block transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg aspect-2/3"
               style={animated ? undefined : { animation: `hp-fade-up 0.5s ${CARD_BASE_DELAY + i * CARD_STAGGER}ms ease-out both` }}
             >
               {/* Image */}

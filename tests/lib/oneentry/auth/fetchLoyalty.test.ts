@@ -148,8 +148,8 @@ describe('fetchLoyalty — tier parsing (pure derivation)', () => {
 const getDiscountByMarker = vi.fn();
 const getBonusBalance = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   isOneEntryEnabled: true,
   hasStoredSession: () => true,
   getApiSafe: () => ({
@@ -157,7 +157,7 @@ vi.mock('../index', async (importActual) => ({
   }),
 }));
 
-vi.mock('../catalog/product-previews-action', () => ({
+vi.mock('@/lib/oneentry/catalog/product-previews-action', () => ({
   getProductPreviewsAction: vi.fn(async () => []),
 }));
 
@@ -198,15 +198,15 @@ describe('fetchLoyalty — bonusBalance regression (via a stubbed SDK instance)'
       },
     };
 
-    vi.doMock('../index', async (importActual) => ({
-      ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       isOneEntryEnabled: true,
       hasStoredSession: () => true,
       getApiSafe: () => api,
     }));
 
     vi.resetModules();
-    const mod = await import('./actions');
+    const mod = await import('@/lib/oneentry/auth/actions');
     const me = await mod.getCurrentUserAction();
     // me may be null if getCurrentUserAction couldn't assemble user — but
     // loyalty on the returned user is what we care about.

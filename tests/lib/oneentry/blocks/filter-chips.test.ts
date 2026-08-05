@@ -7,8 +7,8 @@ vi.mock('react', () => ({
 
 const getFilterByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApi: () => ({ Filters: { getFilterByMarker } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -17,7 +17,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./filter-chips');
+  return import('@/lib/oneentry/blocks/filter-chips');
 };
 
 beforeEach(() => {
@@ -215,15 +215,15 @@ describe('loadFilterChips — marker derivation', () => {
 describe('loadFilterChips — disabled', () => {
   it('returns null when isOneEntryEnabled is false', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApi: () => { throw new Error('should not be called'); },
       isOneEntryEnabled: false,
       isError: () => false,
     }));
-    const { loadFilterChips } = await import('./filter-chips');
+    const { loadFilterChips } = await import('@/lib/oneentry/blocks/filter-chips');
     expect(await loadFilterChips('men-bags')).toBeNull();
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });
 

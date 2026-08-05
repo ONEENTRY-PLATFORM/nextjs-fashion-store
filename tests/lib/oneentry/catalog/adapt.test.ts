@@ -4,8 +4,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { adaptCatalogProductToPdpProduct, adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from './adapt';
-import type { CatalogProduct } from './products';
+import { adaptCatalogProductToPdpProduct, adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '@/lib/oneentry/catalog/adapt';
+import type { CatalogProduct } from '@/lib/oneentry/catalog/products';
 
 // ─── adaptCatalogProductToUiProduct — statusIdentifier forwarding ─────────────
 

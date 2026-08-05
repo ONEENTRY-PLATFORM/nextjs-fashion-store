@@ -6,8 +6,8 @@ const fakeApi = {
   Discounts: { getDiscountByMarker },
 };
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
@@ -22,12 +22,12 @@ vi.mock('next/cache', () => ({
 }));
 
 // isr constants — value doesn't matter in unit tests.
-vi.mock('../../isr', () => ({ REVALIDATE_CATALOG: 300 }));
+vi.mock('@/lib/isr', () => ({ REVALIDATE_CATALOG: 300 }));
 
 // ---- helpers -----------------------------------------------------------------
 const importFresh = async () => {
   vi.resetModules();
-  return import('./purchase-bonus');
+  return import('@/lib/oneentry/discounts/purchase-bonus');
 };
 
 /** Build a minimal CatalogProduct stub. */

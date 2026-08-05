@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
   }),
@@ -14,7 +14,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./product-card-labels');
+  return import('@/lib/oneentry/labels/product-card-labels');
 };
 
 beforeEach(() => {
@@ -42,11 +42,11 @@ describe('loadProductCardSystemTexts', () => {
 describe('loadProductCardSystemTexts — disabled', () => {
   it('returns empty record when SDK disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
-    const { loadProductCardSystemTexts } = await import('./product-card-labels');
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+    const { loadProductCardSystemTexts } = await import('@/lib/oneentry/labels/product-card-labels');
     const result = await loadProductCardSystemTexts();
     expect(result).toEqual({});
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });

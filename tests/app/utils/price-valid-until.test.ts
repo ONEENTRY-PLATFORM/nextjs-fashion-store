@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { priceValidUntil } from './price-valid-until';
+import { priceValidUntil } from '@/app/utils/price-valid-until';
 
 afterEach(() => {
   vi.useRealTimers();

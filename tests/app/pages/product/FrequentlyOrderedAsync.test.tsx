@@ -3,12 +3,12 @@ import React from 'react';
 
 // ---- Mock the data loader ---------------------------------------------------
 const loadFrequentlyOrderedBlock = vi.fn();
-vi.mock('../../../lib/oneentry/blocks/page-blocks', () => ({
+vi.mock('@/lib/oneentry/blocks/page-blocks', () => ({
   loadFrequentlyOrderedBlock,
 }));
 
 // ---- Mock the client component (brings in hooks / context) -----------------
-vi.mock('./FrequentlyOrderedClient', () => ({
+vi.mock('@/app/pages/product/FrequentlyOrderedClient', () => ({
   FrequentlyOrderedClient: (props: Record<string, unknown>) =>
     React.createElement('div', { 'data-testid': 'fo-client', ...props }),
 }));
@@ -28,7 +28,7 @@ const makeProduct = (
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./FrequentlyOrderedAsync');
+  return import('@/app/pages/product/FrequentlyOrderedAsync');
 };
 
 beforeEach(() => {

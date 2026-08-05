@@ -173,7 +173,7 @@ export function Header() {
               >
                 <Menu size={22} />
               </button>
-              <Link href="/" className="flex-shrink-0">
+              <Link href="/" className="shrink-0">
                 <Image src={logoImage} alt={lLogoAlt} width={146} height={32} className="object-contain" priority />
               </Link>
             </div>
@@ -195,14 +195,14 @@ export function Header() {
                       }
                     }}
                     className={`relative flex items-center h-10 text-sm tracking-widest uppercase font-medium transition-all duration-150 ease-in-out ${
-                      urlGender === g ? (g === 'women' ? 'text-[var(--women)]' : 'text-[var(--men)]') : 'text-black'
+                      urlGender === g ? (g === 'women' ? 'text-(--women)' : 'text-(--men)') : 'text-black'
                     }`}
                   >
                     {g.toUpperCase()}
                     {urlGender === g && (
                       <span
                         className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-150 ${
-                          urlGender === 'women' ? 'bg-[var(--women)]' : 'bg-[var(--men)]'
+                          urlGender === 'women' ? 'bg-(--women)' : 'bg-(--men)'
                         }`}
                       />
                     )}
@@ -227,26 +227,26 @@ export function Header() {
                 <Search size={20} />
               </button>
               <button
-                className="hidden md:flex items-center justify-center min-w-[40px] min-h-[40px] hover:opacity-70 transition-opacity"
+                className="hidden md:flex items-center justify-center min-w-10 min-h-10 hover:opacity-70 transition-opacity"
                 onClick={() => isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal()}
                 aria-label={aAccount}
               >
                 <User size={20} />
               </button>
               <button
-                className="relative flex items-center justify-center min-w-[40px] min-h-[40px] hover:opacity-70 transition-opacity"
+                className="relative flex items-center justify-center min-w-10 min-h-10 hover:opacity-70 transition-opacity"
                 onClick={() => router.push(WISHLIST_HREF)}
                 aria-label={aWishlist}
               >
                 <Heart size={20} />
                 {mounted && wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-[var(--women)]">
+                  <span className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-(--women)">
                     {wishlistCount}
                   </span>
                 )}
               </button>
               <button
-                className="relative flex items-center justify-center min-w-[40px] min-h-[40px] hover:opacity-70 transition-opacity"
+                className="relative flex items-center justify-center min-w-10 min-h-10 hover:opacity-70 transition-opacity"
                 onClick={openMiniCart}
                 aria-label={aBag}
               >

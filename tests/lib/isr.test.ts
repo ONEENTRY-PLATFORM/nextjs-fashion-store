@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 /** Re-import isr.ts so `disabled` is re-evaluated with current env. */
 const importFresh = async () => {
   vi.resetModules();
-  return import('./isr');
+  return import('@/lib/isr');
 };
 
 afterEach(() => {

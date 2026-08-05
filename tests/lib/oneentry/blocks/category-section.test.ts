@@ -7,8 +7,8 @@ vi.mock('next/cache', () => ({
 
 const getSlides = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Blocks: { getSlides } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -17,7 +17,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./category-section');
+  return import('@/lib/oneentry/blocks/category-section');
 };
 
 beforeEach(() => { getSlides.mockReset(); });
@@ -95,10 +95,10 @@ describe('loadCategorySection', () => {
 describe('loadCategorySection — disabled', () => {
   it('returns empty result when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
-    const { loadCategorySection } = await import('./category-section');
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+    const { loadCategorySection } = await import('@/lib/oneentry/blocks/category-section');
     expect(await loadCategorySection()).toEqual({ chips: [], categories: [] });
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });

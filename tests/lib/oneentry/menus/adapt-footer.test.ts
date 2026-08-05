@@ -3,8 +3,8 @@ import {
   footerHref,
   footerColumnsFromMenu,
   footerBottomLinksFromMenu,
-} from './adapt-footer';
-import type { MenuPageNode } from './menus';
+} from '@/lib/oneentry/menus/adapt-footer';
+import type { MenuPageNode } from '@/lib/oneentry/menus/menus';
 
 const node = (over: Partial<MenuPageNode> & { id: number }): MenuPageNode => ({
   pageUrl: '',

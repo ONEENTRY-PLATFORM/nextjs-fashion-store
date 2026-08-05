@@ -16,7 +16,6 @@ src/app/store/
 ├── wishlistSlice.ts          — wishlist items
 ├── recentlyViewedSlice.ts    — recently viewed (TTL 30d, cap 100)
 ├── userSlice.ts              — loyalty defaults + auth identifier
-├── __tests__/                — vitest unit tests
 └── api/
     ├── cartApi.ts            — RTK Query scaffolding for /users/me/cart (fetchBaseQuery, Bearer). NOT on the live path.
     ├── wishlistApi.ts        — RTK Query scaffolding for /users/me/wishlist. NOT on the live path.
@@ -248,7 +247,7 @@ Consumers should prefer these over untyped `useDispatch` / `useSelector`.
 
 ## 8. Testing
 
-Vitest unit tests live in `src/app/store/__tests__/`. Each slice has a `*.test.ts` that exercises the reducers with synthetic actions. RTK Query slices are tested via mocked `fetch`.
+Vitest unit tests live in `tests/app/store/` (the `tests/` tree mirrors `src/`). Each slice has a `*.test.ts` that exercises the reducers with synthetic actions. RTK Query slices are tested via mocked `fetch`.
 
 ## 9. Consumption pattern
 

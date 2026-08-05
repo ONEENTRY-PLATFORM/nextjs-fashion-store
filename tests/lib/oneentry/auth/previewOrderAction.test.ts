@@ -54,8 +54,8 @@ const stubUserApi = () => ({
 
 // The singleton now carries the session, so one stub covers both the
 // user-scoped calls and the app-token discount-config lookup.
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   isOneEntryEnabled: true,
   isError: (v: unknown) => isErrorMock(v),
   hasStoredSession: () => signedIn,
@@ -67,7 +67,7 @@ let signedIn = true;
 
 // ── catalog previews (pulled in by the module) ────────────────────────────────
 
-vi.mock('../catalog/product-previews-action', () => ({
+vi.mock('@/lib/oneentry/catalog/product-previews-action', () => ({
   getProductPreviewsAction: vi.fn(async () => []),
 }));
 
@@ -95,7 +95,7 @@ describe('previewOrderAction — missingProductIds extraction', () => {
       statusCode: 400,
       message: 'Coupon not applicable',
     });
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -108,7 +108,7 @@ describe('previewOrderAction — missingProductIds extraction', () => {
       statusCode: 404,
       message: 'Product 9171 not found',
     });
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -120,7 +120,7 @@ describe('previewOrderAction — missingProductIds extraction', () => {
       statusCode: 404,
       message: 'product 42 Not Found',
     });
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -133,7 +133,7 @@ describe('previewOrderAction — missingProductIds extraction', () => {
       // Hypothetical future format listing several ids in one string
       message: 'Product 100 not found; Product 200 not found; product 300 not found',
     });
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -142,7 +142,7 @@ describe('previewOrderAction — missingProductIds extraction', () => {
 
   it('returns missingProductIds: [] when OE message is undefined', async () => {
     previewOrderMock.mockResolvedValue({ statusCode: 500 }); // no .message
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -158,7 +158,7 @@ describe('previewOrderAction — missingProductIds extraction', () => {
       currency: 'USD',
       discountConfig: {},
     });
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
   });
@@ -196,7 +196,7 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
         { id: 9171, quantity: 1, price: '50.00', isGift: false },
       ],
     }));
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -210,7 +210,7 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
         { id: 5555, quantity: 2, price: '29.99', isGift: true },
       ],
     }));
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -227,7 +227,7 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
         { id: 3, quantity: 2, price: '15.50', isGift: true },
       ],
     }));
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -240,7 +240,7 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
     previewOrderMock.mockResolvedValue(makePreviewResponse({
       orderPreview: [{ id: 7, isGift: true }],
     }));
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -254,7 +254,7 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
         { quantity: 1, price: '5.00', isGift: true }, // no id
       ],
     }));
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -311,7 +311,7 @@ describe('previewOrderAction — couponDiscountAmount', () => {
     getDiscountByMarkerMock.mockResolvedValue(
       makeDiscountCfg({ discountValue: null, gifts: [{ productId: 5555 }] }),
     );
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction({
       ...baseInput,
       couponCode: 'GIFTME',
@@ -340,7 +340,7 @@ describe('previewOrderAction — couponDiscountAmount', () => {
     getDiscountByMarkerMock.mockResolvedValue(
       makeDiscountCfg({ discountValue: { value: 0 }, gifts: [{ productId: 999 }] }),
     );
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction({ ...baseInput, couponCode: 'GIFTONLY' });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -369,7 +369,7 @@ describe('previewOrderAction — couponDiscountAmount', () => {
     getDiscountByMarkerMock.mockResolvedValue(
       makeDiscountCfg({ discountValue: { value: 20 }, gifts: [] }),
     );
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction({ ...baseInput, couponCode: 'SAVE20' });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -401,7 +401,7 @@ describe('previewOrderAction — couponDiscountAmount', () => {
     getDiscountByMarkerMock.mockResolvedValue(
       makeDiscountCfg({ discountValue: { value: 10 }, gifts: [{ productId: 1234 }] }),
     );
-    const { previewOrderAction } = await import('./actions');
+    const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction({ ...baseInput, couponCode: 'COMBO' });
     expect(res.ok).toBe(true);
     if (!res.ok) return;

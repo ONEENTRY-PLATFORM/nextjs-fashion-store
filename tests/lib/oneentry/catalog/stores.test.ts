@@ -13,8 +13,8 @@ const fakeApi = {
   Pages: { getChildPagesByParentUrl },
 };
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -35,7 +35,7 @@ vi.mock('../../profiling', () => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./stores');
+  return import('@/lib/oneentry/catalog/stores');
 };
 
 beforeEach(() => {

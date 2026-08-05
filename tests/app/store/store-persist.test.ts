@@ -25,9 +25,9 @@ vi.stubGlobal('localStorage', localStorageMock);
 
 // ── module under test ────────────────────────────────────────────────────────
 
-import { makeStore } from '../index';
-import { cartActions } from '../cartSlice';
-import type { CartItem } from '../../context/CartContext';
+import { makeStore } from '@/app/store/index';
+import { cartActions } from '@/app/store/cartSlice';
+import type { CartItem } from '@/app/context/CartContext';
 
 const STORAGE_KEY = 'oe_store';
 const STORAGE_VERSION = 5;

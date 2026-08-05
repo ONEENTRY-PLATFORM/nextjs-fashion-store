@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import cartReducer, { cartActions } from '../cartSlice';
-import type { CartItem } from '../../context/CartContext';
+import cartReducer, { cartActions } from '@/app/store/cartSlice';
+import type { CartItem } from '@/app/context/CartContext';
 
 const makeItem = (overrides: Partial<CartItem> = {}): CartItem => ({
   id: 'item-1',

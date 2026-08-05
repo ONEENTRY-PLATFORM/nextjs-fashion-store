@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
   }),
@@ -14,7 +14,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./checkout-labels');
+  return import('@/lib/oneentry/labels/checkout-labels');
 };
 
 beforeEach(() => {
@@ -58,13 +58,13 @@ describe('loadCheckoutSystemTexts', () => {
 describe('loadCheckoutSystemTexts — disabled', () => {
   it('returns empty dicts when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
-    const { loadCheckoutSystemTexts, CHECKOUT_SET_MARKERS } = await import('./checkout-labels');
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+    const { loadCheckoutSystemTexts, CHECKOUT_SET_MARKERS } = await import('@/lib/oneentry/labels/checkout-labels');
     const result = await loadCheckoutSystemTexts();
     for (const m of CHECKOUT_SET_MARKERS) {
       expect(result[m]).toEqual({});
     }
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });

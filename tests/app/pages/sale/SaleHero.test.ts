@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 // parseHeroPlain reads SALE_PAGE_LABELS at import time — mock before importing.
-vi.mock('../../data/salePageLabels', () => ({
+vi.mock('@/app/data/salePageLabels', () => ({
   SALE_PAGE_LABELS: {
     heroTitleLine1: 'SEASON',
     heroTitleLine2: 'SALE',
@@ -16,12 +16,12 @@ vi.mock('../../data/salePageLabels', () => ({
 // try to resolve the Next.js image pipeline or ESM-only icon packages.
 vi.mock('next/image', () => ({ default: () => null }));
 vi.mock('lucide-react', () => ({ Tag: () => null, ChevronRight: () => null }));
-vi.mock('./SaleCountdown', () => ({ CountdownUnit: () => null }));
-vi.mock('../../../lib/oneentry/labels/SalePageLabelsContext', () => ({
+vi.mock('@/app/pages/sale/SaleCountdown', () => ({ CountdownUnit: () => null }));
+vi.mock('@/lib/oneentry/labels/SalePageLabelsContext', () => ({
   useSalePageT: (_key: string, fallback: string) => fallback,
 }));
 
-const { parseHeroPlain } = await import('./SaleHero');
+const { parseHeroPlain } = await import('@/app/pages/sale/SaleHero');
 
 // ---------------------------------------------------------------------------
 describe('parseHeroPlain — full 4-line input', () => {

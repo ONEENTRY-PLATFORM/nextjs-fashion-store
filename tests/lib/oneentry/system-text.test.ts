@@ -7,8 +7,8 @@ vi.mock('react', () => ({
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('./index', async (importActual) => ({
-  ...(await importActual<typeof import('./index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
   }),
@@ -19,7 +19,7 @@ vi.mock('./index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./system-text');
+  return import('@/lib/oneentry/system-text');
 };
 
 beforeEach(() => {
@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.doUnmock('./index');
+  vi.doUnmock('@/lib/oneentry/index');
 });
 
 describe('t(set, key, fallback)', () => {
@@ -77,9 +77,9 @@ describe('t(set, key, fallback)', () => {
 describe('t when OneEntry is disabled (no env)', () => {
   it('returns fallback without calling SDK', async () => {
     vi.resetModules();
-    vi.doMock('./index', async (importActual) => ({
-  ...(await importActual<typeof import('./index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
-    const { t } = await import('./system-text');
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+    const { t } = await import('@/lib/oneentry/system-text');
     expect(await t('any', 'key', 'fb')).toBe('fb');
     expect(getAttributeSetByMarker).not.toHaveBeenCalled();
   });
@@ -93,14 +93,14 @@ describe('t when OneEntry is disabled (no env)', () => {
 describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () => {
   it('re-fetches when the first response was empty (error path)', async () => {
     vi.resetModules();
-    vi.doMock('./index', async (importActual) => ({
-  ...(await importActual<typeof import('./index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
       isError: (v: unknown) =>
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
     }));
-    const { getSystemSet } = await import('./system-text');
+    const { getSystemSet } = await import('@/lib/oneentry/system-text');
 
     // First call: SDK returns an error envelope → fetchSystemSet yields {}
     getAttributeSetByMarker.mockResolvedValueOnce({ statusCode: 500, message: 'err' });
@@ -118,14 +118,14 @@ describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () 
 
   it('does NOT re-fetch when the first response had a non-empty schema', async () => {
     vi.resetModules();
-    vi.doMock('./index', async (importActual) => ({
-  ...(await importActual<typeof import('./index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
       isError: (v: unknown) =>
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
     }));
-    const { getSystemSet } = await import('./system-text');
+    const { getSystemSet } = await import('@/lib/oneentry/system-text');
 
     // First call: SDK returns a real schema → must be stored in TTL cache
     getAttributeSetByMarker.mockResolvedValueOnce({
@@ -142,14 +142,14 @@ describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () 
 
   it('re-fetches when the first response had a null schema (treated as empty)', async () => {
     vi.resetModules();
-    vi.doMock('./index', async (importActual) => ({
-  ...(await importActual<typeof import('./index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
       isError: (v: unknown) =>
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
     }));
-    const { getSystemSet } = await import('./system-text');
+    const { getSystemSet } = await import('@/lib/oneentry/system-text');
 
     getAttributeSetByMarker.mockResolvedValueOnce({ schema: null });
     const first = await getSystemSet('cache-test-null');

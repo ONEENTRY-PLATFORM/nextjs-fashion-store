@@ -20,7 +20,7 @@ const mockClearTimings = vi.fn();
 // directly here.
 let mockOeProfileEnabled = true;
 
-vi.mock('./profiling', () => ({
+vi.mock('@/lib/oneentry/profiling', () => ({
   get OE_PROFILE_ENABLED() {
     return mockOeProfileEnabled;
   },

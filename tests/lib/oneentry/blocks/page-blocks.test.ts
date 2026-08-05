@@ -14,8 +14,8 @@ const fakeApi = {
   Products: { getProductBlockById },
 };
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => (fakeApi),
   getApi: () => fakeApi,
   isOneEntryEnabled: true,
@@ -32,14 +32,14 @@ vi.mock('next/cache', () => ({
 // `loadProducts` and the adapter are the fallback's dependencies. Both are
 // stubbed so we can assert what the fallback asked for and what it emits.
 const loadProducts = vi.fn();
-vi.mock('../catalog/products', () => ({ loadProducts }));
+vi.mock('@/lib/oneentry/catalog/products', () => ({ loadProducts }));
 
 const adaptCatalogProductToUiProduct = vi.fn();
-vi.mock('../catalog/adapt', () => ({ adaptCatalogProductToUiProduct }));
+vi.mock('@/lib/oneentry/catalog/adapt', () => ({ adaptCatalogProductToUiProduct }));
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./page-blocks');
+  return import('@/lib/oneentry/blocks/page-blocks');
 };
 
 beforeEach(() => {

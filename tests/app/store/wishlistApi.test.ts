@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import userReducer, { setAuth } from '../userSlice';
+import userReducer, { setAuth } from '@/app/store/userSlice';
 
 /**
  * `wishlistApi` captures `process.env.NEXT_PUBLIC_API_URL` into `baseUrl` at
@@ -13,14 +13,14 @@ import userReducer, { setAuth } from '../userSlice';
  */
 const API_BASE = 'http://api.test';
 
-type WishlistApiModule = typeof import('../api/wishlistApi');
+type WishlistApiModule = typeof import('@/app/store/api/wishlistApi');
 let wishlistApi: WishlistApiModule['wishlistApi'];
 let isWishlistApiEnabled: WishlistApiModule['isWishlistApiEnabled'];
 
 beforeAll(async () => {
   vi.stubEnv('NEXT_PUBLIC_API_URL', API_BASE);
   vi.resetModules();
-  ({ wishlistApi, isWishlistApiEnabled } = await import('../api/wishlistApi'));
+  ({ wishlistApi, isWishlistApiEnabled } = await import('@/app/store/api/wishlistApi'));
 });
 
 afterAll(() => {

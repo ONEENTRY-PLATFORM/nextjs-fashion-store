@@ -13,24 +13,24 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => ({ get: vi.fn(), set: vi.fn(), delete: vi.fn() })),
 }));
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ AuthProvider: {}, Users: {}, Orders: {} }),
   isOneEntryEnabled: false,
   isError: vi.fn(() => false),
 }));
 
-vi.mock('../catalog/products', () => ({
+vi.mock('@/lib/oneentry/catalog/products', () => ({
   loadProductsByIds: vi.fn(async () => []),
 }));
 
-vi.mock('../locale', () => ({
+vi.mock('@/lib/oneentry/locale', () => ({
   DEFAULT_LOCALE: 'en_US',
 }));
 
 // ── Import after mocks are registered ────────────────────────────────────────
 
-import { pickImage } from './pick-image';
+import { pickImage } from '@/lib/oneentry/auth/pick-image';
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 

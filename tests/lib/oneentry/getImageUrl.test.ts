@@ -9,7 +9,7 @@
  * second picture.
  */
 import { describe, expect, it } from 'vitest';
-import { getImageUrl, getImageUrls } from './index';
+import { getImageUrl, getImageUrls } from '@/lib/oneentry/index';
 
 const file = (name: string) => ({
   downloadLink: `https://cdn.oneentry.cloud/${name}.jpg`,

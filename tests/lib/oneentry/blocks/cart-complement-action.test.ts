@@ -4,21 +4,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // vi.mock factories are hoisted to the top of the file, so they cannot close
 // over module-scope `const` variables — use `vi.fn()` inline and grab refs
 // via `vi.mocked()` after importing the real subjects.
-vi.mock('..', async (importActual) => ({
-  ...(await importActual<typeof import('..')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   isOneEntryEnabled: true,
   getApiSafe: vi.fn(),
   hasStoredSession: vi.fn(),
 }));
 
-vi.mock('../catalog/products-action', () => ({
+vi.mock('@/lib/oneentry/catalog/products-action', () => ({
   getProductsByIdsAction: vi.fn(),
 }));
 
 // ---- Import subjects AFTER mocks are declared --------------------------------
-import * as oeIndex from '..';
-import * as productsAction from '../catalog/products-action';
-import { loadCartComplementProductsAction } from './cart-complement-action';
+import * as oeIndex from '@/lib/oneentry/index';
+import * as productsAction from '@/lib/oneentry/catalog/products-action';
+import { loadCartComplementProductsAction } from '@/lib/oneentry/blocks/cart-complement-action';
 
 const getApiSafe = vi.mocked(oeIndex.getApiSafe);
 const hasStoredSession = vi.mocked(oeIndex.hasStoredSession);

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { shouldHydrateForUser, pickLocalIdsToPrune, diffCartForHydrate } from './hydrate-guard';
+import { shouldHydrateForUser, pickLocalIdsToPrune, diffCartForHydrate } from '@/app/context/hydrate-guard';
 
 describe('shouldHydrateForUser', () => {
   it('returns false when userIdentifier is null', () => {

@@ -91,7 +91,7 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | `src/app/context/` | React Context providers for transient UI state and per-user session: `AuthContext`, `CartContext`, `WishlistContext`, `QuickViewContext`, `CatalogAccentContext`. |
 | `src/app/store/` | Redux Toolkit store + six slices + two RTK Query APIs (see §4 + [REDUX.md](./REDUX.md)). |
 | `src/app/store/api/` | `cartApi` and `wishlistApi` (`fetchBaseQuery` slices — currently kept as scaffolding, live sync is done through the Auth Server Actions `syncCart` / `syncWishlist`). |
-| `src/app/store/__tests__/` | Vitest unit tests for slices and API slices. |
+| `tests/` | Vitest unit tests, mirroring the `src/` tree (e.g. `tests/app/store/` covers slices and API slices). |
 | `src/app/hooks/` | Reusable hooks: `useAnnounce` (ARIA live regions), `useDragScroll`, `useFocusTrap`. |
 | `src/app/utils/` | Pure helpers: `formatPrice`, `colorNames` (hex → name), `colorUtils` (contrast), `schemas` (Zod), `guest-id` (persistent guest UUID), `track-activity` (client-side wrapper over the activity Server Action). |
 | `src/app/constants/` | `colors.ts` (accent palette), `timings.ts` (delays, TTLs, limits). |

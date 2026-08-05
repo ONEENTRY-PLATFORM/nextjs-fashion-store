@@ -4,7 +4,7 @@
  * shape that has been used against naive HTML filters in the wild.
  */
 import { describe, expect, it } from 'vitest';
-import { sanitizeHtml } from './sanitize-html';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 describe('sanitizeHtml — legitimate editor output survives', () => {
   it('keeps the tags the OE rich-text editor produces', () => {

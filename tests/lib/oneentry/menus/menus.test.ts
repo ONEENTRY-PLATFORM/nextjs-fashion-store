@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getMenusByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Menus: { getMenusByMarker } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -12,7 +12,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./menus');
+  return import('@/lib/oneentry/menus/menus');
 };
 
 beforeEach(() => { getMenusByMarker.mockReset(); });
@@ -90,10 +90,10 @@ describe('loadMenu', () => {
 describe('loadMenu — disabled', () => {
   it('returns null when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
-    const { loadMenu } = await import('./menus');
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+    const { loadMenu } = await import('@/lib/oneentry/menus/menus');
     expect(await loadMenu('header')).toBeNull();
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });

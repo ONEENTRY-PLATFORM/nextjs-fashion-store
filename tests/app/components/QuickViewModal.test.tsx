@@ -26,7 +26,7 @@ let mockIsOpen = false;
 let mockProduct: unknown = null;
 let mockInitialColorIndex: number | null = null;
 
-vi.mock('../context/QuickViewContext', () => ({
+vi.mock('@/app/context/QuickViewContext', () => ({
   useQuickView: () => ({
     isOpen: mockIsOpen,
     product: mockProduct,
@@ -35,11 +35,11 @@ vi.mock('../context/QuickViewContext', () => ({
   }),
 }));
 
-vi.mock('../context/CartContext', () => ({
+vi.mock('@/app/context/CartContext', () => ({
   useCart: () => ({ addItem: mockAddItem, openMiniCart: mockOpenMiniCart }),
 }));
 
-vi.mock('../context/WishlistContext', () => ({
+vi.mock('@/app/context/WishlistContext', () => ({
   useWishlist: () => ({ toggleItem: mockToggleItem, isWishlisted: () => false }),
 }));
 
@@ -47,31 +47,31 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-vi.mock('../hooks/useFocusTrap', () => ({
+vi.mock('@/app/hooks/useFocusTrap', () => ({
   useFocusTrap: () => ({ current: null }),
 }));
 
-vi.mock('./QuickViewSizeGuide', () => ({
+vi.mock('@/app/components/QuickViewSizeGuide', () => ({
   QuickViewSizeGuide: () => null,
 }));
 
-vi.mock('../context/AuthContext', () => ({
+vi.mock('@/app/context/AuthContext', () => ({
   useAuth: () => ({ isLoggedIn: false, openLoginModal: vi.fn(), user: null }),
 }));
 
-vi.mock('../pages/product/WriteReviewModal', () => ({
+vi.mock('@/app/pages/product/WriteReviewModal', () => ({
   WriteReviewModal: () => null,
 }));
 
-vi.mock('../pages/product/StarRating', () => ({
+vi.mock('@/app/pages/product/StarRating', () => ({
   StarRating: () => null,
 }));
 
-vi.mock('../../lib/oneentry/catalog/reviews-actions', () => ({
+vi.mock('@/lib/oneentry/catalog/reviews-actions', () => ({
   getProductReviewSummary: vi.fn().mockResolvedValue({ count: 0, avg: null }),
 }));
 
-vi.mock('../utils/review-eligibility', () => ({
+vi.mock('@/app/utils/review-eligibility', () => ({
   canReviewProduct: vi.fn().mockReturnValue(false),
 }));
 
@@ -106,7 +106,7 @@ async function openModal(product: unknown, colorIndex = 0) {
   mockProduct = product;
   mockInitialColorIndex = colorIndex;
   mockIsOpen = true;
-  const { QuickViewModal } = await import('./QuickViewModal');
+  const { QuickViewModal } = await import('@/app/components/QuickViewModal');
   let container: HTMLElement = document.body;
   await act(async () => {
     ({ container } = render(<QuickViewModal />));

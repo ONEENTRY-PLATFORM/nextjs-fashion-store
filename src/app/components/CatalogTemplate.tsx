@@ -315,11 +315,11 @@ export function CatalogTemplate({
         {/* ══ Row 1: Title + Breadcrumbs ══ */}
         <div className="px-4 lg:px-8 py-4 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <span className="hidden md:block w-px h-6 bg-[var(--accent)]" />
+            <span className="hidden md:block w-px h-6 bg-accent" />
             <h1 className="tracking-[0.15em] uppercase text-2xl font-bold">
               {activeChip || title}
             </h1>
-            <span className="hidden md:inline-flex items-center px-2 py-0.5 text-white text-xs tracking-widest uppercase bg-[var(--accent)] rounded-none">
+            <span className="hidden md:inline-flex items-center px-2 py-0.5 text-white text-xs tracking-widest uppercase bg-accent rounded-none">
               {genderLabel}
             </span>
           </div>
@@ -374,7 +374,7 @@ export function CatalogTemplate({
         {/* ══ STICKY BLOCK — chips + filter bar ══ */}
         <div
           ref={filterBarRef}
-          className="sticky top-16 md:top-24 lg:top-[132px] z-40 bg-white pt-2"
+          className="sticky top-16 md:top-24 lg:top-33 z-40 bg-white pt-2"
         >
           {/* ── Row 2: Chips + View/Sort ── */}
           <div className="px-4 lg:px-8 py-2 flex items-center justify-between gap-4">
@@ -384,7 +384,7 @@ export function CatalogTemplate({
                 <button
                   key={chip}
                   onClick={() => setActiveChip(activeChip === chip ? '' : chip)}
-                  className={`flex-shrink-0 px-4 py-2 text-xs whitespace-nowrap focus-visible:outline-none border border-black rounded-md transition-[background-color,color] duration-150 ${
+                  className={`shrink-0 px-4 py-2 text-xs whitespace-nowrap focus-visible:outline-none border border-black rounded-md transition-[background-color,color] duration-150 ${
                     activeChip === chip ? 'bg-black text-white' : 'bg-transparent text-black'
                   }`}
                   aria-pressed={activeChip === chip}
@@ -395,7 +395,7 @@ export function CatalogTemplate({
             </div>
 
             {/* View + Sort — desktop only */}
-            <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+            <div className="hidden md:flex items-center gap-4 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500 mr-1">{CVL.viewPrefix}</span>
                 <button
@@ -437,7 +437,7 @@ export function CatalogTemplate({
                   />
                 </button>
                 {sortOpen && (
-                  <div className="absolute top-full right-0 bg-white z-50 min-w-[190px] border border-black rounded-none mt-1.5">
+                  <div className="absolute top-full right-0 bg-white z-50 min-w-47.5 border border-black rounded-none mt-1.5">
                     {SORT_OPTIONS.map(opt => (
                       <SortOptionBtn
                         key={opt.value}
@@ -474,7 +474,7 @@ export function CatalogTemplate({
                   return (
                     <span
                       key={group.key}
-                      className="flex-shrink-0 px-3 select-none border-l border-gray-200 text-[9px] tracking-[0.18em] uppercase font-bold text-[#bbb] whitespace-nowrap ml-1 py-3.5"
+                      className="shrink-0 px-3 select-none border-l border-gray-200 text-[9px] tracking-[0.18em] uppercase font-bold text-[#bbb] whitespace-nowrap ml-1 py-3.5"
                     >
                       {group.label}
                     </span>
@@ -494,11 +494,11 @@ export function CatalogTemplate({
                   >
                     <span className={selCount > 0 ? 'font-semibold' : 'font-normal'}>{group.label}</span>
                     {selCount > 0 && (
-                      <span className="text-xs text-[var(--accent)]">({selCount})</span>
+                      <span className="text-xs text-accent">({selCount})</span>
                     )}
                     <ChevronDown
                       size={11}
-                      className={`flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
+                      className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
                     />
                   </button>
                 );
@@ -515,7 +515,7 @@ export function CatalogTemplate({
             >
               {CVL.filtersHeading}
               {totalActiveFilters > 0 && (
-                <span className="text-xs px-1.5 py-0.5 text-white bg-[var(--accent)] rounded-none font-semibold">
+                <span className="text-xs px-1.5 py-0.5 text-white bg-accent rounded-none font-semibold">
                   {totalActiveFilters}
                 </span>
               )}
@@ -531,12 +531,12 @@ export function CatalogTemplate({
           {/* ── Mega Dropdown Panel ── */}
           {openFilter && currentFilterGroup && currentFilterGroup.type !== 'section' && (
             <div
-              className="absolute left-0 right-0 bg-white z-50 top-full border-t-2 border-t-[var(--accent)] border-b border-b-[#e5e7eb] shadow-[0_8px_32px_rgba(0,0,0,0.09)]"
+              className="absolute left-0 right-0 bg-white z-50 top-full border-t-2 border-t-accent border-b border-b-[#e5e7eb] shadow-[0_8px_32px_rgba(0,0,0,0.09)]"
               onMouseLeave={() => setOpenFilter(null)}
             >
               <div className="flex">
                 {/* Options area */}
-                <div className="flex-1 px-6 py-5 overflow-y-auto max-h-[420px]">
+                <div className="flex-1 px-6 py-5 overflow-y-auto max-h-105">
 
                   {/* Price range */}
                   {currentFilterGroup.type === 'price_range' && (
@@ -665,7 +665,7 @@ export function CatalogTemplate({
                 </div>
 
                 {/* Right action panel */}
-                <div className="flex flex-col items-center justify-start gap-3 px-6 py-5 border-l border-[#e5e7eb] min-w-[160px]">
+                <div className="flex flex-col items-center justify-start gap-3 px-6 py-5 border-l border-[#e5e7eb] min-w-40">
                   <button
                     onClick={clearAll}
                     className="w-full px-4 py-2 text-xs tracking-widest uppercase text-white bg-black hover:bg-gray-800 transition-colors focus-visible:outline-none rounded-none"
@@ -749,7 +749,7 @@ export function CatalogTemplate({
             </p>
             <div className="w-full h-0.5 bg-gray-100">
               <div
-                className="h-0.5 transition-all duration-500 bg-[var(--accent)]"
+                className="h-0.5 transition-all duration-500 bg-accent"
                 style={{ width: `${Math.min(100, (PRODUCTS_PER_PAGE / totalForPagination) * 100)}%` }}
               />
             </div>

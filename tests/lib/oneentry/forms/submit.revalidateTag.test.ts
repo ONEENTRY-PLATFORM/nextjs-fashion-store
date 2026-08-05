@@ -9,8 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const postFormsData = vi.fn();
 const revalidateTag = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ FormData: { postFormsData } }),
   isOneEntryEnabled: true,
   isError: (v: unknown): v is { message?: string; statusCode?: number } =>
@@ -22,14 +22,14 @@ vi.mock('next/cache', () => ({
 }));
 
 // Single import — no resetModules so the mock factory closure stays live.
-import('./submit'); // pre-warm
+import('@/lib/oneentry/forms/submit'); // pre-warm
 
-let submitForm: (typeof import('./submit'))['submitForm'];
+let submitForm: (typeof import('@/lib/oneentry/forms/submit'))['submitForm'];
 
 beforeEach(async () => {
   postFormsData.mockReset();
   revalidateTag.mockReset();
-  submitForm = (await import('./submit')).submitForm;
+  submitForm = (await import('@/lib/oneentry/forms/submit')).submitForm;
 });
 
 describe('submitForm — revalidateTag calls on success', () => {

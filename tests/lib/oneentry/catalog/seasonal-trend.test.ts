@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CatalogFilters } from './filters';
+import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
 
 const getPageByUrl = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Pages: { getPageByUrl } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -13,7 +13,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./seasonal-trend');
+  return import('@/lib/oneentry/catalog/seasonal-trend');
 };
 
 beforeEach(() => {
@@ -235,14 +235,14 @@ describe('resolveSeasonalTrend', () => {
 describe('resolveSeasonalTrend — disabled', () => {
   it('returns null when the SDK is not initialised', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (null),
       isOneEntryEnabled: false,
       isError: () => false,
     }));
-    const { resolveSeasonalTrend } = await import('./seasonal-trend');
+    const { resolveSeasonalTrend } = await import('@/lib/oneentry/catalog/seasonal-trend');
     expect(await resolveSeasonalTrend('trend-page')).toBeNull();
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });

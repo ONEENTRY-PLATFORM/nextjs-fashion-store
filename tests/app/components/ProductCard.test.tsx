@@ -35,15 +35,15 @@ import React from 'react';
 // Mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('../context/CatalogAccentContext', () => ({
+vi.mock('@/app/context/CatalogAccentContext', () => ({
   useCatalogAccent: () => '#000000',
 }));
 
-vi.mock('../context/WishlistContext', () => ({
+vi.mock('@/app/context/WishlistContext', () => ({
   useWishlist: () => ({ toggleItem: vi.fn(), isWishlisted: () => false }),
 }));
 
-vi.mock('../context/CartContext', () => ({
+vi.mock('@/app/context/CartContext', () => ({
   useCart: () => ({ addItem: vi.fn(), openMiniCart: vi.fn() }),
 }));
 
@@ -51,7 +51,7 @@ vi.mock('../context/CartContext', () => ({
 // effect inside ProductCard without needing a real Redux store.
 let mockIsQuickViewOpen = false;
 
-vi.mock('../context/QuickViewContext', () => ({
+vi.mock('@/app/context/QuickViewContext', () => ({
   useQuickView: () => ({ openQuickView: vi.fn(), isOpen: mockIsQuickViewOpen }),
 }));
 
@@ -127,7 +127,7 @@ describe('ProductCard — cached-image branch', () => {
   });
 
   it('starts with opacity-0 wrapper when the image is NOT cached (normal path)', async () => {
-    const { ProductCard } = await import('./ProductCard');
+    const { ProductCard } = await import('@/app/components/ProductCard');
     const product = makeProduct();
 
     await act(async () => {
@@ -143,7 +143,7 @@ describe('ProductCard — cached-image branch', () => {
   });
 
   it('sets opacity-100 immediately when img.complete=true on the next effect run (cached-image fix)', async () => {
-    const { ProductCard } = await import('./ProductCard');
+    const { ProductCard } = await import('@/app/components/ProductCard');
 
     // Two-color product: first color has image A, second has image B.
     // We render with color 0 (image A), patch img.complete=true on the DOM
@@ -197,7 +197,7 @@ describe('ProductCard — cached-image branch', () => {
   });
 
   it('fires setImgLoaded(true) via onLoad event when image is not cached', async () => {
-    const { ProductCard } = await import('./ProductCard');
+    const { ProductCard } = await import('@/app/components/ProductCard');
     const product = makeProduct();
 
     await act(async () => {
@@ -247,7 +247,7 @@ describe('ProductCard — QuickView-close hover suppression', () => {
   });
 
   it('suppresses scale-105 while QuickView is open and keeps it suppressed until pointermove after close', async () => {
-    const { ProductCard } = await import('./ProductCard');
+    const { ProductCard } = await import('@/app/components/ProductCard');
 
     const product = makeProduct();
 

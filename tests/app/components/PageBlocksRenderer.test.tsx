@@ -57,25 +57,25 @@ vi.mock('react-redux', () => ({
 // Mock heavy child components — we only care about the branching logic,
 // not the rendering internals of each section.
 // ---------------------------------------------------------------------------
-vi.mock('./HeroSlider', () => ({ HeroSlider: () => <div data-testid="hero-slider" /> }));
-vi.mock('./CategorySection', () => ({ CategorySection: () => <div data-testid="category-section" /> }));
-vi.mock('./PromoBlock', () => ({ PromoBlock: () => <div data-testid="promo-block" /> }));
-vi.mock('./DiscountBanner', () => ({ DiscountBanner: () => <div data-testid="discount-banner" /> }));
-vi.mock('./MenCollection', () => ({ MenCollection: () => <div data-testid="men-collection" /> }));
-vi.mock('./WomenCollection', () => ({ WomenCollection: () => <div data-testid="women-collection" /> }));
-vi.mock('./NewArrivals', () => ({ NewArrivals: () => <div data-testid="new-arrivals" /> }));
+vi.mock('@/app/components/HeroSlider', () => ({ HeroSlider: () => <div data-testid="hero-slider" /> }));
+vi.mock('@/app/components/CategorySection', () => ({ CategorySection: () => <div data-testid="category-section" /> }));
+vi.mock('@/app/components/PromoBlock', () => ({ PromoBlock: () => <div data-testid="promo-block" /> }));
+vi.mock('@/app/components/DiscountBanner', () => ({ DiscountBanner: () => <div data-testid="discount-banner" /> }));
+vi.mock('@/app/components/MenCollection', () => ({ MenCollection: () => <div data-testid="men-collection" /> }));
+vi.mock('@/app/components/WomenCollection', () => ({ WomenCollection: () => <div data-testid="women-collection" /> }));
+vi.mock('@/app/components/NewArrivals', () => ({ NewArrivals: () => <div data-testid="new-arrivals" /> }));
 
 // `cart_complement_block` renders through CartComplementBlockSlot, which calls
 // `useAuth()` (throws outside <AuthProvider>) and fires a server action on
 // mount. Both are stubbed so the test exercises the empty-products guard rather
 // than the auth plumbing or a live OE round-trip.
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ isLoggedIn: false }) }));
-vi.mock('../../lib/oneentry/blocks/cart-complement-action', () => ({
+vi.mock('@/app/context/AuthContext', () => ({ useAuth: () => ({ isLoggedIn: false }) }));
+vi.mock('@/lib/oneentry/blocks/cart-complement-action', () => ({
   loadCartComplementProductsAction: vi.fn().mockResolvedValue([]),
 }));
 
 // RecentlyViewedSection: render product names so the test can assert on them.
-vi.mock('../pages/product/RecentlyViewedSection', () => ({
+vi.mock('@/app/pages/product/RecentlyViewedSection', () => ({
   RecentlyViewedSection: ({ products }: { products: Array<{ name?: string }> }) => (
     <div data-testid="recently-viewed-section">
       {products.map((p, i) => (
@@ -118,7 +118,7 @@ describe('PageBlocksRenderer — recently_viewed_block', () => {
   it('renders nothing when the Redux recently-viewed trail is empty', async () => {
     mockRecentlyViewedItems = [];
 
-    const { PageBlocksRenderer } = await import('./PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
     const block = makeBlock({ marker: 'recently_viewed', type: 'recently_viewed_block' });
 
     await act(async () => {
@@ -134,7 +134,7 @@ describe('PageBlocksRenderer — recently_viewed_block', () => {
       { id: '2', name: 'White Sneakers', viewedAt: Date.now() },
     ];
 
-    const { PageBlocksRenderer } = await import('./PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
     const block = makeBlock({ marker: 'recently_viewed', type: 'recently_viewed_block' });
 
     await act(async () => {
@@ -154,7 +154,7 @@ describe('PageBlocksRenderer — recently_viewed_block', () => {
       { id: '3', name: 'White Sneakers', viewedAt: Date.now() },
     ];
 
-    const { PageBlocksRenderer } = await import('./PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
     const block = makeBlock({ marker: 'recently_viewed', type: 'recently_viewed_block' });
 
     await act(async () => {
@@ -173,7 +173,7 @@ describe('PageBlocksRenderer — title-only fallback (no products, unknown marke
   });
 
   it('renders an h2 with the block title when products are empty and type has no handler', async () => {
-    const { PageBlocksRenderer } = await import('./PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
     // Use an unknown type so the block falls through to the title-only branch
     // (cart_complement_block now has its own guard that returns null when empty).
     const block = makeBlock({
@@ -192,7 +192,7 @@ describe('PageBlocksRenderer — title-only fallback (no products, unknown marke
   });
 
   it('renders nothing when title is empty and there are no products', async () => {
-    const { PageBlocksRenderer } = await import('./PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
     const block = makeBlock({
       marker: 'unknown_marker',
       type: 'unknown_type',
@@ -216,7 +216,7 @@ describe('PageBlocksRenderer — cart_complement_block guard', () => {
   });
 
   it('renders nothing for cart_complement_block with an empty products array', async () => {
-    const { PageBlocksRenderer } = await import('./PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
     const block = makeBlock({
       marker: 'cart_complement_block',
       type: 'cart_complement_block',

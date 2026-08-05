@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getFormsDataByMarker = vi.fn();
 const fakeApi = { FormData: { getFormsDataByMarker } };
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => (fakeApi),
   getApi: () => fakeApi,
   isOneEntryEnabled: true,
@@ -22,11 +22,11 @@ vi.mock('next/cache', () => ({
 // loadProductById is pulled in by loadProductReviews; stub it so there is no
 // actual SDK call and we can control what it resolves with.
 const loadProductById = vi.fn();
-vi.mock('./products', () => ({ loadProductById }));
+vi.mock('@/lib/oneentry/catalog/products', () => ({ loadProductById }));
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./reviews');
+  return import('@/lib/oneentry/catalog/reviews');
 };
 
 beforeEach(() => {

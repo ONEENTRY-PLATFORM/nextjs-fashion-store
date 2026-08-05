@@ -26,30 +26,30 @@ vi.mock('next/image', () => ({
 
 // Cart context — provide a minimal stub with stable clearCart reference
 const clearCart = vi.fn();
-vi.mock('../context/CartContext', () => ({
+vi.mock('@/app/context/CartContext', () => ({
   useCart: () => ({ items: [], total: 0, clearCart }),
 }));
 
 // CheckoutLabelsContext — return fallback for every useT call
-vi.mock('../../lib/oneentry/labels/CheckoutLabelsContext', () => ({
+vi.mock('@/lib/oneentry/labels/CheckoutLabelsContext', () => ({
   useT: (_set: string, _key: string, fallback: string) => fallback,
 }));
 
 // Layout components — replace with lightweight stubs
-vi.mock('../components/Header', () => ({
+vi.mock('@/app/components/Header', () => ({
   Header: () => React.createElement('header', { 'data-testid': 'header' }),
 }));
-vi.mock('../components/Footer', () => ({
+vi.mock('@/app/components/Footer', () => ({
   Footer: () => React.createElement('footer', { 'data-testid': 'footer' }),
 }));
-vi.mock('../components/CheckoutStepper', () => ({
+vi.mock('@/app/components/CheckoutStepper', () => ({
   CheckoutStepper: () => React.createElement('div', { 'data-testid': 'stepper' }),
 }));
 
 // ---------------------------------------------------------------------------
 // Import the component AFTER mocks are registered
 // ---------------------------------------------------------------------------
-import { ConfirmationPage } from './ConfirmationPage';
+import { ConfirmationPage } from '@/app/pages/ConfirmationPage';
 
 // ---------------------------------------------------------------------------
 // Helpers

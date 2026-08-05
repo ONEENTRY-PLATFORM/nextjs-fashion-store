@@ -7,8 +7,8 @@ vi.mock('next/cache', () => ({
 
 const getBlockByMarker = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Blocks: { getBlockByMarker } }),
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -16,7 +16,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./discount-banner');
+  return import('@/lib/oneentry/blocks/discount-banner');
 };
 
 beforeEach(() => {

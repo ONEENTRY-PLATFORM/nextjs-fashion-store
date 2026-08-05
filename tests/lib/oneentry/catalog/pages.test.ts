@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getPageByUrl = vi.fn();
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Pages: { getPageByUrl } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -12,7 +12,7 @@ vi.mock('../index', async (importActual) => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./pages');
+  return import('@/lib/oneentry/catalog/pages');
 };
 
 beforeEach(() => { getPageByUrl.mockReset(); });

@@ -41,8 +41,8 @@ const fakeApi = {
   },
 };
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   isOneEntryEnabled: true,
   isError: (v: unknown) => isErrorMock(v),
   getApiSafe: () => fakeApi,
@@ -70,7 +70,7 @@ vi.mock('next/headers', () => ({
 }));
 
 // ---- unrelated deps pulled in by actions.ts (kept minimal) ------------------
-vi.mock('../catalog/product-previews-action', () => ({
+vi.mock('@/lib/oneentry/catalog/product-previews-action', () => ({
   getProductPreviewsAction: vi.fn(async () => []),
 }));
 
@@ -83,11 +83,11 @@ vi.stubGlobal('crypto', {
 
 const importOauth = async () => {
   vi.resetModules();
-  return import('./oauth-actions');
+  return import('@/lib/oneentry/auth/oauth-actions');
 };
 const importActions = async () => {
   vi.resetModules();
-  return import('./actions');
+  return import('@/lib/oneentry/auth/actions');
 };
 
 beforeEach(() => {

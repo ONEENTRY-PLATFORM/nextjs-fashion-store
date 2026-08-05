@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./profiling');
+  return import('@/lib/oneentry/profiling');
 };
 
 afterEach(() => {

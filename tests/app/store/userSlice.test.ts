@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import userReducer, { setAuth, clearAuth, patchUserData } from '../userSlice';
+import userReducer, { setAuth, clearAuth, patchUserData } from '@/app/store/userSlice';
 
 describe('userSlice auth fields', () => {
   it('initial state has null auth fields', () => {

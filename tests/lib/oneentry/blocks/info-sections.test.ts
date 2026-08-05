@@ -3,8 +3,8 @@ import {
   infoSectionsFromBlocks,
   faqItemsFromBlocks,
   buildFaqSchema,
-} from './info-sections';
-import type { PageBlock } from './page-blocks';
+} from '@/lib/oneentry/blocks/info-sections';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 
 const block = (over: Partial<PageBlock> & { marker: string }): PageBlock => ({
   type: 'common_block',

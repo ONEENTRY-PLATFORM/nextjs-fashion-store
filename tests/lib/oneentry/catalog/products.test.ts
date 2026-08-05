@@ -17,8 +17,8 @@ const fakeApi = {
   },
 };
 
-vi.mock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+vi.mock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
@@ -34,7 +34,7 @@ vi.mock('next/cache', () => ({
 
 const importFresh = async () => {
   vi.resetModules();
-  return import('./products');
+  return import('@/lib/oneentry/catalog/products');
 };
 
 beforeEach(() => {
@@ -187,7 +187,7 @@ describe('categoryPathToViewAllHref', () => {
   // Import once at describe level; the function is pure and stateless.
   let categoryPathToViewAllHref: (p: string | undefined) => string;
   beforeEach(async () => {
-    ({ categoryPathToViewAllHref } = await import('./products'));
+    ({ categoryPathToViewAllHref } = await import('@/lib/oneentry/catalog/products'));
   });
 
   it('derives /women/clothing from /women/women_clothing/costumes', () => {
@@ -223,17 +223,17 @@ describe('categoryPathToViewAllHref', () => {
 describe('loadProducts — disabled', () => {
   it('returns fromCms:false when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (null),
       isOneEntryEnabled: false,
       getApi: () => { throw new Error('SDK disabled'); },
       isError: () => false,
     }));
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts();
     expect(result.fromCms).toBe(false);
-    vi.doUnmock('../index');
+    vi.doUnmock('@/lib/oneentry/index');
   });
 });
 
@@ -241,7 +241,7 @@ describe('loadProducts — disabled', () => {
 // Exercises the new targeted-endpoint flow: cachedGetProductById → normalize →
 // cachedGetRelated → cachedGetByIds (for missing relatedIds).
 //
-// Note: the `loadProducts — disabled` test above calls `vi.doUnmock('../index')`
+// Note: the `loadProducts — disabled` test above calls `vi.doUnmock('@/lib/oneentry/index')`
 // which deregisters the hoisted mock for subsequent dynamic imports. We
 // re-register it here via `vi.doMock` before each test in these new suites.
 
@@ -265,8 +265,8 @@ describe('loadProductById', () => {
     // Re-register the mock that vi.doUnmock() may have stripped in the
     // `loadProducts — disabled` suite above, then get a fresh module.
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
@@ -277,7 +277,7 @@ describe('loadProductById', () => {
        
       unstable_cache: (fn: any) => fn,
     }));
-    ({ loadProductById, loadProductsByIds } = await import('./products') as {
+    ({ loadProductById, loadProductsByIds } = await import('@/lib/oneentry/catalog/products') as {
       loadProductById: (id: number, lang?: string) => Promise<unknown>;
       loadProductsByIds: (ids: number[], lang?: string) => Promise<unknown[]>;
     });
@@ -373,8 +373,8 @@ describe('loadProductById', () => {
 describe('loadProductsByIds', () => {
   beforeEach(async () => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
@@ -385,7 +385,7 @@ describe('loadProductsByIds', () => {
        
       unstable_cache: (fn: any) => fn,
     }));
-    ({ loadProductsByIds } = await import('./products') as {
+    ({ loadProductsByIds } = await import('@/lib/oneentry/catalog/products') as {
       loadProductsByIds: (ids: number[], lang?: string) => Promise<unknown[]>;
     });
   });
@@ -437,8 +437,8 @@ describe('loadProductsByIds', () => {
 describe('normalize — stock from stockqty only (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
@@ -471,7 +471,7 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
       total: 1,
       items: [makeRawStockProduct(4001, '5', '3')],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(5);
   });
@@ -481,7 +481,7 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
       total: 1,
       items: [makeRawStockProduct(4002, '0', '2')],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(0);
   });
@@ -491,7 +491,7 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
       total: 1,
       items: [makeRawStockProduct(4003, '5', '0')],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(5);
   });
@@ -501,7 +501,7 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
       total: 1,
       items: [makeRawStockProduct(4004, '0', '0')],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(0);
   });
@@ -511,7 +511,7 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
       total: 1,
       items: [makeRawStockProduct(4005, '7', undefined)],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(7);
   });
@@ -521,7 +521,7 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
       total: 1,
       items: [makeRawStockProduct(4006, undefined, '4')],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(0);
   });
@@ -541,8 +541,8 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
   // Each test fresh-imports to avoid React.cache memo hits from earlier suites.
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
@@ -570,7 +570,7 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
       total: 1,
       items: [makeRawWithCategories(3001, ['home/women/women_clothing/dresses'])],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect(result.items[0].categories).toEqual(['/women/women_clothing/dresses']);
   });
@@ -580,7 +580,7 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
       total: 1,
       items: [makeRawWithCategories(3002, ['/women/women_clothing/dresses'])],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect(result.items[0].categories).toEqual(['/women/women_clothing/dresses']);
   });
@@ -590,7 +590,7 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
       total: 1,
       items: [makeRawWithCategories(3003, ['///women/women_clothing/shoes'])],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect(result.items[0].categories).toEqual(['/women/women_clothing/shoes']);
   });
@@ -600,7 +600,7 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
       total: 1,
       items: [makeRawWithCategories(3004, [''])],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     // empty → stripped → prepend "/" → "/"
     expect(result.items[0].categories).toEqual(['/']);
@@ -617,7 +617,7 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
         makeRawWithCategories(3011, ['home/men/men_clothing/jeans']),
       ],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({
       categoryPath: '/women/women_clothing',
       unique: false,
@@ -635,8 +635,8 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
 describe('normalize — discountAttributes (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
@@ -669,7 +669,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
         },
       ],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({ discount_12: '10' });
@@ -694,7 +694,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
         },
       ],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({});
@@ -725,7 +725,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
 
   it('forwards "10%" verbatim (mirrors OE — rule with eq "10" would not fire)', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5010, '10%')] });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({ discount_12: '10%' });
@@ -733,7 +733,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
 
   it('forwards "15 %" verbatim (internal whitespace preserved)', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5011, '15 %')] });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({ discount_12: '15 %' });
@@ -743,7 +743,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
     // Surrounding whitespace still gets normalised (matches how OE itself
     // treats leading/trailing spaces in `eq` comparisons).
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5012, ' 20% ')] });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({ discount_12: '20%' });
@@ -751,7 +751,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
 
   it('leaves numeric-only value untouched: "10" → "10" (matches a rule with eq "10")', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5013, '10')] });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({ discount_12: '10' });
@@ -759,7 +759,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
 
   it('forwards double trailing "%%" verbatim: "20%%" → "20%%"', async () => {
     getProducts.mockResolvedValue({ total: 1, items: [makeDiscountProduct(5014, '20%%')] });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({ discount_12: '20%%' });
@@ -782,7 +782,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
         },
       }],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as { discountAttributes: Record<string, string> };
     expect(product.discountAttributes).toEqual({});
@@ -810,7 +810,7 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
         },
       }],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     const product = result.items[0] as {
       discountAttributes: Record<string, string>;
@@ -839,8 +839,8 @@ describe('searchProducts — extractProductIdList regression', () => {
   // from earlier suites, so we reset modules and re-register mocks here.
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
@@ -878,7 +878,7 @@ describe('searchProducts — extractProductIdList regression', () => {
       items: [makeRawCatalog(100), makeRawCatalog(101)],
     });
 
-    const { searchProducts } = await import('./products');
+    const { searchProducts } = await import('@/lib/oneentry/catalog/products');
     const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
 
     expect(results.length).toBeGreaterThanOrEqual(1);
@@ -898,7 +898,7 @@ describe('searchProducts — extractProductIdList regression', () => {
       items: [makeRawCatalog(100), makeRawCatalog(101)],
     });
 
-    const { searchProducts } = await import('./products');
+    const { searchProducts } = await import('@/lib/oneentry/catalog/products');
     const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
 
     expect(results.length).toBeGreaterThanOrEqual(1);
@@ -919,7 +919,7 @@ describe('searchProducts — extractProductIdList regression', () => {
       items: [makeRawCatalog(200), makeRawCatalog(201), makeRawCatalog(202)],
     });
 
-    const { searchProducts } = await import('./products');
+    const { searchProducts } = await import('@/lib/oneentry/catalog/products');
     const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
 
     const ids = results.map((p) => p.id);
@@ -940,7 +940,7 @@ describe('searchProducts — extractProductIdList regression', () => {
       items: [makeRawCatalog(300)],
     });
 
-    const { searchProducts } = await import('./products');
+    const { searchProducts } = await import('@/lib/oneentry/catalog/products');
     const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
 
     const ids = results.map((p) => p.id);
@@ -950,7 +950,7 @@ describe('searchProducts — extractProductIdList regression', () => {
   // ── short query guard (< 2 chars) ─────────────────────────────────────────
 
   it('returns [] immediately for a single-character query without calling the SDK', async () => {
-    const { searchProducts } = await import('./products');
+    const { searchProducts } = await import('@/lib/oneentry/catalog/products');
     const results = await searchProducts('g', { limit: 12 });
     expect(results).toEqual([]);
     expect(getProductsByVectorSearch).not.toHaveBeenCalled();
@@ -972,8 +972,8 @@ describe('searchProducts — extractProductIdList regression', () => {
 describe('normalize — stringValue numeric-attribute fix (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', async (importActual) => ({
-  ...(await importActual<typeof import('../index')>()),
+    vi.doMock('@/lib/oneentry/index', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
@@ -1007,7 +1007,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
       total: 1,
       items: [makeRawNumericProduct(6001, { price_14: { type: 'float', value: 199 } })],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { price: number }).price).toBe(199);
   });
@@ -1022,7 +1022,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
         units_11:    { type: 'integer', value: 2 },
       })],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(3);
   });
@@ -1034,7 +1034,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
         units_11: { type: 'integer', value: 5 },
       })],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { stock: number }).stock).toBe(0);
   });
@@ -1045,7 +1045,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
       total: 1,
       items: [makeRawNumericProduct(6004, { price_14: { value: '75' } })],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { price: number }).price).toBe(75);
   });
@@ -1057,7 +1057,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
       total: 1,
       items: [makeRawNumericProduct(6005, { price_14: { type: 'float', value: NaN } }, 99)],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { price: number }).price).toBe(99);
   });
@@ -1068,7 +1068,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
       total: 1,
       items: [makeRawNumericProduct(6006, { price_14: { type: 'float', value: Infinity } }, 55)],
     });
-    const { loadProducts } = await import('./products');
+    const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
     expect((result.items[0] as { price: number }).price).toBe(55);
   });

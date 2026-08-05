@@ -40,7 +40,7 @@
     "e2e",
     "playwright.config.ts",
     "scripts",
-    "**/__tests__/**",
+    "tests",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",

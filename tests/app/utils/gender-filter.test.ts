@@ -7,7 +7,7 @@
  * behaviour the move had to preserve exactly.
  */
 import { describe, expect, it } from 'vitest';
-import { genderFilterFromQuery, matchesGender } from './gender-filter';
+import { genderFilterFromQuery, matchesGender } from '@/app/utils/gender-filter';
 
 describe('genderFilterFromQuery', () => {
   it('maps the header switch values to OE taxonomy tags', () => {

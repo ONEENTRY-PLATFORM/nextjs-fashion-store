@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import userReducer, { setAuth } from '../userSlice';
+import userReducer, { setAuth } from '@/app/store/userSlice';
 
 /**
  * `cartApi` captures `process.env.NEXT_PUBLIC_API_URL` into `baseUrl` at module
@@ -13,14 +13,14 @@ import userReducer, { setAuth } from '../userSlice';
  */
 const API_BASE = 'http://api.test';
 
-type CartApiModule = typeof import('../api/cartApi');
+type CartApiModule = typeof import('@/app/store/api/cartApi');
 let cartApi: CartApiModule['cartApi'];
 let isCartApiEnabled: CartApiModule['isCartApiEnabled'];
 
 beforeAll(async () => {
   vi.stubEnv('NEXT_PUBLIC_API_URL', API_BASE);
   vi.resetModules();
-  ({ cartApi, isCartApiEnabled } = await import('../api/cartApi'));
+  ({ cartApi, isCartApiEnabled } = await import('@/app/store/api/cartApi'));
 });
 
 afterAll(() => {
