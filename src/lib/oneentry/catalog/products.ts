@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { getApi, isError, oneentry } from '../index';
+import { getApi, getApiSafe, getImageUrls, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
@@ -244,16 +244,10 @@ const richTextValue = (attr: RawAttr | undefined): string => {
   return '';
 };
 
-const imagesValue = (attr: RawAttr | undefined): string[] => {
-  if (!attr) return [];
-  if (!Array.isArray(attr.value)) return [];
-  return attr.value
-    .map((item) => {
-      const img = item as { downloadLink?: unknown };
-      return typeof img.downloadLink === 'string' ? img.downloadLink : '';
-    })
-    .filter((s) => s.length > 0);
-};
+/** Gallery URLs for an OE `groupOfImages` / multi-file attribute. Delegates to
+ *  the shared normalizer so a single-file attribute (which OE ships as a bare
+ *  object rather than an array) still resolves. */
+const imagesValue = (attr: RawAttr | undefined): string[] => getImageUrls(attr?.value);
 
 const pickAttributes = (raw: RawProduct, lang: Lang): Record<string, RawAttr> => {
   const attrs = raw.attributeValues ?? {};
@@ -447,7 +441,8 @@ async function rawProductList(
   filter: unknown[],
   opts: RawListOpts,
 ): Promise<ListResponse | null> {
-  if (!oneentry) return null;
+  const api = getApiSafe();
+  if (!api) return null;
   return cachedProductList(
     JSON.stringify(filter),
     opts.lang,
@@ -476,7 +471,8 @@ const fullCatalogCache = new Map<Lang, { at: number; value: CatalogProduct[] }>(
 const fullCatalogInflight = new Map<Lang, Promise<CatalogProduct[] | null>>();
 
 async function fetchFullCatalog(lang: Lang): Promise<CatalogProduct[] | null> {
-  if (!oneentry) return null;
+  const api = getApiSafe();
+  if (!api) return null;
   // Bypass `unstable_cache` here — Next.js caps a single entry at 2 MB, and
   // the full catalog dump (2000 products with all their attributes) is
   // ~30 MB, which makes `unstable_cache` reject the write with
@@ -620,7 +616,8 @@ function aggregateByName(items: CatalogProduct[], allById: Map<number, CatalogPr
 
 export const loadProducts = withTiming('loadProducts', cache(
   async (opts: LoadProductsOptions = {}): Promise<LoadProductsResult> => {
-    if (!oneentry) return { total: 0, items: [], fromCms: false };
+    const api = getApiSafe();
+    if (!api) return { total: 0, items: [], fromCms: false };
     const lang = opts.lang ?? DEFAULT_LOCALE;
     const limit = opts.limit ?? 30;
     const offset = opts.offset ?? 0;
@@ -665,7 +662,8 @@ export const loadProducts = withTiming('loadProducts', cache(
 // small handful of small requests.
 const cachedGetProductById = unstable_cache(
   async (id: number, lang: string): Promise<RawProduct | null> => {
-    if (!oneentry) return null;
+    const api = getApiSafe();
+    if (!api) return null;
     const result = await getApi().Products.getProductById(id, lang);
     if (isError(result)) return null;
     return result as unknown as RawProduct;
@@ -679,7 +677,8 @@ const cachedGetProductById = unstable_cache(
 // full catalog. Cached alongside the product because they share TTL.
 const cachedGetRelated = unstable_cache(
   async (id: number, lang: string): Promise<RawProduct[]> => {
-    if (!oneentry) return [];
+    const api = getApiSafe();
+    if (!api) return [];
     const result = await getApi().Products.getRelatedProductsById(id, lang);
     if (isError(result)) return [];
     const arr = Array.isArray(result)
@@ -695,7 +694,8 @@ const cachedGetRelated = unstable_cache(
 // on the product itself (separate from OE's `getRelatedProductsById`).
 const cachedGetByIds = unstable_cache(
   async (idsCsv: string, lang: string): Promise<RawProduct[]> => {
-    if (!oneentry || !idsCsv) return [];
+    const api = getApiSafe();
+    if (!api || !idsCsv) return [];
     const result = await getApi().Products.getProductsByIds(idsCsv, lang);
     if (isError(result)) return [];
     // OE has repeatedly toggled other list endpoints between flat and
@@ -817,7 +817,8 @@ function extractProductIdList(result: unknown): Array<{ id?: number }> {
 }
 
 async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise<number[]> {
-  if (!oneentry) return [];
+  const api = getApiSafe();
+  if (!api) return [];
   try {
     const result = await getApi().Products.getProductsByVectorSearch(
       { queryText: text },
@@ -837,7 +838,8 @@ async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise
 }
 
 async function quickSearchIds(text: string, lang: Lang): Promise<number[]> {
-  if (!oneentry) return [];
+  const api = getApiSafe();
+  if (!api) return [];
   try {
     const result = await getApi().Products.searchProduct(text, lang);
     if (isError(result)) return [];
@@ -1020,7 +1022,8 @@ async function _loadFilteredProducts(
   const limit = Math.max(1, opts.limit ?? 24);
   const page = Math.max(1, Math.floor(opts.page ?? opts.filters.page ?? 1));
 
-  if (!oneentry) {
+  const api = getApiSafe();
+  if (!api) {
     return { total: 0, items: [], page, limit, fromCms: false };
   }
 

@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { getApi, isError, isOneEntryEnabled } from '../index';
+import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -26,11 +26,6 @@ type RawPage = {
 };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-const extractImage = (v: unknown): string => {
-  if (!Array.isArray(v) || v.length === 0) return '';
-  const first = v[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
 
 export const loadStoreLocationsPage = cache(
   async (lang: Lang = DEFAULT_LOCALE): Promise<StoreLocationsPageFromCms | null> => {
@@ -68,7 +63,7 @@ export const loadStoreLocationsPage = cache(
           eyebrow: v('page_store_location_top_banner_sub_title'),
           title: v('page_store_location_top_banner_title'),
           text: v('page_store_location_top_banner_text'),
-          image: extractImage(attrs['page_store_location_top_banner_image']?.value),
+          image: getImageUrl(attrs['page_store_location_top_banner_image']?.value),
         },
         flagshipCallout: {
           subtitle: v('page_store_location_footer_banner_subtitle'),

@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getPageByUrl = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: { Pages: { getPageByUrl } },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ Pages: { getPageByUrl } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),

@@ -2,6 +2,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { getImageUrl } from '../../../lib/oneentry';
+import { DEFAULT_LOCALE } from '../../../lib/oneentry/locale';
 
 /**
  * Generic banner-style renderer for OE `common_block` type. Reads
@@ -22,12 +24,6 @@ type AttrValue = { value?: unknown } | undefined;
 type Attrs = Record<string, AttrValue>;
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-
-const extractImage = (v: unknown): string => {
-  if (!Array.isArray(v) || v.length === 0) return '';
-  const first = v[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
 
 /** Find the first attribute value whose key matches any of `patterns`.
  *  Attribute value may itself be `{ value: T }` per OE shape — we unwrap. */
@@ -53,7 +49,7 @@ function flattenAttrs(av: unknown, lang: string): Attrs {
 export function GenericCommonBlock({
   attributeValues,
   title: blockTitle,
-  lang = 'en_US',
+  lang = DEFAULT_LOCALE,
 }: {
   attributeValues?: Record<string, unknown>;
   title: string;
@@ -65,7 +61,7 @@ export function GenericCommonBlock({
   const title       = asString(pickAttr(attrs, [/(^|_)title$/i])) || blockTitle;
   const subtitle    = asString(pickAttr(attrs, [/sub_?title/i]));
   const description = asString(pickAttr(attrs, [/description|_body$|_text$/i]));
-  const image       = extractImage(pickAttr(attrs, [/_pic$|image|photo|_bg$/i]));
+  const image       = getImageUrl(pickAttr(attrs, [/_pic$|image|photo|_bg$/i]));
   const imageAlt    = title || subtitle || 'Banner';
   const ctaText     = asString(pickAttr(attrs, [/cta_?text|button/i]));
   const ctaLink     = asString(pickAttr(attrs, [/cta_?link|_href$|_link$/i]));

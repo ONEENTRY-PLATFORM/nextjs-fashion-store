@@ -5,6 +5,7 @@ import { CountdownUnit } from './SaleCountdown';
 import { SALE_PAGE_LABELS as L } from '../../data/salePageLabels';
 import { useSalePageT } from '../../../lib/oneentry/labels/SalePageLabelsContext';
 import type { SalePageFromCms } from '../../../lib/oneentry/catalog/sale-page';
+import { sanitizeHtml } from '../../../lib/sanitize-html';
 
 interface SaleHeroProps {
   countdown: { days: number; hours: number; minutes: number; seconds: number };
@@ -88,12 +89,13 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
             <span className="text-white text-xs tracking-[0.3em] uppercase opacity-80">{eyebrow}</span>
           </div>
           {contentHtml ? (
-            // Admin filled the OE rich-text editor with actual HTML —
-            // render as-is. Treated as trusted first-party content (same
-            // as product descriptions in ProductDetailPage).
+            // Admin filled the OE rich-text editor with actual HTML. It is
+            // first-party content but not trusted markup — a compromised admin
+            // account would otherwise own every shopper session, so it goes
+            // through the allow-list sanitizer first.
             <div
               className="oe-rich-text text-white mb-6"
-              dangerouslySetInnerHTML={{ __html: contentHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentHtml) }}
             />
           ) : (
             // No HTML — reconstruct the original title / discount /

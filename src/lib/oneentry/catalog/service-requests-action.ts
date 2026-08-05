@@ -1,7 +1,6 @@
-'use server';
-import { cookies } from 'next/headers';
-import { getApi, getUserApi, isError, isOneEntryEnabled } from '../index';
-import { readAccessOrRefresh, IDENTIFIER_COOKIE } from '../auth/session';
+import { getApiSafe, isError } from '../index';
+import { readUserIdentifier } from '../auth/browser-session';
+import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
 import type {
   ServiceRequest,
@@ -52,29 +51,22 @@ const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
  * out in the OE form definition later without breaking the page.
  */
 export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
-  if (!isOneEntryEnabled) return [];
-  const jar = await cookies();
-  const cookieUser = jar.get(IDENTIFIER_COOKIE)?.value;
-  if (!cookieUser) return [];
-  const userIdentifier = decodeURIComponent(cookieUser);
+  const api = getApiSafe();
+  if (!api) return [];
+  const userIdentifier = readUserIdentifier();
+  if (!userIdentifier) return [];
 
   try {
-    // Prefer the user-scoped SDK instance so OE sees the shopper's own
-    // token — if the tenant tightens the form-data read policy to require
-    // it, `getApi()` (app-token) would silently return `[]`. Transparently
-    // rotate the access token from the 7 d refresh cookie when the 24 h
-    // access cookie expired — the previous raw-cookie read fell through
-    // to the app-token instance the day after login and the "My Service
-    // Requests" list came back empty for real users.
-    const accessToken = await readAccessOrRefresh();
-    const api = accessToken ? getUserApi(accessToken) : null;
-    const target = api ?? getApi();
-    const result = await target.FormData.getFormsDataByMarker(
+    // The SDK singleton carries the shopper's own token after `reDefine()`,
+    // so OE sees an authenticated read — important because a tenant may
+    // tighten the form-data read policy to require it, in which case the
+    // app-token-only path would silently return `[]`.
+    const result = await api.FormData.getFormsDataByMarker(
       'service_request',
       SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
       { userIdentifier },
       0,
-      'en_US',
+      DEFAULT_LOCALE,
       0,
       30,
     );

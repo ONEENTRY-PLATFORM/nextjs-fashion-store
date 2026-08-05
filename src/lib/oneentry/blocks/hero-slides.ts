@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { oneentry, isError } from '../index';
+import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -29,14 +29,6 @@ type RawSlidesResponse = { items?: RawSlide[]; total?: number } | RawSlide[] | n
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-const extractImage = (raw: Record<string, unknown> | undefined): string => {
-  if (!raw) return '';
-  const arr = raw['image_id4'];
-  if (!Array.isArray(arr) || arr.length === 0) return '';
-  const first = arr[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
-
 const ALIGN_BY_POSITION: Array<'left' | 'right' | 'center'> = ['left', 'right', 'center'];
 const GENDER_BY_POSITION: Array<'women' | 'men'> = ['women', 'men', 'women'];
 
@@ -44,7 +36,7 @@ const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
   const v = raw.attributeValues ?? {};
   return {
     id: raw.id,
-    image: extractImage(v),
+    image: getImageUrl(v?.['image_id4']),
     headline: asString(v['string_id1']),
     eyebrow: asString(v['string_id2']),
     subtext: asString(v['string_id3']),
@@ -57,9 +49,10 @@ const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
 
 export const loadHeroSlides = withTiming('loadHeroSlides', unstable_cache(
   async (_lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
-    if (!oneentry) return [];
+    const api = getApiSafe();
+    if (!api) return [];
     try {
-      const raw = await oneentry.Blocks.getSlides('hero_slider');
+      const raw = await api.Blocks.getSlides('hero_slider');
       if (isError(raw)) return [];
       const result = raw as RawSlidesResponse;
       const items = Array.isArray(result) ? result : result?.items ?? [];

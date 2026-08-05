@@ -46,7 +46,7 @@ Composite section: renders the `LoyaltyCard` header + the six sub-forms below.
 | `myData/PersonalInfoSection.tsx` | `updateProfileAction({firstName, lastName, email, phone, gender, dob, shoeSize, clothingSize})` — validated with `profileSchema` (Zod) |
 | `myData/PasswordSection.tsx` | **Local only** — no `changePasswordAction` exists yet. The success state is simulated. |
 | `myData/AddressesSection.tsx` | `updateAddressesAction(nextAddresses)` — full replace. Each `OeAddress` carries `recordId` when persisted; new addresses get `recordId: undefined`. Validated with `addressSchema`. |
-| `myData/SocialNetworksSection.tsx` | "Connect" for Google calls `startGoogleOAuth('/account?googleLinked=1')` — the browser leaves for Google's authorize screen and returns via `app/auth/callback/google`; because `oe_access` is present, `exchangeGoogleCodeAction` links the Google identity to the current user instead of opening a new session. The mount effect reads `?googleLinked=1` and marks Google as linked. Apple / Facebook buttons are visual stubs. |
+| `myData/SocialNetworksSection.tsx` | "Connect" for Google calls `startGoogleOAuth('/account?googleLinked=1')` — the browser leaves for Google's authorize screen and returns to the `app/auth/callback/google` client page; because the SDK still holds the current session, the exchange links the Google identity to that user instead of opening a new one. The mount effect reads `?googleLinked=1` and marks Google as linked. Apple / Facebook buttons are visual stubs. |
 | `myData/ConsentSection.tsx` | `updateConsentAction({dataProcessing, crossBorder})` — the same `user_data` form-data record (moduleConfigId 3). |
 | `myData/AccountDeletionSection.tsx` | **No deletion Server Action** — the "Delete account" CTA calls `AuthContext.logout()` and shows a warning. |
 
@@ -243,7 +243,7 @@ To make it real: (1) add the `refer` case back to the `AccountPage` section swit
 2. Dispatches `clearAuth()` to `userSlice`.
 3. Dispatches `cartActions.clearCart()`, `wishlistActions.clearAll()`, and `recentlyViewedActions.hydrate([])`.
 4. Clears `oe_cart_merged`, `oe_wishlist_merged`, `oe_checkout_payload`, `oe_coupon_code`, and `oe_last_order_id` from `sessionStorage`.
-5. Fires `signOutAction()` in the background, which reads `oe_refresh` and calls `AuthProvider.logout(refreshToken)`, then clears `oe_access` / `oe_refresh` / `oe_user` cookies.
+5. Fires `signOutAction()` in the background, which reads `refresh-token` + `authProviderMarker` from storage, calls `AuthProvider.logout(providerMarker, refreshToken)`, then `clearTokens()` wipes them.
 6. No redirect — the sidebar re-renders as the `SignInPrompt`.
 
 ---

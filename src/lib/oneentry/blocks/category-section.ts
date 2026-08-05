@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { oneentry, isError } from '../index';
+import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -32,21 +32,15 @@ type RawSlides = { items?: RawSlide[]; total?: number } | RawSlide[] | null | un
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-const extractImage = (raw: Record<string, unknown>): string => {
-  const arr = raw['image_id4'];
-  if (!Array.isArray(arr) || arr.length === 0) return '';
-  const first = arr[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
-
 const slugify = (s: string): string =>
   s.toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 export const loadCategorySection = withTiming('loadCategorySection', unstable_cache(
   async (_lang: Lang = DEFAULT_LOCALE): Promise<CategorySectionFromCms> => {
-    if (!oneentry) return { chips: [], categories: [] };
+    const api = getApiSafe();
+    if (!api) return { chips: [], categories: [] };
     try {
-      const raw = await oneentry.Blocks.getSlides('category_section');
+      const raw = await api.Blocks.getSlides('category_section');
       if (isError(raw)) return { chips: [], categories: [] };
       const result = raw as RawSlides;
       const items = Array.isArray(result) ? result : result?.items ?? [];
@@ -67,7 +61,7 @@ export const loadCategorySection = withTiming('loadCategorySection', unstable_ca
         if (!chip) continue;
         const v = it.attributeValues ?? {};
         const label = asString(v['string_id1']);
-        const image = extractImage(v);
+        const image = getImageUrl(v?.['image_id4']);
         if (!label || !image) continue;
         const explicitHref = asString(v['string_id3']) || asString(v['string_id7']);
         const href = explicitHref || `/women/clothing?clothingType=${encodeURIComponent(label)}`;

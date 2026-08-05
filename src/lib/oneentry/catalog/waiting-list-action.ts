@@ -1,5 +1,11 @@
-'use server';
-import { loadProductsByIds } from './products';
+/**
+ * Waiting list = the shopper's OE wishlist, annotated with live stock status.
+ *
+ * The wishlist read is shopper-scoped (`Users.getWishlist`), so it runs in the
+ * browser off the session the SDK singleton already carries; the catalogue
+ * enrichment stays on the server behind a cached Server Action.
+ */
+import { getCatalogProductsByIdsAction } from './products-action';
 import { getWishlistAction } from '../auth/actions';
 import type { CatalogProduct } from './products';
 import type { WaitingItem, WaitingStockStatus } from '../../../app/data/userData';
@@ -15,11 +21,12 @@ const stockToStatus = (p: CatalogProduct): WaitingStockStatus => {
  * enriched with current stock status from the OE catalog. The traditional
  * "waiting list" semantics (out-of-stock items the user wants to be
  * notified about) are inferred — out_of_stock + low_stock items qualify.
+ * @returns {Promise<WaitingItem[]>} Wishlist entries with stock status.
  */
 export async function getWaitingListAction(): Promise<WaitingItem[]> {
   const wishlist = await getWishlistAction();
   if (wishlist.length === 0) return [];
-  const products = await loadProductsByIds(wishlist.map((w) => w.productId));
+  const products = await getCatalogProductsByIdsAction(wishlist.map((w) => w.productId));
   const byId = new Map(products.map((p) => [p.id, p]));
   return wishlist.flatMap<WaitingItem>((srv) => {
     const p = byId.get(srv.productId);

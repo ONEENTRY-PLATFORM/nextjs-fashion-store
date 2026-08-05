@@ -1,7 +1,6 @@
-'use server';
-import { cookies } from 'next/headers';
-import { getUserApi, isError, isOneEntryEnabled } from '../index';
-import { readAccessOrRefresh, IDENTIFIER_COOKIE } from '../auth/session';
+import { getApiSafe, hasStoredSession, isError } from '../index';
+import { readUserIdentifier } from '../auth/browser-session';
+import { DEFAULT_LOCALE } from '../locale';
 
 const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
 
@@ -28,19 +27,13 @@ export type SubmitServiceRequestResult =
 export async function submitServiceRequestAction(
   input: SubmitServiceRequestInput,
 ): Promise<SubmitServiceRequestResult> {
-  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
-
-  // Transparently rotate the access token from the 7 d refresh cookie when
-  // the 24 h access cookie expired — otherwise a shopper who came back the
-  // next day sees a bogus "Not authenticated" when submitting Book Service
-  // even though their session is still valid.
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, error: 'Not authenticated' };
-  const jar = await cookies();
-  const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
-
-  const api = getUserApi(access);
-  if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
+  const api = getApiSafe();
+  if (!api) return { ok: false, error: 'OneEntry env not configured' };
+  // The SDK singleton carries the session installed by `reDefine()`; a shopper
+  // returning after the access token expired is refreshed proactively before
+  // this request goes out, so no manual token rotation is needed here.
+  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  const userIdentifier = readUserIdentifier();
 
   // OE date type wants a full date envelope, not a bare ISO string.
   const isoDate = input.date
@@ -87,7 +80,7 @@ export async function submitServiceRequestAction(
       replayTo: null,
       status: 'sent',
       formData: formDataArray as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
-    }, 'en_US');
+    }, DEFAULT_LOCALE);
     if (isError(result)) {
       return { ok: false, error: result.message ?? 'Form submit failed' };
     }

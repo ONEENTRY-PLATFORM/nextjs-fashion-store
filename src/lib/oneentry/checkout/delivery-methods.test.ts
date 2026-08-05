@@ -7,7 +7,8 @@ vi.mock('next/cache', () => ({
 
 const getFormByMarker = vi.fn();
 
-vi.mock('../index', () => ({
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
   getApi: () => ({ Forms: { getFormByMarker } }),
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),

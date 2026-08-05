@@ -11,12 +11,13 @@ import { useWishlist } from '../context/WishlistContext';
 import { hexToColorName } from '../utils/colorNames';
 import { stripTrailingZeros } from '../utils/formatPrice';
 import { QUICK_VIEW_LABELS } from '../data/productPageLabels';
+import { useMounted } from '../hooks/useMounted';
 
 /* ─── List-view card (only when showListMode=true) ─── */
 export function CatalogListProductCard({ product, accent }: { product: Product; accent: string }) {
   const [addedToCart, setAddedToCart] = useState(false);
   const [cartHovered, setCartHovered] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const addedToCartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lAddToCart = useProductCardT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
   const { addItem } = useCart();
@@ -24,7 +25,6 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
   // `isWishlisted` returns Redux state that only lives on the client;
   // reading it during SSR/hydration would emit a mismatch warning. Gate
   // the heart-filled state on `mounted` the same way `ProductCard` does.
-  useEffect(() => { setMounted(true); }, []);
   const wishlisted = mounted && isWishlisted(product.id);
 
   useEffect(() => {

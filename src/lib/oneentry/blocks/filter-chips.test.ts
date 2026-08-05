@@ -7,7 +7,8 @@ vi.mock('react', () => ({
 
 const getFilterByMarker = vi.fn();
 
-vi.mock('../index', () => ({
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
   getApi: () => ({ Filters: { getFilterByMarker } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
@@ -214,7 +215,8 @@ describe('loadFilterChips — marker derivation', () => {
 describe('loadFilterChips — disabled', () => {
   it('returns null when isOneEntryEnabled is false', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
       getApi: () => { throw new Error('should not be called'); },
       isOneEntryEnabled: false,
       isError: () => false,

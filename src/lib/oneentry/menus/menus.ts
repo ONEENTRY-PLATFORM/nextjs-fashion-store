@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { oneentry, isError } from '../index';
+import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -77,9 +77,10 @@ const normalizeNode = (raw: RawNode, lang: Lang): MenuPageNode => {
 
 export const loadMenu = cache(
   async (marker: string, lang: Lang = DEFAULT_LOCALE): Promise<CmsMenu | null> => {
-    if (!oneentry) return null;
+    const api = getApiSafe();
+    if (!api) return null;
     try {
-      const result = await oneentry.Menus.getMenusByMarker(marker, lang);
+      const result = await api.Menus.getMenusByMarker(marker, lang);
       if (isError(result)) return null;
       const raw = result as unknown as RawMenu | null;
       if (!raw || raw.statusCode) return null;

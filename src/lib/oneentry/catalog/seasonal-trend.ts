@@ -1,4 +1,4 @@
-import { oneentry, isError } from '../index';
+import { getApiSafe, isError } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
 import type { CatalogFilters } from './filters';
@@ -79,7 +79,8 @@ export type SeasonalTrend =
  * fall back to the default `?category=` behaviour (match by pageUrl segment).
  */
 export async function resolveSeasonalTrend(pageUrl: string): Promise<SeasonalTrend | null> {
-  if (!oneentry) return null;
+  const api = getApiSafe();
+  if (!api) return null;
   // Fetch OE directly instead of going through the request-cached
   // `loadPageByUrl` — in Next.js dev, HMR of the cached wrapper can retain
   // stale results (empty `attributeValues` from before the merchant filled
@@ -87,7 +88,7 @@ export async function resolveSeasonalTrend(pageUrl: string): Promise<SeasonalTre
   // adapter honest at the cost of one extra fetch per page load.
   let result: unknown;
   try {
-    result = await oneentry.Pages.getPageByUrl(pageUrl, DEFAULT_LOCALE);
+    result = await api.Pages.getPageByUrl(pageUrl, DEFAULT_LOCALE);
   } catch (err) {
     logCaught(`seasonal-trend.resolveSeasonalTrend(${pageUrl})`, err);
     return null;

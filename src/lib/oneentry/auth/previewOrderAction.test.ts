@@ -6,7 +6,7 @@
  * parse every matching id out and return them as `missingProductIds: number[]`.
  *
  * Mocking strategy mirrors `google-oauth.test.ts`: stub `../index` (the OE SDK
- * facade) and `next/headers` so no network or cookie runtime is needed.
+ * facade) so no network or browser storage is needed.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,16 +22,20 @@ const isErrorMock = (v: unknown): v is { message?: string; statusCode?: number }
   !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>);
 
 // Stubs for the nested calls inside fetchMe / fetchLoyalty / fetchUserOrders
-// that fire when discountAmount === 0 && totalSum > 0 && access.
+// that fire when discountAmount === 0 && totalSum > 0 && the shopper is
+// signed in.
 const stubUserApi = () => ({
+  Blocks: { setGuestId: vi.fn() },
   Orders: {
     previewOrder: previewOrderMock,
     getAllOrdersByMarker: vi.fn(async () => ({ items: [], total: 0 })),
+    setGuestId: vi.fn(),
   },
   Discounts: {
     getDiscountByMarker: getDiscountByMarkerMock,
     getBonusBalance: vi.fn(async () => ({ balance: 0 })),
   },
+  UserActivity: { setGuestId: vi.fn() },
   Users: {
     getUser: vi.fn(async () => ({ statusCode: 401, message: 'no user' })),
     getCart: vi.fn(async () => ({ statusCode: 401 })),
@@ -48,36 +52,23 @@ const stubUserApi = () => ({
   },
 });
 
-vi.mock('../index', () => ({
+// The singleton now carries the session, so one stub covers both the
+// user-scoped calls and the app-token discount-config lookup.
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
   isOneEntryEnabled: true,
   isError: (v: unknown) => isErrorMock(v),
-  getUserApi: () => stubUserApi(),
-  getGuestApi: () => null,
-  // `oneentry` is the app-token singleton used for Discounts.getDiscountByMarker
-  // in the gift-only detection path.
-  oneentry: {
-    Discounts: { getDiscountByMarker: getDiscountByMarkerMock },
-  },
+  hasStoredSession: () => signedIn,
+  getApiSafe: () => stubUserApi(),
 }));
 
-// ── next/headers cookies() mock ───────────────────────────────────────────────
+/** Flipped per-suite to exercise the signed-in vs guest branches. */
+let signedIn = true;
 
-const cookieStore: Map<string, string> = new Map();
-vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) => {
-      const v = cookieStore.get(name);
-      return v === undefined ? undefined : { value: v };
-    },
-    set: vi.fn(),
-    delete: vi.fn(),
-  }),
-}));
+// ── catalog previews (pulled in by the module) ────────────────────────────────
 
-// ── catalog/products (pulled in by the module) ────────────────────────────────
-
-vi.mock('../catalog/products', () => ({
-  loadProductsByIds: vi.fn(async () => []),
+vi.mock('../catalog/product-previews-action', () => ({
+  getProductPreviewsAction: vi.fn(async () => []),
 }));
 
 // ── helper ────────────────────────────────────────────────────────────────────
@@ -94,9 +85,9 @@ describe('previewOrderAction — missingProductIds extraction', () => {
   beforeEach(() => {
     previewOrderMock.mockReset();
     getDiscountByMarkerMock.mockReset();
-    cookieStore.clear();
-    // Provide a valid access token so `getUserApi` path is taken.
-    cookieStore.set('oe_access', 'fake-access-token');
+    // Signed-in shopper: the tier-fallback + `additionalDiscountsMarkers`
+    // branches are the ones under test.
+    signedIn = true;
   });
 
   it('returns missingProductIds: [] for non-product-missing IError messages', async () => {
@@ -196,8 +187,7 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
     // Default: return an error so fetchLoyalty's `.filter(!isError)` drops it
     // and the tier-fallback code path stays inert (no TypeError on undefined).
     getDiscountByMarkerMock.mockResolvedValue({ statusCode: 404, message: 'not found' });
-    cookieStore.clear();
-    cookieStore.set('oe_access', 'fake-access-token');
+    signedIn = true;
   });
 
   it('returns giftItems: [] when orderPreview has no gift entries', async () => {
@@ -294,8 +284,7 @@ describe('previewOrderAction — couponDiscountAmount', () => {
     // Default: return an error so fetchLoyalty's `.filter(!isError)` drops it
     // and the tier-fallback code path stays inert (no TypeError on undefined).
     getDiscountByMarkerMock.mockResolvedValue({ statusCode: 404, message: 'not found' });
-    cookieStore.clear();
-    cookieStore.set('oe_access', 'fake-access-token');
+    signedIn = true;
   });
 
   it('sets couponDiscountAmount = 0 for a gift-only coupon (discountValue null, gifts non-empty)', async () => {

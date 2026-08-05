@@ -1,6 +1,13 @@
-'use server';
-import { getGuestApi, getUserApi, isError, isOneEntryEnabled } from '../index';
-import { readAccessOrRefresh } from '../auth/session';
+/**
+ * Visitor activity tracking (`UserActivity.trackUserActivity`).
+ *
+ * `UserActivity` is a session-scoped module: signed-in shoppers authenticate
+ * with their bearer token, guests with `x-guest-id`. Per the MCP
+ * `server-actions` rule both belong in the browser — the SDK singleton there
+ * already carries whichever context applies, and a Server Action would have to
+ * smuggle the session across the wire on every page view.
+ */
+import { getApiSafe, hasStoredSession, isError } from '../index';
 
 export type TUserActivityType =
   | 'product_view'
@@ -23,44 +30,36 @@ export interface TrackActivityInput {
   meta?: Record<string, unknown>;
 }
 
-// Records an event for the current visitor — signed-in users authenticate via
-// the `oe_access` cookie, guests pass an `x-guest-id` that we mint client-side
-// and thread through `getGuestApi(guestId)` (fresh SDK instance) so the
-// header rides along on the SDK's own outgoing request.
-// Fire-and-forget on the caller side: this returns ok/error but never throws.
+/**
+ * Record one activity event for the current visitor. Fire-and-forget on the
+ * caller side: it reports `ok`/`error` but never throws.
+ *
+ * When the shopper is signed in the SDK sends the bearer token and OE drops
+ * `x-guest-id` entirely; otherwise the anonymous id is installed on the
+ * instance so the guest trail keeps aggregating under one record.
+ * @param {TrackActivityInput} input     - Event type and its subject.
+ * @param {string}             [guestId] - Anonymous visitor id for guests.
+ * @returns {Promise<{ ok: true } | { ok: false; error: string }>} Outcome.
+ */
 export async function trackActivityAction(
   input: TrackActivityInput,
   guestId?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
+  const api = getApiSafe();
+  if (!api) return { ok: false, error: 'OneEntry env not configured' };
 
-  // Prefer the authed path when the shopper has any auth material — even
-  // after the 24 h ACCESS_COOKIE expired, `readAccessOrRefresh` transparently
-  // rotates the token from the 7 d refresh cookie. Without this, activity
-  // events silently fall into the guest branch and stop attaching to the
-  // user account for the rest of the browser life.
-  const access = await readAccessOrRefresh();
+  const signedIn = hasStoredSession();
+  if (!signedIn) {
+    if (!guestId) return { ok: false, error: 'No auth or guest id' };
+    api.UserActivity.setGuestId(guestId);
+  }
 
   try {
-    if (access) {
-      const api = getUserApi(access);
-      if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
-      const result = await api.UserActivity.trackUserActivity(input);
-      if (isError(result)) {
-        return { ok: false, error: result.message ?? 'Track failed' };
-      }
-      return { ok: true };
+    const result = await api.UserActivity.trackUserActivity(input);
+    if (isError(result)) {
+      return { ok: false, error: result.message ?? 'Track failed' };
     }
-    if (guestId) {
-      const api = getGuestApi(guestId);
-      if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
-      const result = await api.UserActivity.trackUserActivity(input);
-      if (isError(result)) {
-        return { ok: false, error: result.message ?? 'Track failed' };
-      }
-      return { ok: true };
-    }
-    return { ok: false, error: 'No auth or guest id' };
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
   }

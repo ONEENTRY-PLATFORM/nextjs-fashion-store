@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: {
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
-  },
+  }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -39,7 +40,8 @@ describe('loadPdpSystemTexts', () => {
 describe('loadPdpSystemTexts — disabled', () => {
   it('returns empty dicts when SDK disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
     const { loadPdpSystemTexts, PDP_SET_MARKERS } = await import('./pdp-labels');
     const result = await loadPdpSystemTexts();
     for (const m of PDP_SET_MARKERS) {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { PromoItem } from '../data/promoBlocks';
 import type { HomepageCollectionItem } from '../../lib/oneentry/blocks/homepage-collections';
+import { useMounted } from '../hooks/useMounted';
 
 function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boolean }) {
   const [hovered, setHovered] = useState(false);
@@ -62,9 +63,10 @@ export function PromoBlock({ initialItems }: { initialItems?: HomepageCollection
     cta: it.buttonText,
     href: it.link,
   }));
+  const mounted = useMounted();
+
+  // Hooks first, early returns after — see `rules-of-hooks`.
   if (items.length === 0) return null;
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) {
     return (

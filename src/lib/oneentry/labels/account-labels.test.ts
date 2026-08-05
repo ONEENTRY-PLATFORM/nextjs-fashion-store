@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: {
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
-  },
+  }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -66,7 +67,8 @@ describe('loadAccountSystemTexts', () => {
 describe('loadAccountSystemTexts — disabled', () => {
   it('returns empty dicts for every marker when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
     const { loadAccountSystemTexts, ACCOUNT_SET_MARKERS } = await import('./account-labels');
     const result = await loadAccountSystemTexts();
     for (const m of ACCOUNT_SET_MARKERS) {

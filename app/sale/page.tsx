@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../src/app/data/seoData';
 import { SalePage } from '../../src/app/pages/SalePage';
@@ -11,7 +12,13 @@ import { loadSalePage } from '../../src/lib/oneentry/catalog/sale-page';
 
 export const metadata: Metadata = SEO.sale;
 
-export const dynamic = 'force-dynamic';
+// CMS content changes only when an admin edits it, so this is ISR, never
+// `force-dynamic` (MCP `performance`). `force-static` makes the build fail
+// loudly if anything in the tree slips back into dynamic rendering instead of
+// silently degrading. Gender scoping (`?gender=`) is applied in the browser —
+// see `SalePage`.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 const breadcrumb = {
   '@context': 'https://schema.org',
@@ -22,12 +29,7 @@ const breadcrumb = {
   ],
 };
 
-interface Props { searchParams: Promise<{ gender?: string }> }
-
-export default async function Page({ searchParams }: Props) {
-  const { gender } = await searchParams;
-  const genderFilter: 'W' | 'M' | null =
-    gender === 'men' ? 'M' : gender === 'women' ? 'W' : null;
+export default async function Page() {
   const [labels, products, cmsPage, pageBlocks] = await Promise.all([
     loadSalePageSystemTexts(),
     loadProducts({ tags: ['Sale'], limit: 200 }),
@@ -39,27 +41,21 @@ export default async function Page({ searchParams }: Props) {
     loadPageBlocksByUrl('sale'),
   ]);
   const saleEndsAt = cmsPage?.saleEndsAt ?? null;
-  // Prefer the OE `gender` attribute; fall back to the OE category path
-  // (`/women/...` vs `/men/...`) when the merchant left the flag blank.
-  const matchGender = (p: typeof products.items[number]) => {
-    if (!genderFilter) return true;
-    if (p.gender === 'U') return true;
-    if (p.gender === genderFilter) return true;
-    if (!p.gender) {
-      const catToken = genderFilter === 'W' ? '/women/' : '/men/';
-      return p.categories.some((c) => c.toLowerCase().includes(catToken));
-    }
-    return false;
-  };
-  const filteredItems = products.items.filter(matchGender);
-  const initialProducts = filteredItems.length > 0
-    ? filteredItems.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: saleCategoryFor(p) }))
+  // The full feed ships to the client; `SalePage` narrows it to the active
+  // gender from `?gender=`. The adapter already stamps `gender` with the OE
+  // attribute or, when blank, the category path (`/women/…` vs `/men/…`).
+  const initialProducts = products.items.length > 0
+    ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: saleCategoryFor(p) }))
     : undefined;
   return (
     <>
       <JsonLd data={breadcrumb} />
       <SalePageLabelsProvider data={labels}>
-        <SalePage initialProducts={initialProducts} saleEndsAt={saleEndsAt ?? undefined} gender={genderFilter} pageBlocks={pageBlocks} cmsPage={cmsPage} />
+        {/* SalePage reads `?gender=` via useSearchParams — without this
+            boundary the whole route silently reverts to dynamic rendering. */}
+        <Suspense fallback={null}>
+          <SalePage initialProducts={initialProducts} saleEndsAt={saleEndsAt ?? undefined} pageBlocks={pageBlocks} cmsPage={cmsPage} />
+        </Suspense>
       </SalePageLabelsProvider>
     </>
   );

@@ -7,10 +7,11 @@ vi.mock('react', () => ({
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('./index', () => ({
-  oneentry: {
+vi.mock('./index', async (importActual) => ({
+  ...(await importActual<typeof import('./index')>()),
+  getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
-  },
+  }),
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
   isOneEntryEnabled: true,
@@ -76,7 +77,8 @@ describe('t(set, key, fallback)', () => {
 describe('t when OneEntry is disabled (no env)', () => {
   it('returns fallback without calling SDK', async () => {
     vi.resetModules();
-    vi.doMock('./index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('./index', async (importActual) => ({
+  ...(await importActual<typeof import('./index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
     const { t } = await import('./system-text');
     expect(await t('any', 'key', 'fb')).toBe('fb');
     expect(getAttributeSetByMarker).not.toHaveBeenCalled();
@@ -91,8 +93,9 @@ describe('t when OneEntry is disabled (no env)', () => {
 describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () => {
   it('re-fetches when the first response was empty (error path)', async () => {
     vi.resetModules();
-    vi.doMock('./index', () => ({
-      oneentry: { AttributesSets: { getAttributeSetByMarker } },
+    vi.doMock('./index', async (importActual) => ({
+  ...(await importActual<typeof import('./index')>()),
+      getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
       isError: (v: unknown) =>
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
@@ -115,8 +118,9 @@ describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () 
 
   it('does NOT re-fetch when the first response had a non-empty schema', async () => {
     vi.resetModules();
-    vi.doMock('./index', () => ({
-      oneentry: { AttributesSets: { getAttributeSetByMarker } },
+    vi.doMock('./index', async (importActual) => ({
+  ...(await importActual<typeof import('./index')>()),
+      getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
       isError: (v: unknown) =>
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
@@ -138,8 +142,9 @@ describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () 
 
   it('re-fetches when the first response had a null schema (treated as empty)', async () => {
     vi.resetModules();
-    vi.doMock('./index', () => ({
-      oneentry: { AttributesSets: { getAttributeSetByMarker } },
+    vi.doMock('./index', async (importActual) => ({
+  ...(await importActual<typeof import('./index')>()),
+      getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
       isError: (v: unknown) =>
         !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,

@@ -54,7 +54,6 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
     align: s.align,
     gender: s.gender,
   }));
-  if (slides.length === 0) return null;
   const [current, setCurrent] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -73,15 +72,24 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
     transitionTimer.current = setTimeout(() => setIsTransitioning(false), TIMINGS.HERO_SLIDE_TRANSITION);
   }, [isTransitioning]);
 
-  const next = useCallback(() => goTo((current + 1) % slides.length), [current, goTo, slides.length]);
-  const prev = useCallback(() => goTo((current - 1 + slides.length) % slides.length), [current, goTo, slides.length]);
+  const next = useCallback(
+    () => { if (slides.length > 0) goTo((current + 1) % slides.length); },
+    [current, goTo, slides.length],
+  );
+  const prev = useCallback(
+    () => { if (slides.length > 0) goTo((current - 1 + slides.length) % slides.length); },
+    [current, goTo, slides.length],
+  );
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || slides.length < 2) return;
     const timer = setInterval(next, TIMINGS.HERO_SLIDE_INTERVAL);
     return () => clearInterval(timer);
-  }, [next, paused]);
+  }, [next, paused, slides.length]);
 
+  // Bail out only after every hook has run — hooks must be called in the same
+  // order on every render (MCP: `react-hooks/rules-of-hooks` is an error).
+  if (slides.length === 0) return null;
   const slide = slides[current];
 
   return (

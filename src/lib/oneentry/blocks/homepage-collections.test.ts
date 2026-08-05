@@ -7,8 +7,9 @@ vi.mock('next/cache', () => ({
 
 const getSlides = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: { Blocks: { getSlides } },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ Blocks: { getSlides } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),

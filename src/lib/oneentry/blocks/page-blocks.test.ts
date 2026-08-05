@@ -14,8 +14,9 @@ const fakeApi = {
   Products: { getProductBlockById },
 };
 
-vi.mock('../index', () => ({
-  oneentry: fakeApi,
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => (fakeApi),
   getApi: () => fakeApi,
   isOneEntryEnabled: true,
   isError: (v: unknown) =>

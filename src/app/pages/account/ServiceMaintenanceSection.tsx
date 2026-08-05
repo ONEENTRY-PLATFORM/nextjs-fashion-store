@@ -22,15 +22,15 @@ const SERVICE_CATEGORY_LABELS: Record<ServiceCategory, string> = {
 const SERVICE_FILTER_KEYS: ServiceStatus[] = ['open', 'in-progress', 'ready', 'completed', 'cancelled'];
 
 export function ServiceMaintenanceSection() {
-  const [services, setServices] = useState<ServiceRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  // `null` means "still loading" — one piece of state instead of a pair kept
+  // in sync from inside the effect (a synchronous `setState` in `useEffect`).
+  const [services, setServices] = useState<ServiceRequest[] | null>(null);
+  const loading = services === null;
+  const serviceList = services ?? [];
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     void getServiceRequestsAction().then((items) => {
-      if (cancelled) return;
-      setServices(items);
-      setLoading(false);
+      if (!cancelled) setServices(items);
     });
     return () => { cancelled = true; };
   }, []);
@@ -72,10 +72,10 @@ export function ServiceMaintenanceSection() {
   const toggle = (id: string) =>
     setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
-  const filtered = activeFilter === 'all' ? services : services.filter(s => s.status === activeFilter);
-  const activeCount = services.filter(s => ['open', 'in-progress', 'ready'].includes(s.status)).length;
-  const completedCount = services.filter(s => s.status === 'completed').length;
-  const totalCost = services.filter(s => s.cost !== null).reduce((a, s) => a + (s.cost ?? 0), 0);
+  const filtered = activeFilter === 'all' ? serviceList : serviceList.filter(s => s.status === activeFilter);
+  const activeCount = serviceList.filter(s => ['open', 'in-progress', 'ready'].includes(s.status)).length;
+  const completedCount = serviceList.filter(s => s.status === 'completed').length;
+  const totalCost = serviceList.filter(s => s.cost !== null).reduce((a, s) => a + (s.cost ?? 0), 0);
 
   return (
     <div
@@ -135,10 +135,10 @@ export function ServiceMaintenanceSection() {
             activeFilter === 'all' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'
           }`}
         >
-          {lFilterAll} ({services.length})
+          {lFilterAll} ({serviceList.length})
         </button>
         {SERVICE_FILTER_KEYS.map(f => {
-          const count = services.filter(s => s.status === f).length;
+          const count = serviceList.filter(s => s.status === f).length;
           if (count === 0) return null;
           const cfg = SERVICE_STATUS_CONFIG[f];
           const isActive = activeFilter === f;

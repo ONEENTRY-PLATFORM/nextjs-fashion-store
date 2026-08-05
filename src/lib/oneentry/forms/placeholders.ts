@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { oneentry, isError } from '../index';
+import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
@@ -47,9 +47,10 @@ async function fetchFormPlaceholders(
   marker: string,
   lang: Lang,
 ): Promise<FormPlaceholders> {
-  if (!oneentry) return {};
+  const api = getApiSafe();
+  if (!api) return {};
   try {
-    const raw = await oneentry.Forms.getFormByMarker(marker, lang);
+    const raw = await api.Forms.getFormByMarker(marker, lang);
     if (isError(raw)) return {};
     const form = raw as RawForm;
     if (!form || !Array.isArray(form.attributes)) return {};

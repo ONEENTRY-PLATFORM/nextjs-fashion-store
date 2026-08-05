@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const postFormsData = vi.fn();
 const revalidateTag = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: { FormData: { postFormsData } },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ FormData: { postFormsData } }),
   isOneEntryEnabled: true,
   isError: (v: unknown): v is { message?: string; statusCode?: number } =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -84,7 +85,8 @@ describe('submitForm', () => {
 describe('submitForm — disabled', () => {
   it('returns ok:false when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false, isError: () => false }));
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false, isError: () => false }));
     const { submitForm } = await import('./submit');
     const result = await submitForm('subscribe_new_drops', []);
     expect(result.ok).toBe(false);

@@ -22,6 +22,7 @@ import { extractCmsProductId } from '../data/cms-product-id-map';
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
 import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import { useMounted } from '../hooks/useMounted';
 
 export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const router = useRouter();
@@ -107,8 +108,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   // first paint already has the real items while SSR HTML has an empty cart.
   // Gate every cart-derived value on `mounted` so the initial client render
   // matches the server, then reveal totals after the mount effect fires.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useMounted();
 
   // Route-level guard: deep-linking `/checkout/payment` with an empty
   // cart used to render the whole payment picker (and a $0 total from
@@ -164,15 +164,18 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   // Debounce previewOrder so typing into the bonus field doesn't spam OE.
   // `previewInFlight` gates the Place Order button so the shopper can't
   // submit a stale total — see the button block below.
-  const [previewInFlight, setPreviewInFlight] = useState(false);
+  // Tracks which cart+bonus+coupon signature the current `preview` answers
+  // for. "In flight" is then derived during render — the effect only ever
+  // records a finished response, never flips a loading flag on entry (that
+  // would be a synchronous `setState` inside `useEffect`).
+  const [previewFor, setPreviewFor] = useState<string | null>(null);
   const productsKey = JSON.stringify(productsForPreview);
+  const hasPreviewableItems = productsForPreview.length > 0;
+  const previewSignature = `${productsKey}|${bonusAmount}|${couponCode ?? ''}`;
+  const previewInFlight = hasPreviewableItems && previewFor !== previewSignature;
+  const previewLoading = previewInFlight;
   useEffect(() => {
-    if (productsForPreview.length === 0) {
-      setPreview(null);
-      setPreviewInFlight(false);
-      return;
-    }
-    setPreviewInFlight(true);
+    if (!hasPreviewableItems) return;
     let cancelled = false;
     const t = setTimeout(async () => {
       const guestId = isLoggedIn ? undefined : getOrCreateGuestId();
@@ -184,7 +187,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       });
       if (cancelled) return;
       if (r.ok) setPreview(r);
-      setPreviewInFlight(false);
+      setPreviewFor(previewSignature);
     }, 300);
     return () => { cancelled = true; clearTimeout(t); };
     // productsKey covers the array; bonusAmount and couponCode are scalars.

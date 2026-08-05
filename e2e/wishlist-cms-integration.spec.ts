@@ -118,7 +118,8 @@ test.describe('Playground ↔ Platform wishlist / cart REST integration', () => 
   test('AC #7: warning is emitted for an unmapped product', async ({ page }) => {
     const warnings: string[] = [];
     page.on('console', (msg) => {
-      if (msg.type() === 'warning' || msg.type() === 'warn') {
+      // Playwright reports this level as `warning`; there is no `warn`.
+      if (msg.type() === 'warning') {
         warnings.push(msg.text());
       }
     });

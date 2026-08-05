@@ -1,0 +1,18 @@
+{
+  // The root `tsconfig.json` deliberately excludes `e2e` and
+  // `playwright.config.ts` so that `next build` never type-checks the suite —
+  // otherwise a production install without devDependencies would fail on the
+  // missing `@playwright/test` types. The side effect was that the editor put
+  // these files in an *inferred* project with no `@types` at all, so every
+  // `process.env` lookup reported "Cannot find name 'process'". This project
+  // puts them back under real type-checking without touching the build.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "**/*.ts",
+    "../playwright.config.ts"
+  ],
+  "exclude": []
+}

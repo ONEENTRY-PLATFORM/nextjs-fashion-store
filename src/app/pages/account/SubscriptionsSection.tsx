@@ -10,16 +10,20 @@ const EMPTY_SUBS = {
   orderUpdates: false, newArrivals: false, saleAlerts: false, loyaltyUpdates: false,
 };
 
-export function SubscriptionsSection() {
-  const { user, updateSubscriptions } = useAuth();
-  const subs = user?.subscriptions ?? EMPTY_SUBS;
-  const lTitle = useT('subscription_management', 'subscription_management_title', L.title);
-
-  const toggle = (key: keyof typeof subs) => {
-    void updateSubscriptions({ ...subs, [key]: !subs[key] });
-  };
-
-  const Toggle = ({ value, onChange, label, desc }: { value: boolean; onChange: () => void; label: string; desc: string }) => (
+/**
+ * One notification toggle row. Declared at module scope, not inside
+ * `SubscriptionsSection` — a component created during render is a brand-new
+ * type on every pass, so React unmounts and remounts it, throwing away its
+ * DOM state (focus, transition) each time the parent re-renders.
+ * @param {object}   props          - Row props.
+ * @param {boolean}  props.value    - Current toggle state.
+ * @param {Function} props.onChange - Called when the shopper flips it.
+ * @param {string}   props.label    - Visible label / accessible name.
+ * @param {string}   props.desc     - Supporting copy under the label.
+ * @returns {React.ReactElement} The rendered row.
+ */
+function Toggle({ value, onChange, label, desc }: { value: boolean; onChange: () => void; label: string; desc: string }) {
+  return (
     <div className="flex items-center justify-between p-4 border border-[#e5e7eb]">
       <div>
         <p className="text-sm font-semibold">{label}</p>
@@ -38,6 +42,16 @@ export function SubscriptionsSection() {
       </button>
     </div>
   );
+}
+
+export function SubscriptionsSection() {
+  const { user, updateSubscriptions } = useAuth();
+  const subs = user?.subscriptions ?? EMPTY_SUBS;
+  const lTitle = useT('subscription_management', 'subscription_management_title', L.title);
+
+  const toggle = (key: keyof typeof subs) => {
+    void updateSubscriptions({ ...subs, [key]: !subs[key] });
+  };
 
   return (
     <div>

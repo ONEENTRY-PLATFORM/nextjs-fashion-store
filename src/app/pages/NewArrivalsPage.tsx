@@ -1,5 +1,7 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { ProductCard, type Product } from '../components/ProductCard';
@@ -21,6 +23,8 @@ import { useNewArrivalsPageT } from '../../lib/oneentry/labels/NewArrivalsPageLa
 import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { NewArrivalsPageFromCms } from '../../lib/oneentry/catalog/new-arrivals-page';
+import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
+import { useMounted } from '../hooks/useMounted';
 
 const NEW_KEY = 'new-arrivals';
 type NewProduct = Product & { category: Exclude<NewArrivalCategory, 'All'> };
@@ -28,7 +32,7 @@ type NewProduct = Product & { category: Exclude<NewArrivalCategory, 'All'> };
 export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { initialProducts?: NewProduct[]; pageBlocks?: PageBlock[]; cmsPage?: NewArrivalsPageFromCms | null } = {}) {
   // UI-only state
   const [sortOpen, setSortOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const lStyles  = useNewArrivalsPageT('new_arrivals_page_styles',  L.stylesSuffix);
   const lView    = useNewArrivalsPageT('new_arrivals_page_view',    L.viewLabel);
   const lResults = useNewArrivalsPageT('new_arrivals_page_results', L.resultPlural);
@@ -45,12 +49,19 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
     dispatch(setFilters({ catalogKey: NEW_KEY, filters: { ...selectedFilters, category: cat === NACL.all ? [] : [cat] } }));
   };
 
-  const ALL_PRODUCTS: NewProduct[] = initialProducts ?? [];
+  // Gender scope comes from `?gender=` (set by the header switch). Reading it
+  // here rather than in the page keeps `/new` statically renderable — the
+  // consumer sits inside a `<Suspense>` boundary declared by the route.
+  const searchParams = useSearchParams();
+  const genderFilter = genderFilterFromQuery(searchParams.get('gender'));
+  const ALL_PRODUCTS: NewProduct[] = useMemo(
+    () => (initialProducts ?? []).filter((p) => matchesGender(p.gender, genderFilter)),
+    [initialProducts, genderFilter],
+  );
 
   const sortRef = useRef<HTMLDivElement>(null);
   const filterBarRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMounted(true); }, []);
 
   /* Close sort on outside click / Escape */
   useEffect(() => {
@@ -99,9 +110,9 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
         {/* ── Breadcrumb ── */}
         <div className="px-4 lg:px-8 py-3 flex items-center justify-between border-b border-gray-100">
           <nav className="flex items-center gap-1 text-xs text-gray-400">
-            <a href="/" className="hover:text-black transition-colors">
+            <Link href="/" className="hover:text-black transition-colors">
               {L.breadcrumbHome}
-            </a>
+            </Link>
             <span className="mx-0.5">/</span>
             <span className="text-black">{L.breadcrumbCurrent}</span>
           </nav>

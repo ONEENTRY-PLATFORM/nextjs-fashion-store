@@ -20,6 +20,7 @@ import { FrequentlyOrderedAsync } from '../../../src/app/pages/product/Frequentl
 import { RecommendationsSkeleton } from '../../../src/app/pages/product/RecommendationsSkeleton';
 import { loadProductBlocks } from '../../../src/lib/oneentry/blocks/page-blocks';
 import type { CatalogProduct as PdpCatalogProduct } from '../../../src/app/data/productCatalog';
+import { priceValidUntil } from '../../../src/app/utils/price-valid-until';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -208,9 +209,7 @@ export default async function Page({ params }: Props) {
           url: `${SITE_URL}/product/${id}`,
           priceCurrency: CURRENCY,
           price: product.salePrice ?? product.price,
-          priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split('T')[0],
+          priceValidUntil: priceValidUntil(),
           availability: product.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
           itemCondition: 'https://schema.org/NewCondition',
           seller: {

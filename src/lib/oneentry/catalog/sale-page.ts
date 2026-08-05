@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getApi, isError, isOneEntryEnabled } from '../index';
+import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -45,11 +45,6 @@ type RawPage = {
 };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-const extractImage = (v: unknown): string => {
-  if (!Array.isArray(v) || v.length === 0) return '';
-  const first = v[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
 const extractHtml = (v: unknown): string => {
   if (!Array.isArray(v) || v.length === 0) return '';
   const first = v[0] as { htmlValue?: unknown };
@@ -95,7 +90,7 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
         ctaLabel:      s('page_sale_top_banner_cta'),
         timerLabel:    s('page_sale_top_banner_timer_lable'),
         timerEndsText: s('page_sale_top_banner_timer_text'),
-        image:         extractImage(attrs['page_sale_top_banner_picture']?.value),
+        image:         getImageUrl(attrs['page_sale_top_banner_picture']?.value),
       },
       promo: {
         eyebrow:  s('page_sale_footer_banner_lable'),
@@ -103,7 +98,7 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
         subtitle: s('page_sale_footer_banner_sub_title'),
         ctaLabel: s('page_sale_footer_banner_cta'),
         ctaHref:  s('page_sale_footer_banner_cta_link'),
-        image:    extractImage(attrs['page_sale_footer_banner_picture']?.value),
+        image:    getImageUrl(attrs['page_sale_footer_banner_picture']?.value),
       },
       saleEndsAt: extractFullDate(attrs['page_sale_top_banner_timer']?.value),
     };

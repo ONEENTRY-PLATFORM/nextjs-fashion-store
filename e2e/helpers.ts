@@ -1,7 +1,38 @@
 import { type Page, expect } from '@playwright/test';
 
-/** Valid mock credentials */
-export const VALID_CREDS = { email: 'test@test.com', password: '111' };
+/**
+ * Credentials of the permanent E2E user. Overridable from `.env.local` so a
+ * real tenant can point the suite at its own long-lived test account — the
+ * MCP `playwright-e2e` rule is explicit that tests must reuse an existing
+ * active user rather than creating (and stranding) new ones.
+ */
+export const VALID_CREDS = {
+  email: process.env.E2E_TEST_EMAIL || 'test@test.com',
+  password: process.env.E2E_TEST_PASSWORD || '111',
+};
+
+/**
+ * Browser-storage keys that make up a shopper session.
+ *
+ * The session moved from httpOnly cookies into the browser (MCP `tokens`):
+ * the SDK's `saveFunction` writes `refresh-token`, and the app records which
+ * provider minted it plus the OE user identifier it needs for form-data
+ * writes. Tests assert on these directly.
+ */
+export const SESSION_KEYS = {
+  refreshToken: 'refresh-token',
+  providerMarker: 'authProviderMarker',
+  userIdentifier: 'oe_user_identifier',
+} as const;
+
+/** Read the persisted session as the browser sees it. */
+export async function readSession(page: Page) {
+  return page.evaluate((keys) => ({
+    refreshToken: localStorage.getItem(keys.refreshToken),
+    providerMarker: localStorage.getItem(keys.providerMarker),
+    userIdentifier: localStorage.getItem(keys.userIdentifier),
+  }), SESSION_KEYS);
+}
 
 /** Click the account/user icon in the Header to open login modal */
 export async function clickAccountIcon(page: Page) {
@@ -24,9 +55,19 @@ export async function login(page: Page) {
   await page.waitForTimeout(500);
 }
 
-/** Clear localStorage to reset state */
+/**
+ * Reset every scrap of client state between tests.
+ *
+ * Both stores matter now: the shopper session lives in `localStorage`
+ * (refresh token + provider marker) and the checkout hand-off flags live in
+ * `sessionStorage`. Clearing only the former used to leave a half-finished
+ * checkout leaking into the next test.
+ */
 export async function clearState(page: Page) {
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
 }
 
 /** Reliably add a product to cart via catalog card hover */

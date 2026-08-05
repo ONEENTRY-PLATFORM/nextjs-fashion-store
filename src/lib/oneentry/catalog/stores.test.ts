@@ -13,8 +13,9 @@ const fakeApi = {
   Pages: { getChildPagesByParentUrl },
 };
 
-vi.mock('../index', () => ({
-  oneentry: fakeApi,
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),

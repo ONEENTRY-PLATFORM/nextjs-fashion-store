@@ -1,5 +1,7 @@
 'use client'
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { sanitizeHtml } from '../../lib/sanitize-html';
 import { useRouter, useParams, useSearchParams, notFound } from 'next/navigation';
 import {
   hexToColorName,
@@ -311,11 +313,13 @@ export function ProductDetailPage({
   // Clear the picked size when the new colour doesn't stock it — otherwise
   // the "size selected" state persists over a struck-through size (e.g. the
   // shopper picked Pink/M, then flipped to a colour that has no M in stock).
-  useEffect(() => {
-    if (!selectedSize) return;
-    const stillAvailable = dynamicSizeOptions.find((s) => s.label === selectedSize)?.available;
-    if (!stillAvailable) setSelectedSize(null);
-  }, [selectedColor, dynamicSizeOptions, selectedSize]);
+  // Flipping to a colour that doesn't stock the picked size must clear the
+  // selection before paint — otherwise the shopper sees a struck-through size
+  // rendered as "selected" for a frame. Adjusting during render is React's
+  // sanctioned pattern for this; an effect would be a cascading render.
+  if (selectedSize && !dynamicSizeOptions.find((opt) => opt.label === selectedSize)?.available) {
+    setSelectedSize(null);
+  }
 
   useEffect(() => {
     if (isFirstMount.current) { isFirstMount.current = false; return; }
@@ -598,7 +602,7 @@ export function ProductDetailPage({
             links back to the storefront root. */}
         <div className="px-4 lg:px-8 py-3 border-b border-gray-200">
           <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
-            <a href="/" className="hover:text-black transition-colors">{PB.home}</a>
+            <Link href="/" className="hover:text-black transition-colors">{PB.home}</Link>
             {categoryBreadcrumbs.map((crumb, i) => (
               <React.Fragment key={`${crumb}-${i}`}>
                 <ChevronRight size={11} className="flex-shrink-0" />
@@ -624,9 +628,9 @@ export function ProductDetailPage({
 
               {/* Brand + Share */}
               <div className="flex items-center justify-between mb-2">
-                <a href={categoryViewAllHref} className="text-xs tracking-[0.2em] uppercase text-gray-500 hover:text-black transition-colors">
+                <Link href={categoryViewAllHref} className="text-xs tracking-[0.2em] uppercase text-gray-500 hover:text-black transition-colors">
                   {dynamicBrand}
-                </a>
+                </Link>
                 <ProductShareDropdown
                   shareRef={shareRef}
                   showShare={showShare}
@@ -896,7 +900,7 @@ export function ProductDetailPage({
                       {activeDescriptionHtml && (
                         <div
                           className="oe-rich-text"
-                          dangerouslySetInnerHTML={{ __html: activeDescriptionHtml }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(activeDescriptionHtml) }}
                         />
                       )}
                       {(catalogProduct?.productDetails?.length ?? 0) > 0 && (

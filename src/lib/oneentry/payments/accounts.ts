@@ -1,5 +1,5 @@
 'use server';
-import { oneentry, isError } from '../index';
+import { getApiSafe, isError } from '../index';
 import { logCaught } from '../log';
 
 export interface PaymentAccount {
@@ -16,9 +16,10 @@ export interface PaymentAccount {
 // The SDK unwraps localizeInfos to a single-locale object based on the
 // x-app-token; the checkout doesn't need multi-locale variants here.
 export async function getPaymentAccountsAction(): Promise<PaymentAccount[]> {
-  if (!oneentry) return [];
+  const api = getApiSafe();
+  if (!api) return [];
   try {
-    const raw = await oneentry.Payments.getAccounts();
+    const raw = await api.Payments.getAccounts();
     if (isError(raw) || !Array.isArray(raw)) return [];
     return raw
       .filter((acc) => acc.isVisible !== false)

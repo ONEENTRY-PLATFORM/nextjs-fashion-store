@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Provider } from 'react-redux';
 import { AuthProvider } from '../context/AuthContext'
@@ -100,20 +100,21 @@ export function Providers({
   headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
 }) {
-  const storeRef = useRef<AppStore | null>(null);
-  if (!storeRef.current) {
-    storeRef.current = makeStore();
-  }
+  // Lazy `useState` initializer rather than the write-a-ref-during-render
+  // idiom: the initializer runs exactly once and is render-safe, whereas
+  // touching `ref.current` during render is flagged (React must be free to
+  // re-run render without side effects).
+  const [store] = useState<AppStore>(() => makeStore());
 
   useEffect(() => {
     const catalog = loadCatalogFromStorage();
-    if (catalog && storeRef.current) {
-      storeRef.current.dispatch(hydrateCatalogs(catalog as CatalogsState));
+    if (catalog) {
+      store.dispatch(hydrateCatalogs(catalog as CatalogsState));
     }
-  }, []);
+  }, [store]);
 
   return (
-    <Provider store={storeRef.current}>
+    <Provider store={store}>
       <ServiceWorkerRegistrar />
       {/* Global ARIA live regions for screen reader announcements */}
       <div

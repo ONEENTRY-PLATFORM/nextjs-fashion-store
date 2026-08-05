@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { oneentry, isError } from '../index';
+import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -26,19 +26,11 @@ type RawSlidesResponse = { items?: RawSlide[]; total?: number } | RawSlide[] | n
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-const extractImage = (raw: Record<string, unknown> | undefined): string => {
-  if (!raw) return '';
-  const arr = raw['image_id3'];
-  if (!Array.isArray(arr) || arr.length === 0) return '';
-  const first = arr[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
-
 const normalize = (raw: RawSlide): HomepageCollectionItem => {
   const v = raw.attributeValues ?? {};
   return {
     id: raw.id,
-    image: extractImage(v),
+    image: getImageUrl(v?.['image_id3']),
     title: asString(v['string_id1']),
     subtitle: asString(v['string_id2']),
     buttonText: asString(v['string_id4']),
@@ -48,9 +40,10 @@ const normalize = (raw: RawSlide): HomepageCollectionItem => {
 
 export const loadHomepageCollections = withTiming('loadHomepageCollections', unstable_cache(
   async (_lang: Lang = DEFAULT_LOCALE): Promise<HomepageCollectionItem[]> => {
-    if (!oneentry) return [];
+    const api = getApiSafe();
+    if (!api) return [];
     try {
-      const raw = await oneentry.Blocks.getSlides('homepage_collections');
+      const raw = await api.Blocks.getSlides('homepage_collections');
       if (isError(raw)) return [];
       const result = raw as RawSlidesResponse;
       const items = Array.isArray(result) ? result : result?.items ?? [];

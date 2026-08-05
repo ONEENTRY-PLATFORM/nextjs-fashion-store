@@ -27,15 +27,14 @@ export function useAuthProviders(): {
   providers: AuthProviderInfo[];
   loading: boolean;
 } {
+  // Seed straight from the module cache — a warm second mount renders the
+  // providers on its first pass instead of flashing the loading state and
+  // then correcting itself from an effect.
   const [providers, setProviders] = useState<AuthProviderInfo[]>(cache ?? []);
   const [loading, setLoading] = useState(cache === null);
 
   useEffect(() => {
-    if (cache) {
-      setProviders(cache);
-      setLoading(false);
-      return;
-    }
+    if (cache) return;
     let cancelled = false;
     loadOnce().then((list) => {
       if (cancelled) return;

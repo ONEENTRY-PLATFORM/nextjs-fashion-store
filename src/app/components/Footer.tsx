@@ -51,19 +51,25 @@ export function Footer() {
       <div className="border-b border-white/10">
         <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
           {(() => {
+            // Icon *components*, not elements — an array of JSX elements is an
+            // array of children React wants keys on, and rendering them by
+            // index also re-mounts each icon whenever the list order shifts.
             const SUPPORT_ICONS = [
-              <QuestionMarkCircleIcon className="w-6 h-6" />,
-              <DevicePhoneMobileIcon className="w-6 h-6" />,
-              <ChatBubbleLeftRightIcon className="w-6 h-6" />,
-              <EnvelopeIcon className="w-6 h-6" />,
+              QuestionMarkCircleIcon,
+              DevicePhoneMobileIcon,
+              ChatBubbleLeftRightIcon,
+              EnvelopeIcon,
             ];
-            return SUPPORT_ITEMS.map((item, i) => (
+            return SUPPORT_ITEMS.map((item, i) => {
+              const Icon = SUPPORT_ICONS[i];
+              return (
               <div key={item.title} className="text-center">
-                <div className="flex justify-center mb-2 text-white">{SUPPORT_ICONS[i]}</div>
+                <div className="flex justify-center mb-2 text-white">{Icon ? <Icon className="w-6 h-6" /> : null}</div>
                 <p className="text-xs tracking-widest uppercase font-medium mb-1">{item.title}</p>
                 <p className="text-xs text-white/50">{item.desc}</p>
               </div>
-            ));
+              );
+            });
           })()}
         </div>
       </div>

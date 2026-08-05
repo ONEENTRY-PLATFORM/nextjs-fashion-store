@@ -42,30 +42,42 @@ export function QuickViewModal() {
     return () => document.removeEventListener('keydown', onKey);
   }, [showSizeGuide]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
+  // Reset the picker when the modal opens (or swaps product). Done during
+  // render via React's "adjust state when a prop changes" pattern so the
+  // first painted frame already shows the new product's defaults; an effect
+  // would flash the previous product's selection for one frame and is the
+  // cascading-render pattern the lint rule rejects.
+  const openKey = isOpen ? `${product?.id ?? ''}:${initialColorIndex ?? ''}` : null;
+  // Starts at `null` ("closed"), so a modal that is already open on the
+  // first render still gets its defaults applied.
+  const [prevOpenKey, setPrevOpenKey] = useState<string | null>(null);
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey);
+    if (openKey !== null) {
       setSelectedColor(initialColorIndex ?? null);
       const productSizes = product?.sizes;
       setSelectedSize(productSizes && productSizes.length === 1 ? productSizes[0] : null);
       setErrors({});
       setShowWriteReview(false);
       setShowPurchaseNotice(false);
-    } else {
-      document.body.style.overflow = '';
+      setReviewSummary(null);
     }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, initialColorIndex, product]);
+  }, [isOpen]);
 
   // Fetch the real review summary (count + avg) when the modal opens for a
   // new product. Reset first so a stale summary from the previous product
   // doesn't briefly flash. `product.id` is a string on the UI Product shape;
   // OE reviews key on the numeric product id.
   useEffect(() => {
-    if (!isOpen || !product) { setReviewSummary(null); return; }
-    setReviewSummary(null);
+    if (!isOpen || !product) return;
     const productId = Number(product.id);
     if (!Number.isFinite(productId) || productId <= 0) return;
     let cancelled = false;

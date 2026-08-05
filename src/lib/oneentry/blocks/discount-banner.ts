@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { oneentry, isError } from '../index';
+import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -21,17 +21,12 @@ type AttrValue<T = unknown> = { value?: T };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-const extractImage = (v: unknown): string => {
-  if (!Array.isArray(v) || v.length === 0) return '';
-  const first = v[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
-
 export const loadDiscountBanner = withTiming('loadDiscountBanner', unstable_cache(
   async (lang: Lang = DEFAULT_LOCALE): Promise<DiscountBannerFromCms | null> => {
-    if (!oneentry) return null;
+    const api = getApiSafe();
+    if (!api) return null;
     try {
-      const result = await oneentry.Blocks.getBlockByMarker('discount_banner', lang);
+      const result = await api.Blocks.getBlockByMarker('discount_banner', lang);
       if (isError(result)) return null;
       const raw = result as unknown as {
         // SDK normalises by locale → `attributeValues` is already a flat
@@ -48,7 +43,7 @@ export const loadDiscountBanner = withTiming('loadDiscountBanner', unstable_cach
           ? wrapped
           : (av as Record<string, AttrValue>);
       const banner: DiscountBannerFromCms = {
-        image:        extractImage(attrs.hp_b_b_pic?.value),
+        image:        getImageUrl(attrs.hp_b_b_pic?.value),
         alt:          asString(attrs.hp_b_b_title?.value),
         badge:        asString(attrs.hp_b_b_lable?.value),
         discountText: asString(attrs.hp_b_b_title?.value),

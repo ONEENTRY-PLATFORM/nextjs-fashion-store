@@ -1,30 +1,59 @@
+/**
+ * Google OAuth + session lifecycle.
+ *
+ * The session lives in the browser (MCP `tokens`), so the split under test is:
+ *   • `oauth-actions.ts` — server-only: CSRF `state` cookie + the OE code
+ *     exchange, which must be stamped with the *browser's* device fingerprint;
+ *   • `actions.ts` — browser: `auth()` / `logout()` and the localStorage that
+ *     backs `hasStoredSession()`.
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---- SDK mocks ---------------------------------------------------------------
 const getAuthProviderByMarker = vi.fn();
 const oauth = vi.fn();
 const authFn = vi.fn();
-const refreshFn = vi.fn();
 const logoutFn = vi.fn();
-const isErrorMock = vi.fn((v: unknown): v is { message?: string; statusCode?: number } => {
-  return !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>);
-});
+const getDeviceMetadata = vi.fn(() => 'browser-fingerprint');
+const createRequestApi = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: {
-    AuthProvider: {
-      getAuthProviderByMarker,
-      oauth,
-      auth: authFn,
-      refresh: refreshFn,
-      logout: logoutFn,
-    },
-    Users: { getUser: vi.fn() },
+const isErrorMock = (v: unknown): v is { message?: string; statusCode?: number } =>
+  !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>);
+
+const fakeApi = {
+  AuthProvider: {
+    getAuthProviderByMarker,
+    oauth,
+    auth: authFn,
+    logout: logoutFn,
+    getDeviceMetadata,
   },
+  Users: {
+    getUser: vi.fn(async () => ({ statusCode: 401, message: 'no user' })),
+    getCart: vi.fn(async () => ({ statusCode: 401 })),
+    getWishlist: vi.fn(async () => ({ statusCode: 401 })),
+  },
+  FormData: { getFormsDataByMarker: vi.fn(async () => ({ items: [], total: 0 })) },
+  Orders: { getAllOrdersByMarker: vi.fn(async () => ({ items: [], total: 0 })) },
+  Discounts: {
+    getDiscountByMarker: vi.fn(async () => ({ statusCode: 404 })),
+    getBonusBalance: vi.fn(async () => ({ balance: 0 })),
+  },
+};
+
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
   isOneEntryEnabled: true,
   isError: (v: unknown) => isErrorMock(v),
-  getUserApi: () => null,
-  getGuestApi: () => null,
+  getApiSafe: () => fakeApi,
+  createRequestApi: (...args: unknown[]) => createRequestApi(...args),
+  // The real implementations touch the SDK singleton; the storage side is what
+  // these tests assert, so keep them observable but inert.
+  storeSession: vi.fn(),
+  clearTokens: vi.fn(() => {
+    localStorage.removeItem('refresh-token');
+    localStorage.removeItem('authProviderMarker');
+  }),
 }));
 
 // ---- next/headers cookies() mock --------------------------------------------
@@ -34,19 +63,15 @@ const cookieGet = vi.fn((name: string) => {
   const v = store.get(name);
   return v === undefined ? undefined : { value: v };
 });
-const cookieSet = vi.fn((name: string, value: string, _opts?: Record<string, unknown>) => {
-  store.set(name, value);
-});
-const cookieDelete = vi.fn((name: string) => {
-  store.delete(name);
-});
+const cookieSet = vi.fn((name: string, value: string) => { store.set(name, value); });
+const cookieDelete = vi.fn((name: string) => { store.delete(name); });
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: cookieGet, set: cookieSet, delete: cookieDelete }),
 }));
 
 // ---- unrelated deps pulled in by actions.ts (kept minimal) ------------------
-vi.mock('../catalog/products', () => ({
-  loadProductsByIds: vi.fn(async () => []),
+vi.mock('../catalog/product-previews-action', () => ({
+  getProductPreviewsAction: vi.fn(async () => []),
 }));
 
 // ---- ensure a stable UUID for URL assertions ---------------------------------
@@ -56,18 +81,24 @@ vi.stubGlobal('crypto', {
   randomUUID: () => FIXED_UUID,
 });
 
-const importFresh = async () => {
+const importOauth = async () => {
+  vi.resetModules();
+  return import('./oauth-actions');
+};
+const importActions = async () => {
   vi.resetModules();
   return import('./actions');
 };
 
 beforeEach(() => {
   store = new Map();
+  localStorage.clear();
   getAuthProviderByMarker.mockReset();
   oauth.mockReset();
   authFn.mockReset();
-  refreshFn.mockReset();
   logoutFn.mockReset();
+  createRequestApi.mockReset();
+  createRequestApi.mockReturnValue(fakeApi);
   cookieGet.mockClear();
   cookieSet.mockClear();
   cookieDelete.mockClear();
@@ -80,7 +111,7 @@ beforeEach(() => {
 describe('getGoogleAuthUrlAction', () => {
   it('returns ok:false when NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing', async () => {
     delete process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    const { getGoogleAuthUrlAction } = await importFresh();
+    const { getGoogleAuthUrlAction } = await importOauth();
     const res = await getGoogleAuthUrlAction('https://example.com');
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/NEXT_PUBLIC_GOOGLE_CLIENT_ID/);
@@ -88,7 +119,7 @@ describe('getGoogleAuthUrlAction', () => {
   });
 
   it('returns ok:false when origin does not look like http(s)', async () => {
-    const { getGoogleAuthUrlAction } = await importFresh();
+    const { getGoogleAuthUrlAction } = await importOauth();
     const res = await getGoogleAuthUrlAction('javascript:alert(1)');
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe('Invalid origin');
@@ -96,17 +127,17 @@ describe('getGoogleAuthUrlAction', () => {
 
   it('returns ok:false when provider is missing oauthAuthUrl', async () => {
     getAuthProviderByMarker.mockResolvedValue({ config: {} });
-    const { getGoogleAuthUrlAction } = await importFresh();
+    const { getGoogleAuthUrlAction } = await importOauth();
     const res = await getGoogleAuthUrlAction('https://shop.example.com');
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe('Provider missing oauthAuthUrl');
   });
 
-  it('builds the auth URL, sets both httpOnly cookies, and returns ok:true', async () => {
+  it('builds the auth URL from the OE provider config and parks the CSRF pair', async () => {
     getAuthProviderByMarker.mockResolvedValue({
       config: { oauthAuthUrl: 'https://accounts.google.com/o/oauth2/v2/auth' },
     });
-    const { getGoogleAuthUrlAction } = await importFresh();
+    const { getGoogleAuthUrlAction } = await importOauth();
     const res = await getGoogleAuthUrlAction('https://shop.example.com', '/account');
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -120,13 +151,11 @@ describe('getGoogleAuthUrlAction', () => {
     expect(u.searchParams.get('prompt')).toBe('consent');
     expect(u.searchParams.get('state')).toBe(FIXED_UUID);
 
-    // state cookie
     expect(cookieSet).toHaveBeenCalledWith(
       'oe_google_oauth_state',
       FIXED_UUID,
       expect.objectContaining({ httpOnly: true, sameSite: 'lax', path: '/' }),
     );
-    // return cookie carries the explicit local path
     expect(cookieSet).toHaveBeenCalledWith(
       'oe_google_oauth_return',
       '/account',
@@ -138,7 +167,7 @@ describe('getGoogleAuthUrlAction', () => {
     getAuthProviderByMarker.mockResolvedValue({
       config: { oauthAuthUrl: 'https://accounts.google.com/o/oauth2/v2/auth' },
     });
-    const { getGoogleAuthUrlAction } = await importFresh();
+    const { getGoogleAuthUrlAction } = await importOauth();
     await getGoogleAuthUrlAction('https://shop.example.com', '//evil.com/steal');
     expect(cookieSet).toHaveBeenCalledWith(
       'oe_google_oauth_return',
@@ -151,7 +180,7 @@ describe('getGoogleAuthUrlAction', () => {
     getAuthProviderByMarker.mockResolvedValue({
       config: { oauthAuthUrl: 'https://accounts.google.com/o/oauth2/v2/auth' },
     });
-    const { getGoogleAuthUrlAction } = await importFresh();
+    const { getGoogleAuthUrlAction } = await importOauth();
     await getGoogleAuthUrlAction('https://shop.example.com', 'https://evil.com/steal');
     expect(cookieSet).toHaveBeenCalledWith(
       'oe_google_oauth_return',
@@ -164,46 +193,43 @@ describe('getGoogleAuthUrlAction', () => {
 // -----------------------------------------------------------------------------
 // exchangeGoogleCodeAction
 // -----------------------------------------------------------------------------
+const ctx = (
+  over: Partial<{ code: string; state: string; origin: string; deviceMetadata: string }> = {},
+) => ({
+  code: 'g-code',
+  state: 'saved-state',
+  origin: 'https://shop.example.com',
+  deviceMetadata: 'browser-fingerprint',
+  ...over,
+});
+
 describe('exchangeGoogleCodeAction', () => {
   it('returns ok:false when code is missing', async () => {
-    const { exchangeGoogleCodeAction } = await importFresh();
-    const res = await exchangeGoogleCodeAction({
-      code: '',
-      state: 'anything',
-      origin: 'https://shop.example.com',
-    });
+    const { exchangeGoogleCodeAction } = await importOauth();
+    const res = await exchangeGoogleCodeAction(ctx({ code: '' }));
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/authorization code/i);
     expect(oauth).not.toHaveBeenCalled();
   });
 
-  it('returns ok:false and deletes cookies on state mismatch (CSRF)', async () => {
+  it('returns ok:false and consumes the CSRF pair on state mismatch', async () => {
     store.set('oe_google_oauth_state', 'saved-state');
     store.set('oe_google_oauth_return', '/orders');
-    const { exchangeGoogleCodeAction } = await importFresh();
-    const res = await exchangeGoogleCodeAction({
-      code: 'g-code',
-      state: 'tampered-state',
-      origin: 'https://shop.example.com',
-    });
+    const { exchangeGoogleCodeAction } = await importOauth();
+    const res = await exchangeGoogleCodeAction(ctx({ state: 'tampered-state' }));
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe('OAuth state mismatch (possible CSRF)');
-    // Both cookies must be consumed immediately.
     expect(cookieDelete).toHaveBeenCalledWith('oe_google_oauth_state');
     expect(cookieDelete).toHaveBeenCalledWith('oe_google_oauth_return');
     expect(oauth).not.toHaveBeenCalled();
   });
 
-  it('propagates SDK error when AuthProvider.oauth returns isError()', async () => {
+  it('propagates the SDK error when AuthProvider.oauth returns isError()', async () => {
     store.set('oe_google_oauth_state', 'saved-state');
     store.set('oe_google_oauth_return', '/checkout');
     oauth.mockResolvedValue({ statusCode: 400, message: 'Bad code' });
-    const { exchangeGoogleCodeAction } = await importFresh();
-    const res = await exchangeGoogleCodeAction({
-      code: 'g-code',
-      state: 'saved-state',
-      origin: 'https://shop.example.com',
-    });
+    const { exchangeGoogleCodeAction } = await importOauth();
+    const res = await exchangeGoogleCodeAction(ctx());
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe('Bad code');
     expect(oauth).toHaveBeenCalledWith(
@@ -215,7 +241,21 @@ describe('exchangeGoogleCodeAction', () => {
     );
   });
 
-  it('on success sets session cookies and returns userIdentifier + returnTo', async () => {
+  it('stamps the browser fingerprint on a throw-away instance, never the singleton', async () => {
+    store.set('oe_google_oauth_state', 'saved-state');
+    oauth.mockResolvedValue({
+      userIdentifier: 'jane@example.com',
+      accessToken: 'access-xyz',
+      refreshToken: 'refresh-xyz',
+    });
+    const { exchangeGoogleCodeAction } = await importOauth();
+    await exchangeGoogleCodeAction(ctx({ deviceMetadata: 'fp-from-browser' }));
+    // A refresh token bound to the server's own Node fingerprint could never
+    // be refreshed from the browser — hence the per-request instance.
+    expect(createRequestApi).toHaveBeenCalledWith({ deviceMetadata: 'fp-from-browser' });
+  });
+
+  it('hands the tokens back to the caller instead of writing a session cookie', async () => {
     store.set('oe_google_oauth_state', 'saved-state');
     store.set('oe_google_oauth_return', '/account/orders');
     oauth.mockResolvedValue({
@@ -224,112 +264,98 @@ describe('exchangeGoogleCodeAction', () => {
       accessToken: 'access-xyz',
       refreshToken: 'refresh-xyz',
     });
-    const { exchangeGoogleCodeAction } = await importFresh();
-    const res = await exchangeGoogleCodeAction({
-      code: 'g-code',
-      state: 'saved-state',
-      origin: 'https://shop.example.com',
-    });
+    const { exchangeGoogleCodeAction } = await importOauth();
+    const res = await exchangeGoogleCodeAction(ctx());
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.userIdentifier).toBe('jane@example.com');
+    expect(res.accessToken).toBe('access-xyz');
+    expect(res.refreshToken).toBe('refresh-xyz');
     expect(res.returnTo).toBe('/account/orders');
 
-    // Session cookies (from setSessionCookies) must be persisted.
-    expect(cookieSet).toHaveBeenCalledWith(
-      'oe_access',
-      'access-xyz',
-      expect.objectContaining({ httpOnly: true }),
-    );
-    expect(cookieSet).toHaveBeenCalledWith(
-      'oe_refresh',
-      'refresh-xyz',
-      expect.objectContaining({ httpOnly: true }),
-    );
-    expect(cookieSet).toHaveBeenCalledWith(
-      'oe_user',
-      'jane@example.com',
-      expect.objectContaining({ httpOnly: false }),
-    );
+    // The session belongs to the browser — no `oe_access` / `oe_refresh`.
+    const cookieNames = cookieSet.mock.calls.map(([name]) => name);
+    expect(cookieNames).not.toContain('oe_access');
+    expect(cookieNames).not.toContain('oe_refresh');
 
     // CSRF pair consumed on success too.
     expect(cookieDelete).toHaveBeenCalledWith('oe_google_oauth_state');
     expect(cookieDelete).toHaveBeenCalledWith('oe_google_oauth_return');
   });
 
-  it('sets PROVIDER_COOKIE to "google" on success', async () => {
+  it('rejects an incomplete session payload', async () => {
     store.set('oe_google_oauth_state', 'saved-state');
-    store.set('oe_google_oauth_return', '/account');
-    oauth.mockResolvedValue({
-      userIdentifier: 'jane@example.com',
-      authProviderIdentifier: 'google',
-      accessToken: 'access-xyz',
-      refreshToken: 'refresh-xyz',
-    });
-    const { exchangeGoogleCodeAction } = await importFresh();
-    const res = await exchangeGoogleCodeAction({
-      code: 'g-code',
-      state: 'saved-state',
-      origin: 'https://shop.example.com',
-    });
-    expect(res.ok).toBe(true);
-    expect(cookieSet).toHaveBeenCalledWith(
-      'oe_auth_provider',
-      'google',
-      expect.objectContaining({ httpOnly: true }),
-    );
+    oauth.mockResolvedValue({ userIdentifier: 'jane@example.com' });
+    const { exchangeGoogleCodeAction } = await importOauth();
+    const res = await exchangeGoogleCodeAction(ctx());
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/incomplete session/i);
   });
 });
 
 // -----------------------------------------------------------------------------
-// signInAction — provider marker
+// signInAction — browser-side session bookkeeping
 // -----------------------------------------------------------------------------
 describe('signInAction', () => {
-  it('sets PROVIDER_COOKIE to "email" on successful sign-in', async () => {
+  it('remembers the OE user identifier', async () => {
     authFn.mockResolvedValue({
       userIdentifier: 'bob@example.com',
       authProviderIdentifier: 'email',
       accessToken: 'acc',
       refreshToken: 'ref',
     });
-    const { signInAction } = await importFresh();
+    const { signInAction } = await importActions();
     const res = await signInAction('bob@example.com', 'password123');
     expect(res.ok).toBe(true);
-    expect(cookieSet).toHaveBeenCalledWith(
-      'oe_auth_provider',
-      'email',
-      expect.objectContaining({ httpOnly: true }),
-    );
+    // `auth()` must run in the browser — OE binds the refresh token to the
+    // fingerprint of the request that issued it.
+    expect(authFn).toHaveBeenCalledWith('email', {
+      authData: [
+        { marker: 'email', value: 'bob@example.com' },
+        { marker: 'password', value: 'password123' },
+      ],
+    });
+    expect(localStorage.getItem('oe_user_identifier')).toBe('bob@example.com');
+  });
+
+  it('surfaces the OE message on a rejected sign-in', async () => {
+    authFn.mockResolvedValue({ statusCode: 401, message: 'Wrong password' });
+    const { signInAction } = await importActions();
+    const res = await signInAction('bob@example.com', 'nope');
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe('Wrong password');
+    expect(localStorage.getItem('oe_user_identifier')).toBeNull();
   });
 });
 
 // -----------------------------------------------------------------------------
-// signOutAction — passes stored provider marker to AuthProvider.logout
+// signOutAction
 // -----------------------------------------------------------------------------
 describe('signOutAction', () => {
-  it('passes the stored provider marker to AuthProvider.logout', async () => {
-    store.set('oe_refresh', 'google-refresh');
-    store.set('oe_auth_provider', 'google');
-    const { signOutAction } = await importFresh();
+  it('passes the stored provider marker and refresh token to AuthProvider.logout', async () => {
+    localStorage.setItem('refresh-token', 'google-refresh');
+    localStorage.setItem('authProviderMarker', 'google');
+    const { signOutAction } = await importActions();
     await signOutAction();
     expect(logoutFn).toHaveBeenCalledWith('google', 'google-refresh');
   });
 
-  it('passes "email" (AUTH_MARKER fallback) when PROVIDER_COOKIE is absent', async () => {
-    store.set('oe_refresh', 'email-refresh');
-    const { signOutAction } = await importFresh();
+  it('falls back to the "email" marker when none was stored', async () => {
+    localStorage.setItem('refresh-token', 'email-refresh');
+    const { signOutAction } = await importActions();
     await signOutAction();
     expect(logoutFn).toHaveBeenCalledWith('email', 'email-refresh');
   });
 
-  it('clears all session cookies including PROVIDER_COOKIE on sign-out', async () => {
-    store.set('oe_refresh', 'any-refresh');
-    store.set('oe_auth_provider', 'google');
-    const { signOutAction } = await importFresh();
+  it('clears the persisted session even when logout fails', async () => {
+    localStorage.setItem('refresh-token', 'any-refresh');
+    localStorage.setItem('authProviderMarker', 'google');
+    localStorage.setItem('oe_user_identifier', 'jane@example.com');
+    logoutFn.mockRejectedValue(new Error('network'));
+    const { signOutAction } = await importActions();
     await signOutAction();
-    expect(cookieDelete).toHaveBeenCalledWith('oe_auth_provider');
-    expect(cookieDelete).toHaveBeenCalledWith('oe_access');
-    expect(cookieDelete).toHaveBeenCalledWith('oe_refresh');
-    expect(cookieDelete).toHaveBeenCalledWith('oe_user');
+    expect(localStorage.getItem('refresh-token')).toBeNull();
+    expect(localStorage.getItem('authProviderMarker')).toBeNull();
+    expect(localStorage.getItem('oe_user_identifier')).toBeNull();
   });
 });

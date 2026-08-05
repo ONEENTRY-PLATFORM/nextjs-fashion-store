@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { oneentry, isError } from '../index';
+import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -125,9 +125,10 @@ const agreeField = (attr: RawAttribute | undefined, lang: Lang): SignUpFieldAgre
 
 export const loadSignUpFormSchema = cache(
   async (lang: Lang = DEFAULT_LOCALE): Promise<SignUpFormSchema> => {
-    if (!oneentry) return EMPTY_SIGN_UP_FORM_SCHEMA;
+    const api = getApiSafe();
+    if (!api) return EMPTY_SIGN_UP_FORM_SCHEMA;
     try {
-      const raw = await oneentry.AttributesSets.getAttributeSetByMarker(
+      const raw = await api.AttributesSets.getAttributeSetByMarker(
         'users_sign_in_sign_up',
         lang,
       );

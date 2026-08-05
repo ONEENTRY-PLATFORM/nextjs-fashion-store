@@ -4,11 +4,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingBag } from 'lucide-react';
 import type { DiscountBannerFromCms } from '../../lib/oneentry/blocks/discount-banner';
+import { useMounted } from '../hooks/useMounted';
 
 export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBannerFromCms | null } = {}) {
   const [hovered, setHovered] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useMounted();
 
   if (!initialBanner) return null;
   const banner = initialBanner;

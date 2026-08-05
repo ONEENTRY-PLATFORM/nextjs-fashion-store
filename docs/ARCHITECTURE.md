@@ -43,7 +43,7 @@ Sourced from `package.json:19-58`.
 
 Node target: ES2017 (`tsconfig.json:3`). Module resolution: `bundler`. Path alias: `@/*` → `./src/*` (`tsconfig.json:25-28`).
 
-**Notable absences (intentional):** no `next-intl` (single-locale, `DEFAULT_LOCALE = 'en_US'`), no `next-auth` (auth is Server Actions + cookies), no ORM/database driver (all persistent data lives in OneEntry), **no third-party analytics SDK** (`gtag` / `gtm` / `fbq` / `posthog` / `amplitude` / `mixpanel` / `segment` are absent — verified by grep). Instead, the client dispatches to the OneEntry `user-activity/track` endpoint via `trackActivity()` (`src/app/utils/track-activity.ts` → `src/lib/oneentry/activity/actions.ts`).
+**Notable absences (intentional):** no `next-intl` (single-locale, `DEFAULT_LOCALE = 'en_US'`), no `next-auth` (auth is the OneEntry SDK in the browser — see AUTH.md), no ORM/database driver (all persistent data lives in OneEntry), **no third-party analytics SDK** (`gtag` / `gtm` / `fbq` / `posthog` / `amplitude` / `mixpanel` / `segment` are absent — verified by grep). Instead, the client dispatches to the OneEntry `user-activity/track` endpoint via `trackActivity()` (`src/app/utils/track-activity.ts` → `src/lib/oneentry/activity/actions.ts`).
 
 ---
 
@@ -66,8 +66,8 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | `app/checkout/error.tsx` | Section-scoped error boundary |
 | `app/favorites/page.tsx` | Wishlist |
 | `app/product/[id]/page.tsx` | Product detail (`export const revalidate = 120` — hard-coded literal; `export async function generateStaticParams() { return []; }` — required in Next.js 16 to activate on-demand ISR for a dynamic segment; without it `revalidate` is silently ignored and every request re-SSRs; critical stock/price validation deferred to a fresh `previewOrderAction` call immediately before `createOrderAction` on the Payment page) |
-| `app/new/page.tsx` | New Arrivals (`dynamic = 'force-dynamic'`) |
-| `app/sale/page.tsx` | Sale (`dynamic = 'force-dynamic'`) |
+| `app/new/page.tsx` | New Arrivals (`force-static`, `revalidate = 60`; `?gender=` is applied client-side) |
+| `app/sale/page.tsx` | Sale (`force-static`, `revalidate = 60`; `?gender=` is applied client-side) |
 | `app/stores/page.tsx` | Store locator (`revalidate = 3600` — ISR) |
 | `app/download/filter-system/page.tsx` | Filter system whitepaper |
 | `app/offline/page.tsx` | PWA offline fallback page (client component) |
@@ -110,7 +110,7 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | `src/lib/oneentry/index.ts` | **SDK singleton.** `defineOneEntry(url, {token})` guarded by `isOneEntryEnabled`. Exports `getApi()` (throws if env missing), `isError()` type guard, `OeError` alias. |
 | `src/lib/oneentry/locale.ts` | `DEFAULT_LOCALE = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US'`. |
 | `src/lib/oneentry/system-text.ts` + `SystemText.tsx` | CMS-managed label engine. Loads attribute sets by marker, caches 5 min process-wide + per-request via React `cache()`, provides `t()` and `<SystemText>` for RSC. |
-| `src/lib/oneentry/auth/` | All auth Server Actions (`signInAction`, `getGoogleAuthUrlAction`, `exchangeGoogleCodeAction`, `signUpAction`, `signOutAction`, `getCurrentUserAction`, `updateProfileAction`, `updateAddressesAction`, `updateSubscriptionsAction`, `updateConsentAction`, `syncCartAction`, `syncWishlistAction`, `createOrderAction`) + cookie management (`oe_access`, `oe_refresh`, `oe_user`, and the short-lived `oe_google_state` / `oe_google_return_to` CSRF cookies during a Google authorize round-trip). Also `sign-up-form.ts` — attribute-set schema for the registration form and its React context. |
+| `src/lib/oneentry/auth/` | Shopper-scoped OneEntry calls, all browser-side (`signInAction`, `signUpAction`, `signOutAction`, `getCurrentUserAction`, `updateProfileAction`, `updateAddressesAction`, `updateSubscriptionsAction`, `updateConsentAction`, `syncCartAction`, `syncWishlistAction`, `previewOrderAction`, `createOrderAction`) plus `browser-session.ts` (localStorage keys). Server-only siblings: `oauth-actions.ts` (Google CSRF cookies + `code → tokens` exchange with the browser's `deviceMetadata`) and `revalidate-action.ts` (`revalidateTag` after an order). Also `sign-up-form.ts` — attribute-set schema for the registration form and its React context. |
 | `src/lib/oneentry/activity/actions.ts` | Server Action posting to `/api/content/user-activity/track` with `x-guest-id` for anonymous users. 10 event types. |
 | `src/lib/oneentry/blocks/` | Block loaders: `hero-slides` (marker `hero_slider`), `homepage-collections` (`homepage_collections`), `discount-banner` (`discount_banner`), `homepage-product-blocks`, `category-section` (`category_section`), `page-blocks` — three entry-points: `loadPageBlocksById(pageId)` (used by the homepage, id=1), `loadPageBlocksByUrl(pageUrl)` (used by catalog / info / sale / new / stores / favorites routes — `pageUrl` is the OE marker, e.g. `women_clothing` or `sale`), `loadProductBlocks(productId)` (used by the PDP). All three resolve each block marker through `loadBlockWithProducts` and return a sorted `PageBlock[]`. Fallback: when a `similar_products_block` returns no items, `loadHomepageBlockFallback` maps markers `homepage_new_arrivals` / `homepage_best_sellers` / `homepage_sale` to product labels `NEW` / `BESTSELLER` / `SALE` and pulls tagged products via `loadProducts({ tags: [label] })`; unknown markers stay empty so the block hides silently. |
 | `src/lib/oneentry/catalog/` | Products list + vector/quick search + variant aggregation (`products.ts`); page-by-URL loader (`pages.ts`, normaliser accepts wrapped + flat `attributeValues`); seasonal-trend page → attribute-filter override (`seasonal-trend.ts` — `resolveSeasonalTrend` / `applySeasonalTrend`); reviews via form-data (`reviews.ts`); stores + store-locations page (`stores.ts`, `store-locations-page.ts`); URL ↔ marker filter mapping (`filters.ts`); Server-Action wrappers (`products-action.ts`, `search-action.ts`); service maintenance requests (`service-requests-action.ts`, `service-request-submit-action.ts`); waiting list (`waiting-list-action.ts`); shared UI-adapter (`adapt.ts`). |
@@ -156,7 +156,7 @@ flowchart LR
     OE[("OneEntry Platform")]
     LS[("localStorage<br/>oe_store v5")]
     SS[("sessionStorage<br/>oe_cart_merged /<br/>oe_wishlist_merged /<br/>oe_checkout_payload")]
-    Cookies[("Cookies<br/>oe_access / oe_refresh / oe_user")]
+    Storage[("localStorage<br/>refresh-token / authProviderMarker<br/>oe_user_identifier / oe_guest_id")]
 
     Route -->|"renders (RSC)"| Page
     Page -->|"async load*() in RSC"| SDK
@@ -165,7 +165,7 @@ flowchart LR
     Ctx -->|"dispatch actions"| Slice
     Ctx -->|"await Server Actions"| SDK
     SDK -->|"getApi().Xxx.yyy()"| OE
-    SDK <-->|"cookies().get/set"| Cookies
+    SDK <-->|"saveFunction / reDefine"| Storage
     Slice <-->|"saveToStorage /<br/>loadFromStorage"| LS
     Ctx <-->|"session flags"| SS
 ```
@@ -188,7 +188,7 @@ Four tiers with distinct responsibilities. Never duplicate state across tiers.
 
 ### 4.1 OneEntry SDK (server-side truth)
 
-All server-authoritative data — products, pages, blocks, menus, labels, user profile, orders, payment accounts, reviews, forms — comes from `src/lib/oneentry/`. Most fetchers wrap `getApi().Xxx.yyy(marker, langCode)` and memoize with React `cache()` for the current request. Homepage block loaders (`loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`) and `loadStores` use Next.js `unstable_cache` instead — persistent cross-request storage keyed by `(lang)`, tagged `oe-block` / `oe-stores` for on-demand webhook invalidation, with TTLs from `src/lib/isr.ts`. Other high-traffic reads (attribute sets, product lists) add a process-wide 5-minute TTL. Server Actions (files marked `'use server'`) handle mutations (login, signup, order, sync-cart, sync-wishlist, submit-form) and cookie state. Env gate: `isOneEntryEnabled = Boolean(ONEENTRY_URL && ONEENTRY_TOKEN)`; `getApi()` throws loudly if missing.
+All server-authoritative data — products, pages, blocks, menus, labels, user profile, orders, payment accounts, reviews, forms — comes from `src/lib/oneentry/`. Most fetchers wrap `getApi().Xxx.yyy(marker, langCode)` and memoize with React `cache()` for the current request. Homepage block loaders (`loadHeroSlides`, `loadHomepageCollections`, `loadDiscountBanner`, `loadCategorySection`) and `loadStores` use Next.js `unstable_cache` instead — persistent cross-request storage keyed by `(lang)`, tagged `oe-block` / `oe-stores` for on-demand webhook invalidation, with TTLs from `src/lib/isr.ts`. Other high-traffic reads (attribute sets, product lists) add a process-wide 5-minute TTL. Server Actions (files marked `'use server'`) handle mutations (login, signup, order, sync-cart, sync-wishlist, submit-form) and cookie state. Env gate: `isOneEntryEnabled = Boolean(NEXT_PUBLIC_ONEENTRY_URL && NEXT_PUBLIC_ONEENTRY_TOKEN)` (with the legacy server-only names as a fallback); `getApi()` throws loudly if missing, `getApiSafe()` returns `null` for the graceful-degradation paths.
 
 ### 4.2 React Context — session + UI conveniences
 
@@ -214,7 +214,7 @@ Configured in `src/app/store/index.ts`:
 | `wishlist` | ✅ | Wishlist items |
 | `recentlyViewed` | ✅ | Recently-viewed products with `viewedAt` timestamp — TTL 30 days, max 100 |
 | `catalog` | ✅ | Per-catalog filter + sort + view-mode + active-chip state |
-| `user` | ❌ | Loyalty defaults + `authToken`/`refreshToken`/`userIdentifier` (empty by design; real session lives in httpOnly cookies) |
+| `user` | ❌ | Loyalty defaults + `authToken`/`refreshToken`/`userIdentifier` (tokens empty by design — the SDK owns them; see AUTH.md §3) |
 | `ui` | ❌ | Transient quick-view + mobile-menu state |
 
 Migrations live in `MIGRATIONS` (`src/app/store/index.ts`) — current schema version is `5`. Catalog state is hydrated **after** client mount via `loadCatalogFromStorage()` to avoid SSR hydration mismatch.
@@ -336,7 +336,7 @@ The blueprint scripts are supporting artefacts for the OneEntry blueprint pipeli
 | All static datasets and their shapes | [DATASETS.md](./DATASETS.md) |
 | Slice-by-slice Redux internals | [REDUX.md](./REDUX.md) |
 | Vitest + Playwright + Storybook | [TESTING.md](./TESTING.md) |
-| Auth flow (Server Actions + cookies + `/me` bootstrap) | [AUTH.md](./AUTH.md) |
+| Auth flow (browser SDK session + `reDefine` bootstrap) | [AUTH.md](./AUTH.md) |
 | OneEntry Platform SDK wiring | [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) |
 | Cart + wishlist sync semantics | [CART_WISHLIST.md](./CART_WISHLIST.md) |
 | Three-step checkout funnel + real order + Stripe | [CHECKOUT.md](./CHECKOUT.md) |

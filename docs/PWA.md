@@ -125,7 +125,7 @@ To wire push:
 
 1. Add `firebase` + `firebase/messaging` to `dependencies`.
 2. Register FCM in `ServiceWorkerRegistrar` (or a new `PushRegistrar`).
-3. On permission grant, POST the token to `/api/content/users/me/fcm-token/{token}` (behind the `oe_access` cookie).
+3. On permission grant, POST the token to `/api/content/users/me/fcm-token/{token}` (authenticated by the SDK session).
 4. Add a `sw.js` `push` handler that calls `self.registration.showNotification(...)`.
 
 Not started.

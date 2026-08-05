@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { oneentry, isError } from '../index';
+import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { Store } from '../../../app/data/stores';
@@ -41,12 +41,6 @@ const splitAddressPostcode = (full: string): { address: string; postcode: string
     return { address: head, postcode: tail };
   }
   return { address: trimmed, postcode: '' };
-};
-
-const extractImage = (rawValue: unknown): string => {
-  if (!Array.isArray(rawValue) || rawValue.length === 0) return '';
-  const first = rawValue[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
 };
 
 const extractServices = (rawValue: unknown): string[] => {
@@ -101,7 +95,7 @@ const normalize = (raw: RawPage, lang: Lang, mockFallback?: Store): Store => {
   const v = (k: string): string => asString(attrs[k]?.value);
   const rawAddress = v('page_store_address');
   const { address, postcode } = splitAddressPostcode(rawAddress);
-  const image = extractImage(attrs['page_store_picture']?.value);
+  const image = getImageUrl(attrs['page_store_picture']?.value);
   const services = extractServices(attrs['page_store_services']?.value);
   const hours = formatHours(attrs['page_store_hours']?.value);
   const label = extractLabel(attrs['page_store_lable']?.value);
@@ -130,9 +124,10 @@ export const loadStores = withTiming('loadStores', unstable_cache(
     // Mock fallback so all stores render even while a few OE store pages
     // remain partially filled. When every store page has full attributes
     // the MOCK_STORES fallback can be dropped.
-    if (!oneentry) return MOCK_STORES;
+    const api = getApiSafe();
+    if (!api) return MOCK_STORES;
     try {
-      const result = await oneentry.Pages.getChildPagesByParentUrl('stores', lang);
+      const result = await api.Pages.getChildPagesByParentUrl('stores', lang);
       if (isError(result)) return MOCK_STORES;
       const items = (Array.isArray(result) ? result : (result as { items?: RawPage[] } | null)?.items ?? []) as RawPage[];
       const sorted = items.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));

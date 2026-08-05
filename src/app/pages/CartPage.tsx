@@ -24,6 +24,7 @@ import { CART_PAGE_LABELS as L } from '../data/cartLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
 import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import { useMounted } from '../hooks/useMounted';
 
 export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const {
@@ -57,19 +58,19 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const [promoInput, setPromoInput] = useState('');
   const [promoBusy, setPromoBusy] = useState(false);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   // Per-item real sizes loaded from OE. Keyed by cart item id. The fetcher
   // only queries ids that haven't been resolved yet, so navigating within the
   // cart won't re-fetch every time.
   const [sizesById, setSizesById] = useState<Record<string, string[]>>({});
-  useEffect(() => {
-    if (couponCode && !promoChecked) {
-      setPromoChecked(true);
-      setPromoInput(couponCode);
-    }
-  }, [couponCode, promoChecked]);
+  // Seed the promo input from the coupon already applied to the cart, once.
+  // Done during render so the field is filled on the first paint instead of
+  // flashing empty (and so it is not a synchronous `setState` in an effect).
+  if (couponCode && !promoChecked) {
+    setPromoChecked(true);
+    setPromoInput(couponCode);
+  }
 
-  useEffect(() => { setMounted(true); }, []);
 
   // Load real product sizes from OE for each cart item so the Size dropdown
   // renders the actual variants (e.g. a jewelry item shows just "One",
@@ -77,21 +78,15 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   // (mapping ui.id → cmsId) and store the result under the cart item id
   // that the row will look up.
   useEffect(() => {
-    const unresolved = items.filter(i => !(i.id in sizesById));
-    if (unresolved.length === 0) return;
-    const idPairs = unresolved.flatMap((it) => {
+    // Items whose id doesn't map to an OE product are filtered out up front
+    // rather than parked in `sizesById` as empty markers — that write was a
+    // synchronous `setState` inside the effect purely to stop it re-running.
+    const idPairs = items.flatMap((it) => {
+      if (it.id in sizesById) return [];
       const cmsId = getCmsProductId(it.id);
       return cmsId !== null ? [{ localId: it.id, cmsId }] : [];
     });
-    if (idPairs.length === 0) {
-      // Nothing mappable — mark as empty so we don't loop.
-      setSizesById(prev => {
-        const next = { ...prev };
-        for (const it of unresolved) if (!(it.id in next)) next[it.id] = [];
-        return next;
-      });
-      return;
-    }
+    if (idPairs.length === 0) return;
     const cmsIds = idPairs.map(p => p.cmsId);
     let cancelled = false;
     void getProductsByIdsAction(cmsIds).then((products) => {

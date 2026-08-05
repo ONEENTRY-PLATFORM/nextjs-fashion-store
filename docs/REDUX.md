@@ -170,7 +170,7 @@ The three "fake" API slices (`productsApi`, `homepageApi`, `catalogConfigApi`) t
 
 The `fetchUserData` async thunk and the `USER_DATASET` / `USER_SLICE_MESSAGES` imports have been **removed**. Real profile data comes from `AuthContext.user` (populated by `getCurrentUserAction`).
 
-**Persistence:** ❌ not persisted. Session lives in httpOnly cookies (`oe_access`, `oe_refresh`, `oe_user`). See [AUTH.md](./AUTH.md) §3.
+**Persistence:** ❌ not persisted. The session lives in the SDK instance plus `localStorage` (`refresh-token`, `authProviderMarker`, `oe_user_identifier`). See [AUTH.md](./AUTH.md) §3.
 
 ## 3. RTK Query APIs
 

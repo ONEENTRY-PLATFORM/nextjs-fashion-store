@@ -1,24 +1,34 @@
-'use server';
-import { cookies } from 'next/headers';
-import { revalidateTag } from 'next/cache';
-import { oneentry, isOneEntryEnabled, isError, getUserApi, getGuestApi } from '../index';
-import { loadProductsByIds } from '../catalog/products';
+/**
+ * Shopper-scoped OneEntry calls (profile, orders, cart, wishlist, checkout).
+ *
+ * Per the MCP `server-actions` / `auth-provider` / `tokens` rules these run in
+ * the **browser**, not in a Server Action: `AuthProvider.auth` / `signUp` bind
+ * the refresh token to the device fingerprint of the issuing request, and
+ * `Users` / `Orders` / `Payments` need the session the SDK singleton already
+ * carries after `reDefine()`. Calling them from the server would (a) hand OE a
+ * `Node.js/...` fingerprint the browser can never refresh and (b) write one
+ * shopper's tokens into the process-wide singleton every other visitor shares.
+ *
+ * The module is deliberately NOT annotated `'use server'` — it is imported by
+ * Client Components and executes there. The two things that genuinely need the
+ * server (the Google `client_secret` exchange, ISR revalidation) live in
+ * `./oauth-actions.ts` and `./revalidate-action.ts`.
+ */
+import { getApiSafe, isOneEntryEnabled, isError, hasStoredSession, storeSession, clearTokens, getAuthProviderMarker } from '../index';
+import { getProductPreviewsAction } from '../catalog/product-previews-action';
 import { DEFAULT_LOCALE } from '../locale';
 import { pickImage, type RawPicture } from './pick-image';
-import {
-  AUTH_MARKER,
-  ACCESS_COOKIE,
-  REFRESH_COOKIE,
-  IDENTIFIER_COOKIE,
-  type CookieJar,
-  type OeAuthEntity,
-  setSessionCookies,
-  clearSessionCookies,
-  readAccessOrRefresh,
-  getAuthProviderMarker,
-} from './session';
+import { revalidateAfterOrderAction } from './revalidate-action';
+import { readUserIdentifier, writeUserIdentifier, readRefreshToken } from './browser-session';
 
 const SIGNUP_FORM_IDENTIFIER = 'signin';
+
+/** Auth-provider marker for the e-mail/password flow on this tenant. */
+const AUTH_MARKER = 'email';
+
+/** Auth-provider marker for Google sign-in on this tenant. */
+const GOOGLE_AUTH_MARKER = 'google';
+
 
 export interface AuthSuccess {
   ok: true;
@@ -179,12 +189,10 @@ export interface OeLoyalty {
   bonusBalance: number;
 }
 
-// Cookie constants + `CookieJar` / `OeAuthEntity` types + session-cookie
-// helpers live in `./session.ts` — this file re-imports them at the top.
-// Kept here originally as private helpers; extracted so mutation-side
-// actions in other `'use server'` files can share `readAccessOrRefresh`
-// without duplicating the refresh logic. See `session.ts` for the
-// "why not a `'use server'` re-export" rationale.
+// Session state lives in the SDK singleton (access + refresh tokens) and in
+// localStorage (`refresh-token`, `authProviderMarker`, `oe_user_identifier`).
+// `hasStoredSession()` from `../index` is the "is the shopper signed in?"
+// guard every user-scoped call below opens with.
 
 const DEFAULT_SUBSCRIPTIONS: OeSubscriptions = {
   emailNewsletter: false,
@@ -200,8 +208,8 @@ const DEFAULT_CONSENT: OeConsent = { dataProcessing: false, crossBorder: false }
 // User-scoped order storages (non-guest). Probed via Orders.getAllOrdersStorage.
 const USER_ORDER_STORAGE_MARKERS = ['home', 'store_pickup', 'locker'] as const;
 
-async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
-  const api = getUserApi(accessToken);
+async function fetchUserOrders(): Promise<OeOrder[]> {
+  const api = getApiSafe();
   if (!api) return [];
   type RawProduct = {
     id?: number;
@@ -228,7 +236,7 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
   await Promise.all(
     USER_ORDER_STORAGE_MARKERS.map(async (marker) => {
       try {
-        const result = await api.Orders.getAllOrdersByMarker(marker, 'en_US', 0, 100);
+        const result = await api.Orders.getAllOrdersByMarker(marker, DEFAULT_LOCALE, 0, 100);
         if (isError(result)) return;
         // SDK's `IOrderByMarkerEntity` types are stricter than what actually
         // ships (e.g. `previewImage` may be a bare `{ downloadLink }` object
@@ -248,7 +256,7 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
             ? (sli as { title: string }).title
             : '';
           const wrappedTitle = sli && !flatTitle
-            ? String(((sli as Record<string, { title?: unknown }>)['en_US']?.title
+            ? String(((sli as Record<string, { title?: unknown }>)[DEFAULT_LOCALE]?.title
                 ?? Object.values(sli as Record<string, { title?: unknown }>)[0]?.title
                 ?? '') || '')
             : '';
@@ -289,10 +297,12 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
     }
   }
   if (missingIds.size > 0) {
-    const catalog = await loadProductsByIds(Array.from(missingIds));
+    // Catalogue reads are public + cached, so they stay on the server behind
+    // a Server Action instead of costing every shopper an uncached SDK call.
+    const catalog = await getProductPreviewsAction(Array.from(missingIds));
     const imageMap = new Map<number, string>();
     for (const c of catalog) {
-      if (c.preview) imageMap.set(c.id, c.preview);
+      imageMap.set(c.id, c.preview);
     }
     if (imageMap.size > 0) {
       for (const o of all) {
@@ -323,8 +333,8 @@ async function fetchUserOrders(accessToken: string): Promise<OeOrder[]> {
  *  functions. Module-scoped is enough for the three intra-file callers. */
 const TIER_MARKERS = ['bronze', 'silver', 'gold', 'platinum'] as const;
 
-async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
-  const api = getUserApi(accessToken);
+async function fetchLoyalty(): Promise<OeLoyalty | null> {
+  const api = getApiSafe();
   if (!api) return null;
 
 
@@ -332,7 +342,7 @@ async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
   // the bonus balance via `Discounts.getBonusBalance`. The SDK normalises
   // localizeInfos + fields for us, so downstream code sees a clean shape.
   const [rawTiers, bonusResult] = await Promise.all([
-    Promise.all(TIER_MARKERS.map((m) => api.Discounts.getDiscountByMarker(m, 'en_US'))),
+    Promise.all(TIER_MARKERS.map((m) => api.Discounts.getDiscountByMarker(m, DEFAULT_LOCALE))),
     api.Discounts.getBonusBalance(),
   ]);
 
@@ -415,7 +425,7 @@ async function fetchLoyalty(accessToken: string): Promise<OeLoyalty | null> {
   };
 }
 
-async function fetchMe(accessToken: string): Promise<OeUser | null> {
+async function fetchMe(): Promise<OeUser | null> {
   type RawMe = {
     id?: number;
     identifier?: string;
@@ -425,18 +435,18 @@ async function fetchMe(accessToken: string): Promise<OeUser | null> {
   type RawCart = { items?: OeCartItem[]; total?: number };
   type RawWishlist = { items?: OeWishlistItem[]; total?: number };
 
-  const api = getUserApi(accessToken);
+  const api = getApiSafe();
   if (!api) return null;
 
   const [meResult, cartResult, wishlistResult, addrRecords, userDataRec, subsRec, orders, loyalty] = await Promise.all([
-    api.Users.getUser('en_US'),
+    api.Users.getUser(DEFAULT_LOCALE),
     api.Users.getCart(),
     api.Users.getWishlist(),
-    fetchUserAddresses(accessToken),
-    fetchUserDataRecord(accessToken),
-    fetchSubsRecord(accessToken),
-    fetchUserOrders(accessToken),
-    fetchLoyalty(accessToken),
+    fetchUserAddresses(),
+    fetchUserDataRecord(),
+    fetchSubsRecord(),
+    fetchUserOrders(),
+    fetchLoyalty(),
   ]);
   if (isError(meResult)) return null;
   // SDK `IUserEntity.formData` is strictly `FormDataType[]` but OE's raw
@@ -509,15 +519,10 @@ async function fetchMe(accessToken: string): Promise<OeUser | null> {
   };
 }
 
-async function readAccessFromCookies(): Promise<string | null> {
-  const jar = (await cookies()) as unknown as CookieJar;
-  return jar.get(ACCESS_COOKIE)?.value ?? null;
-}
-
-async function readStateFromMe(accessToken: string): Promise<OeUserState> {
-  const api = getUserApi(accessToken);
+async function readStateFromMe(): Promise<OeUserState> {
+  const api = getApiSafe();
   if (!api) return {};
-  const result = await api.Users.getUser('en_US');
+  const result = await api.Users.getUser(DEFAULT_LOCALE);
   if (isError(result)) return {};
   // SDK `IUserEntity.state` is `Record<string, unknown>`; our narrower
   // OeUserState is structurally compatible for the read path.
@@ -531,13 +536,12 @@ async function readStateFromMe(accessToken: string): Promise<OeUserState> {
  *  which the SDK exposes; body carries the extra filter (`userIdentifier`,
  *  `entityIdentifier`, ...) OE expects. */
 async function formDataGetByMarker(
-  accessToken: string,
   marker: string,
   formModuleConfigId: number,
   body: object,
   limit = 100,
 ): Promise<{ items?: RawFormRecord[]; total?: number } | null> {
-  const api = getUserApi(accessToken);
+  const api = getApiSafe();
   if (!api) return null;
   try {
     const result = await api.FormData.getFormsDataByMarker(
@@ -563,7 +567,6 @@ interface FdError { ok: false; status: number; message: string }
 
 /** SDK-backed POST of a new form-data record. */
 async function formDataPost<T>(
-  accessToken: string,
   body: {
     formIdentifier: string;
     formModuleConfigId: number;
@@ -573,7 +576,7 @@ async function formDataPost<T>(
     formData: unknown;
   },
 ): Promise<FdSuccess<T> | FdError> {
-  const api = getUserApi(accessToken);
+  const api = getApiSafe();
   if (!api) return { ok: false, status: 0, message: 'OneEntry SDK not initialised' };
   try {
     // SDK's postFormsData internally wraps `formData` in { [langCode]: [...] }
@@ -585,9 +588,9 @@ async function formDataPost<T>(
       raw
       && !Array.isArray(raw)
       && typeof raw === 'object'
-      && 'en_US' in (raw as Record<string, unknown>)
+      && DEFAULT_LOCALE in (raw as Record<string, unknown>)
     )
-      ? (raw as Record<string, unknown>).en_US
+      ? (raw as Record<string, unknown>)[DEFAULT_LOCALE]
       : raw;
     const result = await api.FormData.postFormsData({
       ...body,
@@ -604,11 +607,10 @@ async function formDataPost<T>(
 
 /** SDK-backed PUT of an existing form-data record by id. */
 async function formDataPut<T>(
-  accessToken: string,
   id: number,
   body: object,
 ): Promise<T | null> {
-  const api = getUserApi(accessToken);
+  const api = getApiSafe();
   if (!api) return null;
   try {
     const result = await api.FormData.updateFormsDataByid(id, body);
@@ -620,11 +622,8 @@ async function formDataPut<T>(
 }
 
 /** SDK-backed DELETE of a form-data record by id. */
-async function formDataDelete(
-  accessToken: string,
-  id: number,
-): Promise<boolean> {
-  const api = getUserApi(accessToken);
+async function formDataDelete(id: number): Promise<boolean> {
+  const api = getApiSafe();
   if (!api) return false;
   try {
     const result = await api.FormData.deleteFormsDataByid(id);
@@ -691,9 +690,8 @@ function addressToFormData(address: OeAddress): Array<{ marker: string; type: st
   ];
 }
 
-async function fetchUserAddresses(accessToken: string): Promise<OeAddress[]> {
+async function fetchUserAddresses(): Promise<OeAddress[]> {
   const result = await formDataGetByMarker(
-    accessToken,
     'user_addresses',
     USER_ADDRESSES_MODULE_CONFIG_ID,
     {},
@@ -703,12 +701,11 @@ async function fetchUserAddresses(accessToken: string): Promise<OeAddress[]> {
 }
 
 async function postUserAddress(
-  accessToken: string,
   userIdentifier: string,
   address: OeAddress,
 ): Promise<{ ok: true; record: RawFormRecord } | { ok: false; message: string }> {
   type PostResponse = RawFormRecord & { formData?: RawFormRecord; actionMessage?: string };
-  const res = await formDataPost<PostResponse>(accessToken, {
+  const res = await formDataPost<PostResponse>({
     formIdentifier: 'user_addresses',
     formModuleConfigId: USER_ADDRESSES_MODULE_CONFIG_ID,
     moduleEntityIdentifier: userIdentifier,
@@ -727,19 +724,18 @@ async function postUserAddress(
 }
 
 async function putUserAddress(
-  accessToken: string,
   recordId: number,
   address: OeAddress,
 ): Promise<boolean> {
-  const result = await formDataPut<unknown>(accessToken, recordId, {
+  const result = await formDataPut<unknown>(recordId, {
     langCode: DEFAULT_LOCALE,
     formData: addressToFormData(address),
   });
   return result !== null;
 }
 
-async function deleteUserAddress(accessToken: string, recordId: number): Promise<boolean> {
-  return formDataDelete(accessToken, recordId);
+async function deleteUserAddress(recordId: number): Promise<boolean> {
+  return formDataDelete(recordId);
 }
 
 // ── user_data form (one record per user — upsert) ───────────────────────────
@@ -753,11 +749,8 @@ interface UserDataExtras {
   consentCrossBorder?: boolean;
 }
 
-async function fetchUserDataRecord(
-  accessToken: string,
-): Promise<{ recordId: number | null; extras: UserDataExtras }> {
+async function fetchUserDataRecord(): Promise<{ recordId: number | null; extras: UserDataExtras }> {
   const result = await formDataGetByMarker(
-    accessToken,
     'user_data',
     USER_DATA_MODULE_CONFIG_ID,
     {},
@@ -797,17 +790,15 @@ function userDataToFormData(extras: UserDataExtras): Array<{ marker: string; typ
 }
 
 async function upsertUserDataRecord(
-  accessToken: string,
   userIdentifier: string,
   patch: UserDataExtras,
 ): Promise<boolean> {
-  const current = await fetchUserDataRecord(accessToken);
+  const current = await fetchUserDataRecord();
   const merged: UserDataExtras = { ...current.extras, ...patch };
   const formData = userDataToFormData(merged);
 
   if (current.recordId) {
     const result = await formDataPut<unknown>(
-      accessToken,
       current.recordId,
       { langCode: DEFAULT_LOCALE, formData },
     );
@@ -822,7 +813,7 @@ async function upsertUserDataRecord(
   void _dropDob;
   const postData = userDataToFormData(patchWithoutDob);
   type PostResponse = RawFormRecord & { formData?: RawFormRecord };
-  const created = await formDataPost<PostResponse>(accessToken, {
+  const created = await formDataPost<PostResponse>({
     formIdentifier: 'user_data',
     formModuleConfigId: USER_DATA_MODULE_CONFIG_ID,
     moduleEntityIdentifier: userIdentifier,
@@ -838,7 +829,6 @@ async function upsertUserDataRecord(
   if (!newId) return true;
   if (merged.dob) {
     const result = await formDataPut<unknown>(
-      accessToken,
       newId,
       { langCode: DEFAULT_LOCALE, formData },
     );
@@ -860,11 +850,8 @@ interface SubsExtras {
   smsNotifications?: boolean;
 }
 
-async function fetchSubsRecord(
-  accessToken: string,
-): Promise<{ recordId: number | null; extras: SubsExtras }> {
+async function fetchSubsRecord(): Promise<{ recordId: number | null; extras: SubsExtras }> {
   const result = await formDataGetByMarker(
-    accessToken,
     'subscription_management',
     SUBSCRIPTION_MGMT_MODULE_CONFIG_ID,
     {},
@@ -902,11 +889,10 @@ function subsToFormData(extras: SubsExtras): Array<{ marker: string; type: strin
 }
 
 async function upsertSubsRecord(
-  accessToken: string,
   userIdentifier: string,
   subs: OeSubscriptions,
 ): Promise<boolean> {
-  const current = await fetchSubsRecord(accessToken);
+  const current = await fetchSubsRecord();
   const formData = subsToFormData({
     emailNewsletter: subs.emailNewsletter,
     smsNotifications: subs.smsNotifications,
@@ -918,13 +904,12 @@ async function upsertSubsRecord(
   });
   if (current.recordId) {
     const result = await formDataPut<unknown>(
-      accessToken,
       current.recordId,
       { langCode: DEFAULT_LOCALE, formData },
     );
     return result !== null;
   }
-  const result = await formDataPost<RawFormRecord>(accessToken, {
+  const result = await formDataPost<RawFormRecord>({
     formIdentifier: 'subscription_management',
     formModuleConfigId: SUBSCRIPTION_MGMT_MODULE_CONFIG_ID,
     moduleEntityIdentifier: userIdentifier,
@@ -935,8 +920,8 @@ async function upsertSubsRecord(
   return result.ok;
 }
 
-async function putUser(accessToken: string, body: Record<string, unknown>): Promise<boolean> {
-  const api = getUserApi(accessToken);
+async function putUser(body: Record<string, unknown>): Promise<boolean> {
+  const api = getApiSafe();
   if (!api) return false;
   // The SDK's `updateUser` takes `IUserBody` which itself allows `formData`
   // as either a single `IAuthFormData` or an array — we pass the array form
@@ -950,9 +935,9 @@ async function putUser(accessToken: string, body: Record<string, unknown>): Prom
     normalized.formData
     && !Array.isArray(normalized.formData)
     && typeof normalized.formData === 'object'
-    && 'en_US' in (normalized.formData as Record<string, unknown>)
+    && DEFAULT_LOCALE in (normalized.formData as Record<string, unknown>)
   ) {
-    normalized.formData = (normalized.formData as Record<string, unknown>).en_US;
+    normalized.formData = (normalized.formData as Record<string, unknown>)[DEFAULT_LOCALE];
   }
   const result = await api.Users.updateUser(
     normalized as unknown as Parameters<typeof api.Users.updateUser>[0],
@@ -997,9 +982,10 @@ interface RawAuthProvider {
  * Returns `[]` on any failure — social buttons simply won't render.
  */
 export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
-  if (!isOneEntryEnabled || !oneentry) return [];
+  const api = getApiSafe();
+  if (!api) return [];
   try {
-    const result = await oneentry.AuthProvider.getAuthProviders();
+    const result = await api.AuthProvider.getAuthProviders();
     if (isError(result)) return [];
     const list = Array.isArray(result) ? (result as RawAuthProvider[]) : [];
     return list
@@ -1025,15 +1011,28 @@ export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
   }
 }
 
+/**
+ * Sign the shopper in with e-mail + password.
+ *
+ * Runs in the browser on purpose (MCP `auth-provider`): the SDK stamps the
+ * device fingerprint onto the request and OE binds the issued refresh token to
+ * it, so a token minted on the server could never be refreshed from here.
+ * `auth()` itself writes both tokens into SDK state and fires `saveFunction`,
+ * so only the provider marker and the user identifier need persisting.
+ * @param {string} login    - E-mail address (the `isLogin` field on this tenant).
+ * @param {string} password - Plain-text password.
+ * @returns {Promise<AuthResult>} Session result with the hydrated `/me` payload.
+ */
 export async function signInAction(
   login: string,
   password: string,
 ): Promise<AuthResult> {
-  if (!isOneEntryEnabled || !oneentry) {
+  const api = getApiSafe();
+  if (!api) {
     return { ok: false, error: 'OneEntry is not configured' };
   }
   try {
-    const result = await oneentry.AuthProvider.auth(AUTH_MARKER, {
+    const result = await api.AuthProvider.auth(AUTH_MARKER, {
       authData: [
         { marker: 'email', value: login.trim() },
         { marker: 'password', value: password },
@@ -1042,9 +1041,9 @@ export async function signInAction(
     if (isError(result)) {
       return { ok: false, error: result.message ?? 'Sign-in failed' };
     }
-    const jar = (await cookies()) as unknown as CookieJar;
-    await setSessionCookies(jar, result, AUTH_MARKER);
-    const user = await fetchMe(result.accessToken);
+    storeSession(result, AUTH_MARKER);
+    writeUserIdentifier(result.userIdentifier);
+    const user = await fetchMe();
     return { ok: true, userIdentifier: result.userIdentifier, user };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Sign-in failed' };
@@ -1062,8 +1061,16 @@ export interface SignUpInput {
   agreed?: boolean;
 }
 
+/**
+ * Register a new shopper. Browser-only for the same fingerprint reason as
+ * {@link signInAction}; on success it immediately signs in (this tenant's
+ * provider has `isCheckCode: false`, so no activation step is required).
+ * @param {SignUpInput} input - Credentials + profile fields from the form.
+ * @returns {Promise<AuthResult>} Session result, or the OE error message.
+ */
 export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
-  if (!isOneEntryEnabled || !oneentry) {
+  const api = getApiSafe();
+  if (!api) {
     return { ok: false, error: 'OneEntry is not configured' };
   }
   const email = input.email.trim();
@@ -1088,13 +1095,13 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
     formData.push({ marker: 'users_agree', type: 'radioButton', value: 'true' });
   }
   try {
-    const signUpRes = await oneentry.AuthProvider.signUp(AUTH_MARKER, {
+    const signUpRes = await api.AuthProvider.signUp(AUTH_MARKER, {
       formIdentifier: SIGNUP_FORM_IDENTIFIER,
       authData: [
         { marker: 'email', value: email },
         { marker: 'password', value: input.password },
       ],
-      formData: formData as unknown as Parameters<typeof oneentry.AuthProvider.signUp>[1]['formData'],
+      formData: formData as unknown as Parameters<typeof api.AuthProvider.signUp>[1]['formData'],
       notificationData: {
         email,
         phonePush: input.phone.trim() ? [input.phone.trim()] : [],
@@ -1111,146 +1118,65 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
   }
 }
 
-const GOOGLE_AUTH_MARKER = 'google';
-const GOOGLE_OAUTH_STATE_COOKIE = 'oe_google_oauth_state';
-const GOOGLE_OAUTH_RETURN_COOKIE = 'oe_google_oauth_return';
-const GOOGLE_CALLBACK_PATH = '/auth/callback/google';
-
-function absoluteCallbackUri(origin: string): string {
-  return `${origin.replace(/\/$/, '')}${GOOGLE_CALLBACK_PATH}`;
-}
-
 /**
- * Kick off Google OAuth per MCP `auth-provider` rule: read `config.oauthAuthUrl`
- * from the OE provider, build the authorize URL with `response_type=code`, set
- * an httpOnly CSRF state cookie, and return the URL for the client to redirect
- * to. The client never sees `client_secret` — OE holds it and does the
- * server-side code exchange inside `AuthProvider.oauth`.
+ * Finish the Google OAuth round-trip in the browser.
+ *
+ * The `code → tokens` exchange itself must stay on the server (OE holds the
+ * `client_secret` and the CSRF `state` lives in an httpOnly cookie), so this
+ * is a thin wrapper: it captures the **browser's** device fingerprint, hands
+ * it to the server action, then installs the returned tokens locally. Unlike
+ * `auth()`, `oauth()` does not write tokens into SDK state — hence the
+ * explicit `storeSession`.
+ * @param {object} ctx        - Callback parameters read from the URL.
+ * @param {string} ctx.code   - Google authorization code.
+ * @param {string} ctx.state  - CSRF state echoed back by Google.
+ * @param {string} ctx.origin - Browser origin (`window.location.origin`).
+ * @returns {Promise<AuthResult & { returnTo?: string }>} Session + return path.
  */
-export interface GoogleOAuthStart {
-  ok: true;
-  url: string;
-}
-export interface GoogleOAuthStartError {
-  ok: false;
-  error: string;
-}
-export async function getGoogleAuthUrlAction(
-  origin: string,
-  returnTo?: string,
-): Promise<GoogleOAuthStart | GoogleOAuthStartError> {
-  if (!isOneEntryEnabled || !oneentry) {
-    return { ok: false, error: 'OneEntry is not configured' };
-  }
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  if (!clientId) {
-    return { ok: false, error: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set' };
-  }
-  if (!origin || !/^https?:\/\//i.test(origin)) {
-    return { ok: false, error: 'Invalid origin' };
-  }
-  try {
-    const provider = await oneentry.AuthProvider.getAuthProviderByMarker(GOOGLE_AUTH_MARKER);
-    if (isError(provider)) {
-      return { ok: false, error: provider.message ?? 'Google provider not found' };
-    }
-    const oauthAuthUrl = provider.config?.oauthAuthUrl;
-    if (!oauthAuthUrl) {
-      return { ok: false, error: 'Provider missing oauthAuthUrl' };
-    }
-    const state = crypto.randomUUID();
-    const redirectUri = absoluteCallbackUri(origin);
-    const url = new URL(oauthAuthUrl);
-    url.searchParams.set('client_id', clientId);
-    url.searchParams.set('redirect_uri', redirectUri);
-    url.searchParams.set('response_type', 'code');
-    url.searchParams.set('scope', 'openid email profile');
-    url.searchParams.set('access_type', 'offline');
-    url.searchParams.set('prompt', 'consent');
-    url.searchParams.set('state', state);
-
-    const jar = (await cookies()) as unknown as CookieJar;
-    const baseOpts = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-      path: '/',
-      maxAge: 60 * 10,
-    };
-    jar.set(GOOGLE_OAUTH_STATE_COOKIE, state, baseOpts);
-    // Only allow local return paths, never full URLs — prevents open-redirect.
-    const safeReturn = typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')
-      ? returnTo
-      : '/';
-    jar.set(GOOGLE_OAUTH_RETURN_COOKIE, safeReturn, baseOpts);
-    return { ok: true, url: url.toString() };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Google auth-url failed' };
-  }
-}
-
-/**
- * Exchange the Google `?code=` returned to the callback route for an OE
- * session. Per the MCP rule and the SDK docs, OE expects `{ code, redirect_uri }`
- * on the tenant side (`client_id` / `client_secret` live in OE), so we send
- * only those two fields even though the SDK's generated TS shape includes more.
- */
-export interface GoogleCallbackContext {
+export async function completeGoogleSignIn(ctx: {
   code: string;
   state: string;
   origin: string;
-}
-export async function exchangeGoogleCodeAction(
-  ctx: GoogleCallbackContext,
-): Promise<AuthResult & { returnTo?: string }> {
-  if (!isOneEntryEnabled || !oneentry) {
-    return { ok: false, error: 'OneEntry is not configured' };
-  }
-  if (!ctx.code) return { ok: false, error: 'Missing Google authorization code' };
+}): Promise<AuthResult & { returnTo?: string }> {
+  const api = getApiSafe();
+  if (!api) return { ok: false, error: 'OneEntry is not configured' };
 
-  const jar = (await cookies()) as unknown as CookieJar;
-  const savedState = jar.get(GOOGLE_OAUTH_STATE_COOKIE)?.value ?? '';
-  const returnTo = jar.get(GOOGLE_OAUTH_RETURN_COOKIE)?.value ?? '/';
-  // Consume the CSRF pair immediately so the code can only be redeemed once.
-  jar.delete(GOOGLE_OAUTH_STATE_COOKIE);
-  jar.delete(GOOGLE_OAUTH_RETURN_COOKIE);
+  const { exchangeGoogleCodeAction } = await import('./oauth-actions');
+  const exchanged = await exchangeGoogleCodeAction({
+    ...ctx,
+    deviceMetadata: api.AuthProvider.getDeviceMetadata(),
+  });
+  if (!exchanged.ok) return { ok: false, error: exchanged.error };
 
-  if (!savedState || savedState !== ctx.state) {
-    return { ok: false, error: 'OAuth state mismatch (possible CSRF)' };
-  }
-
-  try {
-    const redirectUri = absoluteCallbackUri(ctx.origin);
-    const body = { code: ctx.code, redirect_uri: redirectUri };
-    const result = await oneentry.AuthProvider.oauth(
-      GOOGLE_AUTH_MARKER,
-      body as unknown as Parameters<typeof oneentry.AuthProvider.oauth>[1],
-    );
-    if (isError(result)) {
-      return { ok: false, error: result.message ?? 'Google sign-in rejected by OneEntry' };
-    }
-    const entity = result as OeAuthEntity;
-    await setSessionCookies(jar, entity, GOOGLE_AUTH_MARKER);
-    const user = await fetchMe(entity.accessToken);
-    return { ok: true, userIdentifier: entity.userIdentifier, user, returnTo };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Google sign-in failed' };
-  }
+  storeSession(exchanged, GOOGLE_AUTH_MARKER);
+  writeUserIdentifier(exchanged.userIdentifier);
+  const user = await fetchMe();
+  return {
+    ok: true,
+    userIdentifier: exchanged.userIdentifier,
+    user,
+    returnTo: exchanged.returnTo,
+  };
 }
 
-
+/**
+ * End the shopper's session. `logout` takes the refresh token explicitly, so
+ * it must be read before {@link clearTokens} wipes storage. A failed call is
+ * ignored — the local reset is what the UI reacts to.
+ * @returns {Promise<{ ok: boolean }>} Always `{ ok: true }`.
+ */
 export async function signOutAction(): Promise<{ ok: boolean }> {
-  const jar = (await cookies()) as unknown as CookieJar;
-  const refresh = jar.get(REFRESH_COOKIE)?.value;
-  if (oneentry && refresh) {
-    const providerMarker = getAuthProviderMarker(jar);
+  const api = getApiSafe();
+  const refresh = readRefreshToken();
+  if (api && refresh) {
     try {
-      await oneentry.AuthProvider.logout(providerMarker, refresh);
+      await api.AuthProvider.logout(getAuthProviderMarker(), refresh);
     } catch {
-      /* ignore — clearing cookies is the source of truth client-side */
+      /* ignore — the local token reset below is the source of truth */
     }
   }
-  await clearSessionCookies(jar);
+  writeUserIdentifier('');
+  clearTokens();
   return { ok: true };
 }
 
@@ -1268,9 +1194,8 @@ export async function cancelOrderAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry is not configured' };
   if (!orderId || !storage) return { ok: false, error: 'Missing order id or storage' };
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, error: 'Not signed in' };
-  const api = getUserApi(access);
+  if (!hasStoredSession()) return { ok: false, error: 'Not signed in' };
+  const api = getApiSafe();
   if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
   try {
     // 1. Load the existing order — `updateOrderByMarkerAndId` demands the
@@ -1364,9 +1289,8 @@ const POSITIVE_BONUS_TYPES = new Set(['ACCRUAL', 'REVERSAL_USAGE']);
 
 export async function fetchBonusHistoryAction(): Promise<OeBonusTransaction[]> {
   if (!isOneEntryEnabled) return [];
-  const access = await readAccessOrRefresh();
-  if (!access) return [];
-  const api = getUserApi(access);
+  if (!hasStoredSession()) return [];
+  const api = getApiSafe();
   if (!api) return [];
   try {
     const result = await api.Discounts.getBonusHistory();
@@ -1400,28 +1324,27 @@ export async function fetchBonusHistoryAction(): Promise<OeBonusTransaction[]> {
   }
 }
 
+/**
+ * Hydrate `/me` for the current session.
+ *
+ * No explicit refresh call here: `reDefine()` (run once by `AuthContext` on
+ * mount) puts the refresh token in SDK state, and the SDK proactively mints an
+ * access token before the first user-auth request — so the pair on the wire is
+ * a clean `POST /refresh 200 → 200`, with no spurious `401`. A dead token is
+ * detected by the empty result and cleared, because the SDK's `saveFunction`
+ * only fires on *successful* rotation and would otherwise leave the stale
+ * token replaying `400`s on every page load.
+ * @returns {Promise<OeUser | null>} The shopper, or `null` when signed out.
+ */
 export async function getCurrentUserAction(): Promise<OeUser | null> {
-  const jar = (await cookies()) as unknown as CookieJar;
-  const access = jar.get(ACCESS_COOKIE)?.value;
-  if (!access) return null;
-  const me = await fetchMe(access);
+  if (!hasStoredSession()) return null;
+  const me = await fetchMe();
   if (me) return me;
-  // Access token may have expired — try refresh.
-  const refresh = jar.get(REFRESH_COOKIE)?.value;
-  if (!refresh || !oneentry) return null;
-  const providerMarker = getAuthProviderMarker(jar);
-  try {
-    const refreshed = await oneentry.AuthProvider.refresh(providerMarker, refresh);
-    if (isError(refreshed)) {
-      await clearSessionCookies(jar);
-      return null;
-    }
-    await setSessionCookies(jar, refreshed, providerMarker);
-    return await fetchMe(refreshed.accessToken);
-  } catch {
-    await clearSessionCookies(jar);
-    return null;
-  }
+  // Refresh token is dead (or the account vanished) — drop it so the next
+  // load doesn't repeat the failing `/refresh`.
+  clearTokens();
+  writeUserIdentifier('');
+  return null;
 }
 
 // ── Profile mutations ────────────────────────────────────────────────────────
@@ -1440,10 +1363,8 @@ export interface ProfileUpdate {
 export async function updateProfileAction(
   patch: ProfileUpdate,
 ): Promise<{ ok: boolean; error?: string }> {
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, error: 'Not authenticated' };
-  const jar = (await cookies()) as unknown as CookieJar;
-  const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
+  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  const userIdentifier = readUserIdentifier();
 
   // 1) Fields living in the sign-in form (PUT /me)
   const formData: Array<{ marker: string; type: string; value: string | string[] }> = [];
@@ -1452,7 +1373,7 @@ export async function updateProfileAction(
   if (patch.gender !== undefined) formData.push({ marker: 'gender', type: 'list', value: [patch.gender] });
   let signinOk = true;
   if (formData.length > 0) {
-    signinOk = await putUser(access, { formIdentifier: SIGNUP_FORM_IDENTIFIER, formData });
+    signinOk = await putUser({ formIdentifier: SIGNUP_FORM_IDENTIFIER, formData });
   }
 
   // 2) Profile extras live in the user_data form-data record
@@ -1463,7 +1384,7 @@ export async function updateProfileAction(
   if (patch.clothingSize !== undefined) extrasPatch.clothingSize = patch.clothingSize;
   let extrasOk = true;
   if (Object.keys(extrasPatch).length > 0 && userIdentifier) {
-    extrasOk = await upsertUserDataRecord(access, userIdentifier, extrasPatch);
+    extrasOk = await upsertUserDataRecord(userIdentifier, extrasPatch);
   }
 
   return signinOk && extrasOk ? { ok: true } : { ok: false, error: 'Update failed' };
@@ -1472,13 +1393,11 @@ export async function updateProfileAction(
 export async function updateAddressesAction(
   addresses: OeAddress[],
 ): Promise<{ ok: boolean; error?: string; addresses?: OeAddress[] }> {
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, error: 'Not authenticated' };
-  const jar = (await cookies()) as unknown as CookieJar;
-  const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
+  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  const userIdentifier = readUserIdentifier();
   if (!userIdentifier) return { ok: false, error: 'Missing user identifier' };
 
-  const existing = await fetchUserAddresses(access);
+  const existing = await fetchUserAddresses();
   const existingById = new Map(existing.map((a) => [a.recordId!, a]));
   const incomingRecordIds = new Set(addresses.map((a) => a.recordId).filter((v): v is number => typeof v === 'number'));
 
@@ -1486,7 +1405,7 @@ export async function updateAddressesAction(
   await Promise.all(
     existing
       .filter((a) => a.recordId !== undefined && !incomingRecordIds.has(a.recordId))
-      .map((a) => deleteUserAddress(access, a.recordId!)),
+      .map((a) => deleteUserAddress(a.recordId!)),
   );
 
   // POST new (no recordId) and PUT existing
@@ -1494,11 +1413,11 @@ export async function updateAddressesAction(
   const errors: string[] = [];
   for (const addr of addresses) {
     if (addr.recordId && existingById.has(addr.recordId)) {
-      const ok = await putUserAddress(access, addr.recordId, addr);
+      const ok = await putUserAddress(addr.recordId, addr);
       if (!ok) errors.push(`Could not update address "${addr.name}" (PUT not allowed for users — admin must grant rights or use POST-only flow)`);
       finalised.push({ ...addr, id: String(addr.recordId) });
     } else {
-      const created = await postUserAddress(access, userIdentifier, addr);
+      const created = await postUserAddress(userIdentifier, addr);
       if (created.ok && created.record.id) {
         finalised.push({ ...addr, id: String(created.record.id), recordId: created.record.id });
       } else {
@@ -1517,13 +1436,11 @@ export async function updateAddressesAction(
 export async function updateSubscriptionsAction(
   subs: OeSubscriptions,
 ): Promise<{ ok: boolean; error?: string }> {
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, error: 'Not authenticated' };
-  const jar = (await cookies()) as unknown as CookieJar;
-  const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
+  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  const userIdentifier = readUserIdentifier();
 
   // 1) email/sms remain mirrored in sign-in formData (they're declared there)
-  const signinOk = await putUser(access, {
+  const signinOk = await putUser({
     formIdentifier: SIGNUP_FORM_IDENTIFIER,
     formData: [
       { marker: 'users_subscribe_to_promotional_email', type: 'radioButton', value: subs.emailNewsletter ? 'true' : 'false' },
@@ -1532,7 +1449,7 @@ export async function updateSubscriptionsAction(
   });
 
   // 2) All 7 toggles live in the subscription_management form-data record
-  const formOk = userIdentifier ? await upsertSubsRecord(access, userIdentifier, subs) : false;
+  const formOk = userIdentifier ? await upsertSubsRecord(userIdentifier, subs) : false;
 
   return signinOk && formOk ? { ok: true } : { ok: false, error: 'Update failed' };
 }
@@ -1540,16 +1457,14 @@ export async function updateSubscriptionsAction(
 export async function updateConsentAction(
   consent: OeConsent,
 ): Promise<{ ok: boolean; error?: string }> {
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, error: 'Not authenticated' };
-  const jar = (await cookies()) as unknown as CookieJar;
-  const userIdentifier = jar.get(IDENTIFIER_COOKIE)?.value ?? '';
+  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  const userIdentifier = readUserIdentifier();
   if (!userIdentifier) return { ok: false, error: 'Missing user identifier' };
 
   // Both consents live in the user_data form. The cross-border radioButton
   // needs option values "true"/"false" configured in the CMS — otherwise OE
   // returns "there aren't list values for type radioButton".
-  const ok = await upsertUserDataRecord(access, userIdentifier, {
+  const ok = await upsertUserDataRecord(userIdentifier, {
     consentDataProcessing: consent.dataProcessing,
     consentCrossBorder: consent.crossBorder,
   });
@@ -1562,9 +1477,8 @@ export async function updateConsentAction(
 export async function syncCartAction(
   items: OeCartItem[],
 ): Promise<{ ok: boolean; items: OeCartItem[] }> {
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, items: [] };
-  const api = getUserApi(access);
+  if (!hasStoredSession()) return { ok: false, items: [] };
+  const api = getApiSafe();
   if (!api) return { ok: false, items: [] };
   const result = await api.Users.setCart({ items });
   if (isError(result)) return { ok: false, items: [] };
@@ -1572,9 +1486,8 @@ export async function syncCartAction(
 }
 
 export async function getCartAction(): Promise<OeCartItem[]> {
-  const access = await readAccessOrRefresh();
-  if (!access) return [];
-  const api = getUserApi(access);
+  if (!hasStoredSession()) return [];
+  const api = getApiSafe();
   if (!api) return [];
   const result = await api.Users.getCart();
   if (isError(result)) return [];
@@ -1584,9 +1497,8 @@ export async function getCartAction(): Promise<OeCartItem[]> {
 export async function syncWishlistAction(
   items: OeWishlistItem[],
 ): Promise<{ ok: boolean; items: OeWishlistItem[] }> {
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, items: [] };
-  const api = getUserApi(access);
+  if (!hasStoredSession()) return { ok: false, items: [] };
+  const api = getApiSafe();
   if (!api) return { ok: false, items: [] };
   const result = await api.Users.setWishlist({ items });
   if (isError(result)) return { ok: false, items: [] };
@@ -1594,9 +1506,8 @@ export async function syncWishlistAction(
 }
 
 export async function getWishlistAction(): Promise<OeWishlistItem[]> {
-  const access = await readAccessOrRefresh();
-  if (!access) return [];
-  const api = getUserApi(access);
+  if (!hasStoredSession()) return [];
+  const api = getApiSafe();
   if (!api) return [];
   const result = await api.Users.getWishlist();
   if (isError(result)) return [];
@@ -1616,9 +1527,8 @@ export async function pushRecentlyViewedAction(
   productId: number,
 ): Promise<{ ok: boolean; items: OeRecentlyViewedItem[] }> {
   if (!Number.isFinite(productId) || productId <= 0) return { ok: false, items: [] };
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, items: [] };
-  const currentState = await readStateFromMe(access);
+  if (!hasStoredSession()) return { ok: false, items: [] };
+  const currentState = await readStateFromMe();
   const prev = Array.isArray(currentState.recentlyViewed) ? currentState.recentlyViewed : [];
   // Strip any existing entry for the same product so we can prepend a fresh one.
   const without = prev.filter((it) => Number(it.productId) !== productId);
@@ -1627,7 +1537,7 @@ export async function pushRecentlyViewedAction(
     ...without,
   ].slice(0, RECENTLY_VIEWED_MAX);
   const nextState: OeUserState = { ...currentState, recentlyViewed: next };
-  const ok = await putUser(access, {
+  const ok = await putUser({
     formIdentifier: SIGNUP_FORM_IDENTIFIER,
     state: nextState,
   });
@@ -1636,9 +1546,8 @@ export async function pushRecentlyViewedAction(
 
 /** Read the user's recently-viewed trail straight from OE user state. */
 export async function getRecentlyViewedAction(): Promise<OeRecentlyViewedItem[]> {
-  const access = await readAccessOrRefresh();
-  if (!access) return [];
-  const state = await readStateFromMe(access);
+  if (!hasStoredSession()) return [];
+  const state = await readStateFromMe();
   return Array.isArray(state.recentlyViewed) ? state.recentlyViewed : [];
 }
 
@@ -1651,9 +1560,8 @@ export async function mergeRecentlyViewedAction(
   if (!Array.isArray(incoming) || incoming.length === 0) {
     return { ok: true, items: await getRecentlyViewedAction() };
   }
-  const access = await readAccessOrRefresh();
-  if (!access) return { ok: false, items: [] };
-  const currentState = await readStateFromMe(access);
+  if (!hasStoredSession()) return { ok: false, items: [] };
+  const currentState = await readStateFromMe();
   const server = Array.isArray(currentState.recentlyViewed) ? currentState.recentlyViewed : [];
   const byId = new Map<number, OeRecentlyViewedItem>();
   for (const it of [...incoming, ...server]) {
@@ -1668,7 +1576,7 @@ export async function mergeRecentlyViewedAction(
     .sort((a, b) => new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime())
     .slice(0, RECENTLY_VIEWED_MAX);
   const nextState: OeUserState = { ...currentState, recentlyViewed: merged };
-  const ok = await putUser(access, {
+  const ok = await putUser({
     formIdentifier: SIGNUP_FORM_IDENTIFIER,
     state: nextState,
   });
@@ -1690,9 +1598,9 @@ export interface PreviewOrderInput {
   bonusAmount?: number;
   currency?: string;
   /** Anonymous session identifier for guest checkout. When present (and no
-   *  access cookie is set), we call OE via `getGuestApi(guestId)` so guest
-   *  coupons (`SUMMER2026`, …) still validate + apply. Auth cookies take
-   *  precedence when both are present. */
+   *  shopper is signed in), it is installed on the SDK instance so guest
+   *  coupons (`SUMMER2026`, …) still validate + apply. An active session
+   *  takes precedence — the SDK drops `x-guest-id` once a token is present. */
   guestId?: string;
 }
 /**
@@ -1789,13 +1697,16 @@ export type PreviewOrderResponse =
 export async function previewOrderAction(input: PreviewOrderInput): Promise<PreviewOrderResponse> {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured', missingProductIds: [] };
 
-  const access = await readAccessOrRefresh();
-  // Auth wins when both are present. For guests we still call OE via
-  // `getGuestApi(guestId)` so guest-eligible coupons (SUMMER2026 etc.) can
-  // validate and the shopper sees the same discount line the logged-in one
-  // would. Only the "no access, no guest id" path short-circuits — nothing
-  // to identify the request with.
-  const api = access ? getUserApi(access) : (input.guestId ? getGuestApi(input.guestId) : null);
+  const signedIn = hasStoredSession();
+  // One browser = one visitor, so the singleton can carry the guest id
+  // directly (the "never mutate the shared instance" rule in `sdk-init` is
+  // about the *server*, where one process serves everyone). With it in place
+  // guest-eligible coupons (SUMMER2026 etc.) validate and the shopper sees
+  // the same discount line a signed-in one would.
+  const api = getApiSafe();
+  if (api && !signedIn && input.guestId) {
+    api.Orders.setGuestId(input.guestId);
+  }
   if (!api) {
     return {
       ok: true, totalSum: 0, totalSumWithDiscount: 0, bonusApplied: 0,
@@ -1820,7 +1731,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       products: input.products,
       // Use the shared TIER_MARKERS constant so a rename in `fetchLoyalty`
       // propagates here without a stale copy silently dropping tiers.
-      ...(access ? { additionalDiscountsMarkers: [...TIER_MARKERS] } : {}),
+      ...(signedIn ? { additionalDiscountsMarkers: [...TIER_MARKERS] } : {}),
       ...(input.couponCode ? { couponCode: input.couponCode } : {}),
       ...(typeof input.bonusAmount === 'number' && input.bonusAmount > 0
         ? { bonusAmount: input.bonusAmount } : {}),
@@ -1896,7 +1807,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
         // the user-scoped call returns 403 "Permission data not found"
         // because there's no user session, but the app-token client can
         // read the public discount config just fine.
-        const cfg = await oneentry!.Discounts.getDiscountByMarker(rawCoupon.discountIdentifier, DEFAULT_LOCALE);
+        const cfg = await api.Discounts.getDiscountByMarker(rawCoupon.discountIdentifier, DEFAULT_LOCALE);
         if (!isError(cfg)) {
           const cfgObj = cfg as unknown as {
             // OE returns `conditionType` on the wire but the SDK typing
@@ -1974,10 +1885,10 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
     // even when `additionalDiscountsMarkers` includes the tier. Keeps the
     // UI honest with what the account page advertises. Skips for guests —
     // tiers are LTV-gated so there's nothing to fall back to.
-    if (discountAmount === 0 && totalSum > 0 && access) {
+    if (discountAmount === 0 && totalSum > 0 && signedIn) {
       const [me, loyalty] = await Promise.all([
-        fetchMe(access),
-        fetchLoyalty(access),
+        fetchMe(),
+        fetchLoyalty(),
       ]);
       const orders = me?.orders ?? [];
       const REVENUE = /paid|complete|deliver|done|closed|finish/i;
@@ -2106,26 +2017,22 @@ export async function createOrderAction(
 > {
   if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
 
-  const access = await readAccessOrRefresh();
-  const isGuest = !access;
+  const signedIn = hasStoredSession();
+  const isGuest = !signedIn;
   const storageMarker = isGuest ? `${input.storage}_guest` : input.storage;
   const formIdentifier = isGuest
     ? `${FORM_IDENTIFIER_MAP[input.storage]}_guest`
     : FORM_IDENTIFIER_MAP[input.storage];
 
-  // Mint a request-scoped SDK: user-authed if we have `access`, otherwise a
-  // fresh guest instance with the guestId wired in via `getGuestApi`.
-  let api: ReturnType<typeof getUserApi> = null;
-  if (access) {
-    api = getUserApi(access);
-  } else if (input.guestId) {
-    api = getGuestApi(input.guestId);
-  } else {
-    // Even a guest checkout needs a guestId — orders can't be attached to
-    // an anonymous browser without one.
-    api = getUserApi('');
-  }
+  // The singleton already carries the session for signed-in shoppers. Guests
+  // need `x-guest-id` on the request so OE can attach the order to their
+  // anonymous record — safe to set on the instance here because a browser
+  // serves exactly one visitor.
+  const api = getApiSafe();
   if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
+  if (isGuest && input.guestId) {
+    api.Orders.setGuestId(input.guestId);
+  }
 
   try {
     // SDK expects `IOrderData` = { formIdentifier, paymentAccountIdentifier,
@@ -2167,14 +2074,13 @@ export async function createOrderAction(
     // Order placed — invalidate every ISR / `unstable_cache` surface that
     // may have gone stale as a result. Skip on payment-provider redirect
     // errors below since the order still landed in OE.
+    // `revalidateTag` is server-only, so the invalidation hops through a
+    // dedicated Server Action (`./revalidate-action`). Product listings may
+    // show stock/status changes for the items just purchased, and the applied
+    // discount may have been a single-use coupon or a usage-capped tier.
     try {
-      // Product listing may show stock qty / status changes for the
-      // items just purchased.
-      revalidateTag('oe-products', 'max');
-      // Discount rules can be single-use coupons or usage-capped tiers —
-      // the applied one may just have consumed a slot.
-      revalidateTag('oe-discounts', 'max');
-    } catch { /* revalidateTag is a no-op outside a request context */ }
+      await revalidateAfterOrderAction();
+    } catch { /* cache invalidation is best-effort — the order still landed */ }
 
     if (!paymentUrl && orderId && input.paymentAccountType === 'stripe') {
       // Stripe-backed accounts: mint a Checkout session via SDK. The SDK's

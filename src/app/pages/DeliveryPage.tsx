@@ -30,6 +30,7 @@ import { DeliveryMethodHome } from './checkout/DeliveryMethodHome';
 import { DELIVERY_PAGE_LABELS as L, DELIVERY_METHOD_HOME_LABELS as DH } from '../data/checkoutLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
 import type { DeliveryTimeSlot } from '../../lib/oneentry/checkout/delivery-schedule';
+import { useMounted } from '../hooks/useMounted';
 
 type DeliveryMethod = 'home' | 'store' | 'locker';
 
@@ -167,18 +168,21 @@ export function DeliveryPage({
   const [guestContact, setGuestContact] = useState<GuestContactFormState>({ fullName: '', email: '', phone: '' });
   const [guestContactErrors, setGuestContactErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (isLoggedIn && savedAddresses.length > 0) {
-      setSelectedAddressId(savedAddresses[0].id);
-    }
-  }, [isLoggedIn, savedAddresses.length]);
+  // Preselect the shopper's first saved address as soon as the account data
+  // lands. Done during render (React's "adjust state when a prop changes")
+  // so the radio is already checked on the first paint.
+  const defaultAddressId = isLoggedIn ? savedAddresses[0]?.id ?? null : null;
+  const [prevDefaultAddressId, setPrevDefaultAddressId] = useState<string | null>(null);
+  if (defaultAddressId !== prevDefaultAddressId) {
+    setPrevDefaultAddressId(defaultAddressId);
+    if (defaultAddressId) setSelectedAddressId(defaultAddressId);
+  }
 
   // Route-level guard: deep-linking `/checkout/delivery` with an empty
   // cart used to render the whole address form (and a $0 total). Bounce
   // back to the cart page as soon as the client knows the cart is
   // empty. Mirrors the PaymentPage guard.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useMounted();
   useEffect(() => {
     if (!mounted) return;
     if (items.length === 0) router.push('/cart');
@@ -293,10 +297,16 @@ export function DeliveryPage({
     router.push('/checkout/payment');
   };
 
-  useEffect(() => {
-    if (!isLoggedIn) setShowGuestModal(true);
-    else setShowGuestModal(false);
-  }, [isLoggedIn]);
+  // The guest-checkout prompt tracks auth state directly — again adjusted
+  // during render rather than mirrored from an effect.
+  // `true` seeds "was signed in", so an anonymous first render immediately
+  // raises the guest-checkout prompt — exactly what the old on-mount effect
+  // did, minus the extra render pass.
+  const [prevIsLoggedIn, setPrevIsLoggedIn] = useState(true);
+  if (isLoggedIn !== prevIsLoggedIn) {
+    setPrevIsLoggedIn(isLoggedIn);
+    setShowGuestModal(!isLoggedIn);
+  }
 
   return (
     <div

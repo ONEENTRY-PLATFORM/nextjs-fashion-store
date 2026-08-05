@@ -75,14 +75,16 @@ export function AccountPage() {
   // updated the URL bar but the section stayed on `my-orders`.
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get('tab') ?? null;
-  useEffect(() => {
+  // Sync the section with `?tab=` during render — React's "adjust state when
+  // a prop changes" pattern. In an effect the previous section would paint
+  // for one frame after every in-page navigation.
+  const [prevTabParam, setPrevTabParam] = useState<string | null>(null);
+  if (tabParam !== prevTabParam) {
+    setPrevTabParam(tabParam);
     if (tabParam && NAV_ITEMS.some(n => n.key === tabParam)) {
       setActiveSection(tabParam as Section);
     }
-    // NAV_ITEMS is derived from labels that recompute on each render — the
-    // effect key is the URL param, not the array.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabParam]);
+  }
 
   const handleSectionChange = (key: Section) => {
     setActiveSection(key);
@@ -90,11 +92,19 @@ export function AccountPage() {
     router.replace(`/account?tab=${key}`, { scroll: false });
   };
 
-  useEffect(() => {
+  // Show the section skeleton for a beat on every switch. The "start"
+  // transition happens during render (keyed on the section) so the skeleton
+  // is visible in the very first frame of the new section.
+  const [loadingSection, setLoadingSection] = useState<Section | null>(activeSection);
+  if (loadingSection !== activeSection && !sectionLoading) {
+    setLoadingSection(activeSection);
     setSectionLoading(true);
+  }
+  useEffect(() => {
+    if (!sectionLoading) return;
     const t = setTimeout(() => setSectionLoading(false), 600);
     return () => clearTimeout(t);
-  }, [activeSection]);
+  }, [sectionLoading, activeSection]);
 
   // Auth bootstrap in progress — render the full account layout with a
   // sidebar-nav shell and a section skeleton so a reload doesn't flash the

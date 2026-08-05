@@ -7,8 +7,9 @@ vi.mock('next/cache', () => ({
 
 const getBlockByMarker = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: { Blocks: { getBlockByMarker } },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ Blocks: { getBlockByMarker } }),
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));

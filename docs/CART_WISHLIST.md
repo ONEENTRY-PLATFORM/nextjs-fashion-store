@@ -25,7 +25,7 @@ cartSlice.items          ── saveToStorage ──► localStorage['oe_store']
    │
    │  400 ms debounce (CartContext effect)
    ▼
-syncCartAction({items})  (Server Action, requires oe_access cookie)
+syncCartAction({items})  (browser call on the session the SDK holds)
    │
    ▼
 OneEntry `users/me/cart` (canonical)

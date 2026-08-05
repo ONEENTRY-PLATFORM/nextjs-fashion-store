@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getImageUrl } from '../../../lib/oneentry';
 
 /**
  * Generic renderer for OE `slider_block` type. Reads each slide's
@@ -21,12 +22,6 @@ type AttrValue = { value?: unknown } | undefined;
 type Attrs = Record<string, AttrValue>;
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-
-const extractImage = (v: unknown): string => {
-  if (!Array.isArray(v) || v.length === 0) return '';
-  const first = v[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
 
 function pickAttr<T = unknown>(attrs: Attrs, patterns: RegExp[]): T | undefined {
   for (const key of Object.keys(attrs)) {
@@ -56,7 +51,7 @@ interface Slide {
 function normalizeSlide(raw: { attributeValues?: Record<string, unknown> }): Slide {
   const attrs = (raw.attributeValues ?? {}) as Attrs;
   return {
-    image:    extractImage(pickAttr(attrs, [/image|_pic$|photo|_bg$/i])),
+    image:    getImageUrl(pickAttr(attrs, [/image|_pic$|photo|_bg$/i])),
     headline: asString(pickAttr(attrs, [/headline|(^|_)title$/i]) ?? pickPositional(attrs, 'string_id', 1)),
     eyebrow:  asString(pickAttr(attrs, [/eyebrow|label|lable/i]) ?? pickPositional(attrs, 'string_id', 2)),
     subtext:  asString(pickAttr(attrs, [/subtext|subtitle|description|_body$|_text$/i]) ?? pickPositional(attrs, 'string_id', 3)),
@@ -77,12 +72,10 @@ export function GenericSliderBlock({
     .filter((s) => s.image || s.headline);
   const [index, setIndex] = useState(0);
 
-  // Guard against slides shrinking (e.g. admin drops one) — clamp index.
-  useEffect(() => {
-    if (index >= slides.length) setIndex(0);
-  }, [index, slides.length]);
-
   if (slides.length === 0) return null;
+  // Slides can shrink (admin drops one) while `index` still points past the
+  // end — clamp during render instead of correcting it from an effect, which
+  // would be a synchronous `setState` and an extra render pass.
   const current = slides[Math.min(index, slides.length - 1)];
   const prev = () => setIndex((i) => (i - 1 + slides.length) % slides.length);
   const next = () => setIndex((i) => (i + 1) % slides.length);

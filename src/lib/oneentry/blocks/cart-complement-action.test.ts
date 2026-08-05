@@ -4,59 +4,42 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // vi.mock factories are hoisted to the top of the file, so they cannot close
 // over module-scope `const` variables — use `vi.fn()` inline and grab refs
 // via `vi.mocked()` after importing the real subjects.
-vi.mock('../index', () => ({
+vi.mock('..', async (importActual) => ({
+  ...(await importActual<typeof import('..')>()),
   isOneEntryEnabled: true,
-  getUserApi: vi.fn(),
-  getGuestApi: vi.fn(),
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  getApiSafe: vi.fn(),
+  hasStoredSession: vi.fn(),
 }));
 
-vi.mock('../auth/session', () => ({
-  readAccessOrRefresh: vi.fn(),
-}));
-
-vi.mock('../catalog/products', () => ({
-  loadProducts: vi.fn(),
-}));
-
-vi.mock('../catalog/adapt', () => ({
-  adaptCatalogProductToUiProduct: vi.fn(),
+vi.mock('../catalog/products-action', () => ({
+  getProductsByIdsAction: vi.fn(),
 }));
 
 // ---- Import subjects AFTER mocks are declared --------------------------------
-import * as oeIndex from '../index';
-import * as session from '../auth/session';
-import * as products from '../catalog/products';
-import * as adapt from '../catalog/adapt';
+import * as oeIndex from '..';
+import * as productsAction from '../catalog/products-action';
 import { loadCartComplementProductsAction } from './cart-complement-action';
 
-const getUserApi = vi.mocked(oeIndex.getUserApi);
-const getGuestApi = vi.mocked(oeIndex.getGuestApi);
-const readAccessOrRefresh = vi.mocked(session.readAccessOrRefresh);
-const loadProducts = vi.mocked(products.loadProducts);
-const adaptCatalogProductToUiProduct = vi.mocked(adapt.adaptCatalogProductToUiProduct);
+const getApiSafe = vi.mocked(oeIndex.getApiSafe);
+const hasStoredSession = vi.mocked(oeIndex.hasStoredSession);
+const getProductsByIdsAction = vi.mocked(productsAction.getProductsByIdsAction);
 
-// ---- Shared fake API instances ----------------------------------------------
-// Both getUserApi and getGuestApi return objects whose `Blocks.getCartComplement`
-// spy we can control per-test.
+// ---- Shared fake SDK instance ------------------------------------------------
 const getCartComplement = vi.fn();
-const fakeApi = { Blocks: { getCartComplement } };
+const setGuestId = vi.fn();
+const fakeApi = { Blocks: { getCartComplement, setGuestId } };
 
 // ---- Helpers ----------------------------------------------------------------
 const uiProduct = (id: number) => ({ id: String(id), name: 'ui' });
-const sdkProduct = (id: number) => ({ id, title: `Product ${id}` });
 
 beforeEach(() => {
-  getUserApi.mockReset();
-  getGuestApi.mockReset();
-  readAccessOrRefresh.mockReset();
-  loadProducts.mockReset();
-  adaptCatalogProductToUiProduct.mockReset();
+  getApiSafe.mockReset();
+  hasStoredSession.mockReset();
+  getProductsByIdsAction.mockReset();
   getCartComplement.mockReset();
-  // Wire both factory fns to return the same fakeApi by default.
-  getUserApi.mockReturnValue(fakeApi as unknown as oeIndex.OneEntryClient);
-  getGuestApi.mockReturnValue(fakeApi as unknown as oeIndex.OneEntryClient);
+  setGuestId.mockReset();
+  getApiSafe.mockReturnValue(fakeApi as unknown as oeIndex.OneEntryClient);
+  hasStoredSession.mockReturnValue(false);
 });
 
 // =============================================================================
@@ -65,74 +48,52 @@ describe('loadCartComplementProductsAction — guard clauses', () => {
   it('returns [] and skips everything when marker is empty string', async () => {
     const result = await loadCartComplementProductsAction('');
     expect(result).toEqual([]);
-    expect(readAccessOrRefresh).not.toHaveBeenCalled();
     expect(getCartComplement).not.toHaveBeenCalled();
   });
 
-  it('returns [] and skips SDK when no access token AND no guestId', async () => {
-    readAccessOrRefresh.mockResolvedValue(null);
+  it('returns [] when the SDK is not configured', async () => {
+    getApiSafe.mockReturnValue(null);
     const result = await loadCartComplementProductsAction('some_marker');
     expect(result).toEqual([]);
-    expect(getUserApi).not.toHaveBeenCalled();
-    expect(getGuestApi).not.toHaveBeenCalled();
     expect(getCartComplement).not.toHaveBeenCalled();
   });
 });
 
 // =============================================================================
 
-describe('loadCartComplementProductsAction — happy paths', () => {
-  it('uses getUserApi when access token is present and returns mapped products', async () => {
-    readAccessOrRefresh.mockResolvedValue('bearer-token');
+describe('loadCartComplementProductsAction — visitor context', () => {
+  it('does not touch the guest id when the shopper is signed in', async () => {
+    hasStoredSession.mockReturnValue(true);
     getCartComplement.mockResolvedValue({ items: [{ id: 10 }, { id: 20 }] });
-    loadProducts.mockResolvedValue({
-      total: 2,
-      items: [sdkProduct(10), sdkProduct(20)],
-      fromCms: true,
-    });
-    adaptCatalogProductToUiProduct.mockImplementation((p: { id: number }) => uiProduct(p.id));
-
-    const result = await loadCartComplementProductsAction('cross_sell_block', undefined, 'en_US');
-
-    expect(getUserApi).toHaveBeenCalledWith('bearer-token');
-    expect(getGuestApi).not.toHaveBeenCalled();
-    expect(getCartComplement).toHaveBeenCalledWith('cross_sell_block', 'en_US');
-    expect(loadProducts).toHaveBeenCalledWith({ ids: [10, 20], limit: 2 });
-    expect(result).toEqual([uiProduct(10), uiProduct(20)]);
-  });
-
-  it('uses getGuestApi (not getUserApi) when access token is null but guestId is provided', async () => {
-    readAccessOrRefresh.mockResolvedValue(null);
-    getCartComplement.mockResolvedValue({ items: [{ id: 55 }] });
-    loadProducts.mockResolvedValue({
-      total: 1,
-      items: [sdkProduct(55)],
-      fromCms: true,
-    });
-    adaptCatalogProductToUiProduct.mockImplementation((p: { id: number }) => uiProduct(p.id));
+    getProductsByIdsAction.mockResolvedValue([uiProduct(10), uiProduct(20)] as never);
 
     const result = await loadCartComplementProductsAction('cross_sell_block', 'guest-abc', 'en_US');
 
-    expect(getUserApi).not.toHaveBeenCalled();
-    expect(getGuestApi).toHaveBeenCalledWith('guest-abc');
+    expect(setGuestId).not.toHaveBeenCalled();
     expect(getCartComplement).toHaveBeenCalledWith('cross_sell_block', 'en_US');
+    expect(getProductsByIdsAction).toHaveBeenCalledWith([10, 20]);
+    expect(result).toEqual([uiProduct(10), uiProduct(20)]);
+  });
+
+  it('installs the guest id on the instance for anonymous visitors', async () => {
+    getCartComplement.mockResolvedValue({ items: [{ id: 55 }] });
+    getProductsByIdsAction.mockResolvedValue([uiProduct(55)] as never);
+
+    const result = await loadCartComplementProductsAction('cross_sell_block', 'guest-abc', 'en_US');
+
+    expect(setGuestId).toHaveBeenCalledWith('guest-abc');
     expect(result).toEqual([uiProduct(55)]);
   });
 
   it('normalizes a bare array response (not { items }) from the SDK', async () => {
-    readAccessOrRefresh.mockResolvedValue('token');
+    hasStoredSession.mockReturnValue(true);
     // SDK may return a plain array rather than the `{ items: [...] }` envelope.
     getCartComplement.mockResolvedValue([{ id: 77 }, { id: 88 }]);
-    loadProducts.mockResolvedValue({
-      total: 2,
-      items: [sdkProduct(77), sdkProduct(88)],
-      fromCms: true,
-    });
-    adaptCatalogProductToUiProduct.mockImplementation((p: { id: number }) => uiProduct(p.id));
+    getProductsByIdsAction.mockResolvedValue([uiProduct(77), uiProduct(88)] as never);
 
     const result = await loadCartComplementProductsAction('cross_sell_block');
 
-    expect(loadProducts).toHaveBeenCalledWith({ ids: [77, 88], limit: 2 });
+    expect(getProductsByIdsAction).toHaveBeenCalledWith([77, 88]);
     expect(result).toEqual([uiProduct(77), uiProduct(88)]);
   });
 });
@@ -141,22 +102,22 @@ describe('loadCartComplementProductsAction — happy paths', () => {
 
 describe('loadCartComplementProductsAction — error / empty paths', () => {
   it('returns [] when SDK returns an IError (statusCode present)', async () => {
-    readAccessOrRefresh.mockResolvedValue('token');
+    hasStoredSession.mockReturnValue(true);
     getCartComplement.mockResolvedValue({ statusCode: 500, message: 'Server error' });
 
     const result = await loadCartComplementProductsAction('cross_sell_block');
 
     expect(result).toEqual([]);
-    expect(loadProducts).not.toHaveBeenCalled();
+    expect(getProductsByIdsAction).not.toHaveBeenCalled();
   });
 
   it('returns [] when SDK returns { items: [] } (no products to fetch)', async () => {
-    readAccessOrRefresh.mockResolvedValue('token');
+    hasStoredSession.mockReturnValue(true);
     getCartComplement.mockResolvedValue({ items: [] });
 
     const result = await loadCartComplementProductsAction('cross_sell_block');
 
     expect(result).toEqual([]);
-    expect(loadProducts).not.toHaveBeenCalled();
+    expect(getProductsByIdsAction).not.toHaveBeenCalled();
   });
 });

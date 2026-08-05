@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { type LoyaltyStatus, type Gender } from '../data/userData';
 import type { AppDispatch } from '../store';
@@ -31,7 +31,13 @@ import {
   type OeLoyaltyTier,
   type OeRecentlyViewedItem,
 } from '../../lib/oneentry/auth/actions';
-import { clearGuestId } from '../utils/guest-id';
+import {
+  getApiSafe,
+  hasActiveSession,
+  reDefine,
+  REFRESH_TOKEN_KEY,
+} from '../../lib/oneentry';
+import { clearGuestId, getOrCreateGuestId } from '../utils/guest-id';
 
 export interface User {
   firstName: string;
@@ -278,10 +284,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
 
-  // Bootstrap from server-side session cookie on mount.
+  // StrictMode runs effects twice in dev. `reDefine` + `/me` is idempotent
+  // (the SDK single-flights its internal refresh), but the guard still avoids
+  // a duplicate request pair and a `setState` race on the first paint.
+  const bootstrappedRef = useRef(false);
+
+  // Session bootstrap (MCP `tokens`): install the stored refresh token on the
+  // SDK singleton, then read `/me`. `reDefine` does not refresh by itself —
+  // the SDK mints an access token proactively before the first user-auth
+  // request, so this is a clean `POST /refresh 200 → 200` with no stray 401.
   useEffect(() => {
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
+
     let cancelled = false;
-    void getCurrentUserAction().then((me) => {
+
+    const bootstrap = async () => {
+      // Anonymous fingerprint for guest cart / wishlist / activity. Installed
+      // once here so every module on the instance sends the same
+      // `x-guest-id`; the SDK drops the header automatically once the shopper
+      // is authenticated.
+      const guestId = getOrCreateGuestId();
+      const api = getApiSafe();
+      if (api && guestId) api.Users.setGuestId(guestId);
+
+      let refresh: string | null = null;
+      try {
+        refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+      } catch {
+        /* private mode — treat as signed out */
+      }
+      if (refresh && !hasActiveSession()) {
+        await reDefine(refresh);
+      }
+
+      const me = refresh ? await getCurrentUserAction() : null;
       if (cancelled) return;
       if (me) {
         setUser(mergeOeUser(me));
@@ -289,7 +326,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dispatch(setAuth({ accessToken: '', refreshToken: '', userIdentifier: me.identifier }));
       }
       setAuthReady(true);
-    });
+    };
+
+    void bootstrap();
     return () => { cancelled = true; };
   }, [dispatch]);
 

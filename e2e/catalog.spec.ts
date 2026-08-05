@@ -158,8 +158,10 @@ test.describe('Catalog — Women Clothing', () => {
       if (await quickViewBtn.isVisible()) {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
-        // Click backdrop
-        await page.locator('.bg-black\\/60, [class*="backdrop"]').first().click({ force: true });
+        // Click the backdrop near its corner: it spans the whole viewport and
+        // the modal sits centred on top of it, so a centre-of-element click
+        // (Playwright's default anchor) lands on the modal, not the backdrop.
+        await page.locator('div.absolute.inset-0.bg-black\\/60').click({ position: { x: 5, y: 5 } });
         await expect(page.getByRole('dialog')).toBeHidden({ timeout: 2000 });
       }
     });
@@ -350,11 +352,15 @@ test.describe('Catalog — Women Clothing', () => {
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
         const sections = ['Description', 'Size & Fit', 'Details', 'Delivery & Returns'];
         for (const title of sections) {
-          const btn = page.getByRole('dialog').locator(`button:has-text("${title}")`).first();
+          // Match the accessible name exactly: a substring match on
+          // "Details" also hits the "View Full Details" CTA, and clicking
+          // that navigates to the PDP and unmounts the dialog.
+          const btn = page.getByRole('dialog').getByRole('button', { name: title, exact: true }).first();
           if (await btn.isVisible()) {
             await btn.click();
             await page.waitForTimeout(200);
             await btn.click(); // collapse
+            await expect(page.getByRole('dialog')).toBeVisible();
           }
         }
       }
@@ -526,8 +532,14 @@ test.describe('Catalog — Filters', () => {
 test.describe('Catalog — Navigation between catalogs', () => {
   test('navigate from women clothing to men clothing', async ({ page }) => {
     await page.goto('/women/clothing');
-    await page.getByRole('link', { name: /men/i }).first().click();
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('networkidle');
+    // The gender switch is a header *button*; the page carries no `/men*`
+    // anchors at all, so the previous `getByRole('link', {name: /men/i})`
+    // could only ever resolve to a hover-only mega-menu entry (and /men/i
+    // matches "Women" too).
+    await page.locator('header').getByRole('button', { name: /^men$/i }).first().click();
+    await page.waitForURL('**/men/**');
+    await expect(page.locator('a[href*="/product/"]').first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('all 8 catalog pages load', async ({ page }) => {

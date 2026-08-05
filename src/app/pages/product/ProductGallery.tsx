@@ -17,6 +17,14 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
   const mainRef = useRef<HTMLDivElement>(null);
   const lZoomHint = useProductCardT('product-card-click_to_zoom', PRODUCT_GALLERY_LABELS.zoomHint);
 
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!mainRef.current) return;
+    const rect = mainRef.current.getBoundingClientRect();
+    const x = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
+    setZoomPos({ x, y });
+  }, []);
+
   // No usable pictures on the variant AND no fallback wired up upstream —
   // render the same bag placeholder the catalog card uses, in the same
   // aspect ratio, so the PDP doesn't leave a blank column where the gallery
@@ -42,14 +50,6 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
     );
   }
   const safeSelected = Math.min(selected, safeImages.length - 1);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!mainRef.current) return;
-    const rect = mainRef.current.getBoundingClientRect();
-    const x = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
-    setZoomPos({ x, y });
-  }, []);
 
   return (
     <>

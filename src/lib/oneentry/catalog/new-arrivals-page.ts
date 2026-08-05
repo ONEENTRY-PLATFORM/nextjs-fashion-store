@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getApi, isError, isOneEntryEnabled } from '../index';
+import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -24,12 +24,6 @@ type RawPage = {
 };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-const extractImage = (v: unknown): string => {
-  if (!Array.isArray(v) || v.length === 0) return '';
-  const first = v[0] as { downloadLink?: unknown };
-  return typeof first?.downloadLink === 'string' ? first.downloadLink : '';
-};
-
 async function fetchNewArrivalsPage(lang: Lang): Promise<NewArrivalsPageFromCms | null> {
   if (!isOneEntryEnabled) return null;
   try {
@@ -47,13 +41,13 @@ async function fetchNewArrivalsPage(lang: Lang): Promise<NewArrivalsPageFromCms 
         eyebrow:    s('page_new_arrivals_top_banner_lable'),
         heading:    s('page_new_arrivals_top_banner_title'),
         subheading: s('page_new_arrivals_top_banner_sub_title'),
-        image:      extractImage(attrs['page_new_arrivals_top_banner_pictures']?.value),
+        image:      getImageUrl(attrs['page_new_arrivals_top_banner_pictures']?.value),
       },
       footer: {
         eyebrow: s('page_new_arrivals_footer_banner_lable'),
         heading: s('page_new_arrivals_footer_banner_title'),
         body:    s('page_new_arrivals_footer_banner_sub_title'),
-        image:   extractImage(attrs['page_new_arrivals_footer_banner_pictures']?.value),
+        image:   getImageUrl(attrs['page_new_arrivals_footer_banner_pictures']?.value),
       },
     };
   } catch {

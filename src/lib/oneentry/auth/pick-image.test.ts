@@ -13,12 +13,11 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => ({ get: vi.fn(), set: vi.fn(), delete: vi.fn() })),
 }));
 
-vi.mock('../index', () => ({
-  oneentry: { AuthProvider: {}, Users: {}, Orders: {} },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ AuthProvider: {}, Users: {}, Orders: {} }),
   isOneEntryEnabled: false,
   isError: vi.fn(() => false),
-  getUserApi: vi.fn(() => null),
-  getGuestApi: vi.fn(() => null),
 }));
 
 vi.mock('../catalog/products', () => ({

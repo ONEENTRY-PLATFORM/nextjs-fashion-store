@@ -13,6 +13,7 @@ import { fmt } from '../utils/formatPrice';
 import { CONFIRMATION_LABELS as L, CONFIRMATION_INFO_CARDS } from '../data/confirmationLabels';
 import { CART_LINE_LABELS as CLL } from '../data/commonLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useMounted } from '../hooks/useMounted';
 
 const ICON_MAP = {
   mail:    <Mail size={20} />,
@@ -62,9 +63,12 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
     { iconKey: 'check'   as const, title: lEstTitle,     desc: lEstText },
   ];
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   useEffect(() => {
-    setMounted(true);
+    // Deferred one microtask: reading (and consuming) the sessionStorage
+    // handoff can only happen in the browser, but writing the result
+    // synchronously inside the effect would trigger a cascading render pass.
+    queueMicrotask(() => {
     // Prefer the real OE order id stashed by PaymentPage. Random fallback is
     // only for edge cases (opened /confirmation directly, sessionStorage
     // cleared by Stripe round-trip on some browsers) so we still render
@@ -83,6 +87,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
     } catch { /* ignore */ }
     setPaidTotal(savedTotal);
     try { sessionStorage.removeItem('oe_last_order_total'); } catch { /* ignore */ }
+    });
     const timer = setTimeout(() => clearCart(), 200);
     return () => clearTimeout(timer);
   }, [clearCart]);

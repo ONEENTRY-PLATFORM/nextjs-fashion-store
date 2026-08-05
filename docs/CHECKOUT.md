@@ -267,8 +267,8 @@ Server Action (`src/lib/oneentry/auth/actions.ts:2007`):
   - `checkout_locker` (guest: `checkout_locker_guest`)
 - Body also carries `additionalDiscountsMarkers: ['bronze', 'silver', 'gold', 'platinum']` so OE can re-apply the shopper's tier; markers the shopper doesn't qualify for are ignored.
 - Authentication:
-  - Logged in → `Authorization: Bearer <oe_access>` cookie via `getUserApi(access)`.
-  - Guest → SDK constructed with `x-guest-id: <oe_guest_id>` header via `getGuestApi(guestId)`.
+  - Logged in → the SDK singleton already holds the shopper's bearer token.
+  - Guest → `Orders.setGuestId(oe_guest_id)` so the SDK attaches `x-guest-id`; it is dropped automatically once a session exists.
 - On success returns `{ orderId: number, paymentUrl: string | null, paymentSessionError?: string }`. `paymentUrl` is either surfaced by OE directly on the created order (legacy providers) or minted by a follow-up `Payments.createSession(orderId, 'session', false)` call for Stripe-typed accounts (see §3.4).
 
 ### 3.3 Form data payloads
@@ -513,7 +513,7 @@ The `x-guest-id` header (from `src/app/utils/guest-id.ts`, minted / persisted in
   - **Storage marker** — `home` → `home_guest`, `store_pickup` → `store_pickup_guest`, `locker` → `locker_guest`.
   - **Form identifier** — `checkout_home_delivery` → `checkout_home_delivery_guest`, and similarly for the two other forms.
   - **Individual formData markers** do NOT all follow the suffix pattern — `delivery_method` / `delivery_date-time` get a `_guest` suffix, `checkout_store_pickup_select_store` is replaced with `checkout_store_pickup_guest_store` (distinct name), and contact fields use hard-coded names like `checkout_home_guest_full_name`.
-- The guest SDK is instantiated via `getGuestApi(guestId)` on the server; the SDK adds `x-guest-id: <guestId>` to every OE request (`Orders.createOrder`, `Payments.createSession`, `previewOrder`).
+- The guest id is installed on the browser-side singleton (`Orders.setGuestId(guestId)`); the SDK then adds `x-guest-id: <guestId>` to every unauthenticated OE request (`Orders.createOrder`, `Payments.createSession`, `previewOrder`).
 - Orders are persisted on the Platform side, associated with the guest UUID instead of a user identifier. On a later sign-in, the guest cart merges (see [CART_WISHLIST.md](./CART_WISHLIST.md) §6), but guest **orders** do not automatically re-parent — OE keeps them under the guest id.
 
 Guest cart persists in `localStorage`; if the guest signs in later, `CartContext` performs the login-time merge (see [CART_WISHLIST.md](./CART_WISHLIST.md) §6).
@@ -566,7 +566,7 @@ Client validation runs on the DeliveryPage "Continue to Payment" click. Server v
 | `oe_cart_merged` / `oe_wishlist_merged` | `sessionStorage` | Session; cleared on logout | Prevent re-merge on tree remounts; cleared by `AuthContext.logout()` to prevent cross-user leakage |
 | `oe_coupon_code` | `sessionStorage` | Until `clearCart()` or logout | Applied coupon code persisted across cart → delivery navigation; cleared on logout |
 | `oe_guest_id` | `localStorage` | Persistent | Link guest orders / activity |
-| `oe_access` / `oe_refresh` / `oe_user` | Cookies | Server-managed | Auth session |
+| `refresh-token` / `authProviderMarker` / `oe_user_identifier` | localStorage | SDK + `browser-session.ts` | Auth session |
 | `oe_store` | `localStorage` | Persistent | Redux persisted slices (cart, wishlist, recentlyViewed, catalog) |
 
 ---

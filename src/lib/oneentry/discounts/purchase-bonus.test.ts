@@ -6,8 +6,9 @@ const fakeApi = {
   Discounts: { getDiscountByMarker },
 };
 
-vi.mock('../index', () => ({
-  oneentry: fakeApi,
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
   isError: (v: unknown) =>

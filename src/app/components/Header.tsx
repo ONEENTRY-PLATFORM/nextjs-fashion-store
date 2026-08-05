@@ -33,6 +33,7 @@ import {
   MEN_COLOR,
 } from '../data/headerConfig';
 import { useInterfaceControlsT } from '../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useMounted } from '../hooks/useMounted';
 
 export function Header() {
   const lSearch = useInterfaceControlsT('search', SEARCH_PLACEHOLDER);
@@ -42,7 +43,7 @@ export function Header() {
   const [mobileGender, setMobileGender] = useState<Gender>('women');
   const [mobileExpandedCat, setMobileExpandedCat] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const dropdownRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
@@ -69,16 +70,22 @@ export function Header() {
     return null;
   })();
 
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
   }, []);
 
-  useEffect(() => {
+  // Navigating to a gendered route resets both switches. React's sanctioned
+  // "adjust state when a prop changes" pattern — a `setState` during render
+  // is re-run immediately without committing the stale tree, whereas doing it
+  // in an effect paints the old gender for one frame first (and is the
+  // cascading-render pattern the lint rule rejects).
+  const [prevUrlGender, setPrevUrlGender] = useState<Gender>('women');
+  if (urlGender !== prevUrlGender) {
+    setPrevUrlGender(urlGender);
     setActiveGender(urlGender);
     setMobileGender(urlGender);
-  }, [urlGender]);
+  }
 
   const { totalItems, openMiniCart } = useCart();
   const { isLoggedIn, openLoginModal } = useAuth();

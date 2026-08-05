@@ -17,8 +17,9 @@ const fakeApi = {
   },
 };
 
-vi.mock('../index', () => ({
-  oneentry: fakeApi,
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
   isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -222,8 +223,9 @@ describe('categoryPathToViewAllHref', () => {
 describe('loadProducts — disabled', () => {
   it('returns fromCms:false when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: null,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (null),
       isOneEntryEnabled: false,
       getApi: () => { throw new Error('SDK disabled'); },
       isError: () => false,
@@ -263,8 +265,9 @@ describe('loadProductById', () => {
     // Re-register the mock that vi.doUnmock() may have stripped in the
     // `loadProducts — disabled` suite above, then get a fresh module.
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: fakeApi,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
       isError: (v: unknown) =>
@@ -370,8 +373,9 @@ describe('loadProductById', () => {
 describe('loadProductsByIds', () => {
   beforeEach(async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: fakeApi,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
       isError: (v: unknown) =>
@@ -433,8 +437,9 @@ describe('loadProductsByIds', () => {
 describe('normalize — stock from stockqty only (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: fakeApi,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
       isError: (v: unknown) =>
@@ -536,8 +541,9 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
   // Each test fresh-imports to avoid React.cache memo hits from earlier suites.
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: fakeApi,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
       isError: (v: unknown) =>
@@ -629,8 +635,9 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
 describe('normalize — discountAttributes (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: fakeApi,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
       isError: (v: unknown) =>
@@ -832,8 +839,9 @@ describe('searchProducts — extractProductIdList regression', () => {
   // from earlier suites, so we reset modules and re-register mocks here.
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: fakeApi,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
       isError: (v: unknown) =>
@@ -964,8 +972,9 @@ describe('searchProducts — extractProductIdList regression', () => {
 describe('normalize — stringValue numeric-attribute fix (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: fakeApi,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (fakeApi),
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
       isError: (v: unknown) =>

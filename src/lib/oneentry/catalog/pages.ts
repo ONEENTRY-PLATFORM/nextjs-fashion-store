@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { oneentry, isError } from '../index';
+import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -40,9 +40,10 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
 
 export const loadPageByUrl = cache(
   async (pageUrl: string, lang: Lang = DEFAULT_LOCALE): Promise<CmsPage | null> => {
-    if (!oneentry) return null;
+    const api = getApiSafe();
+    if (!api) return null;
     try {
-      const result = await oneentry.Pages.getPageByUrl(pageUrl, lang);
+      const result = await api.Pages.getPageByUrl(pageUrl, lang);
       if (isError(result)) return null;
       const raw = result as unknown as Record<string, unknown> | null;
       if (!raw || raw.statusCode) return null;

@@ -6,7 +6,7 @@
 
 ## 1. Overview — TL;DR
 
-The storefront is **fully wired** to OneEntry through the official SDK (`oneentry ^1.0.154`, `package.json:24`). Server-authoritative data — products, pages, blocks, menus, labels, user profile, orders, reviews, payment accounts — is fetched via `getApi()` from `src/lib/oneentry/`. Mutations (auth, sync-cart, sync-wishlist, submit-form, create-order, update-profile) run through Server Actions and manage `oe_access` / `oe_refresh` / `oe_user` cookies. Client state (cart / wishlist / recently-viewed / filters) stays in Redux and mirrors the CMS through debounced sync.
+The storefront is **fully wired** to OneEntry through the official SDK (`oneentry ^1.0.154`, `package.json:24`). Server-authoritative data — products, pages, blocks, menus, labels, user profile, orders, reviews, payment accounts — is fetched via `getApi()` from `src/lib/oneentry/`. Shopper-scoped work (auth, sync-cart, sync-wishlist, create-order, update-profile) runs **in the browser** on the SDK singleton — OneEntry binds refresh tokens to the device fingerprint of the issuing request, so a server-minted session could never be refreshed from the browser (MCP `auth-provider` / `tokens`). Server Actions are kept only where the server is genuinely required: the Google `code → tokens` exchange, `revalidateTag` after an order, and cached public catalogue reads. Client state (cart / wishlist / recently-viewed / filters) stays in Redux and mirrors the CMS through debounced sync.
 
 Position in the stack:
 
@@ -39,7 +39,7 @@ Position in the stack:
      OneEntry Platform (Content API)
 ```
 
-When `ONEENTRY_URL` / `ONEENTRY_TOKEN` are missing at server startup, `getApi()` **throws** — deliberate loud failure to prevent silent degradation.
+When `NEXT_PUBLIC_ONEENTRY_URL` / `NEXT_PUBLIC_ONEENTRY_TOKEN` are missing, `getApi()` **throws** — deliberate loud failure to prevent silent degradation. Paths that must keep rendering without OneEntry (mock catalogue, empty CMS blocks) call `getApiSafe()`, which returns `null` instead.
 
 ---
 
@@ -49,7 +49,7 @@ The integration reads three env vars.
 
 | Variable | Scope | Where read | Purpose |
 | --- | --- | --- | --- |
-| `ONEENTRY_URL` | server | `src/lib/oneentry/index.ts:4` | Platform base URL, e.g. `http://localhost:3013`. **Do not** append `/api/content` — the SDK adds it. |
+| `NEXT_PUBLIC_ONEENTRY_URL` | server + client | `src/lib/oneentry/index.ts` | Platform base URL, e.g. `http://localhost:3013`. **Do not** append `/api/content` — the SDK adds it. Legacy server-only `ONEENTRY_URL` is still read as a fallback. |
 | `ONEENTRY_TOKEN` | server | `src/lib/oneentry/index.ts:5` | App token issued in OneEntry admin (`Marketplace → Applications`). Sent to the SDK as `token`. |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | build-time | `src/lib/oneentry/locale.ts:11` | Default `langCode` for every SDK call (default `en_US`). |
 
@@ -65,9 +65,9 @@ Optional:
 
 Notes:
 
-- **`NEXT_PUBLIC_API_URL` is no longer on the live cart/wishlist path** — sync goes through Server Actions (`syncCartAction` / `syncWishlistAction`) that read `oe_access` server-side. The variable is still *referenced* by the RTK Query scaffolding `cartApi` / `wishlistApi` (`fetchBaseQuery({baseUrl: process.env.NEXT_PUBLIC_API_URL})`) — it stays empty in production, `isCartApiEnabled()` / `isWishlistApiEnabled()` return `false`, and the query hooks are not called. Setting it enables the legacy client-side sync path; leaving it unset (the recommended state) has no effect on any user-visible feature.
-- `ONEENTRY_URL` / `ONEENTRY_TOKEN` are **server-only** — they are never inlined into the client bundle. This is intentional: the storefront never opens a direct connection from the browser to OneEntry.
-- Both `ONEENTRY_URL` and `ONEENTRY_TOKEN` are checked once at module load; a rebuild is not strictly required, but a dev-server restart is.
+- **`NEXT_PUBLIC_API_URL` is no longer on the live cart/wishlist path** — sync goes through `syncCartAction` / `syncWishlistAction`, which call `Users.setCart` / `setWishlist` on the browser-side SDK singleton. The variable is still *referenced* by the RTK Query scaffolding `cartApi` / `wishlistApi` (`fetchBaseQuery({baseUrl: process.env.NEXT_PUBLIC_API_URL})`) — it stays empty in production, `isCartApiEnabled()` / `isWishlistApiEnabled()` return `false`, and the query hooks are not called. Setting it enables the legacy client-side sync path; leaving it unset (the recommended state) has no effect on any user-visible feature.
+- `NEXT_PUBLIC_ONEENTRY_URL` / `NEXT_PUBLIC_ONEENTRY_TOKEN` **are** inlined into the client bundle. That is how the OneEntry SDK is designed to be used and it is what makes a browser-issued, browser-refreshable session possible; an app token is a public, read-scoped credential — user-scoped writes still require the shopper's own bearer token.
+- Both are checked once at module load; a rebuild is not strictly required, but a dev-server restart is.
 
 ---
 
@@ -79,7 +79,7 @@ Notes:
 import { defineOneEntry } from 'oneentry';
 import type { IError } from 'oneentry/dist/base/utils';
 
-const url = process.env.ONEENTRY_URL ?? '';
+const PROJECT_URL = process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY_URL ?? '';
 const token = process.env.ONEENTRY_TOKEN ?? '';
 
 export const isOneEntryEnabled = Boolean(url && token);
@@ -90,7 +90,7 @@ export type OneEntryClient = NonNullable<typeof oneentry>;
 
 export function getApi(): OneEntryClient {
   if (!oneentry) {
-    throw new Error('OneEntry SDK is not configured. Set ONEENTRY_URL and ONEENTRY_TOKEN.');
+    throw new Error('OneEntry SDK is not configured. Set NEXT_PUBLIC_ONEENTRY_URL and NEXT_PUBLIC_ONEENTRY_TOKEN.');
   }
   return oneentry;
 }
@@ -120,11 +120,11 @@ The file is the largest Server Action module (~1420 lines) and exposes **18 Serv
 
 | Action | OneEntry call | Purpose |
 | --- | --- | --- |
-| `signInAction(loginOrEmail, password)` | `AuthProvider.auth('email', {authData:[{marker:'login',value},{marker:'password',value}]})` | Email/password sign-in. On success, writes `oe_access` / `oe_refresh` / `oe_user` cookies and returns `{ok:true, user, userIdentifier}`. |
-| `getGoogleAuthUrlAction(origin, returnTo?)` | `AuthProvider.getAuthProviderByMarker('google')` (reads `config.oauthAuthUrl`) | Builds Google's OAuth authorize URL (`response_type=code`, `scope=openid email profile`, `redirect_uri=${origin}/auth/callback/google`), sets httpOnly CSRF `oe_google_state` + `oe_google_return_to` cookies, returns `{url}`. Called from `startGoogleOAuth` in `src/lib/google-auth.ts` — the browser then navigates to `url`. |
-| `exchangeGoogleCodeAction({code, state, origin})` | `AuthProvider.oauth('google', {code, redirect_uri})` | Called from the `app/auth/callback/google/route.ts` GET handler after Google redirects back. Verifies the `oe_google_state` cookie, exchanges the authorization `code` (OneEntry uses its stored `client_secret` server-side), sets `oe_access` / `oe_refresh` / `oe_user`, returns `{ok, user, userIdentifier, returnTo}`. Also handles Google-account linking: if `oe_access` is already present, OE associates the identity with the current user instead of creating a new session. |
+| `signInAction(loginOrEmail, password)` | `AuthProvider.auth('email', {authData:[{marker:'login',value},{marker:'password',value}]})` | Email/password sign-in, executed in the browser. `auth()` itself stores both tokens in SDK state and fires `saveFunction` (→ `localStorage['refresh-token']`); the app additionally records `authProviderMarker` and `oe_user_identifier`. Returns `{ok:true, user, userIdentifier}`. |
+| `getGoogleAuthUrlAction(origin, returnTo?)` | `AuthProvider.getAuthProviderByMarker('google')` (reads `config.oauthAuthUrl`) | Builds Google's OAuth authorize URL (`response_type=code`, `scope=openid email profile`, `redirect_uri=${origin}/auth/callback/google`), sets httpOnly CSRF `oe_google_oauth_state` + `oe_google_oauth_return` cookies, returns `{url}`. Called from `startGoogleOAuth` in `src/lib/google-auth.ts` — the browser then navigates to `url`. |
+| `exchangeGoogleCodeAction({code, state, origin, deviceMetadata})` | `AuthProvider.oauth('google', {code, redirect_uri})` on a per-request instance | Server Action in `auth/oauth-actions.ts`, called from the client callback page via `completeGoogleSignIn`. Verifies the CSRF `state` cookie, then runs the exchange on `createRequestApi({ deviceMetadata })` — a throw-away instance stamped with the **browser's** fingerprint, never the shared singleton. Returns `{ok, userIdentifier, accessToken, refreshToken, returnTo}`; the browser installs the tokens itself. |
 | `signUpAction(input)` | `AuthProvider.signUp('signin', formData)` | Creates a new account. `input` follows the sign-up-form attribute-set schema (see 4.2). |
-| `signOutAction()` | `AuthProvider.logout(refreshToken)` | Server-side logout, clears cookies. |
+| `signOutAction()` | `AuthProvider.logout(providerMarker, refreshToken)` | Browser-side logout with the marker that minted the session; then `clearTokens()` wipes storage and resets the singleton to app-token-only. |
 | `getCurrentUserAction()` | `Users.getUser(langCode)` + form-data reads (see below) | Bootstrap `/me`. Composes profile + addresses + subscriptions + consent + cart + wishlist + recently-viewed + orders. Called from `AuthContext` on mount and after every mutation. |
 
 **Form-data module-config IDs used by `getCurrentUserAction` / `update*Action`:**
@@ -167,8 +167,8 @@ Cookie policy:
 
 | Cookie | Scope | Purpose |
 | --- | --- | --- |
-| `oe_access` | httpOnly, secure, sameSite=lax | Short-lived access token (Bearer for authenticated OE calls) |
-| `oe_refresh` | httpOnly, secure, sameSite=lax | Refresh token used by `signOutAction` |
+| `oe_google_oauth_state` | httpOnly, secure, sameSite=lax, 10 min | CSRF token for the Google authorize round-trip |
+| `oe_google_oauth_return` | httpOnly, secure, sameSite=lax, 10 min | Local path to bounce back to after Google sign-in |
 | `oe_user` | non-httpOnly | User identifier — read by the client to render a user badge before the `/me` bootstrap resolves |
 
 ### 4.2 Sign-up form schema (`src/lib/oneentry/auth/sign-up-form.ts`)
@@ -181,7 +181,7 @@ Server Action: `trackActivityAction(input: TrackActivityInput)` — POSTs to `/a
 
 `product_view`, `page_view`, `category_view`, `search`, `product_add_to_cart`, `product_remove_from_cart`, `product_add_to_wishlist`, `product_remove_from_wishlist`, `product_purchase`, `product_rating`.
 
-Auth: signed users authenticate via `readAccessOrRefresh()` (from `src/lib/oneentry/auth/session.ts`), which transparently rotates the `oe_access` token from the 7-day refresh cookie if the 24-hour access token has expired; anonymous users are identified by an `x-guest-id` header (see 6.1). Previously, activity events fell silently into the guest branch after 24 hours even though the user was still logged in.
+Auth: the SDK singleton already carries the shopper's session (installed by `reDefine()` on mount) and refreshes it proactively before the first user-auth request, so no manual token rotation is involved. Anonymous visitors get `x-guest-id` instead (see 6.1) — the SDK drops that header automatically once an access token is present.
 
 Client wrapper: `src/app/utils/track-activity.ts` — fire-and-forget, never throws.
 
@@ -189,7 +189,7 @@ Client wrapper: `src/app/utils/track-activity.ts` — fire-and-forget, never thr
 
 - `getProductsByIdsAction(ids)` — resolves numeric OE product IDs to UI-ready `Product[]` (used by cart / wishlist enrichment).
 - `searchProductsAction(query)` — thin wrapper around vector + quick search.
-- `submitServiceRequestAction(...)` — posts to form `service_request` (moduleConfigId=4). Uses `readAccessOrRefresh()` so the action remains authenticated beyond the 24-hour `oe_access` expiry.
+- `submitServiceRequestAction(...)` — posts to form `service_request` (moduleConfigId=4) from the browser, on the session the SDK singleton holds.
 - `getServiceRequestsAction()` — lists the current user's service requests.
 - `getWaitingListAction()` — combines the user's wishlist with product stock inference.
 
@@ -234,7 +234,7 @@ All loaders wrap the SDK. Most add React `cache()` for request-scoped deduplicat
 | `homepage-product-blocks.ts` | Multiple (`best_sellers`, `new_arrivals_home`, `sale_home`) | `loadHomepageProductBlock(lang)` (**singular** name in code — the plural form used in earlier revisions was renamed) | Home product carousels |
 | `category-section.ts` | `category_section` | `loadCategorySection(lang)` | Home "Shop by Category" tabs |
 | `page-blocks.ts` | Any page id or pageUrl marker | `loadPageBlocksById(pageId, lang?)` — via `Pages.getPageById` (homepage uses `HOME_PAGE_ID = 1`). `loadPageBlocksByUrl(pageUrl, lang?)` — via `Pages.getBlocksByPageUrl(pageUrl)` (catalog pages pass e.g. `women_clothing`; info pages pass their slug; `/sale` / `/new` / `/stores` / `/favorites` pass their literal marker). `loadProductBlocks(productId, lang?)` — via `Products.getProductBlockById(id)` (PDP). All three resolve each block's marker list through `loadBlockWithProducts` then return a sorted `PageBlock[]`. Also exports `loadFrequentlyOrderedBlock`, `getCachedTrending`, `PageBlock` type, `HOME_PAGE_ID = 1`. **`PageBlock` interface** now includes an `attributeValues?: Record<string, unknown>` field; all three block-returning code paths (`_loadBlockWithProducts` two return sites and `_loadFrequentlyOrderedBlock`) pass `block.attributeValues` through from the raw OE response so that downstream renderers can access it without an extra SDK call. Home-page `similar_products_block` markers `homepage_new_arrivals` / `homepage_best_sellers` / `homepage_sale` have no seed product for OE's similarity engine, so `loadBlockWithProducts` falls back through `loadHomepageBlockFallback` to `loadProducts({ tags: ['NEW' \| 'BESTSELLER' \| 'SALE'] })`; unknown markers stay empty (block hides silently). **`PRODUCT_BLOCK_TYPES`** is the internal set of block types that trigger product resolution: `trending_block`, `similar_products_block`, `product_block`. `cart_complement_block` is **deliberately excluded** from this set — OE's `getCartComplement` resolves the result against the caller's cart/activity context (access token or guest `x-guest-id`); the shared server singleton carries only the app token and therefore always returns an empty list. Resolution is delegated to the client-side `<CartComplementBlockSlot>` via `loadCartComplementProductsAction` (see `cart-complement-action.ts` below). Inside `loadBlockWithProducts` the remaining types are dispatched as follows: `trending_block` → `getCachedTrending` (calls `getApi().Blocks.getTrending(marker, lang)` — OE activity stream, not inlined by `getBlockByMarker`); all other types in the set → `block.similarProducts?.items ?? block.products` from the `getBlockByMarker` response. Product normalisation (`loadProducts` → `adaptCatalogProductToUiProduct`) is identical across all routing paths. **`common_block` type:** blocks with `type === 'common_block'` are not resolved for products and are passed through to the renderer with their `attributeValues` intact; `PageBlocksRenderer` routes them to `<GenericCommonBlock>`, which reads display fields from those attributes heuristically (see `COMPONENTS.md §1.2`). This means an admin can attach any `common_block` to any page in OE and it renders as a banner without a code deploy. **`slider_block` type:** blocks with `type === 'slider_block'` trigger an additional `getCachedSlides(marker)` call inside `_loadBlockWithProducts`; `getCachedSlides` wraps `Blocks.getSlides(marker)` in `unstable_cache` (tag `oe-block`, same TTL as the other block loaders). The resulting slides array is stored on `PageBlock.slides?: Array<{id?: number; attributeValues?: Record<string, unknown>}>` and forwarded to `PageBlocksRenderer`, which routes the block to `<GenericSliderBlock>` (see `COMPONENTS.md §1.2`). An admin can create any marker in OE with `type: 'slider_block'`, attach slides through OE's slides tree, and assign it to any page — it renders as a carousel without a code deploy. **`PageBlock` `slides` field** is specific to `slider_block`; all other block types leave this field undefined. | PDP "You may also like", PDP "Special Offers" (`bought_together`), homepage `pageBlocks`, account tab blocks, catalog `catalog_trend_blocks` trending slot, cart/checkout cross-sell blocks, and all content routes wired in the big block-rendering batch — including `/cart` (`'cart'`), `/checkout/delivery` (`'delivery_method'`), and `/checkout/payment` (`'payment'`) |
-| `cart-complement-action.ts` | Marker passed by `<CartComplementBlockSlot>` | **`'use server'` action** `loadCartComplementProductsAction(marker, guestId?, lang?)`. Not cached — the response is per-user. Reads the `oe_access` cookie via `readAccessOrRefresh()`. If a valid access token is found, mints a user-scoped SDK instance via `getUserApi(access)` and calls `Blocks.getCartComplement(marker, lang)` on it; OE resolves the cross-sell against that user's cart and order history. If no access token is present and `guestId` is supplied, mints a guest-scoped instance via `getGuestApi(guestId)` that attaches `x-guest-id` to the request, so OE can use the anonymous visitor's trail. Returns `Product[]` (resolved via `loadProducts` + `adaptCatalogProductToUiProduct`); returns `[]` on error or when OE is not enabled. Called exclusively from `<CartComplementBlockSlot>` in `PageBlocksRenderer`. | `/cart`, `/checkout/delivery`, `/checkout/payment`, and any other page that loads `cart_complement_block` through `PageBlocksRenderer` |
+| `cart-complement-action.ts` | Marker passed by `<CartComplementBlockSlot>` | Browser-side `loadCartComplementProductsAction(marker, guestId?, lang?)`. Not cached — the response is per-visitor. Calls `Blocks.getCartComplement(marker, lang)` on the SDK singleton, which already carries either the shopper's bearer token or (for guests, after `setGuestId`) the `x-guest-id` header, so OE resolves the cross-sell against that visitor's own cart / activity trail. The follow-up catalogue read stays on the server behind the cached `getProductsByIdsAction`. Returns `Product[]`; `[]` on error or when OE is not enabled. Called exclusively from `<CartComplementBlockSlot>` in `PageBlocksRenderer`. | `/cart`, `/checkout/delivery`, `/checkout/payment`, and any other page that loads `cart_complement_block` through `PageBlocksRenderer` |
 | `clothing-filter.ts` | `clothing` filter marker | `loadClothingFilter(products, lang)` | `CatalogTemplate` — normalises OE filter attribute metadata into the UI `ClothingFilterGroup[]` shape (color / size_chips / checkbox / price_range / search_checkbox), maps OE color names to hex via `OE_COLOR_HEX`, computes per-option counts against the current product page |
 | `filter-chips.ts` | `filter_chips_<catalogKey>` (e.g. `filter_chips_men_bags`) | `loadFilterChips(catalogKey, lang)` → `FilterChip[] | null`. Exports`FilterChip = { label, type: 'page' | 'attribute', url?, marker?, value? }`,`chipToFilterPatch(label, chips)` (returns `{ category }` for page-type chips or `{ attributeField, attributeValue }` for attribute-type chips), and the private `attributeMarkerToFilterField` helper (OE marker root → `CatalogFilters` field). | `app/[...slug]/page.tsx` — labels mapped to `initialQuickChips: string[]` for the UI; `chipToFilterPatch` used server-side to merge the active chip's effect into `CatalogFilters` before `loadFilteredProducts` is called |
 
@@ -367,7 +367,7 @@ Exports: `Lang` type (currently `'en_US'`), `SystemSchema` type, `readSystemValu
 
 ### 6.2 Authenticated dispatch
 
-Signed-in requests use the `oe_access` cookie (Bearer forwarded server-side). Refresh is handled inside `signOutAction`; no client-side refresh loop exists — the current session lasts as long as `oe_access` remains valid, then requires a manual re-sign-in.
+Signed-in requests use the access token the SDK holds in instance state. Refresh is the SDK's own job: with a refresh token in state it mints an access token proactively before the first user-auth request and rotates it via `saveFunction`, so a returning shopper is signed in again without any manual step. A dead refresh token is cleared by `clearTokens()` on the first failed `/me`.
 
 ---
 

@@ -1,6 +1,6 @@
 'use server';
 import { revalidateTag } from 'next/cache';
-import { oneentry, isError } from '../index';
+import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 
@@ -38,9 +38,10 @@ export async function submitForm(
   binding: SubmitFormBinding = {},
   lang: Lang = DEFAULT_LOCALE,
 ): Promise<SubmitFormResult> {
-  if (!oneentry) return { ok: false, error: 'OneEntry SDK is not configured on the server.' };
+  const api = getApiSafe();
+  if (!api) return { ok: false, error: 'OneEntry SDK is not configured on the server.' };
   try {
-    const result = await oneentry.FormData.postFormsData(
+    const result = await api.FormData.postFormsData(
       {
         formIdentifier: marker,
         formModuleConfigId: binding.moduleConfigId ?? 0,

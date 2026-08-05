@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: {
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
-  },
+  }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -57,7 +58,8 @@ describe('loadCheckoutSystemTexts', () => {
 describe('loadCheckoutSystemTexts — disabled', () => {
   it('returns empty dicts when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
     const { loadCheckoutSystemTexts, CHECKOUT_SET_MARKERS } = await import('./checkout-labels');
     const result = await loadCheckoutSystemTexts();
     for (const m of CHECKOUT_SET_MARKERS) {

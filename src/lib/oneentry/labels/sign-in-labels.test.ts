@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAttributeSetByMarker = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: {
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
-  },
+  }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -41,7 +42,8 @@ describe('loadSignInSystemTexts', () => {
 describe('loadSignInSystemTexts — disabled', () => {
   it('returns empty record when SDK disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
     const { loadSignInSystemTexts } = await import('./sign-in-labels');
     const result = await loadSignInSystemTexts();
     expect(result).toEqual({});

@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link';
 /**
  * CatalogTemplate — universal catalog engine.
  *
@@ -360,7 +361,7 @@ export function CatalogTemplate({
                   <span key={i} className="flex items-center gap-1">
                     {i > 0 && <span className="mx-0.5">/</span>}
                     {crumb.href ? (
-                      <a href={crumb.href} className="hover:text-black transition-colors">{crumb.label}</a>
+                      <Link href={crumb.href} className="hover:text-black transition-colors">{crumb.label}</Link>
                     ) : (
                       <span className="text-black">{crumb.label}</span>
                     )}

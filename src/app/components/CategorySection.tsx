@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { ShopCategory } from '../data/categories';
 import { CATEGORY_SECTION_LABELS } from '../data/commonLabels';
 import type { CategoryItemFromCms } from '../../lib/oneentry/blocks/category-section';
+import { useMounted } from '../hooks/useMounted';
 
 // Base delay (ms) before cards animate in — waits for the parent AnimatedSection fade-up (~650ms).
 // On back navigation sessionStorage='1' so animated=true and this is never used.
@@ -24,16 +25,19 @@ export function CategorySection({
   }));
   const [activeFilter, setActiveFilter] = useState(chips[0] ?? '');
   // true = already animated / back-nav → skip card entrance, show immediately
-  const [animated, setAnimated] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    if (sessionStorage.getItem('homepageAnimated') === '1') {
-      setAnimated(true);
+  // Back-navigation should not replay the entrance animation. The flag is
+  // read once, lazily — the cards only render after `mounted` flips, so this
+  // never diverges from the server HTML and needs no effect round-trip.
+  const [animated] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return sessionStorage.getItem('homepageAnimated') === '1';
+    } catch {
+      return false;
     }
-  }, []);
+  });
+  const mounted = useMounted();
 
-  useEffect(() => { setMounted(true); }, []);
 
   if (categories.length === 0) return null;
   const visibleCategories = categories.filter(cat => cat.chip === activeFilter);

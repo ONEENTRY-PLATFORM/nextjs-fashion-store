@@ -213,7 +213,7 @@ export default async function Page({ params, searchParams }: Props) {
         if (patch.attributeField && patch.attributeValue) {
           const field = patch.attributeField as keyof CatalogFilters;
           const existing = (filters[field] as string[] | undefined) ?? [];
-          if (!existing.some((v) => v.toLowerCase() === patch.attributeValue!.toLowerCase())) {
+          if (!existing.some((v) => v.toLowerCase() === patch.attributeValue?.toLowerCase())) {
             filters = {
               ...filters,
               [field]: [...existing, patch.attributeValue],

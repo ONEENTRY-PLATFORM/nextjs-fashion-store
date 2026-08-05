@@ -22,7 +22,10 @@ export function FilterSystemDownloadPage() {
 
   useEffect(() => {
     triggerDownload();
-    setDownloaded(true);
+    // Deferred to a microtask: a synchronous `setState` inside an effect
+    // triggers a cascading render pass, and nothing here needs the flag
+    // before the browser has started the download anyway.
+    void Promise.resolve().then(() => setDownloaded(true));
   }, []);
 
   return (

@@ -32,11 +32,19 @@ import { useSalePageT } from '../../lib/oneentry/labels/SalePageLabelsContext';
 import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { SalePageFromCms } from '../../lib/oneentry/catalog/sale-page';
+import { useSearchParams } from 'next/navigation';
+import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
+import { useMounted } from '../hooks/useMounted';
 
 const SALE_KEY = 'sale';
 
 type SaleProduct = Product & { category?: string };
-export function SalePage({ initialProducts, saleEndsAt, gender, pageBlocks, cmsPage }: { initialProducts?: SaleProduct[]; saleEndsAt?: number; gender?: 'W' | 'M' | null; pageBlocks?: PageBlock[]; cmsPage?: SalePageFromCms | null } = {}) {
+export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: { initialProducts?: SaleProduct[]; saleEndsAt?: number; pageBlocks?: PageBlock[]; cmsPage?: SalePageFromCms | null } = {}) {
+  // Gender scope comes from `?gender=` (set by the header switch). Reading it
+  // here rather than in the page keeps `/sale` statically renderable — the
+  // consumer sits inside a `<Suspense>` boundary declared by the route.
+  const searchParams = useSearchParams();
+  const gender = genderFilterFromQuery(searchParams.get('gender'));
   // Countdown target: OE-driven `page_sale_top_banner_timer` first, then the
   // hardcoded fallback so the banner still runs if the admin hasn't set it.
   const countdown = useCountdown(saleEndsAt ?? SALE_END_DATE);
@@ -47,7 +55,7 @@ export function SalePage({ initialProducts, saleEndsAt, gender, pageBlocks, cmsP
   // UI-only state
   const [sortOpen, setSortOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
 
   // Redux state
   const dispatch = useAppDispatch();
@@ -76,7 +84,10 @@ export function SalePage({ initialProducts, saleEndsAt, gender, pageBlocks, cmsP
   const totalActive = selDiscount.length + selSize.length + selColor.length + selBrand.length;
   const clearAll = useCallback(() => { dispatch(clearFilters(SALE_KEY)); }, [dispatch]);
 
-  const PRODUCTS: SaleProduct[] = initialProducts ?? [];
+  const PRODUCTS: SaleProduct[] = useMemo(
+    () => (initialProducts ?? []).filter((p) => matchesGender(p.gender, gender)),
+    [initialProducts, gender],
+  );
   const sortRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<HTMLDivElement>(null);
   const recDragging = useRef(false);
@@ -99,7 +110,6 @@ export function SalePage({ initialProducts, saleEndsAt, gender, pageBlocks, cmsP
   };
   const PRODUCTS_PER_PAGE = 16;
 
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false); };

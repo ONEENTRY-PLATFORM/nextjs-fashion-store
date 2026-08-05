@@ -7,6 +7,13 @@ import type { Product } from './ProductCard';
 import { searchProductsAction } from '../../lib/oneentry/catalog/search-action';
 import { trackActivity } from '../utils/track-activity';
 
+/** Shortest query worth sending to OE — one or two characters match almost
+ *  the whole catalogue and the dropdown becomes noise. */
+const MIN_QUERY_LENGTH = 2;
+
+/** Idle time before a query is sent, in ms. */
+const SEARCH_DEBOUNCE_MS = 350;
+
 /**
  * Debounced vector-search input. Wraps the existing Header input + dropdown.
  * Variants are pre-collapsed by the server action so the dropdown shows one
@@ -25,34 +32,32 @@ export function HeaderSearch({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Product[]>([]);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Results are stored together with the query that produced them. Deriving
+  // `results` / `loading` from that pair means a new keystroke invalidates
+  // the old hits during render — no effect has to reset them, which is the
+  // cascading-render pattern React flags (MCP `common-mistakes`).
+  const [hits, setHits] = useState<{ query: string; items: Product[] }>({ query: '', items: [] });
   const wrapperRef = useRef<HTMLDivElement>(null);
   const requestSeqRef = useRef(0);
 
+  const text = query.trim();
+  const searchable = text.length >= MIN_QUERY_LENGTH;
+  const results = searchable && hits.query === text ? hits.items : [];
+  const loading = searchable && hits.query !== text;
+
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const text = query.trim();
-    if (text.length < 2) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    debounceRef.current = setTimeout(async () => {
+    const term = query.trim();
+    if (term.length < MIN_QUERY_LENGTH) return;
+    const timer = setTimeout(async () => {
       const seq = ++requestSeqRef.current;
-      const found = await searchProductsAction(text);
+      const found = await searchProductsAction(term);
       // Ignore out-of-order responses
       if (seq !== requestSeqRef.current) return;
-      setResults(found);
-      setLoading(false);
-      trackActivity({ type: 'search', query: text, meta: { resultsCount: found.length } });
-    }, 350);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+      setHits({ query: term, items: found });
+      trackActivity({ type: 'search', query: term, meta: { resultsCount: found.length } });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
   }, [query]);
 
   // Close dropdown on outside click
@@ -71,8 +76,9 @@ export function HeaderSearch({
 
   const handleSelect = useCallback((id: string) => {
     setOpen(false);
+    // Clearing the query is enough — `results` is derived from it, so the
+    // stale hits drop out on the same render.
     setQuery('');
-    setResults([]);
     router.push(`/product/${id}`);
   }, [router]);
 

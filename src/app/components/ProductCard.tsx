@@ -17,6 +17,7 @@ import { stripTrailingZeros } from '../utils/formatPrice';
 import { ColorSwatchButton } from './ColorSwatchButton';
 import { useProductCardT } from '../../lib/oneentry/labels/ProductCardLabelsContext';
 import { usePdpT } from '../../lib/oneentry/labels/PdpLabelsContext';
+import { useMounted } from '../hooks/useMounted';
 
 export interface ProductSpec {
   label: string;
@@ -169,8 +170,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const lAddToCart = useProductCardT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
   const lAdded     = usePdpT('product_card_actions', 'added',        PRODUCT_CARD_LABELS.added);
   const lQuickView = usePdpT('product_card_actions', 'quick_view',   CVL.quickView);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useMounted();
   const wishlisted = mounted && isWishlisted(product.id);
   // JS-controlled hover state instead of Tailwind `group-hover:` for the
   // image zoom + action-strip reveal. CSS `:hover` is pointer-based: when
@@ -193,12 +193,20 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   // mouse (any direction), the flag clears and hover behaviour resumes
   // normally.
   const [suppressHoverScale, setSuppressHoverScale] = useState(false);
-  useEffect(() => {
+  // Opening the modal must suppress hover *before* the next paint, so the
+  // switch happens during render (React's sanctioned "adjust state when a
+  // prop changes" pattern) rather than in an effect, which would show one
+  // scaled frame first and is the cascading-render pattern the lint rejects.
+  const [prevQuickViewOpen, setPrevQuickViewOpen] = useState(false);
+  if (isQuickViewOpen !== prevQuickViewOpen) {
+    setPrevQuickViewOpen(isQuickViewOpen);
     if (isQuickViewOpen) {
       setIsHovered(false);
       setSuppressHoverScale(true);
-      return;
     }
+  }
+  useEffect(() => {
+    if (isQuickViewOpen) return;
     // Modal closed: keep suppression active until the shopper actually
     // moves the pointer (any direction). No timer fallback — a stationary
     // mouse means the shopper's attention hasn't returned to the card, so
@@ -251,23 +259,26 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const hasRealImage = Boolean(candidateImage);
   const activeColorOOS = product.colorStock ? product.colorStock[safeColorIdx] === false : false;
   const outOfStock = product.inStock === false || activeColorOOS;
-  const [imgError, setImgError] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
+  // Load state is stored together with the src it belongs to, so switching
+  // colour variants invalidates it during render — no effect has to reset it
+  // (that would be a synchronous `setState` in `useEffect`).
+  const [imgState, setImgState] = useState<{ src: string; loaded: boolean; error: boolean }>(
+    { src: activeImage, loaded: false, error: false },
+  );
+  const imgLoaded = imgState.src === activeImage && imgState.loaded;
+  const imgError = imgState.src === activeImage && imgState.error;
   const imgRef = useRef<HTMLImageElement | null>(null);
-  useEffect(() => {
-    setImgError(false);
-    // `<img>` `onLoad` doesn't fire when the browser served the image straight
-    // from HTTP cache before React attached the event listener (a very common
-    // scenario after route navigation) — the wrapper then stays at `opacity-0`
-    // and the card renders as an empty container even though the image byte
-    // stream is already decoded and painted. Check `img.complete +
-    // naturalWidth` on mount so already-cached images flip to `opacity-100`
-    // regardless of whether the event ever fires.
-    const el = imgRef.current;
+  // `<img>` `onLoad` doesn't fire when the browser served the image straight
+  // from HTTP cache before React attached the event listener (very common
+  // after route navigation) — the wrapper would stay at `opacity-0` and the
+  // card would render as an empty container even though the bytes are already
+  // decoded and painted. A callback ref runs on attach (and re-runs whenever
+  // `activeImage` changes, since its identity does), so `complete +
+  // naturalWidth` is checked at exactly the right moment.
+  const attachImg = useCallback((el: HTMLImageElement | null) => {
+    imgRef.current = el;
     if (el && el.complete && el.naturalWidth > 0) {
-      setImgLoaded(true);
-    } else {
-      setImgLoaded(false);
+      setImgState({ src: activeImage, loaded: true, error: false });
     }
   }, [activeImage]);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -404,14 +415,14 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         ) : (
           <div className={`absolute inset-0 transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}>
             <Image
-              ref={imgRef}
+              ref={attachImg}
               src={activeImage}
               alt={product.brand ? `${product.name} by ${product.brand}` : product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className={`object-cover object-top ${suppressHoverScale ? 'transition-none' : 'transition-transform duration-500'} ${showHoverScale ? 'scale-105' : ''} ${outOfStock ? 'grayscale opacity-60' : ''}`}
-              onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
+              onLoad={() => setImgState({ src: activeImage, loaded: true, error: false })}
+              onError={() => setImgState({ src: activeImage, loaded: false, error: true })}
               priority={priority}
             />
           </div>

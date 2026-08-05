@@ -9,7 +9,12 @@ import { loadPageBlocksByUrl } from '../../src/lib/oneentry/blocks/page-blocks';
 
 export const metadata: Metadata = SEO.favorites;
 
-export const dynamic = 'force-dynamic';
+// Everything on this page is public CMS content — the shopper's own wishlist
+// hydrates client-side from OE. So it is ISR, not `force-dynamic`
+// (MCP `performance`); `force-static` fails the build loudly if anything in
+// the tree reintroduces a dynamic API.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export default async function Page() {
   const [labels, recommended, trending, pageBlocks] = await Promise.all([

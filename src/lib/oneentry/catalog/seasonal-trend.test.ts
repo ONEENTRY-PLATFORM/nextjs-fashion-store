@@ -3,8 +3,9 @@ import type { CatalogFilters } from './filters';
 
 const getPageByUrl = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: { Pages: { getPageByUrl } },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ Pages: { getPageByUrl } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -234,8 +235,9 @@ describe('resolveSeasonalTrend', () => {
 describe('resolveSeasonalTrend — disabled', () => {
   it('returns null when the SDK is not initialised', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: null,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (null),
       isOneEntryEnabled: false,
       isError: () => false,
     }));

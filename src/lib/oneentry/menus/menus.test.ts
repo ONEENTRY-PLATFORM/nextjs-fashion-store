@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getMenusByMarker = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: { Menus: { getMenusByMarker } },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ Menus: { getMenusByMarker } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -89,7 +90,8 @@ describe('loadMenu', () => {
 describe('loadMenu — disabled', () => {
   it('returns null when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
     const { loadMenu } = await import('./menus');
     expect(await loadMenu('header')).toBeNull();
     vi.doUnmock('../index');

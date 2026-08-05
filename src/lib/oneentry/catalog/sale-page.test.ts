@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getPageByUrl = vi.fn();
 const fakeApi = { Pages: { getPageByUrl } };
 
-vi.mock('../index', () => ({
-  oneentry: fakeApi,
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => (fakeApi),
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
   isError: (v: unknown) =>
@@ -293,8 +294,9 @@ describe('loadSalePage — error paths', () => {
 describe('loadSalePage — disabled', () => {
   it('returns null when OE is not enabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({
-      oneentry: null,
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+      getApiSafe: () => (null),
       isOneEntryEnabled: false,
       getApi: () => { throw new Error('SDK not configured'); },
       isError: () => false,

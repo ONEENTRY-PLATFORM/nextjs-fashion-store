@@ -25,25 +25,23 @@ function formatDate(iso: string | null): string {
 
 export function BonusesSection() {
   const { user, isLoggedIn } = useAuth();
-  const [history, setHistory] = useState<OeBonusTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Result carries the session it belongs to, so signing out invalidates it
+  // during render instead of needing an effect to reset the list (a
+  // synchronous `setState` in `useEffect` — see MCP `common-mistakes`).
+  const [loaded, setLoaded] = useState<{ signedIn: boolean; items: OeBonusTransaction[] } | null>(null);
+  const history = loaded?.signedIn === isLoggedIn ? loaded.items : [];
+  const loading = isLoggedIn && loaded?.signedIn !== true;
   const title       = useT('my_bonuses', 'my_bonuses_title',                  L.title);
   const available   = useT('my_bonuses', 'my_bonuses_available_bonuses',      L.availableBonuses);
   const discountLvl = useT('my_bonuses', 'my_bonuses_discount_level',         L.discountLevel);
   const txHistory   = useT('my_bonuses', 'my_bonuses_transaction_history_title', L.transactionHistory);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      setHistory([]);
-      setLoading(false);
-      return;
-    }
+    if (!isLoggedIn) return;
     let cancelled = false;
-    setLoading(true);
-    fetchBonusHistoryAction().then((list) => {
+    void fetchBonusHistoryAction().then((list) => {
       if (cancelled) return;
-      setHistory(list);
-      setLoading(false);
+      setLoaded({ signedIn: true, items: list });
     });
     return () => { cancelled = true; };
   }, [isLoggedIn]);

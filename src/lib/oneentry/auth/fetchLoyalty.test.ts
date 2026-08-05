@@ -6,8 +6,8 @@
  * and MiniCart.summary.test.ts. The functions below mirror the exact code paths
  * inside `fetchLoyalty` and `fetchMe`.
  *
- * Separately we test the full function via a getUserApi mock to cover the
- * bonusBalance-survives-empty-tiers regression.
+ * Separately we test the full function against a stubbed SDK instance to
+ * cover the bonusBalance-survives-empty-tiers regression.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -148,27 +148,17 @@ describe('fetchLoyalty — tier parsing (pure derivation)', () => {
 const getDiscountByMarker = vi.fn();
 const getBonusBalance = vi.fn();
 
-vi.mock('../index', () => ({
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
   isOneEntryEnabled: true,
-  isError: (v: unknown): boolean =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
-  getUserApi: () => ({
+  hasStoredSession: () => true,
+  getApiSafe: () => ({
     Discounts: { getDiscountByMarker, getBonusBalance },
   }),
-  getGuestApi: () => null,
-  oneentry: null,
 }));
 
-vi.mock('next/headers', () => ({
-  cookies: async () => ({
-    get: (name: string) => (name === 'oe_access' ? { value: 'tok' } : undefined),
-    set: vi.fn(),
-    delete: vi.fn(),
-  }),
-}));
-
-vi.mock('../catalog/products', () => ({
-  loadProductsByIds: vi.fn(async () => []),
+vi.mock('../catalog/product-previews-action', () => ({
+  getProductPreviewsAction: vi.fn(async () => []),
 }));
 
 beforeEach(() => {
@@ -177,38 +167,18 @@ beforeEach(() => {
   getBonusBalance.mockReset();
 });
 
-describe('fetchLoyalty — bonusBalance regression (via getUserApi mock)', () => {
+describe('fetchLoyalty — bonusBalance regression (via a stubbed SDK instance)', () => {
   it('returns bonusBalance even when all four tier fetches error', async () => {
     // All marker fetches return an IError shape → tiers will be empty.
     getDiscountByMarker.mockResolvedValue({ statusCode: 404, message: 'not found' });
     // getBonusBalance returns a balance of 42.
     getBonusBalance.mockResolvedValue({ balance: 42 });
 
-    vi.doMock('next/headers', () => ({
-      cookies: async () => ({
-        get: (name: string) => (name === 'oe_access' ? { value: 'tok' } : undefined),
-        set: vi.fn(),
-        delete: vi.fn(),
-      }),
-    }));
-
-    // Import the module AFTER mocks are set (importFresh pattern).
-    vi.resetModules();
-    const { getCurrentUserAction } = await import('./actions');
-
-    // getCurrentUserAction calls fetchMe → fetchLoyalty internally.
-    // We can't assert loyalty directly from getCurrentUserAction (it returns OeUser | null),
-    // but we can access it through fetchMe's output shape via a thin wrapper.
-    // Instead: call fetchLoyalty via the named export path.
-    // Since fetchLoyalty is private, we confirm the observable contract through
-    // the isError branch: when ALL tier fetches are errors, tiers=[] but
-    // bonusBalance must still reflect getBonusBalance result.
-    //
-    // We exercise `fetchLoyalty` indirectly by stubbing the entire getUserApi
-    // and calling getCurrentUserAction, then inspecting `loyalty` on the
-    // returned OeUser.
-    //
-    // getCurrentUserAction requires /me to succeed too — stub that minimally.
+    // `fetchLoyalty` is private, so the contract is observed through
+    // `getCurrentUserAction` → `fetchMe` → `fetchLoyalty`: when ALL tier
+    // fetches error, `tiers` is empty but `bonusBalance` must still carry
+    // whatever `getBonusBalance` returned. `/me` is stubbed minimally so the
+    // assembly step succeeds.
     const api = {
       Discounts: { getDiscountByMarker, getBonusBalance },
       Users: {
@@ -228,13 +198,11 @@ describe('fetchLoyalty — bonusBalance regression (via getUserApi mock)', () =>
       },
     };
 
-    vi.doMock('../index', () => ({
+    vi.doMock('../index', async (importActual) => ({
+      ...(await importActual<typeof import('../index')>()),
       isOneEntryEnabled: true,
-      isError: (v: unknown): boolean =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
-      getUserApi: () => api,
-      getGuestApi: () => null,
-      oneentry: null,
+      hasStoredSession: () => true,
+      getApiSafe: () => api,
     }));
 
     vi.resetModules();

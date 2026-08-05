@@ -23,6 +23,7 @@ import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { useAuth } from '../context/AuthContext';
+import { useMounted } from '../hooks/useMounted';
 
 
 /* ─── Main Page ─── */
@@ -43,12 +44,11 @@ export function FavoritesPage({
   const { addItem: addToCart } = useCart();
   const router = useRouter();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const lItems    = useFavoritesPageT('favorites_page_items',           L.itemPlural);
   const lMoveAll  = useFavoritesPageT('favorites_page_move_all_to_bag', L.moveAllToBag);
   const lClearAll = useFavoritesPageT('favorites_page_clear_all',       L.clearAll);
   const lBottom   = useFavoritesPageT('favorites_page_bottom_link',     L.ctaContinue);
-  useEffect(() => { setMounted(true); }, []);
 
   // Live Recently-Viewed trail from Redux (shared with PDP). Dedupe by title
   // so different variants of the same product (Pink XL / White M / …) don't

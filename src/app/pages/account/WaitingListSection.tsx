@@ -49,23 +49,21 @@ export function WaitingListSection() {
 
   // Waiting list is derived from /me/wishlist: each wishlist item is enriched
   // with current OE stock status (out_of_stock / low_stock / back_in_stock).
-  const [waitingList, setWaitingList] = useState<WaitingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Nothing to wait for unless the shopper is signed in with a non-empty
+  // wishlist; that condition is derived, so signing out clears the list
+  // during render instead of from inside an effect.
+  const hasWishlist = Boolean(isLoggedIn && user?.wishlistItems && user.wishlistItems.length > 0);
+  const [loaded, setLoaded] = useState<WaitingItem[] | null>(null);
+  const waitingList = hasWishlist ? loaded ?? [] : [];
+  const loading = hasWishlist && loaded === null;
   useEffect(() => {
-    if (!isLoggedIn || !user?.wishlistItems || user.wishlistItems.length === 0) {
-      setWaitingList([]);
-      setLoading(false);
-      return;
-    }
+    if (!hasWishlist) return;
     let cancelled = false;
-    setLoading(true);
     void getWaitingListAction().then((items) => {
-      if (cancelled) return;
-      setWaitingList(items);
-      setLoading(false);
+      if (!cancelled) setLoaded(items);
     });
     return () => { cancelled = true; };
-  }, [isLoggedIn, user?.wishlistItems]);
+  }, [hasWishlist, user?.wishlistItems]);
 
   // Local-only overrides for notify toggle (not persisted)
   const [notifyOverrides, setNotifyOverrides] = useState<Record<string, boolean>>({});

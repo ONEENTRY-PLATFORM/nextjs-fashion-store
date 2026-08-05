@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getFormsDataByMarker = vi.fn();
 const fakeApi = { FormData: { getFormsDataByMarker } };
 
-vi.mock('../index', () => ({
-  oneentry: fakeApi,
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => (fakeApi),
   getApi: () => fakeApi,
   isOneEntryEnabled: true,
   isError: (v: unknown) =>

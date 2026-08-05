@@ -129,6 +129,11 @@ function placeholderFromCmsId(productId: number, qty: number): CartItem {
   };
 }
 
+/** sessionStorage key holding the coupon applied to the current checkout.
+ *  Module-scoped so callbacks declared before the coupon state can read it
+ *  without landing in the temporal dead zone. */
+const COUPON_STORAGE_KEY = 'oe_coupon_code';
+
 export function useCart(): CartContextType {
   const dispatch = useDispatch<AppDispatch>();
   const items = useSelector((state: RootState) => state.cart.items);
@@ -330,6 +335,22 @@ export function useCart(): CartContextType {
 
   const updateSize = useCallback((id: string, size: string) => dispatch(cartActions.updateSize({ id, size })), [dispatch]);
 
+
+  // OE `previewOrder` — reruns whenever the cart or applied coupon changes
+  // so every screen that shows totals (cart, mini-cart, delivery, payment)
+  // renders the real numbers OE will apply. Only useful for logged-in
+  // shoppers because personal discounts and bonuses are gated by user + group.
+  const [preview, setPreview] = useState<PreviewOrderResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  // Combined with the derived staleness flag below — see `previewStale`.
+  // Coupon persisted in sessionStorage so it survives page navigation inside
+  // the checkout flow (cart → delivery → payment) — key: COUPON_STORAGE_KEY.
+  const [couponCode, setCouponCode] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem(COUPON_STORAGE_KEY);
+  });
+  const [couponError, setCouponError] = useState<string | null>(null);
+
   const clearCart = useCallback(() => {
     dispatch(cartActions.clearCart());
     // A cleared cart signals a completed checkout (or explicit reset) — the
@@ -348,21 +369,6 @@ export function useCart(): CartContextType {
       sessionStorage.removeItem('oe_checkout_payload');
     } catch { /* ignore */ }
   }, [dispatch]);
-
-  // OE `previewOrder` — reruns whenever the cart or applied coupon changes
-  // so every screen that shows totals (cart, mini-cart, delivery, payment)
-  // renders the real numbers OE will apply. Only useful for logged-in
-  // shoppers because personal discounts and bonuses are gated by user + group.
-  const [preview, setPreview] = useState<PreviewOrderResult | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  // Coupon persisted in sessionStorage so it survives page navigation inside
-  // the checkout flow (cart → delivery → payment).
-  const COUPON_STORAGE_KEY = 'oe_coupon_code';
-  const [couponCode, setCouponCode] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem(COUPON_STORAGE_KEY);
-  });
-  const [couponError, setCouponError] = useState<string | null>(null);
   // Shared sequence counter across the auto-preview effect and every manual
   // applyCoupon / removeCoupon call — a late response from a stale request
   // used to overwrite the freshest one (rapid Apply → clear → Apply, or
@@ -378,13 +384,16 @@ export function useCart(): CartContextType {
     return [{ productId: cmsId, quantity: it.quantity }];
   });
   const productsKey = JSON.stringify(productsForPreview);
+  // An empty cart has nothing to preview. Deriving that during render keeps
+  // the effect free of the synchronous `setState` reset React flags.
+  const hasPreviewableItems = productsForPreview.length > 0;
+  // `previewLoading` starts as "the cached preview doesn't match this cart
+  // yet", derived during render. The effect only ever *clears* it, so it
+  // never writes state synchronously on entry.
+  const [previewFor, setPreviewFor] = useState<string | null>(null);
+  const previewStale = hasPreviewableItems && previewFor !== productsKey;
   useEffect(() => {
-    if (productsForPreview.length === 0) {
-      setPreview(null);
-      setPreviewLoading(false);
-      return;
-    }
-    setPreviewLoading(true);
+    if (!hasPreviewableItems) return;
     let cancelled = false;
     const mySeq = ++previewSeqRef.current;
     const t = setTimeout(async () => {
@@ -417,6 +426,7 @@ export function useCart(): CartContextType {
           dispatch(cartActions.setUnavailableRemoved(dropped));
         }
       }
+      setPreviewFor(productsKey);
       setPreviewLoading(false);
     }, 300);
     return () => { cancelled = true; clearTimeout(t); };
@@ -575,7 +585,7 @@ export function useCart(): CartContextType {
     discount,
     total,
     preview,
-    previewLoading,
+    previewLoading: previewLoading || previewStale,
     personalDiscount,
     totalDue,
     couponCode,
@@ -591,7 +601,7 @@ export function useCart(): CartContextType {
     addItem, addBundle, removeItem, removeBundle,
     updateQuantity, updateSize, clearCart,
     totalItems, subtotal, discount, total,
-    preview, previewLoading, personalDiscount, totalDue,
+    preview, previewLoading, previewStale, personalDiscount, totalDue,
     couponCode, couponDiscount, couponError,
     applyCoupon, removeCoupon,
     unavailableRemoved, dismissUnavailableNotice,

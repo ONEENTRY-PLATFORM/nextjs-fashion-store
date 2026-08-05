@@ -10,7 +10,7 @@
  * `${origin}/auth/callback/google` under "Authorised redirect URIs".
  */
 
-import { getGoogleAuthUrlAction } from './oneentry/auth/actions';
+import { getGoogleAuthUrlAction } from './oneentry/auth/oauth-actions';
 
 /**
  * Kick off the Google OAuth redirect. Resolves with `void` on success (the

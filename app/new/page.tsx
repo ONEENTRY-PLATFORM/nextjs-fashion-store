@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../src/app/data/seoData';
 import { NewArrivalsPage } from '../../src/app/pages/NewArrivalsPage';
@@ -11,7 +12,13 @@ import { loadNewArrivalsPage } from '../../src/lib/oneentry/catalog/new-arrivals
 
 export const metadata: Metadata = SEO.newArrivals;
 
-export const dynamic = 'force-dynamic';
+// CMS content changes only when an admin edits it, so this is ISR, never
+// `force-dynamic` (MCP `performance`). `force-static` makes the build fail
+// loudly if anything in the tree slips back into dynamic rendering instead of
+// silently degrading. Gender scoping (`?gender=`) is applied in the browser —
+// see `NewArrivalsPage`.
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 const breadcrumb = {
   '@context': 'https://schema.org',
@@ -22,12 +29,7 @@ const breadcrumb = {
   ],
 };
 
-interface Props { searchParams: Promise<{ gender?: string }> }
-
-export default async function Page({ searchParams }: Props) {
-  const { gender } = await searchParams;
-  const genderFilter: 'W' | 'M' | null =
-    gender === 'men' ? 'M' : gender === 'women' ? 'W' : null;
+export default async function Page() {
   const [labels, products, cmsPage, pageBlocks] = await Promise.all([
     loadNewArrivalsPageSystemTexts(),
     loadProducts({ tags: ['New'], limit: 200 }),
@@ -38,30 +40,22 @@ export default async function Page({ searchParams }: Props) {
     // anything — safe fallback, nothing renders.
     loadPageBlocksByUrl('new'),
   ]);
-  // Scope to the currently active gender (from `?gender=` in the header).
-  // Prefer the OE `gender` attribute when set; fall back to the OE category
-  // path (`/women/...` vs `/men/...`) because some tenants leave the flag
-  // blank but still root products under a gendered category. Unisex (`U` in
-  // OE, or a top-level `/home2/` path) stays visible in both feeds.
-  const matchGender = (p: typeof products.items[number]) => {
-    if (!genderFilter) return true;
-    if (p.gender === 'U') return true;
-    if (p.gender === genderFilter) return true;
-    if (!p.gender) {
-      const catToken = genderFilter === 'W' ? '/women/' : '/men/';
-      return p.categories.some((c) => c.toLowerCase().includes(catToken));
-    }
-    return false;
-  };
-  const filteredItems = products.items.filter(matchGender);
-  const initialProducts = filteredItems.length > 0
-    ? filteredItems.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: newArrivalCategoryFor(p) }))
+  // The full feed ships to the client; `NewArrivalsPage` narrows it to the
+  // active gender from `?gender=`. The adapter already stamps `gender` with
+  // the OE attribute or, when that is blank, the category path
+  // (`/women/…` vs `/men/…`), so no extra data is needed for the scope.
+  const initialProducts = products.items.length > 0
+    ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: newArrivalCategoryFor(p) }))
     : undefined;
   return (
     <>
       <JsonLd data={breadcrumb} />
       <NewArrivalsPageLabelsProvider data={labels}>
-        <NewArrivalsPage initialProducts={initialProducts} pageBlocks={pageBlocks} cmsPage={cmsPage} />
+        {/* NewArrivalsPage reads `?gender=` via useSearchParams — without this
+            boundary the whole route silently reverts to dynamic rendering. */}
+        <Suspense fallback={null}>
+          <NewArrivalsPage initialProducts={initialProducts} pageBlocks={pageBlocks} cmsPage={cmsPage} />
+        </Suspense>
       </NewArrivalsPageLabelsProvider>
     </>
   );

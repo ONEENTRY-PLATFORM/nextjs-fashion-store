@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { oneentry, isError } from './index';
+import { getApiSafe, isError } from './index';
 import { DEFAULT_LOCALE } from './locale';
 import { logCaught } from './log';
 
@@ -68,9 +68,10 @@ function touchSystemSet(key: string, value: { at: number; value: SystemSchema })
 }
 
 async function fetchSystemSet(marker: string, lang: Lang): Promise<SystemSchema> {
-  if (!oneentry) return {};
+  const api = getApiSafe();
+  if (!api) return {};
   try {
-    const raw = await oneentry.AttributesSets.getAttributeSetByMarker(marker, lang);
+    const raw = await api.AttributesSets.getAttributeSetByMarker(marker, lang);
     if (isError(raw)) return {};
     const set = raw as AttributeSet;
     const schema = set?.schema;

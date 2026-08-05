@@ -1,5 +1,66 @@
 import type { NextConfig } from 'next'
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+/** OneEntry origin, so the policy follows the tenant instead of hardcoding it. */
+const oneEntryOrigin = (() => {
+  const raw = process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY_URL ?? '';
+  try {
+    return raw ? new URL(raw).origin : '';
+  } catch {
+    return '';
+  }
+})();
+
+/**
+ * Content-Security-Policy.
+ *
+ * `script-src` has to keep `'unsafe-inline'`: the App Router streams its RSC
+ * payload through inline `<script>` tags, and the nonce-based alternative
+ * requires per-request rendering — which would take every ISR page back to
+ * dynamic. So the policy is not aimed at *blocking script execution*; it is
+ * aimed at the step after it.
+ *
+ * That is where the value is, given the shopper session now lives in
+ * `localStorage`: `connect-src`, `img-src` and `form-action` fence in every
+ * channel injected code could use to ship a stolen token off-origin, and
+ * `base-uri` blocks the `<base href>` rewrite trick. Paired with the
+ * allow-list sanitizer on CMS rich text (`src/lib/sanitize-html.ts`), that
+ * covers both halves: getting script in, and getting data out.
+ */
+const cspDirectives: Array<[string, string[]]> = [
+  ['default-src', ["'self'"]],
+  // `'unsafe-eval'` is a dev-only requirement of React Fast Refresh.
+  ['script-src', ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])]],
+  ['style-src', ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']],
+  ['font-src', ["'self'", 'data:', 'https://fonts.gstatic.com']],
+  ['img-src', ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://*.oneentry.cloud']],
+  ['connect-src', ["'self'", 'https://*.oneentry.cloud', 'wss://*.oneentry.cloud',
+    ...(oneEntryOrigin ? [oneEntryOrigin] : []),
+    // The dev server talks to itself over ws for HMR.
+    ...(isDev ? ['ws:', 'http://localhost:*'] : [])]],
+  ['frame-src', ["'none'"]],
+  ['object-src', ["'none'"]],
+  ['base-uri', ["'self'"]],
+  ['form-action', ["'self'"]],
+  ['frame-ancestors', ["'none'"]],
+  ['upgrade-insecure-requests', []],
+];
+
+const contentSecurityPolicy = cspDirectives
+  .map(([name, values]) => (values.length > 0 ? `${name} ${values.join(' ')}` : name))
+  .join('; ');
+
+/** Hardening headers applied to every route. */
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  // Redundant with `frame-ancestors` on modern browsers, cheap insurance elsewhere.
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -16,6 +77,10 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
       {
         source: '/images/(.*)',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],

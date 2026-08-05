@@ -7,8 +7,9 @@ vi.mock('next/cache', () => ({
 
 const getSlides = vi.fn();
 
-vi.mock('../index', () => ({
-  oneentry: { Blocks: { getSlides } },
+vi.mock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()),
+  getApiSafe: () => ({ Blocks: { getSlides } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) =>
     !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -78,7 +79,8 @@ describe('loadHeroSlides', () => {
 describe('loadHeroSlides — disabled', () => {
   it('returns [] when SDK is disabled', async () => {
     vi.resetModules();
-    vi.doMock('../index', () => ({ oneentry: null, isOneEntryEnabled: false }));
+    vi.doMock('../index', async (importActual) => ({
+  ...(await importActual<typeof import('../index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
     const { loadHeroSlides } = await import('./hero-slides');
     expect(await loadHeroSlides()).toEqual([]);
     vi.doUnmock('../index');

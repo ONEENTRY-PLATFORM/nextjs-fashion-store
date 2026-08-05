@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ProductCard, type Product } from '../../components/ProductCard';
 import { RECENTLY_VIEWED_LABELS as L } from '../../data/productPageLabels';
+import { useMounted } from '../../hooks/useMounted';
 
 const RV_PER_ROW = 5;
 
@@ -12,10 +13,9 @@ interface RecentlyViewedSectionProps {
 
 export function RecentlyViewedSection({ products, accentColor }: RecentlyViewedSectionProps) {
   const [rowsShown, setRowsShown] = useState(1);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMounted(true); }, []);
 
   const productsLength = products.length;
   useEffect(() => {
