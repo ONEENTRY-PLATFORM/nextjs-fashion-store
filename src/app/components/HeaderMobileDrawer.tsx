@@ -8,8 +8,9 @@ import { useHeaderMenu } from '../../lib/oneentry/menus/HeaderMenuContext';
 import { adaptHeaderMenuToMega } from '../../lib/oneentry/menus/adapt-header';
 import {
   LOGO_ALT, SUPPORT_PHONE, GENDER_NAV_HREFS,
-  MOBILE_FOOTER_LINKS, HEADER_ARIA_LABELS,
+  MOBILE_FOOTER_LINKS, HEADER_ARIA_LABELS, HEADER_ARIA_KEYS,
 } from '../data/headerConfig';
+import { useHeaderT } from '../../lib/oneentry/labels/HeaderLabelsContext';
 import { useRouter } from 'next/navigation';
 
 interface HeaderMobileDrawerProps {
@@ -35,6 +36,11 @@ export function HeaderMobileDrawer({
   urlSubCat,
   getNavHref,
 }: HeaderMobileDrawerProps) {
+  // Header copy from the OE `header` set; constants are the offline fallback.
+  const lLogoAlt   = useHeaderT('header_logo_alt', LOGO_ALT);
+  const lPhone     = useHeaderT('header_support_phone', SUPPORT_PHONE);
+  const aCloseMenu = useHeaderT(HEADER_ARIA_KEYS.closeMenu, HEADER_ARIA_LABELS.closeMenu);
+
   const router = useRouter();
   const cmsHeaderMenu = useHeaderMenu();
   const mega = adaptHeaderMenuToMega(cmsHeaderMenu);
@@ -49,8 +55,8 @@ export function HeaderMobileDrawer({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="absolute left-0 top-0 bottom-0 w-80 bg-white flex flex-col overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <Image src={logoImage} alt={LOGO_ALT} width={128} height={28} className="object-contain" priority />
-          <button onClick={onClose} className="p-1" aria-label={HEADER_ARIA_LABELS.closeMenu}>
+          <Image src={logoImage} alt={lLogoAlt} width={128} height={28} className="object-contain" priority />
+          <button onClick={onClose} className="p-1" aria-label={aCloseMenu}>
             <X size={22} />
           </button>
         </div>
@@ -135,16 +141,31 @@ export function HeaderMobileDrawer({
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 space-y-4">
           {MOBILE_FOOTER_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} onClick={onClose} className="flex items-center gap-2 text-sm">
-              {link.iconType === 'user' ? <User size={16} /> : <MapPin size={16} />}
-              {link.label}
-            </Link>
+            <MobileFooterLinkRow key={link.href} link={link} onClose={onClose} />
           ))}
-          <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm">
-            <Phone size={16} /> {SUPPORT_PHONE}
+          <a href={`tel:${lPhone.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm">
+            <Phone size={16} /> {lPhone}
           </a>
         </div>
       </div>
     </div>
+  );
+}
+
+/** One drawer footer link. Extracted so `useHeaderT` is a top-level hook call
+ *  rather than one inside a `.map()` callback. */
+function MobileFooterLinkRow({
+  link,
+  onClose,
+}: {
+  link: (typeof MOBILE_FOOTER_LINKS)[number];
+  onClose: () => void;
+}) {
+  const label = useHeaderT(link.labelKey, link.fallbackLabel);
+  return (
+    <Link href={link.href} onClick={onClose} className="flex items-center gap-2 text-sm">
+      {link.iconType === 'user' ? <User size={16} /> : <MapPin size={16} />}
+      {label}
+    </Link>
   );
 }

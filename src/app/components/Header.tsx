@@ -28,15 +28,26 @@ import {
   SEARCH_PLACEHOLDER, SEARCH_PLACEHOLDER_MOBILE,
   ACCOUNT_HREF, WISHLIST_HREF,
   GENDER_NAV_HREFS,
-  HEADER_ARIA_LABELS,
+  HEADER_ARIA_LABELS, HEADER_ARIA_KEYS,
   WOMEN_COLOR,
   MEN_COLOR,
 } from '../data/headerConfig';
 import { useInterfaceControlsT } from '../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useHeaderT } from '../../lib/oneentry/labels/HeaderLabelsContext';
 import { useMounted } from '../hooks/useMounted';
 
 export function Header() {
   const lSearch = useInterfaceControlsT('search', SEARCH_PLACEHOLDER);
+  // Header copy from the OE `header` set — local constants are the fallback.
+  const lLogoAlt      = useHeaderT('header_logo_alt', LOGO_ALT);
+  const lSearchMobile = useHeaderT('header_search_placeholder_mobile', SEARCH_PLACEHOLDER_MOBILE);
+  const aOpenMenu     = useHeaderT(HEADER_ARIA_KEYS.openMenu, HEADER_ARIA_LABELS.openMenu);
+  const aToggleSearch = useHeaderT(HEADER_ARIA_KEYS.toggleSearch, HEADER_ARIA_LABELS.toggleSearch);
+  const aSearchDesk   = useHeaderT(HEADER_ARIA_KEYS.searchDesktop, HEADER_ARIA_LABELS.searchDesktop);
+  const aSearchMob    = useHeaderT(HEADER_ARIA_KEYS.searchMobile, HEADER_ARIA_LABELS.searchMobile);
+  const aAccount      = useHeaderT(HEADER_ARIA_KEYS.account, HEADER_ARIA_LABELS.account);
+  const aWishlist     = useHeaderT(HEADER_ARIA_KEYS.wishlist, HEADER_ARIA_LABELS.wishlist);
+  const aBag          = useHeaderT(HEADER_ARIA_KEYS.bag, HEADER_ARIA_LABELS.bag);
   const [activeGender, setActiveGender] = useState<Gender>('women');
   const [activeDropdown, setActiveDropdown] = useState<SubCat>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -159,12 +170,12 @@ export function Header() {
               <button
                 onClick={() => setMobileOpen(true)}
                 className="lg:hidden flex items-center justify-center w-10 h-10 hover:opacity-70 transition-opacity"
-                aria-label={HEADER_ARIA_LABELS.openMenu}
+                aria-label={aOpenMenu}
               >
                 <Menu size={22} />
               </button>
               <Link href="/" className="flex-shrink-0">
-                <Image src={logoImage} alt={LOGO_ALT} width={146} height={32} className="object-contain" priority />
+                <Image src={logoImage} alt={lLogoAlt} width={146} height={32} className="object-contain" priority />
               </Link>
             </div>
 
@@ -205,28 +216,28 @@ export function Header() {
               <div className="hidden lg:flex relative w-64">
                 <HeaderSearch
                   placeholder={lSearch}
-                  ariaLabel={HEADER_ARIA_LABELS.searchDesktop}
+                  ariaLabel={aSearchDesk}
                   variant="desktop"
                 />
               </div>
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
                 className="md:hidden flex items-center justify-center w-10 h-10 hover:opacity-70 transition-opacity"
-                aria-label={HEADER_ARIA_LABELS.toggleSearch}
+                aria-label={aToggleSearch}
               >
                 <Search size={20} />
               </button>
               <button
                 className="hidden md:flex items-center justify-center min-w-[40px] min-h-[40px] hover:opacity-70 transition-opacity"
                 onClick={() => isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal()}
-                aria-label={HEADER_ARIA_LABELS.account}
+                aria-label={aAccount}
               >
                 <User size={20} />
               </button>
               <button
                 className="relative flex items-center justify-center min-w-[40px] min-h-[40px] hover:opacity-70 transition-opacity"
                 onClick={() => router.push(WISHLIST_HREF)}
-                aria-label={HEADER_ARIA_LABELS.wishlist}
+                aria-label={aWishlist}
               >
                 <Heart size={20} />
                 {mounted && wishlistCount > 0 && (
@@ -238,7 +249,7 @@ export function Header() {
               <button
                 className="relative flex items-center justify-center min-w-[40px] min-h-[40px] hover:opacity-70 transition-opacity"
                 onClick={openMiniCart}
-                aria-label={HEADER_ARIA_LABELS.bag}
+                aria-label={aBag}
               >
                 <ShoppingBag size={20} />
                 {mounted && totalItems > 0 && (
@@ -253,8 +264,8 @@ export function Header() {
           {searchOpen && (
             <div className="md:hidden pb-4">
               <HeaderSearch
-                placeholder={SEARCH_PLACEHOLDER_MOBILE}
-                ariaLabel={HEADER_ARIA_LABELS.searchMobile}
+                placeholder={lSearchMobile}
+                ariaLabel={aSearchMob}
                 autoFocus
                 variant="mobile"
               />

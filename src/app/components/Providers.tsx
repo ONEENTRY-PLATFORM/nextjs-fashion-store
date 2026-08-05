@@ -28,6 +28,9 @@ import { SignUpFormSchemaProvider } from '../../lib/oneentry/auth/SignUpFormSche
 import type { SignUpFormSchema } from '../../lib/oneentry/auth/sign-up-form'
 import { FormPlaceholdersProvider } from '../../lib/oneentry/forms/FormPlaceholdersContext'
 import type { FormContent } from '../../lib/oneentry/forms/placeholders'
+import { HeaderLabelsProvider } from '../../lib/oneentry/labels/HeaderLabelsContext'
+import type { HeaderDict } from '../../lib/oneentry/labels/header-types'
+import type { CmsLocale } from '../../lib/oneentry/locales'
 
 /**
  * No-op placeholder kept for backwards compatibility. Real wishlist
@@ -92,6 +95,8 @@ export function Providers({
   headerMenu = [],
   signUpFormSchema,
   forms = {},
+  headerLabels = {},
+  cmsLocales = [],
 }: {
   children: React.ReactNode;
   productCardLabels?: ProductCardDict;
@@ -106,6 +111,10 @@ export function Providers({
    *  newsletter renders on every route). Route-scoped forms mount their own
    *  `FormPlaceholdersProvider` closer to the page. */
   forms?: Record<string, FormContent>;
+  /** OE `header` system-text set. */
+  headerLabels?: HeaderDict;
+  /** Active project locales — drives the header language switcher. */
+  cmsLocales?: CmsLocale[];
 }) {
   // Lazy `useState` initializer rather than the write-a-ref-during-render
   // idiom: the initializer runs exactly once and is render-safe, whereas
@@ -158,7 +167,9 @@ export function Providers({
                     <HeaderMenuProvider data={headerMenu}>
                       <SignUpFormSchemaProvider data={signUpFormSchema}>
                         <FormPlaceholdersProvider forms={forms}>
-                          <ErrorBoundary>{children}</ErrorBoundary>
+                          <HeaderLabelsProvider data={{ labels: headerLabels, locales: cmsLocales }}>
+                            <ErrorBoundary>{children}</ErrorBoundary>
+                          </HeaderLabelsProvider>
                         </FormPlaceholdersProvider>
                       </SignUpFormSchemaProvider>
                     </HeaderMenuProvider>

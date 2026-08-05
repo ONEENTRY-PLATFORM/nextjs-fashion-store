@@ -15,6 +15,8 @@ import { loadSignUpFormSchema } from '../src/lib/oneentry/auth/sign-up-form'
 // Footer newsletter renders on every route, so its OE form travels with the
 // root layout rather than a per-page provider.
 import { loadFormContent } from '../src/lib/oneentry/forms/placeholders'
+import { loadHeaderSystemTexts } from '../src/lib/oneentry/labels/header-labels'
+import { loadLocales } from '../src/lib/oneentry/locales'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -86,6 +88,8 @@ export default async function RootLayout({
     headerMenu,
     signUpFormSchema,
     subscribeForm,
+    headerLabels,
+    cmsLocales,
   ] = await Promise.all([
     loadProductCardSystemTexts(),
     loadSignInSystemTexts(),
@@ -96,6 +100,8 @@ export default async function RootLayout({
     loadMenu('header'),
     loadSignUpFormSchema(),
     loadFormContent('subscribe_new_drops'),
+    loadHeaderSystemTexts(),
+    loadLocales(),
   ]);
   return (
     <html lang="en-GB">
@@ -138,6 +144,8 @@ export default async function RootLayout({
           headerMenu={headerMenu?.pages ?? []}
           signUpFormSchema={signUpFormSchema}
           forms={{ subscribe_new_drops: subscribeForm }}
+          headerLabels={headerLabels}
+          cmsLocales={cmsLocales}
         >
           {children}
         </Providers>

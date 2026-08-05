@@ -2,6 +2,7 @@
 import { FOOTER_LINKS, PAYMENT_METHOD_NAMES, SOCIAL_LINKS, SUPPORT_ITEMS, BOTTOM_LINKS, COMPANY_INFO, type FooterLink } from '../data/footerConfig';
 import { FOOTER_ARIA, FOOTER_LABELS as FL, FOOTER_DYNAMIC_ARIA } from '../data/commonLabels';
 import { LOGO_ALT } from '../data/headerConfig';
+import { useHeaderT } from '../../lib/oneentry/labels/HeaderLabelsContext';
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -35,6 +36,7 @@ const SOCIAL_ICON_SRC: Record<string, string> = {
 
 
 export function Footer() {
+  const lLogoAlt = useHeaderT('header_logo_alt', LOGO_ALT);
   const cmsFooterMenu = useFooterMenu();
   const bottomLinks: { key: string; label: string; href: string }[] = cmsFooterMenu.length > 0
     ? cmsFooterMenu
@@ -79,7 +81,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 lg:col-span-2">
-            <Image src={logoImage} alt={LOGO_ALT} width={183} height={40} className="object-contain mb-4" />
+            <Image src={logoImage} alt={lLogoAlt} width={183} height={40} className="object-contain mb-4" />
             <p className="text-xs text-white/50 mb-4 max-w-xs leading-relaxed">
               {COMPANY_INFO.description}
             </p>
