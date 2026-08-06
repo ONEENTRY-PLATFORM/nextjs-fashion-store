@@ -276,7 +276,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
 
       {/* ── Breadcrumb ── */}
       <div className="px-4 lg:px-8 py-3 border-b border-gray-100">
-        <nav className="flex items-center gap-1.5 text-xs text-gray-400 max-w-screen-2xl mx-auto">
+        <nav className="flex items-center gap-1.5 text-xs text-gray-400 max-w-384 mx-auto">
           <Link href="/" className="hover:text-black transition-colors">{L.breadcrumbHome}</Link>
           <span>/</span>
           <span className="text-black font-semibold">{L.breadcrumbCurrent}</span>
@@ -284,8 +284,8 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
       </div>
 
       {/* Sticky filter bar */}
-      <div className="sticky top-16 md:top-24 lg:top-[132px] z-40 bg-white border-b border-gray-200 pt-2">
-        <div className="max-w-screen-2xl mx-auto px-4 lg:px-8">
+      <div className="sticky top-16 md:top-24 lg:top-33 z-40 bg-white border-b border-gray-200 pt-2">
+        <div className="max-w-384 mx-auto px-4 lg:px-8">
           <div className="flex items-center justify-between gap-4 py-0">
 
             {/* ── LEFT: category tabs (horizontally scrollable) ── */}
@@ -310,7 +310,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
                     className={[
-                      'flex-shrink-0 px-4 py-3.5 text-xs tracking-widest uppercase whitespace-nowrap transition-all duration-150 focus-visible:outline-none',
+                      'shrink-0 px-4 py-3.5 text-xs tracking-widest uppercase whitespace-nowrap transition-all duration-150 focus-visible:outline-none',
                       activeCategory === cat
                         ? 'text-black border-b-2 border-black'
                         : 'text-gray-500 border-b-2 border-transparent hover:text-black',
@@ -326,11 +326,11 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
             </div>
 
             {/* Separator */}
-            <span className="hidden md:block flex-shrink-0 w-px h-6 bg-gray-200 mx-1 self-center" />
+            <span className="hidden md:block shrink-0 w-px h-6 bg-gray-200 mx-1 self-center" />
 
             {/* Filter pills — desktop only, lives OUTSIDE the horizontally
                 scrollable container so its dropdowns aren't clipped. */}
-            <div className="hidden md:flex items-center gap-2 flex-shrink-0 py-2">
+            <div className="hidden md:flex items-center gap-2 shrink-0 py-2">
               <PillDropdown
                 label={L.filterDiscount}
                 options={discountOptions}
@@ -374,26 +374,26 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
             {/* Mobile filter button */}
             <button
               onClick={() => setMobileFilterOpen(true)}
-              className="md:hidden flex-shrink-0 flex items-center gap-1.5 px-3 py-2 ml-2 text-xs tracking-wider uppercase focus-visible:outline-none border border-[#d1d5db] rounded-none"
+              className="md:hidden shrink-0 flex items-center gap-1.5 px-3 py-2 ml-2 text-xs tracking-wider uppercase focus-visible:outline-none border border-[#d1d5db] rounded-none"
             >
               <SlidersHorizontal size={12} />
               {L.filtersCta}
               {totalActive > 0 && (
-                <span className="bg-[var(--sale)] text-white rounded-none text-[9px] font-bold px-1 py-px">
+                <span className="bg-(--sale) text-white rounded-none text-[9px] font-bold px-1 py-px">
                   {totalActive}
                 </span>
               )}
             </button>
 
             {/* Right: column toggles + sort */}
-            <div className="hidden md:flex items-center gap-4 flex-shrink-0 py-2">
+            <div className="hidden md:flex items-center gap-4 shrink-0 py-2">
               {/* Column toggles */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500 mr-1">{lView}</span>
                 <button
                   onClick={() => dispatch(dispatchSetViewCols({ catalogKey: SALE_KEY, cols: 3 }))}
                   className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
-                    viewCols === 3 ? 'opacity-100' : 'opacity-[0.35]'
+                    viewCols === 3 ? 'opacity-100' : 'opacity-35'
                   }`}
                   aria-label={L.view3ColAria}
                 >
@@ -402,7 +402,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
                 <button
                   onClick={() => dispatch(dispatchSetViewCols({ catalogKey: SALE_KEY, cols: 4 }))}
                   className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
-                    viewCols === 4 ? 'opacity-100' : 'opacity-[0.35]'
+                    viewCols === 4 ? 'opacity-100' : 'opacity-35'
                   }`}
                   aria-label={L.view4ColAria}
                 >
@@ -423,7 +423,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
                   />
                 </button>
                 {sortOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-[180px] rounded-none">
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-45 rounded-none">
                     {SALE_SORT_OPTIONS.map(opt => (
                       <SortOption key={opt.value} label={opt.label} active={sortBy === opt.value} onClick={() => { dispatch(setSort({ catalogKey: SALE_KEY, sortBy: opt.value })); setSortOpen(false); }} />
                     ))}
@@ -433,7 +433,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
             </div>
 
             {/* Mobile sort pill */}
-            <div className="md:hidden flex-shrink-0">
+            <div className="md:hidden shrink-0">
               <div ref={sortRef} className="relative">
                 <button
                   onClick={() => setSortOpen(o => !o)}
@@ -442,7 +442,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
                   {L.sortMobileCta} <ChevronDown size={11} />
                 </button>
                 {sortOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-[170px] rounded-none">
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-42.5 rounded-none">
                     {SALE_SORT_OPTIONS.map(opt => (
                       <SortOption key={opt.value} label={opt.label} active={sortBy === opt.value} onClick={() => { dispatch(setSort({ catalogKey: SALE_KEY, sortBy: opt.value })); setSortOpen(false); }} />
                     ))}
@@ -503,7 +503,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
             `page_sale_footer_banner_*` attributes; `L.promo*` are the
             fallbacks when the admin hasn't filled a field. */}
         <div className="px-4 lg:px-8">
-          <div className="my-10 relative overflow-hidden group min-h-[180px] max-h-[260px]">
+          <div className="my-10 relative overflow-hidden group min-h-45 max-h-65">
             <Image
               src={cmsPage?.promo.image || 'https://images.unsplash.com/photo-1739424464070-63b6cc9086aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGZhc2hpb24lMjBlZGl0b3JpYWwlMjBtaW5pbWFsJTIwYmxhY2slMjBvdXRmaXR8ZW58MXx8fHwxNzcyMDMwNjUwfDA&ixlib=rb-4.1.0&q=80&w=1080'}
               alt={L.promoImageAlt}
@@ -513,13 +513,13 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
             />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.75)_35%,rgba(0,0,0,0.15))]" />
             <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16">
-              <span className="inline-block mb-3 px-2.5 py-1 text-white tracking-widest uppercase bg-[var(--sale)] text-[10px] font-bold rounded-none w-fit">
+              <span className="inline-block mb-3 px-2.5 py-1 text-white tracking-widest uppercase bg-(--sale) text-[10px] font-bold rounded-none w-fit">
                 {cmsPage?.promo.eyebrow || L.promoLimitedTime}
               </span>
               <h3 className="text-white tracking-widest uppercase mb-2 text-[clamp(1rem,3vw,1.75rem)] font-extrabold">
                 {cmsPage?.promo.title || L.promoHeading}
               </h3>
-              <p className="text-white mb-4 text-xs opacity-75 max-w-[340px]">
+              <p className="text-white mb-4 text-xs opacity-75 max-w-85">
                 {cmsPage?.promo.subtitle || L.promoBody}
               </p>
               <Link href={cmsPage?.promo.ctaHref || L.promoHref} className="inline-flex items-center gap-2 text-white text-xs tracking-widest uppercase hover:gap-3 transition-all no-underline font-bold">
@@ -575,7 +575,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
         if (recProducts.length === 0) return null;
         return (
           <div className="border-t border-gray-100 py-12 px-4 lg:px-8 bg-gray-50">
-            <div className="max-w-screen-2xl mx-auto">
+            <div className="max-w-384 mx-auto">
               <div className="mb-6">
                 <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{L.recsEyebrow}</p>
                 <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.25rem)] font-bold">{recHeading}</h2>
@@ -589,7 +589,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
                 onMouseLeave={stopRecDrag}
               >
                 {recProducts.map(product => (
-                  <div key={`rec-${product.id}`} className="flex-shrink-0 w-[220px]">
+                  <div key={`rec-${product.id}`} className="shrink-0 w-55">
                     <ProductCard product={product as Product} accentColor={SALE_RED} />
                   </div>
                 ))}

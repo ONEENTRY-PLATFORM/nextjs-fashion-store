@@ -80,11 +80,11 @@ export function DeliveryMethodStore({
 
         <div className="mt-4 p-4 bg-[#fafafa] border border-[#e5e7eb]">
           <div className="flex items-start gap-2 mb-2">
-            <MapPin size={14} className="mt-0.5 flex-shrink-0 text-[var(--accent)]" />
+            <MapPin size={14} className="mt-0.5 shrink-0 text-accent" />
             <p className="text-xs text-gray-600">{selectedStore.address}</p>
           </div>
           <div className="flex items-start gap-2">
-            <Clock size={14} className="mt-0.5 flex-shrink-0 text-[var(--accent)]" />
+            <Clock size={14} className="mt-0.5 shrink-0 text-accent" />
             <p className="text-xs text-gray-600">{selectedStore.hours}</p>
           </div>
         </div>

@@ -415,12 +415,12 @@ export function QuickViewModal() {
                 {L.colorLabel}
                 {selectedColor !== null
                   ? <span className="font-normal text-gray-600">{L.colorSelected}</span>
-                  : <span className={`font-normal ${errors.color ? 'text-[var(--sale)]' : 'text-gray-400'}`}>{L.colorNotSelected}</span>
+                  : <span className={`font-normal ${errors.color ? 'text-(--sale)' : 'text-gray-400'}`}>{L.colorNotSelected}</span>
                 }
               </div>
               <div
-                className={`flex items-center gap-3 p-2 transition-colors outline outline-2 ${
-                  errors.color ? 'outline-[var(--sale)]' : 'outline-transparent'
+                className={`flex items-center gap-3 p-2 transition-colors outline ${
+                  errors.color ? 'outline-(--sale)' : 'outline-transparent'
                 }`}
               >
                 {product.colors.map((color, idx) => {
@@ -442,14 +442,14 @@ export function QuickViewModal() {
                       aria-label={`${L.colorAriaPrefix} ${idx + 1}${isColorOOS ? ` ${L.colorOutOfStockAria}` : ''}`}
                     >
                       {isColorOOS && (
-                        <span className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_bottom_right,transparent_calc(50%_-_0.5px),rgba(0,0,0,0.5)_calc(50%_-_0.5px),rgba(0,0,0,0.5)_calc(50%_+_0.5px),transparent_calc(50%_+_0.5px))]" />
+                        <span className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_bottom_right,transparent_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%+0.5px),transparent_calc(50%+0.5px))]" />
                       )}
                     </button>
                   );
                 })}
               </div>
               {errors.color && (
-                <p className="text-xs mt-1.5 text-[var(--sale)]">{L.colorError}</p>
+                <p className="text-xs mt-1.5 text-(--sale)">{L.colorError}</p>
               )}
             </div>
 
@@ -459,7 +459,7 @@ export function QuickViewModal() {
                 <div className="text-sm font-medium flex items-center gap-2">
                   {L.sizeLabel}
                   {errors.size && (
-                    <span className="text-xs font-normal text-[var(--sale)]">{L.sizeError}</span>
+                    <span className="text-xs font-normal text-(--sale)">{L.sizeError}</span>
                   )}
                 </div>
                 <button onClick={() => setShowSizeGuide(true)} className="text-xs text-gray-600 underline hover:text-black">
@@ -467,8 +467,8 @@ export function QuickViewModal() {
                 </button>
               </div>
               <div
-                className={`grid grid-cols-3 gap-2 p-2 transition-colors outline outline-2 ${
-                  errors.size ? 'outline-[var(--sale)]' : 'outline-transparent'
+                className={`grid grid-cols-3 gap-2 p-2 transition-colors outline ${
+                  errors.size ? 'outline-(--sale)' : 'outline-transparent'
                 }`}
               >
                 {sizes.map((size) => {
@@ -554,7 +554,7 @@ export function QuickViewModal() {
                     openMiniCart();
                   }}
                   className={`flex-1 py-4 text-sm tracking-wider uppercase font-medium text-white transition-colors ${
-                    buyBtnHovered ? 'bg-[var(--buy-hover)]' : 'bg-[var(--buy)]'
+                    buyBtnHovered ? 'bg-(--buy-hover)' : 'bg-(--buy)'
                   }`}
                   onMouseEnter={() => setBuyBtnHovered(true)}
                   onMouseLeave={() => setBuyBtnHovered(false)}
@@ -564,7 +564,7 @@ export function QuickViewModal() {
                 <button
                   onClick={handleWishlist}
                   className={`w-14 flex items-center justify-center border-2 transition-colors ${
-                    wishlisted ? 'border-[var(--accent)] bg-[#fff5f5]' : 'border-black bg-white'
+                    wishlisted ? 'border-accent bg-[#fff5f5]' : 'border-black bg-white'
                   }`}
                   aria-label={wishlisted ? L.wishlistRemove : L.wishlistAdd}
                 >

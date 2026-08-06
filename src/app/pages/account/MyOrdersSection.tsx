@@ -224,7 +224,7 @@ export function MyOrdersSection() {
             <div key={order.id} className="border border-[#e5e7eb]">
               {/* ── Summary row ── */}
               <div className="flex gap-4 p-5">
-                <div className="relative w-16 h-20 flex-shrink-0">
+                <div className="relative w-16 h-20 shrink-0">
                   <ImageWithFallback src={order.image} alt={order.id} fill sizes="64px" className="object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -298,7 +298,7 @@ export function MyOrdersSection() {
                   <div className="space-y-px bg-gray-100 border-t border-[#e5e7eb]">
                     {order.orderItems.map((item, idx) => (
                       <div key={`${item.name}-${item.size}-${idx}`} className="flex items-center gap-4 px-5 py-3 bg-white">
-                        <div className="relative flex-shrink-0 overflow-hidden w-12 h-[60px]">
+                        <div className="relative shrink-0 overflow-hidden w-12 h-15">
                           <ImageWithFallback src={item.img} alt={item.name} fill sizes="48px" className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -309,13 +309,13 @@ export function MyOrdersSection() {
                             <span className="text-[11px] text-gray-500">{L.itemQty}: <span className="font-semibold text-black">{item.qty}</span></span>
                           </div>
                         </div>
-                        <p className="text-xs flex-shrink-0 font-bold">{fmt(item.price * item.qty)}</p>
+                        <p className="text-xs shrink-0 font-bold">{fmt(item.price * item.qty)}</p>
                       </div>
                     ))}
                   </div>
 
                   {/* Footer: total + actions */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-[var(--banner-bg)] border-t border-[#e5e7eb]">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-(--banner-bg) border-t border-[#e5e7eb]">
                     <div className="flex items-center gap-4">
                       <span className="text-xs text-gray-500 tracking-widest uppercase">{lOrderTotal}</span>
                       <span className="text-sm font-extrabold">{fmt(order.total)}</span>
@@ -323,7 +323,7 @@ export function MyOrdersSection() {
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => router.push('/account?tab=history')}
-                        className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold text-[var(--accent)]"
+                        className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold text-accent"
                       >
                         {lFullHist}
                       </button>
@@ -345,7 +345,7 @@ export function MyOrdersSection() {
                         && (
                           <button
                             onClick={() => { setCancelError(null); setCancelTarget(order); }}
-                            className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold text-[var(--sale)]"
+                            className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold text-(--sale)"
                           >
                             <XCircle size={11} /> Cancel
                           </button>
@@ -365,7 +365,7 @@ export function MyOrdersSection() {
           this local flow. */}
       {cancelTarget && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 px-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="cancel-order-title"
@@ -379,7 +379,7 @@ export function MyOrdersSection() {
               Do you want to cancel order <strong>{cancelTarget.id}</strong>?
             </p>
             {cancelError && (
-              <p className="text-xs text-[var(--sale)] mb-3" role="alert">{cancelError}</p>
+              <p className="text-xs text-(--sale) mb-3" role="alert">{cancelError}</p>
             )}
             <div className="flex justify-end gap-2">
               <button

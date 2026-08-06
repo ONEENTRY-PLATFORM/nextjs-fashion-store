@@ -333,7 +333,7 @@ export function DeliveryPage({
 
       <Header />
 
-      <main id="main-content" className="max-w-screen-xl mx-auto px-4 lg:px-8 pb-20">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 pb-20">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
           <CheckoutStepper currentStep={1} />

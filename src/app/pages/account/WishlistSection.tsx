@@ -112,13 +112,13 @@ export function WishlistCard({
 
   return (
     <div
-      className="relative flex flex-col bg-white group cursor-pointer font-[Inter,sans-serif] outline outline-1 outline-black"
+      className="relative flex flex-col bg-white group cursor-pointer font-[Inter,sans-serif] outline-1 outline-black"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
     >
       {/* Image */}
-      <div className="relative overflow-hidden aspect-[3/4]">
+      <div className="relative overflow-hidden aspect-3/4">
         <ImageWithFallback
           src={item.image}
           alt={item.name}
@@ -132,7 +132,7 @@ export function WishlistCard({
         {/* Sale badge */}
         {item.salePrice && (
           <div className="absolute top-3 left-3">
-            <span className="px-2 py-1 text-white text-xs tracking-wider uppercase font-medium bg-[var(--sale)] rounded-none">
+            <span className="px-2 py-1 text-white text-xs tracking-wider uppercase font-medium bg-(--sale) rounded-none">
               SALE
             </span>
           </div>
@@ -158,7 +158,7 @@ export function WishlistCard({
             onMouseLeave={() => setCartHovered(false)}
             onClick={handleAddToCart}
             className={`w-full py-2.5 text-xs tracking-widest uppercase font-medium text-white flex items-center justify-center gap-2 focus-visible:outline-none rounded-none transition-colors duration-200 ${
-              addedToCart ? 'bg-[var(--sale)]' : cartHovered ? 'bg-[var(--accent)]' : 'bg-black'
+              addedToCart ? 'bg-(--sale)' : cartHovered ? 'bg-accent' : 'bg-black'
             }`}
           >
             <ShoppingBag size={14} />
@@ -176,7 +176,7 @@ export function WishlistCard({
       </div>
 
       {/* Info panel */}
-      <div className="flex flex-col px-4 pt-3 pb-4 min-h-[96px]">
+      <div className="flex flex-col px-4 pt-3 pb-4 min-h-24">
 
         {/* Title with tooltip */}
         <div className="relative mb-1">
@@ -191,7 +191,7 @@ export function WishlistCard({
             {item.name}
           </h3>
           {showTooltip && (
-            <div className="absolute left-0 bottom-full mb-2 px-3 py-2 text-white text-xs tracking-wide pointer-events-none bg-black whitespace-normal z-[9999] max-w-[260px] leading-[1.4] shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+            <div className="absolute left-0 bottom-full mb-2 px-3 py-2 text-white text-xs tracking-wide pointer-events-none bg-black whitespace-normal z-9999 max-w-65 leading-[1.4] shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
               {item.name}
               <span className="absolute left-3 top-full w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-black" />
             </div>
@@ -202,7 +202,7 @@ export function WishlistCard({
         <div className="flex items-center gap-2 mb-2.5">
           {item.salePrice ? (
             <>
-              <span className="text-sm font-medium text-[var(--sale)]">{item.salePrice}</span>
+              <span className="text-sm font-medium text-(--sale)">{item.salePrice}</span>
               <span className="text-xs text-gray-400 line-through">{item.price}</span>
             </>
           ) : (

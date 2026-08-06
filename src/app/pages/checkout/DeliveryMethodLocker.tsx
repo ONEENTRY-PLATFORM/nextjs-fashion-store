@@ -62,7 +62,7 @@ export function DeliveryMethodLocker({
             <span className="truncate pr-2">{selectedLocker}</span>
             <ChevronDown
               size={14}
-              className={`flex-shrink-0 transition-transform duration-200 ${lockerDropOpen ? 'rotate-180' : 'rotate-0'}`}
+              className={`shrink-0 transition-transform duration-200 ${lockerDropOpen ? 'rotate-180' : 'rotate-0'}`}
             />
           </button>
           {lockerDropOpen && (

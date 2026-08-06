@@ -6,11 +6,11 @@
  */
 export function ReviewsSkeleton() {
   return (
-    <div className="px-4 lg:px-8 py-12 max-w-screen-xl mx-auto border-t border-[#e5e7eb]">
+    <div className="px-4 lg:px-8 py-12 max-w-7xl mx-auto border-t border-[#e5e7eb]">
       <div className="h-5 w-48 mb-8 bg-gray-100 animate-pulse rounded-sm" />
 
       <div className="flex flex-col lg:flex-row gap-12">
-        <div className="lg:w-64 flex-shrink-0">
+        <div className="lg:w-64 shrink-0">
           <div className="flex flex-col items-center mb-6">
             <div className="h-14 w-20 bg-gray-100 animate-pulse rounded mb-2" />
             <div className="h-4 w-24 bg-gray-100 animate-pulse rounded mb-2" />

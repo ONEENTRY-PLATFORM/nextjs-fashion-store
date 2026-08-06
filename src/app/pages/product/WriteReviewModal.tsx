@@ -79,12 +79,12 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
   const fieldLabel = 'block text-xs tracking-[0.12em] uppercase mb-2 font-semibold';
   const inputClass = (hasError: boolean) =>
     `w-full text-sm text-gray-700 placeholder-gray-300 focus-visible:outline-none px-3 py-2.5 border rounded-none ${
-      hasError ? 'border-[var(--sale)]' : 'border-[#e5e7eb]'
+      hasError ? 'border-(--sale)' : 'border-[#e5e7eb]'
     }`;
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-200 flex items-end sm:items-center justify-center"
       style={{ '--sale': SALE_COLOR } as React.CSSProperties}
       onClick={onClose}
     >
@@ -93,12 +93,12 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
         className="relative bg-white w-full sm:max-w-xl mx-0 sm:mx-4 max-h-[95vh] flex flex-col rounded-none"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <h2 className="tracking-[0.18em] uppercase text-sm font-bold">{L.title}</h2>
           <button onClick={onClose} className="p-1 hover:opacity-50 transition-opacity" aria-label={L.closeLabel}><X size={20} /></button>
         </div>
 
-        <div className="px-6 py-3 flex-shrink-0 bg-[#FFF3CD]">
+        <div className="px-6 py-3 shrink-0 bg-[#FFF3CD]">
           <p className="text-xs text-center text-[#856404] font-semibold tracking-[0.03em]">
             {L.emailBannerNote}
           </p>
@@ -122,7 +122,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
             <div>
               <label className="block text-xs tracking-[0.12em] uppercase mb-2.5 font-semibold">
-                {L.rateLabel} <span className="text-[var(--sale)]">*</span>
+                {L.rateLabel} <span className="text-(--sale)">*</span>
               </label>
               <div className="flex items-center gap-1.5">
                 {[1, 2, 3, 4, 5].map(i => (
@@ -148,12 +148,12 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
                   </span>
                 )}
               </div>
-              {errors.rating && <p className="text-xs mt-1 text-[var(--sale)]">{errors.rating}</p>}
+              {errors.rating && <p className="text-xs mt-1 text-(--sale)">{errors.rating}</p>}
             </div>
 
             <div>
               <label className={fieldLabel}>
-                {L.writeReviewLabel} <span className="text-[var(--sale)]">*</span>
+                {L.writeReviewLabel} <span className="text-(--sale)">*</span>
               </label>
               <textarea
                 value={reviewText}
@@ -162,7 +162,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
                 rows={4}
                 className={`${inputClass(!!errors.review)} resize-none`}
               />
-              {errors.review && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.review}</p>}
+              {errors.review && <p className="text-xs mt-0.5 text-(--sale)">{errors.review}</p>}
             </div>
 
             <div>
@@ -203,12 +203,12 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
         )}
 
         {!submitted && (
-          <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4">
+          <div className="shrink-0 px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4">
             <span className="text-xs text-gray-400">{submitError || L.requiredFieldsNote}</span>
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="px-10 py-3 text-xs tracking-[0.2em] uppercase text-white bg-black hover:bg-gray-800 transition-colors flex-shrink-0 rounded-none disabled:opacity-50"
+              className="px-10 py-3 text-xs tracking-[0.2em] uppercase text-white bg-black hover:bg-gray-800 transition-colors shrink-0 rounded-none disabled:opacity-50"
             >
               {isPending ? '...' : L.ctaSend}
             </button>

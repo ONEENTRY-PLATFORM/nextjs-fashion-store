@@ -44,27 +44,27 @@ function AccordionRow({
     <div className="border-b border-gray-200">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-5 focus-visible:outline-none h-[52px]"
+        className="w-full flex items-center justify-between px-5 focus-visible:outline-none h-13"
         aria-expanded={isExpanded}
       >
         <span className="flex items-center gap-2 text-[13px] font-bold tracking-[0.12em] uppercase">
           {group.label}
           {selCount > 0 && (
-            <span className="text-[11px] font-semibold tracking-normal normal-case text-[var(--accent)]">
+            <span className="text-[11px] font-semibold tracking-normal normal-case text-accent">
               ({selCount})
             </span>
           )}
         </span>
         <ChevronDown
           size={16}
-          className={`flex-shrink-0 text-[#555] transition-transform duration-[360ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          className={`shrink-0 text-[#555] transition-transform duration-360 ease-[cubic-bezier(0.4,0,0.2,1)] ${
             isExpanded ? 'rotate-180' : 'rotate-0'
           }`}
         />
       </button>
       <div
-        className={`overflow-hidden transition-[max-height] duration-[360ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-          isExpanded ? 'max-h-[1200px]' : 'max-h-0'
+        className={`overflow-hidden transition-[max-height] duration-360 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isExpanded ? 'max-h-300' : 'max-h-0'
         }`}
       >
         <FilterBody group={group} selectedFilters={selectedFilters} onToggleFilter={onToggleFilter} />
@@ -106,28 +106,28 @@ export function MobileFilterPanel({
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-white flex flex-col font-[Inter,sans-serif]"
+      className="fixed inset-0 z-60 bg-white flex flex-col font-[Inter,sans-serif]"
       style={{ '--accent': accentColor } as React.CSSProperties}
       role="dialog"
       aria-modal="true"
       aria-label={MOBILE_FILTER_ARIA.productFilters}
     >
       {/* Fixed Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-5 border-b border-gray-200 h-14">
+      <div className="shrink-0 flex items-center justify-between px-5 border-b border-gray-200 h-14">
         <button onClick={onClose} className="w-10 h-10 flex items-center justify-center focus-visible:outline-none -ml-2" aria-label={MOBILE_FILTER_ARIA.closeFilters}>
           <X size={20} strokeWidth={1.5} />
         </button>
         <h2 className="flex items-center gap-2 text-[13px] font-bold tracking-[0.22em] uppercase">
           {CVL.filtersHeading}
           {totalActive > 0 && (
-            <span className="flex items-center justify-center text-white min-w-[20px] h-5 rounded-none text-[11px] font-bold px-[5px] bg-[var(--accent)]">
+            <span className="flex items-center justify-center text-white min-w-5 h-5 rounded-none text-[11px] font-bold px-[5px] bg-accent">
               {totalActive}
             </span>
           )}
         </h2>
         <button
           onClick={() => { if (totalActive > 0) onClearAll(); }}
-          className={`focus-visible:outline-none text-xs min-w-[60px] text-right ${
+          className={`focus-visible:outline-none text-xs min-w-15 text-right ${
             totalActive > 0
               ? 'text-[#111] underline cursor-pointer'
               : 'text-gray-300 no-underline cursor-default'

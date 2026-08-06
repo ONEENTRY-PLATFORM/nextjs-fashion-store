@@ -146,7 +146,7 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
           className="object-cover object-center"
         />
         <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10 h-full flex flex-col justify-end max-w-screen-xl mx-auto px-4 lg:px-8 pb-10 lg:pb-16">
+        <div className="relative z-10 h-full flex flex-col justify-end max-w-7xl mx-auto px-4 lg:px-8 pb-10 lg:pb-16">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-white/55 text-[11px] tracking-widest uppercase mb-5">
             <button onClick={() => router.push('/')} className="hover:text-white transition-colors">
@@ -166,9 +166,9 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
       {/* ── OneEntry Demo Notice ──────────────────────────────────────── */}
       <div className="bg-[#f5f4f1] border-b border-[#e5e2db]">
-        <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2.5">
-            <Edit3 size={13} className="text-[#8a8680] flex-shrink-0" />
+            <Edit3 size={13} className="text-[#8a8680] shrink-0" />
             <p className="text-[11px] tracking-[0.15em] uppercase text-[#8a8680]">
               <span className="font-semibold text-[#5a5652]">{demoStrong}</span>
               {' '}{demoMid}{' '}
@@ -179,7 +179,7 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
             href={ctaExploreHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-shrink-0 text-[11px] font-semibold tracking-widest uppercase text-[#5a5652] border-b border-[#5a5652]/40 pb-px hover:border-[#5a5652] transition-colors whitespace-nowrap"
+            className="shrink-0 text-[11px] font-semibold tracking-widest uppercase text-[#5a5652] border-b border-[#5a5652]/40 pb-px hover:border-[#5a5652] transition-colors whitespace-nowrap"
           >
             {ctaExploreShort}
           </a>
@@ -187,14 +187,14 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       </div>
 
       {/* ── Lead ─────────────────────────────────────────────────────── */}
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-14">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-14">
         <p className="text-black/70 leading-relaxed max-w-3xl text-[clamp(1rem,1.4vw,1.15rem)] font-[Inter,sans-serif]">
           {leadParagraph}
         </p>
       </div>
 
       {/* ── Alternating Sections ─────────────────────────────────────── */}
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 space-y-0" data-testid="info-sections">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 space-y-0" data-testid="info-sections">
         {SECTIONS.map((s, i) => (
           <div
             key={i}
@@ -222,8 +222,8 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                 </div>
               </div>
               {/* Image */}
-              <div className="w-full lg:w-[45%] flex-shrink-0">
-                <div className="relative aspect-[4/3] overflow-hidden bg-[#f2f1ef]">
+              <div className="w-full lg:w-[45%] shrink-0">
+                <div className="relative aspect-4/3 overflow-hidden bg-[#f2f1ef]">
                   <Image
                     src={s.image}
                     alt={s.imageAlt}
@@ -240,7 +240,7 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
       {/* ── Stats strip ──────────────────────────────────────────────── */}
       <div className="bg-black text-white">
-        <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map((stat) => (
             <div key={stat.label}>
               <p className="text-3xl md:text-4xl font-semibold tracking-tight mb-1">{stat.value}</p>
@@ -251,7 +251,7 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       </div>
 
       {/* ── OneEntry Platform CTA ─────────────────────────────────────── */}
-      <section className="max-w-screen-xl mx-auto px-4 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20">
         <div className="text-center mb-14">
           <p className="text-[11px] tracking-[0.22em] uppercase text-black/35 font-medium mb-3">
             {ctaEyebrow}

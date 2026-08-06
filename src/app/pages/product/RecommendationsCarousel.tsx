@@ -38,7 +38,7 @@ export function RecommendationsCarousel({ products }: { products: Product[] }) {
         {products.map(p => (
           <div
             key={p.id}
-            className="flex-shrink-0 border-r border-b border-white w-1/4 min-w-[200px] snap-start"
+            className="shrink-0 border-r border-b border-white w-1/4 min-w-50 snap-start"
           >
             <ProductCard product={p} accentColor={ACCENT} />
           </div>

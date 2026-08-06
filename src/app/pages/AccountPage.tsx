@@ -125,7 +125,7 @@ export function AccountPage() {
     return (
       <div className="min-h-screen bg-white font-[Inter,sans-serif]">
         <Header />
-        <main id="main-content" className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8 pb-20">
+        <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 py-8 pb-20">
           <div className="flex items-center justify-between mb-8 border-b border-[#e5e7eb] pb-5">
             <div>
               <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{welcomeBack}</p>
@@ -133,7 +133,7 @@ export function AccountPage() {
             </div>
           </div>
           <div className="flex flex-col lg:flex-row gap-8">
-            <aside className="lg:w-60 flex-shrink-0 hidden lg:block">
+            <aside className="lg:w-60 shrink-0 hidden lg:block">
               <nav className="sticky top-24">
                 {NAV_ITEMS.map((item, idx) => (
                   <div
@@ -210,7 +210,7 @@ export function AccountPage() {
     <div className="min-h-screen bg-white font-[Inter,sans-serif]">
       <Header />
 
-      <main id="main-content" className="max-w-screen-xl mx-auto px-4 lg:px-8 py-8 pb-20">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 py-8 pb-20">
         {/* Page heading */}
         <div className="flex items-center justify-between mb-8 border-b border-[#e5e7eb] pb-5">
           <div>
@@ -240,7 +240,7 @@ export function AccountPage() {
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* ── Sidebar ── */}
-          <aside className={`lg:w-60 flex-shrink-0 ${mobileNavOpen ? 'block' : 'hidden lg:block'}`}>
+          <aside className={`lg:w-60 shrink-0 ${mobileNavOpen ? 'block' : 'hidden lg:block'}`}>
             <nav className="sticky top-24">
               {NAV_ITEMS.map((item, idx) => {
                 const active = activeSection === item.key;

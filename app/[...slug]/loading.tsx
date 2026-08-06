@@ -3,7 +3,7 @@ export default function SlugLoading() {
     <div className="min-h-screen bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
       <div className="h-33 bg-gray-100 animate-pulse" />
 
-      <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-6">
+      <div className="max-w-384 mx-auto px-4 lg:px-8 py-6">
         {/* Breadcrumb skeleton */}
         <div className="flex gap-2 mb-6">
           {Array.from({ length: 3 }).map((_, i) => (

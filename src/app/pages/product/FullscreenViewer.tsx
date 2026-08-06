@@ -49,13 +49,13 @@ export function FullscreenViewer({ images, startIndex, onClose, productName }: F
   }, [images.length]);
 
   return createPortal(
-    <div ref={containerRef} className="fixed inset-0 flex z-[99999] bg-[#111]">
-      <div className="flex flex-col gap-2 py-6 px-3 overflow-y-auto scrollbar-hide w-[88px] bg-[#1a1a1a] flex-shrink-0">
+    <div ref={containerRef} className="fixed inset-0 flex z-99999 bg-[#111]">
+      <div className="flex flex-col gap-2 py-6 px-3 overflow-y-auto scrollbar-hide w-22 bg-[#1a1a1a] shrink-0">
         {images.map((img, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`relative flex-shrink-0 overflow-hidden transition-all duration-150 focus-visible:outline-none w-16 aspect-[3/4] outline-2 outline-offset-2 ${
+            className={`relative shrink-0 overflow-hidden transition-all duration-150 focus-visible:outline-none w-16 aspect-3/4 outline-2 outline-offset-2 ${
               current === i ? 'opacity-100 outline-white' : 'opacity-45 outline-transparent'
             }`}
           >
@@ -65,7 +65,7 @@ export function FullscreenViewer({ images, startIndex, onClose, productName }: F
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 shrink-0">
           <span className="text-white/50 text-sm">{L.photoPositionTpl(current, images.length)}</span>
           <button
             onClick={onClose}

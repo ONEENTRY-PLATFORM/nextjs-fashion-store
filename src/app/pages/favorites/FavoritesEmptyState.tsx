@@ -21,10 +21,10 @@ export function FavoritesEmptyState() {
           alt={lImageAlt}
           width={192}
           height={240}
-          className="object-cover mx-auto grayscale-[30%]"
+          className="object-cover mx-auto grayscale-30"
         />
-        <div className="absolute inset-0 flex items-end justify-center pb-6 bg-gradient-to-t from-white/95 from-30% to-transparent">
-          <Heart size={40} strokeWidth={1} className="text-[var(--accent)]" />
+        <div className="absolute inset-0 flex items-end justify-center pb-6 bg-linear-to-t from-white/95 from-30% to-transparent">
+          <Heart size={40} strokeWidth={1} className="text-accent" />
         </div>
       </div>
       <h2 className="text-xl tracking-[0.15em] uppercase mb-3 font-bold">{lHeading}</h2>

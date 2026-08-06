@@ -13,7 +13,7 @@ export function RecommendationsSkeleton() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="space-y-2">
-              <div className="aspect-[3/4] w-full bg-gray-100 animate-pulse" />
+              <div className="aspect-3/4 w-full bg-gray-100 animate-pulse" />
               <div className="h-3 w-3/4 bg-gray-100 animate-pulse rounded" />
               <div className="h-3 w-1/3 bg-gray-100 animate-pulse rounded" />
             </div>

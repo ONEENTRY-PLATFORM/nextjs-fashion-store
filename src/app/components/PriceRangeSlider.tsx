@@ -14,11 +14,11 @@ export function PriceRangeSlider({ minBound, maxBound, value, onChange }: PriceR
   const rightPct = ((value[1] - minBound) / (maxBound - minBound)) * 100;
 
   return (
-    <div className="px-4 py-4 min-w-[260px]">
-      <div className="relative mb-5 h-[4px]">
+    <div className="px-4 py-4 min-w-65">
+      <div className="relative mb-5 h-1">
         <div className="absolute inset-0 bg-gray-200" />
         <div
-          className="absolute h-full bg-[var(--accent)]"
+          className="absolute h-full bg-accent"
           style={{ left: leftPct + '%', width: (rightPct - leftPct) + '%' }}
         />
       </div>

@@ -29,9 +29,9 @@ export function StoreCard({ store }: { store: Store }) {
   }, [modalOpen, closeModal]);
 
   return (
-    <div className="flex flex-col bg-white font-[Inter,sans-serif] outline outline-1 outline-black">
+    <div className="flex flex-col bg-white font-[Inter,sans-serif] outline-1 outline-black">
       {/* Image */}
-      <div className="relative overflow-hidden aspect-[16/9] bg-gray-100">
+      <div className="relative overflow-hidden aspect-16/9 bg-gray-100">
         {store.image && (
           <Image
             src={store.image}
@@ -45,7 +45,7 @@ export function StoreCard({ store }: { store: Store }) {
           {store.tag && (
             <span
               className={`px-2 py-1 text-white text-xs tracking-widest uppercase ${
-                store.tag === 'NEW' ? 'bg-[var(--accent-men)]' : 'bg-black'
+                store.tag === 'NEW' ? 'bg-(--accent-men)' : 'bg-black'
               }`}
             >
               {store.tag}
@@ -60,8 +60,8 @@ export function StoreCard({ store }: { store: Store }) {
       </div>
 
       {/* Info panel — fixed height, never expands */}
-      <div className="px-5 pt-5 pb-10 flex flex-col h-[200px]">
-        <p className="text-xs tracking-widest uppercase mb-1 text-[var(--accent)]">
+      <div className="px-5 pt-5 pb-10 flex flex-col h-50">
+        <p className="text-xs tracking-widest uppercase mb-1 text-accent">
           {store.city}
         </p>
         <h3 className="text-base uppercase tracking-wider mb-4 font-bold truncate">
@@ -70,20 +70,20 @@ export function StoreCard({ store }: { store: Store }) {
 
         <div className="flex flex-col gap-2 mb-4">
           <div className="flex items-start gap-2.5">
-            <MapPin size={13} className="mt-0.5 flex-shrink-0 text-gray-400" />
+            <MapPin size={13} className="mt-0.5 shrink-0 text-gray-400" />
             <span className="text-sm text-gray-600 truncate">
               {store.address}, {store.postcode}
             </span>
           </div>
           <div className="flex items-center gap-2.5">
-            <Phone size={13} className="flex-shrink-0 text-gray-400" />
+            <Phone size={13} className="shrink-0 text-gray-400" />
             <a href={`tel:${store.phone}`} className="text-sm text-gray-600 hover:text-black transition-colors">
               {store.phone}
             </a>
           </div>
           {store.hours[0] && (
             <div className="flex items-center gap-2.5">
-              <Clock size={13} className="flex-shrink-0 text-gray-400" />
+              <Clock size={13} className="shrink-0 text-gray-400" />
               <span className="text-sm text-gray-600">{store.hours[0].time} {L.monSatSuffix}</span>
             </div>
           )}
@@ -111,12 +111,12 @@ export function StoreCard({ store }: { store: Store }) {
 
       {/* ── Modal ── */}
       {modalOpen && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 font-[Inter,sans-serif]">
+        <div className="fixed inset-0 z-500 flex items-center justify-center p-4 font-[Inter,sans-serif]">
           <div className="absolute inset-0 bg-black/55 backdrop-blur-[6px]" onClick={closeModal} />
 
-          <div className="relative bg-white w-full flex flex-col md:flex-row overflow-hidden max-w-[780px] max-h-[90vh] outline outline-1 outline-black z-[1]">
+          <div className="relative bg-white w-full flex flex-col md:flex-row overflow-hidden max-w-195 max-h-[90vh] outline-1 outline-black z-1">
             {/* Left — store photo */}
-            <div className="md:w-2/5 flex-shrink-0 relative min-h-[220px]">
+            <div className="md:w-2/5 shrink-0 relative min-h-55">
               <Image
                 src={store.image}
                 alt={store.name}
@@ -127,7 +127,7 @@ export function StoreCard({ store }: { store: Store }) {
               {store.tag && (
                 <span
                   className={`absolute top-4 left-4 px-2 py-1 text-white text-xs tracking-widest uppercase ${
-                    store.tag === 'NEW' ? 'bg-[var(--accent-men)]' : 'bg-black'
+                    store.tag === 'NEW' ? 'bg-(--accent-men)' : 'bg-black'
                   }`}
                 >
                   {store.tag}
@@ -137,9 +137,9 @@ export function StoreCard({ store }: { store: Store }) {
 
             {/* Right — scrollable info */}
             <div className="md:w-3/5 flex flex-col overflow-y-auto max-h-[90vh]">
-              <div className="flex items-start justify-between px-7 pt-7 pb-5 flex-shrink-0 border-b border-[#e6e6e6]">
+              <div className="flex items-start justify-between px-7 pt-7 pb-5 shrink-0 border-b border-[#e6e6e6]">
                 <div>
-                  <p className="text-xs tracking-[0.25em] uppercase mb-1 text-[var(--accent)] font-semibold">
+                  <p className="text-xs tracking-[0.25em] uppercase mb-1 text-accent font-semibold">
                     {store.city}
                   </p>
                   <h2 className="text-xl uppercase tracking-wider font-bold">
@@ -148,7 +148,7 @@ export function StoreCard({ store }: { store: Store }) {
                 </div>
                 <button
                   onClick={closeModal}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors focus-visible:outline-none flex-shrink-0 ml-4"
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors focus-visible:outline-none shrink-0 ml-4"
                   aria-label={L.modalCloseLabel}
                 >
                   <span className="text-lg leading-none font-light">✕</span>
@@ -160,23 +160,23 @@ export function StoreCard({ store }: { store: Store }) {
                   <p className="text-xs tracking-widest uppercase mb-3 font-bold">{L.sectionLocation}</p>
                   <div className="flex flex-col gap-2">
                     <div className="flex items-start gap-3">
-                      <MapPin size={14} className="mt-0.5 flex-shrink-0 text-gray-400" />
+                      <MapPin size={14} className="mt-0.5 shrink-0 text-gray-400" />
                       <span className="text-sm text-gray-700">{store.address}, {store.postcode}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Phone size={14} className="flex-shrink-0 text-gray-400" />
+                      <Phone size={14} className="shrink-0 text-gray-400" />
                       <a href={`tel:${store.phone}`} className="text-sm text-gray-700 hover:text-black transition-colors">
                         {store.phone}
                       </a>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Mail size={14} className="flex-shrink-0 text-gray-400" />
+                      <Mail size={14} className="shrink-0 text-gray-400" />
                       <a href={`mailto:${store.email}`} className="text-sm text-gray-700 hover:text-black transition-colors">
                         {store.email}
                       </a>
                     </div>
                     <div className="flex items-center gap-3">
-                      <AtSign size={14} className="flex-shrink-0 text-gray-400" />
+                      <AtSign size={14} className="shrink-0 text-gray-400" />
                       <span className="text-sm text-gray-700">{store.instagram}</span>
                     </div>
                   </div>

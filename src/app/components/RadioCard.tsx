@@ -24,7 +24,7 @@ export function RadioCard({ checked, onChange, icon, title, subtitle, children }
         onClick={onChange}
       >
         <span
-          className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center bg-white border-2 ${
+          className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center bg-white border-2 ${
             checked ? 'border-black' : 'border-[#c8c8c8]'
           }`}
         >
@@ -39,7 +39,7 @@ export function RadioCard({ checked, onChange, icon, title, subtitle, children }
           </p>
           <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
         </div>
-        <span className="flex-shrink-0 text-xs px-2 py-0.5 bg-[#f0fdf4] text-green-600 border border-[#bbf7d0] rounded-none font-semibold">
+        <span className="shrink-0 text-xs px-2 py-0.5 bg-[#f0fdf4] text-green-600 border border-[#bbf7d0] rounded-none font-semibold">
           FREE
         </span>
       </button>

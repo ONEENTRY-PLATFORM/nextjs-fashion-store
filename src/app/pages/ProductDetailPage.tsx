@@ -612,21 +612,21 @@ export function ProductDetailPage({
             <Link href="/" className="hover:text-black transition-colors">{PB.home}</Link>
             {categoryBreadcrumbs.map((crumb, i) => (
               <React.Fragment key={`${crumb}-${i}`}>
-                <ChevronRight size={11} className="flex-shrink-0" />
+                <ChevronRight size={11} className="shrink-0" />
                 <span className="text-gray-400">{crumb}</span>
               </React.Fragment>
             ))}
-            <ChevronRight size={11} className="flex-shrink-0" />
-            <span className="text-black truncate max-w-[200px]">{dynamicName}</span>
+            <ChevronRight size={11} className="shrink-0" />
+            <span className="text-black truncate max-w-50">{dynamicName}</span>
           </nav>
         </div>
 
         {/* Main Product Section */}
         <div className="px-4 lg:px-8 py-6 lg:py-10">
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 max-w-screen-xl mx-auto">
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 max-w-7xl mx-auto">
 
             {/* Gallery */}
-            <div className="w-full lg:w-[55%] xl:w-[58%] lg:sticky lg:top-[132px] lg:self-start">
+            <div className="w-full lg:w-[55%] xl:w-[58%] lg:sticky lg:top-33 lg:self-start">
               <ProductGallery images={dynamicGallery} productName={dynamicName} />
             </div>
 
@@ -684,13 +684,13 @@ export function ProductDetailPage({
 
               {/* Price Block */}
               <div className="flex items-baseline gap-3 mb-1">
-                <span className={`text-2xl font-bold ${dynamicOriginalPrice ? 'text-[var(--sale)]' : 'text-black'}`}>
+                <span className={`text-2xl font-bold ${dynamicOriginalPrice ? 'text-(--sale)' : 'text-black'}`}>
                   {CURRENCY.format(dynamicPrice)}
                 </span>
                 {dynamicOriginalPrice && (
                   <>
                     <span className="text-base text-gray-400 line-through font-normal">{CURRENCY.format(dynamicOriginalPrice)}</span>
-                    <span className="px-2 py-0.5 text-white text-xs tracking-widest uppercase bg-[var(--sale)] rounded-none font-semibold">
+                    <span className="px-2 py-0.5 text-white text-xs tracking-widest uppercase bg-(--sale) rounded-none font-semibold">
                       −{Math.round((1 - dynamicPrice / dynamicOriginalPrice) * 100)}%
                     </span>
                   </>
@@ -728,8 +728,8 @@ export function ProductDetailPage({
                       onClick={() => setSelectedColor(i)}
                       disabled={!c.available}
                       className={`relative group w-8 h-8 rounded-none outline-offset-2 ${
-                        selectedColor === i ? 'border-2 border-black outline outline-1 outline-black' : 'border-[1.5px] border-[#e0e0e0]'
-                      } ${c.available ? 'opacity-100 cursor-pointer' : 'opacity-[0.35] cursor-not-allowed'} ${
+                        selectedColor === i ? 'border-2 border-black outline-1 outline-black' : 'border-[1.5px] border-[#e0e0e0]'
+                      } ${c.available ? 'opacity-100 cursor-pointer' : 'opacity-35 cursor-not-allowed'} ${
                         c.hex === '#FFFFFF' ? 'shadow-[inset_0_0_0_1px_#ddd]' : ''
                       }`}
                       title={c.name + (!c.available ? lOutOfStockTitle : '')}
@@ -751,7 +751,7 @@ export function ProductDetailPage({
                   <span className="text-xs tracking-[0.12em] uppercase font-semibold">
                     {lSizeLabel}{selectedSize ? `: ${selectedSize}` : ''}
                     {sizeError && (
-                      <span className="ml-2 text-xs font-normal normal-case tracking-normal text-[var(--sale)]">
+                      <span className="ml-2 text-xs font-normal normal-case tracking-normal text-(--sale)">
                         {lSizeError}
                       </span>
                     )}
@@ -769,13 +769,13 @@ export function ProductDetailPage({
                       key={`${s.label}-${i}`}
                       onClick={() => s.available && setSelectedSize(s.label)}
                       disabled={!s.available}
-                      className={`transition-all duration-150 text-xs w-[52px] h-11 rounded-md ${
+                      className={`transition-all duration-150 text-xs w-13 h-11 rounded-md ${
                         s.available ? 'cursor-pointer' : 'cursor-not-allowed line-through'
                       } ${
                         selectedSize === s.label
                           ? 'border-2 border-black bg-black text-white font-semibold'
                           : sizeError && !selectedSize
-                            ? `border border-[var(--sale)] bg-white font-normal ${!s.available ? 'text-[#ccc]' : 'text-black'}`
+                            ? `border border-(--sale) bg-white font-normal ${!s.available ? 'text-[#ccc]' : 'text-black'}`
                             : `border border-[#d1d5db] bg-white font-normal ${!s.available ? 'text-[#ccc]' : 'text-black'}`
                       }`}
                     >
@@ -785,7 +785,7 @@ export function ProductDetailPage({
                 </div>
 
                 <div className="flex items-center gap-2 mt-3">
-                  <MapPin size={12} className="text-gray-400 flex-shrink-0" />
+                  <MapPin size={12} className="text-gray-400 shrink-0" />
                   <p className="text-xs text-gray-500">
                     {lStoreAvailableIn}{' '}
                     <select
@@ -818,7 +818,7 @@ export function ProductDetailPage({
                     onMouseLeave={() => setCartHovered(false)}
                     onClick={handleAddToCart}
                     className={`w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-white focus-visible:outline-none transition-colors duration-200 rounded-lg ${
-                      addedToCart ? 'bg-[var(--sale)]' : cartHovered ? 'bg-[var(--accent)]' : 'bg-black'
+                      addedToCart ? 'bg-(--sale)' : cartHovered ? 'bg-accent' : 'bg-black'
                     }`}
                   >
                     {addedToCart
@@ -888,7 +888,7 @@ export function ProductDetailPage({
               <div className="flex flex-col gap-2.5 pt-5 border-t border-gray-200">
                 {deliverySnippets.map(item => (
                   <div key={item.text} className="flex items-center gap-2.5 text-xs text-gray-600">
-                    <span className="flex-shrink-0 text-gray-400">{DELIVERY_ICONS[item.iconKey]}</span>
+                    <span className="shrink-0 text-gray-400">{DELIVERY_ICONS[item.iconKey]}</span>
                     {item.text}
                   </div>
                 ))}
@@ -922,7 +922,7 @@ export function ProductDetailPage({
                         <ul className="space-y-1.5 text-xs text-gray-600 pt-2">
                           {catalogProduct?.productDetails?.map((d) => (
                             <li key={d} className="flex items-center gap-2">
-                              <span className="w-1 h-1 bg-black rounded-full flex-shrink-0" />
+                              <span className="w-1 h-1 bg-black rounded-full shrink-0" />
                               {d}
                             </li>
                           ))}
@@ -946,7 +946,7 @@ export function ProductDetailPage({
                           : <Truck size={15} />;
                       return (
                         <div key={d.title} className="flex gap-3">
-                          <span className="flex-shrink-0 mt-0.5 text-gray-400">{icon}</span>
+                          <span className="shrink-0 mt-0.5 text-gray-400">{icon}</span>
                           <div>
                             <p className="text-xs font-semibold">{d.title}</p>
                             <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{d.desc}</p>

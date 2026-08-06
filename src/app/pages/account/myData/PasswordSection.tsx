@@ -67,7 +67,7 @@ export function PasswordSection() {
           <FormInput label={lNew} value={newPw} onChange={setNewPw} type="password" placeholder={L.newPlaceholder} />
           <FormInput label={lConfirm} value={confirmPw} onChange={setConfirmPw} type="password" placeholder={L.confirmPlaceholder} />
           {msg && (
-            <p className={`text-xs ${msg.includes('success') ? 'text-green-600' : 'text-[var(--sale)]'}`}>
+            <p className={`text-xs ${msg.includes('success') ? 'text-green-600' : 'text-(--sale)'}`}>
               {msg}
             </p>
           )}

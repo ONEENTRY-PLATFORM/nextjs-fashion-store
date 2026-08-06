@@ -201,7 +201,7 @@ export function FavoritesPage({
                   <span className="text-xs text-gray-500">{lConfirm}</span>
                   <button
                     onClick={() => { clearAll(); setShowClearConfirm(false); }}
-                    className="px-3 py-1.5 text-white text-xs uppercase focus-visible:outline-none bg-[var(--sale)] font-bold"
+                    className="px-3 py-1.5 text-white text-xs uppercase focus-visible:outline-none bg-(--sale) font-bold"
                   >
                     {lYes}
                   </button>
@@ -227,7 +227,7 @@ export function FavoritesPage({
                 className="flex flex-col bg-white [animation-delay:var(--delay)]"
                 style={{ '--delay': `${i * 60}ms` } as React.CSSProperties}
               >
-                <div className="aspect-[3/4] bg-gray-100 animate-pulse" />
+                <div className="aspect-3/4 bg-gray-100 animate-pulse" />
                 <div className="p-3 flex flex-col gap-2">
                   <div className="h-3 bg-gray-100 animate-pulse rounded w-1/3" />
                   <div className="h-3 bg-gray-100 animate-pulse rounded w-2/3" />
@@ -244,7 +244,7 @@ export function FavoritesPage({
             {/* Price drop notice */}
             {items.some(i => i.priceAlert) && (
               <div className="flex items-center gap-3 px-4 py-3 mb-0 text-sm bg-[#FFFBEB] border border-[#FDE68A]">
-                <AlertTriangle size={16} className="text-[#D97706] flex-shrink-0" />
+                <AlertTriangle size={16} className="text-[#D97706] shrink-0" />
                 <p className="text-[#92400E]">
                   <span className="font-bold">{lDropTitle}</span>
                   {' '}{lDropBody}

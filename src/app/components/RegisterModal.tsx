@@ -16,7 +16,7 @@ function Checkbox({ checked, onChange, children }: { checked: boolean; onChange:
   return (
     <label className="flex items-start gap-3 cursor-pointer text-xs text-gray-600 leading-relaxed">
       <span
-        className={`flex-shrink-0 w-4 h-4 mt-0.5 flex items-center justify-center border transition-colors duration-150 ${
+        className={`shrink-0 w-4 h-4 mt-0.5 flex items-center justify-center border transition-colors duration-150 ${
           checked ? 'border-black bg-black' : 'border-gray-300 bg-white'
         }`}
         onClick={onChange}
@@ -116,7 +116,7 @@ export function RegisterModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={closeRegisterModal} />
       <div
         ref={trapRef}
@@ -148,7 +148,7 @@ export function RegisterModal() {
           {authProvidersLoading ? (
             <div className="grid grid-cols-1 gap-2" aria-busy="true" aria-label="Loading sign-up options">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="py-3 h-[38px] border border-gray-200 bg-gray-100 animate-pulse" />
+                <div key={i} className="py-3 h-9.5 border border-gray-200 bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : socialProviders.length > 0 ? (

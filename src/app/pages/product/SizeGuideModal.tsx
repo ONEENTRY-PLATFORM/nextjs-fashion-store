@@ -10,7 +10,7 @@ export function SizeGuideModal({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-200 flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" />
       <div
         className="relative bg-white w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto rounded-none"

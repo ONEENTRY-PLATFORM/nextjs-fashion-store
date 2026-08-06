@@ -93,7 +93,7 @@ export function ServiceMaintenanceSection() {
       <SectionTitle title={title} />
 
       {/* Stats banner */}
-      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[var(--banner-bg)]">
+      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-(--banner-bg)">
         <div>
           <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{eyebrow}</p>
           <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.2rem)] font-bold">
@@ -119,9 +119,9 @@ export function ServiceMaintenanceSection() {
             onClick={() => setShowForm(v => !v)}
             className={`px-4 py-2.5 text-xs tracking-[0.15em] uppercase text-white flex items-center gap-1.5 focus-visible:outline-none transition-colors font-bold ${
               showForm
-                ? 'bg-[var(--sale)]'
+                ? 'bg-(--sale)'
                 : hoveredBtn === 'new'
-                  ? 'bg-[var(--accent)]'
+                  ? 'bg-accent'
                   : 'bg-black'
             }`}
           >
@@ -167,7 +167,7 @@ export function ServiceMaintenanceSection() {
       {loading ? (
         <div className="space-y-px bg-black" aria-busy="true" aria-label="Loading service requests">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-4 bg-white h-[112px]">
+            <div key={i} className="flex items-center gap-4 p-4 bg-white h-28">
               <div className="w-20 h-24 bg-gray-100 animate-pulse" />
               <div className="flex-1 space-y-2">
                 <div className="h-3 w-56 bg-gray-100 animate-pulse" />
@@ -179,7 +179,7 @@ export function ServiceMaintenanceSection() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[var(--banner-bg)]">
+        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-(--banner-bg)">
           <p className="text-sm text-gray-400 text-center">{L.emptyFiltered}</p>
         </div>
       ) : (
@@ -194,7 +194,7 @@ export function ServiceMaintenanceSection() {
                 <div className="flex items-center gap-4 px-5 py-4">
                   <button
                     onClick={() => toggle(req.id)}
-                    className={`w-7 h-7 flex items-center justify-center flex-shrink-0 focus-visible:outline-none ${
+                    className={`w-7 h-7 flex items-center justify-center shrink-0 focus-visible:outline-none ${
                       isOpen ? 'bg-black' : 'bg-gray-100'
                     }`}
                   >
@@ -205,7 +205,7 @@ export function ServiceMaintenanceSection() {
                     />
                   </button>
 
-                  <div className="relative flex-shrink-0 overflow-hidden w-12 h-[60px]">
+                  <div className="relative shrink-0 overflow-hidden w-12 h-15">
                     <ImageWithFallback src={req.img} alt={req.item} fill sizes="48px" className="object-cover" />
                   </div>
 
@@ -231,10 +231,10 @@ export function ServiceMaintenanceSection() {
                   </div>
 
                   <span
-                    className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 text-[10px] tracking-wider uppercase flex-shrink-0 border font-bold"
+                    className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 text-[10px] tracking-wider uppercase shrink-0 border font-bold"
                     style={{ backgroundColor: cfg.bg, borderColor: cfg.border, color: cfg.text }}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cfg.dot }} />
                     {cfg.label}
                   </span>
                 </div>
@@ -311,7 +311,7 @@ export function ServiceMaintenanceSection() {
 
                     {/* Notes */}
                     <div className="px-5 py-3 flex items-start gap-2 bg-[#fffbeb] border-t border-[#fde68a]">
-                      <AlertTriangle size={12} color="#b45309" className="mt-0.5 flex-shrink-0" />
+                      <AlertTriangle size={12} color="#b45309" className="mt-0.5 shrink-0" />
                       <p className="text-xs text-[#b45309]">{req.notes}</p>
                     </div>
                   </div>

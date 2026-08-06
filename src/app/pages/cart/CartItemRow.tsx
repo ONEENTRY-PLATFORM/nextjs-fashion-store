@@ -39,7 +39,7 @@ export function CartItemRow({
         isLast ? '' : 'border-b border-[#e5e7eb]'
       } ${isSelected ? 'bg-[#fafafa]' : 'bg-white'}`}
     >
-      <div className="flex-shrink-0 pt-1">
+      <div className="shrink-0 pt-1">
         <span
           className={`w-4 h-4 flex items-center justify-center cursor-pointer rounded-none border-[1.5px] ${
             isSelected ? 'border-black bg-black' : 'border-[#c8c8c8] bg-white'
@@ -50,7 +50,7 @@ export function CartItemRow({
         </span>
       </div>
 
-      <div className="relative flex-shrink-0 w-[110px] h-[140px]">
+      <div className="relative shrink-0 w-27.5 h-35">
         <ImageWithFallback src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
       </div>
 
@@ -71,7 +71,7 @@ export function CartItemRow({
             <button
               onClick={onToggleWishlist}
               className={`flex items-center gap-1 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity ${
-                inWishlist ? 'text-[var(--accent)]' : 'text-gray-500'
+                inWishlist ? 'text-accent' : 'text-gray-500'
               }`}
               aria-label={L.removeWishlist}
             >
@@ -86,12 +86,12 @@ export function CartItemRow({
         </div>
       </div>
 
-      <div className="flex-shrink-0 text-right">
+      <div className="shrink-0 text-right">
         <p className="text-base font-bold">{fmt(item.price * item.quantity)}</p>
         {item.originalPrice && item.originalPrice > item.price && (
           <>
             <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
-            <p className="text-xs mt-0.5 text-[var(--sale)] font-semibold">-{fmt((item.originalPrice - item.price) * item.quantity)}</p>
+            <p className="text-xs mt-0.5 text-(--sale) font-semibold">-{fmt((item.originalPrice - item.price) * item.quantity)}</p>
           </>
         )}
       </div>

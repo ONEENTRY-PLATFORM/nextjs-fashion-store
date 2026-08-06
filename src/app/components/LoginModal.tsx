@@ -13,7 +13,7 @@ import { useSignUpFormSchema } from '../../lib/oneentry/auth/SignUpFormSchemaCon
 import { useAuthProviders } from '../hooks/useAuthProviders';
 import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../data/socialProviderRegistry';
 
-const SOCIAL_LOGO_CLASS = 'w-[18px] h-[18px]';
+const SOCIAL_LOGO_CLASS = 'w-4.5 h-4.5';
 
 function SocialBtn({
   iconPath,
@@ -129,7 +129,7 @@ export function LoginModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-300 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={closeLoginModal} />
       <div
         ref={trapRef}
@@ -161,7 +161,7 @@ export function LoginModal() {
           {authProvidersLoading ? (
             <div className="space-y-2.5" aria-busy="true" aria-label="Loading sign-in options">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="w-full py-3 h-[46px] border border-gray-200 bg-gray-100 animate-pulse" />
+                <div key={i} className="w-full py-3 h-11.5 border border-gray-200 bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : socialProviders.length > 0 ? (

@@ -143,7 +143,7 @@ export function WaitingListSection() {
       <SectionTitle title={title} />
 
       {/* Header banner */}
-      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[var(--banner-bg)]">
+      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-(--banner-bg)">
         <div>
           <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{bannerEye}</p>
           <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.2rem)] font-bold">
@@ -163,7 +163,7 @@ export function WaitingListSection() {
       {loading ? (
         <div className="space-y-px bg-black" aria-busy="true" aria-label="Loading waiting list">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-4 p-4 bg-white h-[112px]">
+            <div key={i} className="flex items-center gap-4 p-4 bg-white h-28">
               <div className="w-20 h-24 bg-gray-100 animate-pulse" />
               <div className="flex-1 space-y-2">
                 <div className="h-3 w-40 bg-gray-100 animate-pulse" />
@@ -175,7 +175,7 @@ export function WaitingListSection() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[var(--banner-bg)]">
+        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-(--banner-bg)">
           <Bell size={32} className="text-gray-300" />
           <p className="text-sm text-gray-400 text-center max-w-xs">{L.emptyText}</p>
         </div>
@@ -199,7 +199,7 @@ export function WaitingListSection() {
                 aria-label={`${L.viewProductPrefix} ${item.name}`}
               >
                 {/* Image */}
-                <div className="relative flex-shrink-0 overflow-hidden w-[110px] h-[140px]">
+                <div className="relative shrink-0 overflow-hidden w-27.5 h-35">
                   <ImageWithFallback src={item.img} alt={item.name} fill sizes="110px" className="object-cover" />
                   <div
                     className="absolute top-2 left-2 px-2 py-0.5 text-[10px] tracking-wider uppercase border font-bold"
@@ -221,7 +221,7 @@ export function WaitingListSection() {
                       </div>
                       <p className="text-xs text-gray-300 mt-1">{addedPfx} {item.addedDate}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleNotify(item.id); }}
                         aria-label={item.notify ? `${L.notifyDisableAria} ${item.name}` : `${L.notifyEnableAria} ${item.name}`}
@@ -253,9 +253,9 @@ export function WaitingListSection() {
                         !canAdd
                           ? 'bg-gray-300 cursor-not-allowed'
                           : isAdded
-                            ? 'bg-[var(--sale)] cursor-pointer'
+                            ? 'bg-(--sale) cursor-pointer'
                             : hoveredAdd === item.id
-                              ? 'bg-[var(--accent)] cursor-pointer'
+                              ? 'bg-accent cursor-pointer'
                               : 'bg-black cursor-pointer'
                       }`}
                     >
@@ -273,7 +273,7 @@ export function WaitingListSection() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white mt-10">
         {howSteps.map(s => (
           <div key={s.step} className="bg-white px-5 py-6">
-            <p className="text-xs tracking-widest mb-2 font-extrabold text-[var(--accent)]">{s.step}</p>
+            <p className="text-xs tracking-widest mb-2 font-extrabold text-accent">{s.step}</p>
             <p className="text-sm mb-1.5 font-bold">{s.title}</p>
             <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
           </div>

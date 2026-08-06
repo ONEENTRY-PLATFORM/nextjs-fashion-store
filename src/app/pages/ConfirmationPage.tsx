@@ -99,7 +99,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
     >
       <Header />
 
-      <main id="main-content" className="max-w-screen-xl mx-auto px-4 lg:px-8 pb-20">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 pb-20">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
           <CheckoutStepper currentStep={3} />
@@ -114,7 +114,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
           </div>
 
           {/* Heading */}
-          <h1 className="text-2xl tracking-[0.1em] uppercase mb-2 font-bold">
+          <h1 className="text-2xl tracking-widest uppercase mb-2 font-bold">
             {lHeading}
           </h1>
           <p className="text-gray-500 text-sm mb-6">
@@ -123,7 +123,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
 
           {/* Order ID */}
           <div className="inline-flex items-center gap-3 px-6 py-3 mb-8 border border-[#e5e7eb] bg-[#fafafa]">
-            <Package size={16} className="text-[var(--accent)]" />
+            <Package size={16} className="text-accent" />
             <span className="text-sm">
               {lOrderIdLabel}: <strong>{orderId}</strong>
             </span>
@@ -136,7 +136,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
                 key={card.title}
                 className="flex flex-col items-center gap-2 px-4 py-5 text-center border border-[#e5e7eb]"
               >
-                <span className="text-[var(--accent)]">{ICON_MAP[card.iconKey]}</span>
+                <span className="text-accent">{ICON_MAP[card.iconKey]}</span>
                 <p className="text-xs tracking-wide uppercase font-bold">
                   {card.title}
                 </p>
@@ -158,14 +158,14 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
                   key={item.id}
                   className="flex items-center gap-4 px-5 py-4 border-b border-[#f0f0f0]"
                 >
-                  <div className="relative w-12 h-14 flex-shrink-0">
+                  <div className="relative w-12 h-14 shrink-0">
                     <ImageWithFallback src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{item.name}</p>
                     <p className="text-xs text-gray-400">{CLL.sizeLabel} {item.size} · {CLL.qtyLabel} {item.quantity}</p>
                   </div>
-                  <p className="text-sm flex-shrink-0 font-bold">
+                  <p className="text-sm shrink-0 font-bold">
                     {fmt(item.price * item.quantity)}
                   </p>
                 </div>
@@ -178,8 +178,8 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
           )}
 
           {/* Loyalty points */}
-          <div className="flex items-center justify-center gap-2 px-6 py-3 mb-8 bg-[#fff8f8] border border-[var(--accent)]">
-            <span className="text-base text-[var(--accent)]">★</span>
+          <div className="flex items-center justify-center gap-2 px-6 py-3 mb-8 bg-[#fff8f8] border border-accent">
+            <span className="text-base text-accent">★</span>
             <span className="text-sm text-[#555]">
               {lLoyaltyPre} <strong className="text-black">{Math.floor((paidTotal ?? total) * 10)} {lLoyaltyAmt}</strong> {lLoyaltySuf}
             </span>

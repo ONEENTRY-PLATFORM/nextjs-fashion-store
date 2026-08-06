@@ -98,12 +98,12 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
   // Input borders depend on per-field error state, so we generate a helper.
   const inputClass = (hasError: boolean) =>
     `w-full text-sm text-gray-700 placeholder-gray-300 focus-visible:outline-none px-3 py-2.5 border rounded-none ${
-      hasError ? 'border-[var(--sale)]' : 'border-[#e5e7eb]'
+      hasError ? 'border-(--sale)' : 'border-[#e5e7eb]'
     }`;
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-200 flex items-end sm:items-center justify-center"
       style={{ '--sale': SALE_COLOR } as React.CSSProperties}
       onClick={onClose}
     >
@@ -112,7 +112,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
         className="relative bg-white w-full sm:max-w-xl mx-0 sm:mx-4 max-h-[95vh] flex flex-col rounded-none"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2.5">
             <Store size={16} />
             <h2 className="tracking-[0.18em] uppercase text-sm font-bold">{lTitle}</h2>
@@ -120,7 +120,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
           <button onClick={onClose} className="p-1 hover:opacity-50 transition-opacity" aria-label={L.closeLabel}><X size={20} /></button>
         </div>
 
-        <div className="px-6 py-3 flex-shrink-0 bg-gray-50 border-b border-gray-100">
+        <div className="px-6 py-3 shrink-0 bg-gray-50 border-b border-gray-100">
           <p className="text-xs text-gray-500 leading-relaxed">
             {L.blurbPrefix}{' '}
             <span className="font-semibold text-black">{L.blurbHoldDuration}</span>{L.blurbSuffix}
@@ -143,7 +143,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                 [L.receiptName, `${firstName} ${lastName}`],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between text-xs gap-4">
-                  <span className="text-gray-400 flex-shrink-0">{label}</span>
+                  <span className="text-gray-400 shrink-0">{label}</span>
                   <span className="font-semibold text-right">{value}</span>
                 </div>
               ))}
@@ -163,7 +163,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
             <div className="px-6 py-6 space-y-7">
               <div>
                 <p className="text-xs tracking-[0.12em] uppercase mb-3 font-semibold">
-                  {lSelStore} <span className="text-[var(--sale)]">*</span>
+                  {lSelStore} <span className="text-(--sale)">*</span>
                 </p>
                 <div className="space-y-2" data-testid="reserve-store-list">
                   {stores.map(s => {
@@ -177,13 +177,13 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                           active
                             ? 'border-black bg-black'
                             : errors.store
-                              ? 'border-[var(--sale)] bg-white'
+                              ? 'border-(--sale) bg-white'
                               : 'border-[#e5e7eb] bg-white'
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className={`mt-0.5 w-4 h-4 border-2 flex-shrink-0 flex items-center justify-center rounded-none ${
+                            className={`mt-0.5 w-4 h-4 border-2 shrink-0 flex items-center justify-center rounded-none ${
                               active ? 'border-white' : 'border-[#d1d5db]'
                             }`}
                           >
@@ -198,12 +198,12 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                     );
                   })}
                 </div>
-                {errors.store && <p className="text-xs mt-1.5 text-[var(--sale)]">{errors.store}</p>}
+                {errors.store && <p className="text-xs mt-1.5 text-(--sale)">{errors.store}</p>}
               </div>
 
               <div>
                 <p className="text-xs tracking-[0.12em] uppercase mb-3 font-semibold">
-                  {lSelSize} <span className="text-[var(--sale)]">*</span>
+                  {lSelSize} <span className="text-(--sale)">*</span>
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {sizeOptions.map(s => {
@@ -219,21 +219,21 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                           active
                             ? 'border-black bg-black text-white'
                             : errors.size
-                              ? `border-[var(--sale)] bg-white ${s.available ? 'text-black' : 'text-gray-300'}`
+                              ? `border-(--sale) bg-white ${s.available ? 'text-black' : 'text-gray-300'}`
                               : `border-[#e5e7eb] bg-white ${s.available ? 'text-black' : 'text-gray-300'}`
                         }`}
                       >
                         {s.label}
                         {!s.available && (
                           <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="absolute top-1/2 -left-0.5 -right-0.5 h-px bg-gray-300 -rotate-[20deg]" />
+                            <span className="absolute top-1/2 -left-0.5 -right-0.5 h-px bg-gray-300 rotate-[-20deg]" />
                           </span>
                         )}
                       </button>
                     );
                   })}
                 </div>
-                {errors.size && <p className="text-xs mt-1.5 text-[var(--sale)]">{errors.size}</p>}
+                {errors.size && <p className="text-xs mt-1.5 text-(--sale)">{errors.size}</p>}
               </div>
 
               <div>
@@ -241,28 +241,28 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">{L.labelFirstName} <span className="text-[var(--sale)]">*</span></label>
+                      <label className="block text-xs text-gray-500 mb-1.5">{L.labelFirstName} <span className="text-(--sale)">*</span></label>
                       <input
                         value={firstName}
                         onChange={e => { setFirstName(e.target.value); setErrors(err => ({ ...err, firstName: '' })); }}
                         placeholder={L.placeholderFirstName}
                         className={inputClass(!!errors.firstName)}
                       />
-                      {errors.firstName && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.firstName}</p>}
+                      {errors.firstName && <p className="text-xs mt-0.5 text-(--sale)">{errors.firstName}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">{L.labelLastName} <span className="text-[var(--sale)]">*</span></label>
+                      <label className="block text-xs text-gray-500 mb-1.5">{L.labelLastName} <span className="text-(--sale)">*</span></label>
                       <input
                         value={lastName}
                         onChange={e => { setLastName(e.target.value); setErrors(err => ({ ...err, lastName: '' })); }}
                         placeholder={L.placeholderLastName}
                         className={inputClass(!!errors.lastName)}
                       />
-                      {errors.lastName && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.lastName}</p>}
+                      {errors.lastName && <p className="text-xs mt-0.5 text-(--sale)">{errors.lastName}</p>}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelPhone} <span className="text-[var(--sale)]">*</span></label>
+                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelPhone} <span className="text-(--sale)">*</span></label>
                     <input
                       value={phone}
                       onChange={e => { setPhone(e.target.value); setErrors(err => ({ ...err, phone: '' })); }}
@@ -270,10 +270,10 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       type="tel"
                       className={inputClass(!!errors.phone)}
                     />
-                    {errors.phone && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.phone}</p>}
+                    {errors.phone && <p className="text-xs mt-0.5 text-(--sale)">{errors.phone}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelEmail} <span className="text-[var(--sale)]">*</span></label>
+                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelEmail} <span className="text-(--sale)">*</span></label>
                     <input
                       value={email}
                       onChange={e => { setEmail(e.target.value); setErrors(err => ({ ...err, email: '' })); }}
@@ -281,10 +281,10 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       type="email"
                       className={inputClass(!!errors.email)}
                     />
-                    {errors.email && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.email}</p>}
+                    {errors.email && <p className="text-xs mt-0.5 text-(--sale)">{errors.email}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelPickup} <span className="text-[var(--sale)]">*</span></label>
+                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelPickup} <span className="text-(--sale)">*</span></label>
                     <input
                       value={pickupDate}
                       onChange={e => { setPickupDate(e.target.value); setErrors(err => ({ ...err, pickupDate: '' })); }}
@@ -292,7 +292,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       min={minDate}
                       className={inputClass(!!errors.pickupDate)}
                     />
-                    {errors.pickupDate && <p className="text-xs mt-0.5 text-[var(--sale)]">{errors.pickupDate}</p>}
+                    {errors.pickupDate && <p className="text-xs mt-0.5 text-(--sale)">{errors.pickupDate}</p>}
                   </div>
                 </div>
               </div>
@@ -301,10 +301,10 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                 <label className="flex items-start gap-3 cursor-pointer">
                   <div
                     onClick={() => { setAgreed(a => !a); setErrors(e => ({ ...e, agreed: '' })); }}
-                    className={`flex-shrink-0 w-4 h-4 border mt-0.5 flex items-center justify-center transition-colors rounded-none cursor-pointer ${
+                    className={`shrink-0 w-4 h-4 border mt-0.5 flex items-center justify-center transition-colors rounded-none cursor-pointer ${
                       agreed ? 'bg-black' : 'bg-white'
                     } ${
-                      errors.agreed ? 'border-[var(--sale)]' : agreed ? 'border-black' : 'border-[#d1d5db]'
+                      errors.agreed ? 'border-(--sale)' : agreed ? 'border-black' : 'border-[#d1d5db]'
                     }`}
                   >
                     {agreed && <Check size={10} className="text-white" strokeWidth={3} />}
@@ -314,19 +314,19 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                     <span className="font-semibold">{L.termsHold}</span> {L.termsSuffix}
                   </span>
                 </label>
-                {errors.agreed && <p className="text-xs mt-1.5 ml-7 text-[var(--sale)]">{errors.agreed}</p>}
+                {errors.agreed && <p className="text-xs mt-1.5 ml-7 text-(--sale)">{errors.agreed}</p>}
               </div>
             </div>
           </div>
         )}
 
         {!submitted && (
-          <div className="flex-shrink-0 px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4">
+          <div className="shrink-0 px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4">
             <span className="text-xs text-gray-400">{submitError || L.requiredFieldsNote}</span>
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="px-10 py-3 text-xs tracking-[0.2em] uppercase text-white bg-black hover:bg-gray-800 transition-colors flex-shrink-0 rounded-none disabled:opacity-50"
+              className="px-10 py-3 text-xs tracking-[0.2em] uppercase text-white bg-black hover:bg-gray-800 transition-colors shrink-0 rounded-none disabled:opacity-50"
             >
               {isPending ? '...' : L.ctaReserve}
             </button>

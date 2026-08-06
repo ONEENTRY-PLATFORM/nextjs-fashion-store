@@ -44,7 +44,7 @@ export function FormInput({ label, value, onChange, type = 'text', placeholder, 
     <div style={{ '--sale': SALE_COLOR } as React.CSSProperties}>
       <label
         className={`block text-xs uppercase tracking-wide mb-1.5 font-semibold ${
-          error ? 'text-[var(--sale)]' : 'text-[#555]'
+          error ? 'text-(--sale)' : 'text-[#555]'
         }`}
       >
         {label}
@@ -55,12 +55,12 @@ export function FormInput({ label, value, onChange, type = 'text', placeholder, 
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className={`w-full px-3 py-2.5 text-sm outline-none border rounded-none ${
-          error ? 'border-[var(--sale)]' : 'border-[#d1d5db]'
+          error ? 'border-(--sale)' : 'border-[#d1d5db]'
         }`}
         onFocus={e => (e.target.style.borderColor = error ? SALE_COLOR : '#000')}
         onBlur={e => (e.target.style.borderColor = error ? SALE_COLOR : '#d1d5db')}
       />
-      {error && <p className="text-xs mt-1 text-[var(--sale)]">{error}</p>}
+      {error && <p className="text-xs mt-1 text-(--sale)">{error}</p>}
     </div>
   );
 }
@@ -103,7 +103,7 @@ export function MyOrdersSkeleton() {
       <Sk w="w-40" h="h-6" className="mb-6" />
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="flex items-center gap-4 p-4 border border-[#e5e7eb]">
-          <Sk w="w-16" h="h-20" className="flex-shrink-0" />
+          <Sk w="w-16" h="h-20" className="shrink-0" />
           <div className="flex-1 space-y-2">
             <Sk w="w-32" h="h-4" />
             <Sk w="w-24" h="h-3" />
@@ -221,7 +221,7 @@ export function WaitingListSkeleton() {
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4 p-4 border border-[#e5e7eb]">
-              <Sk w="w-14" h="h-16" className="flex-shrink-0" />
+              <Sk w="w-14" h="h-16" className="shrink-0" />
               <div className="flex-1 space-y-2">
                 <Sk w="w-20" h="h-5" />
                 <Sk w="w-40" h="h-4" />
@@ -284,7 +284,7 @@ export function SubscriptionsSkeleton() {
             <Sk w="w-40" h="h-4" />
             <Sk w="w-64" h="h-3" />
           </div>
-          <Sk w="w-12" h="h-6" className="rounded-full flex-shrink-0" />
+          <Sk w="w-12" h="h-6" className="rounded-full shrink-0" />
         </div>
       ))}
     </div>

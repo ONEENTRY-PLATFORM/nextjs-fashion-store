@@ -118,7 +118,7 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
                 )}
               </div>
               {parsed.subtitle && (
-                <p className="text-white mb-6 text-[13px] opacity-70 max-w-[320px]">
+                <p className="text-white mb-6 text-[13px] opacity-70 max-w-80">
                   {parsed.subtitle}
                 </p>
               )}
@@ -126,7 +126,7 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
           )}
           <a
             href={L.heroShopSaleHref}
-            className="self-start flex items-center gap-2 px-6 py-3 text-xs tracking-widest uppercase text-white focus-visible:outline-none hover:gap-3 transition-all bg-[var(--sale)] rounded-lg font-semibold"
+            className="self-start flex items-center gap-2 px-6 py-3 text-xs tracking-widest uppercase text-white focus-visible:outline-none hover:gap-3 transition-all bg-(--sale) rounded-lg font-semibold"
           >
             {ctaLabel} <ChevronRight size={13} />
           </a>
@@ -152,7 +152,7 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--sale)]" />
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-(--sale)" />
     </div>
   );
 }

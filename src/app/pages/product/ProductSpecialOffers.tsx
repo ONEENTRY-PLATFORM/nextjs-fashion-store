@@ -26,7 +26,7 @@ export function ProductSpecialOffers({ offers, onAddBundle }: ProductSpecialOffe
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs tracking-[0.15em] uppercase font-bold">{L.sectionTitle}</span>
-        <span className="text-xs px-2 py-0.5 text-white tracking-widest uppercase bg-[var(--sale)] rounded-sm font-semibold">
+        <span className="text-xs px-2 py-0.5 text-white tracking-widest uppercase bg-(--sale) rounded-sm font-semibold">
           {lLimited}
         </span>
       </div>
@@ -46,7 +46,7 @@ export function ProductSpecialOffers({ offers, onAddBundle }: ProductSpecialOffe
                     className="flex gap-2.5 flex-1 min-w-0 cursor-pointer group/prod"
                     onClick={() => window.open(`/product/${p.id}`, '_blank')}
                   >
-                    <div className="relative flex-shrink-0 overflow-hidden w-[52px] h-[68px] rounded-sm">
+                    <div className="relative shrink-0 overflow-hidden w-13 h-17 rounded-sm">
                       <Image
                         src={p.image}
                         alt={p.name}
@@ -55,16 +55,16 @@ export function ProductSpecialOffers({ offers, onAddBundle }: ProductSpecialOffe
                         className="object-cover transition-transform duration-300 group-hover/prod:scale-105"
                       />
                     </div>
-                    <div className="min-w-0 flex flex-col justify-between h-[68px]">
+                    <div className="min-w-0 flex flex-col justify-between h-17">
                       <p className="text-xs leading-snug line-clamp-2 group-hover/prod:underline font-medium">{p.name}</p>
                       <div>
                         <p className="text-xs text-gray-400 line-through leading-none">{p.originalPrice}</p>
-                        <p className="text-sm leading-tight font-bold text-[var(--sale)]">{p.salePrice}</p>
+                        <p className="text-sm leading-tight font-bold text-(--sale)">{p.salePrice}</p>
                       </div>
                     </div>
                   </div>
                   {j === 0 && (
-                    <div className="flex items-center flex-shrink-0 text-gray-300 text-lg font-light">+</div>
+                    <div className="flex items-center shrink-0 text-gray-300 text-lg font-light">+</div>
                   )}
                 </React.Fragment>
               ))}

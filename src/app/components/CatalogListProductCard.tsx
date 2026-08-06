@@ -58,7 +58,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
       className="flex group border-b border-white"
       style={{ '--sale': SALE_COLOR, '--accent': accent } as React.CSSProperties}
     >
-      <div className="relative flex-shrink-0 overflow-hidden w-[180px] aspect-[3/4] border-r border-white">
+      <div className="relative shrink-0 overflow-hidden w-45 aspect-3/4 border-r border-white">
         <Image
           src={product.image}
           alt={product.name}
@@ -69,7 +69,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
         {(product.label || product.badge) && (
           <span
             className={`absolute top-3 left-3 px-2 py-0.5 text-white text-xs tracking-wider uppercase rounded-none ${
-              product.label === 'SALE' ? 'bg-[var(--sale)]' : 'bg-black'
+              product.label === 'SALE' ? 'bg-(--sale)' : 'bg-black'
             }`}
           >
             {product.label || product.badge}
@@ -82,7 +82,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
           <div className="flex items-center gap-2 mb-3">
             {product.salePrice ? (
               <>
-                <span className="text-sm font-medium text-[var(--sale)]">{stripTrailingZeros(product.salePrice)}</span>
+                <span className="text-sm font-medium text-(--sale)">{stripTrailingZeros(product.salePrice)}</span>
                 <span className="text-xs text-gray-400 line-through">{stripTrailingZeros(product.price)}</span>
               </>
             ) : (
@@ -105,7 +105,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
             onMouseLeave={() => setCartHovered(false)}
             onClick={handleAddToCart}
             className={`flex items-center gap-2 px-6 py-2.5 text-xs tracking-widest uppercase text-white focus-visible:outline-none rounded-none transition-colors duration-200 ${
-              addedToCart ? 'bg-[var(--sale)]' : cartHovered ? 'bg-[var(--accent)]' : 'bg-black'
+              addedToCart ? 'bg-(--sale)' : cartHovered ? 'bg-accent' : 'bg-black'
             }`}
           >
             <Image src="/icons/ui/bag.svg" alt="" width={13} height={13} unoptimized />

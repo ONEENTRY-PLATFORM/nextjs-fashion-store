@@ -26,7 +26,7 @@ export function ReviewCard({ review }: { review: ProductReview }) {
           </div>
           <p className="text-sm font-semibold">{review.title}</p>
         </div>
-        <span className="flex-shrink-0 text-xs text-gray-400">{review.date}</span>
+        <span className="shrink-0 text-xs text-gray-400">{review.date}</span>
       </div>
       <p className="text-sm text-gray-700 leading-relaxed mb-3">{review.body}</p>
       <div className="flex items-center justify-between">

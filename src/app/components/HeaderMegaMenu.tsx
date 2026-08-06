@@ -39,11 +39,11 @@ export function HeaderMegaMenu({
 
   return (
     <div
-      className="hidden lg:block text-white transition-colors duration-150 ease-in-out relative bg-[var(--accent)]"
+      className="hidden lg:block text-white transition-colors duration-150 ease-in-out relative bg-accent"
       style={{ '--accent': accentColor, '--sale-yellow': SALE_YELLOW } as React.CSSProperties}
       onMouseLeave={onSubCatLeave}
     >
-      <div className="max-w-screen-2xl mx-auto px-8 lg:px-12">
+      <div className="max-w-384 mx-auto px-8 lg:px-12">
         <div className="flex items-center justify-center">
           {SUB_CATEGORIES.map((cat) => {
             const key = cat.toLowerCase();
@@ -68,7 +68,7 @@ export function HeaderMegaMenu({
                 }}
                 className={`relative px-5 py-3 text-xs tracking-widest uppercase transition-all duration-100 ${
                   isSale
-                    ? 'text-[var(--sale-yellow)] font-extrabold tracking-[0.22em] bg-[#da1e1e]/35 cursor-pointer'
+                    ? 'text-(--sale-yellow) font-extrabold tracking-[0.22em] bg-[#da1e1e]/35 cursor-pointer'
                     : `text-white ${urlSubCat === key ? 'font-bold' : 'font-medium'} ${
                         isActive ? 'bg-black/15' : 'bg-transparent'
                       } ${catalogHref ? 'cursor-pointer' : 'cursor-default'}`
@@ -77,7 +77,7 @@ export function HeaderMegaMenu({
                 {isSale ? (
                   <span className="flex items-center gap-1">
                     {cat}
-                    <span className="inline-block w-[5px] h-[5px] rounded-full align-middle bg-[var(--sale-yellow)] animate-pulse" />
+                    <span className="inline-block w-[5px] h-[5px] rounded-full align-middle bg-(--sale-yellow) animate-pulse" />
                   </span>
                 ) : (
                   <>
@@ -99,15 +99,15 @@ export function HeaderMegaMenu({
       {currentDropdownData && (
         <div
           ref={dropdownRef}
-          className="absolute top-full left-0 right-0 bg-white text-black shadow-xl z-50 border-t-2 border-[var(--accent)]"
+          className="absolute top-full left-0 right-0 bg-white text-black shadow-xl z-50 border-t-2 border-accent"
           onMouseEnter={onDropdownEnter}
           onMouseLeave={onDropdownLeave}
         >
-          <div className="max-w-screen-2xl mx-auto px-8 py-8">
+          <div className="max-w-384 mx-auto px-8 py-8">
             <div className="flex gap-16">
               {currentDropdownData.map((section, idx) => (
-                <div key={`${section.title}-${idx}`} className="flex-1 min-w-[160px]">
-                  <h4 className="text-xs tracking-widest uppercase mb-4 pb-2 border-b border-gray-200 text-[var(--accent)]">
+                <div key={`${section.title}-${idx}`} className="flex-1 min-w-40">
+                  <h4 className="text-xs tracking-widest uppercase mb-4 pb-2 border-b border-gray-200 text-accent">
                     {section.title}
                   </h4>
                   <ul className="space-y-2">

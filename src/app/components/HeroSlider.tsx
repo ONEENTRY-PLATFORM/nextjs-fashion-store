@@ -95,7 +95,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
   return (
     // Layout rule: height 600px fixed, full width
     <div
-      className="relative w-full overflow-hidden h-[600px]"
+      className="relative w-full overflow-hidden h-150"
       role="region"
       aria-roledescription="carousel"
       aria-label={CAROUSEL_LABELS.featuredCollections}
@@ -145,15 +145,15 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
           flex items-end pb-16
           px-12 md:px-20
           ${ALIGN_OUTER[slide.align]}
-          transition-opacity duration-[400ms] ease-in-out
+          transition-opacity duration-400 ease-in-out
           ${isTransitioning ? 'opacity-0' : 'opacity-100'}
         `}
       >
         {/* Inner container — max-w 512px */}
-        <div className={`flex flex-col max-w-[512px] w-full ${ALIGN_TEXT[slide.align]}`}>
+        <div className={`flex flex-col max-w-128 w-full ${ALIGN_TEXT[slide.align]}`}>
 
           {/* Eyebrow label
-              12px / leading-[16px] / tracking-[0.3em] / weight 500 / uppercase
+              12px / leading-4 / tracking-[0.3em] / weight 500 / uppercase
               color rgba(255,255,255,0.80) / mb-3 (≈12px) */}
           <p className="uppercase mb-3 text-xs leading-4 tracking-[0.3em] font-medium text-white/80">
             {slide.eyebrow}
@@ -180,7 +180,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
               hover: opacity-90 + -translate-y-px / transition 200ms */}
           <a
             href={slide.href}
-            className={`${CTA_ALIGN[slide.align]} px-8 py-3.5 text-white uppercase transition-all duration-200 hover:opacity-90 hover:-translate-y-px text-sm font-semibold tracking-[0.1em] rounded-none`}
+            className={`${CTA_ALIGN[slide.align]} px-8 py-3.5 text-white uppercase transition-all duration-200 hover:opacity-90 hover:-translate-y-px text-sm font-semibold tracking-widest rounded-none`}
             style={{ backgroundColor: CTA_BG[slide.gender] }}
           >
             {slide.cta}

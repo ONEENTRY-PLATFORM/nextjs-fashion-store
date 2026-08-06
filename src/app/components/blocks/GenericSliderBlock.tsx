@@ -94,7 +94,7 @@ export function GenericSliderBlock({
           />
         ) : null}
         <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 h-full flex flex-col justify-center max-w-screen-xl mx-auto px-6 lg:px-12 text-white">
+        <div className="relative z-10 h-full flex flex-col justify-center max-w-7xl mx-auto px-6 lg:px-12 text-white">
           {current.eyebrow ? (
             <p className="text-xs tracking-[0.3em] uppercase text-white/80 mb-3">{current.eyebrow}</p>
           ) : null}

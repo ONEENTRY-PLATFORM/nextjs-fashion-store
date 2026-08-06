@@ -16,7 +16,7 @@ export function FormField({ label, placeholder, type = 'text', name, autoComplet
   const id = useId();
   const [focused, setFocused] = useState(false);
   const borderClass = error
-    ? 'border-[var(--sale)]'
+    ? 'border-(--sale)'
     : focused
       ? 'border-black'
       : 'border-[#d1d5db]';
@@ -25,7 +25,7 @@ export function FormField({ label, placeholder, type = 'text', name, autoComplet
       <label
         htmlFor={id}
         className={`block text-xs tracking-wide uppercase mb-1.5 font-semibold ${
-          error ? 'text-[var(--sale)]' : 'text-[#555]'
+          error ? 'text-(--sale)' : 'text-[#555]'
         }`}
       >
         {label}
@@ -45,7 +45,7 @@ export function FormField({ label, placeholder, type = 'text', name, autoComplet
         onBlur={() => setFocused(false)}
       />
       {error && (
-        <p id={`${id}-error`} className="text-xs mt-1 text-[var(--sale)]" role="alert">
+        <p id={`${id}-error`} className="text-xs mt-1 text-(--sale)" role="alert">
           {error}
         </p>
       )}

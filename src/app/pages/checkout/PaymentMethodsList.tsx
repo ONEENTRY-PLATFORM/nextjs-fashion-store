@@ -52,7 +52,7 @@ export function PaymentMethodsList({
     >
       {acc.type === 'stripe' && (
         <div className="pt-4 flex items-start gap-3 px-4 py-3 bg-[#fafafa] border border-[#e5e7eb]">
-          <Lock size={16} className="text-green-600 flex-shrink-0 mt-0.5" />
+          <Lock size={16} className="text-green-600 shrink-0 mt-0.5" />
           <p className="text-xs text-gray-600 leading-relaxed">{redirectHint}</p>
         </div>
       )}

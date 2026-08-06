@@ -172,7 +172,7 @@ export function HistorySection() {
       <SectionTitle title={title} />
 
       {/* Stats banner */}
-      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[var(--banner-bg)]">
+      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-(--banner-bg)">
         <div>
           <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{eyebrow}</p>
           <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.2rem)] font-bold">
@@ -226,7 +226,7 @@ export function HistorySection() {
 
       {/* Order list */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[var(--banner-bg)]">
+        <div className="flex flex-col items-center justify-center py-20 gap-3 bg-(--banner-bg)">
           <p className="text-sm text-gray-400 text-center">{L.emptyText}</p>
         </div>
       ) : (
@@ -242,7 +242,7 @@ export function HistorySection() {
                 <div className="flex items-center gap-4 px-5 py-4">
                   <button
                     onClick={() => toggle(order.id)}
-                    className={`w-7 h-7 flex items-center justify-center flex-shrink-0 focus-visible:outline-none transition-colors ${
+                    className={`w-7 h-7 flex items-center justify-center shrink-0 focus-visible:outline-none transition-colors ${
                       isOpen ? 'bg-black' : 'bg-gray-100'
                     }`}
                   >
@@ -272,7 +272,7 @@ export function HistorySection() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <span
                       className="px-2 py-0.5 text-[10px] tracking-wider uppercase hidden sm:inline-block border font-bold"
                       style={{ backgroundColor: cfg.bg, borderColor: cfg.border, color: cfg.text }}
@@ -297,9 +297,9 @@ export function HistorySection() {
                         !canReorder
                           ? 'bg-gray-300 cursor-not-allowed'
                           : isReordered
-                            ? 'bg-[var(--sale)] cursor-pointer'
+                            ? 'bg-(--sale) cursor-pointer'
                             : hoveredReorder === order.id
-                              ? 'bg-[var(--accent)] cursor-pointer'
+                              ? 'bg-accent cursor-pointer'
                               : 'bg-black cursor-pointer'
                       }`}
                     >
@@ -318,7 +318,7 @@ export function HistorySection() {
                         <span className="font-bold text-black">{order.trackingNo}</span>
                         <button
                           onClick={() => setTrackingModal({ trackingNo: order.trackingNo ?? '', orderNo: order.orderNo })}
-                          className="ml-1 underline text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-[var(--accent)] font-[inherit]"
+                          className="ml-1 underline text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-accent font-[inherit]"
                         >
                           {lViewBtn}
                         </button>
@@ -327,7 +327,7 @@ export function HistorySection() {
                     <div className="space-y-px bg-gray-100">
                       {order.items.map((item) => (
                         <div key={`${item.name}-${item.size}`} className="flex items-center gap-4 px-5 py-3 bg-white">
-                          <div className="relative flex-shrink-0 overflow-hidden w-14 h-[70px]">
+                          <div className="relative shrink-0 overflow-hidden w-14 h-17.5">
                             <ImageWithFallback src={item.img} alt={item.name} fill sizes="56px" className="object-cover" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -338,11 +338,11 @@ export function HistorySection() {
                               <span className="text-[11px] text-gray-500">{L.itemQtyPrefix} <span className="font-semibold text-black">{item.qty}</span></span>
                             </div>
                           </div>
-                          <p className="text-xs flex-shrink-0 font-bold">{fmt(item.price * item.qty)}</p>
+                          <p className="text-xs shrink-0 font-bold">{fmt(item.price * item.qty)}</p>
                         </div>
                       ))}
                     </div>
-                    <div className="flex justify-end items-center gap-4 px-5 py-3 bg-[var(--banner-bg)]">
+                    <div className="flex justify-end items-center gap-4 px-5 py-3 bg-(--banner-bg)">
                       <span className="text-xs text-gray-500 tracking-widest uppercase">{lOrderTotal}</span>
                       <span className="text-sm font-extrabold">{fmt(order.total)}</span>
                     </div>

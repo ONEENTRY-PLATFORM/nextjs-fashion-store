@@ -75,7 +75,7 @@ export function ReferSection() {
       <SectionTitle title={L.title} />
 
       {/* Hero banner */}
-      <div className="mb-8 p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-[var(--banner-bg)]">
+      <div className="mb-8 p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-(--banner-bg)">
         <div>
           <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{L.eyebrow}</p>
           <h2 className="tracking-widest uppercase mb-2 text-[clamp(1rem,2vw,1.3rem)] font-bold">
@@ -85,8 +85,8 @@ export function ReferSection() {
             {L.bannerBodyPrefix}<strong>{L.bannerBodyCreditPrefix}{ref.creditAmount}{L.bannerBodyCreditSuffix}</strong>{L.bannerBodySuffix}
           </p>
         </div>
-        <div className="flex-shrink-0 text-center">
-          <p className="text-5xl mb-1 font-extrabold text-[var(--accent)]">{CURRENCY.formatInteger(ref.creditAmount)}</p>
+        <div className="shrink-0 text-center">
+          <p className="text-5xl mb-1 font-extrabold text-accent">{CURRENCY.formatInteger(ref.creditAmount)}</p>
           <p className="text-xs tracking-widest uppercase text-gray-400">{L.perReferral}</p>
         </div>
       </div>
@@ -117,8 +117,8 @@ export function ReferSection() {
             </span>
             <button
               onClick={handleCopyLink}
-              className={`px-5 py-3 text-xs tracking-widest uppercase flex items-center gap-2 focus-visible:outline-none transition-colors duration-200 flex-shrink-0 text-white rounded-none font-semibold ${
-                copied ? 'bg-[var(--sale)]' : 'bg-black'
+              className={`px-5 py-3 text-xs tracking-widest uppercase flex items-center gap-2 focus-visible:outline-none transition-colors duration-200 shrink-0 text-white rounded-none font-semibold ${
+                copied ? 'bg-(--sale)' : 'bg-black'
               }`}
             >
               {copied ? <Check size={13} /> : null}
@@ -139,7 +139,7 @@ export function ReferSection() {
             <button
               onClick={handleCopyCode}
               className={`text-xs tracking-widest uppercase flex items-center gap-1.5 focus-visible:outline-none hover:opacity-70 transition-opacity font-semibold ${
-                codeCopied ? 'text-[var(--sale)]' : 'text-black'
+                codeCopied ? 'text-(--sale)' : 'text-black'
               }`}
             >
               {codeCopied ? <Check size={12} /> : null}
@@ -175,7 +175,7 @@ export function ReferSection() {
           <button
             onClick={handleSend}
             className={`mt-3 px-8 py-3 text-xs tracking-[0.2em] uppercase text-white flex items-center gap-2 focus-visible:outline-none rounded-none font-bold transition-colors duration-200 ${
-              sent ? 'bg-[var(--sale)]' : 'bg-black'
+              sent ? 'bg-(--sale)' : 'bg-black'
             }`}
           >
             {sent ? <Check size={13} /> : <Mail size={13} />}
@@ -189,7 +189,7 @@ export function ReferSection() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white">
             {L.howSteps(ref.creditAmount).map(s => (
               <div key={s.step} className="bg-white px-5 py-6">
-                <p className="text-xs tracking-widest mb-2 font-extrabold text-[var(--accent)]">{s.step}</p>
+                <p className="text-xs tracking-widest mb-2 font-extrabold text-accent">{s.step}</p>
                 <p className="text-sm mb-1.5 font-bold">{s.title}</p>
                 <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
               </div>

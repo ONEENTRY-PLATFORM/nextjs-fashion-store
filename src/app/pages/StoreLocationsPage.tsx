@@ -63,7 +63,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
       <Header />
 
       {/* Hero */}
-      <div className="relative flex flex-col items-center justify-center text-center overflow-hidden h-[320px] bg-[var(--banner-bg)]">
+      <div className="relative flex flex-col items-center justify-center text-center overflow-hidden h-80 bg-(--banner-bg)">
         {/* Background photo */}
         <Image
           src={heroImage}
@@ -77,7 +77,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         <div className="absolute inset-0 bg-black/[0.52]" />
 
         <div className="relative z-10 px-4">
-          <p className="text-xs tracking-[0.3em] uppercase mb-3 text-[var(--accent)] font-semibold">
+          <p className="text-xs tracking-[0.3em] uppercase mb-3 text-accent font-semibold">
             {heroEyebrow}
           </p>
           <h1 className="hero-h1 uppercase tracking-[0.15em] mb-4 text-white">
@@ -106,7 +106,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         <div className="flex flex-col sm:flex-row gap-3 mb-8 px-4 lg:px-8">
           {/* Search */}
           <div className="flex items-center gap-2 px-3 py-2.5 flex-1 max-w-xs border border-black">
-            <Search size={14} className="text-gray-400 flex-shrink-0" />
+            <Search size={14} className="text-gray-400 shrink-0" />
             <input
               type="text"
               placeholder={lSearch}
@@ -150,7 +150,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-            <MapPin size={40} strokeWidth={1} className="text-[var(--accent)] mb-4" />
+            <MapPin size={40} strokeWidth={1} className="text-accent mb-4" />
             <h3 className="text-base uppercase tracking-wider mb-2 font-bold">{L.emptyHeading}</h3>
             <p className="text-sm text-gray-400">{L.emptyHint}</p>
             <button
@@ -163,7 +163,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         )}
 
         {/* In-store services strip */}
-        <div className="px-8 py-8 mb-12 bg-[var(--banner-bg)]">
+        <div className="px-8 py-8 mb-12 bg-(--banner-bg)">
           <p className="text-xs tracking-[0.3em] uppercase text-center mb-6 font-bold">
             {lAllOffer}
           </p>
@@ -184,8 +184,8 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
 
         {/* Flagship callout */}
         {flagshipStore && (
-        <div className="flex flex-col md:flex-row overflow-hidden mb-12 outline outline-1 outline-black">
-          <div className="md:w-1/2 relative overflow-hidden min-h-[280px] bg-gray-100">
+        <div className="flex flex-col md:flex-row overflow-hidden mb-12 outline-1 outline-black">
+          <div className="md:w-1/2 relative overflow-hidden min-h-70 bg-gray-100">
             {flagshipStore.image && (
               <Image
                 src={flagshipStore.image}
@@ -196,8 +196,8 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
               />
             )}
           </div>
-          <div className="md:w-1/2 flex flex-col justify-center px-8 py-10 bg-[var(--banner-bg)]">
-            <p className="text-xs tracking-[0.3em] uppercase mb-2 text-[var(--accent)] font-semibold">
+          <div className="md:w-1/2 flex flex-col justify-center px-8 py-10 bg-(--banner-bg)">
+            <p className="text-xs tracking-[0.3em] uppercase mb-2 text-accent font-semibold">
               {flagshipSubtitle}
             </p>
             <h2 className="text-2xl uppercase tracking-wider mb-4 font-bold">

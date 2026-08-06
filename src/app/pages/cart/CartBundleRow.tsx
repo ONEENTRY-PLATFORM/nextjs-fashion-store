@@ -24,14 +24,14 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
   return (
     <div className={isLast ? '' : 'border-b border-[#e5e7eb]'}>
       <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-dashed border-[#e5e7eb] bg-[#fffbfb]">
-        <div className="flex items-center gap-2 text-[var(--accent)]">
+        <div className="flex items-center gap-2 text-accent">
           <LinkIcon size={13} />
           <span className="text-xs tracking-[0.12em] uppercase font-bold">{L.bundleLabel}</span>
           <span className="text-xs text-gray-400 font-normal">{L.bundleRemoveable}</span>
         </div>
         <button
           onClick={onRemove}
-          className="flex items-center gap-1 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-[var(--sale)]"
+          className="flex items-center gap-1 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-(--sale)"
         >
           <Trash2 size={13} />
           <span>{L.bundleRemove}</span>
@@ -45,9 +45,9 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
             idx < items.length - 1 ? 'border-b border-dashed border-[#f0f0f0]' : ''
           }`}
         >
-          <div className="flex-shrink-0 pt-1 w-4" />
+          <div className="shrink-0 pt-1 w-4" />
 
-          <div className="relative flex-shrink-0 w-[110px] h-[140px]">
+          <div className="relative shrink-0 w-27.5 h-35">
             <ImageWithFallback src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
           </div>
 
@@ -69,7 +69,7 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
             )}
           </div>
 
-          <div className="flex-shrink-0 text-right">
+          <div className="shrink-0 text-right">
             <p className="text-base font-bold">{fmt(item.price * item.quantity)}</p>
             {item.originalPrice && item.originalPrice > item.price && (
               <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>

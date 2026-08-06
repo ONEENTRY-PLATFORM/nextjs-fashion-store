@@ -20,7 +20,7 @@ export function NewArrivals({ products = [], title, chrome }: { products?: Produ
   return (
     <section className="w-full">
       {/* Section Header */}
-      <div className="flex items-center justify-between px-4 lg:px-8 mb-6 max-w-screen-2xl mx-auto">
+      <div className="flex items-center justify-between px-4 lg:px-8 mb-6 max-w-384 mx-auto">
         <div>
           <h2 className="uppercase tracking-[0.04em]">{heading}</h2>
           <p className="text-xs text-gray-500 tracking-wider mt-1">{subtitle}</p>
@@ -32,7 +32,7 @@ export function NewArrivals({ products = [], title, chrome }: { products?: Produ
 
       <HorizontalScroller>
         {products.map((product) => (
-          <div key={product.id} className="flex-shrink-0 w-1/2 md:w-1/3 lg:w-1/4 border-r border-b border-white">
+          <div key={product.id} className="shrink-0 w-1/2 md:w-1/3 lg:w-1/4 border-r border-b border-white">
             <ProductCard product={product} accentColor={ACCENT_WOMEN} />
           </div>
         ))}

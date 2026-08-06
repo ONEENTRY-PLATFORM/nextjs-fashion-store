@@ -22,7 +22,7 @@ export const CheckMark = () =>
 export function CheckboxUI({ checked }: { checked: boolean }) {
   return (
     <span
-      className={`flex-shrink-0 flex items-center justify-center transition-colors w-[14px] h-[14px] rounded-none border ${
+      className={`shrink-0 flex items-center justify-center transition-colors w-3.5 h-3.5 rounded-none border ${
         checked ? 'border-black bg-black' : 'border-[#bbb] bg-white'
       }`}
     >
@@ -42,7 +42,7 @@ export function SortOptionBtn({
       }`}
     >
       {label}
-      {active && <span className="text-[var(--accent)]">✓</span>}
+      {active && <span className="text-accent">✓</span>}
     </button>
   );
 }

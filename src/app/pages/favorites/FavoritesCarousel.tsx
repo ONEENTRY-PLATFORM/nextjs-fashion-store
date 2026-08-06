@@ -81,8 +81,8 @@ export function FavoritesCarousel({ title, products }: { title: string; products
         className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 -mx-4 lg:-mx-8 px-4 lg:px-8 snap-x snap-mandatory"
       >
         {products.map(p => (
-          <div key={p.id} className="flex-shrink-0 group cursor-pointer w-[200px] snap-start">
-            <div className="relative overflow-hidden mb-4 aspect-[3/4]">
+          <div key={p.id} className="shrink-0 group cursor-pointer w-50 snap-start">
+            <div className="relative overflow-hidden mb-4 aspect-3/4">
               <ImageWithFallback
                 src={p.image}
                 alt={p.name}
@@ -103,14 +103,14 @@ export function FavoritesCarousel({ title, products }: { title: string; products
             <p className="text-xs leading-snug mb-1 line-clamp-2 font-medium">{p.name}</p>
             <div className="flex items-baseline gap-1.5">
               {p.salePrice
-                ? <><span className="text-sm font-bold text-[var(--sale)]">{p.salePrice}</span><span className="text-xs text-gray-400 line-through">{p.price}</span></>
+                ? <><span className="text-sm font-bold text-(--sale)">{p.salePrice}</span><span className="text-xs text-gray-400 line-through">{p.price}</span></>
                 : <span className="text-sm font-bold">{p.price}</span>}
             </div>
             <div className="flex gap-1 mt-1.5">
               {p.colors.slice(0, 4).map((c, i) => (
                 <span
                   key={i}
-                  className="w-3 h-3 flex-shrink-0 border border-[#e0e0e0]"
+                  className="w-3 h-3 shrink-0 border border-[#e0e0e0]"
                   style={{ backgroundColor: c }}
                 />
               ))}

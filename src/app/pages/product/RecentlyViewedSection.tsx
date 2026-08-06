@@ -42,7 +42,7 @@ export function RecentlyViewedSection({ products, accentColor }: RecentlyViewedS
 
   return (
     <div className="border-t border-gray-100 py-12 px-4 lg:px-8 bg-gray-50">
-      <div className="max-w-screen-2xl mx-auto">
+      <div className="max-w-384 mx-auto">
         <div className="mb-6">
           <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{L.eyebrow}</p>
           <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.25rem)] font-bold">{L.heading}</h2>

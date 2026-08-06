@@ -41,17 +41,17 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
 
   return (
     <div
-      className="relative overflow-hidden mb-8 p-6 text-white min-h-[160px] bg-[linear-gradient(135deg,#1a1a1a_0%,#333_100%)]"
+      className="relative overflow-hidden mb-8 p-6 text-white min-h-40 bg-[linear-gradient(135deg,#1a1a1a_0%,#333_100%)]"
       style={{ '--tier': bgColor, '--accent': ACCENT } as React.CSSProperties}
     >
       {/* Decorative circles */}
-      <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full opacity-10 bg-[var(--tier)]" />
-      <div className="absolute -right-5 -bottom-16 w-64 h-64 rounded-full opacity-10 bg-[var(--tier)]" />
+      <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full opacity-10 bg-(--tier)" />
+      <div className="absolute -right-5 -bottom-16 w-64 h-64 rounded-full opacity-10 bg-(--tier)" />
 
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs px-2 py-0.5 tracking-widest uppercase text-black font-bold bg-[var(--tier)]">
+            <span className="text-xs px-2 py-0.5 tracking-widest uppercase text-black font-bold bg-(--tier)">
               {user.status}
             </span>
             <span className="text-xs opacity-50 tracking-wide uppercase">{lLoyaltyStatus}</span>
@@ -59,7 +59,7 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
           <ul className="space-y-1.5">
             {perks.map(perk => (
               <li key={perk} className="flex items-center gap-2 text-xs opacity-80">
-                <span className="font-bold text-[10px] text-[var(--tier)]">✓</span>
+                <span className="font-bold text-[10px] text-(--tier)">✓</span>
                 {perk}
               </li>
             ))}
@@ -69,7 +69,7 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
         <div className="flex sm:flex-col gap-6 sm:gap-3 sm:text-right">
           {showDiscount && (
             <div>
-              <p className="text-2xl font-bold text-[var(--accent)]">{user.discount}%</p>
+              <p className="text-2xl font-bold text-accent">{user.discount}%</p>
               <p className="text-xs opacity-50 uppercase tracking-wide">{lDiscount}</p>
               {user.discountMaxAmount != null && user.discountMaxAmount > 0 && (
                 <p className="text-[10px] opacity-40 mt-0.5">max −${user.discountMaxAmount}</p>
@@ -91,7 +91,7 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
         </div>
         <div className="w-full h-1.5 bg-white/20">
           <div
-            className="h-full transition-all duration-500 bg-[var(--tier)]"
+            className="h-full transition-all duration-500 bg-(--tier)"
             style={{ width: `${progress}%` }}
           />
         </div>

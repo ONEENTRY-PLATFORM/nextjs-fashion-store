@@ -25,7 +25,7 @@ export function CountdownUnit({ value, label }: { value: number; label: string }
   const v = String(value).padStart(2, '0');
   return (
     <div className="flex flex-col items-center">
-      <div className="flex items-center justify-center text-white w-[52px] h-[52px] bg-black/40 text-[22px] font-bold">
+      <div className="flex items-center justify-center text-white w-13 h-13 bg-black/40 text-[22px] font-bold">
         {v}
       </div>
       <span className="text-white mt-1 text-[9px] tracking-[0.18em] uppercase opacity-70">

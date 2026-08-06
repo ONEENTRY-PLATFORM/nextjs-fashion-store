@@ -33,13 +33,13 @@ export function ConsentSection() {
             <p className="text-sm text-gray-700 pr-4">{item.label}</p>
             <button
               onClick={item.onChange}
-              className={`flex-shrink-0 w-12 h-6 relative focus-visible:outline-none transition-colors rounded-[12px] ${
+              className={`shrink-0 w-12 h-6 relative focus-visible:outline-none transition-colors rounded-[12px] ${
                 item.value ? 'bg-black' : 'bg-[#d1d5db]'
               }`}
             >
               <span
                 className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${
-                  item.value ? 'left-[26px]' : 'left-0.5'
+                  item.value ? 'left-6.5' : 'left-0.5'
                 }`}
               />
             </button>

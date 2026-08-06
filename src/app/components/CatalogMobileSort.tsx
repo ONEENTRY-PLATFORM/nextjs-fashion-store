@@ -24,16 +24,16 @@ export function CatalogMobileSort({
 
   return (
     <div
-      className="fixed inset-0 z-[60] md:hidden flex flex-col justify-end font-[Inter,sans-serif]"
+      className="fixed inset-0 z-60 md:hidden flex flex-col justify-end font-[Inter,sans-serif]"
       style={{ '--accent': accentColor } as React.CSSProperties}
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/45" />
       <div
-        className="relative bg-white border-t-2 border-t-[var(--accent)]"
+        className="relative bg-white border-t-2 border-t-accent"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 h-[52px] border-b border-[#e5e7eb]">
+        <div className="flex items-center justify-between px-5 h-13 border-b border-[#e5e7eb]">
           <h2 className="text-sm tracking-[0.2em] uppercase font-bold">{L.heading}</h2>
           <button
             onClick={onClose}
@@ -50,12 +50,12 @@ export function CatalogMobileSort({
               onSortChange(opt.value);
               onClose();
             }}
-            className={`w-full flex items-center justify-between px-5 focus-visible:outline-none h-[52px] border-b border-[#f0f0f0] text-[13px] ${
+            className={`w-full flex items-center justify-between px-5 focus-visible:outline-none h-13 border-b border-[#f0f0f0] text-[13px] ${
               sortBy === opt.value ? 'bg-[#fafafa] font-semibold' : 'bg-white font-normal'
             }`}
           >
             {opt.label}
-            {sortBy === opt.value && <span className="text-[var(--accent)]">✓</span>}
+            {sortBy === opt.value && <span className="text-accent">✓</span>}
           </button>
         ))}
         <div className="h-[env(safe-area-inset-bottom,0px)]" />

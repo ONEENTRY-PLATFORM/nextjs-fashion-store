@@ -57,7 +57,7 @@ export function BonusesSection() {
           { label: discountLvl, value: `${user?.discount ?? 0}%`,             accent: false },
         ].map(stat => (
           <div key={stat.label} className="p-5 text-center border border-[#e5e7eb]">
-            <p className={`text-3xl mb-1 font-bold ${stat.accent ? 'text-[var(--accent)]' : 'text-black'}`}>{stat.value}</p>
+            <p className={`text-3xl mb-1 font-bold ${stat.accent ? 'text-accent' : 'text-black'}`}>{stat.value}</p>
             <p className="text-xs text-gray-400 uppercase tracking-wide">{stat.label}</p>
           </div>
         ))}
@@ -67,7 +67,7 @@ export function BonusesSection() {
         {loading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-[54px] border border-[#e5e7eb] bg-gray-50 animate-pulse" />
+              <div key={i} className="h-13.5 border border-[#e5e7eb] bg-gray-50 animate-pulse" />
             ))}
           </div>
         ) : history.length === 0 ? (
@@ -85,7 +85,7 @@ export function BonusesSection() {
                     <p className="text-sm font-medium">{desc}</p>
                     <p className="text-xs text-gray-400">{formatDate(tx.createdAt)}</p>
                   </div>
-                  <span className={`text-sm font-bold ${tx.sign > 0 ? 'text-[#16a34a]' : 'text-[var(--sale)]'}`}>
+                  <span className={`text-sm font-bold ${tx.sign > 0 ? 'text-[#16a34a]' : 'text-(--sale)'}`}>
                     {tx.sign > 0 ? '+' : '−'}{tx.amount.toLocaleString()} pts
                   </span>
                 </div>

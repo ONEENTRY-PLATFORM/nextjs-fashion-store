@@ -43,13 +43,13 @@ export function ProductReviewsSection({
   const lWriteReview  = usePdpT('customer-reviews', 'write-a-review-cta',  L.writeReview);
   const lShowAll      = usePdpT('customer-reviews', 'show-all',            L.showAllPrefix);
   return (
-    <div ref={reviewsRef} className="px-4 lg:px-8 py-12 max-w-screen-xl mx-auto border-t border-[#e5e7eb]">
+    <div ref={reviewsRef} className="px-4 lg:px-8 py-12 max-w-7xl mx-auto border-t border-[#e5e7eb]">
       <h2 className="tracking-[0.15em] uppercase mb-8 text-[1.1rem] font-bold">
         {L.heading}
       </h2>
 
       <div className="flex flex-col lg:flex-row gap-12">
-        <div className="lg:w-64 flex-shrink-0">
+        <div className="lg:w-64 shrink-0">
           <div className="flex flex-col items-center mb-6">
             <span className="text-[3.5rem] font-bold leading-none">
               {avgRating.toFixed(1)}

@@ -12,7 +12,7 @@ export function AccordionSection({ title, children, defaultOpen = false }: { tit
         <span className="text-xs tracking-[0.15em] uppercase font-semibold">{title}</span>
         <ChevronDown
           size={16}
-          className={`flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : 'rotate-0'}`}
+          className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : 'rotate-0'}`}
         />
       </button>
       {open && <div className="pb-5">{children}</div>}

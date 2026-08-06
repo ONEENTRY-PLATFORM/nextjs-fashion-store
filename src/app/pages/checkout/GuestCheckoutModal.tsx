@@ -21,7 +21,7 @@ export function GuestCheckoutModal({ onClose, onSignIn, onRegister, onContinueAs
   const lGuestTitle   = useT('checkout_modal', 'checkout_modal_continue_as_guest_button_title',  AUTH_LABELS.guest.title);
   const lGuestText    = useT('checkout_modal', 'checkout_modal_continue_as_guest_button_text',   AUTH_LABELS.guest.subtitle);
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-400 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white w-full max-w-md font-[Inter,sans-serif]">
 
@@ -29,11 +29,11 @@ export function GuestCheckoutModal({ onClose, onSignIn, onRegister, onContinueAs
         <div className="flex items-center justify-between px-8 py-6 border-b border-[#e5e7eb]">
           <div>
             <p className="text-xs tracking-[0.25em] uppercase text-gray-400 mb-0.5">{lEyebrow}</p>
-            <h2 className="text-lg tracking-[0.1em] uppercase font-bold">{lHeading}</h2>
+            <h2 className="text-lg tracking-widest uppercase font-bold">{lHeading}</h2>
           </div>
           <button
             onClick={onClose}
-            className="hover:opacity-60 transition-opacity focus-visible:outline-none ml-4 flex-shrink-0"
+            className="hover:opacity-60 transition-opacity focus-visible:outline-none ml-4 shrink-0"
           >
             <X size={20} strokeWidth={1.5} />
           </button>

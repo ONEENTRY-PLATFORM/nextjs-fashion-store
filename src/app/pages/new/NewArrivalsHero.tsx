@@ -17,7 +17,7 @@ export function NewArrivalsHero({ cms }: NewArrivalsHeroProps = {}) {
   const heading    = cms?.hero.heading    || L.heading;
   const subheading = cms?.hero.subheading || L.subheading;
   return (
-    <div className="relative overflow-hidden border-b border-gray-100 min-h-[480px]">
+    <div className="relative overflow-hidden border-b border-gray-100 min-h-120">
       <Image
         src={heroImage}
         alt={L.imageAlt}

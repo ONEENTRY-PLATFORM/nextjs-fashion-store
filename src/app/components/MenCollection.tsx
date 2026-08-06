@@ -23,9 +23,9 @@ export function MenCollection({ products = [], title, chrome }: { products?: Pro
       style={{ '--accent': MEN_COLOR } as React.CSSProperties}
     >
       {/* Section Header */}
-      <div className="flex items-center justify-between px-4 lg:px-8 mb-6 max-w-screen-2xl mx-auto">
+      <div className="flex items-center justify-between px-4 lg:px-8 mb-6 max-w-384 mx-auto">
         <div>
-          <p className="text-xs tracking-widest uppercase mb-1 text-[var(--accent)]">{eyebrow}</p>
+          <p className="text-xs tracking-widest uppercase mb-1 text-accent">{eyebrow}</p>
           <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-tight tracking-[0.04em] uppercase">{heading}</h2>
         </div>
         <Link href={viewAllHref} className="group flex items-center gap-1 text-xs tracking-widest uppercase font-medium border-b border-black pb-0.5">
@@ -35,7 +35,7 @@ export function MenCollection({ products = [], title, chrome }: { products?: Pro
 
       <HorizontalScroller>
         {products.map((product) => (
-          <div key={product.id} className="flex-shrink-0 w-1/2 md:w-1/3 lg:w-1/5 border-r border-b border-white">
+          <div key={product.id} className="shrink-0 w-1/2 md:w-1/3 lg:w-1/5 border-r border-b border-white">
             <ProductCard product={product} accentColor={MEN_COLOR} />
           </div>
         ))}

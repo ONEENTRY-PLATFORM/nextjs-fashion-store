@@ -35,7 +35,7 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
     return (
       <div className="flex flex-col lg:flex-row gap-3 w-full">
         <div className="flex-1 relative">
-          <div className="relative overflow-hidden aspect-[3/4] bg-[#f2f1ef] flex items-center justify-center">
+          <div className="relative overflow-hidden aspect-3/4 bg-[#f2f1ef] flex items-center justify-center">
             <Image
               src="/icons/ui/bag-placeholder.svg"
               alt={productName}
@@ -54,15 +54,15 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-3 w-full">
-        <div className="flex lg:flex-col gap-2 order-2 lg:order-1 overflow-x-auto lg:overflow-x-visible scrollbar-hide min-w-[72px]">
+        <div className="flex lg:flex-col gap-2 order-2 lg:order-1 overflow-x-auto lg:overflow-x-visible scrollbar-hide min-w-18">
           {safeImages.map((img, i) => (
             <button
               key={i}
               onClick={() => setSelected(i)}
-              className={`relative flex-shrink-0 overflow-hidden transition-all duration-150 w-[72px] aspect-[3/4] ${
+              className={`relative shrink-0 overflow-hidden transition-all duration-150 w-18 aspect-3/4 ${
                 safeSelected === i
-                  ? 'outline outline-2 outline-black outline-offset-1'
-                  : 'outline outline-[1.5px] outline-[#e5e5e5] outline-offset-0'
+                  ? 'outline-2 outline-black outline-offset-1'
+                  : 'outline-[1.5px] outline-[#e5e5e5] outline-offset-0'
               }`}
             >
               <Image
@@ -79,7 +79,7 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
         <div className="flex-1 order-1 lg:order-2 relative">
           <div
             ref={mainRef}
-            className="relative overflow-hidden group aspect-[3/4] cursor-zoom-in"
+            className="relative overflow-hidden group aspect-3/4 cursor-zoom-in"
             onMouseEnter={() => setZooming(true)}
             onMouseLeave={() => setZooming(false)}
             onMouseMove={handleMouseMove}
@@ -131,7 +131,7 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
             </div>
           </div>
 
-          <p className="hidden lg:block text-xs text-gray-400 text-center mt-1.5 tracking-[0.05em]">
+          <p className="hidden lg:block text-xs text-gray-400 text-center mt-1.5 tracking-wider">
             {lZoomHint}
           </p>
         </div>

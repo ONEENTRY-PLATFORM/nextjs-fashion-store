@@ -32,7 +32,7 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
   const selected = selectedFilters[group.key] ?? [];
 
   // Touch-friendly minimum row height for label rows
-  const rowClass = 'flex items-center gap-3 cursor-pointer select-none min-h-[44px]';
+  const rowClass = 'flex items-center gap-3 cursor-pointer select-none min-h-11';
   const optionTextClass = 'text-xs text-[#333] leading-[1.3]';
 
   /* ── Size chips ── */

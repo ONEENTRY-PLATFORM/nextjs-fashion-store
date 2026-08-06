@@ -404,7 +404,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
       {/* Image Container */}
       <div
         suppressHydrationWarning
-        className={`relative overflow-hidden aspect-[3/4] bg-[#f2f1ef] ${
+        className={`relative overflow-hidden aspect-3/4 bg-[#f2f1ef] ${
           hasRealImage && !imgLoaded && !imgError ? 'animate-pulse' : ''
         }`}
       >
@@ -442,7 +442,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
           <div className="absolute top-3 left-3">
             <span
               className={`px-2 py-1 text-white text-xs tracking-wider uppercase font-medium ${
-                product.label === 'SALE' ? 'bg-[var(--sale)]' : 'bg-black'
+                product.label === 'SALE' ? 'bg-(--sale)' : 'bg-black'
               }`}
             >
               {product.label || product.badge}
@@ -524,7 +524,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
           {/* Floating tooltip — portal to body to escape parent transforms */}
           {showTooltip && typeof document !== 'undefined' && createPortal(
             <div
-              className="fixed px-3 py-2 bg-black text-white text-xs tracking-wide pointer-events-none whitespace-normal leading-snug shadow-lg -translate-y-full z-[99999] max-w-[260px]"
+              className="fixed px-3 py-2 bg-black text-white text-xs tracking-wide pointer-events-none whitespace-normal leading-snug shadow-lg -translate-y-full z-99999 max-w-65"
               style={{ left: tooltipPos.x, top: tooltipPos.y - 8 }}
             >
               {product.name}
@@ -591,7 +591,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
                     setSelectedSize(active ? null : size);
                   }}
                   disabled={!isAvailable}
-                  className={`min-w-[28px] px-1.5 py-0.5 text-[10px] leading-none tracking-wide uppercase border transition-colors ${
+                  className={`min-w-7 px-1.5 py-0.5 text-[10px] leading-none tracking-wide uppercase border transition-colors ${
                     active
                       ? 'bg-black text-white border-black'
                       : isAvailable

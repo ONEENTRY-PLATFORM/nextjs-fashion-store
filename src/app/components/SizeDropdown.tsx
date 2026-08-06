@@ -28,7 +28,7 @@ export function SizeDropdown({ value, onChange, isShoe, availableSizes }: SizeDr
 
   if (options.length <= 1) {
     return (
-      <div className="inline-flex items-center px-3 py-1.5 text-xs border border-[#d1d5db] rounded-none min-w-[90px]">
+      <div className="inline-flex items-center px-3 py-1.5 text-xs border border-[#d1d5db] rounded-none min-w-22.5">
         <span className="font-medium">{L.sizeLabel} {displayValue}</span>
       </div>
     );
@@ -38,7 +38,7 @@ export function SizeDropdown({ value, onChange, isShoe, availableSizes }: SizeDr
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs focus-visible:outline-none border border-[#d1d5db] rounded-none min-w-[90px]"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs focus-visible:outline-none border border-[#d1d5db] rounded-none min-w-22.5"
       >
         <span className="font-medium">{L.sizeLabel} {displayValue}</span>
         <ChevronDown

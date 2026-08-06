@@ -442,7 +442,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     >
       <Header />
 
-      <main id="main-content" className="max-w-screen-xl mx-auto px-4 lg:px-8 pb-20">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 pb-20">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
           <CheckoutStepper currentStep={2} />
@@ -458,7 +458,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
             {accountsLoading ? (
               <div className="space-y-3">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-[76px] bg-gray-100 animate-pulse rounded-none" />
+                  <div key={i} className="h-19 bg-gray-100 animate-pulse rounded-none" />
                 ))}
               </div>
             ) : accounts.length === 0 ? (
@@ -497,7 +497,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
               </button>
               <div className="flex flex-col items-end gap-2">
                 {submitError && (
-                  <p className="text-xs text-[var(--sale)] max-w-md text-right">{submitError}</p>
+                  <p className="text-xs text-(--sale) max-w-md text-right">{submitError}</p>
                 )}
                 <button
                   onClick={handlePlaceOrder}
@@ -519,7 +519,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
           </div>
 
           {/* ── Right: Order Summary ── */}
-          <div className="lg:w-80 xl:w-96 flex-shrink-0">
+          <div className="lg:w-80 xl:w-96 shrink-0">
             <div className="sticky top-32 border border-[#e5e7eb]">
               <div className="px-6 py-4 border-b border-[#e5e7eb]">
                 <h2 className="text-sm tracking-[0.15em] uppercase font-bold">
@@ -529,14 +529,14 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
               <div className="px-6 py-5 space-y-3">
                 {mounted && items.map(item => (
                   <div key={item.id} className="flex gap-3">
-                    <div className="relative flex-shrink-0 w-12 h-14">
+                    <div className="relative shrink-0 w-12 h-14">
                       <ImageWithFallback src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs leading-snug font-medium">{item.name}</p>
                       <p className="text-xs text-gray-400">{CLL.qtyLabel} {item.quantity} · {CLL.sizeLabel} {item.size}</p>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right shrink-0">
                       <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
                       {item.originalPrice && item.originalPrice > item.price && (
                         <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
@@ -546,7 +546,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                 ))}
                 {mounted && giftItems.map(gift => (
                   <div key={`gift-${gift.productId}`} className="flex gap-3">
-                    <div className="relative flex-shrink-0 w-12 h-14">
+                    <div className="relative shrink-0 w-12 h-14">
                       <ImageWithFallback src={gift.image} alt={gift.name} fill sizes="48px" className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -558,7 +558,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                         <span className="text-xs text-gray-400">{CLL.qtyLabel} {gift.quantity}</span>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right shrink-0">
                       <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Free</p>
                       {gift.price > 0 && (
                         <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
@@ -581,13 +581,13 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                   ) : (
                     <>
                       {mounted && activePersonalDiscount > 0 && (
-                        <div className="flex justify-between text-xs text-[var(--sale)]">
+                        <div className="flex justify-between text-xs text-(--sale)">
                           <span>{user?.status ?? 'Loyalty'} discount</span>
                           <span className="font-semibold">−{fmt(activePersonalDiscount)}</span>
                         </div>
                       )}
                       {mounted && activeCouponDiscount > 0 && couponCode && (
-                        <div className="flex justify-between text-xs text-[var(--sale)]">
+                        <div className="flex justify-between text-xs text-(--sale)">
                           <span>Promo ({couponCode})</span>
                           <span className="font-semibold">−{fmt(activeCouponDiscount)}</span>
                         </div>
@@ -595,7 +595,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     </>
                   )}
                   {mounted && activePreview && activePreview.bonusApplied > 0 && (
-                    <div className="flex justify-between text-xs text-[var(--sale)]">
+                    <div className="flex justify-between text-xs text-(--sale)">
                       <span>Bonuses used</span>
                       <span className="font-semibold">−{fmt(activePreview.bonusApplied)}</span>
                     </div>
@@ -633,7 +633,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                         </p>
                       )}
                       {bonusUnlocked && bonusUnderMin && bonusMinAmount != null && (
-                        <p className="text-[10px] text-[var(--sale)] mt-1">
+                        <p className="text-[10px] text-(--sale) mt-1">
                           Minimum {bonusMinAmount.toLocaleString()} bonuses per redemption
                         </p>
                       )}

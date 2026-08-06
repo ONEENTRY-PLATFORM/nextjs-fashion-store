@@ -163,7 +163,7 @@ export function Header() {
 
       {/* ── MAIN HEADER ── */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-screen-2xl mx-auto px-8 lg:px-12">
+        <div className="max-w-384 mx-auto px-8 lg:px-12">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <button

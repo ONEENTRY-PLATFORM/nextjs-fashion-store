@@ -110,14 +110,14 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
             />
           </div>
           <div className="sm:col-span-2 flex items-center justify-end gap-3">
-            {error && <p className="text-xs text-[var(--sale)] mr-auto" role="alert">{error}</p>}
+            {error && <p className="text-xs text-(--sale) mr-auto" role="alert">{error}</p>}
             <button
               type="submit"
               disabled={isPending}
               onMouseEnter={() => setHovered(true)}
               onMouseLeave={() => setHovered(false)}
               className={`px-6 py-2.5 text-xs tracking-[0.15em] uppercase text-white focus-visible:outline-none transition-colors font-bold disabled:opacity-50 ${
-                hovered ? 'bg-[var(--accent)]' : 'bg-black'
+                hovered ? 'bg-accent' : 'bg-black'
               }`}
             >
               {isPending ? '...' : L.submitButton}

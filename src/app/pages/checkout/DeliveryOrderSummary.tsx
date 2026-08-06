@@ -67,7 +67,7 @@ export function DeliveryOrderSummary({
 
   return (
     <div
-      className="lg:w-80 xl:w-96 flex-shrink-0"
+      className="lg:w-80 xl:w-96 shrink-0"
       style={{ '--sale': SALE_COLOR } as React.CSSProperties}
     >
       <div className="sticky top-32 border border-[#e5e7eb]">
@@ -91,7 +91,7 @@ export function DeliveryOrderSummary({
         <div className="px-6 py-5 space-y-3">
           {items.map(item => (
             <div key={item.id} className="flex gap-3">
-              <div className="relative flex-shrink-0 w-12 h-14">
+              <div className="relative shrink-0 w-12 h-14">
                 <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
               </div>
               <div className="flex-1 min-w-0">
@@ -102,14 +102,14 @@ export function DeliveryOrderSummary({
                     <>
                       <span className="text-xs text-gray-400">·</span>
                       <span
-                        className="w-3 h-3 rounded-full flex-shrink-0 inline-block border border-[#e5e7eb]"
+                        className="w-3 h-3 rounded-full shrink-0 inline-block border border-[#e5e7eb]"
                         style={{ backgroundColor: item.color }}
                       />
                     </>
                   )}
                 </div>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="text-right shrink-0">
                 <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
                 {item.originalPrice && item.originalPrice > item.price && (
                   <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
@@ -120,7 +120,7 @@ export function DeliveryOrderSummary({
 
           {giftItems.map(gift => (
             <div key={`gift-${gift.productId}`} className="flex gap-3">
-              <div className="relative flex-shrink-0 w-12 h-14">
+              <div className="relative shrink-0 w-12 h-14">
                 <Image src={gift.image} alt={gift.name} fill sizes="48px" className="object-cover" />
               </div>
               <div className="flex-1 min-w-0">
@@ -132,7 +132,7 @@ export function DeliveryOrderSummary({
                   <p className="text-xs text-gray-400">{L.qtyPrefix} {gift.quantity}</p>
                 </div>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="text-right shrink-0">
                 <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Free</p>
                 {gift.price > 0 && (
                   <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
@@ -151,10 +151,10 @@ export function DeliveryOrderSummary({
             {appliedCoupon ? (
               <div className="flex items-center justify-between px-3 py-2 bg-[#f0fdf4] border border-[#bbf7d0]">
                 <div className="flex items-center gap-2">
-                  <CheckCircle size={13} className="text-green-600 flex-shrink-0" />
+                  <CheckCircle size={13} className="text-green-600 shrink-0" />
                   <span className="text-xs font-mono tracking-widest font-bold text-green-600">{appliedCoupon}</span>
                 </div>
-                <button onClick={handleRemoveCoupon} className="focus-visible:outline-none hover:opacity-60 transition-opacity ml-2 flex-shrink-0">
+                <button onClick={handleRemoveCoupon} className="focus-visible:outline-none hover:opacity-60 transition-opacity ml-2 shrink-0">
                   <X size={13} className="text-gray-500" />
                 </button>
               </div>
@@ -168,7 +168,7 @@ export function DeliveryOrderSummary({
                     onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
                     placeholder={lPromoPh}
                     className={`flex-1 px-3 py-2 text-xs outline-none font-mono tracking-widest uppercase min-w-0 border rounded-none ${
-                      couponStatus === 'error' ? 'border-[var(--sale)]' : 'border-[#d1d5db]'
+                      couponStatus === 'error' ? 'border-(--sale)' : 'border-[#d1d5db]'
                     }`}
                     onFocus={e => { if (couponStatus !== 'error') e.target.style.borderColor = '#000'; }}
                     onBlur={e => { if (couponStatus !== 'error') e.target.style.borderColor = '#d1d5db'; }}
@@ -176,7 +176,7 @@ export function DeliveryOrderSummary({
                   <button
                     onClick={handleApplyCoupon}
                     disabled={!couponInput.trim() || couponLoading}
-                    className={`px-4 py-2 text-xs tracking-wide uppercase text-white focus-visible:outline-none flex items-center justify-center flex-shrink-0 font-bold min-w-16 transition-colors duration-200 ${
+                    className={`px-4 py-2 text-xs tracking-wide uppercase text-white focus-visible:outline-none flex items-center justify-center shrink-0 font-bold min-w-16 transition-colors duration-200 ${
                       !couponInput.trim() || couponLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-black cursor-pointer'
                     }`}
                   >
@@ -187,7 +187,7 @@ export function DeliveryOrderSummary({
                   </button>
                 </div>
                 {couponStatus === 'error' && (
-                  <p className="text-xs mt-1.5 flex items-center gap-1 text-[var(--sale)]">
+                  <p className="text-xs mt-1.5 flex items-center gap-1 text-(--sale)">
                     <X size={11} /> {couponError ?? L.promoInvalid}
                   </p>
                 )}
@@ -204,13 +204,13 @@ export function DeliveryOrderSummary({
             ) : (
               <>
                 {personalDiscount > 0 && (
-                  <div className="flex justify-between text-xs text-[var(--sale)]">
+                  <div className="flex justify-between text-xs text-(--sale)">
                     <span>Loyalty discount</span>
                     <span className="font-semibold">−{fmt(personalDiscount)}</span>
                   </div>
                 )}
                 {couponDiscount > 0 && appliedCoupon && (
-                  <div className="flex justify-between text-xs text-[var(--sale)]">
+                  <div className="flex justify-between text-xs text-(--sale)">
                     <span>{L.promo} ({appliedCoupon})</span>
                     <span className="font-semibold">−{fmt(couponDiscount)}</span>
                   </div>

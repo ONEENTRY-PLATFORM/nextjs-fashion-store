@@ -23,7 +23,7 @@ export function ColorSwatchButton({
   return (
     <button
       onClick={onClick}
-      className={`relative ${sizeClass} flex-shrink-0 transition-transform duration-150 focus-visible:outline-none ${
+      className={`relative ${sizeClass} shrink-0 transition-transform duration-150 focus-visible:outline-none ${
         active ? 'scale-125 border-2 border-black' : 'border border-gray-300'
       } ${outOfStock ? 'opacity-60 cursor-not-allowed' : ''}`}
       style={{ backgroundColor: color }}

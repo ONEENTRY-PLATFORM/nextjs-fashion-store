@@ -154,12 +154,12 @@ export function AddressesSection() {
               <div className="flex items-start justify-between gap-4 p-4 border border-[#e5e7eb]">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <MapPin size={12} className="text-[var(--accent)]" />
+                    <MapPin size={12} className="text-accent" />
                     <p className="text-xs uppercase tracking-wide font-bold">{addr.name}</p>
                   </div>
                   <p className="text-sm text-gray-600">{addr.full}</p>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 shrink-0">
                   <button
                     className="focus-visible:outline-none hover:opacity-60 transition-opacity text-gray-400"
                     onClick={() => openEdit(addr)}
@@ -168,7 +168,7 @@ export function AddressesSection() {
                     <Edit2 size={14} />
                   </button>
                   <button
-                    className="focus-visible:outline-none hover:opacity-60 transition-opacity text-[var(--sale)]"
+                    className="focus-visible:outline-none hover:opacity-60 transition-opacity text-(--sale)"
                     onClick={() => { void updateAddresses(addresses.filter(x => x.id !== addr.id)); }}
                     aria-label={ADDRESSES_SECTION_ARIA.deleteAddress}
                   >

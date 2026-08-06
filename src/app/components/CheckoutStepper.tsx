@@ -33,7 +33,7 @@ export function CheckoutStepper({ currentStep }: Props) {
 
         return (
           /*
-           * Each step occupies flex-1 (except the last which is flex-shrink-0).
+           * Each step occupies flex-1 (except the last which is shrink-0).
            * The connector line lives inside this wrapper, after the button,
            * so we never need React.Fragment in the map.
            */
@@ -46,7 +46,7 @@ export function CheckoutStepper({ currentStep }: Props) {
               onClick={() => done && router.push(step.path)}
               aria-label={`${step.label}${done ? CHECKOUT_STEPPER_DYNAMIC_ARIA.stepSuffixCompleted : active ? CHECKOUT_STEPPER_DYNAMIC_ARIA.stepSuffixCurrent : CHECKOUT_STEPPER_DYNAMIC_ARIA.stepSuffixUpcoming}`}
               aria-current={active ? 'step' : undefined}
-              className={`flex flex-col items-center gap-1.5 focus-visible:outline-none flex-shrink-0 min-w-[60px] ${
+              className={`flex flex-col items-center gap-1.5 focus-visible:outline-none shrink-0 min-w-15 ${
                 done ? 'cursor-pointer' : 'cursor-default'
               }`}
               disabled={!done && !active}
@@ -56,7 +56,7 @@ export function CheckoutStepper({ currentStep }: Props) {
                   done
                     ? 'bg-black text-white'
                     : active
-                      ? 'bg-[var(--accent)] text-white'
+                      ? 'bg-accent text-white'
                       : 'bg-white text-[#9ca3af] border-[1.5px] border-[#d1d5db]'
                 }`}
               >
@@ -74,7 +74,7 @@ export function CheckoutStepper({ currentStep }: Props) {
             {/* Connector line — only rendered between steps */}
             {!isLast(idx) && (
               <div
-                className={`flex-1 mx-2 h-0.5 mb-[18px] transition-colors duration-300 ${
+                className={`flex-1 mx-2 h-0.5 mb-4.5 transition-colors duration-300 ${
                   idx < currentStep ? 'bg-black' : 'bg-[#e5e7eb]'
                 }`}
               />

@@ -20,13 +20,13 @@ export function TrackingModal({ trackingNo, orderNo, onClose }: TrackingModalPro
   const trackingUrl = `https://www.royalmail.com/track-your-item#/tracking-results/${trackingNo}`;
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-500 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white w-full max-w-md font-[Inter,sans-serif]">
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#e5e7eb]">
           <div>
             <p className="text-[10px] tracking-[0.25em] uppercase text-gray-400 mb-0.5">{L.trackPrefix} {orderNo}</p>
-            <h2 className="text-sm tracking-[0.1em] uppercase font-bold">{L.trackHeading}</h2>
+            <h2 className="text-sm tracking-widest uppercase font-bold">{L.trackHeading}</h2>
           </div>
           <button onClick={onClose} className="hover:opacity-60 transition-opacity focus-visible:outline-none">
             <X size={18} strokeWidth={1.5} />
@@ -48,7 +48,7 @@ export function TrackingModal({ trackingNo, orderNo, onClose }: TrackingModalPro
               <span className="text-sm tracking-widest font-bold">{trackingNo}</span>
               <button
                 onClick={() => navigator.clipboard.writeText(trackingNo).catch(() => {})}
-                className="text-[10px] tracking-widest uppercase hover:opacity-60 transition-opacity focus-visible:outline-none font-semibold text-[var(--accent)]"
+                className="text-[10px] tracking-widest uppercase hover:opacity-60 transition-opacity focus-visible:outline-none font-semibold text-accent"
               >
                 {L.copy}
               </button>

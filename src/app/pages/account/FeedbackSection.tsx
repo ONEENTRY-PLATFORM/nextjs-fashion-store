@@ -55,7 +55,7 @@ export function FeedbackSection() {
     return (
       <div style={sectionVars}>
         <SectionTitle title={title} />
-        <div className="flex flex-col items-center justify-center py-20 gap-4 bg-[var(--banner-bg)]">
+        <div className="flex flex-col items-center justify-center py-20 gap-4 bg-(--banner-bg)">
           <div className="w-14 h-14 flex items-center justify-center bg-black">
             <Check size={28} color="#fff" />
           </div>
@@ -79,7 +79,7 @@ export function FeedbackSection() {
       <SectionTitle title={L.title} />
 
       {/* Header banner */}
-      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[var(--banner-bg)]">
+      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-(--banner-bg)">
         <div>
           <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{eyebrow}</p>
           <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.2rem)] font-bold">
@@ -96,7 +96,7 @@ export function FeedbackSection() {
         {/* Star Rating */}
         <div>
           <label className="block text-xs uppercase tracking-[0.15em] mb-4 font-bold text-[#555]">
-            {L.ratingLabel} <span className="text-[var(--sale)]">{L.requiredMark}</span>
+            {L.ratingLabel} <span className="text-(--sale)">{L.requiredMark}</span>
           </label>
           <div className="flex items-center gap-2">
             {[1, 2, 3, 4, 5].map(star => (
@@ -120,7 +120,7 @@ export function FeedbackSection() {
               </button>
             ))}
             {(hoveredRating || rating) > 0 && (
-              <span className="ml-2 text-xs tracking-wide font-semibold text-[var(--accent)]">
+              <span className="ml-2 text-xs tracking-wide font-semibold text-accent">
                 {ratingLabels[hoveredRating || rating]}
               </span>
             )}
@@ -172,7 +172,7 @@ export function FeedbackSection() {
         {/* Message */}
         <div>
           <label className={labelClass}>
-            {L.labelMessage} <span className="text-[var(--sale)]">{L.requiredMark}</span>
+            {L.labelMessage} <span className="text-(--sale)">{L.requiredMark}</span>
           </label>
           <p className="text-xs text-gray-400 mb-3">{L.messageHint}</p>
           <textarea
@@ -187,7 +187,7 @@ export function FeedbackSection() {
             onBlur={() => setMsgFocused(false)}
           />
           <div className="flex justify-between mt-1">
-            <span className={`text-xs ${message.length < 20 && message.length > 0 ? 'text-[var(--sale)]' : 'text-gray-400'}`}>
+            <span className={`text-xs ${message.length < 20 && message.length > 0 ? 'text-(--sale)' : 'text-gray-400'}`}>
               {message.length < 20 && message.length > 0 ? `${20 - message.length} ${L.charsNeededTpl}` : ''}
             </span>
             <span className="text-xs text-gray-300">{message.length} {L.charsCounterTpl}</span>
@@ -198,7 +198,7 @@ export function FeedbackSection() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white">
           {L.howSteps.map(s => (
             <div key={s.step} className="bg-white px-5 py-6">
-              <p className="text-xs tracking-widest mb-2 font-extrabold text-[var(--accent)]">{s.step}</p>
+              <p className="text-xs tracking-widest mb-2 font-extrabold text-accent">{s.step}</p>
               <p className="text-sm mb-1.5 font-bold">{s.title}</p>
               <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
             </div>
@@ -216,7 +216,7 @@ export function FeedbackSection() {
               !rating || message.length < 20
                 ? 'bg-gray-400 cursor-not-allowed'
                 : submitHovered
-                  ? 'bg-[var(--accent)] cursor-pointer'
+                  ? 'bg-accent cursor-pointer'
                   : 'bg-black cursor-pointer'
             }`}
           >
@@ -224,7 +224,7 @@ export function FeedbackSection() {
             {submitLabel}
           </button>
           <p className="text-xs text-gray-400">
-            <span className="text-[var(--sale)]">{L.requiredMark}</span> {requiredNote}
+            <span className="text-(--sale)">{L.requiredMark}</span> {requiredNote}
           </p>
         </div>
       </div>

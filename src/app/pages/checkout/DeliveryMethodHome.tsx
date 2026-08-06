@@ -96,7 +96,7 @@ export function DeliveryMethodHome({
                   isSel ? 'border-black bg-[#fafafa]' : 'border-[#e5e7eb] bg-white'
                 }`}
               >
-                <span className={`flex-shrink-0 w-4 h-4 rounded-full mt-0.5 flex items-center justify-center bg-white border-2 ${
+                <span className={`shrink-0 w-4 h-4 rounded-full mt-0.5 flex items-center justify-center bg-white border-2 ${
                   isSel ? 'border-black' : 'border-[#c8c8c8]'
                 }`}>
                   {isSel && <span className="w-2 h-2 rounded-full bg-black" />}
@@ -115,7 +115,7 @@ export function DeliveryMethodHome({
               selectedAddressId === 'new' ? 'border-black bg-[#fafafa]' : 'border-[#e5e7eb] bg-white'
             }`}
           >
-            <span className={`flex-shrink-0 w-4 h-4 rounded-full mt-0.5 flex items-center justify-center bg-white border-2 ${
+            <span className={`shrink-0 w-4 h-4 rounded-full mt-0.5 flex items-center justify-center bg-white border-2 ${
               selectedAddressId === 'new' ? 'border-black' : 'border-[#c8c8c8]'
             }`}>
               {selectedAddressId === 'new' && <span className="w-2 h-2 rounded-full bg-black" />}
@@ -146,7 +146,7 @@ export function DeliveryMethodHome({
                   id="save-addr"
                   checked={saveNewAddr}
                   onChange={e => setSaveNewAddr(e.target.checked)}
-                  className="cursor-pointer w-[14px] h-[14px] accent-black"
+                  className="cursor-pointer w-3.5 h-3.5 accent-black"
                 />
                 <label htmlFor="save-addr" className="text-xs text-gray-600 cursor-pointer">{L.saveToProfile}</label>
               </div>
@@ -166,7 +166,7 @@ export function DeliveryMethodHome({
               <p className="text-xs text-gray-600">
                 {newAddrForm.fullName} · {newAddrForm.line1}, {newAddrForm.city} {newAddrForm.postcode}
               </p>
-              <button onClick={() => setNewAddrConfirmed(false)} className="text-xs underline text-gray-500 hover:text-black flex-shrink-0">{L.editAddress}</button>
+              <button onClick={() => setNewAddrConfirmed(false)} className="text-xs underline text-gray-500 hover:text-black shrink-0">{L.editAddress}</button>
             </div>
           )}
         </div>
@@ -197,7 +197,7 @@ export function DeliveryMethodHome({
               <button
                 key={i}
                 onClick={() => setSelectedDate(date)}
-                className={`flex flex-col items-center px-3 py-2.5 text-xs focus-visible:outline-none transition-colors min-w-[58px] border-2 ${
+                className={`flex flex-col items-center px-3 py-2.5 text-xs focus-visible:outline-none transition-colors min-w-14.5 border-2 ${
                   isSelected ? 'border-black bg-black text-white' : 'border-[#e5e7eb] bg-white text-[#374151]'
                 }`}
               >

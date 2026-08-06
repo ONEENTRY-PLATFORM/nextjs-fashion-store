@@ -55,7 +55,7 @@ export function ProductShareDropdown({
       </button>
 
       {showShare && (
-        <div className="absolute right-0 top-7 z-50 bg-white border border-gray-200 shadow-lg py-1 min-w-[160px] rounded-md">
+        <div className="absolute right-0 top-7 z-50 bg-white border border-gray-200 shadow-lg py-1 min-w-40 rounded-md">
           {SHARE_LINKS.map(item => (
             <a
               key={item.label}

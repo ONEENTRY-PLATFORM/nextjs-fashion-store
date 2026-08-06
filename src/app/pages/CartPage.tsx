@@ -184,7 +184,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     >
       <Header />
 
-      <main id="main-content" className="max-w-screen-xl mx-auto px-4 lg:px-8 pb-20">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 pb-20">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
           <CheckoutStepper currentStep={0} />
@@ -214,8 +214,8 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     className={`flex gap-4 p-5 ${i < 2 ? 'border-b border-[#e5e7eb]' : ''}`}
                     style={{ '--delay': `${i * 80}ms` } as React.CSSProperties}
                   >
-                    <div className="w-4 h-4 bg-gray-100 animate-pulse flex-shrink-0 mt-1 [animation-delay:var(--delay)]" />
-                    <div className="flex-shrink-0 bg-gray-100 animate-pulse w-[110px] h-[140px] [animation-delay:var(--delay)]" />
+                    <div className="w-4 h-4 bg-gray-100 animate-pulse shrink-0 mt-1 [animation-delay:var(--delay)]" />
+                    <div className="shrink-0 bg-gray-100 animate-pulse w-27.5 h-35 [animation-delay:var(--delay)]" />
                     <div className="flex-1 flex flex-col gap-2.5 pt-1">
                       <div className="h-3 bg-gray-100 animate-pulse rounded w-1/4 [animation-delay:var(--delay)]" />
                       <div className="h-4 bg-gray-100 animate-pulse rounded w-3/4 [animation-delay:var(--delay)]" />
@@ -223,7 +223,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       <div className="h-8 bg-gray-100 animate-pulse rounded w-1/3 mt-1 [animation-delay:var(--delay)]" />
                       <div className="h-8 bg-gray-100 animate-pulse rounded w-1/4 mt-auto [animation-delay:var(--delay)]" />
                     </div>
-                    <div className="flex-shrink-0 w-14 flex flex-col gap-1 items-end">
+                    <div className="shrink-0 w-14 flex flex-col gap-1 items-end">
                       <div className="h-5 bg-gray-100 animate-pulse rounded w-full [animation-delay:var(--delay)]" />
                     </div>
                   </div>
@@ -231,7 +231,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
               </div>
             </div>
             {/* Order summary skeleton */}
-            <div className="lg:w-80 flex-shrink-0">
+            <div className="lg:w-80 shrink-0">
               <div className="h-6 bg-gray-100 animate-pulse rounded mb-4 w-2/3" />
               <div className="flex flex-col gap-3 p-4 border border-[#e5e7eb]">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -265,7 +265,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
               <div className="flex items-center justify-between px-4 py-3 mb-4 border border-[#e5e7eb] bg-[#fafafa]">
                 <label className="flex items-center gap-3 cursor-pointer text-sm">
                   <span
-                    className={`w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-none border-[1.5px] ${
+                    className={`w-4 h-4 flex items-center justify-center shrink-0 rounded-none border-[1.5px] ${
                       allSelected ? 'border-black bg-black' : 'border-[#c8c8c8] bg-white'
                     }`}
                     onClick={toggleSelectAll}
@@ -279,7 +279,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                 {selectedIds.size > 0 && (
                   <button
                     onClick={removeSelected}
-                    className="flex items-center gap-1.5 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-[var(--sale)]"
+                    className="flex items-center gap-1.5 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-(--sale)"
                   >
                     <Trash2 size={13} />
                     {lRemove} ({selectedIds.size})
@@ -324,7 +324,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     key={`gift-${gift.productId}`}
                     className={`flex items-center gap-4 p-4 sm:p-5 ${idx < giftItems.length - 1 ? 'border-b border-[#e5e7eb]' : ''}`}
                   >
-                    <div className="relative flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24">
+                    <div className="relative shrink-0 w-16 h-20 sm:w-20 sm:h-24">
                       <Image src={gift.image} alt={gift.name} fill sizes="80px" className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -336,7 +336,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                         <span className="text-xs text-gray-500">Qty {gift.quantity}</span>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right shrink-0">
                       <p className="text-sm font-semibold text-green-600 uppercase tracking-wide">Free</p>
                       {gift.price > 0 && (
                         <p className="text-xs text-gray-400 line-through mt-0.5">{fmt(gift.price * gift.quantity)}</p>
@@ -348,7 +348,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
             </div>
 
             {/* ── Right: Order Summary ── */}
-            <div className="lg:w-80 xl:w-96 flex-shrink-0">
+            <div className="lg:w-80 xl:w-96 shrink-0">
               <div className="sticky top-32 border border-[#e5e7eb]">
                 <div className="px-6 py-5 border-b border-[#e5e7eb]">
                   <h2 className="text-sm tracking-[0.15em] uppercase font-semibold">
@@ -374,13 +374,13 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     ) : (
                       <>
                         {personalDiscount - couponDiscount > 0 && (
-                          <div className="flex justify-between text-sm text-[var(--sale)]">
+                          <div className="flex justify-between text-sm text-(--sale)">
                             <span>Loyalty discount</span>
                             <span className="font-semibold">−{fmt(personalDiscount - couponDiscount)}</span>
                           </div>
                         )}
                         {couponDiscount > 0 && couponCode && (
-                          <div className="flex justify-between text-sm text-[var(--sale)]">
+                          <div className="flex justify-between text-sm text-(--sale)">
                             <span>{L.promo} ({couponCode})</span>
                             <span className="font-semibold">−{fmt(couponDiscount)}</span>
                           </div>
@@ -409,8 +409,8 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                   </div>
 
                   {/* Loyalty bonus */}
-                  <div className="flex items-center gap-2 px-3 py-2.5 text-xs bg-[#fff8f8] border border-[var(--accent)]">
-                    <span className="text-[var(--accent)]">★</span>
+                  <div className="flex items-center gap-2 px-3 py-2.5 text-xs bg-[#fff8f8] border border-accent">
+                    <span className="text-accent">★</span>
                     <span className="text-[#555]">
                       {lEarnPrefix} <strong>{Math.floor(finalTotal * 10)} {L.loyaltyEarnSuffix}</strong> {lEarnTemplate}
                     </span>
@@ -420,7 +420,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                   <div>
                     <label className="flex items-center gap-2 text-xs cursor-pointer mb-3">
                       <span
-                        className={`w-4 h-4 flex items-center justify-center flex-shrink-0 rounded-none border-[1.5px] ${
+                        className={`w-4 h-4 flex items-center justify-center shrink-0 rounded-none border-[1.5px] ${
                           promoChecked ? 'border-black bg-black' : 'border-[#c8c8c8] bg-white'
                         }`}
                         onClick={() => setPromoChecked(p => !p)}
@@ -465,7 +465,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       </div>
                     )}
                     {couponError && !couponCode && (
-                      <p className="text-xs mt-1.5 text-[var(--sale)]" role="alert">
+                      <p className="text-xs mt-1.5 text-(--sale)" role="alert">
                         {couponError}
                       </p>
                     )}

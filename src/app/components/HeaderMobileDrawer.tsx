@@ -48,7 +48,7 @@ export function HeaderMobileDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-[100] lg:hidden"
+      className="fixed inset-0 z-100 lg:hidden"
       style={{ '--accent': accentColor } as React.CSSProperties}
     >
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -71,7 +71,7 @@ export function HeaderMobileDrawer({
                 onClose();
               }}
               className={`flex-1 py-3 text-sm tracking-widest uppercase font-medium transition-colors ${
-                mobileGender === g ? 'bg-[var(--accent)] text-white' : 'bg-white text-black'
+                mobileGender === g ? 'bg-accent text-white' : 'bg-white text-black'
               }`}
             >
               {g.toUpperCase()}
@@ -94,7 +94,7 @@ export function HeaderMobileDrawer({
                   }
                   className={`w-full flex items-center justify-between px-4 py-4 text-sm tracking-wider uppercase border-l-[3px] ${
                     urlSubCat === key
-                      ? 'text-[var(--accent)] font-bold border-[var(--accent)]'
+                      ? 'text-accent font-bold border-accent'
                       : 'font-medium border-transparent'
                   }`}
                 >
@@ -112,7 +112,7 @@ export function HeaderMobileDrawer({
                   <div className="pb-4">
                     {sections.map((section, idx) => (
                       <div key={`${section.title}-${idx}`} className="px-4 mb-4">
-                        <p className="text-xs tracking-widest uppercase mb-2 text-[var(--accent)]">
+                        <p className="text-xs tracking-widest uppercase mb-2 text-accent">
                           {section.title}
                         </p>
                         <ul className="space-y-1">

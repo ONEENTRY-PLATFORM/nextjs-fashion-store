@@ -33,7 +33,7 @@ export function PillDropdown({ label, options, selected, onToggle, onClear }: Pi
   return (
     <div
       ref={ref}
-      className="relative flex-shrink-0"
+      className="relative shrink-0"
       style={{ '--sale': SALE_RED } as React.CSSProperties}
     >
       <button
@@ -46,7 +46,7 @@ export function PillDropdown({ label, options, selected, onToggle, onClear }: Pi
       >
         {label}
         {isActive && (
-          <span className="text-[10px] bg-[var(--sale)] text-white px-1 py-px rounded-none font-bold">
+          <span className="text-[10px] bg-(--sale) text-white px-1 py-px rounded-none font-bold">
             {count}
           </span>
         )}
@@ -59,7 +59,7 @@ export function PillDropdown({ label, options, selected, onToggle, onClear }: Pi
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 bg-white border border-gray-200 shadow-lg z-50 mt-0.5 min-w-[180px] rounded-none">
+        <div className="absolute top-full left-0 bg-white border border-gray-200 shadow-lg z-50 mt-0.5 min-w-45 rounded-none">
           {isActive && (
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
               <span className="text-xs text-gray-500">{count} selected</span>
@@ -72,7 +72,7 @@ export function PillDropdown({ label, options, selected, onToggle, onClear }: Pi
               <label key={opt} className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="checkbox" checked={checked} onChange={() => onToggle(opt)} className="sr-only" />
                 <span
-                  className={`w-[14px] h-[14px] flex-shrink-0 border-[1.5px] flex items-center justify-center rounded-none ${
+                  className={`w-3.5 h-3.5 shrink-0 border-[1.5px] flex items-center justify-center rounded-none ${
                     checked ? 'border-black bg-black' : 'border-[#ccc] bg-white'
                   }`}
                 >
@@ -113,7 +113,7 @@ export function ColorPillDropdown({ selected, onToggle, onClear, options }: Colo
   return (
     <div
       ref={ref}
-      className="relative flex-shrink-0"
+      className="relative shrink-0"
       style={{ '--sale': SALE_RED } as React.CSSProperties}
     >
       <button
@@ -126,7 +126,7 @@ export function ColorPillDropdown({ selected, onToggle, onClear, options }: Colo
       >
         {L.colourFilter}
         {isActive && (
-          <span className="text-[10px] bg-[var(--sale)] text-white px-1 py-px rounded-none font-bold">{count}</span>
+          <span className="text-[10px] bg-(--sale) text-white px-1 py-px rounded-none font-bold">{count}</span>
         )}
         <ChevronDown
           size={11}
@@ -137,7 +137,7 @@ export function ColorPillDropdown({ selected, onToggle, onClear, options }: Colo
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 bg-white border border-gray-200 shadow-lg z-50 mt-0.5 p-3 min-w-[200px] rounded-none">
+        <div className="absolute top-full left-0 bg-white border border-gray-200 shadow-lg z-50 mt-0.5 p-3 min-w-50 rounded-none">
           {isActive && (
             <div className="flex justify-end mb-2">
               <button onClick={onClear} className="text-xs underline text-gray-400 hover:text-black focus-visible:outline-none">{L.clearOne}</button>

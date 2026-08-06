@@ -82,7 +82,7 @@ export function GenericCommonBlock({
     <section className="relative w-full overflow-hidden bg-gray-100 my-8">
       <div className="relative flex flex-col md:flex-row items-stretch">
         {image ? (
-          <div className="relative w-full md:w-1/2 min-h-[240px] md:min-h-[360px]">
+          <div className="relative w-full md:w-1/2 min-h-60 md:min-h-90">
             <Image
               src={image}
               alt={imageAlt}

@@ -110,7 +110,7 @@ export function SocialNetworksSection() {
             <div key={p.identifier} className="flex items-center justify-between p-4 border border-[#e5e7eb]">
               <div className="flex items-center gap-3">
                 {meta?.iconPath && (
-                  <Image src={meta.iconPath} alt="" width={18} height={18} className="w-[18px] h-[18px]" unoptimized />
+                  <Image src={meta.iconPath} alt="" width={18} height={18} className="w-4.5 h-4.5" unoptimized />
                 )}
                 <span className="text-xs uppercase tracking-wide font-semibold">{p.title}</span>
                 {isLinked && (

@@ -122,10 +122,10 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
         {/* ── Sticky filter / sort bar ── */}
         <div
           ref={filterBarRef}
-          className="sticky top-16 md:top-24 lg:top-[132px] z-40 bg-white border-b border-gray-200 pt-2"
+          className="sticky top-16 md:top-24 lg:top-33 z-40 bg-white border-b border-gray-200 pt-2"
           onMouseLeave={() => { setSortOpen(false); }}
         >
-          <div className="max-w-screen-2xl mx-auto px-4 lg:px-8">
+          <div className="max-w-384 mx-auto px-4 lg:px-8">
             <div className="flex items-center justify-between gap-4 py-0">
               {/* Category tabs — horizontal scroll on mobile */}
               <div className="flex items-center overflow-x-auto scrollbar-hide gap-0 flex-1 min-w-0">
@@ -134,7 +134,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
                     className={[
-                      'flex-shrink-0 px-5 py-3.5 text-xs tracking-widest uppercase whitespace-nowrap transition-all duration-150 focus-visible:outline-none',
+                      'shrink-0 px-5 py-3.5 text-xs tracking-widest uppercase whitespace-nowrap transition-all duration-150 focus-visible:outline-none',
                       activeCategory === cat
                         ? 'text-black border-b-2 border-black'
                         : 'text-gray-500 border-b-2 border-transparent hover:text-black',
@@ -151,14 +151,14 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
               </div>
 
               {/* Sort + view controls */}
-              <div className="hidden md:flex items-center gap-4 flex-shrink-0 py-2">
+              <div className="hidden md:flex items-center gap-4 shrink-0 py-2">
                 {/* Column toggles */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500 mr-1">{lView}</span>
                   <button
                     onClick={() => dispatch(dispatchSetViewCols({ catalogKey: NEW_KEY, cols: 3 }))}
                     className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
-                      viewCols === 3 ? 'opacity-100' : 'opacity-[0.35]'
+                      viewCols === 3 ? 'opacity-100' : 'opacity-35'
                     }`}
                     aria-label={L.view3ColAria}
                   >
@@ -167,7 +167,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                   <button
                     onClick={() => dispatch(dispatchSetViewCols({ catalogKey: NEW_KEY, cols: 4 }))}
                     className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
-                      viewCols === 4 ? 'opacity-100' : 'opacity-[0.35]'
+                      viewCols === 4 ? 'opacity-100' : 'opacity-35'
                     }`}
                     aria-label={L.view4ColAria}
                   >
@@ -188,7 +188,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                     />
                   </button>
                   {sortOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-[180px] rounded-none">
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-45 rounded-none">
                       {NEW_ARRIVALS_SORT_OPTIONS.map((opt) => (
                         <SortOption
                           key={opt.value}
@@ -206,7 +206,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
               </div>
 
               {/* Mobile: sort pill */}
-              <div className="md:hidden flex-shrink-0">
+              <div className="md:hidden shrink-0">
                 <div ref={sortRef} className="relative">
                   <button
                     onClick={() => setSortOpen((o) => !o)}
@@ -216,7 +216,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                     <ChevronDown size={11} />
                   </button>
                   {sortOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-[170px] rounded-none">
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-42.5 rounded-none">
                       {NEW_ARRIVALS_SORT_OPTIONS.map((opt) => (
                         <SortOption
                           key={opt.value}
@@ -237,7 +237,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
         </div>
 
         {/* ── Product count row ── */}
-        <div className="max-w-screen-2xl mx-auto px-4 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-384 mx-auto px-4 lg:px-8 py-4 flex items-center justify-between">
           <p className="text-xs text-gray-500 tracking-wider uppercase">
             {sorted.length} {sorted.length === 1 ? L.resultSingular : lResults}
             {activeCategory !== NACL.all && (

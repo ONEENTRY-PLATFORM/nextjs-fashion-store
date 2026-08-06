@@ -16,9 +16,9 @@ export function AccountDeletionSection() {
       <SectionTitle title={L.title} />
       <div className="p-5 space-y-4 border border-[#fee2e2] bg-[#fff8f8]">
         <div className="flex items-start gap-3">
-          <AlertTriangle size={18} className="flex-shrink-0 mt-0.5 text-[var(--sale)]" />
+          <AlertTriangle size={18} className="shrink-0 mt-0.5 text-(--sale)" />
           <div className="space-y-1.5">
-            <p className="text-sm font-semibold text-[var(--sale)]">{L.warningTitle}</p>
+            <p className="text-sm font-semibold text-(--sale)">{L.warningTitle}</p>
             <ul className="text-xs text-gray-600 space-y-1">
               {L.warningPoints.map(point => (
                 <li key={point}>• {point}</li>
@@ -32,7 +32,7 @@ export function AccountDeletionSection() {
         {!showConfirm ? (
           <button
             onClick={() => setShowConfirm(true)}
-            className="px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visible:outline-none hover:bg-red-600 transition-colors bg-[var(--sale)] text-white rounded-none font-bold"
+            className="px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visible:outline-none hover:bg-red-600 transition-colors bg-(--sale) text-white rounded-none font-bold"
           >
             {L.ctaDelete}
           </button>
@@ -42,7 +42,7 @@ export function AccountDeletionSection() {
             <div className="flex gap-3">
               <button
                 onClick={() => { logout(); router.push('/'); }}
-                className="px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-[var(--sale)] text-white rounded-none font-bold"
+                className="px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-(--sale) text-white rounded-none font-bold"
               >
                 {L.ctaConfirmDelete}
               </button>

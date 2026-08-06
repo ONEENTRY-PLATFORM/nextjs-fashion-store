@@ -37,7 +37,7 @@ export function HeaderTopBar() {
 
   return (
     <div className="bg-black text-white hidden md:block" data-testid="header-top-bar">
-      <div className="max-w-screen-2xl mx-auto px-8 lg:px-12 h-10 flex items-center justify-between text-xs">
+      <div className="max-w-384 mx-auto px-8 lg:px-12 h-10 flex items-center justify-between text-xs">
         <div className="flex items-center gap-6">
           <div className="relative">
             <button

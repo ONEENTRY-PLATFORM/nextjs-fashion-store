@@ -26,10 +26,10 @@ export function CartUnavailableNotice() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-0 left-0 right-0 z-[200] bg-[#fef3c7] border-b border-[#f59e0b] font-[Inter,sans-serif]"
+      className="fixed top-0 left-0 right-0 z-200 bg-[#fef3c7] border-b border-[#f59e0b] font-[Inter,sans-serif]"
     >
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-2.5 flex items-start gap-3">
-        <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-[#b45309]" />
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2.5 flex items-start gap-3">
+        <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[#b45309]" />
         <p className="flex-1 text-xs text-[#78350f] leading-relaxed">
           <span className="font-semibold">
             {unavailableRemoved.length === 1 ? 'Removed from your bag: ' : 'Removed from your bag: '}
@@ -41,7 +41,7 @@ export function CartUnavailableNotice() {
           type="button"
           onClick={dismissUnavailableNotice}
           aria-label="Dismiss notice"
-          className="p-1 text-[#78350f] hover:opacity-70 focus-visible:outline-none flex-shrink-0"
+          className="p-1 text-[#78350f] hover:opacity-70 focus-visible:outline-none shrink-0"
         >
           <X size={14} strokeWidth={2} />
         </button>

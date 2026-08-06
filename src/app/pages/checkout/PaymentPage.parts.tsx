@@ -37,13 +37,13 @@ export function OptionCard({ id, selected, onSelect, icon, title, subtitle, badg
         onClick={() => onSelect(id)}
       >
         <span
-          className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center bg-white border-2 ${
+          className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center bg-white border-2 ${
             active ? 'border-black' : 'border-[#c8c8c8]'
           }`}
         >
           {active && <span className="w-2.5 h-2.5 rounded-full bg-black" />}
         </span>
-        <span className={`flex-shrink-0 transition-colors duration-200 ${active ? 'text-black' : 'text-gray-400'}`}>
+        <span className={`shrink-0 transition-colors duration-200 ${active ? 'text-black' : 'text-gray-400'}`}>
           {icon}
         </span>
         <div className="flex-1">
@@ -51,7 +51,7 @@ export function OptionCard({ id, selected, onSelect, icon, title, subtitle, badg
           {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
         </div>
         {badge && (
-          <span className="flex-shrink-0 text-xs px-2 py-0.5 bg-[#fffbeb] text-[#d97706] border border-[#fde68a] rounded-none font-semibold">
+          <span className="shrink-0 text-xs px-2 py-0.5 bg-[#fffbeb] text-[#d97706] border border-[#fde68a] rounded-none font-semibold">
             {badge}
           </span>
         )}
@@ -114,7 +114,7 @@ export const CardForm = forwardRef<CardFormHandle>(function CardForm(_, ref) {
             type="text"
             placeholder={L.placeholderCardNumber}
             maxLength={19}
-            className={`${inputClass(!!errors.cardNumber)} pr-12 tracking-[0.1em]`}
+            className={`${inputClass(!!errors.cardNumber)} pr-12 tracking-widest`}
             onFocus={e => (e.target.style.borderColor = '#000')}
             onBlur={e => (e.target.style.borderColor = errors.cardNumber ? '#ef4444' : '#d1d5db')}
             {...field('cardNumber')}
@@ -184,7 +184,7 @@ export function QRPanel() {
           })}
         </div>
       </div>
-      <p className="text-xs text-gray-500 text-center max-w-[200px]">
+      <p className="text-xs text-gray-500 text-center max-w-50">
         {L.qrScanHint}
       </p>
       <div className="flex items-center gap-2 text-xs text-gray-400">
