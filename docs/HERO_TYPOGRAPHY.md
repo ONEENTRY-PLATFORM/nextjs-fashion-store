@@ -1,10 +1,10 @@
 # Hero Banner Typography Rules
 
+Figma design spec for hero banners. Implemented in [`src/app/components/HeroSlider.tsx`](../src/app/components/HeroSlider.tsx) (also used by `NewArrivalsHero.tsx` / `SaleHero.tsx`).
+
 Hero banners follow a **special editorial typography style** that slightly overrides the default heading system.
 
 ---
-
-# Hero Typography System
 
 ## Eyebrow Label
 
@@ -177,11 +177,11 @@ transition: 200ms ease
 
 ---
 
-# Hero Layout Rules
+## Hero Layout Rules
 
 Hero banner must follow these layout rules.
 
-## Height
+### Height
 
 
 600px
@@ -189,7 +189,7 @@ Hero banner must follow these layout rules.
 
 This height remains **fixed across all breakpoints**.
 
-## Width
+### Width
 
 
 100%
@@ -199,7 +199,7 @@ Edge-to-edge layout with **no container limit**.
 
 ---
 
-# Hero Content Alignment
+## Hero Content Alignment
 
 Hero content block can be aligned in **three ways**.
 
@@ -235,7 +235,7 @@ Content always sits near the **bottom of the hero image**.
 
 ---
 
-# Hero Content Container
+## Hero Content Container
 
 **Maximum Width**
 
@@ -259,7 +259,7 @@ px-20
 
 ---
 
-# Hero Gradient Overlay
+## Hero Gradient Overlay
 
 Hero images must include a **directional gradient overlay** to ensure text readability.
 

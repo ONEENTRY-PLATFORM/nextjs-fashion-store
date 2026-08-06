@@ -5,9 +5,9 @@ Create a structured spacing system that ensures visual rhythm, alignment consist
 
 Use an **8px base spacing system** for consistency and scalability.
 
----
+The hand-off offered two layout options; **the edge-to-edge system below is the one that was adopted and built**. The rejected alternative (fixed 1280–1440px container with horizontal gutters) is not part of the design system. Header specifics live in [`HEADER_LAYOUT.md`](./HEADER_LAYOUT.md).
 
-# OPTION 1 — Edge-to-Edge Product Grid System
+---
 
 ## 1. Global Spacing Unit
 
@@ -135,7 +135,7 @@ Editorial content may use internal padding (32px–48px desktop / 16px mobile) f
 
 ---
 
-# Design Direction (Option 1)
+## Design Direction
 
 This system creates:
 - Strong visual impact

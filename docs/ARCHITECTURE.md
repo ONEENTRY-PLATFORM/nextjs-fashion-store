@@ -14,6 +14,11 @@ This document is the top of the documentation pyramid. For deep dives see:
 - [CATALOG_FILTERS.md](./CATALOG_FILTERS.md) — product list / vector search / filter markers / URL sync
 - [DATASETS.md](./DATASETS.md) — remaining static datasets in `src/app/data/`
 - [TESTING.md](./TESTING.md) — Vitest, Playwright, Storybook
+- [HERO_TYPOGRAPHY.md](./HERO_TYPOGRAPHY.md) — Figma spec for hero banner typography, layout and gradients
+- [HEADER_LAYOUT.md](./HEADER_LAYOUT.md) — header zones, shared container, alignment and spacing
+- [SPACING_SYSTEM.md](./SPACING_SYSTEM.md) — 8px scale, edge-to-edge grid, section rhythm
+- [COMPONENT_RULES.md](./COMPONENT_RULES.md) — product card (borders, fixed height, truncation) + store card modal
+- [TAILWIND_CONVENTIONS.md](./TAILWIND_CONVENTIONS.md) — design tokens, button/icon/card rules, known divergences
 - [I18N.md](./I18N.md) — locale infrastructure (currently `en_US`)
 - [PWA.md](./PWA.md) — service worker + manifest
 
@@ -122,7 +127,6 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | Folder | Purpose |
 |---|---|
 | `src/assets/` | Static image assets (Figma-exported, optimized) |
-| `src/imports/` | Generated Figma component imports |
 | `src/stories/` | Storybook stories |
 
 ### Project root
