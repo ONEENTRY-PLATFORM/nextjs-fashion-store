@@ -12,14 +12,43 @@ import { useSignUpFormSchema } from '../../lib/oneentry/auth/SignUpFormSchemaCon
 import { useAuthProviders } from '../hooks/useAuthProviders';
 import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../data/socialProviderRegistry';
 
-function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: React.ReactNode }) {
+/**
+ * Consent / subscription checkbox.
+ *
+ * Wraps a visually-hidden native input instead of hanging `onClick` on a bare
+ * `<span>`. The previous version was not a checkbox to anything but the eye:
+ * it could not be reached or toggled by keyboard, a screen reader announced
+ * the caption as plain text with no role or checked state, and — since the
+ * `<label>` had no control to associate with — clicking the caption did
+ * nothing, leaving only a 16 px box as the hit target. On the terms checkbox
+ * that made registration impossible without a mouse.
+ *
+ * Mirrors the pattern the catalogue filters already use (`MobileFilterBody`).
+ * Anchors inside `children` stay safe: per the HTML spec a label's activation
+ * behaviour is skipped when the click targets interactive content, so opening
+ * the Terms link does not silently tick the box.
+ */
+function Checkbox({ checked, onChange, children, testId }: {
+  checked: boolean;
+  onChange: () => void;
+  children: React.ReactNode;
+  /** Stable hook for the E2E suite; also names the control in failures. */
+  testId?: string;
+}) {
   return (
     <label className="flex items-start gap-3 cursor-pointer text-xs text-gray-600 leading-relaxed">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        data-testid={testId}
+        className="sr-only peer"
+      />
       <span
-        className={`shrink-0 w-4 h-4 mt-0.5 flex items-center justify-center border transition-colors duration-150 ${
+        aria-hidden="true"
+        className={`shrink-0 w-4 h-4 mt-0.5 flex items-center justify-center border transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-black ${
           checked ? 'border-black bg-black' : 'border-gray-300 bg-white'
         }`}
-        onClick={onChange}
       >
         {checked && <Image src="/icons/ui/check.svg" alt="" width={8} height={8} className="w-2 h-2" unoptimized />}
       </span>
@@ -263,17 +292,17 @@ export function RegisterModal() {
 
           {/* Marketing checkboxes */}
           <div className="space-y-3 pt-4 border-t border-gray-100">
-            <Checkbox checked={emailSub} onChange={() => setEmailSub(p => !p)}>
+            <Checkbox checked={emailSub} onChange={() => setEmailSub(p => !p)} testId="register-subscribe-email">
               {schema.users_subscribe_to_promotional_email.title || L.emailSubscribe}
             </Checkbox>
-            <Checkbox checked={smsSub} onChange={() => setSmsSub(p => !p)}>
+            <Checkbox checked={smsSub} onChange={() => setSmsSub(p => !p)} testId="register-subscribe-sms">
               {schema.users_subscribe_to_promotional_sms.title || L.smsSubscribe}
             </Checkbox>
           </div>
 
           {/* Legal */}
           <div className="pt-4 border-t border-gray-100">
-            <Checkbox checked={agreed} onChange={() => setAgreed(p => !p)}>
+            <Checkbox checked={agreed} onChange={() => setAgreed(p => !p)} testId="register-agree-terms">
               {schema.users_agree.text1 || L.agreePrefix}{' '}
               <a href="#" className="underline text-black">{schema.users_agree.termsTitle || L.termsLink}</a>
               {' '}{schema.users_agree.text2 || L.agreeAnd}{' '}
