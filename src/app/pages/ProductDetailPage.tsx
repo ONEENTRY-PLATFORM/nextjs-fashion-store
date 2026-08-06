@@ -733,6 +733,14 @@ export function ProductDetailPage({
                         c.hex === '#FFFFFF' ? 'shadow-[inset_0_0_0_1px_#ddd]' : ''
                       }`}
                       title={c.name + (!c.available ? lOutOfStockTitle : '')}
+                      // The swatch renders as a bare coloured box, so without an
+                      // explicit name a screen reader announces only "button".
+                      // `title` alone is a weak fallback that several readers
+                      // skip. Mirrors `ColorSwatchButton`, which the catalogue
+                      // cards use, so both surfaces announce colours alike.
+                      aria-label={c.name + (!c.available ? lOutOfStockTitle : '')}
+                      aria-pressed={selectedColor === i}
+                      data-testid="pdp-color-swatch"
                       style={{ backgroundColor: c.hex }}
                     >
                       {!c.available && (
@@ -769,6 +777,12 @@ export function ProductDetailPage({
                       key={`${s.label}-${i}`}
                       onClick={() => s.available && setSelectedSize(s.label)}
                       disabled={!s.available}
+                      // Specs reached for these with `button:has-text("M")`,
+                      // which is a case-insensitive *substring* match and so
+                      // also caught "Store Locations", "WOMEN", "Shoes" — 27
+                      // buttons page-wide, the first of them in the header.
+                      data-testid="pdp-size-chip"
+                      aria-pressed={selectedSize === s.label}
                       className={`transition-all duration-150 text-xs w-13 h-11 rounded-md ${
                         s.available ? 'cursor-pointer' : 'cursor-not-allowed line-through'
                       } ${

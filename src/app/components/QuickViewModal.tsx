@@ -440,6 +440,11 @@ export function QuickViewModal() {
                       }`}
                       style={{ backgroundColor: color }}
                       aria-label={`${L.colorAriaPrefix} ${idx + 1}${isColorOOS ? ` ${L.colorOutOfStockAria}` : ''}`}
+                      // Specs used to select these through `aria-label*="Color"`,
+                      // which works only while `colorAriaPrefix` stays the
+                      // English "Color" — an OE label override would silently
+                      // empty the locator instead of failing.
+                      data-testid="color-swatch"
                     >
                       {isColorOOS && (
                         <span className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_bottom_right,transparent_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%+0.5px),transparent_calc(50%+0.5px))]" />
@@ -490,6 +495,8 @@ export function QuickViewModal() {
                       onClick={() => { if (!isSizeOOS) { setSelectedSize(size); setErrors(e => ({ ...e, size: false })); } }}
                       disabled={isSizeOOS}
                       aria-disabled={isSizeOOS}
+                      data-testid="quickview-size-chip"
+                      aria-pressed={selectedSize === size}
                       className={`py-3 text-sm font-medium transition-all ${
                         isSizeOOS
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through'

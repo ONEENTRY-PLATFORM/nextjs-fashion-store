@@ -89,6 +89,9 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
             <Image
               src={safeImages[safeSelected]}
               alt={`${productName} – photo ${safeSelected + 1}`}
+              // No class here contains "gallery", so the specs'
+              // `[class*="gallery"] img` locator matched nothing.
+              data-testid="pdp-gallery-main-image"
               fill
               sizes="(max-width: 1024px) 100vw, 58vw"
               className={`object-cover transition-transform duration-100 select-none object-[center_top] ${

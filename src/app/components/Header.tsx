@@ -240,7 +240,10 @@ export function Header() {
               >
                 <Heart size={20} />
                 {mounted && wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-(--women)">
+                  <span
+                    data-testid="header-wishlist-count"
+                    className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-(--women)"
+                  >
                     {wishlistCount}
                   </span>
                 )}
@@ -252,7 +255,12 @@ export function Header() {
               >
                 <ShoppingBag size={20} />
                 {mounted && totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-accent">
+                  <span
+                    // No class here contains "badge", so the specs'
+                    // `[class*="badge"]` locator never matched the counter.
+                    data-testid="header-cart-count"
+                    className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-accent"
+                  >
                     {totalItems}
                   </span>
                 )}

@@ -70,6 +70,80 @@ export async function clearState(page: Page) {
   });
 }
 
+/**
+ * Assert a nullable value is present, and narrow it for TypeScript.
+ *
+ * Needed because Playwright's matchers are not TS assertion functions:
+ * `expect(href).not.toBeNull()` fails the test at runtime but leaves the
+ * static type `string | null`, so every call site had to follow up with a
+ * non-null `!`. That silently turns a missing attribute into a confusing
+ * `Cannot read properties of null` deep inside a regex build; this reports
+ * *which* value was missing instead.
+ */
+export function assertPresent<T>(value: T | null | undefined, what: string): asserts value is T {
+  if (value === null || value === undefined) {
+    throw new Error(`Expected ${what} to be present, got ${String(value)}`);
+  }
+}
+
+/**
+ * Path of a real product, resolved from the catalogue rather than hardcoded.
+ *
+ * The suite used to point at `/product/wc-1`, a playground SKU. But the route
+ * parses its segment as a number (`app/product/[id]/page.tsx` — `/^\d+$/`), so
+ * `wc-1` resolved to `null`, and every one of those pages rendered "Page Not
+ * Found". Combined with the `if (await x.isVisible())` guards these specs are
+ * built on, that turned an entire dead fixture into a green run: the bodies
+ * simply never executed.
+ *
+ * Resolving from the first catalogue card keeps the suite working when the
+ * tenant's catalogue changes, which a hardcoded numeric id would not.
+ */
+const cachedProductPaths = new Map<number, string>();
+
+export async function productPath(page: Page, index = 0): Promise<string> {
+  const cached = cachedProductPaths.get(index);
+  if (cached) return cached;
+  await page.goto('/women/clothing');
+  await page.waitForLoadState('networkidle');
+  const href = await page.locator('a[href*="/product/"]').nth(index).getAttribute('href');
+  assertPresent(href, `href of catalogue product card #${index}`);
+  const path = href.split('?')[0];
+  cachedProductPaths.set(index, path);
+  return path;
+}
+
+/**
+ * Navigate to a real PDP and return its path.
+ *
+ * @param query Optional query string, e.g. `'?size=M'`.
+ * @param index Which catalogue card to resolve — pass `1` when a test needs a
+ *              *second*, distinct product (recently-viewed, comparisons).
+ */
+export async function gotoProduct(page: Page, query = '', index = 0): Promise<string> {
+  const path = await productPath(page, index);
+  await page.goto(`${path}${query}`);
+  await page.waitForLoadState('networkidle');
+  return path;
+}
+
+/**
+ * Pick the first in-stock size on a PDP. Returns false when the product
+ * exposes no selectable size.
+ *
+ * Replaces `page.locator('button:has-text("M")').first()`, which was in every
+ * spec that added to cart. Playwright's `has-text` is a case-insensitive
+ * *substring* match, so on a real page it matched 27 buttons — "Store
+ * Locations" in the header first of all. Those tests were clicking the header
+ * link and navigating away from the product.
+ */
+export async function selectFirstAvailableSize(page: Page): Promise<boolean> {
+  const chips = page.locator('[data-testid="pdp-size-chip"]:not([disabled])');
+  if (await chips.count() === 0) return false;
+  await chips.first().click();
+  return true;
+}
+
 /** Reliably add a product to cart via catalog card hover */
 export async function addToCartFromCatalog(page: Page) {
   await page.goto('/women/clothing');

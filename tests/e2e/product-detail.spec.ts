@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { clearState } from './helpers';
+import { assertPresent, clearState, gotoProduct } from './helpers';
 
-const PRODUCT_URL = '/product/wc-1'; // Satin Slip Midi Dress
+// Resolved per worker from the catalogue — see `gotoProduct`. The previous
+// hardcoded `/product/wc-1` rendered "Page Not Found" for this whole file.
+let PRODUCT_URL = '';
 
 test.describe('Product Detail Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(PRODUCT_URL);
+    PRODUCT_URL = await gotoProduct(page);
     await clearState(page);
     await page.reload();
     await page.waitForLoadState("networkidle");
@@ -26,7 +28,7 @@ test.describe('Product Detail Page', () => {
     });
 
     test('fullscreen viewer opens and closes', async ({ page }) => {
-      const mainImage = page.locator('[class*="gallery"] img, [class*="Gallery"] img').first();
+      const mainImage = page.getByTestId('pdp-gallery-main-image');
       if (await mainImage.isVisible()) {
         await mainImage.click();
         await page.waitForTimeout(500);
@@ -38,17 +40,25 @@ test.describe('Product Detail Page', () => {
 
   test.describe('Color selection', () => {
     test('clicking color swatch changes selection', async ({ page }) => {
-      const swatches = page.locator('button[aria-label*="Color"]');
+      const swatches = page.getByTestId('pdp-color-swatch');
       const count = await swatches.count();
       if (count > 1) {
-        await swatches.nth(1).click();
-        // Swatch should have ring/border
-        await expect(swatches.nth(1)).toBeVisible();
+        const target = swatches.nth(1);
+        if (await target.isEnabled()) {
+          await target.click();
+          // `aria-pressed` is the selection state the component actually
+          // exposes. The old assertion was `toBeVisible()`, which held before
+          // the click just as well and so proved nothing.
+          await expect(target).toHaveAttribute('aria-pressed', 'true');
+          await expect(swatches.first()).toHaveAttribute('aria-pressed', 'false');
+        }
       }
     });
 
     test('out-of-stock color swatch is disabled', async ({ page }) => {
-      const oosSwatches = page.locator('button[aria-label*="out of stock"]');
+      // Case-insensitive attribute match: the label is built as
+      // `<name> — Out of stock` (`productPageLabels.outOfStockTitle`).
+      const oosSwatches = page.locator('[data-testid="pdp-color-swatch"][aria-label*="out of stock" i]');
       if (await oosSwatches.count() > 0) {
         await expect(oosSwatches.first()).toBeDisabled();
       }
@@ -57,13 +67,14 @@ test.describe('Product Detail Page', () => {
 
   test.describe('Size selection', () => {
     test('clicking size chip selects it', async ({ page }) => {
-      const sizeChips = page.locator('button:has-text("S"), button:has-text("M"), button:has-text("L")');
-      if (await sizeChips.count() > 0) {
-        const sizeM = page.locator('button:has-text("M")').first();
-        if (await sizeM.isVisible()) {
-          await sizeM.click();
-          // Should have selected state (bg-black text-white)
-        }
+      // `button:has-text("M")` matched 27 buttons page-wide (substring,
+      // case-insensitive) — "Store Locations" in the header came first, so
+      // this test used to navigate away instead of picking a size.
+      const available = page.locator('[data-testid="pdp-size-chip"]:not([disabled])');
+      if (await available.count() > 0) {
+        const chip = available.first();
+        await chip.click();
+        await expect(chip).toHaveAttribute('aria-pressed', 'true');
       }
     });
 
@@ -90,11 +101,9 @@ test.describe('Product Detail Page', () => {
     });
 
     test('add to cart with size selected succeeds', async ({ page }) => {
-      // Select size
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) {
-        await sizeM.click();
-      }
+      // Select an in-stock size (see the note on the size-chip locator above).
+      const available = page.locator('[data-testid="pdp-size-chip"]:not([disabled])');
+      if (await available.count() > 0) await available.first().click();
       // Add to cart
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) {
@@ -187,28 +196,37 @@ test.describe('Product Detail Page', () => {
 
   test.describe('URL params', () => {
     test('?color preselects color swatch', async ({ page }) => {
-      await page.goto('/product/wc-1?color=%23000000');
-      await page.waitForLoadState('networkidle');
+      await gotoProduct(page, '?color=%23000000');
       // Page should load without error
       await expect(page.locator('h1, h2').first()).toBeVisible();
     });
 
     test('?size preselects size', async ({ page }) => {
-      await page.goto('/product/wc-1?size=M');
-      await page.waitForLoadState('networkidle');
+      await gotoProduct(page, '?size=M');
       await expect(page.locator('h1, h2').first()).toBeVisible();
     });
   });
 
   test.describe('Color changes gallery', () => {
-    test('selecting a different color updates the main image', async ({ page }) => {
-      const swatches = page.locator('button[aria-label*="Color"]');
+    // Deliberately NOT asserting `imgAfter !== imgBefore`: whether the picture
+    // actually swaps depends on the product carrying per-colour images in OE,
+    // which most do not. What must hold for every product is that the swatch
+    // click never leaves the gallery empty or broken — that is the regression
+    // this guards, and it is data-independent.
+    test('selecting a different color keeps the main image rendered', async ({ page }) => {
+      const swatches = page.getByTestId('pdp-color-swatch');
       if (await swatches.count() > 1) {
-        const imgBefore = await page.locator('[class*="gallery"] img, [class*="Gallery"] img').first().getAttribute('src');
+        const mainImage = page.getByTestId('pdp-gallery-main-image');
+        const imgBefore = await mainImage.getAttribute('src');
+        assertPresent(imgBefore, 'gallery image src before the colour switch');
+
         await swatches.nth(1).click();
         await page.waitForTimeout(500);
-        const imgAfter = await page.locator('[class*="gallery"] img, [class*="Gallery"] img').first().getAttribute('src');
-        // Image may or may not change depending on colorImages data
+
+        const imgAfter = await mainImage.getAttribute('src');
+        assertPresent(imgAfter, 'gallery image src after the colour switch');
+        expect(imgAfter.length).toBeGreaterThan(0);
+        await expect(mainImage).toBeVisible();
       }
     });
   });
@@ -252,7 +270,10 @@ test.describe('Product Detail Page', () => {
       const reserveBtn = page.getByRole('button', { name: /reserve in store/i }).first();
       if (await reserveBtn.isVisible()) {
         await reserveBtn.click();
-        await expect(page.locator('text=/oxford|covent|canary|select.*store/i').first()).toBeVisible({ timeout: 3000 });
+        // Was matching on hardcoded London store names, which are tenant data
+        // and differ per OE project. The list carries a stable testid.
+        await expect(page.getByTestId('reserve-store-list')).toBeVisible({ timeout: 5000 });
+        expect(await page.getByTestId('reserve-store-option').count()).toBeGreaterThan(0);
         await page.keyboard.press('Escape');
       }
     });
@@ -285,9 +306,9 @@ test.describe('Product Detail Page', () => {
 
   test.describe('Recently Viewed', () => {
     test('recently viewed section appears after viewing another product', async ({ page }) => {
-      // Visit another product first
-      await page.goto('/product/wc-2');
-      await page.waitForLoadState('networkidle');
+      // Visit another product first — index 1 is the second catalogue card,
+      // guaranteed distinct from the one `beforeEach` landed on.
+      await gotoProduct(page, '', 1);
       await page.goto(PRODUCT_URL);
       await page.waitForLoadState('networkidle');
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

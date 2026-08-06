@@ -1,12 +1,11 @@
-import { test, expect } from '@playwright/test';
-import { clearState, login, VALID_CREDS } from './helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { clearState, gotoProduct, login, selectFirstAvailableSize, VALID_CREDS } from './helpers';
 
 // Helper: add an item to cart and go to checkout
-async function setupCheckout(page: any) {
-  await page.goto('/product/wc-1');
+async function setupCheckout(page: Page) {
+  await gotoProduct(page);
   await page.waitForLoadState('networkidle');
-  const sizeM = page.locator('button:has-text("M")').first();
-  if (await sizeM.isVisible()) await sizeM.click();
+  await selectFirstAvailableSize(page);
   const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
   if (await addBtn.isVisible()) await addBtn.click();
   await page.waitForTimeout(500);
@@ -185,8 +184,8 @@ test.describe('Checkout — Confirmation', () => {
 });
 
 test.describe('Checkout — Delivery extras', () => {
-  test.beforeEach(async ({ page }) => {
-  });
+  // No `beforeEach` here on purpose: every test in this block starts with its
+  // own `setupCheckout(page)`. An empty hook used to sit here and did nothing.
 
   test('date picker shows next 7 days', async ({ page }) => {
     await setupCheckout(page);

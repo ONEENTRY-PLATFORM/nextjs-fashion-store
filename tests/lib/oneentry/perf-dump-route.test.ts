@@ -8,13 +8,18 @@
  *  - Call the exported GET / DELETE handlers with a plain `Request` object.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { TimingAggregate, TimingRecord } from '@/lib/oneentry/profiling';
 
 // ---------------------------------------------------------------------------
 // Profiling module mock (shared across most tests)
 // ---------------------------------------------------------------------------
-const mockReadTimings = vi.fn(() => []);
-const mockAggregateTimings = vi.fn(() => []);
-const mockClearTimings = vi.fn();
+// The generics are load-bearing: a bare `vi.fn(() => [])` infers `never[]` as
+// the return type, so every later `mockReturnValue([...])` is rejected. Pinning
+// them to the real module signatures — both loaders are zero-arg — also keeps
+// the mocks honest if `profiling.ts` ever changes shape.
+const mockReadTimings = vi.fn<() => TimingRecord[]>(() => []);
+const mockAggregateTimings = vi.fn<() => TimingAggregate[]>(() => []);
+const mockClearTimings = vi.fn<() => void>();
 // OE_PROFILE_ENABLED is a const export — we control it per describe via
 // vi.stubEnv + vi.resetModules where needed; for the "enabled" path we mock
 // directly here.
@@ -24,9 +29,9 @@ vi.mock('@/lib/oneentry/profiling', () => ({
   get OE_PROFILE_ENABLED() {
     return mockOeProfileEnabled;
   },
-  readTimings: (...args: unknown[]) => mockReadTimings(...args),
-  aggregateTimings: (...args: unknown[]) => mockAggregateTimings(...args),
-  clearTimings: (...args: unknown[]) => mockClearTimings(...args),
+  readTimings: () => mockReadTimings(),
+  aggregateTimings: () => mockAggregateTimings(),
+  clearTimings: () => mockClearTimings(),
 }));
 
 // ---------------------------------------------------------------------------

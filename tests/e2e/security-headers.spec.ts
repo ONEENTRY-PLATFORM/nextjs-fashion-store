@@ -1,4 +1,5 @@
 import { test, expect, type ConsoleMessage, type Page } from '@playwright/test';
+import { assertPresent } from './helpers';
 
 /**
  * Security headers must be strict enough to matter and loose enough not to
@@ -25,8 +26,8 @@ function watchCspViolations(page: Page): string[] {
 test.describe('Security headers', () => {
   test('every hardening header is served', async ({ page }) => {
     const response = await page.goto('/');
-    expect(response, 'homepage must respond').not.toBeNull();
-    const headers = response!.headers();
+    assertPresent(response, 'homepage response');
+    const headers = response.headers();
 
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['x-frame-options']).toBe('DENY');
@@ -38,7 +39,8 @@ test.describe('Security headers', () => {
 
   test('CSP fences off the exfiltration channels that matter', async ({ page }) => {
     const response = await page.goto('/');
-    const csp = response!.headers()['content-security-policy'];
+    assertPresent(response, 'homepage response');
+    const csp = response.headers()['content-security-policy'];
     expect(csp, 'CSP header must be present').toBeTruthy();
 
     // The session lives in localStorage, so the directives that bound where a

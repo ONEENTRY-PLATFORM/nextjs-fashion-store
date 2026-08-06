@@ -25,7 +25,12 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         include: ['tests/**/*.{test,spec}.{ts,tsx}'],
-        exclude: ['node_modules', 'e2e', '.next', 'playwright-report', 'storybook-static'],
+        // `tests/e2e/**` is load-bearing, not leftover: the Playwright suite
+        // now lives under `tests/`, its files are named `*.spec.ts`, and the
+        // include glob above matches `spec` as well. Without this the jsdom
+        // runner would collect 21 Playwright specs and fail them all on the
+        // missing `@playwright/test` runner context.
+        exclude: ['node_modules', 'tests/e2e/**', '.next', 'playwright-report', 'storybook-static'],
         // Capped deliberately. Vitest's default (~cores-1 forks) starves the
         // pool on this suite: each fork boots its own jsdom + transform
         // pipeline, and forks start failing with "Timeout waiting for worker

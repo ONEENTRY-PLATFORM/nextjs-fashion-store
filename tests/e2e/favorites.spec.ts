@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { clearState } from './helpers';
 
 test.describe('Favorites / Wishlist', () => {
@@ -71,7 +71,7 @@ test.describe('Favorites / Wishlist', () => {
 
   test.describe('Favorite card interactions', () => {
     // Helper to add item and go to favorites
-    async function addAndGoToFavorites(page: any) {
+    async function addAndGoToFavorites(page: Page) {
       const card = page.locator('a[href*="/product/"]').first();
       await card.hover();
       const heart = card.getByRole('button', { name: /wishlist|favorite/i });
@@ -85,14 +85,24 @@ test.describe('Favorites / Wishlist', () => {
 
     test('color swatch changes and persists', async ({ page }) => {
       await addAndGoToFavorites(page);
-      const swatches = page.locator('button[aria-label*="Color"]');
+      // Was `aria-label*="Color"`, which never matched `ColorSwatchButton`
+      // (its label is the colour name), so the reload below was followed by
+      // no assertion at all and the test passed unconditionally.
+      const swatches = page.getByTestId('color-swatch');
       if (await swatches.count() > 1) {
-        await swatches.nth(1).click();
-        await page.waitForTimeout(300);
-        // Reload and check color persisted
-        await page.reload();
-        await page.waitForLoadState('networkidle');
-        // Second swatch should still be selected (via updateSelection)
+        const second = swatches.nth(1);
+        if (await second.isEnabled()) {
+          await second.click();
+          await page.waitForTimeout(300);
+          await expect(second).toHaveAttribute('aria-pressed', 'true');
+
+          // Reload and check color persisted
+          await page.reload();
+          await page.waitForLoadState('networkidle');
+          // Second swatch should still be selected (via updateSelection)
+          await expect(page.getByTestId('color-swatch').nth(1))
+            .toHaveAttribute('aria-pressed', 'true');
+        }
       }
     });
 
@@ -176,7 +186,7 @@ test.describe('Favorites / Wishlist', () => {
   });
 
   test.describe('Bulk actions', () => {
-    async function addMultipleAndGoToFavorites(page: any) {
+    async function addMultipleAndGoToFavorites(page: Page) {
       const cards = page.locator('a[href*="/product/"]');
       for (let i = 0; i < 2; i++) {
         const card = cards.nth(i);

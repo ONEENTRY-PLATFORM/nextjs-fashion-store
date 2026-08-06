@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clearState, login } from './helpers';
+import { assertPresent, clearState, gotoProduct, login, productPath, selectFirstAvailableSize } from './helpers';
 
 test.describe('Edge Cases & Adversarial', () => {
 
@@ -22,7 +22,7 @@ test.describe('Edge Cases & Adversarial', () => {
 
   test.describe('XSS Prevention', () => {
     test('XSS in URL query params does not execute', async ({ page }) => {
-      await page.goto('/product/wc-1?color=<script>alert(1)</script>');
+      await gotoProduct(page, '?color=<script>alert(1)</script>');
       // Page should load normally
       await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
       // No alert should have been triggered
@@ -45,11 +45,24 @@ test.describe('Edge Cases & Adversarial', () => {
 
   test.describe('Navigation edge cases', () => {
     test('rapid back/forward navigation does not crash', async ({ page }) => {
-      await page.goto('/');
-      await page.goto('/women/clothing');
-      await page.goto('/product/wc-1');
+      // Resolve the product path BEFORE building the history stack:
+      // `gotoProduct` visits the catalogue on a cache miss, which would add an
+      // extra entry and make this test's back/forward arithmetic depend on
+      // which spec ran first in the worker.
+      const productUrl = await productPath(page);
+      // Each entry must be committed before the next hop, otherwise the
+      // history moves race the in-flight navigation and Playwright itself
+      // errors with ERR_ABORTED — which says nothing about the app. The PDP is
+      // heavy enough for this to matter; the previous fixture was a 404 page
+      // that always won the race.
+      for (const url of ['/', '/women/clothing', productUrl]) {
+        await page.goto(url);
+        await page.waitForLoadState('domcontentloaded');
+      }
       await page.goBack();
+      await page.waitForLoadState('domcontentloaded');
       await page.goBack();
+      await page.waitForLoadState('domcontentloaded');
       await page.goForward();
       await expect(page.locator('body')).toBeVisible();
     });
@@ -99,38 +112,61 @@ test.describe('Edge Cases & Adversarial', () => {
     });
 
     test('browser refresh preserves cart state', async ({ page }) => {
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
     await clearState(page);
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
-      if (await addBtn.isVisible()) await addBtn.click();
+      const added = await addBtn.isVisible();
+      if (added) await addBtn.click();
       await page.waitForTimeout(500);
+
+      // Cart lives in `localStorage` under `oe_store`; read it directly so the
+      // assertion survives any restyling of the badge.
+      const countPersistedItems = () => page.evaluate(() => {
+        const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
+        return (store.cart?.items ?? []).length as number;
+      });
+      const before = await countPersistedItems();
 
       // Reload
       await page.reload();
       await page.waitForLoadState('networkidle');
 
-      // Cart badge should still show count
-      const badge = page.locator('[class*="badge"], [class*="Badge"]').filter({ hasText: /\d/ });
-      // Cart state is persisted in localStorage
+      // The whole point of the test: the reload must not drop the cart. This
+      // used to build a `badge` locator and then assert nothing at all, so it
+      // passed unconditionally.
+      expect(await countPersistedItems()).toBe(before);
+
+      if (added) {
+        expect(before).toBeGreaterThan(0);
+        // The header counter carries no "badge" class — `[class*="badge"]`
+        // matched nothing, which is why the original test could build this
+        // locator and never notice it was empty.
+        await expect(page.getByTestId('header-cart-count')).toBeVisible({ timeout: 10_000 });
+      }
     });
   });
 
   test.describe('Out of Stock handling', () => {
     test('OOS product shows disabled Add to Cart', async ({ page }) => {
       // Visit a product page — OOS detection depends on product data
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
 
-      // Check if any OOS color swatches exist
-      const oosSwatches = page.locator('button[aria-disabled="true"][aria-label*="Color"]');
+      // Check if any OOS color swatches exist. The swatch is natively
+      // `disabled`, not `aria-disabled` — the old selector combined the wrong
+      // attribute with an `aria-label` the component never had, so it matched
+      // nothing and this test did nothing.
+      const oosSwatches = page.locator('[data-testid="pdp-color-swatch"][disabled]');
       if (await oosSwatches.count() > 0) {
-        // Clicking OOS swatch should not change selection
-        await oosSwatches.first().click({ force: true });
+        const oos = oosSwatches.first();
+        // Clicking an OOS swatch must not select it — `force` bypasses the
+        // pointer-events guard so we exercise the real handler, not the CSS.
+        await oos.click({ force: true });
+        await expect(oos).toHaveAttribute('aria-pressed', 'false');
       }
     });
   });
@@ -172,24 +208,31 @@ test.describe('Edge Cases & Adversarial', () => {
 
   test.describe('Rapid interactions', () => {
     test('rapid add to cart clicks do not duplicate items', async ({ page }) => {
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
 
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) {
-        // Rapid clicks
-        await addBtn.click();
-        await addBtn.click();
-        await addBtn.click();
+        // `dispatchEvent`, not `click`: the first add opens the mini-cart,
+        // which overlays the button — Playwright's actionability check then
+        // waits out the timeout instead of delivering the rapid clicks this
+        // test is about.
+        await addBtn.dispatchEvent('click');
+        await addBtn.dispatchEvent('click');
+        await addBtn.dispatchEvent('click');
         await page.waitForTimeout(500);
-        // Should increase quantity, not create duplicates
+        // Should increase quantity, not create duplicates — one line item.
+        const lines = await page.evaluate(() => {
+          const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
+          return (store.cart?.items ?? []).length as number;
+        });
+        expect(lines).toBe(1);
       }
     });
 
     test('rapid heart toggle does not corrupt wishlist', async ({ page }) => {
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
 
       const heartBtn = page.getByRole('button', { name: /wishlist|save/i }).first();
@@ -277,8 +320,8 @@ test.describe('Edge Cases & Adversarial', () => {
       const count = await images.count();
       for (let i = 0; i < Math.min(count, 10); i++) {
         const alt = await images.nth(i).getAttribute('alt');
-        expect(alt).not.toBeNull();
-        expect(alt!.length).toBeGreaterThan(0);
+        assertPresent(alt, `alt attribute of image #${i}`);
+        expect(alt.length).toBeGreaterThan(0);
       }
     });
 
@@ -438,8 +481,9 @@ test.describe('Edge Cases & Adversarial', () => {
       const footerLink = page.locator('footer a[href*="/delivery"], footer a[href*="/faq"]').first();
       if (await footerLink.isVisible()) {
         const href = await footerLink.getAttribute('href');
+        assertPresent(href, 'footer link href');
         await footerLink.click();
-        await expect(page).toHaveURL(new RegExp(href!.replace(/\//g, '\\/')));
+        await expect(page).toHaveURL(new RegExp(href.replace(/\//g, '\\/')));
       }
     });
 
@@ -451,8 +495,8 @@ test.describe('Edge Cases & Adversarial', () => {
       const count = await socialLinks.count();
       for (let i = 0; i < count; i++) {
         const href = await socialLinks.nth(i).getAttribute('href');
-        expect(href).toBeTruthy();
-        expect(href!.startsWith('http')).toBeTruthy();
+        assertPresent(href, `href of social link #${i}`);
+        expect(href.startsWith('http')).toBeTruthy();
       }
     });
 

@@ -1,8 +1,8 @@
 // This file sits next to the root `tsconfig.json`, which excludes it, so the
 // editor loads it as an inferred project that pulls in no `@types` — without
 // this directive every `process.env` below is "Cannot find name 'process'".
-// `e2e/tsconfig.json` covers the specs themselves; only this root-level file
-// falls outside its directory-based lookup.
+// `tests/e2e/tsconfig.json` covers the specs themselves; only this root-level
+// file falls outside its directory-based lookup.
 /// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test';
 import { loadEnvConfig } from '@next/env';
@@ -15,7 +15,7 @@ import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   // Was declared twice before — the second literal silently won, so CI ran

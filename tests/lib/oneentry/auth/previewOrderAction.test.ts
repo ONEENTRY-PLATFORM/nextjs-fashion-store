@@ -10,6 +10,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PreviewOrderInput } from '@/lib/oneentry/auth/actions';
 
 // ── OE SDK mock ──────────────────────────────────────────────────────────────
 
@@ -73,9 +74,13 @@ vi.mock('@/lib/oneentry/catalog/product-previews-action', () => ({
 
 // ── helper ────────────────────────────────────────────────────────────────────
 
-/** Minimal valid input for previewOrderAction */
-const baseInput = {
-  products: [{ productId: 9171, qty: 1 }],
+/** Minimal valid input for previewOrderAction.
+ *  Annotated rather than inferred: the fixture used to spell the line-item
+ *  field `qty`, which `PreviewOrderInput` has never accepted — nothing caught
+ *  it because Vitest transpiles without typechecking. The annotation keeps the
+ *  drift from coming back. */
+const baseInput: PreviewOrderInput = {
+  products: [{ productId: 9171, quantity: 1 }],
   currency: 'USD',
 };
 

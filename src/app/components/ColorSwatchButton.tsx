@@ -30,6 +30,10 @@ export function ColorSwatchButton({
       title={outOfStock ? CVL.outOfStockLower : label}
       aria-label={label}
       aria-pressed={active}
+      // Stable hook for the Playwright suite. The specs used to select these by
+      // `aria-label*="Color"`, which never matched anything — the label is the
+      // colour *name* ("Black"), so every swatch assertion was silently skipped.
+      data-testid="color-swatch"
       tabIndex={outOfStock ? -1 : 0}
       disabled={outOfStock}
     >

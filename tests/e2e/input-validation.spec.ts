@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { login } from './helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { gotoProduct, login, selectFirstAvailableSize } from './helpers';
 
 /**
  * Input validation tests — verify that every form field rejects invalid data
@@ -7,14 +7,14 @@ import { login } from './helpers';
  */
 
 // ─── Helper: open login modal ───────────────────────────────────────────────
-async function openLoginModal(page: any) {
+async function openLoginModal(page: Page) {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   await page.locator('button[aria-label="My account"]').click();
   await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 }
 
-async function openRegisterModal(page: any) {
+async function openRegisterModal(page: Page) {
   await openLoginModal(page);
   // Switch CTA text comes from OE (sign_in_create_one) with fallback "Create one".
   // Match by role + regex so OE label variants ("Sign up", "Register") still work.
@@ -151,7 +151,7 @@ test.describe('Input Validation — Register Form', () => {
 });
 
 /** Seed cart into localStorage BEFORE page loads — avoids hydration mismatch */
-async function goToDeliveryAsGuest(page: any) {
+async function goToDeliveryAsGuest(page: Page) {
   await page.addInitScript(() => {
     const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
     store.cart = {
@@ -250,7 +250,7 @@ test.describe('Input Validation — Address Form', () => {
     // Should not crash — XSS should be escaped, not executed
     await expect(page.locator('body')).toBeVisible();
     // Check no alert was triggered
-    const alertTriggered = await page.evaluate(() => (window as any).__xss === true);
+    const alertTriggered = await page.evaluate(() => (window as Window & { __xss?: boolean }).__xss === true);
     expect(alertTriggered).toBeFalsy();
   });
 
@@ -396,11 +396,10 @@ test.describe('Input Validation — Payment Form', () => {
 // ─── Promo Code Schema ──────────────────────────────────────────────────────
 test.describe('Input Validation — Promo Code', () => {
 
-  async function addItemAndGoToCart(page: any) {
-    await page.goto('/product/wc-1');
+  async function addItemAndGoToCart(page: Page) {
+    await gotoProduct(page);
     await page.waitForLoadState('networkidle');
-    const sizeM = page.locator('button:has-text("M")').first();
-    if (await sizeM.isVisible()) await sizeM.click();
+    await selectFirstAvailableSize(page);
     const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
     if (await addBtn.isVisible()) await addBtn.click();
     await page.waitForTimeout(500);
@@ -613,7 +612,7 @@ test.describe('Input Validation — Payment name on card', () => {
 test.describe('Input Validation — Write Review', () => {
 
   test('submit empty review shows validation errors', async ({ page }) => {
-    await page.goto('/product/wc-1');
+    await gotoProduct(page);
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(500);
@@ -632,7 +631,7 @@ test.describe('Input Validation — Write Review', () => {
   });
 
   test('rejects review with XSS in text fields', async ({ page }) => {
-    await page.goto('/product/wc-1');
+    await gotoProduct(page);
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(500);
@@ -649,13 +648,13 @@ test.describe('Input Validation — Write Review', () => {
         await headlineInput.fill('<img src=x onerror=alert(1)>');
       }
       // Should not execute scripts
-      const alert = await page.evaluate(() => (window as any).__xss === true);
+      const alert = await page.evaluate(() => (window as Window & { __xss?: boolean }).__xss === true);
       expect(alert).toBeFalsy();
     }
   });
 
   test('review name field rejects empty value', async ({ page }) => {
-    await page.goto('/product/wc-1');
+    await gotoProduct(page);
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(500);
@@ -684,7 +683,7 @@ test.describe('Input Validation — Write Review', () => {
   });
 
   test('review email field rejects invalid format', async ({ page }) => {
-    await page.goto('/product/wc-1');
+    await gotoProduct(page);
     await page.waitForLoadState('networkidle');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(500);

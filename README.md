@@ -84,7 +84,8 @@ src/app/
   └ pages/                 Page components consumed by app/* route shells
 src/lib/oneentry/          OneEntry SDK integrations (auth, catalog, orders, payments, activity)
 public/                    Static assets + service worker
-e2e/                       Playwright specs
+tests/                     Vitest unit tests (mirrors the src/ tree)
+tests/e2e/                 Playwright specs
 docs/                      Architecture and integration docs
 ```
 

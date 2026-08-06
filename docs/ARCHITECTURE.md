@@ -132,7 +132,7 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | `public/sw.js` | Service worker (precache + offline fallback) |
 | `public/offline.html` | Static offline shell served by `sw.js` when navigation fails |
 | `public/icons/` | PWA icons (32, 192, 512, apple-touch) |
-| `e2e/` | Playwright specs (`playwright.config.ts`) |
+| `tests/e2e/` | Playwright specs (`playwright.config.ts`) |
 | `.storybook/` | Storybook config |
 | `scripts/` | One-off maintenance scripts (`setup-demo-passwords.sh` — demo-login bootstrap against the local docker CMS) |
 | `.claude/` | Agent rules and one-off maintenance tooling — git-ignored, unrelated to runtime |
@@ -303,6 +303,15 @@ From `package.json`:
 | `yarn build-storybook` | Static Storybook build |
 
 Configs: `next.config.ts`, `vitest.config.ts` (with `vitest.shims.d.ts`), `playwright.config.ts`, `.storybook/`, `eslint.config.mjs`, `postcss.config.mjs`, `tsconfig.json`.
+
+**TypeScript projects — three, deliberately.** The root `tsconfig.json` excludes `tests`, `scripts` and `playwright.config.ts` so `next build` never type-checks them (a production install without devDependencies has no `@playwright/test` / `vitest` types to check against). Test files would then belong to no configured project at all, and the editor falls back to an inferred project with no `paths` — which is why every `@/…` import used to report "Cannot find module". Two directory-local configs put them back under real type-checking:
+
+| Config | Covers | Checked by |
+| --- | --- | --- |
+| `tests/tsconfig.json` | Vitest suite (`tests/**`, minus `e2e`) | `tsc -p tests/tsconfig.json --noEmit` |
+| `tests/e2e/tsconfig.json` | Playwright suite + `playwright.config.ts` | `yarn typecheck:e2e` |
+
+They must stay separate: Vitest and Playwright both export `test` / `expect` globals, and one program containing both resolves them ambiguously. The file name matters too — `tsserver` only walks up looking for `tsconfig.json`, so a root-level `tsconfig.test.json` would never be picked up for an open test file.
 
 ### `next.config.ts` — notable choices
 

@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { clearState } from './helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { clearState, gotoProduct, selectFirstAvailableSize } from './helpers';
 
 test.describe('Cart', () => {
   test.beforeEach(async ({ page }) => {
@@ -43,12 +43,11 @@ test.describe('Cart', () => {
     });
 
     test('add product from PDP to cart', async ({ page }) => {
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
 
       // Select size
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
 
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) {
@@ -60,11 +59,10 @@ test.describe('Cart', () => {
 
   test.describe('Cart page operations', () => {
     // Helper: add item then go to cart
-    async function addItemAndGoToCart(page: any) {
-      await page.goto('/product/wc-1');
+    async function addItemAndGoToCart(page: Page) {
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) await addBtn.click();
       await page.waitForTimeout(500);
@@ -114,11 +112,10 @@ test.describe('Cart', () => {
   });
 
   test.describe('Promo codes', () => {
-    async function addItemAndGoToCart(page: any) {
-      await page.goto('/product/wc-1');
+    async function addItemAndGoToCart(page: Page) {
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) await addBtn.click();
       await page.waitForTimeout(500);
@@ -170,11 +167,10 @@ test.describe('Cart', () => {
   });
 
   test.describe('Size change', () => {
-    async function addItemAndGoToCart(page: any) {
-      await page.goto('/product/wc-1');
+    async function addItemAndGoToCart(page: Page) {
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) await addBtn.click();
       await page.waitForTimeout(500);
@@ -194,10 +190,9 @@ test.describe('Cart', () => {
 
   test.describe('Cart persistence', () => {
     test('cart items persist after page reload', async ({ page }) => {
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) await addBtn.click();
       await page.waitForTimeout(500);
@@ -212,10 +207,9 @@ test.describe('Cart', () => {
     });
 
     test('removing all items shows empty state', async ({ page }) => {
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) await addBtn.click();
       await page.waitForTimeout(500);
@@ -232,11 +226,10 @@ test.describe('Cart', () => {
   });
 
   test.describe('Select and remove multiple', () => {
-    async function addAndGoToCart(page: any) {
-      await page.goto('/product/wc-1');
+    async function addAndGoToCart(page: Page) {
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) await addBtn.click();
       await page.waitForTimeout(500);
@@ -285,7 +278,7 @@ test.describe('Cart', () => {
   test.describe('Bundle items in cart', () => {
     test('bundle items appear grouped in cart', async ({ page }) => {
       // Visit PDP with bundle offer
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.5));
       await page.waitForTimeout(500);
@@ -312,10 +305,9 @@ test.describe('Cart', () => {
 
   test.describe('Cart page — wishlist', () => {
     test('move item to wishlist from cart page', async ({ page }) => {
-      await page.goto('/product/wc-1');
+      await gotoProduct(page);
       await page.waitForLoadState('networkidle');
-      const sizeM = page.locator('button:has-text("M")').first();
-      if (await sizeM.isVisible()) await sizeM.click();
+      await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) await addBtn.click();
       await page.waitForTimeout(500);

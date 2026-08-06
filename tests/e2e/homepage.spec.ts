@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clearState } from './helpers';
+import { assertPresent } from './helpers';
 
 test.describe('Homepage', () => {
   test.beforeEach(async ({ page }) => {
@@ -29,8 +29,9 @@ test.describe('Homepage', () => {
     // Click first category → navigates to catalog
     const firstLink = categoryLinks.first();
     const href = await firstLink.getAttribute('href');
+    assertPresent(href, 'category link href');
     await firstLink.click();
-    await expect(page).toHaveURL(new RegExp(href!.replace(/\//g, '\\/')));
+    await expect(page).toHaveURL(new RegExp(href.replace(/\//g, '\\/')));
   });
 
   test('product sections render with cards', async ({ page }) => {

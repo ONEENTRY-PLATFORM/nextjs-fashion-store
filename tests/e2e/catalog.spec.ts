@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { assertPresent } from './helpers';
 
 test.describe('Catalog — Women Clothing', () => {
   test.beforeEach(async ({ page }) => {
@@ -22,12 +23,17 @@ test.describe('Catalog — Women Clothing', () => {
 
   test('product card color swatches change image', async ({ page }) => {
     const card = page.locator('a[href*="/product/"]').first();
-    const swatches = card.locator('button[aria-label*="Color"]');
+    // `ColorSwatchButton` labels itself with the colour *name* ("Black"), so
+    // the previous `aria-label*="Color"` locator matched nothing and this test
+    // never ran a single assertion.
+    const swatches = card.getByTestId('color-swatch');
     if (await swatches.count() > 1) {
       const secondSwatch = swatches.nth(1);
-      await secondSwatch.click();
-      // Swatch should be selected (ring/border change)
-      await expect(secondSwatch).toBeVisible();
+      if (await secondSwatch.isEnabled()) {
+        await secondSwatch.click();
+        await expect(secondSwatch).toHaveAttribute('aria-pressed', 'true');
+        await expect(swatches.first()).toHaveAttribute('aria-pressed', 'false');
+      }
     }
   });
 
@@ -47,7 +53,8 @@ test.describe('Catalog — Women Clothing', () => {
     // Click the anchor programmatically to bypass the hover-overlay button
     // that reveals on pointer-enter and intercepts the outer click.
     await card.evaluate((el) => (el as HTMLAnchorElement).click());
-    await expect(page).toHaveURL(new RegExp(href!.split('?')[0].replace(/\//g, '\\/')));
+    assertPresent(href, 'product card href');
+    await expect(page).toHaveURL(new RegExp(href.split('?')[0].replace(/\//g, '\\/')));
   });
 
   test('product card heart toggles wishlist', async ({ page }) => {
@@ -132,7 +139,7 @@ test.describe('Catalog — Women Clothing', () => {
         const dialog = page.getByRole('dialog');
         await expect(dialog).toBeVisible({ timeout: 3000 });
         // Should have color swatches, sizes, price
-        await expect(dialog.locator('button[aria-label*="Color"]').first()).toBeVisible();
+        await expect(dialog.getByTestId('color-swatch').first()).toBeVisible();
       }
     });
 
@@ -221,10 +228,10 @@ test.describe('Catalog — Women Clothing', () => {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
         // Select color
-        const swatch = page.getByRole('dialog').locator('button[aria-label*="Color"]').first();
+        const swatch = page.getByRole('dialog').getByTestId('color-swatch').first();
         if (await swatch.isVisible()) await swatch.click();
         // Select size
-        const sizeBtn = page.getByRole('dialog').locator('button:has-text("M")').first();
+        const sizeBtn = page.getByRole('dialog').locator('[data-testid="quickview-size-chip"]:not([disabled])').first();
         if (await sizeBtn.isVisible()) await sizeBtn.click();
         // Add to cart
         const buyBtn = page.getByRole('dialog').getByRole('button', { name: /get it|buy/i }).first();
@@ -245,7 +252,7 @@ test.describe('Catalog — Women Clothing', () => {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
         // Select a color first
-        const swatch = page.getByRole('dialog').locator('button[aria-label*="Color"]').first();
+        const swatch = page.getByRole('dialog').getByTestId('color-swatch').first();
         if (await swatch.isVisible()) await swatch.click();
         const detailsBtn = page.getByRole('button', { name: /view full details/i });
         await detailsBtn.click();
@@ -375,10 +382,10 @@ test.describe('Catalog — Women Clothing', () => {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
         // Select color
-        const swatch = page.getByRole('dialog').locator('button[aria-label*="Color"]').first();
+        const swatch = page.getByRole('dialog').getByTestId('color-swatch').first();
         if (await swatch.isVisible()) await swatch.click();
         // Select size
-        const sizeBtn = page.getByRole('dialog').locator('button:has-text("M")').first();
+        const sizeBtn = page.getByRole('dialog').locator('[data-testid="quickview-size-chip"]:not([disabled])').first();
         if (await sizeBtn.isVisible()) await sizeBtn.click();
         // Click buy
         const buyBtn = page.getByRole('dialog').getByRole('button', { name: /get it|buy/i }).first();
@@ -397,10 +404,13 @@ test.describe('Catalog — Women Clothing', () => {
       if (await quickViewBtn.isVisible()) {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
-        const oosSwatches = page.getByRole('dialog').locator('button[aria-label*="out of stock"]');
+        const oosSwatches = page.getByRole('dialog')
+          .locator('[data-testid="color-swatch"][aria-label*="out of stock" i]');
         if (await oosSwatches.count() > 0) {
-          await oosSwatches.first().click({ force: true });
+          const oos = oosSwatches.first();
+          await oos.click({ force: true });
           // Should not crash, swatch stays disabled
+          await expect(oos).toBeDisabled();
         }
       }
     });

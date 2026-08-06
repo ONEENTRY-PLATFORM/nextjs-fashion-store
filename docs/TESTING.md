@@ -10,7 +10,7 @@ Three test surfaces live in this repo, each with a distinct scope. This document
 
 **Config:** `vitest.config.ts`. Two logical projects:
 
-- **Main** (jsdom environment) — glob `tests/**/*.{test,spec}.{ts,tsx}`. Excludes `node_modules`, `e2e`, `.next`, `playwright-report`, `storybook-static`. The `tests/` tree mirrors `src/` (`tests/lib/oneentry/…` tests `src/lib/oneentry/…`), and test files reach their subject through the `@/` alias rather than relative paths.
+- **Main** (jsdom environment) — glob `tests/**/*.{test,spec}.{ts,tsx}`. Excludes `node_modules`, `tests/e2e/**`, `.next`, `playwright-report`, `storybook-static`. The `tests/` tree mirrors `src/` (`tests/lib/oneentry/…` tests `src/lib/oneentry/…`), and test files reach their subject through the `@/` alias rather than relative paths. The `tests/e2e/**` exclusion is load-bearing: the Playwright suite lives under `tests/` and its files end in `.spec.ts`, which the include glob would otherwise match.
 - **Storybook addon** — runs every `*.stories.tsx` as a smoke test via the Storybook Vitest addon.
 
 **Path alias:** `@/*` → `./src/*` (from `tsconfig.json`).
@@ -49,7 +49,7 @@ npx playwright install
 
 | Setting | Value |
 | --- | --- |
-| `testDir` | `./e2e` |
+| `testDir` | `./tests/e2e` |
 | `baseURL` | `process.env.BASE_URL` or `http://localhost:3001` |
 | `timeout` | 60 s per test |
 | `expect.timeout` | 15 s per assertion |
@@ -69,7 +69,7 @@ yarn test:e2e:headed    # visible browser
 yarn test:e2e:ui        # interactive Playwright UI
 
 # individual files / tests
-npx playwright test e2e/cart.spec.ts
+npx playwright test tests/e2e/cart.spec.ts
 npx playwright test -g "add to cart without size shows error"
 npx playwright test --project=chromium
 npx playwright test --project=mobile
@@ -87,12 +87,12 @@ ONEENTRY_TOKEN=<app token>
 NEXT_PUBLIC_DEFAULT_LOCALE=en_US
 ```
 
-Without them, tests that depend on real OneEntry data (`wishlist-cms-integration.spec.ts`, checkout with real order creation) will fail. Use `e2e/helpers.ts` to short-circuit auth / cart / wishlist state for tests that only care about UI transitions.
+Without them, tests that depend on real OneEntry data (`wishlist-cms-integration.spec.ts`, checkout with real order creation) will fail. Use `tests/e2e/helpers.ts` to short-circuit auth / cart / wishlist state for tests that only care about UI transitions.
 
 ### Test files (302 tests total)
 
 ```
-e2e/
+tests/e2e/
 ├── helpers.ts                          — login, clearState, seedCart, addToCartFromCatalog utilities
 ├── input-validation.spec.ts            — 40 tests: login/register/address/payment/promo/review/profile field validation
 ├── edge-cases.spec.ts                  — 50 tests: 404, XSS, localStorage, responsive, a11y, mobile, back/forward
@@ -190,4 +190,4 @@ Storybook is the primary sandbox for component-level design and a11y auditing; e
 - [ARCHITECTURE.md](./ARCHITECTURE.md) §7 — build / dev commands
 - [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) — Server Actions exercised by the e2e integration test
 - [DEMO_LOGIN.md](./DEMO_LOGIN.md) — demo accounts for authenticated e2e runs
-- [`e2e/helpers.ts`](../e2e/helpers.ts) — shared test utilities
+- [`tests/e2e/helpers.ts`](../tests/e2e/helpers.ts) — shared test utilities

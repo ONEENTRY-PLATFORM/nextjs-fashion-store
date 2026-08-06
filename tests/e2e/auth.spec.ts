@@ -125,7 +125,9 @@ test.describe('Authentication', () => {
 
       // Should show validation error, not execute script
       const alertTriggered = await page.evaluate(() => {
-        return (window as any).__xss_triggered === true;
+        // The payload under test sets this flag if it ever executes; naming
+        // the shape instead of `any` keeps the probe's contract readable.
+        return (window as Window & { __xss_triggered?: boolean }).__xss_triggered === true;
       });
       expect(alertTriggered).toBeFalsy();
     });

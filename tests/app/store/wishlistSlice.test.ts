@@ -34,6 +34,9 @@ const makeWaitingItem = (overrides: Partial<WaitingItem> = {}): WaitingItem => (
   img: '/img.jpg',
   color: '#ff0000',
   size: 'S',
+  status: 'out_of_stock',
+  notify: false,
+  addedDate: '2026-01-01',
   ...overrides,
 });
 
