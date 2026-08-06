@@ -1,7 +1,7 @@
 'use client'
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { Trash2, Link as LinkIcon } from 'lucide-react';
-import { QtyControl } from '../../components/QtyControl';
+import { QtyControl } from '../../components/ui/QtyControl';
 import type { CartItem } from '../../context/CartContext';
 import { fmt } from '../../utils/formatPrice';
 import { CART_ROW_LABELS as L } from '../../data/cartLabels';

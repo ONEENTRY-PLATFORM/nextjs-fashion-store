@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { ProductReviewsSection } from '../app/pages/product/ProductReviewsSection';
-import type { ProductReview } from '../app/components/ProductCard';
+import type { ProductReview } from '../app/components/product/ProductCard';
 
 // ─── Mock reviews ────────────────────────────────────────────────────────────
 

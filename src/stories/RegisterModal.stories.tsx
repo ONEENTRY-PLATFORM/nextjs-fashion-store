@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { RegisterModal } from '../app/components/RegisterModal';
+import { RegisterModal } from '../app/components/auth/RegisterModal';
 import { useAuth } from '../app/context/AuthContext';
 
 /** Wrapper that immediately opens the register modal */

@@ -111,7 +111,7 @@ The Platform payload is minimal (`{productId: number, qty: number}` for cart, `{
 
 **Current coverage gap:** `QuickViewModal` does not yet snapshot `stockLimit` because the UI `Product` type (used by the catalog-list path) doesn't carry a `stock` field — plumbing it would require updating `adaptCatalogProductToUiProduct` and the `Product`/`CatalogProductVariant` UI types. `previewOrderAction` triggers catalog-verified pruning for items OE reports as not found (see §4a); `createOrderAction` still relies on OE to reject on hard OOS at submit time.
 
-**`CatalogListProductCard` wishlist.** The list-view card (`src/app/components/CatalogListProductCard.tsx`) now uses `useWishlist().toggleItem` and reads `isWishlisted(product.id)` gated on a `mounted` flag, matching the SSR-safe pattern used by `ProductCard`. Previously it held a local `useState<wishlisted>` that was never persisted. Prices in the list view now run through `stripTrailingZeros` for visual parity with the grid card.
+**`CatalogListProductCard` wishlist.** The list-view card (`src/app/components/catalog/CatalogListProductCard.tsx`) now uses `useWishlist().toggleItem` and reads `isWishlisted(product.id)` gated on a `mounted` flag, matching the SSR-safe pattern used by `ProductCard`. Previously it held a local `useState<wishlisted>` that was never persisted. Prices in the list view now run through `stripTrailingZeros` for visual parity with the grid card.
 
 ### 3.1 Cart line dedup rule (id + size + color)
 
@@ -456,7 +456,7 @@ The "Recently viewed" strip on `FavoritesPage` reads `state.recentlyViewed.items
 
 ## 17. MiniCart summary math
 
-`MiniCart` (`src/app/components/MiniCart.tsx`) is the slide-in drawer opened from the header. Its summary uses the same client-sale-price model as `CartPage`, `DeliveryPage`, and `PaymentPage`, so every surface shows the same numbers.
+`MiniCart` (`src/app/components/cart/MiniCart.tsx`) is the slide-in drawer opened from the header. Its summary uses the same client-sale-price model as `CartPage`, `DeliveryPage`, and `PaymentPage`, so every surface shows the same numbers.
 
 **Product images.** `MiniCart`, `CartItemRow`, `CartBundleRow`, `PaymentPage` summary, and `ConfirmationPage` summary all use `<ImageWithFallback>` (instead of a bare `<Image>`) so that an empty or broken image `src` renders the bag placeholder silently rather than crashing with a Next.js Image `src` assertion. The placeholder path used throughout is `/icons/ui/bag-placeholder.svg` (not `/placeholder.svg`, which does not exist in `public/`).
 

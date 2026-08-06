@@ -2,7 +2,7 @@
  * Shared mock data for Storybook stories.
  * Uses real product shapes matching the app's type definitions.
  */
-import type { Product } from '../app/components/ProductCard';
+import type { Product } from '../app/components/product/ProductCard';
 import type { CartItem, GiftCartItem } from '../app/context/CartContext';
 
 // ─── Products ───────────────────────────────────────────────────────────────

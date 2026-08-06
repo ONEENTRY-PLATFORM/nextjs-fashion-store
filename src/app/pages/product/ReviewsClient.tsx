@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react';
-import type { ProductReview } from '../../components/ProductCard';
+import type { ProductReview } from '../../components/product/ProductCard';
 import { useAuth } from '../../context/AuthContext';
 import { canReviewProduct } from '../../utils/review-eligibility';
 import { PRODUCT_REVIEWS_LABELS as L } from '../../data/productPageLabels';

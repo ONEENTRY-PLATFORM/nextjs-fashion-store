@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
-import { NoFilterResults } from '../app/components/NoFilterResults';
+import { NoFilterResults } from '../app/components/catalog/NoFilterResults';
 
 const meta = {
   title: 'UI / NoFilterResults',

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
-import { ProductCard, type Product } from '../../components/ProductCard';
+import { ProductCard, type Product } from '../../components/product/ProductCard';
 import { RECENTLY_VIEWED_LABELS as L } from '../../data/productPageLabels';
 import { useMounted } from '../../hooks/useMounted';
 

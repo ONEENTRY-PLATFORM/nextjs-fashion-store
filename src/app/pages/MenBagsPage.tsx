@@ -1,6 +1,6 @@
 'use client'
-import { CatalogTemplate, type FilterGroup } from '../components/CatalogTemplate';
-import type { Product } from '../components/ProductCard';
+import { CatalogTemplate, type FilterGroup } from '../components/catalog/CatalogTemplate';
+import type { Product } from '../components/product/ProductCard';
 import { ACCENT_MEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
 import { useCatalogPageT } from '../../lib/oneentry/labels/CatalogPageLabelsContext';

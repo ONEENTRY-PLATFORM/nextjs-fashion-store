@@ -1,13 +1,13 @@
 'use client'
 import React from 'react';
-import { Header } from '../components/Header';
+import { Header } from '../components/header/Header';
 import type { HeroSlideFromCms } from '../../lib/oneentry/blocks/hero-slides';
 import type { HomepageCollectionItem } from '../../lib/oneentry/blocks/homepage-collections';
 import type { DiscountBannerFromCms } from '../../lib/oneentry/blocks/discount-banner';
 import type { CategorySectionFromCms } from '../../lib/oneentry/blocks/category-section';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { Footer } from '../components/Footer';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import { Footer } from '../components/footer/Footer';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 
 export function HomePage({
   initialHeroSlides,

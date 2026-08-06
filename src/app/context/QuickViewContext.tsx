@@ -1,6 +1,6 @@
 'use client'
 import { useRef, useCallback } from 'react';
-import { Product } from '../components/ProductCard';
+import { Product } from '../components/product/ProductCard';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   openQuickView as openQuickViewAction,

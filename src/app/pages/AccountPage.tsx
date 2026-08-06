@@ -1,8 +1,8 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
 import { useAuth } from '../context/AuthContext';
 import {
   User, ShoppingBag, Star, Wrench, Clock, Heart, Bell, MessageSquare,

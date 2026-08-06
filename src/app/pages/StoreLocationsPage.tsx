@@ -2,15 +2,15 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
 import { MapPin, ExternalLink, Search, ChevronRight } from 'lucide-react';
 import type { Store } from '../data/stores';
 import { StoreCard } from './stores/StoreCard';
 import { STORE_LOCATIONS_LABELS as L } from '../data/storesLabels';
 import { useStoresT } from '../../lib/oneentry/labels/StoresLabelsContext';
 import type { StoreLocationsPageFromCms } from '../../lib/oneentry/catalog/store-locations-page';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 import { ACCENT_WOMEN as ACCENT, ACCENT_MEN, BANNER_BG } from '../constants/colors';

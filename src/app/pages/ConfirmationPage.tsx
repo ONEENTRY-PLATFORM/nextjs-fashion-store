@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react';
-import { ImageWithFallback } from '../components/ImageWithFallback';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
-import { CheckoutStepper } from '../components/CheckoutStepper';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
+import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
 import { useCart } from '../context/CartContext';
 import { CheckCircle, Package, Mail, ArrowRight } from 'lucide-react';
 

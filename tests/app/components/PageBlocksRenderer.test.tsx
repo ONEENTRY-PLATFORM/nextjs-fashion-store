@@ -57,13 +57,13 @@ vi.mock('react-redux', () => ({
 // Mock heavy child components — we only care about the branching logic,
 // not the rendering internals of each section.
 // ---------------------------------------------------------------------------
-vi.mock('@/app/components/HeroSlider', () => ({ HeroSlider: () => <div data-testid="hero-slider" /> }));
-vi.mock('@/app/components/CategorySection', () => ({ CategorySection: () => <div data-testid="category-section" /> }));
-vi.mock('@/app/components/PromoBlock', () => ({ PromoBlock: () => <div data-testid="promo-block" /> }));
-vi.mock('@/app/components/DiscountBanner', () => ({ DiscountBanner: () => <div data-testid="discount-banner" /> }));
-vi.mock('@/app/components/MenCollection', () => ({ MenCollection: () => <div data-testid="men-collection" /> }));
-vi.mock('@/app/components/WomenCollection', () => ({ WomenCollection: () => <div data-testid="women-collection" /> }));
-vi.mock('@/app/components/NewArrivals', () => ({ NewArrivals: () => <div data-testid="new-arrivals" /> }));
+vi.mock('@/app/components/home/HeroSlider', () => ({ HeroSlider: () => <div data-testid="hero-slider" /> }));
+vi.mock('@/app/components/home/CategorySection', () => ({ CategorySection: () => <div data-testid="category-section" /> }));
+vi.mock('@/app/components/home/PromoBlock', () => ({ PromoBlock: () => <div data-testid="promo-block" /> }));
+vi.mock('@/app/components/home/DiscountBanner', () => ({ DiscountBanner: () => <div data-testid="discount-banner" /> }));
+vi.mock('@/app/components/home/MenCollection', () => ({ MenCollection: () => <div data-testid="men-collection" /> }));
+vi.mock('@/app/components/home/WomenCollection', () => ({ WomenCollection: () => <div data-testid="women-collection" /> }));
+vi.mock('@/app/components/home/NewArrivals', () => ({ NewArrivals: () => <div data-testid="new-arrivals" /> }));
 
 // `cart_complement_block` renders through CartComplementBlockSlot, which calls
 // `useAuth()` (throws outside <AuthProvider>) and fires a server action on
@@ -118,7 +118,7 @@ describe('PageBlocksRenderer — recently_viewed_block', () => {
   it('renders nothing when the Redux recently-viewed trail is empty', async () => {
     mockRecentlyViewedItems = [];
 
-    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/blocks/PageBlocksRenderer');
     const block = makeBlock({ marker: 'recently_viewed', type: 'recently_viewed_block' });
 
     await act(async () => {
@@ -134,7 +134,7 @@ describe('PageBlocksRenderer — recently_viewed_block', () => {
       { id: '2', name: 'White Sneakers', viewedAt: Date.now() },
     ];
 
-    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/blocks/PageBlocksRenderer');
     const block = makeBlock({ marker: 'recently_viewed', type: 'recently_viewed_block' });
 
     await act(async () => {
@@ -154,7 +154,7 @@ describe('PageBlocksRenderer — recently_viewed_block', () => {
       { id: '3', name: 'White Sneakers', viewedAt: Date.now() },
     ];
 
-    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/blocks/PageBlocksRenderer');
     const block = makeBlock({ marker: 'recently_viewed', type: 'recently_viewed_block' });
 
     await act(async () => {
@@ -173,7 +173,7 @@ describe('PageBlocksRenderer — title-only fallback (no products, unknown marke
   });
 
   it('renders an h2 with the block title when products are empty and type has no handler', async () => {
-    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/blocks/PageBlocksRenderer');
     // Use an unknown type so the block falls through to the title-only branch
     // (cart_complement_block now has its own guard that returns null when empty).
     const block = makeBlock({
@@ -192,7 +192,7 @@ describe('PageBlocksRenderer — title-only fallback (no products, unknown marke
   });
 
   it('renders nothing when title is empty and there are no products', async () => {
-    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/blocks/PageBlocksRenderer');
     const block = makeBlock({
       marker: 'unknown_marker',
       type: 'unknown_type',
@@ -216,7 +216,7 @@ describe('PageBlocksRenderer — cart_complement_block guard', () => {
   });
 
   it('renders nothing for cart_complement_block with an empty products array', async () => {
-    const { PageBlocksRenderer } = await import('@/app/components/PageBlocksRenderer');
+    const { PageBlocksRenderer } = await import('@/app/components/blocks/PageBlocksRenderer');
     const block = makeBlock({
       marker: 'cart_complement_block',
       type: 'cart_complement_block',

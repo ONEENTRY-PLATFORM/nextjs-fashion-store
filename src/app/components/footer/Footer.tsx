@@ -1,0 +1,238 @@
+'use client'
+import { FOOTER_LINKS, PAYMENT_METHOD_NAMES, SOCIAL_LINKS, SUPPORT_ITEMS, BOTTOM_LINKS, COMPANY_INFO, type FooterLink } from '../../data/footerConfig';
+import { FOOTER_ARIA, FOOTER_LABELS as FL, FOOTER_DYNAMIC_ARIA } from '../../data/commonLabels';
+import { LOGO_ALT } from '../../data/headerConfig';
+import { useHeaderT } from '../../../lib/oneentry/labels/HeaderLabelsContext';
+import React from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import logoImage from '../../../assets/kekimoro-logo-white.png';
+import { NewsletterForm } from './NewsletterForm';
+import { useFooterMenu } from '../../../lib/oneentry/menus/FooterMenuContext';
+import { useFooterT } from '../../../lib/oneentry/labels/FooterLabelsContext';
+import {
+  footerColumnsFromMenu,
+  footerBottomLinksFromMenu,
+  type FooterColumn,
+} from '../../../lib/oneentry/menus/adapt-footer';
+import {
+  QuestionMarkCircleIcon,
+  DevicePhoneMobileIcon,
+  ChatBubbleLeftRightIcon,
+  EnvelopeIcon,
+} from '@heroicons/react/24/outline';
+const PAYMENT_ICON_SRC: Record<string, string> = {
+  Visa: '/icons/payment/visa.svg',
+  Mastercard: '/icons/payment/mastercard.svg',
+  Amex: '/icons/payment/amex.svg',
+  'Apple Pay': '/icons/payment/apple-pay.svg',
+  'Google Pay': '/icons/payment/google-pay.svg',
+  PayPal: '/icons/payment/paypal.svg',
+  Klarna: '/icons/payment/klarna.svg',
+  Maestro: '/icons/payment/maestro.svg',
+};
+
+const SOCIAL_ICON_SRC: Record<string, string> = {
+  TikTok: '/icons/social/tiktok.svg',
+  Facebook: '/icons/social/facebook.svg',
+  Instagram: '/icons/social/instagram.svg',
+  YouTube: '/icons/social/youtube.svg',
+  Pinterest: '/icons/social/pinterest.svg',
+};
+
+
+export function Footer() {
+  const lLogoAlt = useHeaderT('header_logo_alt', LOGO_ALT);
+  const cmsFooterMenu = useFooterMenu();
+
+  // Branding copy from the OE `footer` set — the fields marketing changes
+  // without a release. `COMPANY_INFO` / `SUPPORT_ITEMS` remain the fallback.
+  const lDescription = useFooterT('footer_company_description', COMPANY_INFO.description);
+  const lPhone       = useFooterT('footer_support_phone',       COMPANY_INFO.phone);
+  const lCopyright   = useFooterT('footer_copyright',           COMPANY_INFO.copyright);
+
+  // Four support cards are a fixed layout slot, so each key is read with its
+  // own top-level hook call — a loop would break the rules of hooks. The icon
+  // stays in code: it selects a component, it is not copy.
+  const support1Title = useFooterT('footer_support_1_title', SUPPORT_ITEMS[0]?.title ?? '');
+  const support1Desc  = useFooterT('footer_support_1_desc',  SUPPORT_ITEMS[0]?.desc ?? '');
+  const support2Title = useFooterT('footer_support_2_title', SUPPORT_ITEMS[1]?.title ?? '');
+  const support2Desc  = useFooterT('footer_support_2_desc',  SUPPORT_ITEMS[1]?.desc ?? '');
+  const support3Title = useFooterT('footer_support_3_title', SUPPORT_ITEMS[2]?.title ?? '');
+  const support3Desc  = useFooterT('footer_support_3_desc',  SUPPORT_ITEMS[2]?.desc ?? '');
+  const support4Title = useFooterT('footer_support_4_title', SUPPORT_ITEMS[3]?.title ?? '');
+  const support4Desc  = useFooterT('footer_support_4_desc',  SUPPORT_ITEMS[3]?.desc ?? '');
+  const supportItems = [
+    { title: support1Title, desc: support1Desc },
+    { title: support2Title, desc: support2Desc },
+    { title: support3Title, desc: support3Desc },
+    { title: support4Title, desc: support4Desc },
+  ].filter((item) => item.title || item.desc);
+
+  // Social profile URLs: the network name keys the icon asset and stays in
+  // code, only the destination is CMS-editable.
+  const tiktokHref    = useFooterT('footer_social_tiktok',    SOCIAL_LINKS[0]?.href ?? '');
+  const facebookHref  = useFooterT('footer_social_facebook',  SOCIAL_LINKS[1]?.href ?? '');
+  const instagramHref = useFooterT('footer_social_instagram', SOCIAL_LINKS[2]?.href ?? '');
+  const youtubeHref   = useFooterT('footer_social_youtube',   SOCIAL_LINKS[3]?.href ?? '');
+  const pinterestHref = useFooterT('footer_social_pinterest', SOCIAL_LINKS[4]?.href ?? '');
+  const socialLinks = SOCIAL_LINKS
+    .map((s, i) => ({
+      name: s.name,
+      href: [tiktokHref, facebookHref, instagramHref, youtubeHref, pinterestHref][i] ?? s.href,
+    }))
+    .filter((s) => s.href.length > 0);
+
+  // Both halves of the footer navigation come from the single OE `footer`
+  // menu: nested root nodes are the link columns, flat ones are the legal
+  // bottom bar. Each half falls back to its local dataset independently, so a
+  // tenant with a flat menu keeps CMS-driven legal links and coded columns.
+  const cmsColumns = footerColumnsFromMenu(cmsFooterMenu);
+  const columns: FooterColumn[] = cmsColumns.length > 0
+    ? cmsColumns
+    : Object.entries(FOOTER_LINKS).map(([title, links]) => ({
+        key: title,
+        title,
+        links: links.map((l: FooterLink) => ({ key: l.href + l.label, label: l.label, href: l.href })),
+      }));
+
+  const cmsBottomLinks = footerBottomLinksFromMenu(cmsFooterMenu);
+  const bottomLinks = cmsBottomLinks.length > 0
+    ? cmsBottomLinks
+    : BOTTOM_LINKS.map((l) => ({ key: l.href, label: l.label, href: l.href }));
+  return (
+    <footer className="bg-black text-white">
+      {/* Support Bar */}
+      <div className="border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {(() => {
+            // Icon *components*, not elements — an array of JSX elements is an
+            // array of children React wants keys on, and rendering them by
+            // index also re-mounts each icon whenever the list order shifts.
+            const SUPPORT_ICONS = [
+              QuestionMarkCircleIcon,
+              DevicePhoneMobileIcon,
+              ChatBubbleLeftRightIcon,
+              EnvelopeIcon,
+            ];
+            return supportItems.map((item, i) => {
+              const Icon = SUPPORT_ICONS[i];
+              return (
+              <div key={item.title} className="text-center" data-testid="footer-support-item">
+                <div className="flex justify-center mb-2 text-white">{Icon ? <Icon className="w-6 h-6" /> : null}</div>
+                <p className="text-xs tracking-widest uppercase font-medium mb-1">{item.title}</p>
+                <p className="text-xs text-white/50">{item.desc}</p>
+              </div>
+              );
+            });
+          })()}
+        </div>
+      </div>
+
+      {/* Main Footer Content */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+          {/* Brand Column */}
+          <div className="col-span-2 lg:col-span-2">
+            <Image src={logoImage} alt={lLogoAlt} width={183} height={40} className="object-contain mb-4" />
+            <p className="text-xs text-white/50 mb-4 max-w-xs leading-relaxed" data-testid="footer-company-description">
+              {lDescription}
+            </p>
+            <p className="text-xs text-white/40 mb-2">{FL.customerSupport}</p>
+            <a href={`tel:${lPhone.replace(/\s/g, '')}`} className="text-sm font-medium hover:text-white/70 transition-colors" data-testid="footer-support-phone">
+              {lPhone}
+            </a>
+            <p className="text-xs text-white/30 mt-4" data-testid="footer-copyright">
+              {lCopyright}
+            </p>
+          </div>
+
+          {/* Link Columns */}
+          {columns.map((column) => (
+            <nav key={column.key} aria-label={column.title} data-testid="footer-column">
+              <h4 className="text-xs tracking-widest uppercase font-medium mb-4 text-white/80" data-testid="footer-column-title">
+                {column.title}
+              </h4>
+              <ul className="space-y-2">
+                {column.links.map((link) => (
+                  <li key={link.key}>
+                    <Link href={link.href} className="text-xs text-white/50 hover:text-white transition-colors block" data-testid="footer-column-link">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
+      </div>
+
+      {/* Newsletter */}
+      <div className="border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
+          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.newsletterHeading}</p>
+          <NewsletterForm />
+        </div>
+      </div>
+
+      {/* Payment Methods */}
+      <div className="border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
+          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.acceptedPaymentMethods}</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            {PAYMENT_METHOD_NAMES.map((name) => {
+              const src = PAYMENT_ICON_SRC[name];
+              return (
+                <div key={name} className="bg-white/5 hover:bg-white/10 transition-colors px-2 py-1 flex items-center justify-center min-w-16">
+                  {src ? (
+                    <Image src={src} alt={name} width={60} height={40} className="h-6 w-auto" unoptimized />
+                  ) : (
+                    <span className="text-xs font-bold">{name}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Social Media */}
+      <div className="border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
+          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.followUs}</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            {socialLinks.map(({ name, href }) => {
+              const src = SOCIAL_ICON_SRC[name];
+              return (
+                <a
+                  key={name}
+                  href={href}
+                  aria-label={FOOTER_DYNAMIC_ARIA.followOn(name)}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white active:bg-gray-200 transition-all duration-200 group"
+                >
+                  {src ? (
+                    <Image src={src} alt={name} width={20} height={20} className="w-5 h-5 group-hover:invert" unoptimized />
+                  ) : null}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="border-t border-white/10">
+        <nav aria-label={FOOTER_ARIA.legalLinks} className="max-w-7xl mx-auto px-4 lg:px-8 py-4 flex flex-wrap items-center justify-center gap-4" data-testid="footer-bottom-bar">
+          {bottomLinks.map((link, i, arr) => (
+            <span key={link.key} className="flex items-center gap-4">
+              <Link href={link.href} className="text-xs text-white/40 hover:text-white/70 transition-colors" data-testid="footer-bottom-link">{link.label}</Link>
+              {i < arr.length - 1 && <span className="text-white/20 text-xs">|</span>}
+            </span>
+          ))}
+        </nav>
+      </div>
+    </footer>
+  );
+}

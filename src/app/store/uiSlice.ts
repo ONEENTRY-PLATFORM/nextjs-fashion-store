@@ -8,7 +8,7 @@
  * around these actions so existing components don't need to change their imports.
  */
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Product } from '../components/ProductCard';
+import type { Product } from '../components/product/ProductCard';
 
 interface UIState {
   quickView: {

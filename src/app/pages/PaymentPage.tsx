@@ -1,10 +1,10 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { ImageWithFallback } from '../components/ImageWithFallback';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
-import { CheckoutStepper } from '../components/CheckoutStepper';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
+import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
@@ -20,7 +20,7 @@ import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '../../lib/oneentry/payments/accounts';
 import { extractCmsProductId } from '../data/cms-product-id-map';
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useMounted } from '../hooks/useMounted';
 

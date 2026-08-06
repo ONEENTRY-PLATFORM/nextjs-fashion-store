@@ -2,12 +2,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
-import { ProductCard, type Product } from '../components/ProductCard';
-import { MobileFilterPanel } from '../components/MobileFilterPanel';
-import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
-import { ColsIcon, SortOptionBtn as SortOption } from '../components/CatalogTemplate.parts';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
+import { ProductCard, type Product } from '../components/product/ProductCard';
+import { MobileFilterPanel } from '../components/catalog/MobileFilterPanel';
+import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
+import { ColsIcon, SortOptionBtn as SortOption } from '../components/catalog/CatalogTemplate.parts';
 import {
   ChevronDown, ChevronLeft, ChevronRight, X, SlidersHorizontal,
 } from 'lucide-react';
@@ -29,7 +29,7 @@ import { useCountdown } from './sale/SaleCountdown';
 import { SaleHero } from './sale/SaleHero';
 import { SALE_PAGE_LABELS as L, SALE_CATEGORY_LABELS as CAT } from '../data/salePageLabels';
 import { useSalePageT } from '../../lib/oneentry/labels/SalePageLabelsContext';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { SalePageFromCms } from '../../lib/oneentry/catalog/sale-page';
 import { useSearchParams } from 'next/navigation';

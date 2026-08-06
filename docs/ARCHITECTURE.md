@@ -92,7 +92,7 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | Folder | Purpose |
 |---|---|
 | `src/app/pages/` | Page components imported by `app/.../page.tsx`. Subfolders `account/`, `cart/`, `checkout/`, `product/`, `favorites/`, `new/`, `sale/`, `stores/` hold per-page composition pieces. Also holds the 8 catalog page shells (`WomenCatalogPage`, `MenShoesPage`, …). |
-| `src/app/components/` | ~49 cross-page UI components (Header, HeaderMegaMenu, HeaderTopBar, HeaderSearch, HeaderMobileDrawer, MiniCart, ProductCard, CatalogTemplate, HeroSlider, PageBlocksRenderer, LoginModal, RegisterModal, QuickViewModal, CheckoutStepper, Footer, ErrorBoundary, JsonLd, ServiceWorkerRegistrar, PageViewTracker, Providers, WishlistSyncEffect…). `PageBlocksRenderer.tsx` is the shared `PageBlock[]` → component switch used by every content route (homepage, catalog, info, sale, new, stores, favorites, PDP). The `figma/` subfolder has been removed — `figma/ImageWithFallback.tsx` was a dead duplicate of `ImageWithFallback.tsx` with no importers. |
+| `src/app/components/` | 52 cross-page UI components, grouped into 11 role folders: `header/` (Header, HeaderTopBar, HeaderMegaMenu, HeaderMobileDrawer, HeaderSearch), `footer/` (Footer, NewsletterForm), `home/` (HeroSlider, NewArrivals, WomenCollection, MenCollection, PromoBlock, DiscountBanner, CategorySection), `catalog/` (CatalogTemplate + parts/types, CatalogListProductCard, filter panels, PriceRangeSlider, ShoesCatalog, AccessoriesCatalog), `product/` (ProductCard, ProductCardSkeleton, QuickViewModal, QuickViewSizeGuide), `cart/` (MiniCart, CartUnavailableNotice), `checkout/` (CheckoutStepper), `auth/` (LoginModal, RegisterModal), `blocks/` (PageBlocksRenderer, GenericCommonBlock, GenericSliderBlock), `ui/` (ImageWithFallback, HorizontalScroller, FormField, RadioCard, QtyControl, SizeDropdown, ColorSwatch, ColorSwatchButton, ErrorBoundary), `system/` (Providers, PageViewTracker, ServiceWorkerRegistrar, ScrollToTop, JsonLd). `blocks/PageBlocksRenderer.tsx` is the shared `PageBlock[]` → component switch used by every content route (homepage, catalog, info, sale, new, stores, favorites, PDP). Per-file roles: [COMPONENTS.md §1](./COMPONENTS.md#1-global-components--srcappcomponents). |
 | `src/app/context/` | React Context providers for transient UI state and per-user session: `AuthContext`, `CartContext`, `WishlistContext`, `QuickViewContext`, `CatalogAccentContext`. |
 | `src/app/store/` | Redux Toolkit store + six slices + two RTK Query APIs (see §4 + [REDUX.md](./REDUX.md)). |
 | `src/app/store/api/` | `cartApi` and `wishlistApi` (`fetchBaseQuery` slices — currently kept as scaffolding, live sync is done through the Auth Server Actions `syncCart` / `syncWishlist`). |
@@ -204,7 +204,7 @@ All server-authoritative data — products, pages, blocks, menus, labels, user p
 | `QuickViewContext` | Quick-view modal open state + currently previewed product (dispatches to `uiSlice.quickView`). |
 | `CatalogAccentContext` | Active catalog accent colour (used to tint the catalog hero + filter chips). |
 
-Contexts are nested inside `<Provider store={...}>` in `src/app/components/Providers.tsx`.
+Contexts are nested inside `<Provider store={...}>` in `src/app/components/system/Providers.tsx`.
 
 ### 4.3 Redux slices — optimistic client state
 
@@ -239,7 +239,7 @@ Both middlewares are still concatenated in `makeStore()` so hooks continue to co
 ### Server-rendered
 - All `app/.../page.tsx` route entry files (SSR / RSC).
 - SEO `metadata` exports per route + dynamic `generateMetadata()` in `app/[...slug]/page.tsx` and `app/product/[id]/page.tsx`.
-- JSON-LD structured data injected via `<JsonLd>` (`src/app/components/JsonLd.tsx`).
+- JSON-LD structured data injected via `<JsonLd>` (`src/app/components/system/JsonLd.tsx`).
 - All `src/lib/oneentry/**/*.ts` loaders and Server Actions.
 - `<SystemText>` labels rendered in RSC.
 - `app/manifest.ts`, `app/sitemap.ts`, `app/robots.ts`, `app/opengraph-image.tsx`, `app/llms.txt/route.ts`.
@@ -247,7 +247,7 @@ Both middlewares are still concatenated in `makeStore()` so hooks continue to co
 `app/layout.tsx` (RSC) runs on every request and awaits **8 loaders in parallel** — 5 label sets (product-card, sign-in, create-account, interface-controls, your-bag), 2 menu markers (`header`, `footer`), and the sign-up form schema. The results are passed as props into `<Providers>`, which then hands them to the corresponding React contexts. The layout also inlines a small script that swallows a React 19 dev-only `performance.measure()` regression — production builds are unaffected.
 
 ### Client-rendered (`'use client'`)
-- `src/app/components/Providers.tsx` and everything it wraps (Redux store cannot live on the server).
+- `src/app/components/system/Providers.tsx` and everything it wraps (Redux store cannot live on the server).
 - All `src/app/context/*` providers + the OneEntry label + menu contexts under `src/lib/oneentry/{labels,menus,forms,auth}/*Context.tsx`.
 - All interactive components (Header, MiniCart, ProductCard, CatalogTemplate, LoginModal, RegisterModal, QuickViewModal, checkout pages, etc.).
 - All `src/app/pages/*Page.tsx` (they consume Redux + Context).
@@ -282,7 +282,7 @@ Splitting label providers per route keeps the initial payload smaller — attrib
 Three pieces:
 
 1. **Web App Manifest** — `app/manifest.ts` exposes name / short_name / icons / theme_color / start_url at `/manifest.webmanifest`. Categories: shopping, fashion, lifestyle.
-2. **Service worker** — `public/sw.js` (precache + offline fallback). Registered client-side from `src/app/components/ServiceWorkerRegistrar.tsx`, mounted inside `Providers`.
+2. **Service worker** — `public/sw.js` (precache + offline fallback). Registered client-side from `src/app/components/system/ServiceWorkerRegistrar.tsx`, mounted inside `Providers`.
 3. **Offline route** — `app/offline/page.tsx` and `public/offline.html` (static fallback served by `sw.js` when network is unreachable).
 
 Deeper coverage in [PWA.md](./PWA.md).

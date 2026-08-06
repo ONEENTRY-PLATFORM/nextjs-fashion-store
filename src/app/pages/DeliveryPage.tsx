@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
-import { CheckoutStepper } from '../components/CheckoutStepper';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
+import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import { useCart } from '../context/CartContext';
 
 // Render Order Summary client-only — its content reads from the Redux cart

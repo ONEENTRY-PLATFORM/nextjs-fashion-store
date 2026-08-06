@@ -2,7 +2,7 @@
 import { RecommendationsCarousel } from './RecommendationsCarousel';
 import { PRODUCT_BREADCRUMB_LABELS as PB } from '../../data/productPageLabels';
 import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
-import type { Product } from '../../components/ProductCard';
+import type { Product } from '../../components/product/ProductCard';
 
 /**
  * Client wrapper for the "You May Also Like" carousel. Lives in its own file

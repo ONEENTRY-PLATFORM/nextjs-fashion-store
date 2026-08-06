@@ -1,5 +1,5 @@
 'use client'
-import { FormField } from '../../components/FormField';
+import { FormField } from '../../components/ui/FormField';
 import { GUEST_CONTACT_LABELS as L } from '../../data/checkoutLabels';
 import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 

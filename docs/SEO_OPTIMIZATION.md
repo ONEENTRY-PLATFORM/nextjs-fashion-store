@@ -215,7 +215,7 @@ Cache headers: `Cache-Control: public, max-age=86400, stale-while-revalidate=360
 
 ## Runtime SEO: JSON-LD per page
 
-JSON-LD blocks are injected via the `<JsonLd>` helper (`src/app/components/JsonLd.tsx`). Schemas are computed at module evaluation time (homepage / sale / new) or per-request in `generateMetadata` / page-component scope (product / catalog).
+JSON-LD blocks are injected via the `<JsonLd>` helper (`src/app/components/system/JsonLd.tsx`). Schemas are computed at module evaluation time (homepage / sale / new) or per-request in `generateMetadata` / page-component scope (product / catalog).
 
 | Page | `<JsonLd>` site | schema.org types emitted | Shape highlights |
 | --- | --- | --- | --- |

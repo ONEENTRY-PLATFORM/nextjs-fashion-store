@@ -622,11 +622,11 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 | `src/app/pages/checkout/PaymentMethodsList.tsx` | Renders the OE payment accounts list |
 | `src/app/pages/checkout/GuestCheckoutModal.tsx` | Auth gate modal |
 | `src/app/pages/checkout/GuestContactForm.tsx` | Guest contact inputs |
-| `src/app/components/CheckoutStepper.tsx` | Step indicator |
+| `src/app/components/checkout/CheckoutStepper.tsx` | Step indicator |
 | `src/app/data/checkoutConfig.ts` | Pickup stores, lockers, time slots, coupon dict, delivery perks |
 | `src/app/data/paymentMethodsConfig.ts` | Stylistic copy for payment badges |
 | `src/lib/oneentry/auth/actions.ts` | `createOrderAction`, `updateAddressesAction`, `getCurrentUserAction`, `previewOrderAction` (returns `missingProductIds` on failure). `TIER_MARKERS` (`['bronze','silver','gold','platinum']`) is now a single module-scoped `const` consumed by `fetchLoyalty`, `previewOrderAction`, and `createOrderAction` — not exported (Next.js 16 `'use server'` files reject non-async exports). Exports `PreviewGiftItem` and an extended `PreviewOrderResult` with `giftItems: PreviewGiftItem[]` and a corrected `couponDiscountAmount` (zero for gift-only coupons — see §7a). |
-| `src/app/components/CartUnavailableNotice.tsx` | Top-of-page banner that displays auto-pruned items and lets the shopper dismiss; mounted in `Providers.tsx` |
+| `src/app/components/cart/CartUnavailableNotice.tsx` | Top-of-page banner that displays auto-pruned items and lets the shopper dismiss; mounted in `Providers.tsx` |
 | `src/lib/oneentry/payments/accounts.ts` | `getPaymentAccountsAction` |
 | `src/app/utils/guest-id.ts` | `getOrCreateGuestId()` |
 | `src/app/utils/schemas.ts` | Zod schemas |

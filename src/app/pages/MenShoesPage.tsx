@@ -1,6 +1,6 @@
 'use client'
-import { ShoesCatalog, type FilterGroup } from '../components/ShoesCatalog';
-import type { Product } from '../components/ProductCard';
+import { ShoesCatalog, type FilterGroup } from '../components/catalog/ShoesCatalog';
+import type { Product } from '../components/product/ProductCard';
 import { ACCENT_MEN as ACCENT } from '../constants/colors';
 import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';

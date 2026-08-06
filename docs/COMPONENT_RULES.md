@@ -2,7 +2,7 @@
 
 Figma design spec for two card components used across the storefront. Merged from `product-card-rules.md` and `store-card-modal.md`.
 
-Implemented in [`ProductCard.tsx`](../src/app/components/ProductCard.tsx), [`CatalogListProductCard.tsx`](../src/app/components/CatalogListProductCard.tsx), [`StoreCard.tsx`](../src/app/pages/stores/StoreCard.tsx).
+Implemented in [`ProductCard.tsx`](../src/app/components/product/ProductCard.tsx), [`CatalogListProductCard.tsx`](../src/app/components/catalog/CatalogListProductCard.tsx), [`StoreCard.tsx`](../src/app/pages/stores/StoreCard.tsx).
 
 ---
 
@@ -61,7 +61,7 @@ overflow: hidden;
 text-overflow: ellipsis;
 ```
 
-In Tailwind this is the `truncate` utility — see [`ProductCard.tsx:510`](../src/app/components/ProductCard.tsx#L510).
+In Tailwind this is the `truncate` utility — see [`ProductCard.tsx:510`](../src/app/components/product/ProductCard.tsx#L510).
 
 ---
 

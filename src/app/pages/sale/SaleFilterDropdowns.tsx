@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { ColorSwatch } from '../../components/ColorSwatch';
+import { ColorSwatch } from '../../components/ui/ColorSwatch';
 import { SALE_COLOR_OPTIONS } from '../../data/saleConfig';
 import Image from 'next/image';
 import { SALE_COLOR as SALE_RED } from '../../constants/colors';

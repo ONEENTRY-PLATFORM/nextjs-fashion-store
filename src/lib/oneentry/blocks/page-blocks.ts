@@ -4,7 +4,7 @@ import { getApi, isError, isOneEntryEnabled } from '../index';
 import { withTiming } from '../profiling';
 import { loadProducts, type LoadProductsOptions } from '../catalog/products';
 import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
-import type { Product } from '../../../app/components/ProductCard';
+import type { Product } from '../../../app/components/product/ProductCard';
 import { DEFAULT_LOCALE } from '../locale';
 import { REVALIDATE_HOME } from '../../isr';
 

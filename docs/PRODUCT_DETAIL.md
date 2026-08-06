@@ -444,7 +444,7 @@ The `Math.floor(total * 10)` formula (1 point per £0.10) is applied only downst
 
 ## 15. Quick View (`QuickViewModal`)
 
-`src/app/components/QuickViewModal.tsx` (~430 lines) is a modal-scale PDP surrogate opened from product cards on the catalog and homepage. It shares mental model with the PDP but has no dedicated route.
+`src/app/components/product/QuickViewModal.tsx` (~430 lines) is a modal-scale PDP surrogate opened from product cards on the catalog and homepage. It shares mental model with the PDP but has no dedicated route.
 
 **Open trigger:** `openQuickView(product, initialColorIndex?)` from `QuickViewContext` (`src/app/context/QuickViewContext.tsx`) — invoked by the ProductCard "eye" button. The modal reads its state from `useQuickView()`.
 
@@ -497,7 +497,7 @@ The strike pair renders **only** when `activeSalePrice < originalPriceRef`. If t
 
 ## 16. Mini Cart (`MiniCart`)
 
-`src/app/components/MiniCart.tsx` (~223 lines). Slide-in drawer opened from the header cart badge and after any Add-to-Cart action.
+`src/app/components/cart/MiniCart.tsx` (~223 lines). Slide-in drawer opened from the header cart badge and after any Add-to-Cart action.
 
 **State:** driven by `useCart()`:
 

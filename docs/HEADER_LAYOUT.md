@@ -2,7 +2,7 @@
 
 Design spec for the site header. Merged from two Figma hand-off notes that contradicted each other on zone composition; the zones below are corrected against the implementation.
 
-Implemented in [`HeaderTopBar.tsx`](../src/app/components/HeaderTopBar.tsx), [`Header.tsx`](../src/app/components/Header.tsx), [`HeaderMegaMenu.tsx`](../src/app/components/HeaderMegaMenu.tsx), [`HeaderSearch.tsx`](../src/app/components/HeaderSearch.tsx), [`HeaderMobileDrawer.tsx`](../src/app/components/HeaderMobileDrawer.tsx).
+Implemented in [`HeaderTopBar.tsx`](../src/app/components/header/HeaderTopBar.tsx), [`Header.tsx`](../src/app/components/header/Header.tsx), [`HeaderMegaMenu.tsx`](../src/app/components/header/HeaderMegaMenu.tsx), [`HeaderSearch.tsx`](../src/app/components/header/HeaderSearch.tsx), [`HeaderMobileDrawer.tsx`](../src/app/components/header/HeaderMobileDrawer.tsx).
 
 ---
 
@@ -15,7 +15,7 @@ max-w-384 mx-auto px-8 lg:px-12
 ```
 
 No row is allowed extra or reduced horizontal padding of its own.
-Cited: [`HeaderTopBar.tsx:40`](../src/app/components/HeaderTopBar.tsx#L40), [`Header.tsx:166`](../src/app/components/Header.tsx#L166), [`HeaderMegaMenu.tsx:46`](../src/app/components/HeaderMegaMenu.tsx#L46).
+Cited: [`HeaderTopBar.tsx:40`](../src/app/components/header/HeaderTopBar.tsx#L40), [`Header.tsx:166`](../src/app/components/header/Header.tsx#L166), [`HeaderMegaMenu.tsx:46`](../src/app/components/header/HeaderMegaMenu.tsx#L46).
 
 ---
 

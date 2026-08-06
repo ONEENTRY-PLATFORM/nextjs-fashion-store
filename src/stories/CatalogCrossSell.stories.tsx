@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { CatalogCrossSell } from '../app/components/CatalogCrossSell';
-import type { CrossSellCategory } from '../app/components/CatalogTemplate';
+import { CatalogCrossSell } from '../app/components/catalog/CatalogCrossSell';
+import type { CrossSellCategory } from '../app/components/catalog/CatalogTemplate';
 
 const SAMPLE_CATEGORIES: CrossSellCategory[] = [
   {

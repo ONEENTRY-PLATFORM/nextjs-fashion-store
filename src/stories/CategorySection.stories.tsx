@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { CategorySection } from '../app/components/CategorySection';
+import { CategorySection } from '../app/components/home/CategorySection';
 
 const meta = {
   title: 'Sections / CategorySection',

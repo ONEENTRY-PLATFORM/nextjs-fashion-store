@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppSelector } from '../../store/hooks';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { type HistoryOrderStatus, type HistoryOrder } from '../../data/userData';
 import { ChevronDown, Check, RotateCcw, Package } from 'lucide-react';
 import { SectionTitle, ACCENT, fmt } from './shared';

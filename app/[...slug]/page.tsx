@@ -11,12 +11,12 @@ import {
 import { SITE_URL, SITE_NAME } from '../../src/app/data/seoData';
 import { resolveInfoPageSlug } from '../../src/lib/oneentry/catalog/info-pages';
 import { INFO_PAGE_META } from '../../src/app/data/infoPages';
-import { JsonLd } from '../../src/app/components/JsonLd';
+import { JsonLd } from '../../src/app/components/system/JsonLd';
 import { loadProducts, loadFilteredProducts } from '../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../src/lib/oneentry/catalog/adapt';
 import { parseCatalogSearchParams, type CatalogFilters } from '../../src/lib/oneentry/catalog/filters';
 import { resolveSeasonalTrend, applySeasonalTrend } from '../../src/lib/oneentry/catalog/seasonal-trend';
-import type { Product } from '../../src/app/components/ProductCard';
+import type { Product } from '../../src/app/components/product/ProductCard';
 import { loadCatalogFilter, type ClothingFilterGroup } from '../../src/lib/oneentry/blocks/clothing-filter';
 import { loadFilterChips, chipToFilterPatch } from '../../src/lib/oneentry/blocks/filter-chips';
 import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';

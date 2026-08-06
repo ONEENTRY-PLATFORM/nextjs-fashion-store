@@ -2,9 +2,9 @@
 import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { ChevronRight, Edit3, LayoutTemplate, Globe, Zap } from 'lucide-react';
 import {

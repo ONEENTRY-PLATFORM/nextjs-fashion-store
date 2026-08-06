@@ -2,9 +2,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
-import { CheckoutStepper } from '../components/CheckoutStepper';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
+import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
 import { useCart, type CartItem } from '../context/CartContext';
 import { Tag, ShoppingBag, Trash2 } from 'lucide-react';
 import { CartItemRow } from './cart/CartItemRow';
@@ -22,7 +22,7 @@ import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
 import { fmt } from '../utils/formatPrice';
 import { CART_PAGE_LABELS as L } from '../data/cartLabels';
 import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useMounted } from '../hooks/useMounted';
 

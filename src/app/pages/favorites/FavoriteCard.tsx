@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
 import { useQuickView } from '../../context/QuickViewContext';
@@ -10,7 +10,7 @@ import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
 import { TIMINGS } from '../../constants/timings';
 import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
 import { FAVORITE_CARD_LABELS as FCL } from '../../data/favoritesLabels';
-import { ColorSwatchButton } from '../../components/ColorSwatchButton';
+import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
 import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
 import { useFavoritesPageT } from '../../../lib/oneentry/labels/FavoritesPageLabelsContext';
 import { extractCmsProductId } from '../../data/cms-product-id-map';

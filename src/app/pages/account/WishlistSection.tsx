@@ -2,13 +2,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
 import { useRouter } from 'next/navigation';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { Heart, ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { SectionTitle, ACCENT } from './shared';
 import { SALE_COLOR } from '../../constants/colors';
 import { TIMINGS } from '../../constants/timings';
-import { ColorSwatchButton } from '../../components/ColorSwatchButton';
+import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
 import { PRODUCT_CARD_ARIA_LABELS, WISHLIST_DYNAMIC_ARIA, PRODUCT_CARD_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
 import { WISHLIST_LABELS as WL } from '../../data/accountLabels';
 import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';

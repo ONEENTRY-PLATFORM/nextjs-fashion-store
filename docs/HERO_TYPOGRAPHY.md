@@ -1,6 +1,6 @@
 # Hero Banner Typography Rules
 
-Figma design spec for hero banners. Implemented in [`src/app/components/HeroSlider.tsx`](../src/app/components/HeroSlider.tsx) (also used by `NewArrivalsHero.tsx` / `SaleHero.tsx`).
+Figma design spec for hero banners. Implemented in [`src/app/components/home/HeroSlider.tsx`](../src/app/components/home/HeroSlider.tsx) (also used by `NewArrivalsHero.tsx` / `SaleHero.tsx`).
 
 Hero banners follow a **special editorial typography style** that slightly overrides the default heading system.
 

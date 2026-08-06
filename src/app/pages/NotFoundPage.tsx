@@ -1,8 +1,8 @@
 'use client'
 import React, { Suspense, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
 import { ArrowRight } from 'lucide-react';
 import { NOT_FOUND_LABELS as L } from '../data/notFoundLabels';
 

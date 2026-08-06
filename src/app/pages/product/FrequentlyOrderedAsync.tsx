@@ -1,6 +1,6 @@
 import { loadFrequentlyOrderedBlock } from '../../../lib/oneentry/blocks/page-blocks';
 import { FrequentlyOrderedClient } from './FrequentlyOrderedClient';
-import type { Product } from '../../components/ProductCard';
+import type { Product } from '../../components/product/ProductCard';
 
 /**
  * Async server component that resolves the OE `frequently_ordered_block` for

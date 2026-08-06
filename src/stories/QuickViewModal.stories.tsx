@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { QuickViewModal } from '../app/components/QuickViewModal';
+import { QuickViewModal } from '../app/components/product/QuickViewModal';
 import { useAppDispatch } from '../app/store/hooks';
 import { openQuickView } from '../app/store/uiSlice';
 import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_SINGLE_SIZE_PRODUCT, MOCK_COMING_SOON_PRODUCT, MOCK_PREORDER_PRODUCT } from './mockData';

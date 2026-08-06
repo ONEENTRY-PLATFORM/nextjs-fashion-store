@@ -4,7 +4,7 @@ Systematic inventory of every React component in the storefront: role, key props
 
 Component counts (excluding tests and `.stories.tsx`):
 
-- `src/app/components/*` — **50** global components
+- `src/app/components/**` — **52** global components across 11 role folders (see the folder map below)
 - `src/app/pages/*.tsx` — **22** page components (8 catalog shells, 14 unique routes)
 - `src/app/pages/{account,cart,checkout,favorites,new,product,sale,stores}/*` — **59** page sub-components (account 21, product 20, checkout 8, cart 2, favorites 3, new 1, sale 3, stores 1)
 
@@ -12,7 +12,25 @@ Component counts (excluding tests and `.stories.tsx`):
 
 ## 1. Global components — `src/app/components/`
 
-### 1.1 Layout / shell
+### 1.0 Folder map
+
+Components are grouped by role. The role sections below (1.1–1.7) predate the folders and cut across them, so use this table to locate a file.
+
+| Folder | Files |
+| --- | --- |
+| `header/` | `Header`, `HeaderTopBar`, `HeaderMegaMenu`, `HeaderMobileDrawer`, `HeaderSearch` |
+| `footer/` | `Footer`, `NewsletterForm` |
+| `home/` | `HeroSlider`, `NewArrivals`, `WomenCollection`, `MenCollection`, `PromoBlock`, `DiscountBanner`, `CategorySection` |
+| `catalog/` | `CatalogTemplate` (+ `.parts`, `.types`), `CatalogListProductCard`, `CatalogCrossSell`, `CatalogMobileSort`, `MobileFilterPanel`, `MobileFilterBody`, `NoFilterResults`, `PriceRangeSlider`, `ShoesCatalog`, `AccessoriesCatalog` |
+| `product/` | `ProductCard`, `ProductCardSkeleton`, `QuickViewModal`, `QuickViewSizeGuide` |
+| `cart/` | `MiniCart`, `CartUnavailableNotice` |
+| `checkout/` | `CheckoutStepper` |
+| `auth/` | `LoginModal`, `RegisterModal` |
+| `blocks/` | `PageBlocksRenderer`, `GenericCommonBlock`, `GenericSliderBlock` |
+| `ui/` | `ImageWithFallback`, `HorizontalScroller`, `FormField`, `RadioCard`, `QtyControl`, `SizeDropdown`, `ColorSwatch`, `ColorSwatchButton`, `ErrorBoundary` |
+| `system/` | `Providers`, `PageViewTracker`, `ServiceWorkerRegistrar`, `ScrollToTop`, `JsonLd` |
+
+### 1.1 Layout / shell — `header/`, `footer/`, `system/`, `ui/ErrorBoundary`
 
 | Component | Purpose | Deep dive |
 | --- | --- | --- |
@@ -29,7 +47,7 @@ Component counts (excluding tests and `.stories.tsx`):
 | `ErrorBoundary.tsx` | Class component (`getDerivedStateFromError` + `componentDidCatch`). Logs to console in dev; renders a plain fallback (X icon + heading + message + "Try again" button) in prod. No remote reporting. Copy from `ERROR_BOUNDARY_LABELS`. | — |
 | `JsonLd.tsx` | RSC helper. Accepts single object or array of schemas; emits `<script type="application/ld+json">` with `JSON.stringify`. | [SEO_OPTIMIZATION.md §13](./SEO_OPTIMIZATION.md#runtime-seo-json-ld-per-page) |
 
-### 1.2 Homepage blocks
+### 1.2 Homepage blocks — `blocks/`, `home/`
 
 | Component | Purpose | Deep dive |
 | --- | --- | --- |
@@ -44,7 +62,7 @@ Component counts (excluding tests and `.stories.tsx`):
 | `WomenCollection.tsx` | Home "Shop Women" grid — takes `products: Product[]` prop. Thin wrapper over `ProductCard`. | — |
 | `MenCollection.tsx` | Symmetric to `WomenCollection` for the men's home block. | — |
 
-### 1.3 Catalog
+### 1.3 Catalog — `catalog/`
 
 | Component | Purpose | Deep dive |
 | --- | --- | --- |
@@ -61,7 +79,7 @@ Component counts (excluding tests and `.stories.tsx`):
 | `ShoesCatalog.tsx` | Catalog wrapper for shoe pages — passes shoes-specific `FILTER_GROUPS`, `quickChips: string[]`, and accent into `<CatalogTemplate>`. Re-exports `FilterOption`, `FilterGroup`, `CrossSellCategory` types for use by page shells. Also used as the delegate target for `<AccessoriesCatalog>`. The `chipField` and `chipAliasMap` props have been removed. | — |
 | `AccessoriesCatalog.tsx` | Thin alias wrapper — internally renders `<ShoesCatalog>` and passes `quickChips: string[]` straight through. The removed `chipField="accessoryType"` and `ACCESSORY_CHIP_MAP` props are no longer used. | — |
 
-### 1.4 Product surfaces
+### 1.4 Product surfaces — `product/`, `ui/` (swatches, size dropdown)
 
 | Component | Purpose | Deep dive |
 | --- | --- | --- |
@@ -73,7 +91,7 @@ Component counts (excluding tests and `.stories.tsx`):
 | `QuickViewModal.tsx` (430 loc) | Modal PDP surrogate. Shares Add-to-Cart / Wishlist rules with PDP. `useFocusTrap` for keyboard nav. **Review summary:** on modal open, calls `getProductReviewSummary(productId)` (server action in `src/lib/oneentry/catalog/reviews-actions.ts`) and shows a pulse placeholder while in-flight. The rating row layout now matches the PDP sub-title exactly: the shared `<StarRating>` SVG component (5-star strip, half-star support, empty grey when `count === 0`) is always rendered, followed by an underlined "N reviews" link (no parentheses), a ` | ` divider, and a stock-status label (four-way: `out_of_stock` → grey "Out of Stock", `coming_soon` → grey "Coming soon", `preorder` → amber "Pre-order", else → green "In Stock"). The label prefers `activeVariant.statusIdentifier` and falls back to `product.statusIdentifier`; both are forwarded from OE by`adaptCatalogProductToUiProduct`. If`count === 0` the "N reviews" link runs `startWriteReview`: unauthenticated users get the QuickView closed and`openLoginModal()`called; signed-in users without a qualifying delivered order for the product (`canReviewProduct` from `src/app/utils/review-eligibility.ts`) see an inline amber`showPurchaseNotice` under the rating row; signed-in users with a delivered order get `WriteReviewModal` stacked on top of QuickView, and on that modal's close the summary is refetched so the row updates immediately. If `count > 0` the link navigates to `/product/{id}#reviews` (not auth-gated). No hardcoded star or review-count fallbacks remain. | [PRODUCT_DETAIL.md §15](./PRODUCT_DETAIL.md#15-quick-view-quickviewmodal) |
 | `QuickViewSizeGuide.tsx` | Compact size-conversion table shown inside QuickView (in-place swap). | — |
 
-### 1.5 Cart / checkout / auth
+### 1.5 Cart / checkout / auth — `cart/`, `checkout/`, `auth/`, `footer/NewsletterForm`
 
 | Component | Purpose | Deep dive |
 | --- | --- | --- |
@@ -83,7 +101,7 @@ Component counts (excluding tests and `.stories.tsx`):
 | `RegisterModal.tsx` | Sign-up form rendered from `SignUpFormSchemaContext` (CMS attribute set `users_sign_in_sign_up`). Zod client validation via `registerSchema.safeParse()`. Calls **`useAuth().signUp(input)`** (context method), which internally awaits `signUpAction`. Google button calls `startGoogleOAuth()` — the same authorization-code redirect as `LoginModal`. Consumes `useCreateAccountT()` labels. | [AUTH.md §5](./AUTH.md#5-sign-up) |
 | `NewsletterForm.tsx` | Email subscribe form → `submitForm('subscribe_new_drops', [{marker:'subscribe_new_drops_email', ...}], { moduleConfigId: 52, moduleEntityIdentifier: 'subscribe' })`. **Live end-to-end** — a successful submit returns an OE form-data record id and renders the inline green "Subscribed!" state. The `{ moduleConfigId, moduleEntityIdentifier }` pair binds the form to the OE `subscribe` page; if OE admin ever unbinds or reconfigures it, look up the current pair via `Pages.getPageByUrl('subscribe').moduleFormConfigs[0]`. **Placeholder / CTA are hardcoded English** ("Your email address", "Subscribe") — no label context wired yet. Error messages containing `formIdentifier` are rewritten to a friendly fallback for the shopper. | [ONEENTRY_INTEGRATION.md §4.5](./ONEENTRY_INTEGRATION.md#45-forms-srcliboneentryforms) |
 
-### 1.6 Form widgets
+### 1.6 Form widgets — `ui/`
 
 | Component | Purpose |
 | --- | --- |
@@ -91,7 +109,7 @@ Component counts (excluding tests and `.stories.tsx`):
 | `QtyControl.tsx` | `−` / `+` buttons around a numeric value. Sizes `sm` / `md`. Optional `max?: number` prop — the `+` button is disabled when `value >= max`. Copy from `QTY_CONTROL_LABELS`. |
 | `RadioCard.tsx` | Card-style radio option (border highlight, icon, title, subtitle, collapsible children). Used across DeliveryPage and PaymentPage. |
 
-### 1.7 Utility
+### 1.7 Utility — `ui/`
 
 | Component | Purpose |
 | --- | --- |

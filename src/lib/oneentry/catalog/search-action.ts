@@ -1,7 +1,7 @@
 'use server';
 import { searchProducts } from './products';
 import { adaptCatalogProductToUiProduct } from './adapt';
-import type { Product } from '../../../app/components/ProductCard';
+import type { Product } from '../../../app/components/product/ProductCard';
 
 /**
  * Server-action wrapper for the combined vector + quick search loader.

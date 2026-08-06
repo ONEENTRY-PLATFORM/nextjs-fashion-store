@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAppSelector } from '../../store/hooks';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { SectionTitle, fmt, ACCENT } from './shared';
 import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { ChevronDown, Package, Clock, RotateCcw, XCircle } from 'lucide-react';

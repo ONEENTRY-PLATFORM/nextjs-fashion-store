@@ -1,6 +1,6 @@
 'use client'
 import { useRef } from 'react';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { HORIZONTAL_SCROLLER_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
 import { useCart } from '../../context/CartContext';

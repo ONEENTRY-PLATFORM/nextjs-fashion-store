@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
-import { MobileFilterPanel } from '../app/components/MobileFilterPanel';
-import type { MobileFilterGroup } from '../app/components/MobileFilterPanel';
+import { MobileFilterPanel } from '../app/components/catalog/MobileFilterPanel';
+import type { MobileFilterGroup } from '../app/components/catalog/MobileFilterPanel';
 
 const SAMPLE_FILTER_GROUPS: MobileFilterGroup[] = [
   {

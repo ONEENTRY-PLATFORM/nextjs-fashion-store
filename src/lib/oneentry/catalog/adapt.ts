@@ -1,5 +1,5 @@
 import type { CatalogProduct } from './products';
-import type { Product } from '../../../app/components/ProductCard';
+import type { Product } from '../../../app/components/product/ProductCard';
 import type { CatalogProduct as PdpCatalogProduct } from '../../../app/data/productCatalog';
 import { CURRENCY } from '../../../app/data/currencyConfig';
 

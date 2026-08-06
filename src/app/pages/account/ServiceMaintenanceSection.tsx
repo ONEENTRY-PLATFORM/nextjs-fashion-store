@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { type ServiceRequest, type ServiceStatus, type ServiceCategory } from '../../data/serviceData';
 import { getServiceRequestsAction } from '../../../lib/oneentry/catalog/service-requests-action';
 import { ChevronDown, Check, Plus, X, AlertTriangle } from 'lucide-react';

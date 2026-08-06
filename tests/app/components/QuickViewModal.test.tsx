@@ -51,7 +51,7 @@ vi.mock('@/app/hooks/useFocusTrap', () => ({
   useFocusTrap: () => ({ current: null }),
 }));
 
-vi.mock('@/app/components/QuickViewSizeGuide', () => ({
+vi.mock('@/app/components/product/QuickViewSizeGuide', () => ({
   QuickViewSizeGuide: () => null,
 }));
 
@@ -106,7 +106,7 @@ async function openModal(product: unknown, colorIndex = 0) {
   mockProduct = product;
   mockInitialColorIndex = colorIndex;
   mockIsOpen = true;
-  const { QuickViewModal } = await import('@/app/components/QuickViewModal');
+  const { QuickViewModal } = await import('@/app/components/product/QuickViewModal');
   let container: HTMLElement = document.body;
   await act(async () => {
     ({ container } = render(<QuickViewModal />));

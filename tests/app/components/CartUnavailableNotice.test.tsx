@@ -70,7 +70,7 @@ function makeItem(name = 'Test Shirt') {
 }
 
 async function renderNotice() {
-  const { CartUnavailableNotice } = await import('@/app/components/CartUnavailableNotice');
+  const { CartUnavailableNotice } = await import('@/app/components/cart/CartUnavailableNotice');
   return render(<CartUnavailableNotice />);
 }
 
@@ -165,7 +165,7 @@ describe('CartUnavailableNotice — self-dismiss timer', () => {
     // --- first batch ---
     mockUnavailableRemoved = [makeItem('Shirt')];
 
-    const { CartUnavailableNotice } = await import('@/app/components/CartUnavailableNotice');
+    const { CartUnavailableNotice } = await import('@/app/components/cart/CartUnavailableNotice');
 
     // Stateful wrapper so we can swap the prop that the mock reads.
     // We re-assign the module-level variable and force a re-render by

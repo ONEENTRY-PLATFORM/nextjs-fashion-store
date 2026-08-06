@@ -10,7 +10,7 @@
 import { loadProductsByIds } from './products';
 import { adaptCatalogProductToUiProduct } from './adapt';
 import type { CatalogProduct } from './products';
-import type { Product } from '../../../app/components/ProductCard';
+import type { Product } from '../../../app/components/product/ProductCard';
 
 /**
  * Bulk fetch of products by OE numeric id, returned in UI-ready shape.

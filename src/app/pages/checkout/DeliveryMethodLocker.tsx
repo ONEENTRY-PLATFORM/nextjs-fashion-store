@@ -1,6 +1,6 @@
 'use client'
 import { Package, ChevronDown } from 'lucide-react';
-import { RadioCard } from '../../components/RadioCard';
+import { RadioCard } from '../../components/ui/RadioCard';
 import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
 
 import { DELIVERY_METHOD_LOCKER_LABELS as L } from '../../data/checkoutLabels';

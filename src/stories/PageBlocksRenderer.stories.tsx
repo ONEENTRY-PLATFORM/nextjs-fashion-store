@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { PageBlocksRenderer } from '../app/components/PageBlocksRenderer';
+import { PageBlocksRenderer } from '../app/components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../lib/oneentry/blocks/page-blocks';
 import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT } from './mockData';
 import { useAppDispatch } from '../app/store/hooks';

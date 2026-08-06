@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { AccessoriesCatalog } from '../app/components/AccessoriesCatalog';
-import type { FilterGroup } from '../app/components/AccessoriesCatalog';
+import { AccessoriesCatalog } from '../app/components/catalog/AccessoriesCatalog';
+import type { FilterGroup } from '../app/components/catalog/AccessoriesCatalog';
 import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT } from './mockData';
 import { ACCENT_WOMEN, ACCENT_MEN } from '../app/constants/colors';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { ErrorBoundary } from '../app/components/ErrorBoundary';
+import { ErrorBoundary } from '../app/components/ui/ErrorBoundary';
 
 /** Helper component that always throws on render */
 function AlwaysThrows(): React.ReactNode {

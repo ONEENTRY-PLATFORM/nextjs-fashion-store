@@ -36,13 +36,13 @@ vi.mock('@/lib/oneentry/labels/CheckoutLabelsContext', () => ({
 }));
 
 // Layout components — replace with lightweight stubs
-vi.mock('@/app/components/Header', () => ({
+vi.mock('@/app/components/header/Header', () => ({
   Header: () => React.createElement('header', { 'data-testid': 'header' }),
 }));
-vi.mock('@/app/components/Footer', () => ({
+vi.mock('@/app/components/footer/Footer', () => ({
   Footer: () => React.createElement('footer', { 'data-testid': 'footer' }),
 }));
-vi.mock('@/app/components/CheckoutStepper', () => ({
+vi.mock('@/app/components/checkout/CheckoutStepper', () => ({
   CheckoutStepper: () => React.createElement('div', { 'data-testid': 'stepper' }),
 }));
 

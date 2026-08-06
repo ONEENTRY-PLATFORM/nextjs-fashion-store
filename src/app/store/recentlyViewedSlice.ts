@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { Product } from '../components/ProductCard';
+import type { Product } from '../components/product/ProductCard';
 import { LIMITS } from '../constants/timings';
 
 /** Items older than this are evicted on next hydration (30 days in ms) */

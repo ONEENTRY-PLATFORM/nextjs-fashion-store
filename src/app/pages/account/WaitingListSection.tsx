@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 import { type WaitingItem } from '../../data/userData';
 import { getWaitingListAction } from '../../../lib/oneentry/catalog/waiting-list-action';

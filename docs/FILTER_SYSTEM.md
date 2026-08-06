@@ -2,7 +2,7 @@
 
 ## Overview
 
-The filter system is implemented inside the universal catalog engine **`CatalogTemplate`** (`/src/app/components/CatalogTemplate.tsx`) and its companion mobile components (`/src/app/components/MobileFilterPanel.tsx`, `/src/app/components/MobileFilterBody.tsx`). Every catalog page (`WomenCatalogPage`, `MenCatalogPage`, `WomenShoesPage`, `MenShoesPage`, `WomenBagsPage`, `WomenAccessoriesPage`, `MenBagsPage`, `MenAccessoriesPage`, etc.) is a thin config wrapper that hands `CatalogTemplate` its own `FILTER_GROUPS`, `initialQuickChips`, accent color and product list. The filter UI is split into two distinct experiences: a **desktop horizontal filter bar** with mega-dropdown panels, and a **mobile full-screen accordion panel**. Both share the same filter state (Redux `catalogSlice`) and the same `FILTER_GROUPS` data structure.
+The filter system is implemented inside the universal catalog engine **`CatalogTemplate`** (`/src/app/components/catalog/CatalogTemplate.tsx`) and its companion mobile components (`/src/app/components/catalog/MobileFilterPanel.tsx`, `/src/app/components/catalog/MobileFilterBody.tsx`). Every catalog page (`WomenCatalogPage`, `MenCatalogPage`, `WomenShoesPage`, `MenShoesPage`, `WomenBagsPage`, `WomenAccessoriesPage`, `MenBagsPage`, `MenAccessoriesPage`, etc.) is a thin config wrapper that hands `CatalogTemplate` its own `FILTER_GROUPS`, `initialQuickChips`, accent color and product list. The filter UI is split into two distinct experiences: a **desktop horizontal filter bar** with mega-dropdown panels, and a **mobile full-screen accordion panel**. Both share the same filter state (Redux `catalogSlice`) and the same `FILTER_GROUPS` data structure.
 
 ---
 
@@ -407,12 +407,12 @@ Applied to the desktop filter buttons scroll container. The 1 px horizontal bar 
 
 | File                                          | Role                                              |
 |-----------------------------------------------|---------------------------------------------------|
-| `src/app/components/CatalogTemplate.tsx`      | Universal catalog engine: desktop filter bar, mega-dropdown, sort, pagination, Redux wiring |
-| `src/app/components/CatalogTemplate.types.ts` | `FilterGroup`, `FilterOption`, `SORT_OPTIONS`, `CatalogTemplateProps`. `ChipFilter` is now `type ChipFilter = string`; `CatalogTemplateProps.quickChips` is `string[]`. |
-| `src/app/components/CatalogTemplate.parts.tsx`| `ColsIcon`, `CheckboxUI`, `SortOptionBtn` UI primitives |
-| `src/app/components/MobileFilterPanel.tsx`    | Full-screen mobile filter accordion shell         |
-| `src/app/components/MobileFilterBody.tsx`     | Mobile accordion body (groups + options grid)     |
-| `src/app/components/CatalogMobileSort.tsx`    | Mobile sort bottom-sheet                          |
+| `src/app/components/catalog/CatalogTemplate.tsx`      | Universal catalog engine: desktop filter bar, mega-dropdown, sort, pagination, Redux wiring |
+| `src/app/components/catalog/CatalogTemplate.types.ts` | `FilterGroup`, `FilterOption`, `SORT_OPTIONS`, `CatalogTemplateProps`. `ChipFilter` is now `type ChipFilter = string`; `CatalogTemplateProps.quickChips` is `string[]`. |
+| `src/app/components/catalog/CatalogTemplate.parts.tsx`| `ColsIcon`, `CheckboxUI`, `SortOptionBtn` UI primitives |
+| `src/app/components/catalog/MobileFilterPanel.tsx`    | Full-screen mobile filter accordion shell         |
+| `src/app/components/catalog/MobileFilterBody.tsx`     | Mobile accordion body (groups + options grid)     |
+| `src/app/components/catalog/CatalogMobileSort.tsx`    | Mobile sort bottom-sheet                          |
 | `src/app/store/catalogSlice.ts`               | Per-catalog filter / sort / page / view state     |
 | `src/app/pages/WomenCatalogPage.tsx` (etc.)   | Thin per-category config — accepts `initialQuickChips?: string[]` from the RSC shell and passes `FILTER_GROUPS`, accent, products, and `quickChips` into `CatalogTemplate`. No longer contains a hardcoded `QUICK_CHIPS` const. |
 | `src/lib/oneentry/blocks/filter-chips.ts`     | `loadFilterChips(catalogKey, lang)` → `FilterChip[] | null`. Fetches OE filter marker `filter_chips_<catalogKey>` and adapts items to typed descriptors sorted by `position`. Exports `FilterChip` interface, `chipToFilterPatch(label, chips)` (returns the `CatalogFilters` patch for the active chip), and the private helper `attributeMarkerToFilterField` (OE marker root → `CatalogFilters` field key). Called by `app/[...slug]/page.tsx` to both populate `initialQuickChips` (labels only) and apply server-side filter effects. |

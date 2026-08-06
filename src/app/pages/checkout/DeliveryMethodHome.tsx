@@ -1,7 +1,7 @@
 'use client'
 import { MapPin } from 'lucide-react';
-import { RadioCard } from '../../components/RadioCard';
-import { FormField } from '../../components/FormField';
+import { RadioCard } from '../../components/ui/RadioCard';
+import { FormField } from '../../components/ui/FormField';
 import { DELIVERY_TIME_SLOTS, DELIVERY_PERKS } from '../../data/checkoutConfig';
 import type { DeliveryTimeSlot } from '../../../lib/oneentry/checkout/delivery-schedule';
 import { DELIVERY_METHOD_HOME_LABELS as L } from '../../data/checkoutLabels';

@@ -1,9 +1,9 @@
 'use client'
 import Image from 'next/image';
-import { ImageWithFallback } from '../../components/ImageWithFallback';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { Trash2, Heart } from 'lucide-react';
-import { QtyControl } from '../../components/QtyControl';
-import { SizeDropdown } from '../../components/SizeDropdown';
+import { QtyControl } from '../../components/ui/QtyControl';
+import { SizeDropdown } from '../../components/ui/SizeDropdown';
 import type { CartItem } from '../../context/CartContext';
 import { fmt } from '../../utils/formatPrice';
 import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';

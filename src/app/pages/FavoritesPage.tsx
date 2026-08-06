@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
+import { Header } from '../components/header/Header';
+import { Footer } from '../components/footer/Footer';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
 import { extractCmsProductId } from '../data/cms-product-id-map';
@@ -17,8 +17,8 @@ import { FavoritesEmptyState } from './favorites/FavoritesEmptyState';
 import { RecentlyViewedSection } from './product/RecentlyViewedSection';
 import { FAVORITES_PAGE_LABELS as L } from '../data/favoritesLabels';
 import { useFavoritesPageT } from '../../lib/oneentry/labels/FavoritesPageLabelsContext';
-import type { Product } from '../components/ProductCard';
-import { PageBlocksRenderer } from '../components/PageBlocksRenderer';
+import type { Product } from '../components/product/ProductCard';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';

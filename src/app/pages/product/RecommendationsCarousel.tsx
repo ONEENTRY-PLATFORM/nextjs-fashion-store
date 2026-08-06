@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ProductCard, type Product } from '../../components/ProductCard';
+import { ProductCard, type Product } from '../../components/product/ProductCard';
 
 import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
 import { CAROUSEL_LABELS } from '../../data/commonLabels';

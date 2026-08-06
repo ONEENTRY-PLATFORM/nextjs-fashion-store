@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { SEO, SITE_URL, SCHEMA_DAYS as D, STORE_SCHEMA_NAME as N, ORG_SCHEMA_COPY } from '../../src/app/data/seoData';
 import { STORE_SCHEMA_DEFAULTS, type Store } from '../../src/app/data/stores';
 import { StoreLocationsPage } from '../../src/app/pages/StoreLocationsPage';
-import { JsonLd } from '../../src/app/components/JsonLd';
+import { JsonLd } from '../../src/app/components/system/JsonLd';
 import { loadStoresSystemTexts } from '../../src/lib/oneentry/labels/stores-labels';
 import { StoresLabelsProvider } from '../../src/lib/oneentry/labels/StoresLabelsContext';
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';

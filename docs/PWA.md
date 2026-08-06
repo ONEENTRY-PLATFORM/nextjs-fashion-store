@@ -23,7 +23,7 @@ Bottom line: this is a PWA in the sense Chrome Lighthouse awards an installabili
 | `public/offline.html` | Static offline shell used by `sw.js` when a navigation fails |
 | `public/icons/*.png` | Manifest icons (32, 192, 512, apple-touch-icon) |
 | `app/icon.svg` / `app/favicon.ico` | Browser tab icons |
-| `src/app/components/ServiceWorkerRegistrar.tsx` | Client-side SW registration (called from `<Providers>`) |
+| `src/app/components/system/ServiceWorkerRegistrar.tsx` | Client-side SW registration (called from `<Providers>`) |
 | `app/offline/page.tsx` | Client component rendering the offline UI shell |
 | `src/app/data/offlinePageLabels.ts` | Copy for the offline page |
 
@@ -70,7 +70,7 @@ Handlers:
 
 ## 5. Registration
 
-`src/app/components/ServiceWorkerRegistrar.tsx`:
+`src/app/components/system/ServiceWorkerRegistrar.tsx`:
 
 ```tsx
 'use client';
@@ -86,7 +86,7 @@ export function ServiceWorkerRegistrar() {
 }
 ```
 
-Mounted once inside `<Providers>` — see `src/app/components/Providers.tsx`.
+Mounted once inside `<Providers>` — see `src/app/components/system/Providers.tsx`.
 
 ## 6. Offline route
 

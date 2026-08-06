@@ -11,7 +11,7 @@
  */
 import { getApiSafe, hasStoredSession, isError } from '..';
 import { getProductsByIdsAction } from '../catalog/products-action';
-import type { Product } from '../../../app/components/ProductCard';
+import type { Product } from '../../../app/components/product/ProductCard';
 import { DEFAULT_LOCALE } from '../locale';
 
 /**

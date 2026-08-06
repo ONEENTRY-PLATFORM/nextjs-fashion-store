@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../src/app/data/seoData';
 import { NewArrivalsPage } from '../../src/app/pages/NewArrivalsPage';
-import { JsonLd } from '../../src/app/components/JsonLd';
+import { JsonLd } from '../../src/app/components/system/JsonLd';
 import { loadNewArrivalsPageSystemTexts } from '../../src/lib/oneentry/labels/new-arrivals-page-labels';
 import { NewArrivalsPageLabelsProvider } from '../../src/lib/oneentry/labels/NewArrivalsPageLabelsContext';
 import { loadProducts } from '../../src/lib/oneentry/catalog/products';

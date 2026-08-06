@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { CartUnavailableNotice } from '../app/components/CartUnavailableNotice';
+import { CartUnavailableNotice } from '../app/components/cart/CartUnavailableNotice';
 import { useAppDispatch } from '../app/store/hooks';
 import { cartActions } from '../app/store/cartSlice';
 import { MOCK_CART_ITEM, MOCK_CART_ITEM_SALE } from './mockData';

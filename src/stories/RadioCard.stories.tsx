@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
-import { RadioCard } from '../app/components/RadioCard';
+import { RadioCard } from '../app/components/ui/RadioCard';
 import { Truck } from 'lucide-react';
 
 const meta = {

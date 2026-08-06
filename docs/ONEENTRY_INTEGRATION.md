@@ -569,7 +569,7 @@ Files elsewhere that call into the integration:
 | `src/app/pages/DeliveryPage.tsx` | Persists new addresses via `updateAddressesAction` |
 | `src/app/utils/track-activity.ts` | Client wrapper over `trackActivityAction` |
 | `src/app/utils/guest-id.ts` | Guest UUID — `getOrCreateGuestId`, `readGuestId`, `clearGuestId` (called on logout); passed to activity + guest-order Server Actions |
-| `src/app/components/HeaderSearch.tsx` | Calls `searchProductsAction` (vector + quick) |
+| `src/app/components/header/HeaderSearch.tsx` | Calls `searchProductsAction` (vector + quick) |
 | `src/app/data/cms-product-id-map.ts` | String↔number id conversion helpers (`getCmsProductId`, `getPlaygroundProductId`) — static mapping table removed; all product ids are already OneEntry numeric ids as strings |
 
 ---

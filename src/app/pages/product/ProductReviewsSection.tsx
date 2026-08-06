@@ -3,7 +3,7 @@ import React from 'react';
 import { Star } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { ReviewCard } from './ReviewCard';
-import type { ProductReview } from '../../components/ProductCard';
+import type { ProductReview } from '../../components/product/ProductCard';
 import { PRODUCT_REVIEWS_LABELS as L } from '../../data/productPageLabels';
 import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
 

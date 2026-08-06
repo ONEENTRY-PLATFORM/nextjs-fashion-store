@@ -8,7 +8,7 @@ import {
   PRODUCT_META_COPY as PM,
 } from '../../../src/app/data/seoData';
 import { ProductDetailPage } from '../../../src/app/pages/ProductDetailPage';
-import { JsonLd } from '../../../src/app/components/JsonLd';
+import { JsonLd } from '../../../src/app/components/system/JsonLd';
 import { loadPdpSystemTexts } from '../../../src/lib/oneentry/labels/pdp-labels';
 import { PdpLabelsProvider } from '../../../src/lib/oneentry/labels/PdpLabelsContext';
 import { loadProductById, categoryPathToBreadcrumbs, categoryPathToViewAllHref } from '../../../src/lib/oneentry/catalog/products';

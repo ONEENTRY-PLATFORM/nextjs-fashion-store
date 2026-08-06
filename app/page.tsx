@@ -6,7 +6,7 @@ import {
   ORG_SCHEMA_COPY,
 } from '../src/app/data/seoData';
 import { HomePage } from '../src/app/pages/HomePage';
-import { JsonLd } from '../src/app/components/JsonLd';
+import { JsonLd } from '../src/app/components/system/JsonLd';
 import { loadHeroSlides } from '../src/lib/oneentry/blocks/hero-slides';
 import { loadHomepageCollections } from '../src/lib/oneentry/blocks/homepage-collections';
 import { loadDiscountBanner } from '../src/lib/oneentry/blocks/discount-banner';
