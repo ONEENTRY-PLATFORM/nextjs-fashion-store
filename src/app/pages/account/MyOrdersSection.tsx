@@ -128,6 +128,10 @@ export function MyOrdersSection() {
   const viewDetails = useT('my_orders', 'my_orders_view_order_details', L.viewOrderDetails);
   const hideDetails = useT('my_orders', 'my_order_hide_details',        L.hideDetails);
   const lOrderId    = useT('my_orders', 'my_orders_order_id',           L.orderId);
+  const lCancelTitle   = useT('my_orders', 'my_orders_cancel_title',    L.cancelDialogTitle);
+  const lCancelQPrefix = useT('my_orders', 'my_orders_cancel_question', L.cancelDialogQuestionPrefix);
+  const lCancelNo      = useT('my_orders', 'my_orders_cancel_no',       L.cancelDialogNo);
+  const lCancelConfirm = useT('my_orders', 'my_orders_cancel_confirm',  L.cancelDialogConfirm);
   const lDatePlaced = useT('my_orders', 'my_orders_date_placed',        L.datePlaced);
   const lStatus     = useT('my_orders', 'my_orders_status',             L.status);
   const lTracking   = useT('my_orders', 'my_orders_tracking',           L.tracking);
@@ -373,10 +377,10 @@ export function MyOrdersSection() {
         >
           <div className="bg-white max-w-sm w-full p-6 border border-[#e5e7eb]">
             <h3 id="cancel-order-title" className="text-sm tracking-widest uppercase font-bold mb-3">
-              Cancel order
+              {lCancelTitle}
             </h3>
             <p className="text-sm text-gray-700 mb-5">
-              Do you want to cancel order <strong>{cancelTarget.id}</strong>?
+              {lCancelQPrefix} <strong>{cancelTarget.id}</strong>{L.cancelDialogQuestionSuffix}
             </p>
             {cancelError && (
               <p className="text-xs text-(--sale) mb-3" role="alert">{cancelError}</p>
@@ -387,14 +391,14 @@ export function MyOrdersSection() {
                 disabled={cancelBusy}
                 className="px-4 py-2 text-xs tracking-wider uppercase font-semibold border border-[#d1d5db] hover:bg-gray-50 disabled:opacity-50"
               >
-                No
+                {lCancelNo}
               </button>
               <button
                 onClick={handleConfirmCancel}
                 disabled={cancelBusy}
                 className="px-4 py-2 text-xs tracking-wider uppercase font-bold text-white bg-black hover:bg-primary-women active:bg-primary-men disabled:opacity-60"
               >
-                {cancelBusy ? '…' : 'Confirm'}
+                {cancelBusy ? '…' : lCancelConfirm}
               </button>
             </div>
           </div>

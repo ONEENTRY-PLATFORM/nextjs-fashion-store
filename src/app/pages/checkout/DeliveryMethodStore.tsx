@@ -2,7 +2,9 @@
 import { Store, MapPin, Clock, CheckCircle, ChevronDown } from 'lucide-react';
 import { RadioCard } from '../../components/ui/RadioCard';
 import { PICKUP_PERKS, type PickupStore } from '../../data/checkoutConfig';
-import { DELIVERY_METHOD_STORE_LABELS as L } from '../../data/checkoutLabels';
+import { DELIVERY_METHOD_STORE_LABELS as L_FALLBACK, DELIVERY_METHOD_SHARED_LABELS as SH } from '../../data/checkoutLabels';
+import { useCheckoutDict } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
 import { type GuestContactFormState } from './GuestContactForm';
 import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
@@ -31,10 +33,12 @@ export function DeliveryMethodStore({
   setGuestContact: _setGuestContact,
   guestContactErrors: _guestContactErrors,
 }: DeliveryMethodStoreProps) {
+  const L = useCheckoutDict('checkout_delivery', 'checkout_delivery_store_', L_FALLBACK);
   const info = useDeliveryMethodInfo();
   const title    = info?.store.title    ?? L.title;
   const subtitle = info?.store.subtitle ?? L.subtitle;
   const perks    = info?.store.perks    ?? PICKUP_PERKS.map((p) => p.text);
+  const lFreeBadge = useT('checkout_delivery', 'checkout_delivery_free_badge', SH.freeBadge);
   return (
     <RadioCard
       id="store"
@@ -43,6 +47,7 @@ export function DeliveryMethodStore({
       icon={<Store size={20} />}
       title={title}
       subtitle={subtitle}
+      badge={lFreeBadge}
     >
       <div className="pt-4">
         <label className="block text-xs tracking-wide uppercase mb-1.5 font-semibold text-[#555]">

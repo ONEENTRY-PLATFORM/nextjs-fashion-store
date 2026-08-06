@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
 import { SEO } from '../../src/app/data/seoData';
 import { FavoritesPage } from '../../src/app/pages/FavoritesPage';
 import { loadFavoritesPageSystemTexts } from '../../src/lib/oneentry/labels/favorites-page-labels';
@@ -7,7 +8,11 @@ import { loadProducts } from '../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToUiProduct } from '../../src/lib/oneentry/catalog/adapt';
 import { loadPageBlocksByUrl } from '../../src/lib/oneentry/blocks/page-blocks';
 
-export const metadata: Metadata = SEO.favorites;
+/** Title/description/keywords/canonical come from the OE `favorites` page when an
+ *  editor filled them; `SEO.favorites` stays as the offline fallback. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withCmsSeo('favorites', SEO.favorites);
+}
 
 // Everything on this page is public CMS content — the shopper's own wishlist
 // hydrates client-side from OE. So it is ISR, not `force-dynamic`

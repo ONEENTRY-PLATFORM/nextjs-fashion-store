@@ -5,9 +5,11 @@ import { SALE_COLOR } from '../../constants/colors';
 import { WRITE_REVIEW_LABELS as L } from '../../data/productPageLabels';
 import { WRITE_REVIEW_DYNAMIC_ARIA } from '../../data/commonLabels';
 import { submitForm } from '../../../lib/oneentry/forms/submit';
+import { useFormLabel, useFormMessage, useFormOptions } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 import { trackActivity } from '../../utils/track-activity';
 
-const OCCASIONS = L.occasions;
+/** Fallback option list — values must match the OE `listTitles` markers. */
+const OCCASIONS_FALLBACK = L.occasions.map(o => ({ title: o.label, value: o.value }));
 
 export function WriteReviewModal({ onClose, productId }: { onClose: () => void; productId?: number }) {
   const [rating, setRating] = useState(0);
@@ -18,6 +20,18 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState('');
   const [isPending, startTransition] = useTransition();
+
+  // Review copy belongs to the OE forms, not to a system-text set: the label,
+  // the option list and the result messages are all authored on the form
+  // itself (`review_feedback` / `review_rating`).
+  const lTitle       = useFormMessage('review_feedback', 'titleForSite',     L.title);
+  const lSuccess     = useFormMessage('review_feedback', 'successMessage',   L.submittedHeading);
+  const lFailure     = useFormMessage('review_feedback', 'unsuccessMessage', L.requiredFieldsNote);
+  const lReviewLabel = useFormLabel('review_feedback',   'body',             L.writeReviewLabel);
+  const lMediaLabel  = useFormLabel('review_feedback',   'add_media',        L.mediaLabel);
+  const lOccasion    = useFormLabel('review_feedback',   'occasions',        L.occasionLabel);
+  const lRateLabel   = useFormLabel('review_rating',     'rating',           L.rateLabel);
+  const OCCASIONS    = useFormOptions('review_feedback', 'occasions',        OCCASIONS_FALLBACK);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -94,7 +108,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
-          <h2 className="tracking-[0.18em] uppercase text-sm font-bold">{L.title}</h2>
+          <h2 className="tracking-[0.18em] uppercase text-sm font-bold">{lTitle}</h2>
           <button onClick={onClose} className="p-1 hover:opacity-50 transition-opacity" aria-label={L.closeLabel}><X size={20} /></button>
         </div>
 
@@ -109,7 +123,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
             <div className="w-12 h-12 bg-black flex items-center justify-center mb-4">
               <Check size={22} className="text-white" />
             </div>
-            <p className="tracking-[0.15em] uppercase text-sm mb-2 font-bold">{L.submittedHeading}</p>
+            <p className="tracking-[0.15em] uppercase text-sm mb-2 font-bold">{lSuccess}</p>
             <p className="text-xs text-gray-500">{L.submittedBody}</p>
             <button
               onClick={onClose}
@@ -122,7 +136,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
             <div>
               <label className="block text-xs tracking-[0.12em] uppercase mb-2.5 font-semibold">
-                {L.rateLabel} <span className="text-(--sale)">*</span>
+                {lRateLabel} <span className="text-(--sale)">*</span>
               </label>
               <div className="flex items-center gap-1.5">
                 {[1, 2, 3, 4, 5].map(i => (
@@ -153,7 +167,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
 
             <div>
               <label className={fieldLabel}>
-                {L.writeReviewLabel} <span className="text-(--sale)">*</span>
+                {lReviewLabel} <span className="text-(--sale)">*</span>
               </label>
               <textarea
                 value={reviewText}
@@ -166,7 +180,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
             </div>
 
             <div>
-              <label className={fieldLabel}>{L.mediaLabel}</label>
+              <label className={fieldLabel}>{lMediaLabel}</label>
               <label className="flex flex-col items-center justify-center gap-2 w-full py-5 border border-dashed border-gray-300 cursor-pointer hover:border-black transition-colors rounded-none">
                 <input type="file" multiple accept="image/*,video/*" className="hidden" />
                 <div className="w-8 h-8 border border-gray-300 flex items-center justify-center">
@@ -179,7 +193,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
 
             <div>
               <label className="block text-xs tracking-[0.12em] uppercase mb-2.5 font-semibold">
-                {L.occasionLabel}{' '}
+                {lOccasion}{' '}
                 <span className="normal-case tracking-normal text-gray-400 font-normal">{L.occasionHint}</span>
               </label>
               <div className="flex flex-wrap gap-2">
@@ -193,7 +207,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
                         active ? 'bg-black text-white border-black' : 'bg-white text-black border-[#d1d5db]'
                       }`}
                     >
-                      {o.label}
+                      {o.title}
                     </button>
                   );
                 })}
@@ -204,7 +218,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
 
         {!submitted && (
           <div className="shrink-0 px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4">
-            <span className="text-xs text-gray-400">{submitError || L.requiredFieldsNote}</span>
+            <span className="text-xs text-gray-400">{submitError || lFailure}</span>
             <button
               onClick={handleSubmit}
               disabled={isPending}

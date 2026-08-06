@@ -20,4 +20,7 @@ export const CATALOG_PAGE_LABELS = {
   breadcrumbShoes: 'Shoes',
   breadcrumbBags: 'Bags',
   breadcrumbAccessories: 'Accessories',
+  // Heading of the trending carousel when OE has no `catalog_trend_blocks`
+  // block (or the block carries no title of its own).
+  trendingFallbackTitle: "We Think You'll Love",
 } as const;

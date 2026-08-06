@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Provider } from 'react-redux';
 import { AuthProvider } from '../../context/AuthContext'
@@ -22,6 +22,8 @@ import type { InterfaceControlsDict } from '../../../lib/oneentry/labels/interfa
 import { YourBagLabelsProvider } from '../../../lib/oneentry/labels/YourBagLabelsContext'
 import type { YourBagDict } from '../../../lib/oneentry/labels/your-bag-types'
 import { FooterMenuProvider } from '../../../lib/oneentry/menus/FooterMenuContext'
+import { useSignInT } from '../../../lib/oneentry/labels/SignInLabelsContext';
+import { OAUTH_ERROR_LABELS } from '../../data/authLabels';
 import { HeaderMenuProvider } from '../../../lib/oneentry/menus/HeaderMenuContext'
 import type { MenuPageNode } from '../../../lib/oneentry/menus/menus'
 import { SignUpFormSchemaProvider } from '../../../lib/oneentry/auth/SignUpFormSchemaContext'
@@ -56,12 +58,15 @@ function WishlistSyncEffect() {
  *  the LoginModal. OE's callback route surfaces codes like
  *  `access_denied` / `token_exchange_failed` — translate the common ones
  *  and default to the raw code when we don't have a matching phrase. */
-function humaniseGoogleAuthError(code: string): string {
+function humaniseGoogleAuthError(
+  code: string,
+  copy: { accessDenied: string; token: string; state: string; generic: string },
+): string {
   const c = code.toLowerCase();
-  if (c === 'access_denied') return 'Google sign-in was cancelled. Please try again.';
-  if (c.includes('token')) return "We couldn't verify your Google account. Please try again.";
-  if (c.includes('state')) return 'Sign-in session expired. Please try again.';
-  return "We couldn't complete Google sign-in. Please try again.";
+  if (c === 'access_denied') return copy.accessDenied;
+  if (c.includes('token')) return copy.token;
+  if (c.includes('state')) return copy.state;
+  return copy.generic;
 }
 
 function GoogleAuthErrorSurface() {
@@ -69,10 +74,19 @@ function GoogleAuthErrorSurface() {
   const router = useRouter();
   const pathname = usePathname();
   const { openLoginModal, setAuthError } = useAuth();
+  const lCancelled = useSignInT('sign_in_google_cancelled',     OAUTH_ERROR_LABELS.accessDenied);
+  const lToken     = useSignInT('sign_in_google_token_failed',  OAUTH_ERROR_LABELS.token);
+  const lState     = useSignInT('sign_in_google_state_expired', OAUTH_ERROR_LABELS.state);
+  const lGeneric   = useSignInT('sign_in_google_generic_error', OAUTH_ERROR_LABELS.generic);
+  // Stable identity so the effect below doesn't re-run on every render.
+  const oauthCopy = useMemo(
+    () => ({ accessDenied: lCancelled, token: lToken, state: lState, generic: lGeneric }),
+    [lCancelled, lToken, lState, lGeneric],
+  );
   const rawErr = searchParams?.get('googleAuthError');
   useEffect(() => {
     if (!rawErr) return;
-    setAuthError(humaniseGoogleAuthError(rawErr));
+    setAuthError(humaniseGoogleAuthError(rawErr, oauthCopy));
     openLoginModal();
     // Drop the query param without a full navigation.
     if (typeof window !== 'undefined') {
@@ -82,7 +96,7 @@ function GoogleAuthErrorSurface() {
     } else {
       router.replace(pathname ?? '/');
     }
-  }, [rawErr, openLoginModal, setAuthError, router, pathname]);
+  }, [oauthCopy, rawErr, openLoginModal, setAuthError, router, pathname]);
   return null;
 }
 
@@ -152,17 +166,7 @@ export function Providers({
       />
       <AuthProvider>
         <WishlistSyncEffect />
-        {/* `useSearchParams()` inside `GoogleAuthErrorSurface` opts the tree
-             into per-request rendering; without a Suspense boundary the
-             static prerender of `/_not-found` (and any other 404 fallback)
-             fails at build time with "missing-suspense-with-csr-bailout".
-             The component itself renders nothing — the boundary's fallback
-             is intentionally empty. */}
-        <Suspense fallback={null}>
-          <GoogleAuthErrorSurface />
-        </Suspense>
         <PageViewTracker />
-        <CartUnavailableNotice />
         <ProductCardLabelsProvider data={productCardLabels}>
           <SignInLabelsProvider data={signInLabels}>
             <CreateAccountLabelsProvider data={createAccountLabels}>
@@ -174,6 +178,22 @@ export function Providers({
                         <FormPlaceholdersProvider forms={forms}>
                           <HeaderLabelsProvider data={{ labels: headerLabels, locales: cmsLocales }}>
                             <FooterLabelsProvider data={footerLabels}>
+                              {/* Both of these read label contexts, so they
+                                   must sit *inside* the providers — mounted
+                                   above them they silently rendered the
+                                   offline fallbacks.
+                                   `useSearchParams()` inside
+                                   `GoogleAuthErrorSurface` opts the tree into
+                                   per-request rendering; without a Suspense
+                                   boundary the static prerender of
+                                   `/_not-found` fails at build time with
+                                   "missing-suspense-with-csr-bailout". The
+                                   component renders nothing — the fallback is
+                                   intentionally empty. */}
+                              <Suspense fallback={null}>
+                                <GoogleAuthErrorSurface />
+                              </Suspense>
+                              <CartUnavailableNotice />
                               <ErrorBoundary>{children}</ErrorBoundary>
                             </FooterLabelsProvider>
                           </HeaderLabelsProvider>

@@ -16,6 +16,23 @@ export const PAYMENT_PAGE_LABELS = {
   /** "Place Order · $123.45" — total is appended at runtime. */
   placeOrderPrefix: 'Place Order',
   securityBadges: ['SSL Encrypted', 'PCI DSS Compliant', '3D Secure'] as const,
+
+  // Gift + summary rows and the bonus-spend control.
+  freeGift: 'Free gift',
+  giftFree: 'Free',
+  loyaltyFallbackTier: 'Loyalty',
+  discountSuffix: 'discount',
+  promoPrefix: 'Promo',
+  bonusesUsed: 'Bonuses used',
+  useBonuses: 'Use bonuses',
+  bonusAvailableSuffix: 'available',
+
+  // Error banner copy.
+  errorNoMethod: 'Please choose a payment method.',
+  errorNoDelivery: 'Delivery details missing — please go back to delivery step.',
+  errorRevalidate: 'Cart could not be re-validated. Please review your cart and try again.',
+  errorStripeSession: 'Stripe session could not be created. Please try again or pick another payment method.',
+  errorNoAccounts: 'Payment methods are unavailable right now. Please try again later.',
 } as const;
 
 // `PAYMENT_METHODS_COPY` was removed: `PaymentMethodsList` renders each

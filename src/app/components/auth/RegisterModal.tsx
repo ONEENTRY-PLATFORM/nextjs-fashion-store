@@ -68,6 +68,9 @@ export function RegisterModal() {
   const lBottomText = useCreateAccountT('create_account_bottom_text', L.switchPrompt);
   const lSignIn     = useCreateAccountT('create_account_sign_in',     L.switchCta);
   const lRegister   = useCreateAccountT('users_register_cta',         L.ctaSubmit);
+  const lGoogleFail = useCreateAccountT('create_account_google_failed',   L.errorGoogleFailed);
+  const lClose      = useCreateAccountT('create_account_close',           L.closeLabel);
+  const lLoadingOpt = useCreateAccountT('create_account_loading_options', L.loadingOptions);
   const schema = useSignUpFormSchema();
 
   const [firstName, setFirstName] = useState('');
@@ -135,7 +138,7 @@ export function RegisterModal() {
       try {
         await startGoogleOAuth(isCheckout ? window.location.pathname : '/account');
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Google sign-in failed');
+        setError(e instanceof Error ? e.message : lGoogleFail);
       }
       return;
     }
@@ -162,7 +165,7 @@ export function RegisterModal() {
               mirrors the backdrop-click behaviour and matches shopper
               expectations for a dismissable modal. */}
           <button
-            aria-label="Close"
+            aria-label={lClose}
             onClick={closeRegisterModal}
             className="hover:opacity-60 transition-opacity focus-visible:outline-none"
           >
@@ -175,7 +178,7 @@ export function RegisterModal() {
               with client wiring in SOCIAL_PROVIDER_REGISTRY are actionable;
               the rest render disabled with a "Coming soon" hint. */}
           {authProvidersLoading ? (
-            <div className="grid grid-cols-1 gap-2" aria-busy="true" aria-label="Loading sign-up options">
+            <div className="grid grid-cols-1 gap-2" aria-busy="true" aria-label={lLoadingOpt}>
               {[0, 1, 2].map((i) => (
                 <div key={i} className="py-3 h-9.5 border border-gray-200 bg-gray-100 animate-pulse" />
               ))}

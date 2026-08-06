@@ -11,6 +11,16 @@ export const MINI_CART_LABELS = {
   viewFullCart: 'View Full Cart',
   bundleLabel: 'Special Offer Bundle',
   closeLabel: 'Close cart',
+  // Summary + gift rows. Word prefixes rather than `{x}` templates: OE drops
+  // the whole set when a value contains braces (see HARDCODED_TEXTS §0).
+  sizePrefix: 'Size',
+  qtyPrefix: 'Qty',
+  freeGift: 'Free gift',
+  free: 'Free',
+  loyaltyDiscount: 'Loyalty discount',
+  promoPrefix: 'Promo',
+  total: 'Total',
+  appliedAtCheckout: 'Applied at checkout',
 } as const;
 
 export const CART_ROW_LABELS = {
@@ -62,7 +72,23 @@ export const CART_PAGE_LABELS = {
   promoAppliedFallback: 'discount',
   promoInvalidError: 'Invalid promo code',
 
+  // Gift rows + summary lines that had no dictionary entry.
+  freeGift: 'Free gift',
+  qtyPrefix: 'Qty',
+  giftFree: 'Free',
+  loyaltyDiscount: 'Loyalty discount',
+  promoRemove: 'Remove',
+
   // Footer CTA
   proceedToCheckout: 'Proceed to Checkout',
   trustNote: 'Secure checkout · Free returns · 30-day guarantee',
+} as const;
+
+/** Toast shown when OE reports cart lines that went out of stock. */
+export const CART_UNAVAILABLE_LABELS = {
+  removedPrefix: 'Removed from your bag:',
+  removedSuffix: '— no longer available.',
+  itemSingular: 'item',
+  itemPlural: 'items',
+  dismiss: 'Dismiss notice',
 } as const;

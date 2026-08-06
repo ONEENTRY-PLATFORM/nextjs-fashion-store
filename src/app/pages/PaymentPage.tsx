@@ -40,6 +40,19 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lPageTitle     = useT('checkout_payment', 'checkout_payment_title',               PAYMENT_PAGE_LABELS.pageTitle);
   const lBackToDeliv   = useT('checkout_payment', 'checkout_payment_back_to_delivery',    PAYMENT_PAGE_LABELS.backToDelivery);
   const lOrderSummary  = useT('checkout_payment', 'checkout_payment_order_summary',       PAYMENT_PAGE_LABELS.orderSummary);
+  const lFreeGift      = useT('checkout_payment', 'checkout_payment_free_gift',           PAYMENT_PAGE_LABELS.freeGift);
+  const lGiftFree      = useT('checkout_payment', 'checkout_payment_gift_free',           PAYMENT_PAGE_LABELS.giftFree);
+  const lLoyaltyTier   = useT('checkout_payment', 'checkout_payment_loyalty_tier',        PAYMENT_PAGE_LABELS.loyaltyFallbackTier);
+  const lDiscountWord  = useT('checkout_payment', 'checkout_payment_discount_suffix',     PAYMENT_PAGE_LABELS.discountSuffix);
+  const lPromoPrefix   = useT('checkout_payment', 'checkout_payment_promo_prefix',        PAYMENT_PAGE_LABELS.promoPrefix);
+  const lBonusesUsed   = useT('checkout_payment', 'checkout_payment_bonuses_used',        PAYMENT_PAGE_LABELS.bonusesUsed);
+  const lUseBonuses    = useT('checkout_payment', 'checkout_payment_use_bonuses',         PAYMENT_PAGE_LABELS.useBonuses);
+  const lBonusAvail    = useT('checkout_payment', 'checkout_payment_bonus_available',     PAYMENT_PAGE_LABELS.bonusAvailableSuffix);
+  const lErrNoMethod   = useT('checkout_payment', 'checkout_payment_error_no_method',     PAYMENT_PAGE_LABELS.errorNoMethod);
+  const lErrNoDelivery = useT('checkout_payment', 'checkout_payment_error_no_delivery',   PAYMENT_PAGE_LABELS.errorNoDelivery);
+  const lErrRevalidate = useT('checkout_payment', 'checkout_payment_error_revalidate',    PAYMENT_PAGE_LABELS.errorRevalidate);
+  const lErrStripe     = useT('checkout_payment', 'checkout_payment_error_stripe',        PAYMENT_PAGE_LABELS.errorStripeSession);
+  const lErrNoAccounts = useT('checkout_payment', 'checkout_payment_error_no_accounts',   PAYMENT_PAGE_LABELS.errorNoAccounts);
   const lStripeRedirect = useT(
     'checkout_payment',
     'checkout_payment_stripe_redirect_hint',
@@ -199,7 +212,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const handlePlaceOrder = async () => {
     if (items.length === 0) { router.push('/'); return; }
     if (!selectedAccount) {
-      setSubmitError('Please choose a payment method.');
+      setSubmitError(lErrNoMethod);
       return;
     }
     // Preview is still in flight — the totals on screen might not yet
@@ -222,7 +235,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       payload = raw ? JSON.parse(raw) : null;
     } catch { /* ignore */ }
     if (!payload) {
-      setSubmitError('Delivery details missing — please go back to delivery step.');
+      setSubmitError(lErrNoDelivery);
       return;
     }
 
@@ -331,7 +344,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     });
     if (!fresh.ok) {
       setPlacing(false);
-      setSubmitError(fresh.error || 'Cart could not be re-validated. Please review your cart and try again.');
+      setSubmitError(fresh.error || lErrRevalidate);
       return;
     }
     // Total shifted vs. what the shopper saw — update the on-screen summary
@@ -428,7 +441,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     if (selectedAccount.type === 'stripe') {
       setSubmitError(res.paymentSessionError
         ? `Stripe session could not be created: ${res.paymentSessionError}`
-        : 'Stripe session could not be created. Please try again or pick another payment method.');
+        : lErrStripe);
       return;
     }
     try { sessionStorage.removeItem('oe_checkout_payload'); } catch { /* ignore */ }
@@ -463,7 +476,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
               </div>
             ) : accounts.length === 0 ? (
               <p className="text-sm text-gray-500 py-6">
-                Payment methods are unavailable right now. Please try again later.
+                {lErrNoAccounts}
               </p>
             ) : (
               <PaymentMethodsList
@@ -553,13 +566,13 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       <p className="text-xs leading-snug font-medium">{gift.name}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
-                          Free gift
+                          {lFreeGift}
                         </span>
                         <span className="text-xs text-gray-400">{CLL.qtyLabel} {gift.quantity}</span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Free</p>
+                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">{lGiftFree}</p>
                       {gift.price > 0 && (
                         <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
                       )}
@@ -582,13 +595,13 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     <>
                       {mounted && activePersonalDiscount > 0 && (
                         <div className="flex justify-between text-xs text-(--sale)">
-                          <span>{user?.status ?? 'Loyalty'} discount</span>
+                          <span>{user?.status ?? lLoyaltyTier} {lDiscountWord}</span>
                           <span className="font-semibold">−{fmt(activePersonalDiscount)}</span>
                         </div>
                       )}
                       {mounted && activeCouponDiscount > 0 && couponCode && (
                         <div className="flex justify-between text-xs text-(--sale)">
-                          <span>Promo ({couponCode})</span>
+                          <span>{lPromoPrefix} ({couponCode})</span>
                           <span className="font-semibold">−{fmt(activeCouponDiscount)}</span>
                         </div>
                       )}
@@ -596,7 +609,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                   )}
                   {mounted && activePreview && activePreview.bonusApplied > 0 && (
                     <div className="flex justify-between text-xs text-(--sale)">
-                      <span>Bonuses used</span>
+                      <span>{lBonusesUsed}</span>
                       <span className="font-semibold">−{fmt(activePreview.bonusApplied)}</span>
                     </div>
                   )}
@@ -608,8 +621,8 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     <div className="pt-2 border-t border-[#e5e7eb]">
                       <div className="flex items-center justify-between gap-2">
                         <label htmlFor="bonus-input" className="text-xs text-gray-600">
-                          Use bonuses
-                          <span className="text-gray-400 ml-1">/ {bonusBalance.toLocaleString()} available</span>
+                          {lUseBonuses}
+                          <span className="text-gray-400 ml-1">/ {bonusBalance.toLocaleString()} {lBonusAvail}</span>
                         </label>
                         <input
                           id="bonus-input"

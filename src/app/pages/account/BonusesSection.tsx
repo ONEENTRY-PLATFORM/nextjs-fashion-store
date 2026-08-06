@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { SectionTitle, ACCENT } from './shared';
 import { SALE_COLOR } from '../../constants/colors';
@@ -7,14 +7,24 @@ import { BONUSES_LABELS as L } from '../../data/accountLabels';
 import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
 import { fetchBonusHistoryAction, type OeBonusTransaction } from '../../../lib/oneentry/auth/actions';
 
-const TYPE_LABELS: Record<string, string> = {
-  ACCRUAL: 'Earned',
-  REVERSAL_USAGE: 'Refunded',
-  USAGE: 'Spent on order',
-  REDUCE: 'Adjustment',
-  REVERSAL_ACCRUAL: 'Accrual reversed',
-  EXPIRATION: 'Expired',
-};
+/** Built from the OE `my_bonuses` set so an editor can reword a transaction
+ *  type; the local dictionary is the offline fallback. */
+function useTypeLabels(): Record<string, string> {
+  const accrual         = useT('my_bonuses', 'my_bonuses_type_accrual',          L.typeAccrual);
+  const reversalUsage   = useT('my_bonuses', 'my_bonuses_type_reversal_usage',   L.typeReversalUsage);
+  const usage           = useT('my_bonuses', 'my_bonuses_type_usage',            L.typeUsage);
+  const reduce          = useT('my_bonuses', 'my_bonuses_type_reduce',           L.typeReduce);
+  const reversalAccrual = useT('my_bonuses', 'my_bonuses_type_reversal_accrual', L.typeReversalAccrual);
+  const expiration      = useT('my_bonuses', 'my_bonuses_type_expiration',       L.typeExpiration);
+  return useMemo(() => ({
+    ACCRUAL: accrual,
+    REVERSAL_USAGE: reversalUsage,
+    USAGE: usage,
+    REDUCE: reduce,
+    REVERSAL_ACCRUAL: reversalAccrual,
+    EXPIRATION: expiration,
+  }), [accrual, reversalUsage, usage, reduce, reversalAccrual, expiration]);
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return '';
@@ -34,6 +44,8 @@ export function BonusesSection() {
   const title       = useT('my_bonuses', 'my_bonuses_title',                  L.title);
   const available   = useT('my_bonuses', 'my_bonuses_available_bonuses',      L.availableBonuses);
   const discountLvl = useT('my_bonuses', 'my_bonuses_discount_level',         L.discountLevel);
+  const lEmptyHistory = useT('my_bonuses', 'my_bonuses_empty_history',       L.emptyHistory);
+  const TYPE_LABELS = useTypeLabels();
   const txHistory   = useT('my_bonuses', 'my_bonuses_transaction_history_title', L.transactionHistory);
 
   useEffect(() => {
@@ -71,7 +83,7 @@ export function BonusesSection() {
             ))}
           </div>
         ) : history.length === 0 ? (
-          <p className="text-xs text-gray-400 py-4">No bonus transactions yet.</p>
+          <p className="text-xs text-gray-400 py-4">{lEmptyHistory}</p>
         ) : (
           <div className="space-y-2">
             {history.map((tx, idx) => {

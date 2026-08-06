@@ -89,6 +89,8 @@ export default async function RootLayout({
     headerMenu,
     signUpFormSchema,
     subscribeForm,
+    reviewFeedbackForm,
+    reviewRatingForm,
     headerLabels,
     footerLabels,
     cmsLocales,
@@ -102,6 +104,13 @@ export default async function RootLayout({
     loadMenu('header'),
     loadSignUpFormSchema(),
     loadFormContent('subscribe_new_drops'),
+    // Review copy lives on the OE forms themselves (labels, option list,
+    // success/failure messages), so the modal reads it from there rather than
+    // from a system-text set. Loaded here because `FormPlaceholdersProvider`
+    // is a single map — a nested provider on the PDP would drop the
+    // newsletter form's copy for that subtree.
+    loadFormContent('review_feedback'),
+    loadFormContent('review_rating'),
     loadHeaderSystemTexts(),
     loadFooterSystemTexts(),
     loadLocales(),
@@ -146,7 +155,11 @@ export default async function RootLayout({
           footerMenu={footerMenu?.pages ?? []}
           headerMenu={headerMenu?.pages ?? []}
           signUpFormSchema={signUpFormSchema}
-          forms={{ subscribe_new_drops: subscribeForm }}
+          forms={{
+            subscribe_new_drops: subscribeForm,
+            review_feedback: reviewFeedbackForm,
+            review_rating: reviewRatingForm,
+          }}
           headerLabels={headerLabels}
           footerLabels={footerLabels}
           cmsLocales={cmsLocales}

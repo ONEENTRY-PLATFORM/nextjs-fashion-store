@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { SectionTitle } from '../shared';
-import { ACCOUNT_DELETION_LABELS as L } from '../../../data/accountLabels';
+import { ACCOUNT_DELETION_LABELS as L_FALLBACK } from '../../../data/accountLabels';
+import { useAccountDict } from '../../../../lib/oneentry/labels/AccountLabelsContext';
 
 export function AccountDeletionSection() {
+  const L = useAccountDict('user_account', 'user_account_deletion_', L_FALLBACK);
   const { logout } = useAuth();
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);

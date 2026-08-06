@@ -2,6 +2,8 @@
 import { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { CART_UNAVAILABLE_LABELS as L } from '../../data/cartLabels';
+import { useYourBagT } from '../../../lib/oneentry/labels/YourBagLabelsContext';
 
 /** How long the notice stays on screen before self-dismissing. Matches the
  *  cadence of typical UX toasts — long enough for a shopper to read the item
@@ -10,6 +12,11 @@ const AUTO_DISMISS_MS = 5000;
 
 export function CartUnavailableNotice() {
   const { unavailableRemoved, dismissUnavailableNotice } = useCart();
+  const lPrefix   = useYourBagT('your_bag_removed_prefix',  L.removedPrefix);
+  const lSuffix   = useYourBagT('your_bag_removed_suffix',  L.removedSuffix);
+  const lItem     = useYourBagT('your_bag_item_singular',   L.itemSingular);
+  const lItems    = useYourBagT('your_bag_item_plural',     L.itemPlural);
+  const lDismiss  = useYourBagT('your_bag_dismiss_notice',  L.dismiss);
   useEffect(() => {
     if (unavailableRemoved.length === 0) return;
     const t = setTimeout(dismissUnavailableNotice, AUTO_DISMISS_MS);
@@ -21,7 +28,7 @@ export function CartUnavailableNotice() {
   const names = unavailableRemoved.map((it) => it.name).filter(Boolean);
   const summary = names.length > 0
     ? names.join(', ')
-    : `${unavailableRemoved.length} item${unavailableRemoved.length === 1 ? '' : 's'}`;
+    : `${unavailableRemoved.length} ${unavailableRemoved.length === 1 ? lItem : lItems}`;
   return (
     <div
       role="status"
@@ -31,16 +38,14 @@ export function CartUnavailableNotice() {
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2.5 flex items-start gap-3">
         <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[#b45309]" />
         <p className="flex-1 text-xs text-[#78350f] leading-relaxed">
-          <span className="font-semibold">
-            {unavailableRemoved.length === 1 ? 'Removed from your bag: ' : 'Removed from your bag: '}
-          </span>
+          <span className="font-semibold">{lPrefix} </span>
           {summary}
-          <span className="text-[#92400e]"> — no longer available.</span>
+          <span className="text-[#92400e]"> {lSuffix}</span>
         </p>
         <button
           type="button"
           onClick={dismissUnavailableNotice}
-          aria-label="Dismiss notice"
+          aria-label={lDismiss}
           className="p-1 text-[#78350f] hover:opacity-70 focus-visible:outline-none shrink-0"
         >
           <X size={14} strokeWidth={2} />

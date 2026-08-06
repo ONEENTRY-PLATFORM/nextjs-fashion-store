@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CAROUSEL_LABELS } from '../../data/commonLabels';
+import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 import { getImageUrl } from '../../../lib/oneentry';
 
 /**
@@ -71,6 +73,8 @@ export function GenericSliderBlock({
     .map(normalizeSlide)
     .filter((s) => s.image || s.headline);
   const [index, setIndex] = useState(0);
+  const lPrevSlide = useInterfaceControlsT('interface_controls_previous_slide', CAROUSEL_LABELS.previousSlide);
+  const lNextSlide = useInterfaceControlsT('interface_controls_next_slide',     CAROUSEL_LABELS.nextSlide);
 
   if (slides.length === 0) return null;
   // Slides can shrink (admin drops one) while `index` still points past the
@@ -120,7 +124,7 @@ export function GenericSliderBlock({
           <>
             <button
               type="button"
-              aria-label="Previous slide"
+              aria-label={lPrevSlide}
               onClick={prev}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 grid place-items-center h-10 w-10 rounded-full bg-white/80 hover:bg-white text-black transition-colors"
             >
@@ -128,7 +132,7 @@ export function GenericSliderBlock({
             </button>
             <button
               type="button"
-              aria-label="Next slide"
+              aria-label={lNextSlide}
               onClick={next}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 grid place-items-center h-10 w-10 rounded-full bg-white/80 hover:bg-white text-black transition-colors"
             >

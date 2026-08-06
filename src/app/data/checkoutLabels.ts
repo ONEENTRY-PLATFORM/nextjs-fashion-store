@@ -3,6 +3,11 @@
  * Editable by content team; eventually will come from CMS.
  */
 
+/** Badge rendered on every delivery-method card. */
+export const DELIVERY_METHOD_SHARED_LABELS = {
+  freeBadge: 'FREE',
+} as const;
+
 export const DELIVERY_METHOD_HOME_LABELS = {
   title: 'Home / Office Delivery',
   subtitle: '2–5 business days · Standard shipping',
@@ -74,6 +79,9 @@ export const DELIVERY_SUMMARY_LABELS = {
   delivery: 'Delivery',
   deliveryFree: 'Free',
   total: 'Total',
+  freeGift: 'Free gift',
+  giftFree: 'Free',
+  loyaltyDiscount: 'Loyalty discount',
 } as const;
 
 export const ORDER_SUMMARY_LABELS = {

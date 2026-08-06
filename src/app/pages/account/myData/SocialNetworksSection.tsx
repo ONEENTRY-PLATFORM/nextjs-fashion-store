@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { SectionTitle } from '../shared';
 import { SOCIAL_NETWORKS_LABELS as L } from '../../../data/accountLabels';
+import { useT } from '../../../../lib/oneentry/labels/AccountLabelsContext';
 import { startGoogleOAuth } from '../../../../lib/google-auth';
 import { useAuthProviders } from '../../../hooks/useAuthProviders';
 import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../../data/socialProviderRegistry';
@@ -82,7 +83,7 @@ export function SocialNetworksSection() {
       // the mount effect above picks up to set the badge.
       await startGoogleOAuth('/account?googleLinked=1');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to connect Google');
+      setError(e instanceof Error ? e.message : lErrConnect);
       setBusy(null);
     }
   };
@@ -91,15 +92,23 @@ export function SocialNetworksSection() {
     setProviderLinked(id, false);
   };
 
+  const lTitle       = useT('user_account', 'user_account_social_title',         L.title);
+  const lConnected   = useT('user_account', 'user_account_social_connected',     L.connectedBadge);
+  const lDisconnect  = useT('user_account', 'user_account_social_disconnect',    L.disconnect);
+  const lErrConnect  = useT('user_account', 'user_account_social_connect_error', L.errorConnect);
+  const lLoading     = useT('user_account', 'user_account_social_loading',       L.loading);
+  const lEmpty       = useT('user_account', 'user_account_social_empty',         L.emptyProviders);
+  const lComingSoon  = useT('user_account', 'user_account_social_coming_soon',   L.comingSoon);
+
   return (
     <div>
-      <SectionTitle title={L.title} />
+      <SectionTitle title={lTitle} />
       <div className="space-y-3">
         {loading && socialProviders.length === 0 && (
-          <p className="text-xs text-gray-400">Loading…</p>
+          <p className="text-xs text-gray-400">{lLoading}</p>
         )}
         {!loading && socialProviders.length === 0 && (
-          <p className="text-xs text-gray-400">No social sign-in providers configured.</p>
+          <p className="text-xs text-gray-400">{lEmpty}</p>
         )}
         {socialProviders.map((p) => {
           const meta = SOCIAL_PROVIDER_REGISTRY[p.identifier];
@@ -115,7 +124,7 @@ export function SocialNetworksSection() {
                 <span className="text-xs uppercase tracking-wide font-semibold">{p.title}</span>
                 {isLinked && (
                   <span className="text-[10px] tracking-widest uppercase text-green-700 bg-green-50 border border-green-200 px-2 py-0.5">
-                    Connected
+                    {lConnected}
                   </span>
                 )}
               </div>
@@ -123,7 +132,7 @@ export function SocialNetworksSection() {
                 <button
                   className="text-xs tracking-wide uppercase font-semibold text-gray-400 cursor-not-allowed"
                   disabled
-                  title="Coming soon"
+                  title={lComingSoon}
                 >
                   {L.connect}
                 </button>
@@ -132,7 +141,7 @@ export function SocialNetworksSection() {
                   onClick={() => handleDisconnect(p.identifier)}
                   className="text-xs tracking-wide uppercase focus-visible:outline-none hover:opacity-70 transition-opacity font-semibold text-black"
                 >
-                  Disconnect
+                  {lDisconnect}
                 </button>
               ) : (
                 <button

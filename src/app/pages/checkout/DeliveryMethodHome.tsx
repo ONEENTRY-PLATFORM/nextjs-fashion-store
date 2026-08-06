@@ -4,7 +4,9 @@ import { RadioCard } from '../../components/ui/RadioCard';
 import { FormField } from '../../components/ui/FormField';
 import { DELIVERY_TIME_SLOTS, DELIVERY_PERKS } from '../../data/checkoutConfig';
 import type { DeliveryTimeSlot } from '../../../lib/oneentry/checkout/delivery-schedule';
-import { DELIVERY_METHOD_HOME_LABELS as L } from '../../data/checkoutLabels';
+import { DELIVERY_METHOD_HOME_LABELS as L_FALLBACK, DELIVERY_METHOD_SHARED_LABELS as SH } from '../../data/checkoutLabels';
+import { useCheckoutDict } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
 import type { UserAddress } from '../../data/userData';
 import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
@@ -56,6 +58,7 @@ export function DeliveryMethodHome({
   deliveryDates, selectedDate, setSelectedDate, selectedSlot, setSelectedSlot,
   timeSlots,
 }: DeliveryMethodHomeProps) {
+  const L = useCheckoutDict('checkout_delivery', 'checkout_delivery_', L_FALLBACK);
   const slots = timeSlots && timeSlots.length > 0 ? timeSlots : DELIVERY_TIME_SLOTS;
   const updateAddr = (key: keyof NewAddressForm) => (v: string) => {
     setNewAddrForm(f => ({ ...f, [key]: v }));
@@ -74,6 +77,7 @@ export function DeliveryMethodHome({
   const phPostalCode   = useFormPlaceholder('user_addresses', 'user_addresses_post_code',            'placeholder_postal_code',          L.placeholderPostalCode);
   const phInstructions = useFormPlaceholder('user_addresses', 'user_addresses_special_instructions', 'placeholder_special_instructions', L.placeholderInstructions);
 
+  const lFreeBadge = useT('checkout_delivery', 'checkout_delivery_free_badge', SH.freeBadge);
   return (
     <RadioCard
       id="home"
@@ -82,6 +86,7 @@ export function DeliveryMethodHome({
       icon={<MapPin size={20} />}
       title={title}
       subtitle={subtitle}
+      badge={lFreeBadge}
     >
       {/* Address selector for logged-in users */}
       {isLoggedIn && savedAddresses.length > 0 ? (

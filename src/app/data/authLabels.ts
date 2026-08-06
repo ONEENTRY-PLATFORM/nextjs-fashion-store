@@ -40,6 +40,20 @@ export const LOGIN_MODAL_LABELS = {
   switchPrompt: "Don't have an account?",
   switchCta: 'Create one',
   errorInvalidCredentials: 'Invalid email or password.',
+  errorGoogleFailed: 'Google sign-in failed',
+  closeLabel: 'Close',
+  loadingOptions: 'Loading sign-in options',
+  dismissError: 'Dismiss error',
+} as const;
+
+/** OAuth failure banner copy, keyed by the `?googleAuthError=` code family. */
+export const OAUTH_ERROR_LABELS = {
+  accessDenied: 'Google sign-in was cancelled. Please try again.',
+  token: "We couldn't verify your Google account. Please try again.",
+  state: 'Sign-in session expired. Please try again.',
+  generic: "We couldn't complete Google sign-in. Please try again.",
+  missingCode: 'Missing code or state from Google',
+  signingIn: 'Signing you in…',
 } as const;
 
 export const REGISTER_MODAL_LABELS = {
@@ -69,4 +83,7 @@ export const REGISTER_MODAL_LABELS = {
   switchPrompt: 'Already have an account?',
   switchCta: 'Sign in',
   errorGeneric: 'Something went wrong. Please try again.',
+  errorGoogleFailed: 'Google sign-in failed',
+  closeLabel: 'Close',
+  loadingOptions: 'Loading sign-up options',
 } as const;

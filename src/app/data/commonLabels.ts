@@ -24,6 +24,8 @@ export const CAROUSEL_LABELS = {
   nextSlide: 'Next slide',
   slides: 'Slides',
   featuredCollections: 'Featured collections',
+  carouselRole: 'carousel',
+  slideRole: 'slide',
 } as const;
 
 export const MINI_CART_ARIA_LABELS = {
@@ -221,4 +223,10 @@ export const WISHLIST_DYNAMIC_ARIA = {
 
 export const MY_ORDERS_DYNAMIC_ARIA = {
   viewDetailsTpl: (orderId: string) => `View details for order ${orderId}`,
+} as const;
+
+/** Header quick-search dropdown states. */
+export const HEADER_SEARCH_LABELS = {
+  searching: 'Searching…',
+  noResults: 'No results',
 } as const;

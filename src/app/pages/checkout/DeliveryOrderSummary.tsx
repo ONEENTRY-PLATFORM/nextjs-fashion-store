@@ -64,6 +64,9 @@ export function DeliveryOrderSummary({
   const lDelivery     = useT('checkout_delivery', 'checkout_delivery_summary_delivery',             L.delivery);
   const lFree         = useT('checkout_delivery', 'checkout_delivery_order_summary_delivery_free',  L.deliveryFree);
   const lTotal        = useT('checkout_delivery', 'checkout_delivery_order_summary_total',          L.total);
+  const lFreeGift     = useT('checkout_delivery', 'checkout_delivery_free_gift',                    L.freeGift);
+  const lGiftFree     = useT('checkout_delivery', 'checkout_delivery_gift_free',                    L.giftFree);
+  const lLoyalty      = useT('checkout_delivery', 'checkout_delivery_loyalty_discount',             L.loyaltyDiscount);
 
   return (
     <div
@@ -127,13 +130,13 @@ export function DeliveryOrderSummary({
                 <p className="text-xs leading-snug font-medium">{gift.name}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
-                    Free gift
+                    {lFreeGift}
                   </span>
                   <p className="text-xs text-gray-400">{L.qtyPrefix} {gift.quantity}</p>
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Free</p>
+                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">{lGiftFree}</p>
                 {gift.price > 0 && (
                   <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
                 )}
@@ -205,7 +208,7 @@ export function DeliveryOrderSummary({
               <>
                 {personalDiscount > 0 && (
                   <div className="flex justify-between text-xs text-(--sale)">
-                    <span>Loyalty discount</span>
+                    <span>{lLoyalty}</span>
                     <span className="font-semibold">−{fmt(personalDiscount)}</span>
                   </div>
                 )}

@@ -2,16 +2,17 @@
 import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { Check } from 'lucide-react';
 import type { ServiceCategory } from '../../../data/serviceData';
-import { SERVICE_LABELS as L } from '../../../data/accountLabels';
+import { SERVICE_LABELS as L_FALLBACK } from '../../../data/accountLabels';
+import { useAccountDict } from '../../../../lib/oneentry/labels/AccountLabelsContext';
 import { submitServiceRequestAction } from '../../../../lib/oneentry/catalog/service-request-submit-action';
 import { useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
 
 const SERVICE_CATEGORY_LABELS: Record<ServiceCategory, string> = {
-  alteration:  L.categoryLabels.alteration,
-  repair:      L.categoryLabels.repair,
-  cleaning:    L.categoryLabels.cleaning,
-  restoration: L.categoryLabels.restoration,
-  other:       L.categoryLabels.other,
+  alteration:  L_FALLBACK.categoryLabels.alteration,
+  repair:      L_FALLBACK.categoryLabels.repair,
+  cleaning:    L_FALLBACK.categoryLabels.cleaning,
+  restoration: L_FALLBACK.categoryLabels.restoration,
+  other:       L_FALLBACK.categoryLabels.other,
 };
 
 const BLANK_FORM = { item: '', category: 'repair' as ServiceCategory, description: '', date: '' };
@@ -19,6 +20,7 @@ const inputClass = 'px-3 py-2 text-xs focus-visible:outline-none border border-[
 const labelClass = 'text-[10px] tracking-widest uppercase text-gray-400 font-bold';
 
 export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
+  const L = useAccountDict('service_maintenance', 'service_maintenance_', L_FALLBACK);
   const [form, setForm] = useState(BLANK_FORM);
   const [submitted, setSubmitted] = useState(false);
   const [hovered, setHovered] = useState(false);

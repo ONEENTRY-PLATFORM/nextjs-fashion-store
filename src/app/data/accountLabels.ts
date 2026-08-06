@@ -139,6 +139,10 @@ export const SOCIAL_NETWORKS_LABELS = {
   connectedBadge: 'Connected',
   connect: 'Connect',
   disconnect: 'Disconnect',
+  errorConnect: 'Failed to connect Google',
+  loading: 'Loading…',
+  emptyProviders: 'No social sign-in providers configured.',
+  comingSoon: 'Coming soon',
 } as const;
 
 // ─── My Data → Consent section ──────────────────────────────────────────────
@@ -193,6 +197,11 @@ export const MY_ORDERS_LABELS = {
   statusDelivered: 'Delivered',
   statusProcessing: 'Processing',
   statusCancelled: 'Cancelled',
+  cancelDialogTitle: 'Cancel order',
+  cancelDialogQuestionPrefix: 'Do you want to cancel order',
+  cancelDialogQuestionSuffix: '?',
+  cancelDialogNo: 'No',
+  cancelDialogConfirm: 'Confirm',
 } as const;
 
 // ─── Bonuses section ────────────────────────────────────────────────────────
@@ -201,6 +210,14 @@ export const BONUSES_LABELS = {
   availableBonuses: 'Available Bonuses',
   discountLevel: 'Discount Level',
   transactionHistory: 'Bonus Transaction History',
+  emptyHistory: 'No bonus transactions yet.',
+  /** OE bonus-transaction type → shopper-facing wording. */
+  typeAccrual: 'Earned',
+  typeReversalUsage: 'Refunded',
+  typeUsage: 'Spent on order',
+  typeReduce: 'Adjustment',
+  typeReversalAccrual: 'Accrual reversed',
+  typeExpiration: 'Expired',
 } as const;
 
 // ─── History section ────────────────────────────────────────────────────────
@@ -299,6 +316,7 @@ export const SERVICE_LABELS = {
     restoration: 'Restoration',
     other: 'Other',
   } as const,
+  loadingAria: 'Loading service requests',
 } as const;
 
 // ─── Feedback section ───────────────────────────────────────────────────────
@@ -387,6 +405,7 @@ export const WISHLIST_LABELS = {
   emptyText: 'Your wishlist is empty',
   emptyCta: 'Browse Collection',
   emptyCtaHref: '/women/clothing',
+  saleBadge: 'SALE',
 } as const;
 
 // ─── Waiting List section ───────────────────────────────────────────────────
@@ -420,6 +439,7 @@ export const WAITING_LIST_LABELS = {
     { step: '02', title: 'Get Notified', desc: 'Toggle the bell icon to receive alerts the moment stock is replenished.' },
     { step: '03', title: 'Shop First', desc: 'Waiting list members get early access before items go back on general sale.' },
   ] as const,
+  loadingAria: 'Loading waiting list',
 } as const;
 
 // ─── Subscriptions section ──────────────────────────────────────────────────

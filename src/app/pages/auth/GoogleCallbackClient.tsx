@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { completeGoogleSignIn } from '../../../lib/oneentry/auth/actions';
+import { useSignInT } from '../../../lib/oneentry/labels/SignInLabelsContext';
+import { OAUTH_ERROR_LABELS as OAE } from '../../data/authLabels';
 
 /**
  * Redeems Google's `?code=` for a OneEntry session and installs it in this
@@ -21,6 +23,9 @@ export function GoogleCallbackClient() {
   // so a second exchange would fail and bounce the shopper to an error page.
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const lMissingCode = useSignInT('sign_in_google_missing_code', OAE.missingCode);
+  const lGoogleFail  = useSignInT('sign_in_google_failed',       OAE.generic);
+  const lSigningIn   = useSignInT('sign_in_google_signing_in',   OAE.signingIn);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -37,7 +42,7 @@ export function GoogleCallbackClient() {
     };
 
     if (providerError) { fail(providerError); return; }
-    if (!code || !state) { fail('Missing code or state from Google'); return; }
+    if (!code || !state) { fail(lMissingCode); return; }
 
     void completeGoogleSignIn({ code, state, origin: window.location.origin })
       .then((result) => {
@@ -48,9 +53,9 @@ export function GoogleCallbackClient() {
         router.replace(target);
       })
       .catch((err: unknown) => {
-        fail(err instanceof Error ? err.message : 'Google sign-in failed');
+        fail(err instanceof Error ? err.message : lGoogleFail);
       });
-  }, [params, router]);
+  }, [params, router, lMissingCode, lGoogleFail]);
 
   return (
     <div
@@ -58,7 +63,7 @@ export function GoogleCallbackClient() {
       data-testid="google-callback"
     >
       <p className="text-sm tracking-[0.2em] uppercase text-gray-500">
-        {error ?? 'Signing you in…'}
+        {error ?? lSigningIn}
       </p>
     </div>
   );

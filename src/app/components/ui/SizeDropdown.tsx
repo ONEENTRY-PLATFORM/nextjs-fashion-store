@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { SIZE_DROPDOWN_LABELS as L } from '../../data/commonLabels';
+import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 interface SizeDropdownProps {
   value: string;
@@ -15,6 +16,7 @@ interface SizeDropdownProps {
 
 export function SizeDropdown({ value, onChange, isShoe, availableSizes }: SizeDropdownProps) {
   const [open, setOpen] = useState(false);
+  const lSize = useInterfaceControlsT('interface_controls_size_prefix', L.sizeLabel);
 
   if (availableSizes && availableSizes.length === 0) return null;
 
@@ -29,7 +31,7 @@ export function SizeDropdown({ value, onChange, isShoe, availableSizes }: SizeDr
   if (options.length <= 1) {
     return (
       <div className="inline-flex items-center px-3 py-1.5 text-xs border border-[#d1d5db] rounded-none min-w-22.5">
-        <span className="font-medium">{L.sizeLabel} {displayValue}</span>
+        <span className="font-medium">{lSize} {displayValue}</span>
       </div>
     );
   }
@@ -40,7 +42,7 @@ export function SizeDropdown({ value, onChange, isShoe, availableSizes }: SizeDr
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs focus-visible:outline-none border border-[#d1d5db] rounded-none min-w-22.5"
       >
-        <span className="font-medium">{L.sizeLabel} {displayValue}</span>
+        <span className="font-medium">{lSize} {displayValue}</span>
         <ChevronDown
           size={11}
           className={`ml-auto transition-transform duration-200 ${open ? 'rotate-180' : 'rotate-0'}`}

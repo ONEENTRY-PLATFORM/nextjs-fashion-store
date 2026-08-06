@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
 import { SEO } from '../../../src/app/data/seoData';
 import { DeliveryPage } from '../../../src/app/pages/DeliveryPage';
 import { loadCheckoutSystemTexts } from '../../../src/lib/oneentry/labels/checkout-labels';
@@ -12,7 +13,11 @@ import { DeliveryMethodInfoProvider } from '../../../src/lib/oneentry/checkout/D
 import { loadDeliverySchedule, buildDeliveryDates } from '../../../src/lib/oneentry/checkout/delivery-schedule';
 import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
 
-export const metadata: Metadata = SEO.checkoutDelivery;
+/** Title/description/keywords/canonical come from the OE `delivery_method` page when an
+ *  editor filled them; `SEO.checkoutDelivery` stays as the offline fallback. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withCmsSeo('delivery_method', SEO.checkoutDelivery);
+}
 
 export default async function Page() {
   const [labels, userAddresses, stores, deliveryMethodInfo, parcelLockers, scheduleAuthed, scheduleGuest, pageBlocks] = await Promise.all([

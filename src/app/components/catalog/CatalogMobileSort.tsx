@@ -2,6 +2,7 @@
 import { X } from 'lucide-react';
 import { useCatalogAccent } from '../../context/CatalogAccentContext';
 import { CATALOG_MOBILE_SORT_LABELS as L } from '../../data/commonLabels';
+import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 const SORT_OPTIONS = L.options;
 
@@ -19,6 +20,8 @@ export function CatalogMobileSort({
   onSortChange,
 }: CatalogMobileSortProps) {
   const accentColor = useCatalogAccent();
+  const lHeading   = useInterfaceControlsT('interface_controls_sort_heading', L.heading);
+  const lCloseSort = useInterfaceControlsT('interface_controls_sort_close',   L.closeSort);
 
   if (!isOpen) return null;
 
@@ -34,11 +37,11 @@ export function CatalogMobileSort({
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 h-13 border-b border-[#e5e7eb]">
-          <h2 className="text-sm tracking-[0.2em] uppercase font-bold">{L.heading}</h2>
+          <h2 className="text-sm tracking-[0.2em] uppercase font-bold">{lHeading}</h2>
           <button
             onClick={onClose}
             className="w-9 h-9 flex items-center justify-center focus-visible:outline-none -mr-1"
-            aria-label={L.closeSort}
+            aria-label={lCloseSort}
           >
             <X size={18} strokeWidth={1.5} />
           </button>

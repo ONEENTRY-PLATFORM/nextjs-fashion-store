@@ -57,6 +57,8 @@ export const SALE_PAGE_LABELS = {
   countdownMinutes: 'min',
   countdownSeconds: 'sec',
   countdownEndsAt: 'Ends March 15, 2026 at midnight',
+  /** Rendered as "3 selected" — only the count is dynamic. */
+  selectedSuffix: 'selected',
 } as const;
 
 export const SALE_CATEGORY_LABELS = {

@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
 import type { Metadata } from 'next';
 import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../src/app/data/seoData';
 import { NewArrivalsPage } from '../../src/app/pages/NewArrivalsPage';
@@ -10,7 +11,11 @@ import { adaptCatalogProductToUiProduct, newArrivalCategoryFor } from '../../src
 import { loadPageBlocksByUrl } from '../../src/lib/oneentry/blocks/page-blocks';
 import { loadNewArrivalsPage } from '../../src/lib/oneentry/catalog/new-arrivals-page';
 
-export const metadata: Metadata = SEO.newArrivals;
+/** Title/description/keywords/canonical come from the OE `new` page when an
+ *  editor filled them; `SEO.newArrivals` stays as the offline fallback. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withCmsSeo('new', SEO.newArrivals);
+}
 
 // CMS content changes only when an admin edits it, so this is ISR, never
 // `force-dynamic` (MCP `performance`). `force-static` makes the build fail

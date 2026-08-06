@@ -110,6 +110,8 @@ export function WishlistCard({
     tooltipTimerRef.current = setTimeout(() => setShowTooltip(false), TIMINGS.TOOLTIP_HIDE);
   };
 
+  const lSaleBadge = useT('user_account_wishlist', 'user_account_wishlist_sale_badge', WL.saleBadge);
+
   return (
     <div
       className="relative flex flex-col bg-white group cursor-pointer font-[Inter,sans-serif] outline-1 outline-black"
@@ -133,7 +135,7 @@ export function WishlistCard({
         {item.salePrice && (
           <div className="absolute top-3 left-3">
             <span className="px-2 py-1 text-white text-xs tracking-wider uppercase font-medium bg-(--sale) rounded-none">
-              SALE
+              {lSaleBadge}
             </span>
           </div>
         )}

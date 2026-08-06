@@ -25,6 +25,7 @@ import { faqItemsFromBlocks, buildFaqSchema } from '../../src/lib/oneentry/block
 import { loadInfoPageSystemTexts } from '../../src/lib/oneentry/labels/info-page-labels';
 import { InfoPageLabelsProvider } from '../../src/lib/oneentry/labels/InfoPageLabelsContext';
 import { loadCatalogPageSystemTexts } from '../../src/lib/oneentry/labels/catalog-page-labels';
+import { CATALOG_PAGE_LABELS } from '../../src/app/data/catalogPageLabels';
 import { CatalogPageLabelsProvider } from '../../src/lib/oneentry/labels/CatalogPageLabelsContext';
 
 /* ─── Catalog page components (dataset configs) ─── */
@@ -339,6 +340,12 @@ export default async function Page({ params, searchParams }: Props) {
       entry.catalogKey.startsWith('women-') ? 'W'
       : entry.catalogKey.startsWith('men-') ? 'M'
       : '';
+    // Heading for the trending carousel: OE block title → `catalog_page`
+    // system text → local constant. Loaded here because the block below may
+    // be synthesised from the catalog's own products.
+    const catalogChrome = await loadCatalogPageSystemTexts();
+    const trendingFallbackTitle =
+      catalogChrome['catalog_page_trending_title'] ?? CATALOG_PAGE_LABELS.trendingFallbackTitle;
     let trendingBlock = await loadBlockWithProducts('catalog_trend_blocks', { categoryPath });
     if (trendingBlock && catalogGender) {
       const filteredByGender = trendingBlock.products.filter(p =>
@@ -353,7 +360,7 @@ export default async function Page({ params, searchParams }: Props) {
       trendingBlock = {
         marker: 'catalog_trend_blocks',
         type: trendingBlock?.type ?? 'trending_block',
-        title: trendingBlock?.title ?? "We Think You'll Love",
+        title: trendingBlock?.title ?? trendingFallbackTitle,
         position: trendingBlock?.position ?? 0,
         products: fallbackProducts,
       };
@@ -374,7 +381,7 @@ export default async function Page({ params, searchParams }: Props) {
     // Catalog chrome copy (gender / category titles, breadcrumb fragments)
     // from the OE `catalog_page` set. Empty dict → components keep their
     // local `CATALOG_PAGE_LABELS` fallback.
-    const catalogLabels = await loadCatalogPageSystemTexts();
+    const catalogLabels = catalogChrome;
 
     return (
       <>

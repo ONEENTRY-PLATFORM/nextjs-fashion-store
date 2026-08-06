@@ -47,6 +47,10 @@ export function LoginModal() {
   const lForgot     = useSignInT('sign_in_forgot_password', L.forgotPassword);
   const lBottomText = useSignInT('sign_in_bottom_text',    L.switchPrompt);
   const lCreateOne  = useSignInT('sign_in_create_one',     L.switchCta);
+  const lGoogleFail = useSignInT('sign_in_google_failed',  L.errorGoogleFailed);
+  const lClose      = useSignInT('sign_in_close',          L.closeLabel);
+  const lLoadingOpt = useSignInT('sign_in_loading_options', L.loadingOptions);
+  const lDismissErr = useSignInT('sign_in_dismiss_error',  L.dismissError);
   const schema = useSignUpFormSchema();
   const emailLabel       = schema.email.title       || L.identifierLabel;
   const emailPlaceholder = schema.email.placeholder || L.identifierPlaceholder;
@@ -117,7 +121,7 @@ export function LoginModal() {
         // (post-checkout would be handled by that page's own logic).
         await startGoogleOAuth(isCheckout ? window.location.pathname : '/account');
       } catch (e) {
-        setSocialError(e instanceof Error ? e.message : 'Google sign-in failed');
+        setSocialError(e instanceof Error ? e.message : lGoogleFail);
         setLoading(false);
       }
       return;
@@ -146,7 +150,7 @@ export function LoginModal() {
               mirrors the backdrop-click behaviour and matches shopper
               expectations for a dismissable modal. */}
           <button
-            aria-label="Close"
+            aria-label={lClose}
             onClick={closeLoginModal}
             className="hover:opacity-60 transition-opacity focus-visible:outline-none"
           >
@@ -159,7 +163,7 @@ export function LoginModal() {
               providers we don't have client wiring for (only google today) render
               disabled with a "Coming soon" hint. */}
           {authProvidersLoading ? (
-            <div className="space-y-2.5" aria-busy="true" aria-label="Loading sign-in options">
+            <div className="space-y-2.5" aria-busy="true" aria-label={lLoadingOpt}>
               {[0, 1, 2].map((i) => (
                 <div key={i} className="w-full py-3 h-11.5 border border-gray-200 bg-gray-100 animate-pulse" />
               ))}
@@ -261,7 +265,7 @@ export function LoginModal() {
               <button
                 type="button"
                 onClick={() => setAuthError(null)}
-                aria-label="Dismiss error"
+                aria-label={lDismissErr}
                 className="text-gray-500 hover:text-black transition-colors focus-visible:outline-none"
               >
                 <X size={12} strokeWidth={1.5} />

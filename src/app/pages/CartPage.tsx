@@ -45,6 +45,11 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lEarnPrefix       = useT('checkout_cart', 'checkout_delivery_warning_text1',           L.loyaltyEarnPrefix);
   const lEarnTemplate     = useT('checkout_cart', 'checkout_delivery_warning_text2',           L.loyaltyEarnTemplate);
   const lPromoCheckbox    = useT('checkout_cart', 'checkout_delivery_i_have_a_promo_code',     L.promoCheckboxLabel);
+  const lFreeGift         = useT('checkout_cart', 'checkout_cart_free_gift',                   L.freeGift);
+  const lQty              = useT('checkout_cart', 'checkout_cart_qty_prefix',                  L.qtyPrefix);
+  const lGiftFree         = useT('checkout_cart', 'checkout_cart_gift_free',                   L.giftFree);
+  const lLoyaltyDiscount  = useT('checkout_cart', 'checkout_cart_loyalty_discount',            L.loyaltyDiscount);
+  const lPromoRemove      = useT('checkout_cart', 'checkout_cart_promo_remove',                L.promoRemove);
   const lPromoPlaceholder = useT('checkout_cart', 'checkout_delivery_enter_code',              L.promoPlaceholder);
   const lPromoApply       = useT('checkout_cart', 'checkout_delivery_enter_code_cta',          L.promoApplyButton);
   const lProceed          = useT('checkout_cart', 'checkout_delivery_proceed_to_checkout_cta', L.proceedToCheckout);
@@ -331,13 +336,13 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       <p className="text-sm font-medium truncate">{gift.name}</p>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
-                          Free gift
+                          {lFreeGift}
                         </span>
-                        <span className="text-xs text-gray-500">Qty {gift.quantity}</span>
+                        <span className="text-xs text-gray-500">{lQty} {gift.quantity}</span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-green-600 uppercase tracking-wide">Free</p>
+                      <p className="text-sm font-semibold text-green-600 uppercase tracking-wide">{lGiftFree}</p>
                       {gift.price > 0 && (
                         <p className="text-xs text-gray-400 line-through mt-0.5">{fmt(gift.price * gift.quantity)}</p>
                       )}
@@ -375,7 +380,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       <>
                         {personalDiscount - couponDiscount > 0 && (
                           <div className="flex justify-between text-sm text-(--sale)">
-                            <span>Loyalty discount</span>
+                            <span>{lLoyaltyDiscount}</span>
                             <span className="font-semibold">−{fmt(personalDiscount - couponDiscount)}</span>
                           </div>
                         )}
@@ -460,7 +465,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                           onClick={handleRemovePromo}
                           className="text-[10px] tracking-wider uppercase text-gray-500 hover:text-black focus-visible:outline-none"
                         >
-                          Remove
+                          {lPromoRemove}
                         </button>
                       </div>
                     )}

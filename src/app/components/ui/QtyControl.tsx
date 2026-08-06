@@ -1,5 +1,7 @@
+'use client'
 import { Minus, Plus } from 'lucide-react';
 import { QTY_CONTROL_LABELS as L } from '../../data/commonLabels';
+import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 interface QtyControlProps {
   value: number;
@@ -14,6 +16,9 @@ interface QtyControlProps {
 }
 
 export function QtyControl({ value, onMinus, onPlus, size = 'md', max }: QtyControlProps) {
+  const lGroup    = useInterfaceControlsT('interface_controls_qty_group',    L.groupLabel);
+  const lDecrease = useInterfaceControlsT('interface_controls_qty_decrease', L.decreaseLabel);
+  const lIncrease = useInterfaceControlsT('interface_controls_qty_increase', L.increaseLabel);
   const atMax = max !== undefined && value >= max;
   const btnClass = size === 'sm'
     ? 'w-7 h-7 flex items-center justify-center hover:bg-gray-100 transition-colors focus-visible:outline-none'
@@ -27,15 +32,15 @@ export function QtyControl({ value, onMinus, onPlus, size = 'md', max }: QtyCont
     : 'w-9 text-center text-sm font-semibold';
 
   return (
-    <div className={borderClass} role="group" aria-label={L.groupLabel}>
-      <button onClick={onMinus} className={btnClass} aria-label={L.decreaseLabel} disabled={value <= 1}>
+    <div className={borderClass} role="group" aria-label={lGroup}>
+      <button onClick={onMinus} className={btnClass} aria-label={lDecrease} disabled={value <= 1}>
         <Minus size={iconSize} />
       </button>
-      <span className={spanClass} role="status" aria-live="polite" aria-label={`${L.groupLabel}: ${value}`}>{value}</span>
+      <span className={spanClass} role="status" aria-live="polite" aria-label={`${lGroup}: ${value}`}>{value}</span>
       <button
         onClick={onPlus}
         className={btnClass}
-        aria-label={L.increaseLabel}
+        aria-label={lIncrease}
         disabled={atMax}
       >
         <Plus size={iconSize} />

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { withCmsSeo } from '../src/lib/oneentry/catalog/page-seo';
 import {
   SEO, SITE_NAME, SITE_DESCRIPTION, SITE_URL, ORG_SOCIALS,
   CURRENCY, OFFER_CATALOGUE,
@@ -15,7 +16,11 @@ import { HOME_PAGE_ID, loadPageBlocksById } from '../src/lib/oneentry/blocks/pag
 import { loadStores } from '../src/lib/oneentry/catalog/stores';
 import type { Store } from '../src/app/data/stores';
 
-export const metadata: Metadata = SEO.home;
+/** Title/description/keywords/canonical come from the OE `home` page when an
+ *  editor filled them; `SEO.home` stays as the offline fallback. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withCmsSeo('home', SEO.home);
+}
 
 // ISR route: homepage HTML is cached for 5 min, then a background
 // revalidation refreshes it. Individual SDK reads are memoised in

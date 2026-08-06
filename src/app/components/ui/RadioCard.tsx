@@ -7,10 +7,13 @@ interface RadioCardProps {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
+  /** Right-hand badge. Optional so the card stays generic; checkout passes
+   *  the CMS-managed "FREE" copy. Omit to render no badge. */
+  badge?: string;
   children?: React.ReactNode;
 }
 
-export function RadioCard({ checked, onChange, icon, title, subtitle, children }: RadioCardProps) {
+export function RadioCard({ checked, onChange, icon, title, subtitle, badge, children }: RadioCardProps) {
   return (
     <div
       className={`mb-4 transition-all duration-200 rounded-none border-2 ${
@@ -39,9 +42,11 @@ export function RadioCard({ checked, onChange, icon, title, subtitle, children }
           </p>
           <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
         </div>
-        <span className="shrink-0 text-xs px-2 py-0.5 bg-[#f0fdf4] text-green-600 border border-[#bbf7d0] rounded-none font-semibold">
-          FREE
-        </span>
+        {badge && (
+          <span className="shrink-0 text-xs px-2 py-0.5 bg-[#f0fdf4] text-green-600 border border-[#bbf7d0] rounded-none font-semibold">
+            {badge}
+          </span>
+        )}
       </button>
       {checked && children && (
         <div className="px-5 pb-5 border-t border-[#e5e7eb]">

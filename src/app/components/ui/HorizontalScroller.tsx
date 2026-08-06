@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDragScroll } from '../../hooks/useDragScroll';
 import { HORIZONTAL_SCROLLER_LABELS as L } from '../../data/commonLabels';
+import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 interface HorizontalScrollerProps {
   children: React.ReactNode;
@@ -54,6 +55,9 @@ export function HorizontalScroller({
     return () => window.removeEventListener('resize', onResize);
   }, [measure]);
 
+  const lScrollLeft  = useInterfaceControlsT('interface_controls_scroll_left',  L.scrollLeft);
+  const lScrollRight = useInterfaceControlsT('interface_controls_scroll_right', L.scrollRight);
+
   const scrollBy = (direction: 1 | -1) => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -69,7 +73,7 @@ export function HorizontalScroller({
     <div className="relative">
       <button
         onClick={() => scrollBy(-1)}
-        aria-label={L.scrollLeft}
+        aria-label={lScrollLeft}
         className={`left-2 ${arrowClass(canScrollLeft)}`}
       >
         <ChevronLeft size={18} />
@@ -77,7 +81,7 @@ export function HorizontalScroller({
 
       <button
         onClick={() => scrollBy(1)}
-        aria-label={L.scrollRight}
+        aria-label={lScrollRight}
         className={`right-2 ${arrowClass(canScrollRight)}`}
       >
         <ChevronRight size={18} />

@@ -6,6 +6,8 @@ import { Search } from 'lucide-react';
 import type { Product } from '../product/ProductCard';
 import { searchProductsAction } from '../../../lib/oneentry/catalog/search-action';
 import { trackActivity } from '../../utils/track-activity';
+import { HEADER_SEARCH_LABELS as HS } from '../../data/commonLabels';
+import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 /** Shortest query worth sending to OE — one or two characters match almost
  *  the whole catalogue and the dropdown becomes noise. */
@@ -31,6 +33,8 @@ export function HeaderSearch({
   variant?: 'desktop' | 'mobile';
 }) {
   const router = useRouter();
+  const lSearching  = useInterfaceControlsT('interface_controls_searching',  HS.searching);
+  const lNoResults  = useInterfaceControlsT('interface_controls_no_results', HS.noResults);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   // Results are stored together with the query that produced them. Deriving
@@ -107,9 +111,9 @@ export function HeaderSearch({
       {open && query.trim().length >= 2 && (
         <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-gray-200 shadow-lg max-h-[70vh] overflow-y-auto">
           {loading ? (
-            <p className="px-4 py-3 text-xs text-gray-400 tracking-wide uppercase">Searching…</p>
+            <p className="px-4 py-3 text-xs text-gray-400 tracking-wide uppercase">{lSearching}</p>
           ) : results.length === 0 ? (
-            <p className="px-4 py-3 text-xs text-gray-400 tracking-wide uppercase">No results</p>
+            <p className="px-4 py-3 text-xs text-gray-400 tracking-wide uppercase">{lNoResults}</p>
           ) : (
             <ul role="listbox">
               {results.map((p) => (

@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { SectionTitle, EditBtn, Field, FormInput } from '../shared';
 import { profileSchema } from '../../../utils/schemas';
-import { PERSONAL_INFO_LABELS as L } from '../../../data/accountLabels';
+import { PERSONAL_INFO_LABELS as L_FALLBACK } from '../../../data/accountLabels';
+import { useAccountDict } from '../../../../lib/oneentry/labels/AccountLabelsContext';
 import { PERSONAL_INFO_SECTION_ARIA } from '../../../data/commonLabels';
 
 const primaryBtn = 'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';
@@ -11,6 +12,7 @@ const secondaryBtn = 'px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visi
 const fieldLabel = 'block text-xs uppercase tracking-wide mb-1.5 font-semibold text-[#555]';
 
 export function PersonalInfoSection() {
+  const L = useAccountDict('user_account', 'user_account_personal_', L_FALLBACK);
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);

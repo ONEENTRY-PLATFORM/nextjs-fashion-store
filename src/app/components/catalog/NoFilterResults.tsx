@@ -1,12 +1,16 @@
 'use client'
 import Image from 'next/image';
 import { COMMON_EMPTY_STATES as L } from '../../data/commonLabels';
+import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 interface NoFilterResultsProps {
   onClearAll: () => void;
 }
 
 export function NoFilterResults({ onClearAll }: NoFilterResultsProps) {
+  const lHeading = useInterfaceControlsT('interface_controls_no_results_found', L.noResultsFound);
+  const lBody    = useInterfaceControlsT('interface_controls_no_results_body',  L.noFilterResultsBody);
+  const lClear   = useInterfaceControlsT('interface_controls_clear_all_filters', L.clearAllFilters);
   return (
     <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
       {/* Icon */}
@@ -16,12 +20,12 @@ export function NoFilterResults({ onClearAll }: NoFilterResultsProps) {
 
       {/* Heading */}
       <h3 className="text-base font-medium tracking-wide uppercase mb-2 text-[#111]">
-        {L.noResultsFound}
+        {lHeading}
       </h3>
 
       {/* Subtext */}
       <p className="text-sm text-gray-400 mb-8 max-w-xs leading-relaxed">
-        {L.noFilterResultsBody}
+        {lBody}
       </p>
 
       {/* CTA */}
@@ -29,7 +33,7 @@ export function NoFilterResults({ onClearAll }: NoFilterResultsProps) {
         onClick={onClearAll}
         className="px-8 py-2.5 text-xs tracking-widest uppercase text-white bg-black hover:bg-gray-800 transition-colors focus-visible:outline-none rounded-none"
       >
-        {L.clearAllFilters}
+        {lClear}
       </button>
     </div>
   );

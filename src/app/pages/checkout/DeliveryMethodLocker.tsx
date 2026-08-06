@@ -3,7 +3,9 @@ import { Package, ChevronDown } from 'lucide-react';
 import { RadioCard } from '../../components/ui/RadioCard';
 import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
 
-import { DELIVERY_METHOD_LOCKER_LABELS as L } from '../../data/checkoutLabels';
+import { DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK, DELIVERY_METHOD_SHARED_LABELS as SH } from '../../data/checkoutLabels';
+import { useCheckoutDict } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
 import { type GuestContactFormState } from './GuestContactForm';
 import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
@@ -34,11 +36,13 @@ export function DeliveryMethodLocker({
   setGuestContact: _setGuestContact,
   guestContactErrors: _guestContactErrors,
 }: DeliveryMethodLockerProps) {
+  const L = useCheckoutDict('checkout_delivery', 'checkout_delivery_locker_', L_FALLBACK);
   const info = useDeliveryMethodInfo();
   const lockerList = lockers && lockers.length > 0 ? lockers : PARCEL_LOCKERS;
   const title    = info?.locker.title    ?? L.title;
   const subtitle = info?.locker.subtitle ?? L.subtitle;
   const pinHint  = info?.locker.pinHint  ?? L.pinHint;
+  const lFreeBadge = useT('checkout_delivery', 'checkout_delivery_free_badge', SH.freeBadge);
   return (
     <RadioCard
       id="locker"
@@ -47,6 +51,7 @@ export function DeliveryMethodLocker({
       icon={<Package size={20} />}
       title={title}
       subtitle={subtitle}
+      badge={lFreeBadge}
     >
       <div className="pt-4">
         <label className="block text-xs tracking-wide uppercase mb-1.5 font-semibold text-[#555]">

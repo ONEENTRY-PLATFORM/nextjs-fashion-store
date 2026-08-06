@@ -149,16 +149,16 @@ If a component still imports from one of these paths, that's an unfinished migra
 | Category section | OE Blocks (`category_section`) | ✅ live |
 | Homepage product carousels | OE Blocks (`best_sellers` etc.) | ✅ live |
 | Catalog product lists | OE `Products.getAll` / `vector/search` | ✅ live |
-| Filter option values | Static config for now; OE facet endpoint pending | ⚠ partial |
+| Filter option values | OE catalog filter (`loadCatalogFilter`, marker = `catalogKey` with `_`) | ✅ live — `app/[...slug]/page.tsx:327-330` |
 | Seasonal trend landings | OE Pages attributes `st_type-of-trends` + `st_trends` via `seasonal-trend.ts` | ✅ live |
 | Sort options | Local config → passed as `sortKey` to OE | ✅ live |
 | Product detail | OE `Products.getProductById` + form-data reviews | ✅ live |
-| Info pages | Local static (`INFO_PAGE_LABELS` in `data/infoPageLabels.ts`) — `loadPageByUrl` exists in SDK layer but is dead code | ⚠ static |
+| Info pages | OE page (`loadPageByUrl`) — body blocks, plus `meta_*` / `canonical` for SEO | ✅ live (`infoPageLabels.ts` is the chrome fallback) |
 | Header / footer menus | OE `Menus.getMenusByMarker` | ✅ live (categories.ts is fallback) |
 | Footer link columns + legal links | OE `footer` menu via `menus/adapt-footer.ts` | ✅ live (`FOOTER_LINKS` / `BOTTOM_LINKS` are fallbacks) |
 | Footer branding (blurb / phone / copyright / support cards / social hrefs) | OE `footer` system-text set via `useFooterT` | ✅ live (`footerConfig.ts` is the fallback) |
 | Payment method icon list (`PAYMENT_METHOD_NAMES`) | `footerConfig.ts` | ❌ static by design — the names key the SVG assets in `public/icons/payment/` |
-| Header branding config | `headerConfig.ts` | ❌ static |
+| Header branding config | OE `header` system-text set via `useHeaderT` | ✅ live (`headerConfig.ts` is the fallback) |
 | Catalog chrome (gender / category titles, breadcrumbs) | OE `catalog_page` set via `useCatalogPageT` | ✅ live (`catalogPageLabels.ts` is the fallback) |
 | Homepage section chrome (eyebrow / subtitle / view-all link) | The OE block's own `attributeValues` via `blocks/section-chrome.ts` | ✅ live (`sectionTitles.ts` is the fallback) |
 | Info page routing | OE page lookup (`resolveInfoPageSlug`) with the static `INFO_SLUGS` registry as the fast path | ✅ live — a page created in OE resolves without a deploy |
@@ -183,7 +183,27 @@ If a component still imports from one of these paths, that's an unfinished migra
 | Coupons (checkout Delivery step) | OE `previewOrder` — server-validated + priced | ✅ live |
 | Coupons (`/cart` promo entry) | OE `previewOrder` via `CartContext.applyCoupon` | ✅ live |
 | Product-level `salePrice` (storefront discount overlay) | OE Discounts module — `loadProductDiscounts` + `applyProductDiscount` in `src/lib/oneentry/discounts/product-discount.ts`; applied in `fetchFullCatalog` and `loadProductById` | ✅ live |
-| Pickup stores + parcel lockers | Local `checkoutConfig.ts` | ❌ static |
+| Pickup stores + parcel lockers | `loadStores()` / `loadParcelLockers()` | ✅ live (`checkoutConfig.ts` is the fallback) — duplicate of the row above, kept for the search term |
+
+## 12a. Per-route SEO — now CMS-first
+
+`generateMetadata` on every storefront route runs its local `SEO.*` entry through `withCmsSeo(pageUrl, fallback)` (`src/lib/oneentry/catalog/page-seo.ts`), which overlays `meta_title` / `meta_description` / `meta_keywords` / `canonical` from the matching OneEntry page and propagates the overrides into `openGraph` / `twitter`. A blank attribute counts as "not set", so a half-filled page keeps the coded copy for the rest.
+
+| Route | OE page |
+|---|---|
+| `/` | `home` |
+| `/cart` | `cart` |
+| `/account` | `account` |
+| `/favorites` | `favorites` |
+| `/new` | `new` |
+| `/sale` | `sale` |
+| `/stores` | `stores` |
+| `/checkout/delivery` | `delivery_method` |
+| `/checkout/payment` | `payment` |
+| `/checkout/confirmation` | `confirmation` |
+| `/{slug}` (info pages) | the page itself — handled inline in `app/[...slug]/page.tsx` |
+
+`cart` and `delivery_method` had no attribute set at all and were given the shared `forPages` template; `sale`, `new` and `stores` had sets without SEO fields, so the four `meta_*` attributes were added to those sets. `seoData.ts` stays as the offline fallback and still owns robots, OG images and JSON-LD.
 
 ## 13. Cross-references
 

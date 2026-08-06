@@ -18,6 +18,7 @@ export function WaitingListSection() {
   const title       = useT('waiting_list', 'waiting_list_title',               L.title);
   const bannerEye   = useT('waiting_list', 'waiting_list_top_banner_sub_title', L.bannerEyebrow);
   const bannerHead  = useT('waiting_list', 'waiting_list_top_banner_title',    L.bannerHeading);
+  const lLoadingAria = useT('waiting_list', 'waiting_list_loading_aria',        L.loadingAria);
   const sBack       = useT('waiting_list', 'waiting_list_back_in_stock',       L.statuses.back_in_stock);
   const sLow        = useT('waiting_list', 'waiting_list_low_stock',           L.statuses.low_stock);
   const sOut        = useT('waiting_list', 'waiting_list_out_of_stock',        L.statuses.out_of_stock);
@@ -161,7 +162,7 @@ export function WaitingListSection() {
       </div>
 
       {loading ? (
-        <div className="space-y-px bg-black" aria-busy="true" aria-label="Loading waiting list">
+        <div className="space-y-px bg-black" aria-busy="true" aria-label={lLoadingAria}>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-4 p-4 bg-white h-28">
               <div className="w-20 h-24 bg-gray-100 animate-pulse" />

@@ -37,6 +37,7 @@ export function ServiceMaintenanceSection() {
   const title         = useT('service_maintenance', 'service_maintenance_title',                   L.title);
   const eyebrow       = useT('service_maintenance', 'service_maintenance_care_repair',             L.eyebrow);
   const bannerHead    = useT('service_maintenance', 'service_maintenance_your_requests',           L.bannerHeading);
+  const lLoadingAria  = useT('service_maintenance', 'service_maintenance_loading_aria',           L.loadingAria);
   const lActive       = useT('service_maintenance', 'service_maintenance_active',                  L.statActive);
   const lCompleted    = useT('service_maintenance', 'service_maintenance_completed',               L.statCompleted);
   const lTotalSpent   = useT('service_maintenance', 'service_maintenance_total_spent',             L.statTotalSpent);
@@ -165,7 +166,7 @@ export function ServiceMaintenanceSection() {
 
       {/* Request list */}
       {loading ? (
-        <div className="space-y-px bg-black" aria-busy="true" aria-label="Loading service requests">
+        <div className="space-y-px bg-black" aria-busy="true" aria-label={lLoadingAria}>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-4 p-4 bg-white h-28">
               <div className="w-20 h-24 bg-gray-100 animate-pulse" />

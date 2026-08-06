@@ -97,7 +97,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
     <div
       className="relative w-full overflow-hidden h-150"
       role="region"
-      aria-roledescription="carousel"
+      aria-roledescription={CAROUSEL_LABELS.carouselRole}
       aria-label={CAROUSEL_LABELS.featuredCollections}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -110,7 +110,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
         <div
           key={s.id}
           role="group"
-          aria-roledescription="slide"
+          aria-roledescription={CAROUSEL_LABELS.slideRole}
           aria-label={HERO_SLIDER_DYNAMIC_ARIA.slideDescriptionTpl(idx + 1, slides.length, s.headline)}
           aria-hidden={idx !== current}
           className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${

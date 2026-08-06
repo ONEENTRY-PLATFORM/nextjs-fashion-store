@@ -6,6 +6,7 @@ import { SALE_COLOR_OPTIONS } from '../../data/saleConfig';
 import Image from 'next/image';
 import { SALE_COLOR as SALE_RED } from '../../constants/colors';
 import { SALE_PAGE_LABELS as L } from '../../data/salePageLabels';
+import { useSalePageT } from '../../../lib/oneentry/labels/SalePageLabelsContext';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 
@@ -29,6 +30,8 @@ export function PillDropdown({ label, options, selected, onToggle, onClear }: Pi
 
   const count = selected.length;
   const isActive = count > 0;
+
+  const lSelected = useSalePageT('sale_page_selected_suffix', L.selectedSuffix);
 
   return (
     <div
@@ -62,7 +65,7 @@ export function PillDropdown({ label, options, selected, onToggle, onClear }: Pi
         <div className="absolute top-full left-0 bg-white border border-gray-200 shadow-lg z-50 mt-0.5 min-w-45 rounded-none">
           {isActive && (
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-              <span className="text-xs text-gray-500">{count} selected</span>
+              <span className="text-xs text-gray-500">{count} {lSelected}</span>
               <button onClick={onClear} className="text-xs underline text-gray-400 hover:text-black focus-visible:outline-none">{L.clearOne}</button>
             </div>
           )}

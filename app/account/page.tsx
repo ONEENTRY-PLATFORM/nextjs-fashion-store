@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
 import { SEO } from '../../src/app/data/seoData';
 import { AccountPage } from '../../src/app/pages/AccountPage';
 import { loadAccountSystemTexts } from '../../src/lib/oneentry/labels/account-labels';
@@ -6,7 +7,11 @@ import { AccountLabelsProvider } from '../../src/lib/oneentry/labels/AccountLabe
 import { loadFormContent } from '../../src/lib/oneentry/forms/placeholders';
 import { FormPlaceholdersProvider } from '../../src/lib/oneentry/forms/FormPlaceholdersContext';
 
-export const metadata: Metadata = SEO.account;
+/** Title/description/keywords/canonical come from the OE `account` page when an
+ *  editor filled them; `SEO.account` stays as the offline fallback. */
+export async function generateMetadata(): Promise<Metadata> {
+  return withCmsSeo('account', SEO.account);
+}
 
 export default async function Page() {
   const [labels, userAddresses, serviceRequest] = await Promise.all([

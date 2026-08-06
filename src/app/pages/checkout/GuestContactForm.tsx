@@ -1,6 +1,7 @@
 'use client'
 import { FormField } from '../../components/ui/FormField';
-import { GUEST_CONTACT_LABELS as L } from '../../data/checkoutLabels';
+import { GUEST_CONTACT_LABELS as L_FALLBACK } from '../../data/checkoutLabels';
+import { useCheckoutDict } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
 import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 
 export interface GuestContactFormState {
@@ -18,6 +19,7 @@ interface GuestContactFormProps {
 }
 
 export function GuestContactForm({ form, errors, onChange, helperText }: GuestContactFormProps) {
+  const L = useCheckoutDict('checkout_delivery', 'checkout_delivery_guest_', L_FALLBACK);
   const patch = (partial: Partial<GuestContactFormState>) => onChange({ ...form, ...partial });
   const phFullName = useFormPlaceholder('user_addresses', 'user_addresses_recipient_name',  'placeholder_name',  L.placeholderFullName);
   const phPhone    = useFormPlaceholder('user_addresses', 'user_addresses_recipient_phone', 'placeholder_phone', L.placeholderPhone);

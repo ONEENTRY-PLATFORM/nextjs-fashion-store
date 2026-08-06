@@ -32,6 +32,14 @@ export function MiniCart() {
   const lShippingNote = useYourBagT('your_bag_text',           L.shippingNote);
   const lCheckout     = useYourBagT('your_bag_checkout_cta',   L.checkout);
   const lViewFullCart = useYourBagT('your_bag_view_fuul_cart', L.viewFullCart);
+  const lSize         = useYourBagT('your_bag_size_prefix',    L.sizePrefix);
+  const lQty          = useYourBagT('your_bag_qty_prefix',     L.qtyPrefix);
+  const lFreeGift     = useYourBagT('your_bag_free_gift',      L.freeGift);
+  const lFree         = useYourBagT('your_bag_free',           L.free);
+  const lLoyalty      = useYourBagT('your_bag_loyalty_discount', L.loyaltyDiscount);
+  const lPromo        = useYourBagT('your_bag_promo_prefix',   L.promoPrefix);
+  const lTotal        = useYourBagT('your_bag_total',          L.total);
+  const lAppliedAtCheckout = useYourBagT('your_bag_applied_at_checkout', L.appliedAtCheckout);
 
   const rows = useMemo<RenderRow[]>(() => {
     const result: RenderRow[] = [];
@@ -117,7 +125,7 @@ export function MiniCart() {
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <span>{item.color}</span>
                             <span>·</span>
-                            <span>Size {item.size}</span>
+                            <span>{lSize} {item.size}</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-3">
@@ -220,14 +228,14 @@ export function MiniCart() {
                       <p className="text-sm leading-tight mb-1 font-semibold">{gift.name}</p>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
-                          Free gift
+                          {lFreeGift}
                         </span>
-                        <span className="text-xs text-gray-500">Qty {gift.quantity}</span>
+                        <span className="text-xs text-gray-500">{lQty} {gift.quantity}</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-end mt-3">
                       <div className="text-right">
-                        <span className="text-sm font-semibold text-green-600 uppercase tracking-wide">Free</span>
+                        <span className="text-sm font-semibold text-green-600 uppercase tracking-wide">{lFree}</span>
                         {gift.price > 0 && (
                           <span className="block text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</span>
                         )}
@@ -272,22 +280,22 @@ export function MiniCart() {
               <>
                 {personalDiscount - couponDiscount > 0 && (
                   <div className="flex items-center justify-between mb-2 text-sm text-(--sale)">
-                    <span>Loyalty discount</span>
+                    <span>{lLoyalty}</span>
                     <span className="font-semibold">−{fmt(personalDiscount - couponDiscount)}</span>
                   </div>
                 )}
                 {couponDiscount > 0 && couponCode && (
                   <div className="flex items-center justify-between mb-2 text-sm text-(--sale)">
-                    <span>Promo ({couponCode})</span>
+                    <span>{lPromo} ({couponCode})</span>
                     <span className="font-semibold">−{fmt(couponDiscount)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
-                  <span className="text-sm font-bold">Total</span>
+                  <span className="text-sm font-bold">{lTotal}</span>
                   <span className="text-base font-bold">{fmt(displayTotal)}</span>
                 </div>
                 {(personalDiscount > 0 || couponDiscount > 0) && preview && (preview.totalDue !== subtotal) && (
-                  <p className="text-[10px] text-gray-400 mb-3">Applied at checkout</p>
+                  <p className="text-[10px] text-gray-400 mb-3">{lAppliedAtCheckout}</p>
                 )}
               </>
             )}
