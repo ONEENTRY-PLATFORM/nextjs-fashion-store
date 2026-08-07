@@ -20,6 +20,8 @@ import { useMounted } from '../../hooks/useMounted';
 import { Link } from '../../../lib/i18n/navigation';
 
 export interface ProductSpec {
+  /** Stable row identifier — match on this, never on the editable `label`. */
+  key?: string;
   label: string;
   value: string;
 }

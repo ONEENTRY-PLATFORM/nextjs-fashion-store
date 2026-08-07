@@ -56,7 +56,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lErrNoAccounts = useT('checkout_payment_error_no_accounts',   PAYMENT_PAGE_LABELS.errorNoAccounts);
   const lStripeRedirect = useT(
     'checkout_payment_stripe_redirect_hint',
-    "You'll be redirected to the payment provider's secure checkout to complete the payment.",
+    PAYMENT_PAGE_LABELS.stripeRedirectHint,
   );
   const securityBadges = [lSsl, lPci, l3d].filter(Boolean);
 

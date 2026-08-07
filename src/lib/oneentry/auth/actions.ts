@@ -17,6 +17,7 @@
 import { getApiSafe, isOneEntryEnabled, isError, hasStoredSession, storeSession, clearTokens, getAuthProviderMarker } from '../index';
 import { getProductPreviewsAction } from '../catalog/product-previews-action';
 import { DEFAULT_LOCALE } from '../locale';
+import { se } from '../server-errors';
 import { pickImage, type RawPicture } from './pick-image';
 import { revalidateAfterOrderAction } from './revalidate-action';
 import { readUserIdentifier, writeUserIdentifier, readRefreshToken } from './browser-session';
@@ -576,7 +577,7 @@ async function formDataPost<T>(
   },
 ): Promise<FdSuccess<T> | FdError> {
   const api = getApiSafe();
-  if (!api) return { ok: false, status: 0, message: 'OneEntry SDK not initialised' };
+  if (!api) return { ok: false, status: 0, message: await se('sdkNotInitialised') };
   try {
     // SDK's postFormsData internally wraps `formData` in { [langCode]: [...] }
     // if given a flat array. But some of our callers already pass the wrapped
@@ -600,7 +601,7 @@ async function formDataPost<T>(
     }
     return { ok: true, data: result as unknown as T };
   } catch (err) {
-    return { ok: false, status: 0, message: err instanceof Error ? err.message : 'Network error' };
+    return { ok: false, status: 0, message: err instanceof Error ? err.message : await se('network') };
   }
 }
 
@@ -1028,7 +1029,7 @@ export async function signInAction(
 ): Promise<AuthResult> {
   const api = getApiSafe();
   if (!api) {
-    return { ok: false, error: 'OneEntry is not configured' };
+    return { ok: false, error: await se('oneEntryNotConfigured') };
   }
   try {
     const result = await api.AuthProvider.auth(AUTH_MARKER, {
@@ -1038,14 +1039,14 @@ export async function signInAction(
       ],
     });
     if (isError(result)) {
-      return { ok: false, error: result.message ?? 'Sign-in failed' };
+      return { ok: false, error: result.message ?? await se('signInFailed') };
     }
     storeSession(result, AUTH_MARKER);
     writeUserIdentifier(result.userIdentifier);
     const user = await fetchMe();
     return { ok: true, userIdentifier: result.userIdentifier, user };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Sign-in failed' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('signInFailed') };
   }
 }
 
@@ -1070,7 +1071,7 @@ export interface SignUpInput {
 export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
   const api = getApiSafe();
   if (!api) {
-    return { ok: false, error: 'OneEntry is not configured' };
+    return { ok: false, error: await se('oneEntryNotConfigured') };
   }
   const email = input.email.trim();
   // OneEntry value formats vary per attribute type:
@@ -1108,12 +1109,12 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
       },
     });
     if (isError(signUpRes)) {
-      return { ok: false, error: signUpRes.message ?? 'Sign-up failed' };
+      return { ok: false, error: signUpRes.message ?? await se('signUpFailed') };
     }
     // No activation flow (isCheckCode=false) — log in right away.
     return await signInAction(email, input.password);
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Sign-up failed' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('signUpFailed') };
   }
 }
 
@@ -1138,7 +1139,7 @@ export async function completeGoogleSignIn(ctx: {
   origin: string;
 }): Promise<AuthResult & { returnTo?: string }> {
   const api = getApiSafe();
-  if (!api) return { ok: false, error: 'OneEntry is not configured' };
+  if (!api) return { ok: false, error: await se('oneEntryNotConfigured') };
 
   const { exchangeGoogleCodeAction } = await import('./oauth-actions');
   const exchanged = await exchangeGoogleCodeAction({
@@ -1191,11 +1192,11 @@ export async function cancelOrderAction(
   orderId: number,
   storage: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry is not configured' };
-  if (!orderId || !storage) return { ok: false, error: 'Missing order id or storage' };
-  if (!hasStoredSession()) return { ok: false, error: 'Not signed in' };
+  if (!isOneEntryEnabled) return { ok: false, error: await se('oneEntryNotConfigured') };
+  if (!orderId || !storage) return { ok: false, error: await se('missingOrderId') };
+  if (!hasStoredSession()) return { ok: false, error: await se('notSignedIn') };
   const api = getApiSafe();
-  if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
+  if (!api) return { ok: false, error: await se('sdkNotInitialised') };
   try {
     // 1. Load the existing order — `updateOrderByMarkerAndId` demands the
     //    full `IOrderData` (formIdentifier + paymentAccountIdentifier +
@@ -1263,7 +1264,7 @@ export async function cancelOrderAction(
     if (isError(result)) return { ok: false, error: result.message ?? `HTTP ${result.statusCode}` };
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('network') };
   }
 }
 
@@ -1362,7 +1363,7 @@ export interface ProfileUpdate {
 export async function updateProfileAction(
   patch: ProfileUpdate,
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
 
   // 1) Fields living in the sign-in form (PUT /me)
@@ -1386,15 +1387,15 @@ export async function updateProfileAction(
     extrasOk = await upsertUserDataRecord(userIdentifier, extrasPatch);
   }
 
-  return signinOk && extrasOk ? { ok: true } : { ok: false, error: 'Update failed' };
+  return signinOk && extrasOk ? { ok: true } : { ok: false, error: await se('updateFailed') };
 }
 
 export async function updateAddressesAction(
   addresses: OeAddress[],
 ): Promise<{ ok: boolean; error?: string; addresses?: OeAddress[] }> {
-  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
-  if (!userIdentifier) return { ok: false, error: 'Missing user identifier' };
+  if (!userIdentifier) return { ok: false, error: await se('missingUserId') };
 
   const existing = await fetchUserAddresses();
   const existingById = new Map(
@@ -1440,7 +1441,7 @@ export async function updateAddressesAction(
 export async function updateSubscriptionsAction(
   subs: OeSubscriptions,
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
 
   // 1) email/sms remain mirrored in sign-in formData (they're declared there)
@@ -1455,15 +1456,15 @@ export async function updateSubscriptionsAction(
   // 2) All 7 toggles live in the subscription_management form-data record
   const formOk = userIdentifier ? await upsertSubsRecord(userIdentifier, subs) : false;
 
-  return signinOk && formOk ? { ok: true } : { ok: false, error: 'Update failed' };
+  return signinOk && formOk ? { ok: true } : { ok: false, error: await se('updateFailed') };
 }
 
 export async function updateConsentAction(
   consent: OeConsent,
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
-  if (!userIdentifier) return { ok: false, error: 'Missing user identifier' };
+  if (!userIdentifier) return { ok: false, error: await se('missingUserId') };
 
   // Both consents live in the user_data form. The cross-border radioButton
   // needs option values "true"/"false" configured in the CMS — otherwise OE
@@ -1473,7 +1474,7 @@ export async function updateConsentAction(
     consentCrossBorder: consent.crossBorder,
   });
 
-  return ok ? { ok: true } : { ok: false, error: 'Update failed' };
+  return ok ? { ok: true } : { ok: false, error: await se('updateFailed') };
 }
 
 // ── Cart / Wishlist ──────────────────────────────────────────────────────────
@@ -1699,7 +1700,7 @@ export type PreviewOrderResponse =
     };
 
 export async function previewOrderAction(input: PreviewOrderInput): Promise<PreviewOrderResponse> {
-  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured', missingProductIds: [] };
+  if (!isOneEntryEnabled) return { ok: false, error: await se('oneEntryEnvNotConfigured'), missingProductIds: [] };
 
   const signedIn = hasStoredSession();
   // One browser = one visitor, so the singleton can carry the guest id
@@ -1976,7 +1977,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       giftItems,
     };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error', missingProductIds: [] };
+    return { ok: false, error: err instanceof Error ? err.message : await se('network'), missingProductIds: [] };
   }
 }
 
@@ -2019,7 +2020,7 @@ export async function createOrderAction(
   | { ok: true; orderId: number; paymentUrl: string | null; paymentSessionError?: string }
   | { ok: false; error: string }
 > {
-  if (!isOneEntryEnabled) return { ok: false, error: 'OneEntry env not configured' };
+  if (!isOneEntryEnabled) return { ok: false, error: await se('oneEntryEnvNotConfigured') };
 
   const signedIn = hasStoredSession();
   const isGuest = !signedIn;
@@ -2033,7 +2034,7 @@ export async function createOrderAction(
   // anonymous record — safe to set on the instance here because a browser
   // serves exactly one visitor.
   const api = getApiSafe();
-  if (!api) return { ok: false, error: 'OneEntry SDK not initialised' };
+  if (!api) return { ok: false, error: await se('sdkNotInitialised') };
   if (isGuest && input.guestId) {
     api.Orders.setGuestId(input.guestId);
   }
@@ -2102,12 +2103,12 @@ export async function createOrderAction(
           if (typeof raw.paymentUrl === 'string') paymentUrl = raw.paymentUrl;
         }
       } catch (err) {
-        paymentSessionError = err instanceof Error ? err.message : 'Network error';
+        paymentSessionError = err instanceof Error ? err.message : await se('network');
         console.error('[createOrderAction] Stripe session network error:', paymentSessionError);
       }
     }
     return { ok: true, orderId, paymentUrl, paymentSessionError };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('network') };
   }
 }

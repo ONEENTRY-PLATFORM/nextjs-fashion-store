@@ -2,7 +2,7 @@ import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
 import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
-import type { Lang } from '../system-text';
+import { t, type Lang } from '../system-text';
 import type { Store } from '../../../app/data/stores';
 import { STORES as MOCK_STORES } from '../../../app/data/stores';
 import { REVALIDATE_STORES } from '../../isr';
@@ -52,10 +52,11 @@ const extractServices = (rawValue: unknown): string[] => {
 
 const padHM = (n: number): string => String(n).padStart(2, '0');
 
-const formatHours = (rawValue: unknown): { day: string; time: string }[] => {
+const formatHours = (rawValue: unknown, dayLabel: string): { day: string; time: string }[] => {
   // OneEntry stores opening hours as a timeInterval with recurring windows.
-  // We don't parse the full recurrence — just emit one "Mon – Sun · HH:MM – HH:MM"
-  // line per window.
+  // We don't parse the full recurrence — just emit one "<dayLabel> · HH:MM – HH:MM"
+  // line per window. `dayLabel` comes from the `store_location` set so the
+  // day-range wording is editable in the admin panel.
   if (!Array.isArray(rawValue) || rawValue.length === 0) return [];
   const out: { day: string; time: string }[] = [];
   for (const entry of rawValue) {
@@ -69,7 +70,7 @@ const formatHours = (rawValue: unknown): { day: string; time: string }[] => {
         const [from, to] = t as Array<{ hours?: number; minutes?: number }>;
         if (typeof from?.hours !== 'number' || typeof to?.hours !== 'number') continue;
         out.push({
-          day: 'Mon – Sun',
+          day: dayLabel,
           time: `${padHM(from.hours)}:${padHM(from.minutes ?? 0)} – ${padHM(to.hours)}:${padHM(to.minutes ?? 0)}`,
         });
       }
@@ -90,14 +91,14 @@ const extractLabel = (rawValue: unknown): { title: string; value: string } => {
   };
 };
 
-const normalize = (raw: RawPage, lang: Lang, mockFallback?: Store): Store => {
+const normalize = (raw: RawPage, lang: Lang, dayLabel: string, mockFallback?: Store): Store => {
   const attrs = raw.attributeValues ?? {};
   const v = (k: string): string => asString(attrs[k]?.value);
   const rawAddress = v('page_store_address');
   const { address, postcode } = splitAddressPostcode(rawAddress);
   const image = getImageUrl(attrs['page_store_picture']?.value);
   const services = extractServices(attrs['page_store_services']?.value);
-  const hours = formatHours(attrs['page_store_hours']?.value);
+  const hours = formatHours(attrs['page_store_hours']?.value, dayLabel);
   const label = extractLabel(attrs['page_store_lable']?.value);
   const mapUrl = v('page_store_directions');
   return {
@@ -120,9 +121,12 @@ const normalize = (raw: RawPage, lang: Lang, mockFallback?: Store): Store => {
 };
 
 /** `lang` is an explicit argument so it lands in the `unstable_cache` key —
- *  otherwise every locale would read whichever one warmed the entry first. */
+ *  otherwise every locale would read whichever one warmed the entry first.
+ *  `dayLabel` is passed in for the same reason *and* so that editing it in the
+ *  admin panel changes the cache key, surfacing the new wording immediately
+ *  instead of waiting out `REVALIDATE_STORES`. */
 const loadStoresCached = withTiming('loadStores', unstable_cache(
-  async (lang: Lang): Promise<Store[]> => {
+  async (lang: Lang, dayLabel: string): Promise<Store[]> => {
     // Mock fallback so all stores render even while a few OE store pages
     // remain partially filled. When every store page has full attributes
     // the MOCK_STORES fallback can be dropped.
@@ -134,7 +138,7 @@ const loadStoresCached = withTiming('loadStores', unstable_cache(
       const items = (Array.isArray(result) ? result : (result as { items?: RawPage[] } | null)?.items ?? []) as RawPage[];
       const sorted = items.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
       if (sorted.length === 0) return MOCK_STORES;
-      return sorted.map((raw, idx) => normalize(raw, lang, MOCK_STORES[idx]));
+      return sorted.map((raw, idx) => normalize(raw, lang, dayLabel, MOCK_STORES[idx]));
     } catch {
       return MOCK_STORES;
     }
@@ -149,5 +153,9 @@ const loadStoresCached = withTiming('loadStores', unstable_cache(
  * @returns {Promise<Store[]>} Stores, falling back to the mock list.
  */
 export async function loadStores(langArg?: Lang): Promise<Store[]> {
-  return loadStoresCached(langArg ?? (await currentCmsLocale()));
+  const lang = langArg ?? (await currentCmsLocale());
+  // Read outside `unstable_cache` so the label isn't pinned for the whole
+  // stores TTL; `getSystemSet` has its own 5-minute cache.
+  const dayLabel = await t('store_location', 'store_location_card_hours_day_default', 'Mon – Sun', lang);
+  return loadStoresCached(lang, dayLabel);
 }

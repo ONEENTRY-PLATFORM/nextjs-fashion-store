@@ -8,6 +8,7 @@
  * smuggle the session across the wire on every page view.
  */
 import { getApiSafe, hasStoredSession, isError } from '../index';
+import { se } from '../server-errors';
 
 export type TUserActivityType =
   | 'product_view'
@@ -46,21 +47,21 @@ export async function trackActivityAction(
   guestId?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const api = getApiSafe();
-  if (!api) return { ok: false, error: 'OneEntry env not configured' };
+  if (!api) return { ok: false, error: await se('oneEntryEnvNotConfigured') };
 
   const signedIn = hasStoredSession();
   if (!signedIn) {
-    if (!guestId) return { ok: false, error: 'No auth or guest id' };
+    if (!guestId) return { ok: false, error: await se('noAuthOrGuestId') };
     api.UserActivity.setGuestId(guestId);
   }
 
   try {
     const result = await api.UserActivity.trackUserActivity(input);
     if (isError(result)) {
-      return { ok: false, error: result.message ?? 'Track failed' };
+      return { ok: false, error: result.message ?? await se('trackFailed') };
     }
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('network') };
   }
 }

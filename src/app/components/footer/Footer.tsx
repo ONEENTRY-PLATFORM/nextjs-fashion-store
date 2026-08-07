@@ -47,6 +47,10 @@ export function Footer() {
 
   // Branding copy from the OE `footer` set — the fields marketing changes
   // without a release. `COMPANY_INFO` / `SUPPORT_ITEMS` remain the fallback.
+  const lCustomerSupport = useT('footer_customer_support',         FL.customerSupport);
+  const lNewsletterHead  = useT('footer_newsletter_heading',       FL.newsletterHeading);
+  const lPaymentMethods  = useT('footer_accepted_payment_methods', FL.acceptedPaymentMethods);
+  const lFollowUs        = useT('footer_follow_us',                FL.followUs);
   const lDescription = useT('footer_company_description', COMPANY_INFO.description);
   const lPhone       = useT('footer_support_phone',       COMPANY_INFO.phone);
   const lCopyright   = useT('footer_copyright',           COMPANY_INFO.copyright);
@@ -138,7 +142,7 @@ export function Footer() {
             <p className="text-xs text-white/50 mb-4 max-w-xs leading-relaxed" data-testid="footer-company-description">
               {lDescription}
             </p>
-            <p className="text-xs text-white/40 mb-2">{FL.customerSupport}</p>
+            <p className="text-xs text-white/40 mb-2">{lCustomerSupport}</p>
             <a href={`tel:${lPhone.replace(/\s/g, '')}`} className="text-sm font-medium hover:text-white/70 transition-colors" data-testid="footer-support-phone">
               {lPhone}
             </a>
@@ -170,7 +174,7 @@ export function Footer() {
       {/* Newsletter */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
-          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.newsletterHeading}</p>
+          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{lNewsletterHead}</p>
           <NewsletterForm />
         </div>
       </div>
@@ -178,7 +182,7 @@ export function Footer() {
       {/* Payment Methods */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
-          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.acceptedPaymentMethods}</p>
+          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{lPaymentMethods}</p>
           <div className="flex flex-wrap justify-center gap-3">
             {PAYMENT_METHOD_NAMES.map((name) => {
               const src = PAYMENT_ICON_SRC[name];
@@ -199,7 +203,7 @@ export function Footer() {
       {/* Social Media */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
-          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{FL.followUs}</p>
+          <p className="text-xs tracking-widest uppercase text-white/40 mb-4 text-center">{lFollowUs}</p>
           <div className="flex flex-wrap justify-center gap-4">
             {socialLinks.map(({ name, href }) => {
               const src = SOCIAL_ICON_SRC[name];

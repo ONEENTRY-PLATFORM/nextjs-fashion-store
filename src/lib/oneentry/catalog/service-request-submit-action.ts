@@ -1,6 +1,7 @@
 import { getApiSafe, hasStoredSession, isError } from '../index';
 import { readUserIdentifier } from '../auth/browser-session';
 import { DEFAULT_LOCALE } from '../locale';
+import { se } from '../server-errors';
 
 const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
 
@@ -28,11 +29,11 @@ export async function submitServiceRequestAction(
   input: SubmitServiceRequestInput,
 ): Promise<SubmitServiceRequestResult> {
   const api = getApiSafe();
-  if (!api) return { ok: false, error: 'OneEntry env not configured' };
+  if (!api) return { ok: false, error: await se('oneEntryEnvNotConfigured') };
   // The SDK singleton carries the session installed by `reDefine()`; a shopper
   // returning after the access token expired is refreshed proactively before
   // this request goes out, so no manual token rotation is needed here.
-  if (!hasStoredSession()) return { ok: false, error: 'Not authenticated' };
+  if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
 
   // OE date type wants a full date envelope, not a bare ISO string.
@@ -82,7 +83,7 @@ export async function submitServiceRequestAction(
       formData: formDataArray as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
     }, DEFAULT_LOCALE);
     if (isError(result)) {
-      return { ok: false, error: result.message ?? 'Form submit failed' };
+      return { ok: false, error: result.message ?? await se('formSubmitFailed') };
     }
     // Response shape: `{ formData: { id, ... } }` per SDK types, but real API
     // sometimes returns the record flat too. Handle both.
@@ -93,6 +94,6 @@ export async function submitServiceRequestAction(
     const id = raw.formData?.id ?? raw.id ?? 0;
     return { ok: true, id };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('network') };
   }
 }

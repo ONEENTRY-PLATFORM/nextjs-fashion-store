@@ -30,17 +30,18 @@ export type Dictionary = Record<string, string>;
  * API, and `getAttributeSetByMarker` per marker is the only complete path.
  *
  * The sets are fetched in parallel and each one is TTL-cached by
- * `getSystemSet`, so the cost is 41 concurrent requests once every five
+ * `getSystemSet`, so the cost is 42 concurrent requests once every five
  * minutes per server process, not per render.
  *
- * Note: `footer` is deliberately absent — the tenant has no such set and
- * `getAttributeSetByMarker('footer')` 404s. Footer copy therefore resolves to
- * its inline fallbacks, which is exactly what it did before. Add the marker
- * here once the set exists in the admin panel.
+ * Note: `product_specs` and `server_errors` are deliberately absent. Both are
+ * read server-side only — `loadProductSpecLabels` and `se()` call `getSystemSet`
+ * directly — so shipping them in the client dictionary would send copy no
+ * Client Component asks for.
  */
 export const DICTIONARY_SET_MARKERS = [
   // Layout chrome and shared UI
   'header',
+  'footer',
   'interface_controls',
   'product-card',
   'system_pages',

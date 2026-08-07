@@ -16,6 +16,8 @@ export const PAYMENT_PAGE_LABELS = {
   /** "Place Order · $123.45" — total is appended at runtime. */
   placeOrderPrefix: 'Place Order',
   securityBadges: ['SSL Encrypted', 'PCI DSS Compliant', '3D Secure'] as const,
+  /** Shown under a redirect-style method (Stripe) before the shopper leaves. */
+  stripeRedirectHint: "You'll be redirected to the payment provider's secure checkout to complete the payment.",
 
   // Gift + summary rows and the bonus-spend control.
   freeGift: 'Free gift',

@@ -11,6 +11,7 @@ import { ProductDetailPage } from '../../../../src/app/pages/ProductDetailPage';
 import { JsonLd } from '../../../../src/app/components/system/JsonLd';
 import { loadProductById, categoryPathToBreadcrumbs, categoryPathToViewAllHref } from '../../../../src/lib/oneentry/catalog/products';
 import { adaptCatalogProductToPdpProduct } from '../../../../src/lib/oneentry/catalog/adapt';
+import { loadProductSpecLabels } from '../../../../src/lib/oneentry/catalog/spec-labels';
 import { loadPurchaseBonusForProduct } from '../../../../src/lib/oneentry/discounts/purchase-bonus';
 import { ReviewsAsync } from '../../../../src/app/pages/product/ReviewsAsync';
 import { ReviewsSkeleton } from '../../../../src/app/pages/product/ReviewsSkeleton';
@@ -136,8 +137,11 @@ export default async function Page({ params }: Props) {
   // form-data round-trip to TTFB. Now the sub-title stars start at 0 on the
   // initial paint and hydrate from `<ReviewsAsync>` which streams the same
   // data — same UX after ~100 ms of streaming, hundreds of ms off TTFB.
+  // Specification row labels live in the `product_specs` OE set; the adapter
+  // takes them as an argument so it can stay synchronous for tests/previews.
+  const specLabels = oeProductRaw ? await loadProductSpecLabels() : null;
   const oeProduct: PdpCatalogProduct | null = oeProductRaw
-    ? adaptCatalogProductToPdpProduct(oeProductRaw)
+    ? adaptCatalogProductToPdpProduct(oeProductRaw, specLabels ?? undefined)
     : null;
   const product = oeProduct;
   // Build breadcrumb labels from the product's OE category path so each

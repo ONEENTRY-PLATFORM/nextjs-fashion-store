@@ -298,7 +298,9 @@ export function ProductDetailPage({
     ? activeVariant.images
     : catalogProduct?.galleryImages
       ?? (catalogProduct ? Array(5).fill(catalogProduct.image) : []);
-  const variantSku = activeVariant?.sku ?? catalogProduct?.specs?.find(s => s.label === 'SKU')?.value ?? PRODUCT_ACTION_LABELS.defaultSku;
+  // Match on the stable `key`, not the label — spec labels are editable in the
+  // admin panel, so a renamed "SKU" row would otherwise silently stop matching.
+  const variantSku = activeVariant?.sku ?? catalogProduct?.specs?.find(s => s.key === 'sku')?.value ?? PRODUCT_ACTION_LABELS.defaultSku;
   const activeDescriptionHtml = (activeVariant?.descriptionHtml && activeVariant.descriptionHtml.trim())
     ? activeVariant.descriptionHtml
     : catalogProduct?.descriptionHtml;
@@ -548,7 +550,7 @@ export function ProductDetailPage({
       name: dynamicName,
       brand: dynamicBrand,
       color: dynamicColors[selectedColor].name,
-      sku: catalogProduct?.specs?.find(s => s.label === 'SKU')?.value ?? productId,
+      sku: catalogProduct?.specs?.find(s => s.key === 'sku')?.value ?? productId,
       size: selectedSize,
       quantity: 1,
       price: dynamicPrice,
@@ -917,9 +919,13 @@ export function ProductDetailPage({
                 <AccordionSection title={lSpecsTitle} defaultOpen>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-0">
                     {productSpecs.map(spec => (
-                      <React.Fragment key={spec.label}>
-                        <div className="py-2.5 border-b border-gray-100">
-                          <p className="text-xs text-gray-400">{spec.label}</p>
+                      <React.Fragment key={spec.key ?? spec.label}>
+                        <div
+                          className="py-2.5 border-b border-gray-100"
+                          data-testid="product-spec-row"
+                          data-spec-key={spec.key}
+                        >
+                          <p className="text-xs text-gray-400" data-testid="product-spec-label">{spec.label}</p>
                           <p className="text-xs text-black mt-0.5 font-medium">{spec.value}</p>
                         </div>
                       </React.Fragment>

@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache';
 import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { se } from '../server-errors';
 
 export interface FormField {
   marker: string;
@@ -39,7 +40,7 @@ export async function submitForm(
   lang: Lang = DEFAULT_LOCALE,
 ): Promise<SubmitFormResult> {
   const api = getApiSafe();
-  if (!api) return { ok: false, error: 'OneEntry SDK is not configured on the server.' };
+  if (!api) return { ok: false, error: await se('sdkNotConfiguredServer', lang) };
   try {
     const result = await api.FormData.postFormsData(
       {

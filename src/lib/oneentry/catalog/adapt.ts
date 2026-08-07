@@ -144,8 +144,11 @@ export function newArrivalCategoryFor(p: CatalogProduct): NewArrivalCategoryId {
  * (reviews, sizeOptions.available per-size, colorStock, recommendedId,
  * specialOffersId) stay undefined and the UI uses its DEFAULT_* fallbacks.
  */
-export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogProduct {
-  const specs = buildProductSpecs(p);
+export function adaptCatalogProductToPdpProduct(
+  p: CatalogProduct,
+  specLabels?: Partial<Record<ProductSpecKey, string>>,
+): PdpCatalogProduct {
+  const specs = buildProductSpecs(p, specLabels);
   // Per-colour / per-size availability derived from the variant family. A
   // colour is available if at least one linked variant carrying it has
   // stock. Per-size availability is refined client-side by PDP based on the
@@ -231,20 +234,51 @@ export function adaptCatalogProductToPdpProduct(p: CatalogProduct): PdpCatalogPr
   };
 }
 
+/** Stable identifiers for the Specifications rows. The row *label* is editable
+ *  in the admin panel (`product_specs` set), so anything that needs to find a
+ *  specific row — the PDP's SKU lookup, for one — must match on `key`, never
+ *  on the rendered label. */
+export type ProductSpecKey =
+  | 'composition' | 'lining' | 'fit' | 'style' | 'season' | 'brandOrigin' | 'sku';
+
+/** Offline defaults, kept in sync with the `product_specs` OE set. */
+export const PRODUCT_SPEC_FALLBACK_LABELS: Record<ProductSpecKey, string> = {
+  composition: 'Composition',
+  lining: 'Lining',
+  fit: 'Fit',
+  style: 'Style',
+  season: 'Season',
+  brandOrigin: 'Brand origin',
+  sku: 'SKU',
+};
+
 /** Build a per-product Specifications list from OE attributes. Skips empty or
- *  whitespace-only values so empty fields don't leak into the PDP. */
-function buildProductSpecs(p: CatalogProduct): { label: string; value: string }[] {
-  const rows: Array<[string, string | undefined]> = [
-    ['Composition', p.materials.join(', ')],
-    ['Lining', p.liningMaterial],
-    ['Fit', p.fit],
-    ['Style', p.styles[0]],
-    ['Season', p.season],
-    ['Brand origin', p.country],
-    ['SKU', p.sku],
+ *  whitespace-only values so empty fields don't leak into the PDP.
+ *
+ * @param labels Admin-panel overrides from the `product_specs` set, loaded by
+ *               {@link loadProductSpecLabels}. Omit to render the defaults —
+ *               the adapter stays synchronous so callers that have no OE
+ *               access (tests, previews) keep working.
+ */
+function buildProductSpecs(
+  p: CatalogProduct,
+  labels?: Partial<Record<ProductSpecKey, string>>,
+): { key: ProductSpecKey; label: string; value: string }[] {
+  const rows: Array<[ProductSpecKey, string | undefined]> = [
+    ['composition', p.materials.join(', ')],
+    ['lining', p.liningMaterial],
+    ['fit', p.fit],
+    ['style', p.styles[0]],
+    ['season', p.season],
+    ['brandOrigin', p.country],
+    ['sku', p.sku],
   ];
   return rows
-    .map(([label, value]) => ({ label, value: (value ?? '').trim() }))
+    .map(([key, value]) => ({
+      key,
+      label: labels?.[key] || PRODUCT_SPEC_FALLBACK_LABELS[key],
+      value: (value ?? '').trim(),
+    }))
     .filter((row) => row.value.length > 0);
 }
 

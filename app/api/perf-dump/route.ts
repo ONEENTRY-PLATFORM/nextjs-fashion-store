@@ -5,6 +5,7 @@ import {
   clearTimings,
   readTimings,
 } from '../../../src/lib/oneentry/profiling';
+import { se } from '../../../src/lib/oneentry/server-errors';
 
 /**
  * Ops endpoint to snapshot the in-memory OE loader-timing ring buffer
@@ -46,11 +47,11 @@ function authorised(req: Request): boolean {
 
 export async function GET(req: Request) {
   if (!authorised(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: await se('unauthorized') }, { status: 401 });
   }
   if (!OE_PROFILE_ENABLED) {
     return NextResponse.json(
-      { error: 'OE_PROFILE is not enabled — set OE_PROFILE=1 in env and redeploy.' },
+      { error: await se('profileDisabled') },
       { status: 409 },
     );
   }
@@ -82,7 +83,7 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   if (!authorised(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: await se('unauthorized') }, { status: 401 });
   }
   clearTimings();
   return NextResponse.json({ ok: true, cleared: true });

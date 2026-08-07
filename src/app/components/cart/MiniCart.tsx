@@ -182,7 +182,7 @@ export function MiniCart() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
                           <p className="text-xs leading-tight font-semibold mb-0.5">{item.name}</p>
-                          <p className="text-xs text-gray-400">{item.color} · Size {item.size}</p>
+                          <p className="text-xs text-gray-400">{item.color} · {lSize} {item.size}</p>
                           {/* Multiply by qty like every other line-item
                               price surface (single items + bundle footer);
                               without it a bundle line showed the per-unit

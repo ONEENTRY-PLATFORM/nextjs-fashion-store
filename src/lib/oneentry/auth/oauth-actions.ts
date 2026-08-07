@@ -16,6 +16,7 @@
  */
 import { cookies } from 'next/headers';
 import { createRequestApi, getApiSafe, isError } from '../index';
+import { se } from '../server-errors';
 
 const GOOGLE_AUTH_MARKER = 'google';
 const GOOGLE_OAUTH_STATE_COOKIE = 'oe_google_oauth_state';
@@ -61,23 +62,23 @@ export async function getGoogleAuthUrlAction(
 ): Promise<GoogleOAuthStart | GoogleOAuthStartError> {
   const api = getApiSafe();
   if (!api) {
-    return { ok: false, error: 'OneEntry is not configured' };
+    return { ok: false, error: await se('oneEntryNotConfigured') };
   }
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   if (!clientId) {
-    return { ok: false, error: 'NEXT_PUBLIC_GOOGLE_CLIENT_ID is not set' };
+    return { ok: false, error: await se('googleClientIdMissing') };
   }
   if (!origin || !/^https?:\/\//i.test(origin)) {
-    return { ok: false, error: 'Invalid origin' };
+    return { ok: false, error: await se('invalidOrigin') };
   }
   try {
     const provider = await api.AuthProvider.getAuthProviderByMarker(GOOGLE_AUTH_MARKER);
     if (isError(provider)) {
-      return { ok: false, error: provider.message ?? 'Google provider not found' };
+      return { ok: false, error: provider.message ?? await se('googleProviderNotFound') };
     }
     const oauthAuthUrl = provider.config?.oauthAuthUrl;
     if (!oauthAuthUrl) {
-      return { ok: false, error: 'Provider missing oauthAuthUrl' };
+      return { ok: false, error: await se('providerMissingAuthUrl') };
     }
     const state = crypto.randomUUID();
     const url = new URL(oauthAuthUrl);
@@ -105,7 +106,7 @@ export async function getGoogleAuthUrlAction(
     jar.set(GOOGLE_OAUTH_RETURN_COOKIE, safeReturn, baseOpts);
     return { ok: true, url: url.toString() };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Google auth-url failed' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('googleAuthUrlFailed') };
   }
 }
 
@@ -140,7 +141,7 @@ export type GoogleExchangeResult =
 export async function exchangeGoogleCodeAction(
   ctx: GoogleCallbackContext,
 ): Promise<GoogleExchangeResult> {
-  if (!ctx.code) return { ok: false, error: 'Missing Google authorization code' };
+  if (!ctx.code) return { ok: false, error: await se('googleMissingCode') };
 
   const jar = (await cookies()) as unknown as CookieJar;
   const savedState = jar.get(GOOGLE_OAUTH_STATE_COOKIE)?.value ?? '';
@@ -150,13 +151,13 @@ export async function exchangeGoogleCodeAction(
   jar.delete(GOOGLE_OAUTH_RETURN_COOKIE);
 
   if (!savedState || savedState !== ctx.state) {
-    return { ok: false, error: 'OAuth state mismatch (possible CSRF)' };
+    return { ok: false, error: await se('oauthStateMismatch') };
   }
 
   // Per-request instance carrying the browser's fingerprint — never the
   // shared singleton (its state is visible to every concurrent visitor).
   const api = createRequestApi({ deviceMetadata: ctx.deviceMetadata });
-  if (!api) return { ok: false, error: 'OneEntry is not configured' };
+  if (!api) return { ok: false, error: await se('oneEntryNotConfigured') };
 
   try {
     const body = { code: ctx.code, redirect_uri: absoluteCallbackUri(ctx.origin) };
@@ -165,7 +166,7 @@ export async function exchangeGoogleCodeAction(
       body as unknown as Parameters<typeof api.AuthProvider.oauth>[1],
     );
     if (isError(result)) {
-      return { ok: false, error: result.message ?? 'Google sign-in rejected by OneEntry' };
+      return { ok: false, error: result.message ?? await se('googleRejected') };
     }
     const entity = result as {
       userIdentifier?: string;
@@ -173,7 +174,7 @@ export async function exchangeGoogleCodeAction(
       refreshToken?: string;
     };
     if (!entity.accessToken || !entity.refreshToken) {
-      return { ok: false, error: 'OneEntry returned an incomplete session' };
+      return { ok: false, error: await se('incompleteSession') };
     }
     return {
       ok: true,
@@ -183,6 +184,6 @@ export async function exchangeGoogleCodeAction(
       returnTo: returnTo.startsWith('/') ? returnTo : '/',
     };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Google sign-in failed' };
+    return { ok: false, error: err instanceof Error ? err.message : await se('googleFailed') };
   }
 }

@@ -4,6 +4,8 @@ export interface SizeOption {
 }
 
 export interface ProductSpec {
+  /** Stable row identifier — match on this, never on the editable `label`. */
+  key?: string;
   label: string;
   value: string;
 }
