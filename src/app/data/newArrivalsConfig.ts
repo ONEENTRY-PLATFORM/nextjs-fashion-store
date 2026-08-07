@@ -1,13 +1,17 @@
-import { NEW_ARRIVALS_SORT_LABELS as SL, NEW_ARRIVALS_CATEGORY_LABELS as CL } from './newArrivalsLabels';
+import { NEW_ARRIVALS_SORT_LABELS as SL } from './newArrivalsLabels';
 
+/** Sort key ↔ the dictionary entry that names it. The `value` is the sort key
+ *  sent to OE and must never change; only `labelKey` maps to editable copy. */
 export const NEW_ARRIVALS_SORT_OPTIONS = [
-  { label: SL.newestFirst,    value: 'newest' },
-  { label: SL.priceLowToHigh, value: 'price_asc' },
-  { label: SL.priceHighToLow, value: 'price_desc' },
-  { label: SL.popularity,     value: 'popularity' },
-  { label: SL.brandAZ,        value: 'brand_az' },
-];
+  { labelKey: 'newestFirst',    label: SL.newestFirst,    value: 'newest' },
+  { labelKey: 'priceLowToHigh', label: SL.priceLowToHigh, value: 'price_asc' },
+  { labelKey: 'priceHighToLow', label: SL.priceHighToLow, value: 'price_desc' },
+  { labelKey: 'popularity',     label: SL.popularity,     value: 'popularity' },
+  { labelKey: 'brandAZ',        label: SL.brandAZ,        value: 'brand_az' },
+] as const;
 
-export const NEW_ARRIVALS_CATEGORIES = [CL.all, CL.clothing, CL.shoes, CL.accessories] as const;
+/** Filter ids — the display copy is `NEW_ARRIVALS_CATEGORY_LABELS[id]`, which
+ *  an editor can reword without breaking the filter. */
+export const NEW_ARRIVALS_CATEGORIES = ['all', 'clothing', 'shoes', 'accessories'] as const;
 
 export type NewArrivalCategory = (typeof NEW_ARRIVALS_CATEGORIES)[number];

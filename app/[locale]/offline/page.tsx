@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react';
-import { OFFLINE_PAGE_LABELS as L } from '../../src/app/data/offlinePageLabels';
+import { OFFLINE_PAGE_LABELS as L_FALLBACK } from '../../src/app/data/offlinePageLabels';
+import { useSystemPagesDict } from '../../src/lib/oneentry/labels/SystemPagesLabelsContext';
 import { useInterfaceControlsT } from '../../src/lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 const CHECK_INTERVAL = 10; // seconds
 
 export default function OfflinePage() {
+  const L = useSystemPagesDict('offline_', L_FALLBACK);
   const [countdown, setCountdown] = useState(CHECK_INTERVAL);
   const [checking, setChecking] = useState(false);
   const [dots, setDots] = useState('');

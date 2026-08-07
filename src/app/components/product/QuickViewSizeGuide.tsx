@@ -1,10 +1,20 @@
 'use client'
 import { X } from 'lucide-react';
 import { SIZE_GUIDE_LABELS as L } from '../../data/productPageLabels';
+import { parseSizeTable, serializeSizeTable } from '../../data/sizeGuide';
+import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
 
-const SIZE_GUIDE_ROWS = L.rows;
+/** Quick View shows the metric chart: `size|chest|waist|hips`. */
+const QUICK_VIEW_COLUMNS = ['size', 'chest', 'waist', 'hips'] as const;
+type QuickViewRow = Record<(typeof QUICK_VIEW_COLUMNS)[number], string>;
+const QUICK_VIEW_FALLBACK = L.rows as readonly QuickViewRow[];
 
 export function QuickViewSizeGuide({ onClose }: { onClose: () => void }) {
+  const SIZE_GUIDE_ROWS = parseSizeTable<QuickViewRow>(
+    usePdpT('size-guide', 'size_guide_quick_view_rows', serializeSizeTable(QUICK_VIEW_FALLBACK, QUICK_VIEW_COLUMNS)),
+    QUICK_VIEW_COLUMNS,
+    QUICK_VIEW_FALLBACK,
+  );
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50" role="presentation" onClick={onClose}>
       <div className="bg-white w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="size-guide-title" onClick={(e) => e.stopPropagation()}>

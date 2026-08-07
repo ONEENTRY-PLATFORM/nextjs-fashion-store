@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { FULLSCREEN_VIEWER_LABELS as L } from '../../data/productPageLabels';
+import { FULLSCREEN_VIEWER_LABELS as L_FALLBACK } from '../../data/productPageLabels';
+import { usePdpDict } from '../../../lib/oneentry/labels/PdpLabelsContext';
 
 interface FullscreenViewerProps {
   images: string[];
@@ -12,6 +13,7 @@ interface FullscreenViewerProps {
 }
 
 export function FullscreenViewer({ images, startIndex, onClose, productName }: FullscreenViewerProps) {
+  const L = usePdpDict('product_card_actions', 'product_card_actions_viewer_', L_FALLBACK);
   const [current, setCurrent] = useState(startIndex);
   const containerRef = useRef<HTMLDivElement>(null);
   const wheelLock = useRef(false);

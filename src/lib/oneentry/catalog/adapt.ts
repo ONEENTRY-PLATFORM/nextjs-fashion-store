@@ -104,24 +104,38 @@ function genderFromCategoryPath(path: string | undefined): 'W' | 'M' | '' {
   return '';
 }
 
+/**
+ * Sale-page bucket ids.
+ *
+ * Ids, not display labels: the bucket is a filter value that has to survive an
+ * editor renaming the category in the admin panel. The matching copy lives in
+ * `SALE_CATEGORY_LABELS` (OE set `sale_page`), keyed by exactly these ids.
+ */
+export type SaleCategoryId =
+  | 'womenClothing' | 'menClothing' | 'womenShoes' | 'menShoes'
+  | 'bags' | 'accessories' | 'other';
+
 /** Infer the Sale-page bucket from an OneEntry category path. */
-export function saleCategoryFor(p: CatalogProduct): string {
+export function saleCategoryFor(p: CatalogProduct): SaleCategoryId {
   const path = (p.categories[0] ?? '').toLowerCase();
-  if (path.startsWith('/women/women_clothing')) return "Women's Clothing";
-  if (path.startsWith('/men/men_clothing')) return "Men's Clothing";
-  if (path.startsWith('/women/women_shoes')) return "Women's Shoes";
-  if (path.startsWith('/men/men_shoes')) return "Men's Shoes";
-  if (path.startsWith('/women/women_bags') || path.startsWith('/men/men_bags')) return 'Bags';
-  if (path.startsWith('/women/women_accessories') || path.startsWith('/men/men_accessories')) return 'Accessories';
-  return 'Other';
+  if (path.startsWith('/women/women_clothing')) return 'womenClothing';
+  if (path.startsWith('/men/men_clothing')) return 'menClothing';
+  if (path.startsWith('/women/women_shoes')) return 'womenShoes';
+  if (path.startsWith('/men/men_shoes')) return 'menShoes';
+  if (path.startsWith('/women/women_bags') || path.startsWith('/men/men_bags')) return 'bags';
+  if (path.startsWith('/women/women_accessories') || path.startsWith('/men/men_accessories')) return 'accessories';
+  return 'other';
 }
 
+/** New-Arrivals bucket ids — see the note on `SaleCategoryId`. */
+export type NewArrivalCategoryId = 'clothing' | 'shoes' | 'accessories';
+
 /** Infer the New-Arrivals bucket from an OneEntry category path. */
-export function newArrivalCategoryFor(p: CatalogProduct): 'Clothing' | 'Shoes' | 'Accessories' {
+export function newArrivalCategoryFor(p: CatalogProduct): NewArrivalCategoryId {
   const path = (p.categories[0] ?? '').toLowerCase();
-  if (path.includes('_shoes')) return 'Shoes';
-  if (path.includes('_bags') || path.includes('_accessories')) return 'Accessories';
-  return 'Clothing';
+  if (path.includes('_shoes')) return 'shoes';
+  if (path.includes('_bags') || path.includes('_accessories')) return 'accessories';
+  return 'clothing';
 }
 
 /**

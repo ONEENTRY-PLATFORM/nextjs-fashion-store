@@ -1,9 +1,13 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { SIZE_GUIDE_DATA } from '../../data/sizeGuide';
-import { SIZE_GUIDE_MODAL_LABELS as L } from '../../data/productPageLabels';
+import { SIZE_GUIDE_DATA, parseSizeGuide, serializeSizeGuide } from '../../data/sizeGuide';
+import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '../../data/productPageLabels';
+import { usePdpDict, usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
 
 export function SizeGuideModal({ onClose }: { onClose: () => void }) {
+  const L = usePdpDict('size-guide', 'size_guide_', L_FALLBACK);
+  // The chart itself is editable too — one row per line, `size|us|bust|waist|hip`.
+  const rows = parseSizeGuide(usePdpT('size-guide', 'size_guide_rows', serializeSizeGuide(SIZE_GUIDE_DATA)));
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -34,7 +38,7 @@ export function SizeGuideModal({ onClose }: { onClose: () => void }) {
                 </tr>
               </thead>
               <tbody>
-                {SIZE_GUIDE_DATA.map((row, i) => (
+                {rows.map((row, i) => (
                   <tr key={row.size} className={i % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'}>
                     <td className="px-4 py-3 text-xs border border-gray-200 font-semibold">{row.size}</td>
                     <td className="px-4 py-3 text-xs text-gray-600 border border-gray-200">{row.us}</td>

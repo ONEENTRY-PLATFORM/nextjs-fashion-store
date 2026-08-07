@@ -1,5 +1,4 @@
 import {
-  SALE_CATEGORY_LABELS as CAT,
   SALE_DISCOUNT_LABELS as DL,
   SALE_COLOR_LABELS as COL,
   SALE_SORT_LABELS as SL,
@@ -7,14 +6,15 @@ import {
 
 export const SALE_END_DATE = new Date('2026-03-15T23:59:59').getTime();
 
+/** Filter ids — display copy is `SALE_CATEGORY_LABELS[id]` (OE set `sale_page`). */
 export const SALE_CATEGORIES = [
-  CAT.all,
-  CAT.womenClothing,
-  CAT.womenShoes,
-  CAT.menClothing,
-  CAT.menShoes,
-  CAT.bags,
-  CAT.accessories,
+  'all',
+  'womenClothing',
+  'womenShoes',
+  'menClothing',
+  'menShoes',
+  'bags',
+  'accessories',
 ] as const;
 
 export type SaleCategory = (typeof SALE_CATEGORIES)[number];

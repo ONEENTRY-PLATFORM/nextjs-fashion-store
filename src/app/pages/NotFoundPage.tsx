@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { ArrowRight } from 'lucide-react';
-import { NOT_FOUND_LABELS as L } from '../data/notFoundLabels';
+import { NOT_FOUND_LABELS as L_FALLBACK } from '../data/notFoundLabels';
+import { useSystemPagesDict } from '../../lib/oneentry/labels/SystemPagesLabelsContext';
 
 export function NotFoundPage() {
+  const L = useSystemPagesDict('not_found_', L_FALLBACK);
   const router = useRouter();
   useEffect(() => { window.scrollTo(0, 0); }, []);
 

@@ -41,11 +41,12 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
       <div className="px-5 pb-5 pt-2">
         <div className="flex flex-wrap gap-2">
           {group.options.map(opt => {
-            const isSelected = selected.includes(opt.label);
+            const optValue = opt.value ?? opt.label;
+            const isSelected = selected.includes(optValue);
             return (
               <button
-                key={opt.label}
-                onClick={() => onToggleFilter(group.key, opt.label)}
+                key={optValue}
+                onClick={() => onToggleFilter(group.key, optValue)}
                 className={`focus-visible:outline-none transition-all min-w-13 min-h-11 px-2.5 py-1 text-[13px] border-[1.5px] rounded-none flex flex-col items-center justify-center leading-[1.1] ${
                   isSelected
                     ? 'font-bold border-black bg-black text-white'
@@ -89,10 +90,10 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-0">
           {visible.map(option => {
-            const isSelected = selected.includes(option.label);
+            const isSelected = selected.includes(option.value ?? option.label);
             return (
               <label key={option.label} className={rowClass}>
-                <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.label)} className="sr-only" />
+                <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.value ?? option.label)} className="sr-only" />
                 <CheckboxUI checked={isSelected} />
                 <span className={optionTextClass}>
                   {option.label}
@@ -115,10 +116,10 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
       <div className="px-5 pb-5 pt-2">
         <div className="grid grid-cols-2 gap-x-4 gap-y-0">
           {group.options.map(option => {
-            const isSelected = selected.includes(option.label);
+            const isSelected = selected.includes(option.value ?? option.label);
             return (
               <label key={option.label} className={rowClass}>
-                <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.label)} className="sr-only" />
+                <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.value ?? option.label)} className="sr-only" />
                 <CheckboxUI checked={isSelected} />
                 <ColorSwatch color={option.color} selected={isSelected} size={22} />
                 <span className={optionTextClass}>
@@ -138,10 +139,10 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
     <div className="px-5 pb-5 pt-2">
       <div className="grid grid-cols-2 gap-x-4 gap-y-0">
         {group.options.map(option => {
-          const isSelected = selected.includes(option.label);
+          const isSelected = selected.includes(option.value ?? option.label);
           return (
             <label key={option.label} className={rowClass}>
-              <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.label)} className="sr-only" />
+              <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.value ?? option.label)} className="sr-only" />
               <CheckboxUI checked={isSelected} />
               <span className={optionTextClass}>
                 {option.label}

@@ -27,8 +27,8 @@ import { CatalogAccentContext } from '../context/CatalogAccentContext';
 import { PillDropdown, ColorPillDropdown } from './sale/SaleFilterDropdowns';
 import { useCountdown } from './sale/SaleCountdown';
 import { SaleHero } from './sale/SaleHero';
-import { SALE_PAGE_LABELS as L, SALE_CATEGORY_LABELS as CAT } from '../data/salePageLabels';
-import { useSalePageT } from '../../lib/oneentry/labels/SalePageLabelsContext';
+import { SALE_PAGE_LABELS as L, SALE_CATEGORY_LABELS as CAT_FALLBACK } from '../data/salePageLabels';
+import { useSalePageT, useSalePageDict } from '../../lib/oneentry/labels/SalePageLabelsContext';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { SalePageFromCms } from '../../lib/oneentry/catalog/sale-page';
@@ -94,7 +94,10 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
   const viewCols = (catalogState?.viewCols ?? 4) as 3 | 4;
 
   // Derived filter state
-  const activeCategory = (selectedFilters['category']?.[0] ?? CAT.all) as SaleCategory;
+  // Category ids drive the filter; only the wording is editable, so renaming a
+  // category in the admin panel cannot orphan the products in that bucket.
+  const CAT = useSalePageDict('sale_page_category_', CAT_FALLBACK);
+  const activeCategory = (selectedFilters['category']?.[0] ?? 'all') as SaleCategory;
   // Memoised so the derived arrays keep a stable identity between renders —
   // they feed the `filtered` / `activeChips` memos below.
   const selDiscount = useMemo(() => selectedFilters['discount'] ?? EMPTY_VALUES, [selectedFilters]);
@@ -108,7 +111,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
   const toggleBrand = useCallback((v: string) => dispatch(dispatchToggleFilter({ catalogKey: SALE_KEY, filterKey: 'brand', value: v })), [dispatch]);
   const clearFilter = (key: string) => dispatch(setFilters({ catalogKey: SALE_KEY, filters: { ...selectedFilters, [key]: [] } }));
   const setActiveCategory = (cat: SaleCategory) => {
-    dispatch(setFilters({ catalogKey: SALE_KEY, filters: { ...selectedFilters, category: cat === CAT.all ? [] : [cat] } }));
+    dispatch(setFilters({ catalogKey: SALE_KEY, filters: { ...selectedFilters, category: cat === 'all' ? [] : [cat] } }));
   };
 
   const totalActive = selDiscount.length + selSize.length + selColor.length + selBrand.length;
@@ -153,7 +156,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
      page. `?gender=women` already narrowed the source list on the server,
      so buckets are guaranteed to reflect real inventory (no dead options). */
   const categoryScoped = useMemo(
-    () => (activeCategory === CAT.all ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory)),
+    () => (activeCategory === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === activeCategory)),
     [PRODUCTS, activeCategory],
   );
   const discountOptions = useMemo(() => {
@@ -220,14 +223,14 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
 
   /* ── Mobile filter groups wired to MobileFilterPanel ── */
   const mobileSelectedFilters: Record<string, string[]> = {
-    category: activeCategory === CAT.all ? [] : [activeCategory],
+    category: activeCategory === 'all' ? [] : [activeCategory],
     discount: selDiscount,
     size: selSize,
     color: selColor,
     brand: selBrand,
   };
   const mobileFilterGroups = [
-    { key: 'category', label: L.filterCategoryHeading, type: 'checkbox' as const, options: SALE_CATEGORIES.filter(c => c !== CAT.all).map(c => ({ label: c })) },
+    { key: 'category', label: L.filterCategoryHeading, type: 'checkbox' as const, options: SALE_CATEGORIES.filter(c => c !== 'all').map(c => ({ label: CAT[c], value: c })) },
     { key: 'discount', label: L.filterDiscountHeading, type: 'checkbox' as const, options: discountOptions.map(o => ({ label: o })) },
     { key: 'size', label: L.filterSizeHeading, type: 'size_chips' as const, options: sizeOptions.map(o => ({ label: o })) },
     { key: 'color', label: L.filterColorHeading, type: 'color' as const, options: colorOptions },
@@ -300,11 +303,11 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
                 // → only Women's tabs, plus gender-neutral Bags / Accessories
                 // and the "All" umbrella). No `gender` = show everything.
                 if (!gender) return true;
-                if (gender === 'W' && (cat === CAT.menClothing || cat === CAT.menShoes)) return false;
-                if (gender === 'M' && (cat === CAT.womenClothing || cat === CAT.womenShoes)) return false;
+                if (gender === 'W' && (cat === 'menClothing' || cat === 'menShoes')) return false;
+                if (gender === 'M' && (cat === 'womenClothing' || cat === 'womenShoes')) return false;
                 return true;
               }).map(cat => {
-                const count = cat === CAT.all ? PRODUCTS.length : PRODUCTS.filter(p => p.category === cat).length;
+                const count = cat === 'all' ? PRODUCTS.length : PRODUCTS.filter(p => p.category === cat).length;
                 return (
                   <button
                     key={cat}
@@ -316,8 +319,8 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
                         : 'text-gray-500 border-b-2 border-transparent hover:text-black',
                     ].join(' ')}
                   >
-                    {cat}
-                    {cat !== CAT.all && (
+                    {CAT[cat]}
+                    {cat !== 'all' && (
                       <span className="ml-1.5 text-gray-400 text-[10px]">({count})</span>
                     )}
                   </button>
@@ -462,7 +465,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
           <div className="flex items-center flex-wrap gap-2">
             <p className="text-xs text-gray-500 tracking-wider uppercase">
               <span className="text-black font-semibold">{filtered.length}</span> {lItemsOnSale}
-              {activeCategory !== CAT.all && <span className="ml-2 text-gray-400">— {activeCategory}</span>}
+              {activeCategory !== 'all' && <span className="ml-2 text-gray-400">— {CAT[activeCategory]}</span>}
             </p>
             {/* Active filter chips */}
             {activeChips.map(chip => (

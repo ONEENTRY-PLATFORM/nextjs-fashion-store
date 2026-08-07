@@ -22,6 +22,8 @@ import type { InterfaceControlsDict } from '../../../lib/oneentry/labels/interfa
 import { YourBagLabelsProvider } from '../../../lib/oneentry/labels/YourBagLabelsContext'
 import type { YourBagDict } from '../../../lib/oneentry/labels/your-bag-types'
 import { FooterMenuProvider } from '../../../lib/oneentry/menus/FooterMenuContext'
+import { SystemPagesLabelsProvider } from '../../../lib/oneentry/labels/SystemPagesLabelsContext'
+import type { SystemPagesDict } from '../../../lib/oneentry/labels/system-pages-types'
 import { useSignInT } from '../../../lib/oneentry/labels/SignInLabelsContext';
 import { OAUTH_ERROR_LABELS } from '../../data/authLabels';
 import { HeaderMenuProvider } from '../../../lib/oneentry/menus/HeaderMenuContext'
@@ -108,6 +110,7 @@ export function Providers({
   interfaceControlsLabels = {},
   yourBagLabels = {},
   footerMenu = [],
+  systemPagesLabels = {},
   headerMenu = [],
   signUpFormSchema,
   forms = {},
@@ -122,6 +125,7 @@ export function Providers({
   interfaceControlsLabels?: InterfaceControlsDict;
   yourBagLabels?: YourBagDict;
   footerMenu?: MenuPageNode[];
+  systemPagesLabels?: SystemPagesDict;
   headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
   /** OE form content keyed by marker — layout-wide forms only (the footer
@@ -178,6 +182,7 @@ export function Providers({
                         <FormPlaceholdersProvider forms={forms}>
                           <HeaderLabelsProvider data={{ labels: headerLabels, locales: cmsLocales }}>
                             <FooterLabelsProvider data={footerLabels}>
+                              <SystemPagesLabelsProvider data={systemPagesLabels}>
                               {/* Both of these read label contexts, so they
                                    must sit *inside* the providers — mounted
                                    above them they silently rendered the
@@ -195,6 +200,7 @@ export function Providers({
                               </Suspense>
                               <CartUnavailableNotice />
                               <ErrorBoundary>{children}</ErrorBoundary>
+                              </SystemPagesLabelsProvider>
                             </FooterLabelsProvider>
                           </HeaderLabelsProvider>
                         </FormPlaceholdersProvider>

@@ -9,6 +9,7 @@ import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
 import { ColsIcon, SortOptionBtn as SortOption } from '../components/catalog/CatalogTemplate.parts';
 import { ChevronDown } from 'lucide-react';
 import { NEW_ARRIVALS_SORT_OPTIONS, NEW_ARRIVALS_CATEGORIES, type NewArrivalCategory } from '../data/newArrivalsConfig';
+import { NEW_ARRIVALS_SORT_LABELS } from '../data/newArrivalsLabels';
 import { NewArrivalsHero } from './new/NewArrivalsHero';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -17,9 +18,9 @@ import {
   setViewCols as dispatchSetViewCols,
 } from '../store/catalogSlice';
 import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
-import { NEW_ARRIVALS_PAGE_LABELS as L, NEW_ARRIVALS_CATEGORY_LABELS as NACL } from '../data/newArrivalsLabels';
+import { NEW_ARRIVALS_PAGE_LABELS as L, NEW_ARRIVALS_CATEGORY_LABELS as NACL_FALLBACK } from '../data/newArrivalsLabels';
 import { CURRENCY } from '../data/currencyConfig';
-import { useNewArrivalsPageT } from '../../lib/oneentry/labels/NewArrivalsPageLabelsContext';
+import { useNewArrivalsPageT, useNewArrivalsPageDict } from '../../lib/oneentry/labels/NewArrivalsPageLabelsContext';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { NewArrivalsPageFromCms } from '../../lib/oneentry/catalog/new-arrivals-page';
@@ -44,9 +45,12 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
   const sortBy = catalogState?.sortBy ?? 'newest';
   const viewCols = (catalogState?.viewCols ?? 4) as 3 | 4;
 
-  const activeCategory = (selectedFilters['category']?.[0] ?? NACL.all) as NewArrivalCategory;
+  // Category ids drive the filter; the wording comes from the OE `sale`-style
+  // set, so renaming "Clothing" in the admin panel cannot break matching.
+  const NACL = useNewArrivalsPageDict('new_arrivals_page_category_', NACL_FALLBACK);
+  const activeCategory = (selectedFilters['category']?.[0] ?? 'all') as NewArrivalCategory;
   const setActiveCategory = (cat: NewArrivalCategory) => {
-    dispatch(setFilters({ catalogKey: NEW_KEY, filters: { ...selectedFilters, category: cat === NACL.all ? [] : [cat] } }));
+    dispatch(setFilters({ catalogKey: NEW_KEY, filters: { ...selectedFilters, category: cat === 'all' ? [] : [cat] } }));
   };
 
   // Gender scope comes from `?gender=` (set by the header switch). Reading it
@@ -81,7 +85,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
 
   /* Filtered + sorted products */
   const filtered =
-    activeCategory === NACL.all
+    activeCategory === 'all'
       ? ALL_PRODUCTS
       : ALL_PRODUCTS.filter((p) => p.category === activeCategory);
 
@@ -94,7 +98,14 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
     return 0; // newest / popularity keep insertion order
   });
 
-  const activeSortLabel = NEW_ARRIVALS_SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? L.sortFallback;
+  // Sort keys stay in code (they are OE query values); only their wording is
+  // editable — `new_arrivals_page_sort_<key>`.
+  const sortLabels = useNewArrivalsPageDict('new_arrivals_page_sort_', NEW_ARRIVALS_SORT_LABELS);
+  const sortOptions = useMemo(
+    () => NEW_ARRIVALS_SORT_OPTIONS.map((o) => ({ value: o.value, label: sortLabels[o.labelKey] })),
+    [sortLabels],
+  );
+  const activeSortLabel = sortOptions.find((o) => o.value === sortBy)?.label ?? L.sortFallback;
   const gridCols = viewCols === 4 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3';
 
   return (
@@ -140,8 +151,8 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                         : 'text-gray-500 border-b-2 border-transparent hover:text-black',
                     ].join(' ')}
                   >
-                    {cat}
-                    {cat !== NACL.all && (
+                    {NACL[cat]}
+                    {cat !== 'all' && (
                       <span className="ml-1.5 text-gray-400 text-[10px]">
                         ({ALL_PRODUCTS.filter((p) => p.category === cat).length})
                       </span>
@@ -189,7 +200,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                   </button>
                   {sortOpen && (
                     <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-45 rounded-none">
-                      {NEW_ARRIVALS_SORT_OPTIONS.map((opt) => (
+                      {sortOptions.map((opt) => (
                         <SortOption
                           key={opt.value}
                           label={opt.label}
@@ -240,8 +251,8 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
         <div className="max-w-384 mx-auto px-4 lg:px-8 py-4 flex items-center justify-between">
           <p className="text-xs text-gray-500 tracking-wider uppercase">
             {sorted.length} {sorted.length === 1 ? L.resultSingular : lResults}
-            {activeCategory !== NACL.all && (
-              <span className="ml-2 text-gray-400">— {activeCategory}</span>
+            {activeCategory !== 'all' && (
+              <span className="ml-2 text-gray-400">— {NACL[activeCategory]}</span>
             )}
           </p>
           {/* Mobile sort label */}

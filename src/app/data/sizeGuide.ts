@@ -1,4 +1,5 @@
-interface SizeRow {
+/** Index signature so the row satisfies the generic table helpers below. */
+export interface SizeRow extends Record<string, string> {
   size: string;
   us: string;
   bust: string;
@@ -13,3 +14,53 @@ export const SIZE_GUIDE_DATA: SizeRow[] = [
   { size: 'L',  us: '12-14', bust: '37-39"', waist: '30-32"', hip: '39-41"' },
   { size: 'XL', us: '16-18', bust: '40-42"', waist: '33-35"', hip: '42-44"' },
 ];
+
+/** Column order of the pipe-separated rows an editor types in the admin panel. */
+const SIZE_GUIDE_COLUMNS = ['size', 'us', 'bust', 'waist', 'hip'] as const;
+
+/**
+ * Parse a CMS-authored measurement table.
+ *
+ * One row per line, columns separated by `|`, in the order given by `columns`:
+ *
+ *     XS|0-2|31-32"|24-25"|33-34"
+ *     S|4-6|33-34"|26-27"|35-36"
+ *
+ * A pipe-separated string rather than JSON on purpose: OneEntry drops a whole
+ * attribute set from its public read when any value contains `{` or `}`, so a
+ * JSON table would take the rest of the set down with it.
+ *
+ * A malformed line is dropped, and an input that yields no usable row falls
+ * back to `fallback` — a shopper is better served by slightly stale
+ * measurements than by an empty size guide.
+ */
+export function parseSizeTable<T extends Record<string, string>>(
+  raw: string | undefined | null,
+  columns: readonly (keyof T & string)[],
+  fallback: readonly T[],
+): readonly T[] {
+  if (!raw) return fallback;
+  const rows = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split('|').map((cell) => cell.trim()))
+    .filter((cells) => cells.length === columns.length && cells.every(Boolean))
+    .map((cells) => Object.fromEntries(columns.map((c, i) => [c, cells[i]])) as T);
+  return rows.length > 0 ? rows : fallback;
+}
+
+/** Serialise a table back to the editable form — used to seed the CMS value. */
+export function serializeSizeTable<T extends Record<string, string>>(
+  rows: readonly T[],
+  columns: readonly (keyof T & string)[],
+): string {
+  return rows.map((r) => columns.map((c) => r[c]).join('|')).join('\n');
+}
+
+/** The PDP size guide (inches, with US sizes). */
+export const parseSizeGuide = (raw: string | undefined | null): readonly SizeRow[] =>
+  parseSizeTable<SizeRow>(raw, SIZE_GUIDE_COLUMNS, SIZE_GUIDE_DATA);
+
+export const serializeSizeGuide = (rows: readonly SizeRow[]): string =>
+  serializeSizeTable(rows, SIZE_GUIDE_COLUMNS);

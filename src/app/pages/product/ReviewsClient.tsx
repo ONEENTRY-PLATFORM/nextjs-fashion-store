@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ProductReview } from '../../components/product/ProductCard';
 import { useAuth } from '../../context/AuthContext';
 import { canReviewProduct } from '../../utils/review-eligibility';
-import { PRODUCT_REVIEWS_LABELS as L } from '../../data/productPageLabels';
+import { PRODUCT_REVIEWS_LABELS as L_FALLBACK } from '../../data/productPageLabels';
+import { usePdpDict } from '../../../lib/oneentry/labels/PdpLabelsContext';
 import { ProductReviewsSection } from './ProductReviewsSection';
 import { WriteReviewModal } from './WriteReviewModal';
 
@@ -23,6 +24,7 @@ export function ReviewsClient({
   productId: number;
   reviews: ProductReview[];
 }) {
+  const L = usePdpDict('customer-reviews', 'customer_reviews_', L_FALLBACK);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showPurchaseNotice, setShowPurchaseNotice] = useState(false);

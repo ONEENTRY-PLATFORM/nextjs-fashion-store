@@ -21,7 +21,8 @@ import { CatalogCrossSell } from './CatalogCrossSell';
 import { NewArrivals } from '../home/NewArrivals';
 import { CatalogMobileSort } from './CatalogMobileSort';
 import { PageBlocksRenderer } from '../blocks/PageBlocksRenderer';
-import { COMMON_EMPTY_STATES, CATALOG_PAGINATION_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
+import { COMMON_EMPTY_STATES, CATALOG_PAGINATION_LABELS, CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
+import { useInterfaceControlsDict } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 import { ColorSwatch } from '../ui/ColorSwatch';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { ColsIcon, CheckboxUI, SortOptionBtn } from './CatalogTemplate.parts';
@@ -65,6 +66,7 @@ export function CatalogTemplate({
   scrollbarClass = 'scrollbar-pink',
   crossSell,
 }: CatalogTemplateProps) {
+  const CVL = useInterfaceControlsDict('interface_controls_view_', CVL_FALLBACK);
   /* ── Local UI state ── */
   const [sortOpen, setSortOpen] = useState(false);
   const [openFilter, setOpenFilter] = useState<string | null>(null);

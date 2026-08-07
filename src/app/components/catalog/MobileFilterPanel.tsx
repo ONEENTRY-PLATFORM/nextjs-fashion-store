@@ -3,11 +3,16 @@ import { useState, useEffect } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { FilterBody } from './MobileFilterBody';
 import { useCatalogAccent } from '../../context/CatalogAccentContext';
-import { MOBILE_FILTER_ARIA, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
+import { MOBILE_FILTER_ARIA, CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
+import { useInterfaceControlsDict } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
 
 /* ─── Types ──────────────────────────────────────────────── */
 export interface MobileFilterOption {
   label: string;
+  /** Stable identity reported back through `onToggleFilter`. Defaults to
+   *  `label` — set it when the label is editable copy (e.g. a CMS-managed
+   *  category name) so renaming the label cannot break the filter. */
+  value?: string;
   count?: number;
   color?: string;
 }
@@ -77,6 +82,7 @@ function AccordionRow({
 export function MobileFilterPanel({
   isOpen, onClose, filterGroups, selectedFilters, onToggleFilter, onClearAll,
 }: Props) {
+  const CVL = useInterfaceControlsDict('interface_controls_view_', CVL_FALLBACK);
   const accentColor = useCatalogAccent();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};

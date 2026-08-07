@@ -17,6 +17,7 @@ import { loadSignUpFormSchema } from '../src/lib/oneentry/auth/sign-up-form'
 import { loadFormContent } from '../src/lib/oneentry/forms/placeholders'
 import { loadHeaderSystemTexts } from '../src/lib/oneentry/labels/header-labels'
 import { loadFooterSystemTexts } from '../src/lib/oneentry/labels/footer-labels'
+import { loadSystemPagesSystemTexts } from '../src/lib/oneentry/labels/system-pages-labels';
 import { loadLocales } from '../src/lib/oneentry/locales'
 
 export const viewport: Viewport = {
@@ -94,6 +95,7 @@ export default async function RootLayout({
     headerLabels,
     footerLabels,
     cmsLocales,
+    systemPagesLabels,
   ] = await Promise.all([
     loadProductCardSystemTexts(),
     loadSignInSystemTexts(),
@@ -114,6 +116,7 @@ export default async function RootLayout({
     loadHeaderSystemTexts(),
     loadFooterSystemTexts(),
     loadLocales(),
+    loadSystemPagesSystemTexts(),
   ]);
   return (
     <html lang="en-GB">
@@ -163,6 +166,7 @@ export default async function RootLayout({
           headerLabels={headerLabels}
           footerLabels={footerLabels}
           cmsLocales={cmsLocales}
+          systemPagesLabels={systemPagesLabels}
         >
           {children}
         </Providers>
