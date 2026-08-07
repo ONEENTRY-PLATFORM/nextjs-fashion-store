@@ -4,8 +4,7 @@ import { RadioCard } from '../../components/ui/RadioCard';
 import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
 
 import { DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK, DELIVERY_METHOD_SHARED_LABELS as SH } from '../../data/checkoutLabels';
-import { useCheckoutDict } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
-import { useT } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { type GuestContactFormState } from './GuestContactForm';
 import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
@@ -36,13 +35,13 @@ export function DeliveryMethodLocker({
   setGuestContact: _setGuestContact,
   guestContactErrors: _guestContactErrors,
 }: DeliveryMethodLockerProps) {
-  const L = useCheckoutDict('checkout_delivery', 'checkout_delivery_locker_', L_FALLBACK);
+  const L = useDict('checkout_delivery_locker_', L_FALLBACK);
   const info = useDeliveryMethodInfo();
   const lockerList = lockers && lockers.length > 0 ? lockers : PARCEL_LOCKERS;
   const title    = info?.locker.title    ?? L.title;
   const subtitle = info?.locker.subtitle ?? L.subtitle;
   const pinHint  = info?.locker.pinHint  ?? L.pinHint;
-  const lFreeBadge = useT('checkout_delivery', 'checkout_delivery_free_badge', SH.freeBadge);
+  const lFreeBadge = useT('checkout_delivery_free_badge', SH.freeBadge);
   return (
     <RadioCard
       id="locker"

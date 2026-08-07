@@ -1,7 +1,7 @@
 'use client'
 import { X, LogIn, UserPlus, ShoppingBag } from 'lucide-react';
 import { AUTH_LABELS } from '../../data/authLabels';
-import { useT } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface GuestCheckoutModalProps {
   onClose: () => void;
@@ -11,15 +11,15 @@ interface GuestCheckoutModalProps {
 }
 
 export function GuestCheckoutModal({ onClose, onSignIn, onRegister, onContinueAsGuest }: GuestCheckoutModalProps) {
-  const lEyebrow      = useT('checkout_modal', 'checkout_modal_sub_title',                       AUTH_LABELS.guestModalEyebrow);
-  const lHeading      = useT('checkout_modal', 'checkout_modal_title',                           AUTH_LABELS.guestModalHeading);
-  const lSignInTitle  = useT('checkout_modal', 'checkout_modal_sign_in_button_title',            AUTH_LABELS.signIn.title);
-  const lSignInText   = useT('checkout_modal', 'checkout_modal_sign_in_button_text',             AUTH_LABELS.signIn.subtitle);
-  const lCreateTitle  = useT('checkout_modal', 'checkout_modal_create_account_button_title',     AUTH_LABELS.register.title);
-  const lCreateText   = useT('checkout_modal', 'checkout_modal_create_account_button_text',      AUTH_LABELS.register.subtitle);
-  const lOr           = useT('checkout_modal', 'checkout_modal_or',                              AUTH_LABELS.divider);
-  const lGuestTitle   = useT('checkout_modal', 'checkout_modal_continue_as_guest_button_title',  AUTH_LABELS.guest.title);
-  const lGuestText    = useT('checkout_modal', 'checkout_modal_continue_as_guest_button_text',   AUTH_LABELS.guest.subtitle);
+  const lEyebrow      = useT('checkout_modal_sub_title',                       AUTH_LABELS.guestModalEyebrow);
+  const lHeading      = useT('checkout_modal_title',                           AUTH_LABELS.guestModalHeading);
+  const lSignInTitle  = useT('checkout_modal_sign_in_button_title',            AUTH_LABELS.signIn.title);
+  const lSignInText   = useT('checkout_modal_sign_in_button_text',             AUTH_LABELS.signIn.subtitle);
+  const lCreateTitle  = useT('checkout_modal_create_account_button_title',     AUTH_LABELS.register.title);
+  const lCreateText   = useT('checkout_modal_create_account_button_text',      AUTH_LABELS.register.subtitle);
+  const lOr           = useT('checkout_modal_or',                              AUTH_LABELS.divider);
+  const lGuestTitle   = useT('checkout_modal_continue_as_guest_button_title',  AUTH_LABELS.guest.title);
+  const lGuestText    = useT('checkout_modal_continue_as_guest_button_text',   AUTH_LABELS.guest.subtitle);
   return (
     <div className="fixed inset-0 z-400 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />

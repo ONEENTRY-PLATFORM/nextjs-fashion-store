@@ -1,8 +1,8 @@
 'use client'
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Search, User, Heart, ShoppingBag, Menu } from 'lucide-react';
-import Link from 'next/link';
+
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import logoImage from '../../../assets/kekimoro-logo-black.png';
@@ -31,22 +31,22 @@ import {
   WOMEN_COLOR,
   MEN_COLOR,
 } from '../../data/headerConfig';
-import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
-import { useHeaderT } from '../../../lib/oneentry/labels/HeaderLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useMounted } from '../../hooks/useMounted';
+import { useRouter, Link } from '../../../lib/i18n/navigation';
 
 export function Header() {
-  const lSearch = useInterfaceControlsT('search', SEARCH_PLACEHOLDER);
+  const lSearch = useT('search', SEARCH_PLACEHOLDER);
   // Header copy from the OE `header` set — local constants are the fallback.
-  const lLogoAlt      = useHeaderT('header_logo_alt', LOGO_ALT);
-  const lSearchMobile = useHeaderT('header_search_placeholder_mobile', 'Search...');
-  const aOpenMenu     = useHeaderT('header_aria_open_menu', 'Open menu');
-  const aToggleSearch = useHeaderT('header_aria_toggle_search', 'Toggle search');
-  const aSearchDesk   = useHeaderT('header_aria_search_desktop', 'Search products');
-  const aSearchMob    = useHeaderT('header_aria_search_mobile', 'Search products');
-  const aAccount      = useHeaderT('header_aria_account', 'My account');
-  const aWishlist     = useHeaderT('header_aria_wishlist', 'Wishlist');
-  const aBag          = useHeaderT('header_aria_bag', 'Shopping bag');
+  const lLogoAlt      = useT('header_logo_alt', LOGO_ALT);
+  const lSearchMobile = useT('header_search_placeholder_mobile', 'Search...');
+  const aOpenMenu     = useT('header_aria_open_menu', 'Open menu');
+  const aToggleSearch = useT('header_aria_toggle_search', 'Toggle search');
+  const aSearchDesk   = useT('header_aria_search_desktop', 'Search products');
+  const aSearchMob    = useT('header_aria_search_mobile', 'Search products');
+  const aAccount      = useT('header_aria_account', 'My account');
+  const aWishlist     = useT('header_aria_wishlist', 'Wishlist');
+  const aBag          = useT('header_aria_bag', 'Shopping bag');
   const [activeGender, setActiveGender] = useState<Gender>('women');
   const [activeDropdown, setActiveDropdown] = useState<SubCat>(null);
   const [mobileOpen, setMobileOpen] = useState(false);

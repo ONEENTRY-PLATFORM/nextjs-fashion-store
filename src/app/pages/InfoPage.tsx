@@ -1,7 +1,7 @@
 'use client'
 import React from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
@@ -12,11 +12,12 @@ import {
   INFO_PAGE_STATS,
   INFO_PAGE_FEATURE_CARDS,
 } from '../data/infoPageLabels';
-import { useInfoPageT } from '../../lib/oneentry/labels/InfoPageLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import {
   INFO_SECTION_BLOCK_PREFIX,
   infoSectionsFromBlocks,
 } from '../../lib/oneentry/blocks/info-sections';
+import { useRouter } from '../../lib/i18n/navigation';
 
 /* Offline fallbacks for the two long-form paragraphs. Short one-off strings are
    passed inline at the `useInfoPageT` call site — a separate dictionary file for
@@ -80,35 +81,35 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   // Page chrome copy from the OE `info_page` set; the local dataset is the
   // offline fallback. Icon choice for the feature cards stays in code — it
   // selects a component, it is not copy.
-  const heroHeading   = useInfoPageT('info_hero_heading', 'About Kekimoro');
-  const heroSubtitle  = useInfoPageT('info_hero_subtitle', 'Our story, our values, delivery, returns, sizing and more — everything you need to know.');
-  const heroImageAlt  = useInfoPageT('info_hero_image_alt', 'Kekimoro editorial');
-  const crumbHome     = useInfoPageT('info_hero_breadcrumb_home', 'Home');
-  const crumbCurrent  = useInfoPageT('info_hero_breadcrumb_current', 'Info');
-  const demoStrong    = useInfoPageT('info_demo_strong', 'Demo page');
-  const demoMid       = useInfoPageT('info_demo_mid', '— This content is managed through the');
-  const demoPlatform  = useInfoPageT('info_demo_platform', 'OneEntry Platform');
-  const demoSuffix    = useInfoPageT('info_demo_suffix', '. Edit text, images and layout from your dashboard — no code required.');
-  const leadParagraph = useInfoPageT('info_lead_paragraph', FALLBACK_LEAD);
-  const ctaEyebrow    = useInfoPageT('info_cta_eyebrow', 'Powered by OneEntry Platform');
-  const ctaHeading    = useInfoPageT('info_cta_heading', 'This entire page is editable from the dashboard');
-  const ctaBody       = useInfoPageT('info_cta_body', FALLBACK_CTA_BODY);
-  const ctaExplore    = useInfoPageT('info_cta_explore_label', 'Explore OneEntry Platform');
-  const ctaExploreShort = useInfoPageT('info_cta_explore_short', 'Explore OneEntry →');
-  const ctaExploreHref  = useInfoPageT('info_cta_explore_href', 'https://oneentry.cloud');
-  const ctaSdkLabel   = useInfoPageT('info_cta_sdk_label', 'View SDK Docs');
-  const ctaSdkHref    = useInfoPageT('info_cta_sdk_href', 'https://js-sdk.oneentry.cloud/docs/index/');
+  const heroHeading   = useT('info_hero_heading', 'About Kekimoro');
+  const heroSubtitle  = useT('info_hero_subtitle', 'Our story, our values, delivery, returns, sizing and more — everything you need to know.');
+  const heroImageAlt  = useT('info_hero_image_alt', 'Kekimoro editorial');
+  const crumbHome     = useT('info_hero_breadcrumb_home', 'Home');
+  const crumbCurrent  = useT('info_hero_breadcrumb_current', 'Info');
+  const demoStrong    = useT('info_demo_strong', 'Demo page');
+  const demoMid       = useT('info_demo_mid', '— This content is managed through the');
+  const demoPlatform  = useT('info_demo_platform', 'OneEntry Platform');
+  const demoSuffix    = useT('info_demo_suffix', '. Edit text, images and layout from your dashboard — no code required.');
+  const leadParagraph = useT('info_lead_paragraph', FALLBACK_LEAD);
+  const ctaEyebrow    = useT('info_cta_eyebrow', 'Powered by OneEntry Platform');
+  const ctaHeading    = useT('info_cta_heading', 'This entire page is editable from the dashboard');
+  const ctaBody       = useT('info_cta_body', FALLBACK_CTA_BODY);
+  const ctaExplore    = useT('info_cta_explore_label', 'Explore OneEntry Platform');
+  const ctaExploreShort = useT('info_cta_explore_short', 'Explore OneEntry →');
+  const ctaExploreHref  = useT('info_cta_explore_href', 'https://oneentry.cloud');
+  const ctaSdkLabel   = useT('info_cta_sdk_label', 'View SDK Docs');
+  const ctaSdkHref    = useT('info_cta_sdk_href', 'https://js-sdk.oneentry.cloud/docs/index/');
 
   // Four stats and four cards are a fixed layout slot, so each key is read with
   // its own top-level hook call — a loop would break the rules of hooks.
-  const stat1Value = useInfoPageT('info_stat_1_value', INFO_PAGE_STATS[0]?.value ?? '');
-  const stat1Label = useInfoPageT('info_stat_1_label', INFO_PAGE_STATS[0]?.label ?? '');
-  const stat2Value = useInfoPageT('info_stat_2_value', INFO_PAGE_STATS[1]?.value ?? '');
-  const stat2Label = useInfoPageT('info_stat_2_label', INFO_PAGE_STATS[1]?.label ?? '');
-  const stat3Value = useInfoPageT('info_stat_3_value', INFO_PAGE_STATS[2]?.value ?? '');
-  const stat3Label = useInfoPageT('info_stat_3_label', INFO_PAGE_STATS[2]?.label ?? '');
-  const stat4Value = useInfoPageT('info_stat_4_value', INFO_PAGE_STATS[3]?.value ?? '');
-  const stat4Label = useInfoPageT('info_stat_4_label', INFO_PAGE_STATS[3]?.label ?? '');
+  const stat1Value = useT('info_stat_1_value', INFO_PAGE_STATS[0]?.value ?? '');
+  const stat1Label = useT('info_stat_1_label', INFO_PAGE_STATS[0]?.label ?? '');
+  const stat2Value = useT('info_stat_2_value', INFO_PAGE_STATS[1]?.value ?? '');
+  const stat2Label = useT('info_stat_2_label', INFO_PAGE_STATS[1]?.label ?? '');
+  const stat3Value = useT('info_stat_3_value', INFO_PAGE_STATS[2]?.value ?? '');
+  const stat3Label = useT('info_stat_3_label', INFO_PAGE_STATS[2]?.label ?? '');
+  const stat4Value = useT('info_stat_4_value', INFO_PAGE_STATS[3]?.value ?? '');
+  const stat4Label = useT('info_stat_4_label', INFO_PAGE_STATS[3]?.label ?? '');
   const stats = [
     { value: stat1Value, label: stat1Label },
     { value: stat2Value, label: stat2Label },
@@ -116,14 +117,14 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     { value: stat4Value, label: stat4Label },
   ].filter((s) => s.value || s.label);
 
-  const card1Title = useInfoPageT('info_card_1_title', FEATURE_CARDS[0]?.title ?? '');
-  const card1Desc  = useInfoPageT('info_card_1_desc',  FEATURE_CARDS[0]?.desc ?? '');
-  const card2Title = useInfoPageT('info_card_2_title', FEATURE_CARDS[1]?.title ?? '');
-  const card2Desc  = useInfoPageT('info_card_2_desc',  FEATURE_CARDS[1]?.desc ?? '');
-  const card3Title = useInfoPageT('info_card_3_title', FEATURE_CARDS[2]?.title ?? '');
-  const card3Desc  = useInfoPageT('info_card_3_desc',  FEATURE_CARDS[2]?.desc ?? '');
-  const card4Title = useInfoPageT('info_card_4_title', FEATURE_CARDS[3]?.title ?? '');
-  const card4Desc  = useInfoPageT('info_card_4_desc',  FEATURE_CARDS[3]?.desc ?? '');
+  const card1Title = useT('info_card_1_title', FEATURE_CARDS[0]?.title ?? '');
+  const card1Desc  = useT('info_card_1_desc',  FEATURE_CARDS[0]?.desc ?? '');
+  const card2Title = useT('info_card_2_title', FEATURE_CARDS[1]?.title ?? '');
+  const card2Desc  = useT('info_card_2_desc',  FEATURE_CARDS[1]?.desc ?? '');
+  const card3Title = useT('info_card_3_title', FEATURE_CARDS[2]?.title ?? '');
+  const card3Desc  = useT('info_card_3_desc',  FEATURE_CARDS[2]?.desc ?? '');
+  const card4Title = useT('info_card_4_title', FEATURE_CARDS[3]?.title ?? '');
+  const card4Desc  = useT('info_card_4_desc',  FEATURE_CARDS[3]?.desc ?? '');
   const cards = [
     { icon: FEATURE_CARDS[0]?.icon, title: card1Title, desc: card1Desc },
     { icon: FEATURE_CARDS[1]?.icon, title: card2Title, desc: card2Desc },

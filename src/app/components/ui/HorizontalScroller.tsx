@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDragScroll } from '../../hooks/useDragScroll';
 import { HORIZONTAL_SCROLLER_LABELS as L } from '../../data/commonLabels';
-import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface HorizontalScrollerProps {
   children: React.ReactNode;
@@ -55,8 +55,8 @@ export function HorizontalScroller({
     return () => window.removeEventListener('resize', onResize);
   }, [measure]);
 
-  const lScrollLeft  = useInterfaceControlsT('interface_controls_scroll_left',  L.scrollLeft);
-  const lScrollRight = useInterfaceControlsT('interface_controls_scroll_right', L.scrollRight);
+  const lScrollLeft  = useT('interface_controls_scroll_left',  L.scrollLeft);
+  const lScrollRight = useT('interface_controls_scroll_right', L.scrollRight);
 
   const scrollBy = (direction: 1 | -1) => {
     const el = scrollerRef.current;

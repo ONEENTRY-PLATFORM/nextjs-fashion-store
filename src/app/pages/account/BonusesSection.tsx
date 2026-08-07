@@ -4,18 +4,18 @@ import { useAuth } from '../../context/AuthContext';
 import { SectionTitle, ACCENT } from './shared';
 import { SALE_COLOR } from '../../constants/colors';
 import { BONUSES_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { fetchBonusHistoryAction, type OeBonusTransaction } from '../../../lib/oneentry/auth/actions';
 
 /** Built from the OE `my_bonuses` set so an editor can reword a transaction
  *  type; the local dictionary is the offline fallback. */
 function useTypeLabels(): Record<string, string> {
-  const accrual         = useT('my_bonuses', 'my_bonuses_type_accrual',          L.typeAccrual);
-  const reversalUsage   = useT('my_bonuses', 'my_bonuses_type_reversal_usage',   L.typeReversalUsage);
-  const usage           = useT('my_bonuses', 'my_bonuses_type_usage',            L.typeUsage);
-  const reduce          = useT('my_bonuses', 'my_bonuses_type_reduce',           L.typeReduce);
-  const reversalAccrual = useT('my_bonuses', 'my_bonuses_type_reversal_accrual', L.typeReversalAccrual);
-  const expiration      = useT('my_bonuses', 'my_bonuses_type_expiration',       L.typeExpiration);
+  const accrual         = useT('my_bonuses_type_accrual',          L.typeAccrual);
+  const reversalUsage   = useT('my_bonuses_type_reversal_usage',   L.typeReversalUsage);
+  const usage           = useT('my_bonuses_type_usage',            L.typeUsage);
+  const reduce          = useT('my_bonuses_type_reduce',           L.typeReduce);
+  const reversalAccrual = useT('my_bonuses_type_reversal_accrual', L.typeReversalAccrual);
+  const expiration      = useT('my_bonuses_type_expiration',       L.typeExpiration);
   return useMemo(() => ({
     ACCRUAL: accrual,
     REVERSAL_USAGE: reversalUsage,
@@ -41,12 +41,12 @@ export function BonusesSection() {
   const [loaded, setLoaded] = useState<{ signedIn: boolean; items: OeBonusTransaction[] } | null>(null);
   const history = loaded?.signedIn === isLoggedIn ? loaded.items : [];
   const loading = isLoggedIn && loaded?.signedIn !== true;
-  const title       = useT('my_bonuses', 'my_bonuses_title',                  L.title);
-  const available   = useT('my_bonuses', 'my_bonuses_available_bonuses',      L.availableBonuses);
-  const discountLvl = useT('my_bonuses', 'my_bonuses_discount_level',         L.discountLevel);
-  const lEmptyHistory = useT('my_bonuses', 'my_bonuses_empty_history',       L.emptyHistory);
+  const title       = useT('my_bonuses_title',                  L.title);
+  const available   = useT('my_bonuses_available_bonuses',      L.availableBonuses);
+  const discountLvl = useT('my_bonuses_discount_level',         L.discountLevel);
+  const lEmptyHistory = useT('my_bonuses_empty_history',       L.emptyHistory);
   const TYPE_LABELS = useTypeLabels();
-  const txHistory   = useT('my_bonuses', 'my_bonuses_transaction_history_title', L.transactionHistory);
+  const txHistory   = useT('my_bonuses_transaction_history_title', L.transactionHistory);
 
   useEffect(() => {
     if (!isLoggedIn) return;

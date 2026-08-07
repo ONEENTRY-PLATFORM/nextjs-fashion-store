@@ -1,7 +1,7 @@
+import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
 import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
 
 export interface CmsPage {
   id: number;
@@ -39,7 +39,8 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
 };
 
 export const loadPageByUrl = cache(
-  async (pageUrl: string, lang: Lang = DEFAULT_LOCALE): Promise<CmsPage | null> => {
+  async (pageUrl: string, langArg?: Lang): Promise<CmsPage | null> => {
+    const lang = langArg ?? (await currentCmsLocale());
     const api = getApiSafe();
     if (!api) return null;
     try {

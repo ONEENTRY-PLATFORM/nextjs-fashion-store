@@ -1,10 +1,11 @@
 'use client'
 import { useState } from 'react';
-import Link from 'next/link';
+
 import Image from 'next/image';
 import { ShoppingBag } from 'lucide-react';
 import type { DiscountBannerFromCms } from '../../../lib/oneentry/blocks/discount-banner';
 import { useMounted } from '../../hooks/useMounted';
+import { Link } from '../../../lib/i18n/navigation';
 
 export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBannerFromCms | null } = {}) {
   const [hovered, setHovered] = useState(false);

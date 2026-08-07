@@ -1,7 +1,7 @@
+import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
 import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
 
 export interface NewArrivalsPageFromCms {
   hero: {
@@ -56,9 +56,24 @@ async function fetchNewArrivalsPage(lang: Lang): Promise<NewArrivalsPageFromCms 
 }
 
 /** Cached loader — refresh every 60s so admin edits to the New Arrivals
- *  banners surface without a manual redeploy. */
-export const loadNewArrivalsPage = unstable_cache(
-  (lang: Lang = DEFAULT_LOCALE) => fetchNewArrivalsPage(lang),
+ *  banners surface without a manual redeploy.
+ *
+ *  `lang` is a required argument rather than something the cached body reads
+ *  for itself: `unstable_cache` keys on its arguments, so passing it in is
+ *  what keeps one locale's banners out of another's cache entry. */
+const loadNewArrivalsPageCached = unstable_cache(
+  (lang: Lang) => fetchNewArrivalsPage(lang),
   ['oe-new-arrivals-page'],
   { revalidate: 60, tags: ['oe-page'] },
 );
+
+/**
+ * New Arrivals page attributes for the current route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<NewArrivalsPageFromCms | null>} Page attributes, or `null`.
+ */
+export async function loadNewArrivalsPage(
+  langArg?: Lang,
+): Promise<Awaited<ReturnType<typeof fetchNewArrivalsPage>>> {
+  return loadNewArrivalsPageCached(langArg ?? (await currentCmsLocale()));
+}

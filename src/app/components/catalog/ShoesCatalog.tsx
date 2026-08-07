@@ -12,7 +12,7 @@ import {
 import { ACCENT_MEN } from '../../constants/colors';
 import type { Product } from '../product/ProductCard';
 import { CATALOG_PAGE_LABELS as CL } from '../../data/catalogPageLabels';
-import { useCatalogPageT } from '../../../lib/oneentry/labels/CatalogPageLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import type { CatalogFilters } from '../../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../../lib/oneentry/blocks/page-blocks';
 
@@ -74,10 +74,10 @@ export function ShoesCatalog({
   // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
   // offline fallback. Wrappers (e.g. `AccessoriesCatalog`) may still override
   // the title/breadcrumb explicitly — an explicit prop wins over the set.
-  const lShoes      = useCatalogPageT('catalog_page_shoes',            CL.shoes);
-  const lCrumbShoes = useCatalogPageT('catalog_page_breadcrumb_shoes', CL.breadcrumbShoes);
-  const lWomen      = useCatalogPageT('catalog_page_women',            CL.women);
-  const lMen        = useCatalogPageT('catalog_page_men',              CL.men);
+  const lShoes      = useT('catalog_page_shoes',            CL.shoes);
+  const lCrumbShoes = useT('catalog_page_breadcrumb_shoes', CL.breadcrumbShoes);
+  const lWomen      = useT('catalog_page_women',            CL.women);
+  const lMen        = useT('catalog_page_men',              CL.men);
   const title = catalogTitle ?? lShoes;
   const crumbCategory = breadcrumbCategory ?? lCrumbShoes;
   const genderLabel = gender === 'women' ? lWomen : lMen;

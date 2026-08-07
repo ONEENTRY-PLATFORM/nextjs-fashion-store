@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react';
-import Link from 'next/link';
+
 import Image from 'next/image';
 import type { ShopCategory } from '../../data/categories';
 import { CATEGORY_SECTION_LABELS } from '../../data/commonLabels';
 import type { CategoryItemFromCms } from '../../../lib/oneentry/blocks/category-section';
 import { useMounted } from '../../hooks/useMounted';
+import { Link } from '../../../lib/i18n/navigation';
 
 // Base delay (ms) before cards animate in — waits for the parent AnimatedSection fade-up (~650ms).
 // On back navigation sessionStorage='1' so animated=true and this is never used.

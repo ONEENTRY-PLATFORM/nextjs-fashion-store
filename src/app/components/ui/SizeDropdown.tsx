@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { SIZE_DROPDOWN_LABELS as L } from '../../data/commonLabels';
-import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface SizeDropdownProps {
   value: string;
@@ -16,7 +16,7 @@ interface SizeDropdownProps {
 
 export function SizeDropdown({ value, onChange, isShoe, availableSizes }: SizeDropdownProps) {
   const [open, setOpen] = useState(false);
-  const lSize = useInterfaceControlsT('interface_controls_size_prefix', L.sizeLabel);
+  const lSize = useT('interface_controls_size_prefix', L.sizeLabel);
 
   if (availableSizes && availableSizes.length === 0) return null;
 

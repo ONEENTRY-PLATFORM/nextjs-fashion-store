@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react';
-import Link from 'next/link';
+
 import { useSearchParams } from 'next/navigation';
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
@@ -20,12 +20,13 @@ import {
 import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
 import { NEW_ARRIVALS_PAGE_LABELS as L, NEW_ARRIVALS_CATEGORY_LABELS as NACL_FALLBACK } from '../data/newArrivalsLabels';
 import { CURRENCY } from '../data/currencyConfig';
-import { useNewArrivalsPageT, useNewArrivalsPageDict } from '../../lib/oneentry/labels/NewArrivalsPageLabelsContext';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { NewArrivalsPageFromCms } from '../../lib/oneentry/catalog/new-arrivals-page';
 import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
 import { useMounted } from '../hooks/useMounted';
+import { Link } from '../../lib/i18n/navigation';
 
 const NEW_KEY = 'new-arrivals';
 type NewProduct = Product & { category: Exclude<NewArrivalCategory, 'All'> };
@@ -34,9 +35,9 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
   // UI-only state
   const [sortOpen, setSortOpen] = useState(false);
   const mounted = useMounted();
-  const lStyles  = useNewArrivalsPageT('new_arrivals_page_styles',  L.stylesSuffix);
-  const lView    = useNewArrivalsPageT('new_arrivals_page_view',    L.viewLabel);
-  const lResults = useNewArrivalsPageT('new_arrivals_page_results', L.resultPlural);
+  const lStyles  = useT('new_arrivals_page_styles',  L.stylesSuffix);
+  const lView    = useT('new_arrivals_page_view',    L.viewLabel);
+  const lResults = useT('new_arrivals_page_results', L.resultPlural);
 
   // Redux state
   const dispatch = useAppDispatch();
@@ -47,7 +48,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
 
   // Category ids drive the filter; the wording comes from the OE `sale`-style
   // set, so renaming "Clothing" in the admin panel cannot break matching.
-  const NACL = useNewArrivalsPageDict('new_arrivals_page_category_', NACL_FALLBACK);
+  const NACL = useDict('new_arrivals_page_category_', NACL_FALLBACK);
   const activeCategory = (selectedFilters['category']?.[0] ?? 'all') as NewArrivalCategory;
   const setActiveCategory = (cat: NewArrivalCategory) => {
     dispatch(setFilters({ catalogKey: NEW_KEY, filters: { ...selectedFilters, category: cat === 'all' ? [] : [cat] } }));
@@ -65,7 +66,6 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
 
   const sortRef = useRef<HTMLDivElement>(null);
   const filterBarRef = useRef<HTMLDivElement>(null);
-
 
   /* Close sort on outside click / Escape */
   useEffect(() => {
@@ -100,7 +100,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
 
   // Sort keys stay in code (they are OE query values); only their wording is
   // editable — `new_arrivals_page_sort_<key>`.
-  const sortLabels = useNewArrivalsPageDict('new_arrivals_page_sort_', NEW_ARRIVALS_SORT_LABELS);
+  const sortLabels = useDict('new_arrivals_page_sort_', NEW_ARRIVALS_SORT_LABELS);
   const sortOptions = useMemo(
     () => NEW_ARRIVALS_SORT_OPTIONS.map((o) => ({ value: o.value, label: sortLabels[o.labelKey] })),
     [sortLabels],

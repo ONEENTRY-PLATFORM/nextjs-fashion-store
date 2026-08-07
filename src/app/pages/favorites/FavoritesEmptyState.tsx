@@ -1,18 +1,19 @@
 'use client'
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+
 import { Heart } from 'lucide-react';
 import { FAVORITES_EMPTY_LABELS as L } from '../../data/favoritesLabels';
-import { useFavoritesPageT } from '../../../lib/oneentry/labels/FavoritesPageLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 export function FavoritesEmptyState() {
   const router = useRouter();
   // Same OE set as the rest of the page; local constants are the fallback.
-  const lImageAlt = useFavoritesPageT('favorites_empty_image_alt', L.imageAlt);
-  const lHeading  = useFavoritesPageT('favorites_empty_heading',   L.heading);
-  const lBody     = useFavoritesPageT('favorites_empty_body',      L.body);
-  const lCtaWomen = useFavoritesPageT('favorites_empty_cta_women', L.ctaWomen);
-  const lCtaHome  = useFavoritesPageT('favorites_empty_cta_home',  L.ctaHome);
+  const lImageAlt = useT('favorites_empty_image_alt', L.imageAlt);
+  const lHeading  = useT('favorites_empty_heading',   L.heading);
+  const lBody     = useT('favorites_empty_body',      L.body);
+  const lCtaWomen = useT('favorites_empty_cta_women', L.ctaWomen);
+  const lCtaHome  = useT('favorites_empty_cta_home',  L.ctaHome);
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center" data-testid="favorites-empty-state">
       <div className="relative mb-8">

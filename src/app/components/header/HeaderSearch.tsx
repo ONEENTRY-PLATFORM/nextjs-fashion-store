@@ -1,13 +1,14 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+
 import { Search } from 'lucide-react';
 import type { Product } from '../product/ProductCard';
 import { searchProductsAction } from '../../../lib/oneentry/catalog/search-action';
 import { trackActivity } from '../../utils/track-activity';
 import { HEADER_SEARCH_LABELS as HS } from '../../data/commonLabels';
-import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 /** Shortest query worth sending to OE — one or two characters match almost
  *  the whole catalogue and the dropdown becomes noise. */
@@ -33,8 +34,8 @@ export function HeaderSearch({
   variant?: 'desktop' | 'mobile';
 }) {
   const router = useRouter();
-  const lSearching  = useInterfaceControlsT('interface_controls_searching',  HS.searching);
-  const lNoResults  = useInterfaceControlsT('interface_controls_no_results', HS.noResults);
+  const lSearching  = useT('interface_controls_searching',  HS.searching);
+  const lNoResults  = useT('interface_controls_no_results', HS.noResults);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   // Results are stored together with the query that produced them. Deriving

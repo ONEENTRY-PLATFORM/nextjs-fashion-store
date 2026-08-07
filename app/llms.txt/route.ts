@@ -9,6 +9,7 @@ import { LLMS_TXT_COPY as L } from '../../src/app/data/llmsTextLabels';
 import { loadProducts } from '../../src/lib/oneentry/catalog/products';
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';
 import { INFO_PAGE_META } from '../../src/app/data/infoPages';
+import { DEFAULT_LOCALE } from '../../src/lib/oneentry/locale';
 
 export const dynamic = 'force-static';
 
@@ -17,7 +18,10 @@ export async function GET() {
   // collapsed so a "product family" counts once, matching what the shopper sees.
   const oeCatalog = await loadProducts({ unique: true, limit: 5000 });
   const productCount = oeCatalog.total;
-  const stores = await loadStores();
+  // Route Handlers sit outside `app/[locale]` and cannot read root params, so
+  // the locale is passed explicitly. `/llms.txt` is a single canonical document
+  // describing the storefront, so the default locale is the right one.
+  const stores = await loadStores(DEFAULT_LOCALE);
   const storeCities = [...new Set(stores.map((s) => s.city))].join(', ');
 
   const content = `# ${SITE_NAME}

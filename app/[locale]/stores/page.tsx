@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
-import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
-import { SEO, SITE_URL, SCHEMA_DAYS as D, STORE_SCHEMA_NAME as N, ORG_SCHEMA_COPY } from '../../src/app/data/seoData';
-import { STORE_SCHEMA_DEFAULTS, type Store } from '../../src/app/data/stores';
-import { StoreLocationsPage } from '../../src/app/pages/StoreLocationsPage';
-import { JsonLd } from '../../src/app/components/system/JsonLd';
-import { loadStoresSystemTexts } from '../../src/lib/oneentry/labels/stores-labels';
-import { StoresLabelsProvider } from '../../src/lib/oneentry/labels/StoresLabelsContext';
-import { loadStores } from '../../src/lib/oneentry/catalog/stores';
-import { loadStoreLocationsPage } from '../../src/lib/oneentry/catalog/store-locations-page';
-import { loadPageBlocksByUrl } from '../../src/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
+import { SEO, SITE_URL, SCHEMA_DAYS as D, STORE_SCHEMA_NAME as N, ORG_SCHEMA_COPY } from '../../../src/app/data/seoData';
+import { STORE_SCHEMA_DEFAULTS, type Store } from '../../../src/app/data/stores';
+import { StoreLocationsPage } from '../../../src/app/pages/StoreLocationsPage';
+import { JsonLd } from '../../../src/app/components/system/JsonLd';
+import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
+import { loadStoreLocationsPage } from '../../../src/lib/oneentry/catalog/store-locations-page';
+import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
 
 /** Title/description/keywords/canonical come from the OE `stores` page when an
  *  editor filled them; `SEO.stores` stays as the offline fallback. */
@@ -68,8 +66,7 @@ function mapDayLabel(day: string): string[] {
 }
 
 export default async function Page() {
-  const [labels, stores, cmsPage, pageBlocks] = await Promise.all([
-    loadStoresSystemTexts(),
+  const [stores, cmsPage, pageBlocks] = await Promise.all([
     loadStores(),
     loadStoreLocationsPage(),
     // OE-attached blocks for the `stores` page. Empty when nothing is
@@ -82,9 +79,7 @@ export default async function Page() {
       {schemas.map((schema, i) => (
         <JsonLd key={i} data={schema} />
       ))}
-      <StoresLabelsProvider data={labels}>
-        <StoreLocationsPage initialStores={stores} cmsPage={cmsPage} pageBlocks={pageBlocks} />
-      </StoresLabelsProvider>
+      <StoreLocationsPage initialStores={stores} cmsPage={cmsPage} pageBlocks={pageBlocks} />
     </>
   );
 }

@@ -2,15 +2,15 @@
 import { useAuth } from '../../../context/AuthContext';
 import { SectionTitle } from '../shared';
 import { CONSENT_LABELS as L } from '../../../data/accountLabels';
-import { useT } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../../lib/oneentry/labels/DictContext';
 
 export function ConsentSection() {
   const { user, updateConsent } = useAuth();
   const consent = user?.consent ?? { dataProcessing: false, crossBorder: false };
   const dataConsent = consent.dataProcessing;
   const crossBorderConsent = consent.crossBorder;
-  const lTitle  = useT('user_account_personal_data_consent', 'u_a_p_d_c_title', L.title);
-  const lRevoke = useT('user_account_personal_data_consent', 'u_a_p_d_c_text',  L.revokeWarning);
+  const lTitle  = useT('u_a_p_d_c_title', L.title);
+  const lRevoke = useT('u_a_p_d_c_text',  L.revokeWarning);
 
   const setData = (val: boolean) => {
     void updateConsent({ dataProcessing: val, crossBorder: crossBorderConsent });

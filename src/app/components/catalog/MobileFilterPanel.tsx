@@ -4,7 +4,7 @@ import { X, ChevronDown } from 'lucide-react';
 import { FilterBody } from './MobileFilterBody';
 import { useCatalogAccent } from '../../context/CatalogAccentContext';
 import { MOBILE_FILTER_ARIA, CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
-import { useInterfaceControlsDict } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 
 /* ─── Types ──────────────────────────────────────────────── */
 export interface MobileFilterOption {
@@ -82,7 +82,7 @@ function AccordionRow({
 export function MobileFilterPanel({
   isOpen, onClose, filterGroups, selectedFilters, onToggleFilter, onClearAll,
 }: Props) {
-  const CVL = useInterfaceControlsDict('interface_controls_view_', CVL_FALLBACK);
+  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
   const accentColor = useCatalogAccent();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};

@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
-import { useRouter } from 'next/navigation';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
@@ -16,13 +16,14 @@ import { fmt } from '../utils/formatPrice';
 import { PAYMENT_PAGE_LABELS } from '../data/paymentMethodsConfig';
 import { ORDER_SUMMARY_LABELS as OS } from '../data/checkoutLabels';
 import { CART_LINE_LABELS as CLL } from '../data/commonLabels';
-import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '../../lib/oneentry/payments/accounts';
 import { extractCmsProductId } from '../data/cms-product-id-map';
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useMounted } from '../hooks/useMounted';
+import { useRouter } from '../../lib/i18n/navigation';
 
 export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const router = useRouter();
@@ -30,31 +31,30 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [method, setMethod] = useState<string>('');
-  const lPayOnDelivery = useT('checkout_payment', 'checkout_payment_pay_on_delivery',     PAYMENT_PAGE_LABELS.payOnDeliverySection);
-  const lOr            = useT('checkout_payment', 'checkout_payment_or',                  PAYMENT_PAGE_LABELS.orOnlinePrepayment);
-  const lOnline        = useT('checkout_payment', 'checkout_payment_online_prepayment',   PAYMENT_PAGE_LABELS.onlinePrepaymentSection);
-  const lPlaceOrder    = useT('checkout_payment', 'checkout_payment_cta',                 PAYMENT_PAGE_LABELS.placeOrderPrefix);
-  const lSsl           = useT('checkout_payment', 'checkout_payment_ssl',                 PAYMENT_PAGE_LABELS.securityBadges[0] ?? '');
-  const lPci           = useT('checkout_payment', 'checkout_payment_pci',                 PAYMENT_PAGE_LABELS.securityBadges[1] ?? '');
-  const l3d            = useT('checkout_payment', 'checkout_payment_3d',                  PAYMENT_PAGE_LABELS.securityBadges[2] ?? '');
-  const lPageTitle     = useT('checkout_payment', 'checkout_payment_title',               PAYMENT_PAGE_LABELS.pageTitle);
-  const lBackToDeliv   = useT('checkout_payment', 'checkout_payment_back_to_delivery',    PAYMENT_PAGE_LABELS.backToDelivery);
-  const lOrderSummary  = useT('checkout_payment', 'checkout_payment_order_summary',       PAYMENT_PAGE_LABELS.orderSummary);
-  const lFreeGift      = useT('checkout_payment', 'checkout_payment_free_gift',           PAYMENT_PAGE_LABELS.freeGift);
-  const lGiftFree      = useT('checkout_payment', 'checkout_payment_gift_free',           PAYMENT_PAGE_LABELS.giftFree);
-  const lLoyaltyTier   = useT('checkout_payment', 'checkout_payment_loyalty_tier',        PAYMENT_PAGE_LABELS.loyaltyFallbackTier);
-  const lDiscountWord  = useT('checkout_payment', 'checkout_payment_discount_suffix',     PAYMENT_PAGE_LABELS.discountSuffix);
-  const lPromoPrefix   = useT('checkout_payment', 'checkout_payment_promo_prefix',        PAYMENT_PAGE_LABELS.promoPrefix);
-  const lBonusesUsed   = useT('checkout_payment', 'checkout_payment_bonuses_used',        PAYMENT_PAGE_LABELS.bonusesUsed);
-  const lUseBonuses    = useT('checkout_payment', 'checkout_payment_use_bonuses',         PAYMENT_PAGE_LABELS.useBonuses);
-  const lBonusAvail    = useT('checkout_payment', 'checkout_payment_bonus_available',     PAYMENT_PAGE_LABELS.bonusAvailableSuffix);
-  const lErrNoMethod   = useT('checkout_payment', 'checkout_payment_error_no_method',     PAYMENT_PAGE_LABELS.errorNoMethod);
-  const lErrNoDelivery = useT('checkout_payment', 'checkout_payment_error_no_delivery',   PAYMENT_PAGE_LABELS.errorNoDelivery);
-  const lErrRevalidate = useT('checkout_payment', 'checkout_payment_error_revalidate',    PAYMENT_PAGE_LABELS.errorRevalidate);
-  const lErrStripe     = useT('checkout_payment', 'checkout_payment_error_stripe',        PAYMENT_PAGE_LABELS.errorStripeSession);
-  const lErrNoAccounts = useT('checkout_payment', 'checkout_payment_error_no_accounts',   PAYMENT_PAGE_LABELS.errorNoAccounts);
+  const lPayOnDelivery = useT('checkout_payment_pay_on_delivery',     PAYMENT_PAGE_LABELS.payOnDeliverySection);
+  const lOr            = useT('checkout_payment_or',                  PAYMENT_PAGE_LABELS.orOnlinePrepayment);
+  const lOnline        = useT('checkout_payment_online_prepayment',   PAYMENT_PAGE_LABELS.onlinePrepaymentSection);
+  const lPlaceOrder    = useT('checkout_payment_cta',                 PAYMENT_PAGE_LABELS.placeOrderPrefix);
+  const lSsl           = useT('checkout_payment_ssl',                 PAYMENT_PAGE_LABELS.securityBadges[0] ?? '');
+  const lPci           = useT('checkout_payment_pci',                 PAYMENT_PAGE_LABELS.securityBadges[1] ?? '');
+  const l3d            = useT('checkout_payment_3d',                  PAYMENT_PAGE_LABELS.securityBadges[2] ?? '');
+  const lPageTitle     = useT('checkout_payment_title',               PAYMENT_PAGE_LABELS.pageTitle);
+  const lBackToDeliv   = useT('checkout_payment_back_to_delivery',    PAYMENT_PAGE_LABELS.backToDelivery);
+  const lOrderSummary  = useT('checkout_payment_order_summary',       PAYMENT_PAGE_LABELS.orderSummary);
+  const lFreeGift      = useT('checkout_payment_free_gift',           PAYMENT_PAGE_LABELS.freeGift);
+  const lGiftFree      = useT('checkout_payment_gift_free',           PAYMENT_PAGE_LABELS.giftFree);
+  const lLoyaltyTier   = useT('checkout_payment_loyalty_tier',        PAYMENT_PAGE_LABELS.loyaltyFallbackTier);
+  const lDiscountWord  = useT('checkout_payment_discount_suffix',     PAYMENT_PAGE_LABELS.discountSuffix);
+  const lPromoPrefix   = useT('checkout_payment_promo_prefix',        PAYMENT_PAGE_LABELS.promoPrefix);
+  const lBonusesUsed   = useT('checkout_payment_bonuses_used',        PAYMENT_PAGE_LABELS.bonusesUsed);
+  const lUseBonuses    = useT('checkout_payment_use_bonuses',         PAYMENT_PAGE_LABELS.useBonuses);
+  const lBonusAvail    = useT('checkout_payment_bonus_available',     PAYMENT_PAGE_LABELS.bonusAvailableSuffix);
+  const lErrNoMethod   = useT('checkout_payment_error_no_method',     PAYMENT_PAGE_LABELS.errorNoMethod);
+  const lErrNoDelivery = useT('checkout_payment_error_no_delivery',   PAYMENT_PAGE_LABELS.errorNoDelivery);
+  const lErrRevalidate = useT('checkout_payment_error_revalidate',    PAYMENT_PAGE_LABELS.errorRevalidate);
+  const lErrStripe     = useT('checkout_payment_error_stripe',        PAYMENT_PAGE_LABELS.errorStripeSession);
+  const lErrNoAccounts = useT('checkout_payment_error_no_accounts',   PAYMENT_PAGE_LABELS.errorNoAccounts);
   const lStripeRedirect = useT(
-    'checkout_payment',
     'checkout_payment_stripe_redirect_hint',
     "You'll be redirected to the payment provider's secure checkout to complete the payment.",
   );

@@ -6,7 +6,7 @@ import { useCatalogAccent } from '../../context/CatalogAccentContext';
 import Image from 'next/image';
 import { createPortal } from 'react-dom';
 import { Heart, ShoppingBag, Eye } from 'lucide-react';
-import Link from 'next/link';
+
 import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
 import { useQuickView } from '../../context/QuickViewContext';
@@ -15,9 +15,9 @@ import { QUICK_VIEW_LABELS } from '../../data/productPageLabels';
 import { hexToColorName as colorName } from '../../utils/colorNames';
 import { stripTrailingZeros } from '../../utils/formatPrice';
 import { ColorSwatchButton } from '../ui/ColorSwatchButton';
-import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
-import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useMounted } from '../../hooks/useMounted';
+import { Link } from '../../../lib/i18n/navigation';
 
 export interface ProductSpec {
   label: string;
@@ -167,9 +167,9 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   // CTA labels: `add_to_cart_cta` lives in the `product-card` set, while the
   // post-click "Added" copy and "Quick View" labels live in the dedicated
   // `product_card_actions` set on OE.
-  const lAddToCart = useProductCardT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
-  const lAdded     = usePdpT('product_card_actions', 'added',        PRODUCT_CARD_LABELS.added);
-  const lQuickView = usePdpT('product_card_actions', 'quick_view',   CVL.quickView);
+  const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
+  const lAdded     = useT('added',        PRODUCT_CARD_LABELS.added);
+  const lQuickView = useT('quick_view',   CVL.quickView);
   const mounted = useMounted();
   const wishlisted = mounted && isWishlisted(product.id);
   // JS-controlled hover state instead of Tailwind `group-hover:` for the

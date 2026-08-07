@@ -8,7 +8,7 @@ import { useQuickView } from '../../context/QuickViewContext';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
-import { useRouter } from 'next/navigation';
+
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { QuickViewSizeGuide } from './QuickViewSizeGuide';
 import { WriteReviewModal } from '../../pages/product/WriteReviewModal';
@@ -16,6 +16,7 @@ import { QUICK_VIEW_LABELS as L, PRODUCT_ACTION_LABELS as PA, PRODUCT_REVIEWS_LA
 import { SIZE_DROPDOWN_LABELS } from '../../data/commonLabels';
 import { getProductReviewSummary } from '../../../lib/oneentry/catalog/reviews-actions';
 import { canReviewProduct } from '../../utils/review-eligibility';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 export function QuickViewModal() {
   const { isOpen, product, initialColorIndex, closeQuickView } = useQuickView();

@@ -4,7 +4,7 @@ import { X, Store, Check } from 'lucide-react';
 import { SALE_COLOR } from '../../constants/colors';
 import type { SizeOption } from '../../data/productCatalog';
 import { RESERVE_MODAL_LABELS as L } from '../../data/productPageLabels';
-import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { submitForm } from '../../../lib/oneentry/forms/submit';
 
 /** Slim store descriptor for the picker — mapped from the OE store pages by
@@ -29,10 +29,10 @@ interface Props {
 }
 
 export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, stores }: Props) {
-  const lTitle    = usePdpT('reserve_in_store', 'reserve_in_store_title',   L.title);
-  const lSelStore = usePdpT('reserve_in_store', 'reserve_in_store_select',  L.selectStore);
-  const lSelSize  = usePdpT('reserve_in_store', 'reserve_in_store_size',    L.selectSize);
-  const lDetails  = usePdpT('reserve_in_store', 'reserve_in_store_details', L.yourDetails);
+  const lTitle    = useT('reserve_in_store_title',   L.title);
+  const lSelStore = useT('reserve_in_store_select',  L.selectStore);
+  const lSelSize  = useT('reserve_in_store_size',    L.selectSize);
+  const lDetails  = useT('reserve_in_store_details', L.yourDetails);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [size, setSize] = useState<string | null>(preselectedSize);
   const [firstName, setFirstName] = useState('');

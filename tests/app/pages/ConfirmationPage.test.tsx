@@ -15,8 +15,11 @@ import React from 'react';
 // Heavy dependency mocks — all wired before the module is imported
 // ---------------------------------------------------------------------------
 
+// `usePathname` is required too: the locale-aware `useRouter` wrapper derives
+// the active locale from the URL, so it reads the path on every render.
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => '/',
 }));
 
 vi.mock('next/image', () => ({
@@ -30,9 +33,9 @@ vi.mock('@/app/context/CartContext', () => ({
   useCart: () => ({ items: [], total: 0, clearCart }),
 }));
 
-// CheckoutLabelsContext — return fallback for every useT call
-vi.mock('@/lib/oneentry/labels/CheckoutLabelsContext', () => ({
-  useT: (_set: string, _key: string, fallback: string) => fallback,
+// Dictionary — return the inline fallback for every lookup
+vi.mock('@/lib/oneentry/labels/DictContext', () => ({
+  useT: (_key: string, fallback: string) => fallback,
 }));
 
 // Layout components — replace with lightweight stubs

@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { completeGoogleSignIn } from '../../../lib/oneentry/auth/actions';
-import { useSignInT } from '../../../lib/oneentry/labels/SignInLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { OAUTH_ERROR_LABELS as OAE } from '../../data/authLabels';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 /**
  * Redeems Google's `?code=` for a OneEntry session and installs it in this
@@ -23,9 +24,9 @@ export function GoogleCallbackClient() {
   // so a second exchange would fail and bounce the shopper to an error page.
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const lMissingCode = useSignInT('sign_in_google_missing_code', OAE.missingCode);
-  const lGoogleFail  = useSignInT('sign_in_google_failed',       OAE.generic);
-  const lSigningIn   = useSignInT('sign_in_google_signing_in',   OAE.signingIn);
+  const lMissingCode = useT('sign_in_google_missing_code', OAE.missingCode);
+  const lGoogleFail  = useT('sign_in_google_failed',       OAE.generic);
+  const lSigningIn   = useT('sign_in_google_signing_in',   OAE.signingIn);
 
   useEffect(() => {
     if (startedRef.current) return;

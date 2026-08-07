@@ -7,37 +7,34 @@ import {
   buildBreadcrumbSchema,
   type CatalogPageEntry,
   type PageEntry,
-} from '../../src/app/data/pageRegistry';
-import { SITE_URL, SITE_NAME } from '../../src/app/data/seoData';
-import { resolveInfoPageSlug } from '../../src/lib/oneentry/catalog/info-pages';
-import { INFO_PAGE_META } from '../../src/app/data/infoPages';
-import { JsonLd } from '../../src/app/components/system/JsonLd';
-import { loadProducts, loadFilteredProducts } from '../../src/lib/oneentry/catalog/products';
-import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../src/lib/oneentry/catalog/adapt';
-import { parseCatalogSearchParams, type CatalogFilters } from '../../src/lib/oneentry/catalog/filters';
-import { resolveSeasonalTrend, applySeasonalTrend } from '../../src/lib/oneentry/catalog/seasonal-trend';
-import type { Product } from '../../src/app/components/product/ProductCard';
-import { loadCatalogFilter, type ClothingFilterGroup } from '../../src/lib/oneentry/blocks/clothing-filter';
-import { loadFilterChips, chipToFilterPatch } from '../../src/lib/oneentry/blocks/filter-chips';
-import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../src/lib/oneentry/blocks/page-blocks';
-import { loadPageByUrl } from '../../src/lib/oneentry/catalog/pages';
-import { faqItemsFromBlocks, buildFaqSchema } from '../../src/lib/oneentry/blocks/info-sections';
-import { loadInfoPageSystemTexts } from '../../src/lib/oneentry/labels/info-page-labels';
-import { InfoPageLabelsProvider } from '../../src/lib/oneentry/labels/InfoPageLabelsContext';
-import { loadCatalogPageSystemTexts } from '../../src/lib/oneentry/labels/catalog-page-labels';
-import { CATALOG_PAGE_LABELS } from '../../src/app/data/catalogPageLabels';
-import { CatalogPageLabelsProvider } from '../../src/lib/oneentry/labels/CatalogPageLabelsContext';
+} from '../../../src/app/data/pageRegistry';
+import { SITE_URL, SITE_NAME } from '../../../src/app/data/seoData';
+import { resolveInfoPageSlug } from '../../../src/lib/oneentry/catalog/info-pages';
+import { INFO_PAGE_META } from '../../../src/app/data/infoPages';
+import { JsonLd } from '../../../src/app/components/system/JsonLd';
+import { loadProducts, loadFilteredProducts } from '../../../src/lib/oneentry/catalog/products';
+import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../../src/lib/oneentry/catalog/adapt';
+import { parseCatalogSearchParams, type CatalogFilters } from '../../../src/lib/oneentry/catalog/filters';
+import { resolveSeasonalTrend, applySeasonalTrend } from '../../../src/lib/oneentry/catalog/seasonal-trend';
+import type { Product } from '../../../src/app/components/product/ProductCard';
+import { loadCatalogFilter, type ClothingFilterGroup } from '../../../src/lib/oneentry/blocks/clothing-filter';
+import { loadFilterChips, chipToFilterPatch } from '../../../src/lib/oneentry/blocks/filter-chips';
+import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../../src/lib/oneentry/blocks/page-blocks';
+import { loadPageByUrl } from '../../../src/lib/oneentry/catalog/pages';
+import { faqItemsFromBlocks, buildFaqSchema } from '../../../src/lib/oneentry/blocks/info-sections';
+import { getDictionary, translate } from '../../../src/lib/oneentry/dictionary';
+import { CATALOG_PAGE_LABELS } from '../../../src/app/data/catalogPageLabels';
 
 /* ─── Catalog page components (dataset configs) ─── */
-import { WomenCatalogPage }     from '../../src/app/pages/WomenCatalogPage';
-import { WomenShoesPage }       from '../../src/app/pages/WomenShoesPage';
-import { WomenBagsPage }        from '../../src/app/pages/WomenBagsPage';
-import { WomenAccessoriesPage } from '../../src/app/pages/WomenAccessoriesPage';
-import { MenCatalogPage }       from '../../src/app/pages/MenCatalogPage';
-import { MenShoesPage }         from '../../src/app/pages/MenShoesPage';
-import { MenBagsPage }          from '../../src/app/pages/MenBagsPage';
-import { MenAccessoriesPage }   from '../../src/app/pages/MenAccessoriesPage';
-import { InfoPage }             from '../../src/app/pages/InfoPage';
+import { WomenCatalogPage }     from '../../../src/app/pages/WomenCatalogPage';
+import { WomenShoesPage }       from '../../../src/app/pages/WomenShoesPage';
+import { WomenBagsPage }        from '../../../src/app/pages/WomenBagsPage';
+import { WomenAccessoriesPage } from '../../../src/app/pages/WomenAccessoriesPage';
+import { MenCatalogPage }       from '../../../src/app/pages/MenCatalogPage';
+import { MenShoesPage }         from '../../../src/app/pages/MenShoesPage';
+import { MenBagsPage }          from '../../../src/app/pages/MenBagsPage';
+import { MenAccessoriesPage }   from '../../../src/app/pages/MenAccessoriesPage';
+import { InfoPage }             from '../../../src/app/pages/InfoPage';
 
 /* ─── Map catalogKey → component ─── */
 type CatalogProps = {
@@ -340,12 +337,14 @@ export default async function Page({ params, searchParams }: Props) {
       entry.catalogKey.startsWith('women-') ? 'W'
       : entry.catalogKey.startsWith('men-') ? 'M'
       : '';
-    // Heading for the trending carousel: OE block title → `catalog_page`
-    // system text → local constant. Loaded here because the block below may
-    // be synthesised from the catalog's own products.
-    const catalogChrome = await loadCatalogPageSystemTexts();
-    const trendingFallbackTitle =
-      catalogChrome['catalog_page_trending_title'] ?? CATALOG_PAGE_LABELS.trendingFallbackTitle;
+    // Heading for the trending carousel: OE block title → CMS dictionary →
+    // local constant. Read here because the block below may be synthesised
+    // from the catalog's own products.
+    const trendingFallbackTitle = translate(
+      await getDictionary(),
+      'catalog_page_trending_title',
+      CATALOG_PAGE_LABELS.trendingFallbackTitle,
+    );
     let trendingBlock = await loadBlockWithProducts('catalog_trend_blocks', { categoryPath });
     if (trendingBlock && catalogGender) {
       const filteredByGender = trendingBlock.products.filter(p =>
@@ -378,28 +377,21 @@ export default async function Page({ params, searchParams }: Props) {
     const pageBlocks = (await loadPageBlocksByUrl(pageBlocksUrl))
       .filter(b => b.marker !== 'catalog_trend_blocks');
 
-    // Catalog chrome copy (gender / category titles, breadcrumb fragments)
-    // from the OE `catalog_page` set. Empty dict → components keep their
-    // local `CATALOG_PAGE_LABELS` fallback.
-    const catalogLabels = catalogChrome;
-
     return (
       <>
         <JsonLd data={breadcrumb} />
         <JsonLd data={itemList} />
-        <CatalogPageLabelsProvider data={catalogLabels}>
-          <CatalogComponent
-            initialProducts={initialProducts}
-            initialFilterGroups={initialFilterGroups}
-            initialQuickChips={initialQuickChips}
-            initialTotalStyles={total || initialProducts?.length}
-            currentFilters={filters}
-            currentPage={currentPage}
-            total={total}
-            trendingBlock={trendingBlock}
-            pageBlocks={pageBlocks}
-          />
-        </CatalogPageLabelsProvider>
+        <CatalogComponent
+          initialProducts={initialProducts}
+          initialFilterGroups={initialFilterGroups}
+          initialQuickChips={initialQuickChips}
+          initialTotalStyles={total || initialProducts?.length}
+          currentFilters={filters}
+          currentPage={currentPage}
+          total={total}
+          trendingBlock={trendingBlock}
+          pageBlocks={pageBlocks}
+        />
       </>
     );
   }
@@ -408,10 +400,10 @@ export default async function Page({ params, searchParams }: Props) {
   if (entry.type === 'info') {
     const isHub = entry.slug === '__hub';
 
-    // Page chrome + breadcrumb labels come from the OE `info_page` set; the
-    // local constants remain the offline fallback.
-    const [infoLabels, infoPageBlocks, cmsPage] = await Promise.all([
-      loadInfoPageSystemTexts(),
+    // Page chrome + breadcrumb labels come from the CMS dictionary; the local
+    // constants remain the offline fallback.
+    const [dict, infoPageBlocks, cmsPage] = await Promise.all([
+      getDictionary(),
       // `entry.slug` matches the OE pageUrl marker (e.g. 'about-us', 'faq').
       // The hub landing has no OE page — skip loading and pass empty.
       isHub ? Promise.resolve([] as PageBlock[]) : loadPageBlocksByUrl(entry.slug),
@@ -419,7 +411,7 @@ export default async function Page({ params, searchParams }: Props) {
       // label for pages that exist only in the CMS.
       isHub ? Promise.resolve(null) : loadPageByUrl(entry.slug),
     ]);
-    const label = (key: string, fallback: string) => infoLabels[key] || fallback;
+    const label = (key: string, fallback: string) => translate(dict, key, fallback);
 
     const pageTitle = isHub
       ? label('info_hub_title', 'Content Hub')
@@ -442,9 +434,7 @@ export default async function Page({ params, searchParams }: Props) {
       <>
         <JsonLd data={breadcrumbSchema} />
         {faqItems.length > 0 && <JsonLd data={buildFaqSchema(faqItems)} />}
-        <InfoPageLabelsProvider data={infoLabels}>
-          <InfoPage pageBlocks={infoPageBlocks} />
-        </InfoPageLabelsProvider>
+        <InfoPage pageBlocks={infoPageBlocks} />
       </>
     );
   }

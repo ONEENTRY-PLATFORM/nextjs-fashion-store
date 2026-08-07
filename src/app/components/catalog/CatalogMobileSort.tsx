@@ -2,7 +2,7 @@
 import { X } from 'lucide-react';
 import { useCatalogAccent } from '../../context/CatalogAccentContext';
 import { CATALOG_MOBILE_SORT_LABELS as L } from '../../data/commonLabels';
-import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 const SORT_OPTIONS = L.options;
 
@@ -20,8 +20,8 @@ export function CatalogMobileSort({
   onSortChange,
 }: CatalogMobileSortProps) {
   const accentColor = useCatalogAccent();
-  const lHeading   = useInterfaceControlsT('interface_controls_sort_heading', L.heading);
-  const lCloseSort = useInterfaceControlsT('interface_controls_sort_close',   L.closeSort);
+  const lHeading   = useT('interface_controls_sort_heading', L.heading);
+  const lCloseSort = useT('interface_controls_sort_close',   L.closeSort);
 
   if (!isOpen) return null;
 

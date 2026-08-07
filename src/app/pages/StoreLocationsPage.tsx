@@ -1,19 +1,20 @@
 'use client'
 import { useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { MapPin, ExternalLink, Search, ChevronRight } from 'lucide-react';
 import type { Store } from '../data/stores';
 import { StoreCard } from './stores/StoreCard';
 import { STORE_LOCATIONS_LABELS as L } from '../data/storesLabels';
-import { useStoresT } from '../../lib/oneentry/labels/StoresLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import type { StoreLocationsPageFromCms } from '../../lib/oneentry/catalog/store-locations-page';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 import { ACCENT_WOMEN as ACCENT, ACCENT_MEN, BANNER_BG } from '../constants/colors';
+import { useRouter } from '../../lib/i18n/navigation';
 
 type StoreLocationsPageProps = {
   initialStores?: Store[];
@@ -37,12 +38,12 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
   const allCities = [L.cityAll, ...Array.from(new Set(stores.map(s => s.city)))];
   const [selectedCity, setSelectedCity] = useState<string>(L.cityAll);
   const [searchQuery, setSearchQuery] = useState('');
-  const lSearch       = useStoresT('store_location', 'store_location_search',             L.searchPlaceholder);
-  const lFound        = useStoresT('store_location', 'store_location_found',              L.storesFoundPlural);
-  const lAllOffer     = useStoresT('store_location', 'store_location_all_stores_offer',   L.allStoresOffer);
-  const lFooterText   = useStoresT('store_location', 'store_location_footer_text',        L.shopOnlineCopy);
-  const lFooterLink   = useStoresT('store_location', 'store_location_footer_link',        L.shopOnlineCta);
-  const lBookStyling  = useStoresT('store_location', 'store_location_footer_banner_cta',  L.flagshipBookStyling);
+  const lSearch       = useT('store_location_search',             L.searchPlaceholder);
+  const lFound        = useT('store_location_found',              L.storesFoundPlural);
+  const lAllOffer     = useT('store_location_all_stores_offer',   L.allStoresOffer);
+  const lFooterText   = useT('store_location_footer_text',        L.shopOnlineCopy);
+  const lFooterLink   = useT('store_location_footer_link',        L.shopOnlineCta);
+  const lBookStyling  = useT('store_location_footer_banner_cta',  L.flagshipBookStyling);
 
   const filtered = stores.filter(s => {
     const matchCity = selectedCity === L.cityAll || s.city === selectedCity;

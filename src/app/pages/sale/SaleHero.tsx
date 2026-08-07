@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { Tag, ChevronRight } from 'lucide-react';
 import { CountdownUnit } from './SaleCountdown';
 import { SALE_PAGE_LABELS as L } from '../../data/salePageLabels';
-import { useSalePageT } from '../../../lib/oneentry/labels/SalePageLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import type { SalePageFromCms } from '../../../lib/oneentry/catalog/sale-page';
 import { sanitizeHtml } from '../../../lib/sanitize-html';
 
@@ -55,10 +55,10 @@ export function parseHeroPlain(plain: string) {
 }
 
 export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
-  const lDays    = useSalePageT('sale_page_top_banner_days',  L.countdownDays);
-  const lHours   = useSalePageT('sale_page_top_banner_hours', L.countdownHours);
-  const lMinutes = useSalePageT('sale_page_top_banner_min',   L.countdownMinutes);
-  const lSeconds = useSalePageT('sale_page_top_banner_sec',   L.countdownSeconds);
+  const lDays    = useT('sale_page_top_banner_days',  L.countdownDays);
+  const lHours   = useT('sale_page_top_banner_hours', L.countdownHours);
+  const lMinutes = useT('sale_page_top_banner_min',   L.countdownMinutes);
+  const lSeconds = useT('sale_page_top_banner_sec',   L.countdownSeconds);
 
   const heroImage    = cms?.hero.image || FALLBACK_HERO_IMAGE;
   const eyebrow      = cms?.hero.eyebrow || L.heroEyebrow;

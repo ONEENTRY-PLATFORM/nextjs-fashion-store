@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { Provider } from 'react-redux';
 import { AuthProvider } from '../../context/AuthContext'
 import { makeStore, loadCatalogFromStorage, type AppStore } from '../../store'
@@ -11,20 +11,10 @@ import { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar'
 import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { PageViewTracker } from './PageViewTracker'
 import { CartUnavailableNotice } from '../cart/CartUnavailableNotice'
-import { ProductCardLabelsProvider } from '../../../lib/oneentry/labels/ProductCardLabelsContext'
-import type { ProductCardDict } from '../../../lib/oneentry/labels/product-card-types'
-import { SignInLabelsProvider } from '../../../lib/oneentry/labels/SignInLabelsContext'
-import type { SignInDict } from '../../../lib/oneentry/labels/sign-in-types'
-import { CreateAccountLabelsProvider } from '../../../lib/oneentry/labels/CreateAccountLabelsContext'
-import type { CreateAccountDict } from '../../../lib/oneentry/labels/create-account-types'
-import { InterfaceControlsLabelsProvider } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext'
-import type { InterfaceControlsDict } from '../../../lib/oneentry/labels/interface-controls-types'
-import { YourBagLabelsProvider } from '../../../lib/oneentry/labels/YourBagLabelsContext'
-import type { YourBagDict } from '../../../lib/oneentry/labels/your-bag-types'
+import { DictProvider, useT } from '../../../lib/oneentry/labels/DictContext'
+import type { Dictionary } from '../../../lib/oneentry/dictionary'
+import { LocalesProvider } from '../../../lib/oneentry/LocalesContext'
 import { FooterMenuProvider } from '../../../lib/oneentry/menus/FooterMenuContext'
-import { SystemPagesLabelsProvider } from '../../../lib/oneentry/labels/SystemPagesLabelsContext'
-import type { SystemPagesDict } from '../../../lib/oneentry/labels/system-pages-types'
-import { useSignInT } from '../../../lib/oneentry/labels/SignInLabelsContext';
 import { OAUTH_ERROR_LABELS } from '../../data/authLabels';
 import { HeaderMenuProvider } from '../../../lib/oneentry/menus/HeaderMenuContext'
 import type { MenuPageNode } from '../../../lib/oneentry/menus/menus'
@@ -32,11 +22,8 @@ import { SignUpFormSchemaProvider } from '../../../lib/oneentry/auth/SignUpFormS
 import type { SignUpFormSchema } from '../../../lib/oneentry/auth/sign-up-form'
 import { FormPlaceholdersProvider } from '../../../lib/oneentry/forms/FormPlaceholdersContext'
 import type { FormContent } from '../../../lib/oneentry/forms/placeholders'
-import { HeaderLabelsProvider } from '../../../lib/oneentry/labels/HeaderLabelsContext'
-import type { HeaderDict } from '../../../lib/oneentry/labels/header-types'
-import { FooterLabelsProvider } from '../../../lib/oneentry/labels/FooterLabelsContext'
-import type { FooterDict } from '../../../lib/oneentry/labels/footer-types'
 import type { CmsLocale } from '../../../lib/oneentry/locales'
+import { useRouter } from '../../../lib/i18n/navigation';
 
 /**
  * No-op placeholder kept for backwards compatibility. Real wishlist
@@ -76,10 +63,10 @@ function GoogleAuthErrorSurface() {
   const router = useRouter();
   const pathname = usePathname();
   const { openLoginModal, setAuthError } = useAuth();
-  const lCancelled = useSignInT('sign_in_google_cancelled',     OAUTH_ERROR_LABELS.accessDenied);
-  const lToken     = useSignInT('sign_in_google_token_failed',  OAUTH_ERROR_LABELS.token);
-  const lState     = useSignInT('sign_in_google_state_expired', OAUTH_ERROR_LABELS.state);
-  const lGeneric   = useSignInT('sign_in_google_generic_error', OAUTH_ERROR_LABELS.generic);
+  const lCancelled = useT('sign_in_google_cancelled',     OAUTH_ERROR_LABELS.accessDenied);
+  const lToken     = useT('sign_in_google_token_failed',  OAUTH_ERROR_LABELS.token);
+  const lState     = useT('sign_in_google_state_expired', OAUTH_ERROR_LABELS.state);
+  const lGeneric   = useT('sign_in_google_generic_error', OAUTH_ERROR_LABELS.generic);
   // Stable identity so the effect below doesn't re-run on every render.
   const oauthCopy = useMemo(
     () => ({ accessDenied: lCancelled, token: lToken, state: lState, generic: lGeneric }),
@@ -104,38 +91,24 @@ function GoogleAuthErrorSurface() {
 
 export function Providers({
   children,
-  productCardLabels = {},
-  signInLabels = {},
-  createAccountLabels = {},
-  interfaceControlsLabels = {},
-  yourBagLabels = {},
+  dict = {},
   footerMenu = [],
-  systemPagesLabels = {},
   headerMenu = [],
   signUpFormSchema,
   forms = {},
-  headerLabels = {},
-  footerLabels = {},
   cmsLocales = [],
 }: {
   children: React.ReactNode;
-  productCardLabels?: ProductCardDict;
-  signInLabels?: SignInDict;
-  createAccountLabels?: CreateAccountDict;
-  interfaceControlsLabels?: InterfaceControlsDict;
-  yourBagLabels?: YourBagDict;
+  /** The whole CMS dictionary, flat `marker → value`. Loaded once in the root
+   *  layout; every screen reads it through `useT` / `useDict` / `useList`. */
+  dict?: Dictionary;
   footerMenu?: MenuPageNode[];
-  systemPagesLabels?: SystemPagesDict;
   headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
   /** OE form content keyed by marker — layout-wide forms only (the footer
    *  newsletter renders on every route). Route-scoped forms mount their own
    *  `FormPlaceholdersProvider` closer to the page. */
   forms?: Record<string, FormContent>;
-  /** OE `header` system-text set. */
-  headerLabels?: HeaderDict;
-  /** OE `footer` system-text set — branding copy for the global footer. */
-  footerLabels?: FooterDict;
   /** Active project locales — drives the header language switcher. */
   cmsLocales?: CmsLocale[];
 }) {
@@ -171,47 +144,32 @@ export function Providers({
       <AuthProvider>
         <WishlistSyncEffect />
         <PageViewTracker />
-        <ProductCardLabelsProvider data={productCardLabels}>
-          <SignInLabelsProvider data={signInLabels}>
-            <CreateAccountLabelsProvider data={createAccountLabels}>
-              <InterfaceControlsLabelsProvider data={interfaceControlsLabels}>
-                <YourBagLabelsProvider data={yourBagLabels}>
-                  <FooterMenuProvider data={footerMenu}>
-                    <HeaderMenuProvider data={headerMenu}>
-                      <SignUpFormSchemaProvider data={signUpFormSchema}>
-                        <FormPlaceholdersProvider forms={forms}>
-                          <HeaderLabelsProvider data={{ labels: headerLabels, locales: cmsLocales }}>
-                            <FooterLabelsProvider data={footerLabels}>
-                              <SystemPagesLabelsProvider data={systemPagesLabels}>
-                              {/* Both of these read label contexts, so they
-                                   must sit *inside* the providers — mounted
-                                   above them they silently rendered the
-                                   offline fallbacks.
-                                   `useSearchParams()` inside
-                                   `GoogleAuthErrorSurface` opts the tree into
-                                   per-request rendering; without a Suspense
-                                   boundary the static prerender of
-                                   `/_not-found` fails at build time with
-                                   "missing-suspense-with-csr-bailout". The
-                                   component renders nothing — the fallback is
-                                   intentionally empty. */}
-                              <Suspense fallback={null}>
-                                <GoogleAuthErrorSurface />
-                              </Suspense>
-                              <CartUnavailableNotice />
-                              <ErrorBoundary>{children}</ErrorBoundary>
-                              </SystemPagesLabelsProvider>
-                            </FooterLabelsProvider>
-                          </HeaderLabelsProvider>
-                        </FormPlaceholdersProvider>
-                      </SignUpFormSchemaProvider>
-                    </HeaderMenuProvider>
-                  </FooterMenuProvider>
-                </YourBagLabelsProvider>
-              </InterfaceControlsLabelsProvider>
-            </CreateAccountLabelsProvider>
-          </SignInLabelsProvider>
-        </ProductCardLabelsProvider>
+        <DictProvider data={dict}>
+          <LocalesProvider data={cmsLocales}>
+            <FooterMenuProvider data={footerMenu}>
+              <HeaderMenuProvider data={headerMenu}>
+                <SignUpFormSchemaProvider data={signUpFormSchema}>
+                  <FormPlaceholdersProvider forms={forms}>
+                    {/* `GoogleAuthErrorSurface` reads the dictionary, so it
+                         must sit *inside* `DictProvider` — mounted above it,
+                         it silently rendered the offline fallbacks.
+                         `useSearchParams()` inside it also opts the tree into
+                         per-request rendering; without a Suspense boundary the
+                         static prerender of `/_not-found` fails at build time
+                         with "missing-suspense-with-csr-bailout". The
+                         component renders nothing — the fallback is
+                         intentionally empty. */}
+                    <Suspense fallback={null}>
+                      <GoogleAuthErrorSurface />
+                    </Suspense>
+                    <CartUnavailableNotice />
+                    <ErrorBoundary>{children}</ErrorBoundary>
+                  </FormPlaceholdersProvider>
+                </SignUpFormSchemaProvider>
+              </HeaderMenuProvider>
+            </FooterMenuProvider>
+          </LocalesProvider>
+        </DictProvider>
       </AuthProvider>
     </Provider>
   )

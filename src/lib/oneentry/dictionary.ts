@@ -1,8 +1,6 @@
 import { cache } from 'react';
-import { getApiSafe, isError } from './index';
-import { DEFAULT_LOCALE } from './locale';
-import type { Lang } from './system-text';
-import { logCaught } from './log';
+import { currentCmsLocale } from './current-locale';
+import { getSystemSet, readSystemValue, type Lang, type SystemSchema } from './system-text';
 
 /**
  * The storefront's UI-text dictionary: every attribute marker the CMS knows,
@@ -10,80 +8,95 @@ import { logCaught } from './log';
  *
  * Copy lives as each attribute's `initialValue` — the field a content editor
  * fills in the admin panel's attribute-set editor. Markers are unique across
- * sets on this tenant (verified: 244 markers, zero collisions), so the sets are
- * an admin-side grouping only and callers never need to know which set a key
- * came from. One lookup, one namespace.
+ * sets on this tenant (verified against the live project: 718 keys over the 41
+ * sets below, zero collisions), so the sets are an admin-side grouping only and
+ * callers never need to know which set a key came from. One lookup, one
+ * namespace.
  *
- * Read it with `useDict()` on the client or `getDictionary()` on the server;
+ * Read it with `useT()` on the client or {@link getDictionary} on the server;
  * every call site supplies its own English fallback inline, so a CMS outage
  * degrades to the shipped copy rather than blank UI.
  */
 export type Dictionary = Record<string, string>;
 
-/** OE returns `initialValue` either flat or language-keyed depending on the call. */
-type RawAttr = {
-  identifier?: unknown;
-  marker?: unknown;
-  initialValue?: unknown;
-};
-type RawSet = { schema?: Record<string, RawAttr> | null };
+/**
+ * Every attribute set the storefront reads copy from.
+ *
+ * This list is explicit rather than discovered because the public
+ * `GET /api/content/attributes-sets` endpoint **ignores `offset`/`limit`** and
+ * always returns the first 10 of the tenant's 90 sets — verified over raw HTTP
+ * against `offset=10`, `limit=90` and `page=2`, all of which return the same
+ * first page. Enumerating the tenant is therefore impossible from the public
+ * API, and `getAttributeSetByMarker` per marker is the only complete path.
+ *
+ * The sets are fetched in parallel and each one is TTL-cached by
+ * `getSystemSet`, so the cost is 41 concurrent requests once every five
+ * minutes per server process, not per render.
+ *
+ * Note: `footer` is deliberately absent — the tenant has no such set and
+ * `getAttributeSetByMarker('footer')` 404s. Footer copy therefore resolves to
+ * its inline fallbacks, which is exactly what it did before. Add the marker
+ * here once the set exists in the admin panel.
+ */
+export const DICTIONARY_SET_MARKERS = [
+  // Layout chrome and shared UI
+  'header',
+  'interface_controls',
+  'product-card',
+  'system_pages',
+  // Auth
+  'sign_in',
+  'create_account',
+  // Catalog and content pages
+  'catalog_page',
+  'info_page',
+  'info_section',
+  'new_arrivals_page',
+  'sale_page',
+  'favorites_page',
+  // Product detail
+  'product_card_delivery_returns',
+  'product_card_actions',
+  'special_offers_product_card',
+  'special-offers-bundle-product-card',
+  'customer-reviews',
+  'reserve_in_store',
+  'earn_360_bonus_points',
+  'size-guide',
+  // Bag and checkout
+  'your_bag',
+  'checkout_cart',
+  'checkout_delivery',
+  'checkout_payment',
+  'checkout_confirmed',
+  'checkout_modal',
+  // Account
+  'user_account',
+  'user_account_silver_status',
+  'user_account_wishlist',
+  'user_account_feedback',
+  'user_account_personal_data_consent',
+  'subscription_management',
+  'users_edit_password',
+  'user_addresses_system',
+  'my_orders',
+  'my_bonuses',
+  'service_maintenance',
+  'purchase_history',
+  'waiting_list',
+  // Stores
+  'store_location',
+  'store_pages',
+] as const;
 
-const readValue = (raw: unknown, lang: Lang): string | null => {
-  if (typeof raw === 'string') return raw;
-  if (!raw || typeof raw !== 'object') return null;
-  const langKeyed = (raw as Record<string, { value?: unknown }>)[lang];
-  if (langKeyed && typeof langKeyed.value === 'string') return langKeyed.value;
-  const flat = (raw as { value?: unknown }).value;
-  return typeof flat === 'string' ? flat : null;
-};
-
-// Process-wide TTL cache. UI copy changes rarely, and `React.cache()` alone only
-// dedupes within a single render — without this every Server Action would refetch
-// the whole dictionary.
-const TTL_MS = 5 * 60 * 1000;
-let cached: { at: number; value: Dictionary } | null = null;
-let inflight: Promise<Dictionary> | null = null;
-
-/** How many sets the tenant returns per page. The API caps this server-side and
- *  ignores a larger `limit`, so we page until we've seen `total`. */
-const PAGE_SIZE = 100;
-const MAX_PAGES = 20;
-
-async function fetchDictionary(lang: Lang): Promise<Dictionary> {
-  const api = getApiSafe();
-  if (!api) return {};
-  const dict: Dictionary = {};
-  try {
-    let offset = 0;
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const res = await api.AttributesSets.getAttributes(lang, offset, PAGE_SIZE);
-      if (isError(res)) break;
-      const payload = res as unknown as { items?: RawSet[]; total?: number } | RawSet[];
-      const items = Array.isArray(payload) ? payload : payload?.items ?? [];
-      if (items.length === 0) break;
-
-      for (const set of items) {
-        for (const attr of Object.values(set?.schema ?? {})) {
-          const marker = typeof attr?.identifier === 'string'
-            ? attr.identifier
-            : typeof attr?.marker === 'string' ? attr.marker : '';
-          if (!marker) continue;
-          const value = readValue(attr?.initialValue, lang);
-          // First writer wins: markers are unique tenant-wide, and skipping
-          // empties keeps a blank attribute from masking a real value.
-          if (value && value.length > 0 && dict[marker] === undefined) dict[marker] = value;
-        }
-      }
-
-      const total = Array.isArray(payload) ? items.length : payload?.total ?? items.length;
-      offset += items.length;
-      if (offset >= total) break;
-    }
-    return dict;
-  } catch (err) {
-    logCaught('dictionary.fetchDictionary', err);
-    return dict;
+/** Flatten one OE attribute-set schema to `marker → value`, dropping empties. */
+function flattenSet(schema: SystemSchema, lang: Lang): Dictionary {
+  const out: Dictionary = {};
+  for (const [key, item] of Object.entries(schema)) {
+    const value = readSystemValue(item, lang);
+    if (typeof value === 'string' && value.length > 0) out[key] = value;
   }
+  return out;
 }
 
 /**
@@ -91,25 +104,56 @@ async function fetchDictionary(lang: Lang): Promise<Dictionary> {
  * components.
  *
  * Never throws — an unreachable CMS yields an empty dictionary and every call
- * site falls back to its inline English copy.
+ * site falls back to its inline English copy. Per-set caching and in-flight
+ * de-duplication both live in `getSystemSet`, so calling this repeatedly within
+ * a request (or across requests inside the TTL) costs nothing.
+ *
+ * With no argument the locale comes from the `[locale]` route segment via
+ * {@link currentCmsLocale}; pass one explicitly from Server Actions and Route
+ * Handlers, where root parameters are unavailable.
+ * @param   {Lang}                 [lang] - OE locale code. Defaults to the route's.
+ * @returns {Promise<Dictionary>}         Flat `marker → value` map.
  */
-export const getDictionary = cache(async (lang: Lang = DEFAULT_LOCALE): Promise<Dictionary> => {
-  const now = Date.now();
-  if (cached && now - cached.at < TTL_MS) return cached.value;
-  if (inflight) return inflight;
-  inflight = fetchDictionary(lang)
-    .then((value) => {
-      // Only cache a non-empty result: a transient blip must not pin an empty
-      // dictionary for the whole TTL and blank every label app-wide.
-      if (Object.keys(value).length > 0) cached = { at: Date.now(), value };
-      return value;
-    })
-    .finally(() => { inflight = null; });
-  return inflight;
-});
+export const getDictionary = cache(
+  async (langArg?: Lang): Promise<Dictionary> => {
+    const lang = langArg ?? (await currentCmsLocale());
+    const sets = await Promise.all(
+      DICTIONARY_SET_MARKERS.map(async (marker) =>
+        flattenSet(await getSystemSet(marker, lang), lang),
+      ),
+    );
 
-/** Resolve one marker against a dictionary, falling back to the shipped copy. */
-export function translate(dict: Dictionary | null | undefined, marker: string, fallback: string): string {
+    const dict: Dictionary = {};
+    for (const set of sets) {
+      for (const [key, value] of Object.entries(set)) {
+        // First writer wins. Markers are unique tenant-wide today; a future
+        // collision would be an admin-side mistake, so surface it in dev
+        // rather than letting one screen silently reword another.
+        if (dict[key] === undefined) {
+          dict[key] = value;
+        } else if (process.env.NODE_ENV !== 'production' && dict[key] !== value) {
+          console.warn(
+            `[oneentry] duplicate dictionary marker "${key}" with differing values — keeping the first.`,
+          );
+        }
+      }
+    }
+    return dict;
+  },
+);
+
+/**
+ * Resolve one marker against a dictionary, falling back to the shipped copy.
+ * @param   {Dictionary | null | undefined} dict     - Loaded dictionary, if any.
+ * @param   {string}                        marker   - Attribute marker to read.
+ * @param   {string}                        fallback - Inline English copy.
+ * @returns {string}                                 The CMS value or `fallback`.
+ */
+export function translate(
+  dict: Dictionary | null | undefined,
+  marker: string,
+  fallback: string,
+): string {
   const v = dict?.[marker];
   return typeof v === 'string' && v.length > 0 ? v : fallback;
 }

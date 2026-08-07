@@ -5,7 +5,7 @@ import { Plus, Edit2, Trash2, MapPin } from 'lucide-react';
 import { SectionTitle, FormInput } from '../shared';
 import { ADDRESSES_LABELS as L } from '../../../data/accountLabels';
 import { ADDRESSES_SECTION_ARIA } from '../../../data/commonLabels';
-import { useT } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../../lib/oneentry/labels/DictContext';
 import { useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
 
 type AddrForm = {
@@ -28,11 +28,11 @@ export function AddressesSection() {
   const [mode, setMode] = useState<'idle' | 'add' | string>('idle');
   const [form, setForm] = useState<AddrForm>(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const lNewHeading  = useT('user_addresses_system', 'user_addresses_system_title',           L.newAddressHeading);
-  const lEditHeading = useT('user_addresses_system', 'user_addresses_system_edit_title',      L.editAddressHeading);
-  const lAdd         = useT('user_addresses_system', 'user_addresses_system_add_cta',         L.add);
-  const lSave        = useT('user_addresses_system', 'user_addresses_system_save_cta',        L.save);
-  const lCancel      = useT('user_addresses_system', 'user_addresses_system_cancel_cta',      L.cancel);
+  const lNewHeading  = useT('user_addresses_system_title',           L.newAddressHeading);
+  const lEditHeading = useT('user_addresses_system_edit_title',      L.editAddressHeading);
+  const lAdd         = useT('user_addresses_system_add_cta',         L.add);
+  const lSave        = useT('user_addresses_system_save_cta',        L.save);
+  const lCancel      = useT('user_addresses_system_cancel_cta',      L.cancel);
 
   const phLabel        = useFormPlaceholder('user_addresses', 'user_addresses_lable',                'placeholder_label',                L.placeholderLabel);
   const phFullName     = useFormPlaceholder('user_addresses', 'user_addresses_recipient_name',       'placeholder_name',                 L.placeholderFullName);

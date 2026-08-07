@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { SIZE_GUIDE_DATA, parseSizeGuide, serializeSizeGuide } from '../../data/sizeGuide';
 import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '../../data/productPageLabels';
-import { usePdpDict, usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 
 export function SizeGuideModal({ onClose }: { onClose: () => void }) {
-  const L = usePdpDict('size-guide', 'size_guide_', L_FALLBACK);
+  const L = useDict('size_guide_', L_FALLBACK);
   // The chart itself is editable too — one row per line, `size|us|bust|waist|hip`.
-  const rows = parseSizeGuide(usePdpT('size-guide', 'size_guide_rows', serializeSizeGuide(SIZE_GUIDE_DATA)));
+  const rows = parseSizeGuide(useT('size_guide_rows', serializeSizeGuide(SIZE_GUIDE_DATA)));
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };

@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useWishlist } from '../../context/WishlistContext';
 import { useAuth } from '../../context/AuthContext';
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { useRouter } from 'next/navigation';
+
 import { type WaitingItem } from '../../data/userData';
 import { getWaitingListAction } from '../../../lib/oneentry/catalog/waiting-list-action';
 import { Bell, ShoppingBag, Check, Trash2 } from 'lucide-react';
@@ -11,26 +11,27 @@ import { useCart } from '../../context/CartContext';
 import { SectionTitle, ACCENT, fmt } from './shared';
 import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { WAITING_LIST_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 export function WaitingListSection() {
   const router = useRouter();
-  const title       = useT('waiting_list', 'waiting_list_title',               L.title);
-  const bannerEye   = useT('waiting_list', 'waiting_list_top_banner_sub_title', L.bannerEyebrow);
-  const bannerHead  = useT('waiting_list', 'waiting_list_top_banner_title',    L.bannerHeading);
-  const lLoadingAria = useT('waiting_list', 'waiting_list_loading_aria',        L.loadingAria);
-  const sBack       = useT('waiting_list', 'waiting_list_back_in_stock',       L.statuses.back_in_stock);
-  const sLow        = useT('waiting_list', 'waiting_list_low_stock',           L.statuses.low_stock);
-  const sOut        = useT('waiting_list', 'waiting_list_out_of_stock',        L.statuses.out_of_stock);
-  const addedPfx    = useT('waiting_list', 'waiting_list_added',               L.addedPrefix);
-  const ctaUnavail  = useT('waiting_list', 'waiting_list_item_status_unavailable', L.ctaUnavailable);
-  const ctaAddCart  = useT('waiting_list', 'waiting_list_item_status_add_to_card', L.ctaAddToCart);
-  const step1Title  = useT('waiting_list', 'waiting_list_01_title',            L.howSteps[0].title);
-  const step1Text   = useT('waiting_list', 'waiting_list_01_text',             L.howSteps[0].desc);
-  const step2Title  = useT('waiting_list', 'waiting_list_02_title',            L.howSteps[1].title);
-  const step2Text   = useT('waiting_list', 'waiting_list_02_text',             L.howSteps[1].desc);
-  const step3Title  = useT('waiting_list', 'waiting_list_03_title',            L.howSteps[2].title);
-  const step3Text   = useT('waiting_list', 'waiting_list_03_text',             L.howSteps[2].desc);
+  const title       = useT('waiting_list_title',               L.title);
+  const bannerEye   = useT('waiting_list_top_banner_sub_title', L.bannerEyebrow);
+  const bannerHead  = useT('waiting_list_top_banner_title',    L.bannerHeading);
+  const lLoadingAria = useT('waiting_list_loading_aria',        L.loadingAria);
+  const sBack       = useT('waiting_list_back_in_stock',       L.statuses.back_in_stock);
+  const sLow        = useT('waiting_list_low_stock',           L.statuses.low_stock);
+  const sOut        = useT('waiting_list_out_of_stock',        L.statuses.out_of_stock);
+  const addedPfx    = useT('waiting_list_added',               L.addedPrefix);
+  const ctaUnavail  = useT('waiting_list_item_status_unavailable', L.ctaUnavailable);
+  const ctaAddCart  = useT('waiting_list_item_status_add_to_card', L.ctaAddToCart);
+  const step1Title  = useT('waiting_list_01_title',            L.howSteps[0].title);
+  const step1Text   = useT('waiting_list_01_text',             L.howSteps[0].desc);
+  const step2Title  = useT('waiting_list_02_title',            L.howSteps[1].title);
+  const step2Text   = useT('waiting_list_02_text',             L.howSteps[1].desc);
+  const step3Title  = useT('waiting_list_03_title',            L.howSteps[2].title);
+  const step3Text   = useT('waiting_list_03_text',             L.howSteps[2].desc);
 
   const STATUS_CONFIG = {
     back_in_stock: { label: sBack, bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a' },

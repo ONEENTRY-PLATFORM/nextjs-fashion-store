@@ -3,7 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Share2, Check, Link2 } from 'lucide-react';
 import { SHARE_DROPDOWN_LABELS as L } from '../../data/productPageLabels';
-import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 const ShareIcon = ({ src, alt }: { src: string; alt: string }) => (
   <Image src={src} alt={alt} width={14} height={14} unoptimized />
@@ -44,7 +44,7 @@ interface ProductShareDropdownProps {
 export function ProductShareDropdown({
   shareRef, showShare, setShowShare, copied, onCopyLink,
 }: ProductShareDropdownProps) {
-  const lShare = useProductCardT('product-card_share', L.triggerLabel);
+  const lShare = useT('product-card_share', L.triggerLabel);
   return (
     <div ref={shareRef} className="relative">
       <button

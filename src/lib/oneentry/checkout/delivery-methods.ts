@@ -1,6 +1,6 @@
+import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
 import { getApi, isError } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
 import type { Lang } from '../system-text';
 import { REVALIDATE_STORES } from '../../isr';
 import {
@@ -92,8 +92,10 @@ const perks = (fields: Record<string, RawAddlField> | undefined, keys: string[])
  *  admin panel offers for "order placed" UX. Returns `null` when the field is
  *  empty, OE errors, or the SDK throws so the confirmation page can fall back
  *  to its literal heading. */
-export const loadCheckoutSuccessMessage = unstable_cache(
-  async (lang: Lang = DEFAULT_LOCALE): Promise<string | null> => {
+/** `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function. */
+const loadCheckoutSuccessMessageCached = unstable_cache(
+  async (lang: Lang): Promise<string | null> => {
     try {
       const form = await getApi().Forms.getFormByMarker('checkout_home_delivery', lang);
       if (isError(form)) return null;
@@ -108,6 +110,15 @@ export const loadCheckoutSuccessMessage = unstable_cache(
   { revalidate: REVALIDATE_STORES, tags: ['oe-forms'] },
 );
 
+/**
+ * Checkout success message for the current route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<string | null>} Message, or `null` when the tenant has none.
+ */
+export async function loadCheckoutSuccessMessage(langArg?: Lang): Promise<string | null> {
+  return loadCheckoutSuccessMessageCached(langArg ?? (await currentCmsLocale()));
+}
+
 /** Attribute markers a tenant may use for the parcel-locker list. Probed in
  *  order — OE admins name this attribute by hand and the spelling varies. */
 const LOCKER_LIST_MARKERS = ['parcel_locker', 'locker_list', 'lockers', 'locker'];
@@ -119,8 +130,10 @@ const LOCKER_LIST_MARKERS = ['parcel_locker', 'locker_list', 'lockers', 'locker'
  * keeps the local `PARCEL_LOCKERS` fallback. Locker names are plain strings —
  * the picker submits the selected index, so ordering is the contract.
  */
-export const loadParcelLockers = unstable_cache(
-  async (lang: Lang = DEFAULT_LOCALE): Promise<string[]> => {
+/** `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function. */
+const loadParcelLockersCached = unstable_cache(
+  async (lang: Lang): Promise<string[]> => {
     try {
       const form = await getApi().Forms.getFormByMarker('checkout_home_delivery', lang);
       if (isError(form)) return [];
@@ -145,8 +158,19 @@ export const loadParcelLockers = unstable_cache(
   { revalidate: REVALIDATE_STORES, tags: ['oe-forms'] },
 );
 
-export const loadDeliveryMethodInfo = unstable_cache(
-  async (lang: Lang = DEFAULT_LOCALE): Promise<DeliveryMethodInfo> => {
+/**
+ * Parcel-locker options for the current route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<string[]>} Locker labels, possibly empty.
+ */
+export async function loadParcelLockers(langArg?: Lang): Promise<string[]> {
+  return loadParcelLockersCached(langArg ?? (await currentCmsLocale()));
+}
+
+/** `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function. */
+const loadDeliveryMethodInfoCached = unstable_cache(
+  async (lang: Lang): Promise<DeliveryMethodInfo> => {
     try {
       const form = await getApi().Forms.getFormByMarker('checkout_home_delivery', lang);
       if (isError(form)) return FALLBACK;
@@ -181,3 +205,12 @@ export const loadDeliveryMethodInfo = unstable_cache(
   // Same TTL as stores — both are admin-editable copy that rarely changes.
   { revalidate: REVALIDATE_STORES, tags: ['oe-forms'] },
 );
+
+/**
+ * Delivery-method copy for the current route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<DeliveryMethodInfo>} Delivery method info, with shipped fallbacks.
+ */
+export async function loadDeliveryMethodInfo(langArg?: Lang): Promise<DeliveryMethodInfo> {
+  return loadDeliveryMethodInfoCached(langArg ?? (await currentCmsLocale()));
+}

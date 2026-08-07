@@ -1,8 +1,8 @@
 'use client'
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+
 import { sanitizeHtml } from '../../lib/sanitize-html';
-import { useRouter, useParams, useSearchParams, notFound } from 'next/navigation';
+import { useParams, useSearchParams, notFound } from 'next/navigation';
 import {
   hexToColorName,
   type CatalogProduct,
@@ -45,9 +45,9 @@ import { PRODUCT_PRICE_NOTE, PRODUCT_ACTION_LABELS, PRODUCT_ACCORDION_LABELS as 
 // PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks
 // (`saveToWishlist`, `savedToWishlist`) — anything referring to product data
 // (name/brand/price/size/colour) comes from `catalogProduct` / OneEntry.
-import { useProductCardT } from '../../lib/oneentry/labels/ProductCardLabelsContext';
-import { usePdpT } from '../../lib/oneentry/labels/PdpLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import { CURRENCY } from '../data/currencyConfig';
+import { useRouter, Link } from '../../lib/i18n/navigation';
 
 const DELIVERY_ICONS = {
   truck:  <Truck size={14} />,
@@ -114,38 +114,38 @@ export function ProductDetailPage({
   reserveStores?: ReserveStore[];
 } = {}) {
   const router = useRouter();
-  const lReviewsSuffix  = useProductCardT('product-card-reviews',                  PRODUCT_ACTION_LABELS.reviewsSuffix);
-  const lSizeGuide      = useProductCardT('product-card-size-guide',               PRODUCT_ACTION_LABELS.sizeGuide);
-  const lAddToCart      = useProductCardT('product-card_add_to_cart_cta',          PRODUCT_ACTION_LABELS.addToCart);
-  const lReserveInStore = useProductCardT('product-card_reserve_in_store_cta',     PRODUCT_ACTION_LABELS.reserveInStore);
-  const lSaveToWishlist = useProductCardT('product-card-save_to_wishlist_cta',     PD.saveToWishlist);
-  const lPriceNote      = useProductCardT('product-card-vat',                      PRODUCT_PRICE_NOTE);
+  const lReviewsSuffix  = useT('product-card-reviews',                  PRODUCT_ACTION_LABELS.reviewsSuffix);
+  const lSizeGuide      = useT('product-card-size-guide',               PRODUCT_ACTION_LABELS.sizeGuide);
+  const lAddToCart      = useT('product-card_add_to_cart_cta',          PRODUCT_ACTION_LABELS.addToCart);
+  const lReserveInStore = useT('product-card_reserve_in_store_cta',     PRODUCT_ACTION_LABELS.reserveInStore);
+  const lSaveToWishlist = useT('product-card-save_to_wishlist_cta',     PD.saveToWishlist);
+  const lPriceNote      = useT('product-card-vat',                      PRODUCT_PRICE_NOTE);
   // Static UI strings — wired through OE so admins can override copy without
   // a code change. Each key falls back to the legacy hardcoded English when
   // the system-text set doesn't contain it.
-  const lBonusHeading       = usePdpT('earn_360_bonus_points',       'earn_360_bonus_points_title', PRODUCT_ACTION_LABELS.bonusHeading);
-  const lBonusBody          = usePdpT('earn_360_bonus_points',       'earn_360_bonus_points_text',  PRODUCT_ACTION_LABELS.bonusBody);
-  const lColorLabel         = useProductCardT('product-card-color_label',          PRODUCT_ACTION_LABELS.colorLabel);
-  const lSizeLabel          = useProductCardT('product-card-size_label',           PRODUCT_ACTION_LABELS.sizeLabel);
-  const lSizeError          = useProductCardT('product-card-size_error',           PRODUCT_ACTION_LABELS.sizeError);
-  const lStoreAvailableIn   = useProductCardT('product-card-available_in_store',   PRODUCT_ACTION_LABELS.storeAvailableIn);
-  const lStoreStockSuffix   = useProductCardT('product-card-in_stock_today',       PRODUCT_ACTION_LABELS.storeStockSuffix);
-  const lStoreCitiesRaw     = useProductCardT('product-card-store_cities',         PRODUCT_ACTION_LABELS.defaultCities.join(','));
-  const lOutOfStock         = useProductCardT('product-card-out_of_stock',         PRODUCT_ACTION_LABELS.outOfStock);
-  const lOutOfStockTitle    = useProductCardT('product-card-color_oos_title',      PRODUCT_ACTION_LABELS.outOfStockTitle);
-  const lInStock            = useProductCardT('product-card-in_stock',             PRODUCT_ACTION_LABELS.inStock);
-  const lPreOrder           = useProductCardT('product-card-pre_order',            PRODUCT_ACTION_LABELS.preOrder);
-  const lPreOrderButton     = useProductCardT('product-card-pre_order_button',     PRODUCT_ACTION_LABELS.preOrderButton);
-  const lComingSoon         = useProductCardT('product-card-coming_soon',          PRODUCT_ACTION_LABELS.comingSoon);
-  const lSkuPrefix          = useProductCardT('product-card-sku_label',            PRODUCT_ACTION_LABELS.skuLabel);
-  const lArticlePrefix      = useProductCardT('product-card-article_label',        PRODUCT_ACTION_LABELS.articleLabel);
-  const lSpecsTitle         = useProductCardT('product-card-accordion_specs',      PA.specificationsTitle);
-  const lDescriptionTitle   = useProductCardT('product-card-accordion_description', PA.descriptionTitle);
-  const lDeliveryTitle      = useProductCardT('product-card-accordion_delivery',   PA.deliveryTitle);
-  const lCareTitle          = useProductCardT('product-card-accordion_care',       PA.careTitle);
-  const lFreeDelivery       = useProductCardT('product-card_free_delivery',        '');
-  const lFreeReturns        = useProductCardT('product-card_free_returns',         '');
-  const lSecureCheckout     = useProductCardT('product-card_secure_checkout',      '');
+  const lBonusHeading       = useT('earn_360_bonus_points_title', PRODUCT_ACTION_LABELS.bonusHeading);
+  const lBonusBody          = useT('earn_360_bonus_points_text',  PRODUCT_ACTION_LABELS.bonusBody);
+  const lColorLabel         = useT('product-card-color_label',          PRODUCT_ACTION_LABELS.colorLabel);
+  const lSizeLabel          = useT('product-card-size_label',           PRODUCT_ACTION_LABELS.sizeLabel);
+  const lSizeError          = useT('product-card-size_error',           PRODUCT_ACTION_LABELS.sizeError);
+  const lStoreAvailableIn   = useT('product-card-available_in_store',   PRODUCT_ACTION_LABELS.storeAvailableIn);
+  const lStoreStockSuffix   = useT('product-card-in_stock_today',       PRODUCT_ACTION_LABELS.storeStockSuffix);
+  const lStoreCitiesRaw     = useT('product-card-store_cities',         PRODUCT_ACTION_LABELS.defaultCities.join(','));
+  const lOutOfStock         = useT('product-card-out_of_stock',         PRODUCT_ACTION_LABELS.outOfStock);
+  const lOutOfStockTitle    = useT('product-card-color_oos_title',      PRODUCT_ACTION_LABELS.outOfStockTitle);
+  const lInStock            = useT('product-card-in_stock',             PRODUCT_ACTION_LABELS.inStock);
+  const lPreOrder           = useT('product-card-pre_order',            PRODUCT_ACTION_LABELS.preOrder);
+  const lPreOrderButton     = useT('product-card-pre_order_button',     PRODUCT_ACTION_LABELS.preOrderButton);
+  const lComingSoon         = useT('product-card-coming_soon',          PRODUCT_ACTION_LABELS.comingSoon);
+  const lSkuPrefix          = useT('product-card-sku_label',            PRODUCT_ACTION_LABELS.skuLabel);
+  const lArticlePrefix      = useT('product-card-article_label',        PRODUCT_ACTION_LABELS.articleLabel);
+  const lSpecsTitle         = useT('product-card-accordion_specs',      PA.specificationsTitle);
+  const lDescriptionTitle   = useT('product-card-accordion_description', PA.descriptionTitle);
+  const lDeliveryTitle      = useT('product-card-accordion_delivery',   PA.deliveryTitle);
+  const lCareTitle          = useT('product-card-accordion_care',       PA.careTitle);
+  const lFreeDelivery       = useT('product-card_free_delivery',        '');
+  const lFreeReturns        = useT('product-card_free_returns',         '');
+  const lSecureCheckout     = useT('product-card_secure_checkout',      '');
   const deliverySnippets = [
     { iconKey: 'truck'  as const, text: lFreeDelivery },
     { iconKey: 'return' as const, text: lFreeReturns },
@@ -159,23 +159,23 @@ export function ProductDetailPage({
   const deliveryRows: Array<{ iconKey: 'truck' | 'store' | 'returns'; title: string; desc: string }> = [
     {
       iconKey: 'truck' as const,
-      title: usePdpT('product_card_delivery_returns', 'p_c_d_r_standart_delivery_title', ''),
-      desc:  usePdpT('product_card_delivery_returns', 'p_c_d_r_standart_delivery_text',  ''),
+      title: useT('p_c_d_r_standart_delivery_title', ''),
+      desc:  useT('p_c_d_r_standart_delivery_text',  ''),
     },
     {
       iconKey: 'truck' as const,
-      title: usePdpT('product_card_delivery_returns', 'p_c_d_r_express_delivery_title', ''),
-      desc:  usePdpT('product_card_delivery_returns', 'p_c_d_r_express_delivery_text',  ''),
+      title: useT('p_c_d_r_express_delivery_title', ''),
+      desc:  useT('p_c_d_r_express_delivery_text',  ''),
     },
     {
       iconKey: 'store' as const,
-      title: usePdpT('product_card_delivery_returns', 'p_c_d_r_click_collect_title', ''),
-      desc:  usePdpT('product_card_delivery_returns', 'p_c_d_r_click_collect_text',  ''),
+      title: useT('p_c_d_r_click_collect_title', ''),
+      desc:  useT('p_c_d_r_click_collect_text',  ''),
     },
     {
       iconKey: 'returns' as const,
-      title: usePdpT('product_card_delivery_returns', 'p_c_d_r_returns_title', ''),
-      desc:  usePdpT('product_card_delivery_returns', 'p_c_d_r_returns_text',  ''),
+      title: useT('p_c_d_r_returns_title', ''),
+      desc:  useT('p_c_d_r_returns_text',  ''),
     },
   ].filter((row) => row.title.length > 0);
   const params = useParams();
@@ -901,7 +901,11 @@ export function ProductDetailPage({
                   value drops out so the section never shows a blank line. */}
               <div className="flex flex-col gap-2.5 pt-5 border-t border-gray-200">
                 {deliverySnippets.map(item => (
-                  <div key={item.text} className="flex items-center gap-2.5 text-xs text-gray-600">
+                  <div
+                    key={item.text}
+                    data-testid="pdp-delivery-snippet"
+                    className="flex items-center gap-2.5 text-xs text-gray-600"
+                  >
                     <span className="shrink-0 text-gray-400">{DELIVERY_ICONS[item.iconKey]}</span>
                     {item.text}
                   </div>
@@ -959,10 +963,10 @@ export function ProductDetailPage({
                           ? <Store size={15} />
                           : <Truck size={15} />;
                       return (
-                        <div key={d.title} className="flex gap-3">
+                        <div key={d.title} data-testid="pdp-delivery-row" className="flex gap-3">
                           <span className="shrink-0 mt-0.5 text-gray-400">{icon}</span>
                           <div>
-                            <p className="text-xs font-semibold">{d.title}</p>
+                            <p data-testid="pdp-delivery-row-title" className="text-xs font-semibold">{d.title}</p>
                             <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{d.desc}</p>
                           </div>
                         </div>

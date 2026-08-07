@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { ProductCard, type Product } from '../components/product/ProductCard';
@@ -28,13 +28,14 @@ import { PillDropdown, ColorPillDropdown } from './sale/SaleFilterDropdowns';
 import { useCountdown } from './sale/SaleCountdown';
 import { SaleHero } from './sale/SaleHero';
 import { SALE_PAGE_LABELS as L, SALE_CATEGORY_LABELS as CAT_FALLBACK } from '../data/salePageLabels';
-import { useSalePageT, useSalePageDict } from '../../lib/oneentry/labels/SalePageLabelsContext';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { SalePageFromCms } from '../../lib/oneentry/catalog/sale-page';
 import { useSearchParams } from 'next/navigation';
 import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
 import { useMounted } from '../hooks/useMounted';
+import { Link } from '../../lib/i18n/navigation';
 
 const SALE_KEY = 'sale';
 
@@ -77,8 +78,8 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
   // hardcoded fallback so the banner still runs if the admin hasn't set it.
   const countdown = useCountdown(saleEndsAt ?? SALE_END_DATE);
   const saleEndsAtDate = saleEndsAt ?? SALE_END_DATE;
-  const lView         = useSalePageT('sale_page_view',         L.viewLabel);
-  const lItemsOnSale  = useSalePageT('sale_page_item_on_sale', L.itemsOnSaleSuffix);
+  const lView         = useT('sale_page_view',         L.viewLabel);
+  const lItemsOnSale  = useT('sale_page_item_on_sale', L.itemsOnSaleSuffix);
 
   // UI-only state
   const [sortOpen, setSortOpen] = useState(false);
@@ -96,7 +97,7 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
   // Derived filter state
   // Category ids drive the filter; only the wording is editable, so renaming a
   // category in the admin panel cannot orphan the products in that bucket.
-  const CAT = useSalePageDict('sale_page_category_', CAT_FALLBACK);
+  const CAT = useDict('sale_page_category_', CAT_FALLBACK);
   const activeCategory = (selectedFilters['category']?.[0] ?? 'all') as SaleCategory;
   // Memoised so the derived arrays keep a stable identity between renders —
   // they feed the `filtered` / `activeChips` memos below.
@@ -142,7 +143,6 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
     if (recRef.current) recRef.current.style.cursor = 'grab';
   };
   const PRODUCTS_PER_PAGE = 16;
-
 
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false); };

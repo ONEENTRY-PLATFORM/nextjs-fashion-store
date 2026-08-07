@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CAROUSEL_LABELS } from '../../data/commonLabels';
-import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { getImageUrl } from '../../../lib/oneentry';
+import { Link } from '../../../lib/i18n/navigation';
 
 /**
  * Generic renderer for OE `slider_block` type. Reads each slide's
@@ -73,8 +74,8 @@ export function GenericSliderBlock({
     .map(normalizeSlide)
     .filter((s) => s.image || s.headline);
   const [index, setIndex] = useState(0);
-  const lPrevSlide = useInterfaceControlsT('interface_controls_previous_slide', CAROUSEL_LABELS.previousSlide);
-  const lNextSlide = useInterfaceControlsT('interface_controls_next_slide',     CAROUSEL_LABELS.nextSlide);
+  const lPrevSlide = useT('interface_controls_previous_slide', CAROUSEL_LABELS.previousSlide);
+  const lNextSlide = useT('interface_controls_next_slide',     CAROUSEL_LABELS.nextSlide);
 
   if (slides.length === 0) return null;
   // Slides can shrink (admin drops one) while `index` still points past the

@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { Check } from 'lucide-react';
 import type { ServiceCategory } from '../../../data/serviceData';
 import { SERVICE_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import { useAccountDict } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useDict } from '../../../../lib/oneentry/labels/DictContext';
 import { submitServiceRequestAction } from '../../../../lib/oneentry/catalog/service-request-submit-action';
 import { useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
 
@@ -20,7 +20,7 @@ const inputClass = 'px-3 py-2 text-xs focus-visible:outline-none border border-[
 const labelClass = 'text-[10px] tracking-widest uppercase text-gray-400 font-bold';
 
 export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
-  const L = useAccountDict('service_maintenance', 'service_maintenance_', L_FALLBACK);
+  const L = useDict('service_maintenance_', L_FALLBACK);
   const [form, setForm] = useState(BLANK_FORM);
   const [submitted, setSubmitted] = useState(false);
   const [hovered, setHovered] = useState(false);

@@ -18,13 +18,13 @@ vi.mock('@/app/pages/product/FullscreenViewer', () => ({
   FullscreenViewer: () => null,
 }));
 
-// ---- Mock the label context hook --------------------------------------------
-// ProductGallery calls useProductCardT which reads a React context.  Without a
-// provider the hook falls back to the static string — that is fine for tests,
-// but we mock the module to avoid pulling in React context machinery that might
-// fail in isolation.
-vi.mock('@/lib/oneentry/labels/ProductCardLabelsContext', () => ({
-  useProductCardT: (_key: string, fallback: string) => fallback,
+// ---- Mock the dictionary hook -----------------------------------------------
+// ProductGallery calls useT which reads a React context.  Without a provider
+// the hook falls back to the static string — that is fine for tests, but we
+// mock the module to avoid pulling in React context machinery that might fail
+// in isolation.
+vi.mock('@/lib/oneentry/labels/DictContext', () => ({
+  useT: (_key: string, fallback: string) => fallback,
 }));
 
 import { ProductGallery } from '@/app/pages/product/ProductGallery';

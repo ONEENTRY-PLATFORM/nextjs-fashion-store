@@ -1,10 +1,11 @@
 'use client'
 import { ChevronDown } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+
+
 import { type RefObject } from 'react';
 import { SUB_CATEGORIES, type Gender, type SubCat, type MegaSection } from '../../data/categories';
 import { SALE_YELLOW } from '../../constants/colors';
+import { useRouter, Link } from '../../../lib/i18n/navigation';
 
 interface HeaderMegaMenuProps {
   activeGender: Gender;

@@ -1,6 +1,6 @@
 'use client'
 import { PRICE_RANGE_LABELS as L_FALLBACK } from '../../data/commonLabels';
-import { useInterfaceControlsDict } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 import { CURRENCY } from '../../data/currencyConfig';
 
 interface PriceRangeSliderProps {
@@ -11,7 +11,7 @@ interface PriceRangeSliderProps {
 }
 
 export function PriceRangeSlider({ minBound, maxBound, value, onChange }: PriceRangeSliderProps) {
-  const L = useInterfaceControlsDict('interface_controls_price_', L_FALLBACK);
+  const L = useDict('interface_controls_price_', L_FALLBACK);
   const leftPct = ((value[0] - minBound) / (maxBound - minBound)) * 100;
   const rightPct = ((value[1] - minBound) / (maxBound - minBound)) * 100;
 

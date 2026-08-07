@@ -7,10 +7,10 @@ import {
 } from 'lucide-react';
 import type { Store } from '../../data/stores';
 import { STORE_CARD_LABELS as L_FALLBACK } from '../../data/storesLabels';
-import { useStoresDict } from '../../../lib/oneentry/labels/StoresLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 
 export function StoreCard({ store }: { store: Store }) {
-  const L = useStoresDict('store_location', 'store_location_card_', L_FALLBACK);
+  const L = useDict('store_location_card_', L_FALLBACK);
   const [modalOpen, setModalOpen] = useState(false);
 
   const openModal = () => {

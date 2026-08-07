@@ -1,3 +1,4 @@
+import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { getApi, getApiSafe, getImageUrls, isError } from '../index';
@@ -659,7 +660,8 @@ const cachedGetByIds = unstable_cache(
 );
 
 export const loadProductById = withTiming('loadProductById', cache(
-  async (id: number, lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct | null> => {
+  async (id: number, langArg?: Lang): Promise<CatalogProduct | null> => {
+    const lang = langArg ?? (await currentCmsLocale());
     const raw = await cachedGetProductById(id, lang);
     if (!raw) return null;
     const target = normalize(raw, lang);
@@ -742,7 +744,8 @@ export const loadProductById = withTiming('loadProductById', cache(
 ));
 
 export const loadProductsByIds = withTiming('loadProductsByIds', cache(
-  async (ids: number[], lang: Lang = DEFAULT_LOCALE): Promise<CatalogProduct[]> => {
+  async (ids: number[], langArg?: Lang): Promise<CatalogProduct[]> => {
+    const lang = langArg ?? (await currentCmsLocale());
     if (ids.length === 0) return [];
     const validIds = ids.filter((n) => Number.isFinite(n) && n > 0);
     if (validIds.length === 0) return [];

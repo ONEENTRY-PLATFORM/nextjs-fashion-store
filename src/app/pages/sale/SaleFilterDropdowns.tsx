@@ -6,7 +6,7 @@ import { SALE_COLOR_OPTIONS } from '../../data/saleConfig';
 import Image from 'next/image';
 import { SALE_COLOR as SALE_RED } from '../../constants/colors';
 import { SALE_PAGE_LABELS as L } from '../../data/salePageLabels';
-import { useSalePageT } from '../../../lib/oneentry/labels/SalePageLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 
@@ -31,7 +31,7 @@ export function PillDropdown({ label, options, selected, onToggle, onClear }: Pi
   const count = selected.length;
   const isActive = count > 0;
 
-  const lSelected = useSalePageT('sale_page_selected_suffix', L.selectedSuffix);
+  const lSelected = useT('sale_page_selected_suffix', L.selectedSuffix);
 
   return (
     <div

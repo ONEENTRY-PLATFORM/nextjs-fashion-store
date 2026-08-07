@@ -1,6 +1,8 @@
 'use client'
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { EMPTY_FORM_CONTENT, type FormContent } from './placeholders';
+// From the client-safe module, not `./placeholders` — that one imports
+// `next/root-params`, which cannot appear in a client bundle.
+import { EMPTY_FORM_CONTENT, type FormContent } from './form-content';
 
 type FormsMap = Record<string, FormContent>;
 

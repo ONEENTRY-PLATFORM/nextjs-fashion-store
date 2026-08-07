@@ -43,8 +43,11 @@ vi.mock('@/app/context/WishlistContext', () => ({
   useWishlist: () => ({ toggleItem: mockToggleItem, isWishlisted: () => false }),
 }));
 
+// `usePathname` is required too: the locale-aware `useRouter` wrapper derives
+// the active locale from the URL, so it reads the path on every render.
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  usePathname: () => '/',
 }));
 
 vi.mock('@/app/hooks/useFocusTrap', () => ({

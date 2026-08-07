@@ -4,13 +4,13 @@ import { StarRating } from './StarRating';
 import type { ProductReview } from '../../data/productCatalog';
 import { PRODUCT_REVIEWS_LABELS as L } from '../../data/productPageLabels';
 import { REVIEW_CARD_LABELS as RC } from '../../data/commonLabels';
-import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 export function ReviewCard({ review }: { review: ProductReview }) {
   const [helpful, setHelpful] = useState(review.helpful);
   const [voted, setVoted] = useState(false);
-  const lVerified = usePdpT('customer-reviews', 'verified-purchase', RC.verifiedPurchase);
-  const lHelpful  = usePdpT('customer-reviews', 'helpful',           L.helpfulPrefix);
+  const lVerified = useT('verified-purchase', RC.verifiedPurchase);
+  const lHelpful  = useT('helpful',           L.helpfulPrefix);
 
   return (
     <div className="py-6 border-b border-gray-200">

@@ -1,11 +1,12 @@
 'use client'
 import Image from 'next/image';
-import Link from 'next/link';
+
 import { ChevronRight } from 'lucide-react';
 import { type CrossSellCategory } from './CatalogTemplate';
 import { BANNER_BG } from '../../constants/colors';
 import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
-import { useInterfaceControlsDict } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import { Link } from '../../../lib/i18n/navigation';
 
 interface CatalogCrossSellProps {
   crossSell: {
@@ -17,7 +18,7 @@ interface CatalogCrossSellProps {
 }
 
 export function CatalogCrossSell({ crossSell }: CatalogCrossSellProps) {
-  const CVL = useInterfaceControlsDict('interface_controls_view_', CVL_FALLBACK);
+  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
   return (
     <div
       className="border-t border-gray-100 bg-white"

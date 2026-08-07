@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ProductCard, type Product } from '../../components/product/ProductCard';
 import { RECENTLY_VIEWED_LABELS as L_FALLBACK } from '../../data/productPageLabels';
-import { usePdpDict } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 import { useMounted } from '../../hooks/useMounted';
 
 const RV_PER_ROW = 5;
@@ -13,7 +13,7 @@ interface RecentlyViewedSectionProps {
 }
 
 export function RecentlyViewedSection({ products, accentColor }: RecentlyViewedSectionProps) {
-  const L = usePdpDict('product_card_actions', 'product_card_actions_recently_viewed_', L_FALLBACK);
+  const L = useDict('product_card_actions_recently_viewed_', L_FALLBACK);
   const [rowsShown, setRowsShown] = useState(1);
   const mounted = useMounted();
   const sentinelRef = useRef<HTMLDivElement>(null);

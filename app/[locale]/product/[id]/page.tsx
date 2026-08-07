@@ -6,22 +6,20 @@ import {
   DELIVERY_COUNTRY, DELIVERY_MIN_DAYS, DELIVERY_MAX_DAYS,
   SCHEMA_BREADCRUMBS as BC,
   PRODUCT_META_COPY as PM,
-} from '../../../src/app/data/seoData';
-import { ProductDetailPage } from '../../../src/app/pages/ProductDetailPage';
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { loadPdpSystemTexts } from '../../../src/lib/oneentry/labels/pdp-labels';
-import { PdpLabelsProvider } from '../../../src/lib/oneentry/labels/PdpLabelsContext';
-import { loadProductById, categoryPathToBreadcrumbs, categoryPathToViewAllHref } from '../../../src/lib/oneentry/catalog/products';
-import { adaptCatalogProductToPdpProduct } from '../../../src/lib/oneentry/catalog/adapt';
-import { loadPurchaseBonusForProduct } from '../../../src/lib/oneentry/discounts/purchase-bonus';
-import { ReviewsAsync } from '../../../src/app/pages/product/ReviewsAsync';
-import { ReviewsSkeleton } from '../../../src/app/pages/product/ReviewsSkeleton';
-import { FrequentlyOrderedAsync } from '../../../src/app/pages/product/FrequentlyOrderedAsync';
-import { RecommendationsSkeleton } from '../../../src/app/pages/product/RecommendationsSkeleton';
-import { loadProductBlocks } from '../../../src/lib/oneentry/blocks/page-blocks';
-import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
-import type { CatalogProduct as PdpCatalogProduct } from '../../../src/app/data/productCatalog';
-import { priceValidUntil } from '../../../src/app/utils/price-valid-until';
+} from '../../../../src/app/data/seoData';
+import { ProductDetailPage } from '../../../../src/app/pages/ProductDetailPage';
+import { JsonLd } from '../../../../src/app/components/system/JsonLd';
+import { loadProductById, categoryPathToBreadcrumbs, categoryPathToViewAllHref } from '../../../../src/lib/oneentry/catalog/products';
+import { adaptCatalogProductToPdpProduct } from '../../../../src/lib/oneentry/catalog/adapt';
+import { loadPurchaseBonusForProduct } from '../../../../src/lib/oneentry/discounts/purchase-bonus';
+import { ReviewsAsync } from '../../../../src/app/pages/product/ReviewsAsync';
+import { ReviewsSkeleton } from '../../../../src/app/pages/product/ReviewsSkeleton';
+import { FrequentlyOrderedAsync } from '../../../../src/app/pages/product/FrequentlyOrderedAsync';
+import { RecommendationsSkeleton } from '../../../../src/app/pages/product/RecommendationsSkeleton';
+import { loadProductBlocks } from '../../../../src/lib/oneentry/blocks/page-blocks';
+import { loadStores } from '../../../../src/lib/oneentry/catalog/stores';
+import type { CatalogProduct as PdpCatalogProduct } from '../../../../src/app/data/productCatalog';
+import { priceValidUntil } from '../../../../src/app/utils/price-valid-until';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -125,16 +123,10 @@ export async function generateStaticParams() {
 export default async function Page({ params }: Props) {
   const { id } = await params;
   const numericId = /^\d+$/.test(id) ? Number(id) : null;
-  // Load the product and the system-text bundle in parallel. Previously these
-  // were three sequential `await`s that summed into TTFB; now the max of two
-  // parallel calls sets the floor. `loadPurchaseBonusForProduct` still waits
-  // on the product (it reads the id / price / categories) so it kicks off
-  // right after the first await resolves — small penalty vs. the win of
-  // batching the two big independent calls together.
-  const [oeProductRaw, pdpLabels] = await Promise.all([
-    numericId !== null ? loadProductById(numericId) : Promise.resolve(null),
-    loadPdpSystemTexts(),
-  ]);
+  // PDP copy now travels with the root layout's dictionary, so this is just
+  // the product load. `loadPurchaseBonusForProduct` still waits on it (it
+  // reads the id / price / categories).
+  const oeProductRaw = numericId !== null ? await loadProductById(numericId) : null;
   // Purchase-bonus badge: shown only when the OE `purchase-of-goods` rule
   // applies to this product. Loaded server-side so the block is either
   // rendered with the computed points or omitted entirely.
@@ -313,19 +305,17 @@ export default async function Page({ params }: Props) {
     <>
       {productSchema && <JsonLd data={productSchema} />}
       {breadcrumbSchema && <JsonLd data={breadcrumbSchema} />}
-      <PdpLabelsProvider data={pdpLabels}>
-        <ProductDetailPage
-          initialProduct={oeProduct ?? undefined}
-          categoryBreadcrumbs={categoryBreadcrumbs}
-          reviewsSlot={reviewsSlot}
-          recommendationsSlot={recommendationsSlot}
-          currentGender={oeProductRaw?.gender}
-          bonusPoints={purchaseBonus?.points}
-          categoryViewAllHref={categoryViewAllHref}
-          productBlocks={productBlocks}
-          reserveStores={reserveStores}
-        />
-      </PdpLabelsProvider>
+      <ProductDetailPage
+        initialProduct={oeProduct ?? undefined}
+        categoryBreadcrumbs={categoryBreadcrumbs}
+        reviewsSlot={reviewsSlot}
+        recommendationsSlot={recommendationsSlot}
+        currentGender={oeProductRaw?.gender}
+        bonusPoints={purchaseBonus?.points}
+        categoryViewAllHref={categoryViewAllHref}
+        productBlocks={productBlocks}
+        reserveStores={reserveStores}
+      />
     </>
   );
 }

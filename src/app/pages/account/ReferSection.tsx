@@ -5,7 +5,7 @@ import { Check, Mail } from 'lucide-react';
 import { SectionTitle, ACCENT } from './shared';
 import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { REFER_LABELS as L_FALLBACK } from '../../data/accountLabels';
-import { useAccountDict } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 import { CURRENCY } from '../../data/currencyConfig';
 
 // OneEntry doesn't expose a referral programme for this tenant — config stays
@@ -20,7 +20,7 @@ const ref = {
 };
 
 export function ReferSection() {
-  const L = useAccountDict('user_account', 'user_account_refer_', L_FALLBACK);
+  const L = useDict('user_account_refer_', L_FALLBACK);
   const { user } = useAuth();
   const referralCode = `OE-${(user?.firstName ?? 'FRIEND').toUpperCase().slice(0, 4)}2026`;
   const referralLink = `${ref.linkBase}${referralCode}`;

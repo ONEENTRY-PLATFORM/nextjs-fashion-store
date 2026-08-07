@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
@@ -21,10 +21,11 @@ type RenderRow =
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
 import { fmt } from '../utils/formatPrice';
 import { CART_PAGE_LABELS as L } from '../data/cartLabels';
-import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { useMounted } from '../hooks/useMounted';
+import { useRouter } from '../../lib/i18n/navigation';
 
 export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const {
@@ -35,26 +36,26 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   } = useCart();
   const router = useRouter();
 
-  const lSelectAll        = useT('checkout_cart', 'checkout_delivery_select_all',              L.selectAll);
-  const lRemove           = useT('checkout_cart', 'checkout_delivery_remove',                  L.removeSelectedPrefix);
-  const lOrderSummary     = useT('checkout_cart', 'checkout_delivery_order_summary',           L.orderSummary);
-  const lSubtotal         = useT('checkout_cart', 'checkout_delivery_subtotal',                L.subtotal);
-  const lDelivery         = useT('checkout_cart', 'checkout_delivery_delivery',                L.delivery);
-  const lFree             = useT('checkout_cart', 'checkout_delivery_free',                    L.deliveryFree);
-  const lTotal            = useT('checkout_cart', 'checkout_delivery_total',                   L.total);
-  const lEarnPrefix       = useT('checkout_cart', 'checkout_delivery_warning_text1',           L.loyaltyEarnPrefix);
-  const lEarnTemplate     = useT('checkout_cart', 'checkout_delivery_warning_text2',           L.loyaltyEarnTemplate);
-  const lPromoCheckbox    = useT('checkout_cart', 'checkout_delivery_i_have_a_promo_code',     L.promoCheckboxLabel);
-  const lFreeGift         = useT('checkout_cart', 'checkout_cart_free_gift',                   L.freeGift);
-  const lQty              = useT('checkout_cart', 'checkout_cart_qty_prefix',                  L.qtyPrefix);
-  const lGiftFree         = useT('checkout_cart', 'checkout_cart_gift_free',                   L.giftFree);
-  const lLoyaltyDiscount  = useT('checkout_cart', 'checkout_cart_loyalty_discount',            L.loyaltyDiscount);
-  const lPromoRemove      = useT('checkout_cart', 'checkout_cart_promo_remove',                L.promoRemove);
-  const lPromoPlaceholder = useT('checkout_cart', 'checkout_delivery_enter_code',              L.promoPlaceholder);
-  const lPromoApply       = useT('checkout_cart', 'checkout_delivery_enter_code_cta',          L.promoApplyButton);
-  const lProceed          = useT('checkout_cart', 'checkout_delivery_proceed_to_checkout_cta', L.proceedToCheckout);
-  const lTrustNote        = useT('checkout_cart', 'checkout_delivery_checkout_bottom_text',    L.trustNote);
-  const lItemCount        = useT('checkout_cart', 'checkout_delivery_item_count',              L.itemPlural);
+  const lSelectAll        = useT('checkout_delivery_select_all',              L.selectAll);
+  const lRemove           = useT('checkout_delivery_remove',                  L.removeSelectedPrefix);
+  const lOrderSummary     = useT('checkout_delivery_order_summary',           L.orderSummary);
+  const lSubtotal         = useT('checkout_delivery_subtotal',                L.subtotal);
+  const lDelivery         = useT('checkout_delivery_delivery',                L.delivery);
+  const lFree             = useT('checkout_delivery_free',                    L.deliveryFree);
+  const lTotal            = useT('checkout_delivery_total',                   L.total);
+  const lEarnPrefix       = useT('checkout_delivery_warning_text1',           L.loyaltyEarnPrefix);
+  const lEarnTemplate     = useT('checkout_delivery_warning_text2',           L.loyaltyEarnTemplate);
+  const lPromoCheckbox    = useT('checkout_delivery_i_have_a_promo_code',     L.promoCheckboxLabel);
+  const lFreeGift         = useT('checkout_cart_free_gift',                   L.freeGift);
+  const lQty              = useT('checkout_cart_qty_prefix',                  L.qtyPrefix);
+  const lGiftFree         = useT('checkout_cart_gift_free',                   L.giftFree);
+  const lLoyaltyDiscount  = useT('checkout_cart_loyalty_discount',            L.loyaltyDiscount);
+  const lPromoRemove      = useT('checkout_cart_promo_remove',                L.promoRemove);
+  const lPromoPlaceholder = useT('checkout_delivery_enter_code',              L.promoPlaceholder);
+  const lPromoApply       = useT('checkout_delivery_enter_code_cta',          L.promoApplyButton);
+  const lProceed          = useT('checkout_delivery_proceed_to_checkout_cta', L.proceedToCheckout);
+  const lTrustNote        = useT('checkout_delivery_checkout_bottom_text',    L.trustNote);
+  const lItemCount        = useT('checkout_delivery_item_count',              L.itemPlural);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   // Promo section opens by default if a coupon is already applied on mount
@@ -75,7 +76,6 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     setPromoChecked(true);
     setPromoInput(couponCode);
   }
-
 
   // Load real product sizes from OE for each cart item so the Size dropdown
   // renders the actual variants (e.g. a jewelry item shows just "One",

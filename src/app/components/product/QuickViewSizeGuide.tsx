@@ -2,7 +2,7 @@
 import { X } from 'lucide-react';
 import { SIZE_GUIDE_LABELS as L } from '../../data/productPageLabels';
 import { parseSizeTable, serializeSizeTable } from '../../data/sizeGuide';
-import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 /** Quick View shows the metric chart: `size|chest|waist|hips`. */
 const QUICK_VIEW_COLUMNS = ['size', 'chest', 'waist', 'hips'] as const;
@@ -11,7 +11,7 @@ const QUICK_VIEW_FALLBACK = L.rows as readonly QuickViewRow[];
 
 export function QuickViewSizeGuide({ onClose }: { onClose: () => void }) {
   const SIZE_GUIDE_ROWS = parseSizeTable<QuickViewRow>(
-    usePdpT('size-guide', 'size_guide_quick_view_rows', serializeSizeTable(QUICK_VIEW_FALLBACK, QUICK_VIEW_COLUMNS)),
+    useT('size_guide_quick_view_rows', serializeSizeTable(QUICK_VIEW_FALLBACK, QUICK_VIEW_COLUMNS)),
     QUICK_VIEW_COLUMNS,
     QUICK_VIEW_FALLBACK,
   );

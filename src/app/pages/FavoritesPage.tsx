@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { useWishlist } from '../context/WishlistContext';
@@ -16,7 +16,7 @@ import { FavoritesCarousel } from './favorites/FavoritesCarousel';
 import { FavoritesEmptyState } from './favorites/FavoritesEmptyState';
 import { RecentlyViewedSection } from './product/RecentlyViewedSection';
 import { FAVORITES_PAGE_LABELS as L } from '../data/favoritesLabels';
-import { useFavoritesPageT } from '../../lib/oneentry/labels/FavoritesPageLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import type { Product } from '../components/product/ProductCard';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
@@ -24,6 +24,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { useAuth } from '../context/AuthContext';
 import { useMounted } from '../hooks/useMounted';
+import { useRouter } from '../../lib/i18n/navigation';
 
 
 /* ─── Main Page ─── */
@@ -46,21 +47,21 @@ export function FavoritesPage({
   // Every visible string resolves through the OE `favorites_page` set, with the
   // local dictionary as the offline fallback — a partially wired page would let
   // an editor change some labels while others stayed frozen in code.
-  const lItems     = useFavoritesPageT('favorites_page_items',              L.itemPlural);
-  const lItem      = useFavoritesPageT('favorites_page_item',               L.itemSingular);
-  const lMoveAll   = useFavoritesPageT('favorites_page_move_all_to_bag',    L.moveAllToBag);
-  const lClearAll  = useFavoritesPageT('favorites_page_clear_all',          L.clearAll);
-  const lBottom    = useFavoritesPageT('favorites_page_bottom_link',        L.ctaContinue);
-  const lCrumbHome = useFavoritesPageT('favorites_page_breadcrumb_home',    L.breadcrumbHome);
-  const lCrumbCurr = useFavoritesPageT('favorites_page_breadcrumb_current', L.breadcrumbCurrent);
-  const lTitle     = useFavoritesPageT('favorites_page_title',              L.pageTitle);
-  const lConfirm   = useFavoritesPageT('favorites_page_confirm_clear',      L.confirmClear);
-  const lYes       = useFavoritesPageT('favorites_page_confirm_yes',        L.confirmYes);
-  const lCancel    = useFavoritesPageT('favorites_page_confirm_cancel',     L.confirmCancel);
-  const lDropTitle = useFavoritesPageT('favorites_page_price_drop_title',   L.priceDropTitle);
-  const lDropBody  = useFavoritesPageT('favorites_page_price_drop_body',    L.priceDropBody);
-  const lRecommend = useFavoritesPageT('favorites_page_recommended',        L.recommendedHeading);
-  const lTrending  = useFavoritesPageT('favorites_page_trending',           L.trendingHeading);
+  const lItems     = useT('favorites_page_items',              L.itemPlural);
+  const lItem      = useT('favorites_page_item',               L.itemSingular);
+  const lMoveAll   = useT('favorites_page_move_all_to_bag',    L.moveAllToBag);
+  const lClearAll  = useT('favorites_page_clear_all',          L.clearAll);
+  const lBottom    = useT('favorites_page_bottom_link',        L.ctaContinue);
+  const lCrumbHome = useT('favorites_page_breadcrumb_home',    L.breadcrumbHome);
+  const lCrumbCurr = useT('favorites_page_breadcrumb_current', L.breadcrumbCurrent);
+  const lTitle     = useT('favorites_page_title',              L.pageTitle);
+  const lConfirm   = useT('favorites_page_confirm_clear',      L.confirmClear);
+  const lYes       = useT('favorites_page_confirm_yes',        L.confirmYes);
+  const lCancel    = useT('favorites_page_confirm_cancel',     L.confirmCancel);
+  const lDropTitle = useT('favorites_page_price_drop_title',   L.priceDropTitle);
+  const lDropBody  = useT('favorites_page_price_drop_body',    L.priceDropBody);
+  const lRecommend = useT('favorites_page_recommended',        L.recommendedHeading);
+  const lTrending  = useT('favorites_page_trending',           L.trendingHeading);
 
   // Live Recently-Viewed trail from Redux (shared with PDP). Dedupe by title
   // so different variants of the same product (Pink XL / White M / …) don't

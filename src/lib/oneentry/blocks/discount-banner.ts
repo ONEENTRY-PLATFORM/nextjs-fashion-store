@@ -1,8 +1,8 @@
+import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
 import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
 import { REVALIDATE_HOME } from '../../isr';
 
@@ -21,8 +21,12 @@ type AttrValue<T = unknown> = { value?: T };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-export const loadDiscountBanner = withTiming('loadDiscountBanner', unstable_cache(
-  async (lang: Lang = DEFAULT_LOCALE): Promise<DiscountBannerFromCms | null> => {
+/** `lang` is an explicit argument, not something the cached body resolves:
+ *  `unstable_cache` keys on its arguments, so passing it in is what stops two
+ *  locales from sharing one cache entry — and root params are unreadable in
+ *  there anyway. */
+const loadDiscountBannerCached = withTiming('loadDiscountBanner', unstable_cache(
+  async (lang: Lang): Promise<DiscountBannerFromCms | null> => {
     const api = getApiSafe();
     if (!api) return null;
     try {
@@ -66,3 +70,14 @@ export const loadDiscountBanner = withTiming('loadDiscountBanner', unstable_cach
   ['oe-discount-banner'],
   { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
 ));
+
+/**
+ * Homepage discount banner for the current route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<DiscountBannerFromCms | null>} Banner, or `null` when unset.
+ */
+export async function loadDiscountBanner(
+  langArg?: Lang,
+): Promise<DiscountBannerFromCms | null> {
+  return loadDiscountBannerCached(langArg ?? (await currentCmsLocale()));
+}

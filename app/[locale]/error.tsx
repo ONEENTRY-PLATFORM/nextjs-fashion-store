@@ -1,8 +1,8 @@
 'use client'
 import { useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { ERROR_PAGE_LABELS as L_FALLBACK } from '../src/app/data/errorPageLabels';
-import { useSystemPagesDict } from '../src/lib/oneentry/labels/SystemPagesLabelsContext';
+import { ERROR_PAGE_LABELS as L_FALLBACK } from '../../src/app/data/errorPageLabels';
+import { useDict } from '../../src/lib/oneentry/labels/DictContext';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -10,7 +10,7 @@ interface ErrorProps {
 }
 
 export default function Error({ error, reset }: ErrorProps) {
-  const L = useSystemPagesDict('error_', L_FALLBACK);
+  const L = useDict('error_', L_FALLBACK);
   useEffect(() => {
     console.error(error);
   }, [error]);

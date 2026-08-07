@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { SectionTitle } from './shared';
 import { SUBSCRIPTIONS_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 const EMPTY_SUBS = {
   emailNewsletter: false, smsNotifications: false, pushNotifications: false,
@@ -47,7 +47,7 @@ function Toggle({ value, onChange, label, desc }: { value: boolean; onChange: ()
 export function SubscriptionsSection() {
   const { user, updateSubscriptions } = useAuth();
   const subs = user?.subscriptions ?? EMPTY_SUBS;
-  const lTitle = useT('subscription_management', 'subscription_management_title', L.title);
+  const lTitle = useT('subscription_management_title', L.title);
 
   const toggle = (key: keyof typeof subs) => {
     void updateSubscriptions({ ...subs, [key]: !subs[key] });

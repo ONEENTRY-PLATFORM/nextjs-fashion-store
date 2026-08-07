@@ -1,10 +1,10 @@
+import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
 import { getApiSafe, getImageUrl, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { Store } from '../../../app/data/stores';
 import { STORES as MOCK_STORES } from '../../../app/data/stores';
-import { DEFAULT_LOCALE } from '../locale';
 import { REVALIDATE_STORES } from '../../isr';
 
 type RawAttrValue = { value?: unknown };
@@ -119,8 +119,10 @@ const normalize = (raw: RawPage, lang: Lang, mockFallback?: Store): Store => {
   };
 };
 
-export const loadStores = withTiming('loadStores', unstable_cache(
-  async (lang: Lang = DEFAULT_LOCALE): Promise<Store[]> => {
+/** `lang` is an explicit argument so it lands in the `unstable_cache` key —
+ *  otherwise every locale would read whichever one warmed the entry first. */
+const loadStoresCached = withTiming('loadStores', unstable_cache(
+  async (lang: Lang): Promise<Store[]> => {
     // Mock fallback so all stores render even while a few OE store pages
     // remain partially filled. When every store page has full attributes
     // the MOCK_STORES fallback can be dropped.
@@ -140,3 +142,12 @@ export const loadStores = withTiming('loadStores', unstable_cache(
   ['oe-stores'],
   { revalidate: REVALIDATE_STORES, tags: ['oe-stores'] },
 ));
+
+/**
+ * Store list for the current route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<Store[]>} Stores, falling back to the mock list.
+ */
+export async function loadStores(langArg?: Lang): Promise<Store[]> {
+  return loadStoresCached(langArg ?? (await currentCmsLocale()));
+}

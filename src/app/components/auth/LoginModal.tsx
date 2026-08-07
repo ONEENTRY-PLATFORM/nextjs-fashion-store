@@ -5,13 +5,14 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { TIMINGS } from '../../constants/timings';
 import { X, Eye, EyeOff, Mail } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { loginSchema } from '../../utils/schemas';
 import { LOGIN_MODAL_LABELS as L } from '../../data/authLabels';
-import { useSignInT } from '../../../lib/oneentry/labels/SignInLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
 import { useAuthProviders } from '../../hooks/useAuthProviders';
 import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../data/socialProviderRegistry';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 const SOCIAL_LOGO_CLASS = 'w-4.5 h-4.5';
 
@@ -42,15 +43,15 @@ function SocialBtn({
 
 export function LoginModal() {
   const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth, authError, setAuthError } = useAuth();
-  const lTitle      = useSignInT('sign_in_title',          L.title);
-  const lOr         = useSignInT('sign_in_or',             L.dividerOr);
-  const lForgot     = useSignInT('sign_in_forgot_password', L.forgotPassword);
-  const lBottomText = useSignInT('sign_in_bottom_text',    L.switchPrompt);
-  const lCreateOne  = useSignInT('sign_in_create_one',     L.switchCta);
-  const lGoogleFail = useSignInT('sign_in_google_failed',  L.errorGoogleFailed);
-  const lClose      = useSignInT('sign_in_close',          L.closeLabel);
-  const lLoadingOpt = useSignInT('sign_in_loading_options', L.loadingOptions);
-  const lDismissErr = useSignInT('sign_in_dismiss_error',  L.dismissError);
+  const lTitle      = useT('sign_in_title',          L.title);
+  const lOr         = useT('sign_in_or',             L.dividerOr);
+  const lForgot     = useT('sign_in_forgot_password', L.forgotPassword);
+  const lBottomText = useT('sign_in_bottom_text',    L.switchPrompt);
+  const lCreateOne  = useT('sign_in_create_one',     L.switchCta);
+  const lGoogleFail = useT('sign_in_google_failed',  L.errorGoogleFailed);
+  const lClose      = useT('sign_in_close',          L.closeLabel);
+  const lLoadingOpt = useT('sign_in_loading_options', L.loadingOptions);
+  const lDismissErr = useT('sign_in_dismiss_error',  L.dismissError);
   const schema = useSignUpFormSchema();
   const emailLabel       = schema.email.title       || L.identifierLabel;
   const emailPlaceholder = schema.email.placeholder || L.identifierPlaceholder;

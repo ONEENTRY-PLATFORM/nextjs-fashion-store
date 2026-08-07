@@ -3,18 +3,18 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ACCENT, fmt } from './shared';
 import { LOYALTY_CARD_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 // Backward-compat re-exports for any code still importing them from this module.
 export const TIER_PERKS = L.perks;
 export const TIER_ORDER = L.tierOrder;
 
 export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useAuth>['user']> }) {
-  const lLoyaltyStatus = useT('user_account',                'loyalty_status',                              L.loyaltyStatus);
-  const lDiscount      = useT('user_account_silver_status',  'my_data_top_banner_discount',                 L.discount);
-  const lBonuses       = useT('user_account_silver_status',  'my_data_top_banner_bonuses',                  L.bonuses);
-  const lPurchases     = useT('user_account_silver_status',  'my_data_top_banner_purchases',                L.purchasesPrefix);
-  const lNextLevel     = useT('user_account_silver_status',  'my_data_top_banner_next_level_at',            L.nextLevelPrefix);
+  const lLoyaltyStatus = useT('loyalty_status',                              L.loyaltyStatus);
+  const lDiscount      = useT('my_data_top_banner_discount',                 L.discount);
+  const lBonuses       = useT('my_data_top_banner_bonuses',                  L.bonuses);
+  const lPurchases     = useT('my_data_top_banner_purchases',                L.purchasesPrefix);
+  const lNextLevel     = useT('my_data_top_banner_next_level_at',            L.nextLevelPrefix);
   // Show the next-tier target whenever there's a positive threshold to
   // aim at, even if the shopper is already past it (edge case where LTV
   // caught up mid-session). AuthContext computes the target via OE first,

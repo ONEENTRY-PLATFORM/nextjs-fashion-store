@@ -1,24 +1,27 @@
 import type { Metadata, Viewport } from 'next'
+import { locale } from 'next/root-params'
 import { Suspense } from 'react'
-import './globals.css'
-import { Providers } from '../src/app/components/system/Providers'
-import { ScrollToTop } from '../src/app/components/system/ScrollToTop'
-import { SITE_NAME, SITE_DESCRIPTION, SITE_URL, OG_IMAGE, TWITTER_HANDLE } from '../src/app/data/seoData'
-import { A11Y_LABELS } from '../src/app/data/commonLabels'
-import { loadProductCardSystemTexts } from '../src/lib/oneentry/labels/product-card-labels'
-import { loadSignInSystemTexts } from '../src/lib/oneentry/labels/sign-in-labels'
-import { loadCreateAccountSystemTexts } from '../src/lib/oneentry/labels/create-account-labels'
-import { loadInterfaceControlsSystemTexts } from '../src/lib/oneentry/labels/interface-controls-labels'
-import { loadYourBagSystemTexts } from '../src/lib/oneentry/labels/your-bag-labels'
-import { loadMenu } from '../src/lib/oneentry/menus/menus'
-import { loadSignUpFormSchema } from '../src/lib/oneentry/auth/sign-up-form'
+import '../globals.css'
+import { Providers } from '../../src/app/components/system/Providers'
+import { ScrollToTop } from '../../src/app/components/system/ScrollToTop'
+import { SITE_NAME, SITE_DESCRIPTION, SITE_URL, OG_IMAGE, TWITTER_HANDLE } from '../../src/app/data/seoData'
+import { A11Y_LABELS } from '../../src/app/data/commonLabels'
+// One dictionary for the whole storefront: every attribute marker the CMS
+// knows, flattened to `marker → value`. Screens no longer carry their own
+// label set — see `src/lib/oneentry/dictionary.ts`.
+import { getDictionary } from '../../src/lib/oneentry/dictionary'
+import { loadMenu } from '../../src/lib/oneentry/menus/menus'
+import { loadSignUpFormSchema } from '../../src/lib/oneentry/auth/sign-up-form'
 // Footer newsletter renders on every route, so its OE form travels with the
 // root layout rather than a per-page provider.
-import { loadFormContent } from '../src/lib/oneentry/forms/placeholders'
-import { loadHeaderSystemTexts } from '../src/lib/oneentry/labels/header-labels'
-import { loadFooterSystemTexts } from '../src/lib/oneentry/labels/footer-labels'
-import { loadSystemPagesSystemTexts } from '../src/lib/oneentry/labels/system-pages-labels';
-import { loadLocales } from '../src/lib/oneentry/locales'
+import { loadFormContent } from '../../src/lib/oneentry/forms/placeholders'
+import { loadLocales } from '../../src/lib/oneentry/locales'
+import {
+  DEFAULT_SHORT_LOCALE,
+  SHORT_LOCALES,
+  buildLanguageAlternates,
+  htmlLang,
+} from '../../src/lib/oneentry/locale'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -58,10 +61,10 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: SITE_URL,
-    languages: {
-      'en-GB': SITE_URL,
-      'x-default': SITE_URL,
-    },
+    // One entry per routed locale, plus `x-default` pointing at the unprefixed
+    // default. Built from the locale list so enabling a locale cannot leave a
+    // stale hreflang behind.
+    languages: buildLanguageAlternates(SITE_URL),
   },
   icons: {
     icon: [
@@ -75,33 +78,35 @@ export const metadata: Metadata = {
   },
 }
 
+/**
+ * One static branch per routed locale. Reads the same list as `proxy.ts`, so a
+ * locale enabled in `NEXT_PUBLIC_LOCALES` gets its pages generated on the next
+ * build with no code change.
+ * @returns {Array<{locale: string}>} Locale params to prerender.
+ */
+export function generateStaticParams(): Array<{ locale: string }> {
+  return SHORT_LOCALES.map((locale) => ({ locale }));
+}
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Root parameter: readable from any Server Component without prop drilling,
+  // and — unlike `headers()` — it does not opt the tree into dynamic rendering.
+  const shortLocale = (await locale()) ?? DEFAULT_SHORT_LOCALE;
   const [
-    productCardLabels,
-    signInLabels,
-    createAccountLabels,
-    interfaceControlsLabels,
-    yourBagLabels,
+    dict,
     footerMenu,
     headerMenu,
     signUpFormSchema,
     subscribeForm,
     reviewFeedbackForm,
     reviewRatingForm,
-    headerLabels,
-    footerLabels,
     cmsLocales,
-    systemPagesLabels,
   ] = await Promise.all([
-    loadProductCardSystemTexts(),
-    loadSignInSystemTexts(),
-    loadCreateAccountSystemTexts(),
-    loadInterfaceControlsSystemTexts(),
-    loadYourBagSystemTexts(),
+    getDictionary(),
     loadMenu('footer'),
     loadMenu('header'),
     loadSignUpFormSchema(),
@@ -113,13 +118,10 @@ export default async function RootLayout({
     // newsletter form's copy for that subtree.
     loadFormContent('review_feedback'),
     loadFormContent('review_rating'),
-    loadHeaderSystemTexts(),
-    loadFooterSystemTexts(),
     loadLocales(),
-    loadSystemPagesSystemTexts(),
   ]);
   return (
-    <html lang="en-GB">
+    <html lang={htmlLang(shortLocale)}>
       <head>
         {process.env.NODE_ENV !== 'production' && (
           // Swallows a React 19 dev-build regression where the Components
@@ -150,11 +152,7 @@ export default async function RootLayout({
           <ScrollToTop />
         </Suspense>
         <Providers
-          productCardLabels={productCardLabels}
-          signInLabels={signInLabels}
-          createAccountLabels={createAccountLabels}
-          interfaceControlsLabels={interfaceControlsLabels}
-          yourBagLabels={yourBagLabels}
+          dict={dict}
           footerMenu={footerMenu?.pages ?? []}
           headerMenu={headerMenu?.pages ?? []}
           signUpFormSchema={signUpFormSchema}
@@ -163,10 +161,7 @@ export default async function RootLayout({
             review_feedback: reviewFeedbackForm,
             review_rating: reviewRatingForm,
           }}
-          headerLabels={headerLabels}
-          footerLabels={footerLabels}
           cmsLocales={cmsLocales}
-          systemPagesLabels={systemPagesLabels}
         >
           {children}
         </Providers>

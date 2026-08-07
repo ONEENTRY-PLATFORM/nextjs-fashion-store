@@ -1,7 +1,7 @@
 'use client'
 import { Minus, Plus } from 'lucide-react';
 import { QTY_CONTROL_LABELS as L } from '../../data/commonLabels';
-import { useInterfaceControlsT } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface QtyControlProps {
   value: number;
@@ -16,9 +16,9 @@ interface QtyControlProps {
 }
 
 export function QtyControl({ value, onMinus, onPlus, size = 'md', max }: QtyControlProps) {
-  const lGroup    = useInterfaceControlsT('interface_controls_qty_group',    L.groupLabel);
-  const lDecrease = useInterfaceControlsT('interface_controls_qty_decrease', L.decreaseLabel);
-  const lIncrease = useInterfaceControlsT('interface_controls_qty_increase', L.increaseLabel);
+  const lGroup    = useT('interface_controls_qty_group',    L.groupLabel);
+  const lDecrease = useT('interface_controls_qty_decrease', L.decreaseLabel);
+  const lIncrease = useT('interface_controls_qty_increase', L.increaseLabel);
   const atMax = max !== undefined && value >= max;
   const btnClass = size === 'sm'
     ? 'w-7 h-7 flex items-center justify-center hover:bg-gray-100 transition-colors focus-visible:outline-none'

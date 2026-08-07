@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
@@ -11,9 +11,9 @@ import { TIMINGS } from '../../constants/timings';
 import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
 import { FAVORITE_CARD_LABELS as FCL } from '../../data/favoritesLabels';
 import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
-import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
-import { useFavoritesPageT } from '../../../lib/oneentry/labels/FavoritesPageLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { extractCmsProductId } from '../../data/cms-product-id-map';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const item = rawItem;
@@ -22,12 +22,12 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const { addItem: addToCart } = useCart();
   const { openQuickView } = useQuickView();
   const router = useRouter();
-  const lAddToCart = useProductCardT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
+  const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
   // Wishlist-specific badges live in the OE `favorites_page` set alongside the
   // rest of the page copy; `FAVORITE_CARD_LABELS` is the offline fallback.
-  const lPriceDrop  = useFavoritesPageT('favorite_card_price_drop',   FCL.priceDrop);
-  const lOutOfStock = useFavoritesPageT('favorite_card_out_of_stock', FCL.outOfStock);
-  const lSizeLabel  = useFavoritesPageT('favorite_card_size',         FCL.sizeLabel);
+  const lPriceDrop  = useT('favorite_card_price_drop',   FCL.priceDrop);
+  const lOutOfStock = useT('favorite_card_out_of_stock', FCL.outOfStock);
+  const lSizeLabel  = useT('favorite_card_size',         FCL.sizeLabel);
   const initColorIdx = item.selectedColor
     ? Math.max(0, item.colors.indexOf(item.selectedColor))
     : 0;

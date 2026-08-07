@@ -1,7 +1,7 @@
+import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
 import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
 
 export interface SalePageFromCms {
   hero: {
@@ -108,9 +108,24 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
 }
 
 /** Cached loader — refresh every 60s so admin edits to the sale banner
- *  surface without a manual redeploy, but hot page loads still hit cache. */
-export const loadSalePage = unstable_cache(
-  (lang: Lang = DEFAULT_LOCALE) => fetchSalePage(lang),
+ *  surface without a manual redeploy, but hot page loads still hit cache.
+ *
+ *  `lang` is a required argument rather than something the cached body reads
+ *  for itself: `unstable_cache` keys on its arguments, so passing it in is
+ *  what keeps one locale's banner out of another's cache entry. */
+const loadSalePageCached = unstable_cache(
+  (lang: Lang) => fetchSalePage(lang),
   ['oe-sale-page'],
   { revalidate: 60, tags: ['oe-page'] },
 );
+
+/**
+ * Sale page attributes for the current route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<SalePageFromCms | null>} Page attributes, or `null`.
+ */
+export async function loadSalePage(
+  langArg?: Lang,
+): Promise<Awaited<ReturnType<typeof fetchSalePage>>> {
+  return loadSalePageCached(langArg ?? (await currentCmsLocale()));
+}

@@ -10,7 +10,7 @@ import { SectionTitle, ACCENT, fmt } from './shared';
 import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { TrackingModal } from './history/TrackingModal';
 import { HISTORY_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import type { OeOrder } from '../../../lib/oneentry/auth/actions';
 
 const HISTORY_FILTERS: HistoryOrderStatus[] = ['delivered', 'shipped', 'processing', 'cancelled', 'returned'];
@@ -69,24 +69,24 @@ export function HistorySection() {
   const MOCK_HISTORY_ORDERS: HistoryOrder[] = isLoggedIn && user?.oeOrders
     ? user.oeOrders.map(adaptOeToHistory)
     : mockHistory;
-  const title       = useT('purchase_history', 'purchase_history_title',                 L.title);
-  const eyebrow     = useT('purchase_history', 'purchase_history_transaction_records',   L.eyebrow);
-  const bannerHead  = useT('purchase_history', 'purchase_history_your_order',            L.bannerHeading);
-  const lTotalOrd   = useT('purchase_history', 'purchase_history_total_orders',          L.totalOrders);
-  const lDelivered  = useT('purchase_history', 'purchase_history_delivered',             L.delivered);
-  const lTotalSpent = useT('purchase_history', 'purchase_history_total_spent',           L.totalSpent);
-  const lFilterAll  = useT('purchase_history', 'purchase_history_status_tab_all',        L.filterAll);
-  const sDelivered  = useT('purchase_history', 'purchase_history_status_tab_delivered',  L.statuses.delivered);
-  const sShipped    = useT('purchase_history', 'purchase_history_status_tab_shipped',    L.statuses.shipped);
-  const sCancelled  = useT('purchase_history', 'purchase_history_status_tab_cancelled',  L.statuses.cancelled);
-  const sReturned   = useT('purchase_history', 'purchase_history_status_tab_returned',   L.statuses.returned);
-  const lRowOrder   = useT('purchase_history', 'purchase_history_order',                 L.rowOrder);
-  const lRowDate    = useT('purchase_history', 'purchase_history_date',                  L.rowDate);
-  const lRowItems   = useT('purchase_history', 'purchase_history_items',                 L.rowItems);
-  const lRowTotal   = useT('purchase_history', 'purchase_history_total',                 L.rowTotal);
-  const lReorder    = useT('purchase_history', 'purchase_history_reorder',               L.reorder);
-  const lViewBtn    = useT('purchase_history', 'purchase_history_view_cta',              L.viewBtn);
-  const lOrderTotal = useT('purchase_history', 'purchase_history_order_total',           L.orderTotal);
+  const title       = useT('purchase_history_title',                 L.title);
+  const eyebrow     = useT('purchase_history_transaction_records',   L.eyebrow);
+  const bannerHead  = useT('purchase_history_your_order',            L.bannerHeading);
+  const lTotalOrd   = useT('purchase_history_total_orders',          L.totalOrders);
+  const lDelivered  = useT('purchase_history_delivered',             L.delivered);
+  const lTotalSpent = useT('purchase_history_total_spent',           L.totalSpent);
+  const lFilterAll  = useT('purchase_history_status_tab_all',        L.filterAll);
+  const sDelivered  = useT('purchase_history_status_tab_delivered',  L.statuses.delivered);
+  const sShipped    = useT('purchase_history_status_tab_shipped',    L.statuses.shipped);
+  const sCancelled  = useT('purchase_history_status_tab_cancelled',  L.statuses.cancelled);
+  const sReturned   = useT('purchase_history_status_tab_returned',   L.statuses.returned);
+  const lRowOrder   = useT('purchase_history_order',                 L.rowOrder);
+  const lRowDate    = useT('purchase_history_date',                  L.rowDate);
+  const lRowItems   = useT('purchase_history_items',                 L.rowItems);
+  const lRowTotal   = useT('purchase_history_total',                 L.rowTotal);
+  const lReorder    = useT('purchase_history_reorder',               L.reorder);
+  const lViewBtn    = useT('purchase_history_view_cta',              L.viewBtn);
+  const lOrderTotal = useT('purchase_history_order_total',           L.orderTotal);
 
   const ORDER_STATUS_CONFIG: Record<HistoryOrderStatus, { label: string; bg: string; border: string; text: string }> = {
     delivered:  { label: sDelivered,            bg: '#f0fdf4', border: '#bbf7d0', text: '#16a34a' },

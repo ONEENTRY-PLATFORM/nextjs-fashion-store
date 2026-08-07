@@ -1,7 +1,7 @@
+import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
 import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
 
 export interface StoreLocationsPageFromCms {
   hero: {
@@ -28,7 +28,8 @@ type RawPage = {
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export const loadStoreLocationsPage = cache(
-  async (lang: Lang = DEFAULT_LOCALE): Promise<StoreLocationsPageFromCms | null> => {
+  async (langArg?: Lang): Promise<StoreLocationsPageFromCms | null> => {
+    const lang = langArg ?? (await currentCmsLocale());
     if (!isOneEntryEnabled) return null;
     try {
       // Prefer `getPageByUrl('stores', lang)` — the SDK-supported entry

@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { useAppSelector } from '../../store/hooks';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -10,9 +10,10 @@ import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { ChevronDown, Package, Clock, RotateCcw, XCircle } from 'lucide-react';
 import { MY_ORDERS_LABELS as L } from '../../data/accountLabels';
 import { MY_ORDERS_DYNAMIC_ARIA } from '../../data/commonLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { cancelOrderAction, type OeOrder } from '../../../lib/oneentry/auth/actions';
 import type { UserOrder } from '../../data/userData';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 /** Map a raw OneEntry order to the shape the UI already expects. */
 function adaptOeOrder(o: OeOrder): UserOrder {
@@ -125,21 +126,21 @@ export function MyOrdersSection() {
     setCancelTarget(null);
   };
 
-  const viewDetails = useT('my_orders', 'my_orders_view_order_details', L.viewOrderDetails);
-  const hideDetails = useT('my_orders', 'my_order_hide_details',        L.hideDetails);
-  const lOrderId    = useT('my_orders', 'my_orders_order_id',           L.orderId);
-  const lCancelTitle   = useT('my_orders', 'my_orders_cancel_title',    L.cancelDialogTitle);
-  const lCancelQPrefix = useT('my_orders', 'my_orders_cancel_question', L.cancelDialogQuestionPrefix);
-  const lCancelNo      = useT('my_orders', 'my_orders_cancel_no',       L.cancelDialogNo);
-  const lCancelConfirm = useT('my_orders', 'my_orders_cancel_confirm',  L.cancelDialogConfirm);
-  const lDatePlaced = useT('my_orders', 'my_orders_date_placed',        L.datePlaced);
-  const lStatus     = useT('my_orders', 'my_orders_status',             L.status);
-  const lTracking   = useT('my_orders', 'my_orders_tracking',           L.tracking);
-  const lEstDeliv   = useT('my_orders', 'my_orders_est_delivery',       L.estDelivery);
-  const lOrderTotal = useT('my_orders', 'my_orders_order_total',        L.orderTotal);
-  const lItem       = useT('my_orders', 'my_orders_number_of_items',    L.itemSingular);
-  const lFullHist   = useT('my_orders', 'my_order_full_history_cta',    L.fullHistory);
-  const lReorder    = useT('my_orders', 'my_order_reorder_cta',         L.reorder);
+  const viewDetails = useT('my_orders_view_order_details', L.viewOrderDetails);
+  const hideDetails = useT('my_order_hide_details',        L.hideDetails);
+  const lOrderId    = useT('my_orders_order_id',           L.orderId);
+  const lCancelTitle   = useT('my_orders_cancel_title',    L.cancelDialogTitle);
+  const lCancelQPrefix = useT('my_orders_cancel_question', L.cancelDialogQuestionPrefix);
+  const lCancelNo      = useT('my_orders_cancel_no',       L.cancelDialogNo);
+  const lCancelConfirm = useT('my_orders_cancel_confirm',  L.cancelDialogConfirm);
+  const lDatePlaced = useT('my_orders_date_placed',        L.datePlaced);
+  const lStatus     = useT('my_orders_status',             L.status);
+  const lTracking   = useT('my_orders_tracking',           L.tracking);
+  const lEstDeliv   = useT('my_orders_est_delivery',       L.estDelivery);
+  const lOrderTotal = useT('my_orders_order_total',        L.orderTotal);
+  const lItem       = useT('my_orders_number_of_items',    L.itemSingular);
+  const lFullHist   = useT('my_order_full_history_cta',    L.fullHistory);
+  const lReorder    = useT('my_order_reorder_cta',         L.reorder);
 
   // Static colours for the three canonical buckets that ship with the UI.
   const statusColor: Record<string, string> = {

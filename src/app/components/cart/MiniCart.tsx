@@ -6,10 +6,11 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { X, ShoppingBag, Link as LinkIcon } from 'lucide-react';
 import { QtyControl } from '../ui/QtyControl';
 import { useCart, type CartItem } from '../../context/CartContext';
-import { useRouter } from 'next/navigation';
+
 import { MINI_CART_LABELS as L } from '../../data/cartLabels';
 import { MINI_CART_ARIA_LABELS, MINI_CART_DYNAMIC_ARIA } from '../../data/commonLabels';
-import { useYourBagT } from '../../../lib/oneentry/labels/YourBagLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 type RenderRow =
   | { kind: 'item'; item: CartItem }
@@ -27,19 +28,19 @@ export function MiniCart() {
   const displayTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : subtotal;
   const router = useRouter();
   const trapRef = useFocusTrap(miniCartOpen, closeMiniCart);
-  const lHeading      = useYourBagT('your_bag_title',          L.heading);
-  const lSubtotal     = useYourBagT('your_bag_subtotal',       L.subtotal);
-  const lShippingNote = useYourBagT('your_bag_text',           L.shippingNote);
-  const lCheckout     = useYourBagT('your_bag_checkout_cta',   L.checkout);
-  const lViewFullCart = useYourBagT('your_bag_view_fuul_cart', L.viewFullCart);
-  const lSize         = useYourBagT('your_bag_size_prefix',    L.sizePrefix);
-  const lQty          = useYourBagT('your_bag_qty_prefix',     L.qtyPrefix);
-  const lFreeGift     = useYourBagT('your_bag_free_gift',      L.freeGift);
-  const lFree         = useYourBagT('your_bag_free',           L.free);
-  const lLoyalty      = useYourBagT('your_bag_loyalty_discount', L.loyaltyDiscount);
-  const lPromo        = useYourBagT('your_bag_promo_prefix',   L.promoPrefix);
-  const lTotal        = useYourBagT('your_bag_total',          L.total);
-  const lAppliedAtCheckout = useYourBagT('your_bag_applied_at_checkout', L.appliedAtCheckout);
+  const lHeading      = useT('your_bag_title',          L.heading);
+  const lSubtotal     = useT('your_bag_subtotal',       L.subtotal);
+  const lShippingNote = useT('your_bag_text',           L.shippingNote);
+  const lCheckout     = useT('your_bag_checkout_cta',   L.checkout);
+  const lViewFullCart = useT('your_bag_view_fuul_cart', L.viewFullCart);
+  const lSize         = useT('your_bag_size_prefix',    L.sizePrefix);
+  const lQty          = useT('your_bag_qty_prefix',     L.qtyPrefix);
+  const lFreeGift     = useT('your_bag_free_gift',      L.freeGift);
+  const lFree         = useT('your_bag_free',           L.free);
+  const lLoyalty      = useT('your_bag_loyalty_discount', L.loyaltyDiscount);
+  const lPromo        = useT('your_bag_promo_prefix',   L.promoPrefix);
+  const lTotal        = useT('your_bag_total',          L.total);
+  const lAppliedAtCheckout = useT('your_bag_applied_at_checkout', L.appliedAtCheckout);
 
   const rows = useMemo<RenderRow[]>(() => {
     const result: RenderRow[] = [];

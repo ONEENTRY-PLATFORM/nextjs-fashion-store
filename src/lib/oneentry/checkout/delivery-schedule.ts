@@ -1,6 +1,6 @@
+import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
 import { getApi, isError } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
 import type { Lang } from '../system-text';
 import { REVALIDATE_STORES } from '../../isr';
 import { DELIVERY_TIME_SLOTS } from '../../../app/data/checkoutConfig';
@@ -185,13 +185,27 @@ async function loadScheduleFor(variant: DeliveryScheduleVariant, lang: Lang): Pr
  * Falls back to the hardcoded 7-days / skip-Sun / three-slot config when
  * OE is unreachable, the attribute is missing, or the row is empty.
  */
-export const loadDeliverySchedule = unstable_cache(
-  async (variant: DeliveryScheduleVariant = 'authed', lang: Lang = DEFAULT_LOCALE): Promise<DeliverySchedule> => {
-    return loadScheduleFor(variant, lang);
-  },
+/** `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function. */
+const loadDeliveryScheduleCached = unstable_cache(
+  async (variant: DeliveryScheduleVariant, lang: Lang): Promise<DeliverySchedule> =>
+    loadScheduleFor(variant, lang),
   ['oe-delivery-schedule'],
   { revalidate: REVALIDATE_STORES, tags: ['oe-forms'] },
 );
+
+/**
+ * Delivery schedule for the current route's locale.
+ * @param   {DeliveryScheduleVariant} [variant] - Authed or guest schedule.
+ * @param   {Lang}                    [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<DeliverySchedule>} Schedule, with shipped fallbacks.
+ */
+export async function loadDeliverySchedule(
+  variant: DeliveryScheduleVariant = 'authed',
+  langArg?: Lang,
+): Promise<DeliverySchedule> {
+  return loadDeliveryScheduleCached(variant, langArg ?? (await currentCmsLocale()));
+}
 
 /** Build the calendar strip the picker renders: `daysAhead` future dates
  *  starting tomorrow, skipping any weekday in `disabledWeekdays`. Kept as a

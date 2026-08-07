@@ -1,23 +1,22 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react';
-import { OFFLINE_PAGE_LABELS as L_FALLBACK } from '../../src/app/data/offlinePageLabels';
-import { useSystemPagesDict } from '../../src/lib/oneentry/labels/SystemPagesLabelsContext';
-import { useInterfaceControlsT } from '../../src/lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { OFFLINE_PAGE_LABELS as L_FALLBACK } from '../../../src/app/data/offlinePageLabels';
+import { useDict, useT } from '../../../src/lib/oneentry/labels/DictContext';
 
 const CHECK_INTERVAL = 10; // seconds
 
 export default function OfflinePage() {
-  const L = useSystemPagesDict('offline_', L_FALLBACK);
+  const L = useDict('offline_', L_FALLBACK);
   const [countdown, setCountdown] = useState(CHECK_INTERVAL);
   const [checking, setChecking] = useState(false);
   const [dots, setDots] = useState('');
-  const lBrand     = useInterfaceControlsT('offline_title_store', L.brand);
-  const lHeading   = useInterfaceControlsT('offline_title',       L.heading);
-  const lSubtitle  = useInterfaceControlsT('offline_text',        L.subtitle);
-  const lNextCheck = useInterfaceControlsT('offline_next_check',  L.nextCheckIn);
-  const lRetry     = useInterfaceControlsT('offline_cta',         L.retry);
-  const lFooter    = useInterfaceControlsT('offline_text_below',  L.footerNote);
+  const lBrand     = useT('offline_title_store', L.brand);
+  const lHeading   = useT('offline_title',       L.heading);
+  const lSubtitle  = useT('offline_text',        L.subtitle);
+  const lNextCheck = useT('offline_next_check',  L.nextCheckIn);
+  const lRetry     = useT('offline_cta',         L.retry);
+  const lFooter    = useT('offline_text_below',  L.footerNote);
 
   const checkConnectivity = useCallback(async () => {
     setChecking(true);

@@ -1,7 +1,7 @@
+import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
 import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
 
 export interface MenuPageNode {
   id: number;
@@ -76,7 +76,8 @@ const normalizeNode = (raw: RawNode, lang: Lang): MenuPageNode => {
 };
 
 export const loadMenu = cache(
-  async (marker: string, lang: Lang = DEFAULT_LOCALE): Promise<CmsMenu | null> => {
+  async (marker: string, langArg?: Lang): Promise<CmsMenu | null> => {
+    const lang = langArg ?? (await currentCmsLocale());
     const api = getApiSafe();
     if (!api) return null;
     try {

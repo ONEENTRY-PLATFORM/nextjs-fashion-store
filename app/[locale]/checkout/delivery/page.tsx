@@ -1,17 +1,15 @@
 import type { Metadata } from 'next';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { SEO } from '../../../src/app/data/seoData';
-import { DeliveryPage } from '../../../src/app/pages/DeliveryPage';
-import { loadCheckoutSystemTexts } from '../../../src/lib/oneentry/labels/checkout-labels';
-import { CheckoutLabelsProvider } from '../../../src/lib/oneentry/labels/CheckoutLabelsContext';
-import { loadFormContent } from '../../../src/lib/oneentry/forms/placeholders';
-import { FormPlaceholdersProvider } from '../../../src/lib/oneentry/forms/FormPlaceholdersContext';
-import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
-import type { PickupStore } from '../../../src/app/data/checkoutConfig';
-import { loadDeliveryMethodInfo, loadParcelLockers } from '../../../src/lib/oneentry/checkout/delivery-methods';
-import { DeliveryMethodInfoProvider } from '../../../src/lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { loadDeliverySchedule, buildDeliveryDates } from '../../../src/lib/oneentry/checkout/delivery-schedule';
-import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '../../../../src/lib/oneentry/catalog/page-seo';
+import { SEO } from '../../../../src/app/data/seoData';
+import { DeliveryPage } from '../../../../src/app/pages/DeliveryPage';
+import { loadFormContent } from '../../../../src/lib/oneentry/forms/placeholders';
+import { FormPlaceholdersProvider } from '../../../../src/lib/oneentry/forms/FormPlaceholdersContext';
+import { loadStores } from '../../../../src/lib/oneentry/catalog/stores';
+import type { PickupStore } from '../../../../src/app/data/checkoutConfig';
+import { loadDeliveryMethodInfo, loadParcelLockers } from '../../../../src/lib/oneentry/checkout/delivery-methods';
+import { DeliveryMethodInfoProvider } from '../../../../src/lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { loadDeliverySchedule, buildDeliveryDates } from '../../../../src/lib/oneentry/checkout/delivery-schedule';
+import { loadPageBlocksByUrl } from '../../../../src/lib/oneentry/blocks/page-blocks';
 
 /** Title/description/keywords/canonical come from the OE `delivery_method` page when an
  *  editor filled them; `SEO.checkoutDelivery` stays as the offline fallback. */
@@ -20,8 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [labels, userAddresses, stores, deliveryMethodInfo, parcelLockers, scheduleAuthed, scheduleGuest, pageBlocks] = await Promise.all([
-    loadCheckoutSystemTexts(),
+  const [userAddresses, stores, deliveryMethodInfo, parcelLockers, scheduleAuthed, scheduleGuest, pageBlocks] = await Promise.all([
     loadFormContent('user_addresses'),
     loadStores(),
     loadDeliveryMethodInfo(),
@@ -58,20 +55,18 @@ export default async function Page() {
       hours: s.hours.map((h) => `${h.day} ${h.time}`).join(', '),
     }));
   return (
-    <CheckoutLabelsProvider data={labels}>
-      <FormPlaceholdersProvider forms={{ user_addresses: userAddresses }}>
-        <DeliveryMethodInfoProvider data={deliveryMethodInfo}>
-          <DeliveryPage
-            pickupStores={pickupStores}
-            parcelLockers={parcelLockers}
-            deliveryDatesIsoAuthed={deliveryDatesIsoAuthed}
-            deliveryDatesIsoGuest={deliveryDatesIsoGuest}
-            deliverySlotsAuthed={scheduleAuthed.slots}
-            deliverySlotsGuest={scheduleGuest.slots}
-            pageBlocks={pageBlocks}
-          />
-        </DeliveryMethodInfoProvider>
-      </FormPlaceholdersProvider>
-    </CheckoutLabelsProvider>
+    <FormPlaceholdersProvider forms={{ user_addresses: userAddresses }}>
+      <DeliveryMethodInfoProvider data={deliveryMethodInfo}>
+        <DeliveryPage
+          pickupStores={pickupStores}
+          parcelLockers={parcelLockers}
+          deliveryDatesIsoAuthed={deliveryDatesIsoAuthed}
+          deliveryDatesIsoGuest={deliveryDatesIsoGuest}
+          deliverySlotsAuthed={scheduleAuthed.slots}
+          deliverySlotsGuest={scheduleGuest.slots}
+          pageBlocks={pageBlocks}
+        />
+      </DeliveryMethodInfoProvider>
+    </FormPlaceholdersProvider>
   );
 }

@@ -1,14 +1,15 @@
 'use client'
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { SectionTitle } from '../shared';
 import { ACCOUNT_DELETION_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import { useAccountDict } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useDict } from '../../../../lib/oneentry/labels/DictContext';
+import { useRouter } from '../../../../lib/i18n/navigation';
 
 export function AccountDeletionSection() {
-  const L = useAccountDict('user_account', 'user_account_deletion_', L_FALLBACK);
+  const L = useDict('user_account_deletion_', L_FALLBACK);
   const { logout } = useAuth();
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);

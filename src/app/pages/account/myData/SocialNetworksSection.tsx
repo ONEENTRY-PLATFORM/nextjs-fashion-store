@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { SectionTitle } from '../shared';
 import { SOCIAL_NETWORKS_LABELS as L } from '../../../data/accountLabels';
-import { useT } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../../lib/oneentry/labels/DictContext';
 import { startGoogleOAuth } from '../../../../lib/google-auth';
 import { useAuthProviders } from '../../../hooks/useAuthProviders';
 import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../../data/socialProviderRegistry';
@@ -92,13 +92,13 @@ export function SocialNetworksSection() {
     setProviderLinked(id, false);
   };
 
-  const lTitle       = useT('user_account', 'user_account_social_title',         L.title);
-  const lConnected   = useT('user_account', 'user_account_social_connected',     L.connectedBadge);
-  const lDisconnect  = useT('user_account', 'user_account_social_disconnect',    L.disconnect);
-  const lErrConnect  = useT('user_account', 'user_account_social_connect_error', L.errorConnect);
-  const lLoading     = useT('user_account', 'user_account_social_loading',       L.loading);
-  const lEmpty       = useT('user_account', 'user_account_social_empty',         L.emptyProviders);
-  const lComingSoon  = useT('user_account', 'user_account_social_coming_soon',   L.comingSoon);
+  const lTitle       = useT('user_account_social_title',         L.title);
+  const lConnected   = useT('user_account_social_connected',     L.connectedBadge);
+  const lDisconnect  = useT('user_account_social_disconnect',    L.disconnect);
+  const lErrConnect  = useT('user_account_social_connect_error', L.errorConnect);
+  const lLoading     = useT('user_account_social_loading',       L.loading);
+  const lEmpty       = useT('user_account_social_empty',         L.emptyProviders);
+  const lComingSoon  = useT('user_account_social_coming_soon',   L.comingSoon);
 
   return (
     <div>

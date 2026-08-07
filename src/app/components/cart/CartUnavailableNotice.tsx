@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { CART_UNAVAILABLE_LABELS as L } from '../../data/cartLabels';
-import { useYourBagT } from '../../../lib/oneentry/labels/YourBagLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 /** How long the notice stays on screen before self-dismissing. Matches the
  *  cadence of typical UX toasts — long enough for a shopper to read the item
@@ -12,11 +12,11 @@ const AUTO_DISMISS_MS = 5000;
 
 export function CartUnavailableNotice() {
   const { unavailableRemoved, dismissUnavailableNotice } = useCart();
-  const lPrefix   = useYourBagT('your_bag_removed_prefix',  L.removedPrefix);
-  const lSuffix   = useYourBagT('your_bag_removed_suffix',  L.removedSuffix);
-  const lItem     = useYourBagT('your_bag_item_singular',   L.itemSingular);
-  const lItems    = useYourBagT('your_bag_item_plural',     L.itemPlural);
-  const lDismiss  = useYourBagT('your_bag_dismiss_notice',  L.dismiss);
+  const lPrefix   = useT('your_bag_removed_prefix',  L.removedPrefix);
+  const lSuffix   = useT('your_bag_removed_suffix',  L.removedSuffix);
+  const lItem     = useT('your_bag_item_singular',   L.itemSingular);
+  const lItems    = useT('your_bag_item_plural',     L.itemPlural);
+  const lDismiss  = useT('your_bag_dismiss_notice',  L.dismiss);
   useEffect(() => {
     if (unavailableRemoved.length === 0) return;
     const t = setTimeout(dismissUnavailableNotice, AUTO_DISMISS_MS);

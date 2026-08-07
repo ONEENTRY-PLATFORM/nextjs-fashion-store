@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
-import { useRouter } from 'next/navigation';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
@@ -12,8 +12,9 @@ import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
 import { fmt } from '../utils/formatPrice';
 import { CONFIRMATION_LABELS as L, CONFIRMATION_INFO_CARDS } from '../data/confirmationLabels';
 import { CART_LINE_LABELS as CLL } from '../data/commonLabels';
-import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import { useMounted } from '../hooks/useMounted';
+import { useRouter } from '../../lib/i18n/navigation';
 
 const ICON_MAP = {
   mail:    <Mail size={20} />,
@@ -42,20 +43,20 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
   // line renders $0 / the loyalty-points hint uses $0 as the base.
   const [paidTotal, setPaidTotal] = useState<number | null>(null);
 
-  const lHeading       = useT('checkout_confirmed', 'checkout_confirmed_titel',                    successMessage || L.heading);
-  const lSub           = useT('checkout_confirmed', 'checkout_confirmed_text',                     L.subheading);
-  const lOrderIdLabel  = useT('checkout_confirmed', 'checkout_confirmed_id',                       L.orderIdLabel);
-  const lLoyaltyPre    = useT('checkout_confirmed', 'checkout_confirmed_bonus_text_1',             L.loyaltyPrefix);
-  const lLoyaltyAmt    = useT('checkout_confirmed', 'checkout_confirmed_bonus_text_2',             L.loyaltyAmountSuffix);
-  const lLoyaltySuf    = useT('checkout_confirmed', 'checkout_confirmed_bonus_text_3',             L.loyaltySuffix);
-  const lCtaPrimary    = useT('checkout_confirmed', 'checkout_confirmed_continue_cta',             L.ctaPrimary);
-  const lCtaSecondary  = useT('checkout_confirmed', 'checkout_confirmed_new_arrivals_cta',         L.ctaSecondary);
-  const lConfirmTitle  = useT('checkout_confirmed', 'checkout_confirmed_confirmation_sent_title',  CONFIRMATION_INFO_CARDS[0].title);
-  const lConfirmText   = useT('checkout_confirmed', 'checkout_confirmed_confirmation_sent_text',   CONFIRMATION_INFO_CARDS[0].desc);
-  const lProcTitle     = useT('checkout_confirmed', 'checkout_confirmed_processing_title',         CONFIRMATION_INFO_CARDS[1].title);
-  const lProcText      = useT('checkout_confirmed', 'checkout_confirmed_processing_text',          CONFIRMATION_INFO_CARDS[1].desc);
-  const lEstTitle      = useT('checkout_confirmed', 'checkout_confirmed_estimated_title',          CONFIRMATION_INFO_CARDS[2].title);
-  const lEstText       = useT('checkout_confirmed', 'checkout_confirmed_estimated_text',           CONFIRMATION_INFO_CARDS[2].desc);
+  const lHeading       = useT('checkout_confirmed_titel',                    successMessage || L.heading);
+  const lSub           = useT('checkout_confirmed_text',                     L.subheading);
+  const lOrderIdLabel  = useT('checkout_confirmed_id',                       L.orderIdLabel);
+  const lLoyaltyPre    = useT('checkout_confirmed_bonus_text_1',             L.loyaltyPrefix);
+  const lLoyaltyAmt    = useT('checkout_confirmed_bonus_text_2',             L.loyaltyAmountSuffix);
+  const lLoyaltySuf    = useT('checkout_confirmed_bonus_text_3',             L.loyaltySuffix);
+  const lCtaPrimary    = useT('checkout_confirmed_continue_cta',             L.ctaPrimary);
+  const lCtaSecondary  = useT('checkout_confirmed_new_arrivals_cta',         L.ctaSecondary);
+  const lConfirmTitle  = useT('checkout_confirmed_confirmation_sent_title',  CONFIRMATION_INFO_CARDS[0].title);
+  const lConfirmText   = useT('checkout_confirmed_confirmation_sent_text',   CONFIRMATION_INFO_CARDS[0].desc);
+  const lProcTitle     = useT('checkout_confirmed_processing_title',         CONFIRMATION_INFO_CARDS[1].title);
+  const lProcText      = useT('checkout_confirmed_processing_text',          CONFIRMATION_INFO_CARDS[1].desc);
+  const lEstTitle      = useT('checkout_confirmed_estimated_title',          CONFIRMATION_INFO_CARDS[2].title);
+  const lEstText       = useT('checkout_confirmed_estimated_text',           CONFIRMATION_INFO_CARDS[2].desc);
 
   const infoCards = [
     { iconKey: 'mail'    as const, title: lConfirmTitle, desc: lConfirmText },

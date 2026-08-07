@@ -1,10 +1,11 @@
 'use client'
 import { useState } from 'react';
-import Link from 'next/link';
+
 import Image from 'next/image';
 import type { PromoItem } from '../../data/promoBlocks';
 import type { HomepageCollectionItem } from '../../../lib/oneentry/blocks/homepage-collections';
 import { useMounted } from '../../hooks/useMounted';
+import { Link } from '../../../lib/i18n/navigation';
 
 function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boolean }) {
   const [hovered, setHovered] = useState(false);

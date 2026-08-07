@@ -3,7 +3,7 @@ import { CatalogTemplate, type FilterGroup } from '../components/catalog/Catalog
 import type { Product } from '../components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
-import { useCatalogPageT } from '../../lib/oneentry/labels/CatalogPageLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
@@ -32,10 +32,10 @@ export function WomenCatalogPage({
 } = {}) {
   // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
   // offline fallback.
-  const lTitle      = useCatalogPageT('catalog_page_clothing',          CL.clothing);
-  const lGender     = useCatalogPageT('catalog_page_women',             CL.women);
-  const lCrumbHome  = useCatalogPageT('catalog_page_breadcrumb_home',   CL.breadcrumbHome);
-  const lCrumbCat   = useCatalogPageT('catalog_page_breadcrumb_clothing', CL.breadcrumbClothing);
+  const lTitle      = useT('catalog_page_clothing',          CL.clothing);
+  const lGender     = useT('catalog_page_women',             CL.women);
+  const lCrumbHome  = useT('catalog_page_breadcrumb_home',   CL.breadcrumbHome);
+  const lCrumbCat   = useT('catalog_page_breadcrumb_clothing', CL.breadcrumbClothing);
   return (
     <CatalogTemplate
       catalogKey="women-clothing"

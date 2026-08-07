@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
@@ -28,9 +28,10 @@ import { DeliveryMethodStore } from './checkout/DeliveryMethodStore';
 import { DeliveryMethodLocker } from './checkout/DeliveryMethodLocker';
 import { DeliveryMethodHome } from './checkout/DeliveryMethodHome';
 import { DELIVERY_PAGE_LABELS as L, DELIVERY_METHOD_HOME_LABELS as DH } from '../data/checkoutLabels';
-import { useT } from '../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import type { DeliveryTimeSlot } from '../../lib/oneentry/checkout/delivery-schedule';
 import { useMounted } from '../hooks/useMounted';
+import { useRouter } from '../../lib/i18n/navigation';
 
 type DeliveryMethod = 'home' | 'store' | 'locker';
 
@@ -104,8 +105,8 @@ export function DeliveryPage({
     couponCode, couponDiscount, couponError, applyCoupon, removeCoupon, giftItems,
     preview, previewLoading,
   } = useCart();
-  const lBackToCart  = useT('checkout_delivery', 'checkout_delivery_back_to_cart',        L.backToCart);
-  const lContinue    = useT('checkout_delivery', 'checkout_delivery_continue_to_payment', L.continueToPayment);
+  const lBackToCart  = useT('checkout_delivery_back_to_cart',        L.backToCart);
+  const lContinue    = useT('checkout_delivery_continue_to_payment', L.continueToPayment);
   // Saved addresses come straight from OE for the signed-in user.
   const savedAddresses = user?.addresses ?? [];
 

@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react';
 import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
-import { useRouter } from 'next/navigation';
+
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
 import { Heart, ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
@@ -11,13 +11,13 @@ import { TIMINGS } from '../../constants/timings';
 import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
 import { PRODUCT_CARD_ARIA_LABELS, WISHLIST_DYNAMIC_ARIA, PRODUCT_CARD_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
 import { WISHLIST_LABELS as WL } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
-import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 export function WishlistSection() {
   const { items, removeItem } = useWishlist();
   const inStockItems = items.filter(i => i.inStock);
-  const title = useT('user_account_wishlist', 'user_account_wishlist_title', WL.title);
+  const title = useT('user_account_wishlist_title', WL.title);
 
   return (
     <div
@@ -52,7 +52,7 @@ export function WishlistCard({
   onRemove: () => void;
 }) {
   const router = useRouter();
-  const lAddToCart = useProductCardT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
+  const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
   const { addItem: addToCart } = useCart();
   const initColorIdx = item.selectedColor
     ? Math.max(0, item.colors.indexOf(item.selectedColor))
@@ -110,7 +110,7 @@ export function WishlistCard({
     tooltipTimerRef.current = setTimeout(() => setShowTooltip(false), TIMINGS.TOOLTIP_HIDE);
   };
 
-  const lSaleBadge = useT('user_account_wishlist', 'user_account_wishlist_sale_badge', WL.saleBadge);
+  const lSaleBadge = useT('user_account_wishlist_sale_badge', WL.saleBadge);
 
   return (
     <div

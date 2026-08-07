@@ -3,7 +3,10 @@ import { getApiSafe, isError } from './index';
 import { DEFAULT_LOCALE } from './locale';
 import { logCaught } from './log';
 
-export type Lang = 'en_US';
+/** OE locale code accepted by the SDK (`en_US`, `fr_FR`, …). Widened from the
+ *  original `'en_US'` literal when locale routing landed — every fetcher still
+ *  defaults to {@link DEFAULT_LOCALE}, so single-locale behaviour is unchanged. */
+export type Lang = string;
 
 /** OE returns the attribute-set schema in two shapes depending on which call
  *  surfaces it. The REST `/attributes-sets/marker/{m}` endpoint returns

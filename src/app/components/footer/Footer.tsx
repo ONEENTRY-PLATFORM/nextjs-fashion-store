@@ -2,14 +2,13 @@
 import { FOOTER_LINKS, PAYMENT_METHOD_NAMES, SOCIAL_LINKS, SUPPORT_ITEMS, BOTTOM_LINKS, COMPANY_INFO, type FooterLink } from '../../data/footerConfig';
 import { FOOTER_ARIA, FOOTER_LABELS as FL, FOOTER_DYNAMIC_ARIA } from '../../data/commonLabels';
 import { LOGO_ALT } from '../../data/headerConfig';
-import { useHeaderT } from '../../../lib/oneentry/labels/HeaderLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import React from 'react';
-import Link from 'next/link';
+
 import Image from 'next/image';
 import logoImage from '../../../assets/kekimoro-logo-white.png';
 import { NewsletterForm } from './NewsletterForm';
 import { useFooterMenu } from '../../../lib/oneentry/menus/FooterMenuContext';
-import { useFooterT } from '../../../lib/oneentry/labels/FooterLabelsContext';
 import {
   footerColumnsFromMenu,
   footerBottomLinksFromMenu,
@@ -21,6 +20,7 @@ import {
   ChatBubbleLeftRightIcon,
   EnvelopeIcon,
 } from '@heroicons/react/24/outline';
+import { Link } from '../../../lib/i18n/navigation';
 const PAYMENT_ICON_SRC: Record<string, string> = {
   Visa: '/icons/payment/visa.svg',
   Mastercard: '/icons/payment/mastercard.svg',
@@ -42,26 +42,26 @@ const SOCIAL_ICON_SRC: Record<string, string> = {
 
 
 export function Footer() {
-  const lLogoAlt = useHeaderT('header_logo_alt', LOGO_ALT);
+  const lLogoAlt = useT('header_logo_alt', LOGO_ALT);
   const cmsFooterMenu = useFooterMenu();
 
   // Branding copy from the OE `footer` set — the fields marketing changes
   // without a release. `COMPANY_INFO` / `SUPPORT_ITEMS` remain the fallback.
-  const lDescription = useFooterT('footer_company_description', COMPANY_INFO.description);
-  const lPhone       = useFooterT('footer_support_phone',       COMPANY_INFO.phone);
-  const lCopyright   = useFooterT('footer_copyright',           COMPANY_INFO.copyright);
+  const lDescription = useT('footer_company_description', COMPANY_INFO.description);
+  const lPhone       = useT('footer_support_phone',       COMPANY_INFO.phone);
+  const lCopyright   = useT('footer_copyright',           COMPANY_INFO.copyright);
 
   // Four support cards are a fixed layout slot, so each key is read with its
   // own top-level hook call — a loop would break the rules of hooks. The icon
   // stays in code: it selects a component, it is not copy.
-  const support1Title = useFooterT('footer_support_1_title', SUPPORT_ITEMS[0]?.title ?? '');
-  const support1Desc  = useFooterT('footer_support_1_desc',  SUPPORT_ITEMS[0]?.desc ?? '');
-  const support2Title = useFooterT('footer_support_2_title', SUPPORT_ITEMS[1]?.title ?? '');
-  const support2Desc  = useFooterT('footer_support_2_desc',  SUPPORT_ITEMS[1]?.desc ?? '');
-  const support3Title = useFooterT('footer_support_3_title', SUPPORT_ITEMS[2]?.title ?? '');
-  const support3Desc  = useFooterT('footer_support_3_desc',  SUPPORT_ITEMS[2]?.desc ?? '');
-  const support4Title = useFooterT('footer_support_4_title', SUPPORT_ITEMS[3]?.title ?? '');
-  const support4Desc  = useFooterT('footer_support_4_desc',  SUPPORT_ITEMS[3]?.desc ?? '');
+  const support1Title = useT('footer_support_1_title', SUPPORT_ITEMS[0]?.title ?? '');
+  const support1Desc  = useT('footer_support_1_desc',  SUPPORT_ITEMS[0]?.desc ?? '');
+  const support2Title = useT('footer_support_2_title', SUPPORT_ITEMS[1]?.title ?? '');
+  const support2Desc  = useT('footer_support_2_desc',  SUPPORT_ITEMS[1]?.desc ?? '');
+  const support3Title = useT('footer_support_3_title', SUPPORT_ITEMS[2]?.title ?? '');
+  const support3Desc  = useT('footer_support_3_desc',  SUPPORT_ITEMS[2]?.desc ?? '');
+  const support4Title = useT('footer_support_4_title', SUPPORT_ITEMS[3]?.title ?? '');
+  const support4Desc  = useT('footer_support_4_desc',  SUPPORT_ITEMS[3]?.desc ?? '');
   const supportItems = [
     { title: support1Title, desc: support1Desc },
     { title: support2Title, desc: support2Desc },
@@ -71,11 +71,11 @@ export function Footer() {
 
   // Social profile URLs: the network name keys the icon asset and stays in
   // code, only the destination is CMS-editable.
-  const tiktokHref    = useFooterT('footer_social_tiktok',    SOCIAL_LINKS[0]?.href ?? '');
-  const facebookHref  = useFooterT('footer_social_facebook',  SOCIAL_LINKS[1]?.href ?? '');
-  const instagramHref = useFooterT('footer_social_instagram', SOCIAL_LINKS[2]?.href ?? '');
-  const youtubeHref   = useFooterT('footer_social_youtube',   SOCIAL_LINKS[3]?.href ?? '');
-  const pinterestHref = useFooterT('footer_social_pinterest', SOCIAL_LINKS[4]?.href ?? '');
+  const tiktokHref    = useT('footer_social_tiktok',    SOCIAL_LINKS[0]?.href ?? '');
+  const facebookHref  = useT('footer_social_facebook',  SOCIAL_LINKS[1]?.href ?? '');
+  const instagramHref = useT('footer_social_instagram', SOCIAL_LINKS[2]?.href ?? '');
+  const youtubeHref   = useT('footer_social_youtube',   SOCIAL_LINKS[3]?.href ?? '');
+  const pinterestHref = useT('footer_social_pinterest', SOCIAL_LINKS[4]?.href ?? '');
   const socialLinks = SOCIAL_LINKS
     .map((s, i) => ({
       name: s.name,

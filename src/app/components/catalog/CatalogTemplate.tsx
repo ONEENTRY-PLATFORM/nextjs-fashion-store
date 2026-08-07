@@ -1,5 +1,5 @@
 'use client'
-import Link from 'next/link';
+
 /**
  * CatalogTemplate — universal catalog engine.
  *
@@ -8,7 +8,7 @@ import Link from 'next/link';
  * Each catalog page becomes ~30-50 lines of configuration.
  */
 import { useState, useEffect, useRef, useCallback, useMemo, useTransition, useOptimistic } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from '../header/Header';
 import { Footer } from '../footer/Footer';
 import { ProductCard } from '../product/ProductCard';
@@ -22,7 +22,7 @@ import { NewArrivals } from '../home/NewArrivals';
 import { CatalogMobileSort } from './CatalogMobileSort';
 import { PageBlocksRenderer } from '../blocks/PageBlocksRenderer';
 import { COMMON_EMPTY_STATES, CATALOG_PAGINATION_LABELS, CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
-import { useInterfaceControlsDict } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 import { ColorSwatch } from '../ui/ColorSwatch';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { ColsIcon, CheckboxUI, SortOptionBtn } from './CatalogTemplate.parts';
@@ -43,6 +43,7 @@ import {
   toggleFilterOption,
 } from '../../../lib/oneentry/catalog/filters';
 import { trackActivity } from '../../utils/track-activity';
+import { useRouter, Link } from '../../../lib/i18n/navigation';
 
 export function CatalogTemplate({
   catalogKey,
@@ -66,7 +67,7 @@ export function CatalogTemplate({
   scrollbarClass = 'scrollbar-pink',
   crossSell,
 }: CatalogTemplateProps) {
-  const CVL = useInterfaceControlsDict('interface_controls_view_', CVL_FALLBACK);
+  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
   /* ── Local UI state ── */
   const [sortOpen, setSortOpen] = useState(false);
   const [openFilter, setOpenFilter] = useState<string | null>(null);

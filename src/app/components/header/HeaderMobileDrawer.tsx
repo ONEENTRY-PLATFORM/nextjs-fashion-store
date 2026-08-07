@@ -1,6 +1,6 @@
 'use client'
 import { ChevronDown, X, User, MapPin, Phone } from 'lucide-react';
-import Link from 'next/link';
+
 import Image from 'next/image';
 import logoImage from '../../../assets/kekimoro-logo-black.png';
 import { SUB_CATEGORIES, type Gender } from '../../data/categories';
@@ -9,8 +9,9 @@ import { adaptHeaderMenuToMega } from '../../../lib/oneentry/menus/adapt-header'
 import {
   LOGO_ALT, SUPPORT_PHONE, GENDER_NAV_HREFS, MOBILE_FOOTER_LINKS,
 } from '../../data/headerConfig';
-import { useHeaderT } from '../../../lib/oneentry/labels/HeaderLabelsContext';
-import { useRouter } from 'next/navigation';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { useRouter, Link } from '../../../lib/i18n/navigation';
+
 
 interface HeaderMobileDrawerProps {
   isOpen: boolean;
@@ -36,9 +37,9 @@ export function HeaderMobileDrawer({
   getNavHref,
 }: HeaderMobileDrawerProps) {
   // Header copy from the OE `header` set; constants are the offline fallback.
-  const lLogoAlt   = useHeaderT('header_logo_alt', LOGO_ALT);
-  const lPhone     = useHeaderT('header_support_phone', SUPPORT_PHONE);
-  const aCloseMenu = useHeaderT('header_aria_close_menu', 'Close menu');
+  const lLogoAlt   = useT('header_logo_alt', LOGO_ALT);
+  const lPhone     = useT('header_support_phone', SUPPORT_PHONE);
+  const aCloseMenu = useT('header_aria_close_menu', 'Close menu');
 
   const router = useRouter();
   const cmsHeaderMenu = useHeaderMenu();
@@ -160,7 +161,7 @@ function MobileFooterLinkRow({
   link: (typeof MOBILE_FOOTER_LINKS)[number];
   onClose: () => void;
 }) {
-  const label = useHeaderT(link.labelKey, link.fallbackLabel);
+  const label = useT(link.labelKey, link.fallbackLabel);
   return (
     <Link href={link.href} onClick={onClose} className="flex items-center gap-2 text-sm">
       {link.iconType === 'user' ? <User size={16} /> : <MapPin size={16} />}

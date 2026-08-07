@@ -1,7 +1,35 @@
 import type { Metadata } from 'next';
 import { loadPageByUrl } from './pages';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
+import { currentCmsLocale } from '../current-locale';
+import { SITE_URL } from '../../../app/data/seoData';
+import { buildLanguageAlternates } from '../locale';
+
+/**
+ * hreflang alternates for a route, derived from its canonical URL.
+ *
+ * Next merges page metadata over the layout's **per top-level key**, so a page
+ * that declares `alternates: { canonical }` replaces the layout's `alternates`
+ * wholesale and silently drops `languages`. Every route therefore has to carry
+ * its own language map — which is why this is applied here rather than left to
+ * the root layout.
+ * @param   {string | URL | null | undefined} canonical - The route's canonical URL.
+ * @returns {Record<string, string> | undefined} hreflang map, or `undefined`.
+ */
+function languagesFor(
+  canonical: NonNullable<Metadata['alternates']>['canonical'],
+): Record<string, string> | undefined {
+  if (!canonical) return undefined;
+  // `canonical` may be a bare string/URL or an `AlternateLinkDescriptor`
+  // (`{ url, title }`) — Next accepts both, so unwrap before parsing.
+  const raw =
+    typeof canonical === 'object' && 'url' in canonical ? canonical.url : canonical;
+  if (!raw) return undefined;
+  const href = typeof raw === 'string' ? raw : raw.toString();
+  const path = href.startsWith(SITE_URL) ? href.slice(SITE_URL.length) || '/' : href;
+  if (!path.startsWith('/')) return undefined;
+  return buildLanguageAlternates(SITE_URL, path);
+}
 
 /**
  * Overlay the SEO an editor typed on the OneEntry page onto the route's local
@@ -24,10 +52,27 @@ import { DEFAULT_LOCALE } from '../locale';
 export async function withCmsSeo(
   pageUrl: string,
   fallback: Metadata,
-  lang: Lang = DEFAULT_LOCALE,
+  langArg?: Lang,
 ): Promise<Metadata> {
+  const lang = langArg ?? (await currentCmsLocale());
   const page = await loadPageByUrl(pageUrl, lang);
-  if (!page) return fallback;
+
+  /** Attach hreflang to whatever canonical ends up winning. */
+  const withLanguages = (meta: Metadata, canonical?: string): Metadata => {
+    const target = canonical ?? meta.alternates?.canonical;
+    const languages = languagesFor(target);
+    if (!languages) return meta;
+    return {
+      ...meta,
+      alternates: {
+        ...meta.alternates,
+        ...(canonical ? { canonical } : {}),
+        languages,
+      },
+    };
+  };
+
+  if (!page) return withLanguages(fallback);
 
   const attr = (marker: string): string => {
     const v = (page.attributeValues as Record<string, { value?: unknown }> | undefined)?.[marker]?.value;
@@ -38,7 +83,7 @@ export async function withCmsSeo(
   const description = attr('meta_description');
   const keywords = attr('meta_keywords');
   const canonical = attr('canonical');
-  if (!title && !description && !keywords && !canonical) return fallback;
+  if (!title && !description && !keywords && !canonical) return withLanguages(fallback);
 
   const openGraph = fallback.openGraph
     ? {
@@ -57,7 +102,7 @@ export async function withCmsSeo(
       }
     : fallback.twitter;
 
-  return {
+  const merged: Metadata = {
     ...fallback,
     ...(title ? { title } : {}),
     ...(description ? { description } : {}),
@@ -66,4 +111,5 @@ export async function withCmsSeo(
     ...(openGraph ? { openGraph } : {}),
     ...(twitter ? { twitter } : {}),
   };
+  return withLanguages(merged, canonical || undefined);
 }

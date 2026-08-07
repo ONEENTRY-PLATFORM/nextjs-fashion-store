@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { FullscreenViewer } from './FullscreenViewer';
 import { PRODUCT_GALLERY_LABELS } from '../../data/productPageLabels';
-import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 export function ProductGallery({ images, productName }: { images: string[]; productName: string }) {
   // OE products occasionally come back with empty image URLs (placeholder
@@ -15,7 +15,7 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
   const [zooming, setZooming] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const mainRef = useRef<HTMLDivElement>(null);
-  const lZoomHint = useProductCardT('product-card-click_to_zoom', PRODUCT_GALLERY_LABELS.zoomHint);
+  const lZoomHint = useT('product-card-click_to_zoom', PRODUCT_GALLERY_LABELS.zoomHint);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!mainRef.current) return;

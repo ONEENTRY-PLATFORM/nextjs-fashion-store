@@ -1,20 +1,20 @@
 import type { Metadata } from 'next';
-import { withCmsSeo } from '../src/lib/oneentry/catalog/page-seo';
+import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
 import {
   SEO, SITE_NAME, SITE_DESCRIPTION, SITE_URL, ORG_SOCIALS,
   CURRENCY, OFFER_CATALOGUE,
   FREE_SHIPPING_THRESHOLD, RETURN_WINDOW_DAYS, DELIVERY_COUNTRY,
   ORG_SCHEMA_COPY,
-} from '../src/app/data/seoData';
-import { HomePage } from '../src/app/pages/HomePage';
-import { JsonLd } from '../src/app/components/system/JsonLd';
-import { loadHeroSlides } from '../src/lib/oneentry/blocks/hero-slides';
-import { loadHomepageCollections } from '../src/lib/oneentry/blocks/homepage-collections';
-import { loadDiscountBanner } from '../src/lib/oneentry/blocks/discount-banner';
-import { loadCategorySection } from '../src/lib/oneentry/blocks/category-section';
-import { HOME_PAGE_ID, loadPageBlocksById } from '../src/lib/oneentry/blocks/page-blocks';
-import { loadStores } from '../src/lib/oneentry/catalog/stores';
-import type { Store } from '../src/app/data/stores';
+} from '../../src/app/data/seoData';
+import { HomePage } from '../../src/app/pages/HomePage';
+import { JsonLd } from '../../src/app/components/system/JsonLd';
+import { loadHeroSlides } from '../../src/lib/oneentry/blocks/hero-slides';
+import { loadHomepageCollections } from '../../src/lib/oneentry/blocks/homepage-collections';
+import { loadDiscountBanner } from '../../src/lib/oneentry/blocks/discount-banner';
+import { loadCategorySection } from '../../src/lib/oneentry/blocks/category-section';
+import { HOME_PAGE_ID, loadPageBlocksById } from '../../src/lib/oneentry/blocks/page-blocks';
+import { loadStores } from '../../src/lib/oneentry/catalog/stores';
+import type { Store } from '../../src/app/data/stores';
 
 /** Title/description/keywords/canonical come from the OE `home` page when an
  *  editor filled them; `SEO.home` stays as the offline fallback. */

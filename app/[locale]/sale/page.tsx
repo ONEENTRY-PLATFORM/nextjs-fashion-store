@@ -1,15 +1,13 @@
 import { Suspense } from 'react';
-import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
 import type { Metadata } from 'next';
-import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../src/app/data/seoData';
-import { SalePage } from '../../src/app/pages/SalePage';
-import { JsonLd } from '../../src/app/components/system/JsonLd';
-import { loadSalePageSystemTexts } from '../../src/lib/oneentry/labels/sale-page-labels';
-import { SalePageLabelsProvider } from '../../src/lib/oneentry/labels/SalePageLabelsContext';
-import { loadProducts } from '../../src/lib/oneentry/catalog/products';
-import { adaptCatalogProductToUiProduct, saleCategoryFor } from '../../src/lib/oneentry/catalog/adapt';
-import { loadPageBlocksByUrl } from '../../src/lib/oneentry/blocks/page-blocks';
-import { loadSalePage } from '../../src/lib/oneentry/catalog/sale-page';
+import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../../src/app/data/seoData';
+import { SalePage } from '../../../src/app/pages/SalePage';
+import { JsonLd } from '../../../src/app/components/system/JsonLd';
+import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
+import { adaptCatalogProductToUiProduct, saleCategoryFor } from '../../../src/lib/oneentry/catalog/adapt';
+import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
+import { loadSalePage } from '../../../src/lib/oneentry/catalog/sale-page';
 
 /** Title/description/keywords/canonical come from the OE `sale` page when an
  *  editor filled them; `SEO.sale` stays as the offline fallback. */
@@ -35,8 +33,7 @@ const breadcrumb = {
 };
 
 export default async function Page() {
-  const [labels, products, cmsPage, pageBlocks] = await Promise.all([
-    loadSalePageSystemTexts(),
+  const [products, cmsPage, pageBlocks] = await Promise.all([
     loadProducts({ tags: ['Sale'], limit: 200 }),
     // Full page-level attributes (top banner + footer promo + countdown).
     // Cached with 60s revalidate — admin edits surface without redeploy.
@@ -55,13 +52,11 @@ export default async function Page() {
   return (
     <>
       <JsonLd data={breadcrumb} />
-      <SalePageLabelsProvider data={labels}>
-        {/* SalePage reads `?gender=` via useSearchParams — without this
-            boundary the whole route silently reverts to dynamic rendering. */}
-        <Suspense fallback={null}>
-          <SalePage initialProducts={initialProducts} saleEndsAt={saleEndsAt ?? undefined} pageBlocks={pageBlocks} cmsPage={cmsPage} />
-        </Suspense>
-      </SalePageLabelsProvider>
+      {/* SalePage reads `?gender=` via useSearchParams — without this
+          boundary the whole route silently reverts to dynamic rendering. */}
+      <Suspense fallback={null}>
+        <SalePage initialProducts={initialProducts} saleEndsAt={saleEndsAt ?? undefined} pageBlocks={pageBlocks} cmsPage={cmsPage} />
+      </Suspense>
     </>
   );
 }

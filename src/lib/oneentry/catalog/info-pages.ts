@@ -3,7 +3,7 @@ import { unstable_cache } from 'next/cache';
 import { getApiSafe, isError } from '../index';
 import { loadPageByUrl } from './pages';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
+import { currentCmsLocale } from '../current-locale';
 import { REVALIDATE_CATALOG } from '../../isr';
 
 /** OE page tree node under the `info` parent. */
@@ -44,7 +44,8 @@ export function infoSlugCandidate(path: string): string | null {
  * one lookup per request.
  */
 export const resolveInfoPageSlug = cache(
-  async (path: string, lang: Lang = DEFAULT_LOCALE): Promise<string | null> => {
+  async (path: string, langArg?: Lang): Promise<string | null> => {
+    const lang = langArg ?? (await currentCmsLocale());
     const slug = infoSlugCandidate(path);
     if (!slug) return null;
     const page = await loadPageByUrl(slug, lang);
@@ -58,8 +59,10 @@ export const resolveInfoPageSlug = cache(
  * Returns an empty array when the tenant has no such parent — the caller then
  * falls back to the statically registered slugs alone.
  */
-export const loadInfoPageSlugs = unstable_cache(
-  async (lang: Lang = DEFAULT_LOCALE): Promise<string[]> => {
+/** `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function. */
+const loadInfoPageSlugsCached = unstable_cache(
+  async (lang: Lang): Promise<string[]> => {
     const api = getApiSafe();
     if (!api) return [];
     try {
@@ -80,3 +83,12 @@ export const loadInfoPageSlugs = unstable_cache(
   ['oe-info-page-slugs'],
   { revalidate: REVALIDATE_CATALOG, tags: ['oe-pages'] },
 );
+
+/**
+ * Info-page slugs published under the `info` parent, for the route's locale.
+ * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns {Promise<string[]>} Slugs in admin-panel order, possibly empty.
+ */
+export async function loadInfoPageSlugs(langArg?: Lang): Promise<string[]> {
+  return loadInfoPageSlugsCached(langArg ?? (await currentCmsLocale()));
+}

@@ -1,9 +1,9 @@
 'use client'
 import { SERVICE_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import { useAccountDict } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useDict } from '../../../../lib/oneentry/labels/DictContext';
 
 export function ServiceHowItWorks() {
-  const L = useAccountDict('service_maintenance', 'service_maintenance_', L_FALLBACK);
+  const L = useDict('service_maintenance_', L_FALLBACK);
   return (
     <div className="mt-10">
       <p className="text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-4 font-bold">{L.howItWorks}</p>

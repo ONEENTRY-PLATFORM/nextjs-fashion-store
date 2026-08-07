@@ -5,7 +5,7 @@ import { StarRating } from './StarRating';
 import { ReviewCard } from './ReviewCard';
 import type { ProductReview } from '../../components/product/ProductCard';
 import { PRODUCT_REVIEWS_LABELS as L } from '../../data/productPageLabels';
-import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface RatingCount {
   stars: number;
@@ -39,9 +39,9 @@ export function ProductReviewsSection({
   setShowReviewModal,
   purchaseNotice = null,
 }: ProductReviewsSectionProps) {
-  const lReviewsCount = usePdpT('customer-reviews', 'reviews',             L.reviewsCountSuffix);
-  const lWriteReview  = usePdpT('customer-reviews', 'write-a-review-cta',  L.writeReview);
-  const lShowAll      = usePdpT('customer-reviews', 'show-all',            L.showAllPrefix);
+  const lReviewsCount = useT('reviews',             L.reviewsCountSuffix);
+  const lWriteReview  = useT('write-a-review-cta',  L.writeReview);
+  const lShowAll      = useT('show-all',            L.showAllPrefix);
   return (
     <div ref={reviewsRef} className="px-4 lg:px-8 py-12 max-w-7xl mx-auto border-t border-[#e5e7eb]">
       <h2 className="tracking-[0.15em] uppercase mb-8 text-[1.1rem] font-bold">

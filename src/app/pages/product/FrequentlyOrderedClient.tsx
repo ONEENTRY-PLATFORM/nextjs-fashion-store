@@ -1,7 +1,7 @@
 'use client'
 import { RecommendationsCarousel } from './RecommendationsCarousel';
 import { PRODUCT_BREADCRUMB_LABELS as PB } from '../../data/productPageLabels';
-import { useProductCardT } from '../../../lib/oneentry/labels/ProductCardLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import type { Product } from '../../components/product/ProductCard';
 
 /**
@@ -18,8 +18,8 @@ export function FrequentlyOrderedClient({
   title?: string;
   categoryViewAllHref: string;
 }) {
-  const lYouMayAlsoLike = useProductCardT('product-card-you_may_also_like', PB.youMayAlsoLike);
-  const lViewAll        = useProductCardT('product-card-view_all',          PB.viewAll);
+  const lYouMayAlsoLike = useT('product-card-you_may_also_like', PB.youMayAlsoLike);
+  const lViewAll        = useT('product-card-view_all',          PB.viewAll);
   return (
     <div className="py-12 border-t border-b border-black">
       <div className="px-4 lg:px-12">

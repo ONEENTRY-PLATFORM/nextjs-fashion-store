@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -30,7 +30,8 @@ import {
   SubscriptionsSkeleton,
 } from './account/shared';
 import { ACCOUNT_PAGE_LABELS as APL, ACCOUNT_SECTION_TITLES as AST } from '../data/accountLabels';
-import { useT } from '../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../lib/oneentry/labels/DictContext';
+import { useRouter } from '../../lib/i18n/navigation';
 
 type Section =
   | 'my-data' | 'my-orders' | 'my-bonuses' | 'service'
@@ -39,17 +40,17 @@ type Section =
 
 export function AccountPage() {
   const { user, authReady, logout, openLoginModal } = useAuth();
-  const signOut         = useT('user_account',           'sign_out',                  APL.signOut);
-  const welcomeBack     = useT('user_account',           'welcome_back',              APL.welcomeBack);
-  const signInPrompt    = useT('user_account',           'sign_in_required',          APL.signInPrompt);
-  const signInCta       = useT('user_account',           'sign_in_required_cta',      APL.signInCta);
-  const titleMyOrders   = useT('my_orders',              'my_orders_title',           AST.myOrders);
-  const titleBonuses    = useT('my_bonuses',             'my_bonuses_title',          AST.bonuses);
-  const titleService    = useT('service_maintenance',    'service_maintenance_title', AST.service);
-  const titleHistory    = useT('purchase_history',       'purchase_history_title',    AST.history);
-  const titleWishlist   = useT('user_account_wishlist',  'user_account_wishlist_title', AST.wishlist);
-  const titleWaitingLst = useT('waiting_list',           'waiting_list_title',        AST.waitingList);
-  const titleFeedback   = useT('user_account_feedback',  'user_account_feedback_title', AST.feedback);
+  const signOut         = useT('sign_out',                  APL.signOut);
+  const welcomeBack     = useT('welcome_back',              APL.welcomeBack);
+  const signInPrompt    = useT('sign_in_required',          APL.signInPrompt);
+  const signInCta       = useT('sign_in_required_cta',      APL.signInCta);
+  const titleMyOrders   = useT('my_orders_title',           AST.myOrders);
+  const titleBonuses    = useT('my_bonuses_title',          AST.bonuses);
+  const titleService    = useT('service_maintenance_title', AST.service);
+  const titleHistory    = useT('purchase_history_title',    AST.history);
+  const titleWishlist   = useT('user_account_wishlist_title', AST.wishlist);
+  const titleWaitingLst = useT('waiting_list_title',        AST.waitingList);
+  const titleFeedback   = useT('user_account_feedback_title', AST.feedback);
 
   const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
     { key: 'my-data',       label: AST.myData,        icon: <User size={16} /> },

@@ -1,10 +1,11 @@
 'use client'
-import { useRouter } from 'next/navigation';
+
 import { Check } from 'lucide-react';
 
 import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
 import { CHECKOUT_STEPPER_LABELS as L } from '../../data/checkoutLabels';
 import { CHECKOUT_STEPPER_ARIA, CHECKOUT_STEPPER_DYNAMIC_ARIA } from '../../data/commonLabels';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 const STEPS = [
   { label: L.cart, path: '/cart' },

@@ -1,9 +1,10 @@
 'use client'
 import Image from 'next/image';
-import Link from 'next/link';
+
 import { ChevronRight } from 'lucide-react';
 import { getImageUrl } from '../../../lib/oneentry';
 import { DEFAULT_LOCALE } from '../../../lib/oneentry/locale';
+import { Link } from '../../../lib/i18n/navigation';
 
 /**
  * Generic banner-style renderer for OE `common_block` type. Reads

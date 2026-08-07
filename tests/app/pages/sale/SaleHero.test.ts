@@ -17,8 +17,8 @@ vi.mock('@/app/data/salePageLabels', () => ({
 vi.mock('next/image', () => ({ default: () => null }));
 vi.mock('lucide-react', () => ({ Tag: () => null, ChevronRight: () => null }));
 vi.mock('@/app/pages/sale/SaleCountdown', () => ({ CountdownUnit: () => null }));
-vi.mock('@/lib/oneentry/labels/SalePageLabelsContext', () => ({
-  useSalePageT: (_key: string, fallback: string) => fallback,
+vi.mock('@/lib/oneentry/labels/DictContext', () => ({
+  useT: (_key: string, fallback: string) => fallback,
 }));
 
 const { parseHeroPlain } = await import('@/app/pages/sale/SaleHero');

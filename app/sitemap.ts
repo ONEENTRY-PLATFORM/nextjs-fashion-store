@@ -3,6 +3,11 @@ import { SITE_URL } from '../src/app/data/seoData';
 import { PAGE_REGISTRY } from '../src/app/data/pageRegistry';
 import { loadProducts } from '../src/lib/oneentry/catalog/products';
 import { loadInfoPageSlugs } from '../src/lib/oneentry/catalog/info-pages';
+import {
+  SHORT_LOCALES,
+  buildLanguageAlternates,
+  localizeHref,
+} from '../src/lib/oneentry/locale';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();
@@ -50,5 +55,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...fixedPages, ...registryPages, ...cmsInfoPages, ...productPages];
+  const defaultLocaleEntries = [
+    ...fixedPages,
+    ...registryPages,
+    ...cmsInfoPages,
+    ...productPages,
+  ];
+
+  // One entry per routed locale, each carrying the full `alternates.languages`
+  // set. Without the per-locale URLs a translated page is crawlable but
+  // unlisted; without the alternates the two versions look like duplicates
+  // rather than translations of each other.
+  return defaultLocaleEntries.flatMap((entry) => {
+    const bare = entry.url.startsWith(SITE_URL)
+      ? entry.url.slice(SITE_URL.length) || '/'
+      : entry.url;
+    const languages = buildLanguageAlternates(SITE_URL, bare);
+    return SHORT_LOCALES.map((short) => {
+      const localized = localizeHref(bare, short);
+      return {
+        ...entry,
+        url: `${SITE_URL}${localized === '/' ? '' : localized}`,
+        alternates: { languages },
+      };
+    });
+  });
 }

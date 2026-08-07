@@ -36,9 +36,15 @@ export default defineConfig({
         // pipeline, and forks start failing with "Timeout waiting for worker
         // to respond". That failure mode is dangerous because the affected
         // files are never collected — the run reports a green-looking subset
-        // (47 of 67 files) instead of an error. A third of the cores keeps
-        // every file collected and is ~5x faster in wall-clock.
-        maxWorkers: Math.max(2, Math.ceil(cpus().length / 3)),
+        // (47 of 67 files) instead of an error.
+        //
+        // Was `/ 3`, which held while the suite was smaller. At 74 files it
+        // started losing 5–9 tests per run, in a different file each time
+        // (reviews, stores, google-oauth, PageBlocksRenderer…), while every
+        // one of them passed in isolation — contention, not a real failure.
+        // `/ 4` was green across repeated full runs; the extra headroom costs
+        // a little wall-clock and buys a trustworthy signal.
+        maxWorkers: Math.max(2, Math.ceil(cpus().length / 4)),
         // Vitest rejects projects that share a groupOrder but disagree on
         // maxWorkers. Distinct orders also stop the jsdom forks and the
         // storybook project's chromium from competing for the same cores.

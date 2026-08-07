@@ -3,7 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import type { SpecialOffer } from '../../data/specialOffers';
 import { SPECIAL_OFFERS_LABELS as L } from '../../data/productPageLabels';
-import { usePdpT } from '../../../lib/oneentry/labels/PdpLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface ProductSpecialOffersProps {
   offers: SpecialOffer[];
@@ -11,10 +11,10 @@ interface ProductSpecialOffersProps {
 }
 
 export function ProductSpecialOffers({ offers, onAddBundle }: ProductSpecialOffersProps) {
-  const lLimited     = usePdpT('special_offers_product_card', 'lable',                 L.limitedTime);
-  const lBundle      = usePdpT('special_offers_product_card', 'bundle-lable',          L.bundleBadge);
-  const lBundlePrice = usePdpT('special_offers_product_card', 'bundle-price',          L.bundlePrice);
-  const lCompleteCta = usePdpT('special_offers_product_card', 'complete-the-look-cta', L.completeLook);
+  const lLimited     = useT('lable',                 L.limitedTime);
+  const lBundle      = useT('bundle-lable',          L.bundleBadge);
+  const lBundlePrice = useT('bundle-price',          L.bundlePrice);
+  const lCompleteCta = useT('complete-the-look-cta', L.completeLook);
   if (offers.length === 0) return null;
 
   return (

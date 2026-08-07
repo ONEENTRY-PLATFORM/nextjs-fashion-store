@@ -2,7 +2,7 @@
 import React from 'react';
 import { strikeColor } from '../../utils/colorUtils';
 import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
-import { useInterfaceControlsDict } from '../../../lib/oneentry/labels/InterfaceControlsLabelsContext';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 
 interface ColorSwatchButtonProps {
   color: string;
@@ -21,7 +21,7 @@ interface ColorSwatchButtonProps {
 export function ColorSwatchButton({
   color, active, outOfStock = false, onClick, label, sizeClass = 'w-4 h-4',
 }: ColorSwatchButtonProps) {
-  const CVL = useInterfaceControlsDict('interface_controls_view_', CVL_FALLBACK);
+  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
   return (
     <button
       onClick={onClick}

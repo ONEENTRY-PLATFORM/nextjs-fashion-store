@@ -4,13 +4,14 @@ import Image from 'next/image';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { registerSchema } from '../../utils/schemas';
 import { REGISTER_MODAL_LABELS as L } from '../../data/authLabels';
-import { useCreateAccountT } from '../../../lib/oneentry/labels/CreateAccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
 import { useAuthProviders } from '../../hooks/useAuthProviders';
 import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../data/socialProviderRegistry';
+import { useRouter } from '../../../lib/i18n/navigation';
 
 /**
  * Consent / subscription checkbox.
@@ -63,14 +64,14 @@ export function RegisterModal() {
   const pathname = usePathname();
   const isCheckout = pathname?.startsWith('/checkout');
   const trapRef = useFocusTrap(registerModalOpen, closeRegisterModal);
-  const lTitle      = useCreateAccountT('create_account_title',       L.title);
-  const lOr         = useCreateAccountT('create_account_or',          L.dividerOr);
-  const lBottomText = useCreateAccountT('create_account_bottom_text', L.switchPrompt);
-  const lSignIn     = useCreateAccountT('create_account_sign_in',     L.switchCta);
-  const lRegister   = useCreateAccountT('users_register_cta',         L.ctaSubmit);
-  const lGoogleFail = useCreateAccountT('create_account_google_failed',   L.errorGoogleFailed);
-  const lClose      = useCreateAccountT('create_account_close',           L.closeLabel);
-  const lLoadingOpt = useCreateAccountT('create_account_loading_options', L.loadingOptions);
+  const lTitle      = useT('create_account_title',       L.title);
+  const lOr         = useT('create_account_or',          L.dividerOr);
+  const lBottomText = useT('create_account_bottom_text', L.switchPrompt);
+  const lSignIn     = useT('create_account_sign_in',     L.switchCta);
+  const lRegister   = useT('users_register_cta',         L.ctaSubmit);
+  const lGoogleFail = useT('create_account_google_failed',   L.errorGoogleFailed);
+  const lClose      = useT('create_account_close',           L.closeLabel);
+  const lLoadingOpt = useT('create_account_loading_options', L.loadingOptions);
   const schema = useSignUpFormSchema();
 
   const [firstName, setFirstName] = useState('');

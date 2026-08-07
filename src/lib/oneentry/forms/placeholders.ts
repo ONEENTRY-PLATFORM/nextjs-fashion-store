@@ -1,60 +1,20 @@
 import { cache } from 'react';
 import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
-import { DEFAULT_LOCALE } from '../locale';
+import { currentCmsLocale } from '../current-locale';
 import { logCaught } from '../log';
+import { EMPTY_FORM_CONTENT } from './form-content';
+import type { FormContent, FormPlaceholders } from './form-content';
 
-/**
- * Content authored on a OneEntry **form** entity.
- *
- * Form copy is a different storage location from the system-text sets read by
- * `use*T` — a form owns its own field labels, placeholders, option lists and
- * result messages, so this is where that copy belongs. See
- * `docs/HARDCODED_TEXTS.md` §4 for why the two must not be mixed.
- *
- * Shape per attribute:
- *   title   ← `attributes[].localizeInfos.{lang}.title`
- *   fields  ← `attributes[].additionalFields` → `{marker: value}`
- *   options ← `attributes[].listTitles` (for `list` attributes)
- */
-export interface FormAttributeContent {
-  /** Field label as authored in the admin panel. */
-  title: string;
-  /** `additionalFields` flattened to `{fieldMarker: value}` — placeholders etc. */
-  fields: Record<string, string>;
-  /** Option list for `list` attributes, ordered by `position`. */
-  options: Array<{ title: string; value: string }>;
-}
-
-/** Whole-form content: result messages plus every attribute's copy. */
-export interface FormContent {
-  /** Internal admin title. */
-  title: string;
-  /** Public-facing heading (`titleForSite`), often the modal title. */
-  titleForSite: string;
-  /** Message shown after a successful submit. */
-  successMessage: string;
-  /** Message shown after a failed submit. */
-  unsuccessMessage: string;
-  /** Keyed by attribute marker. */
-  attributes: Record<string, FormAttributeContent>;
-}
-
-/**
- * Legacy shape: `{attributeMarker: {additionalFieldMarker: value}}`.
- *
- * Retained because `useFormPlaceholder` consumers were written against it.
- * New code should prefer {@link FormContent}.
- */
-export type FormPlaceholders = Record<string, Record<string, string>>;
-
-export const EMPTY_FORM_CONTENT: FormContent = {
-  title: '',
-  titleForSite: '',
-  successMessage: '',
-  unsuccessMessage: '',
-  attributes: {},
-};
+// Re-exported so existing importers keep their current specifier; the
+// definitions live in a client-safe module (see `form-content.ts`), because
+// this file reaches for `next/root-params` and cannot enter a client bundle.
+export { EMPTY_FORM_CONTENT } from './form-content';
+export type {
+  FormAttributeContent,
+  FormContent,
+  FormPlaceholders,
+} from './form-content';
 
 type RawLocalize = { title?: unknown } & Record<string, unknown>;
 type RawAdditionalField = { value?: unknown } | null | undefined;
@@ -168,7 +128,8 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
  * {@link EMPTY_FORM_CONTENT} so screens fall back to their local copy.
  */
 export const loadFormContent = cache(
-  async (marker: string, lang: Lang = DEFAULT_LOCALE): Promise<FormContent> => {
+  async (marker: string, langArg?: Lang): Promise<FormContent> => {
+    const lang = langArg ?? (await currentCmsLocale());
     const key = `${marker}|${lang}`;
     const now = Date.now();
     const cached = formCache.get(key);
@@ -196,8 +157,9 @@ export const loadFormContent = cache(
  */
 export async function loadFormPlaceholders(
   marker: string,
-  lang: Lang = DEFAULT_LOCALE,
+  langArg?: Lang,
 ): Promise<FormPlaceholders> {
+  const lang = langArg ?? (await currentCmsLocale());
   const content = await loadFormContent(marker, lang);
   const out: FormPlaceholders = {};
   for (const [attrMarker, attr] of Object.entries(content.attributes)) {

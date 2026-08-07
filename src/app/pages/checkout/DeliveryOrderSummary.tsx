@@ -5,7 +5,7 @@ import { useCart, type GiftCartItem } from '../../context/CartContext';
 import { DELIVERY_SUMMARY_LABELS as L } from '../../data/checkoutLabels';
 import { SALE_COLOR } from '../../constants/colors';
 import { fmt } from '../../utils/formatPrice';
-import { useT } from '../../../lib/oneentry/labels/CheckoutLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface Props {
   summaryOpen: boolean;
@@ -57,16 +57,16 @@ export function DeliveryOrderSummary({
   giftItems,
 }: Props) {
   const { items } = useCart();
-  const lHeading      = useT('checkout_delivery', 'checkout_delivery_order_summary_title',          L.heading);
-  const lPromoLabel   = useT('checkout_delivery', 'checkout_delivery_promo_code',                   L.promoCodeLabel);
-  const lPromoPh      = useT('checkout_delivery', 'checkout_delivery_enter_promo_code',             L.promoPlaceholder);
-  const lPromoApply   = useT('checkout_delivery', 'checkout_delivery_promocode_cta',                L.promoApply);
-  const lDelivery     = useT('checkout_delivery', 'checkout_delivery_summary_delivery',             L.delivery);
-  const lFree         = useT('checkout_delivery', 'checkout_delivery_order_summary_delivery_free',  L.deliveryFree);
-  const lTotal        = useT('checkout_delivery', 'checkout_delivery_order_summary_total',          L.total);
-  const lFreeGift     = useT('checkout_delivery', 'checkout_delivery_free_gift',                    L.freeGift);
-  const lGiftFree     = useT('checkout_delivery', 'checkout_delivery_gift_free',                    L.giftFree);
-  const lLoyalty      = useT('checkout_delivery', 'checkout_delivery_loyalty_discount',             L.loyaltyDiscount);
+  const lHeading      = useT('checkout_delivery_order_summary_title',          L.heading);
+  const lPromoLabel   = useT('checkout_delivery_promo_code',                   L.promoCodeLabel);
+  const lPromoPh      = useT('checkout_delivery_enter_promo_code',             L.promoPlaceholder);
+  const lPromoApply   = useT('checkout_delivery_promocode_cta',                L.promoApply);
+  const lDelivery     = useT('checkout_delivery_summary_delivery',             L.delivery);
+  const lFree         = useT('checkout_delivery_order_summary_delivery_free',  L.deliveryFree);
+  const lTotal        = useT('checkout_delivery_order_summary_total',          L.total);
+  const lFreeGift     = useT('checkout_delivery_free_gift',                    L.freeGift);
+  const lGiftFree     = useT('checkout_delivery_gift_free',                    L.giftFree);
+  const lLoyalty      = useT('checkout_delivery_loyalty_discount',             L.loyaltyDiscount);
 
   return (
     <div

@@ -6,7 +6,7 @@ import { SectionTitle, ACCENT, fmt } from './shared';
 import Image from 'next/image';
 import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { FEEDBACK_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 export function FeedbackSection() {
   const { user } = useAuth();
@@ -30,15 +30,15 @@ export function FeedbackSection() {
   const [submitHovered, setSubmitHovered] = useState(false);
   const [msgFocused, setMsgFocused] = useState(false);
 
-  const title         = useT('user_account_feedback', 'user_account_feedback_top_banner_sub_title', L.title);
-  const eyebrow       = useT('user_account_feedback', 'user_account_feedback_top_banner_sub_title', L.eyebrow);
-  const bannerHead    = useT('user_account_feedback', 'user_account_feedback_top_banner_title',     L.bannerHeading);
-  const bannerHint    = useT('user_account_feedback', 'user_account_feedback_top_banner_text',      L.bannerHint);
-  const thankTitle    = useT('user_account_feedback', 'user_account_feedback_title',                L.thankTitle);
-  const thankBody     = useT('user_account_feedback', 'user_account_feedback_text',                 L.thankBody);
-  const submitAnother = useT('user_account_feedback', 'user_account_feedback_cta',                  L.submitAnother);
-  const submitLabel   = useT('user_account_feedback', 'user_account_feedback_submit',               L.submit);
-  const requiredNote  = useT('user_account_feedback', 'user_account_feedback_required_fields',      L.requiredNote);
+  const title         = useT('user_account_feedback_top_banner_sub_title', L.title);
+  const eyebrow       = useT('user_account_feedback_top_banner_sub_title', L.eyebrow);
+  const bannerHead    = useT('user_account_feedback_top_banner_title',     L.bannerHeading);
+  const bannerHint    = useT('user_account_feedback_top_banner_text',      L.bannerHint);
+  const thankTitle    = useT('user_account_feedback_title',                L.thankTitle);
+  const thankBody     = useT('user_account_feedback_text',                 L.thankBody);
+  const submitAnother = useT('user_account_feedback_cta',                  L.submitAnother);
+  const submitLabel   = useT('user_account_feedback_submit',               L.submit);
+  const requiredNote  = useT('user_account_feedback_required_fields',      L.requiredNote);
 
   const categories = L.categories;
   const ratingLabels = L.rating;

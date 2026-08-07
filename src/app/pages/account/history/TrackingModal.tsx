@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { X, Package, ExternalLink } from 'lucide-react';
 import { HISTORY_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import { useAccountDict } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useDict } from '../../../../lib/oneentry/labels/DictContext';
 
 interface TrackingModalProps {
   trackingNo: string;
@@ -11,7 +11,7 @@ interface TrackingModalProps {
 }
 
 export function TrackingModal({ trackingNo, orderNo, onClose }: TrackingModalProps) {
-  const L = useAccountDict('purchase_history', 'purchase_history_', L_FALLBACK);
+  const L = useDict('purchase_history_', L_FALLBACK);
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

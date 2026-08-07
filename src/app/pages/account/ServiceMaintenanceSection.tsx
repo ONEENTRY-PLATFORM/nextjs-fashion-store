@@ -9,7 +9,7 @@ import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
 import { ServiceRequestForm } from './service/ServiceRequestForm';
 import { ServiceHowItWorks } from './service/ServiceHowItWorks';
 import { SERVICE_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 const SERVICE_CATEGORY_LABELS: Record<ServiceCategory, string> = {
   alteration:  L.categoryLabels.alteration,
@@ -34,28 +34,28 @@ export function ServiceMaintenanceSection() {
     });
     return () => { cancelled = true; };
   }, []);
-  const title         = useT('service_maintenance', 'service_maintenance_title',                   L.title);
-  const eyebrow       = useT('service_maintenance', 'service_maintenance_care_repair',             L.eyebrow);
-  const bannerHead    = useT('service_maintenance', 'service_maintenance_your_requests',           L.bannerHeading);
-  const lLoadingAria  = useT('service_maintenance', 'service_maintenance_loading_aria',           L.loadingAria);
-  const lActive       = useT('service_maintenance', 'service_maintenance_active',                  L.statActive);
-  const lCompleted    = useT('service_maintenance', 'service_maintenance_completed',               L.statCompleted);
-  const lTotalSpent   = useT('service_maintenance', 'service_maintenance_total_spent',             L.statTotalSpent);
-  const lNewRequest   = useT('service_maintenance', 'service_maintenance_new_request_cta',         L.newRequest);
-  const lFilterAll    = useT('service_maintenance', 'service_maintenance_status_tab_all',          L.filterAll);
-  const sOpen         = useT('service_maintenance', 'service_maintenance_status_tab_open',         L.statuses.open);
-  const sInProgress   = useT('service_maintenance', 'service_maintenance_status_tab_in_progress',  L.statuses['in-progress']);
-  const sReady        = useT('service_maintenance', 'service_maintenance_status_tab_ready',        L.statuses.ready);
-  const sCompletedStt = useT('service_maintenance', 'service_maintenance_status_tab_completed',    L.statuses.completed);
-  const lFieldItem    = useT('service_maintenance', 'service_maintenance_item',                    L.fieldItem);
-  const lFieldRef     = useT('service_maintenance', 'service_maintenance_ref',                     L.fieldRef);
-  const lFieldType    = useT('service_maintenance', 'service_maintenance_type',                    L.fieldType);
-  const lFieldCost    = useT('service_maintenance', 'service_maintenance_cost',                    L.fieldCost);
-  const lProgress     = useT('service_maintenance', 'service_maintenance_progress',                L.progressLabel);
-  const lDroppedOff   = useT('service_maintenance', 'service_maintenance_date_off',                L.fieldDroppedOff);
-  const lEstReady     = useT('service_maintenance', 'service_maintenance_est_ready',               L.fieldEstReady);
-  const lServiceType  = useT('service_maintenance', 'service_maintenance_service_type',            L.fieldServiceType);
-  const lReqDetails   = useT('service_maintenance', 'service_maintenance_request_details_title',   L.requestDetails);
+  const title         = useT('service_maintenance_title',                   L.title);
+  const eyebrow       = useT('service_maintenance_care_repair',             L.eyebrow);
+  const bannerHead    = useT('service_maintenance_your_requests',           L.bannerHeading);
+  const lLoadingAria  = useT('service_maintenance_loading_aria',           L.loadingAria);
+  const lActive       = useT('service_maintenance_active',                  L.statActive);
+  const lCompleted    = useT('service_maintenance_completed',               L.statCompleted);
+  const lTotalSpent   = useT('service_maintenance_total_spent',             L.statTotalSpent);
+  const lNewRequest   = useT('service_maintenance_new_request_cta',         L.newRequest);
+  const lFilterAll    = useT('service_maintenance_status_tab_all',          L.filterAll);
+  const sOpen         = useT('service_maintenance_status_tab_open',         L.statuses.open);
+  const sInProgress   = useT('service_maintenance_status_tab_in_progress',  L.statuses['in-progress']);
+  const sReady        = useT('service_maintenance_status_tab_ready',        L.statuses.ready);
+  const sCompletedStt = useT('service_maintenance_status_tab_completed',    L.statuses.completed);
+  const lFieldItem    = useT('service_maintenance_item',                    L.fieldItem);
+  const lFieldRef     = useT('service_maintenance_ref',                     L.fieldRef);
+  const lFieldType    = useT('service_maintenance_type',                    L.fieldType);
+  const lFieldCost    = useT('service_maintenance_cost',                    L.fieldCost);
+  const lProgress     = useT('service_maintenance_progress',                L.progressLabel);
+  const lDroppedOff   = useT('service_maintenance_date_off',                L.fieldDroppedOff);
+  const lEstReady     = useT('service_maintenance_est_ready',               L.fieldEstReady);
+  const lServiceType  = useT('service_maintenance_service_type',            L.fieldServiceType);
+  const lReqDetails   = useT('service_maintenance_request_details_title',   L.requestDetails);
 
   const SERVICE_STATUS_CONFIG: Record<ServiceStatus, { label: string; bg: string; border: string; text: string; dot: string }> = {
     open:          { label: sOpen,               bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', dot: '#2563eb' },

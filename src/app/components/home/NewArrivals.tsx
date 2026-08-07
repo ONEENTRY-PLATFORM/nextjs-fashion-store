@@ -1,5 +1,5 @@
 'use client'
-import Link from 'next/link';
+
 import { ChevronRight } from 'lucide-react';
 import { ProductCard, type Product } from '../product/ProductCard';
 import { HorizontalScroller } from '../ui/HorizontalScroller';
@@ -7,6 +7,7 @@ import { SECTION_TITLES } from '../../data/sectionTitles';
 import { CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
 import { ACCENT_WOMEN } from '../../constants/colors';
 import type { SectionChrome } from '../../../lib/oneentry/blocks/section-chrome';
+import { Link } from '../../../lib/i18n/navigation';
 
 /** `chrome` carries the OE block's own subtitle / view-all link; the
  *  `SECTION_TITLES` entry is the offline fallback for each field. */

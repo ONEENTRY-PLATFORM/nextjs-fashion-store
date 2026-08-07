@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { SectionTitle, EditBtn, FormInput } from '../shared';
 import { PASSWORD_LABELS as L } from '../../../data/accountLabels';
-import { useT } from '../../../../lib/oneentry/labels/AccountLabelsContext';
+import { useT } from '../../../../lib/oneentry/labels/DictContext';
 
 const primaryBtn = 'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';
 const secondaryBtn = 'px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visible:outline-none hover:bg-gray-50 transition-colors border border-[#d1d5db] rounded-none';
@@ -18,12 +18,12 @@ export function PasswordSection() {
   const [currentPwFocused, setCurrentPwFocused] = useState(false);
   const [msg, setMsg] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lTitle      = useT('users_edit_password', 'users_edit_password_title',                L.title);
-  const lCurrent    = useT('users_edit_password', 'users_edit_password_current',              L.currentPassword);
-  const lNew        = useT('users_edit_password', 'users_edit_password_new_password',         L.newPassword);
-  const lConfirm    = useT('users_edit_password', 'users_edit_password_confirm_new_password', L.confirmNewPassword);
-  const lSave       = useT('users_edit_password', 'users_edit_password_save_cta',             L.save);
-  const lCancel     = useT('users_edit_password', 'users_edit_password_cancel_cta',           L.cancel);
+  const lTitle      = useT('users_edit_password_title',                L.title);
+  const lCurrent    = useT('users_edit_password_current',              L.currentPassword);
+  const lNew        = useT('users_edit_password_new_password',         L.newPassword);
+  const lConfirm    = useT('users_edit_password_confirm_new_password', L.confirmNewPassword);
+  const lSave       = useT('users_edit_password_save_cta',             L.save);
+  const lCancel     = useT('users_edit_password_cancel_cta',           L.cancel);
 
   useEffect(() => {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
