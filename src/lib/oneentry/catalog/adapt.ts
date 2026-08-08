@@ -46,6 +46,7 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     sku: v.sku,
     image: v.preview,
     images: v.images,
+    imageBlurs: v.imageBlurs,
     inStock: variantHasStock(v),
     // Forward numeric stock so QuickView's Add-to-Cart can seed the cart
     // item's `stockLimit`. Zero + status-only tracking leaves `stock`
@@ -69,6 +70,8 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     ...(p.salePrice !== undefined && p.salePrice < p.price && { salePrice: formatPrice(p.salePrice) }),
     image: p.preview,
     colorImages: p.images.slice(0, p.colors.length || 1),
+    // Keyed by URL, so slicing `images` above cannot desync it.
+    imageBlurs: p.imageBlurs,
     label: label || undefined,
     colors: p.colors,
     colorStock,
@@ -190,6 +193,7 @@ export function adaptCatalogProductToPdpProduct(
         sku: v.sku,
         image: v.preview,
         images: v.images,
+        imageBlurs: v.imageBlurs,
         descriptionHtml: v.descriptionHtml,
         statusIdentifier: v.statusIdentifier,
       }))
@@ -217,6 +221,7 @@ export function adaptCatalogProductToPdpProduct(
     // `stock` undefined so the cart doesn't cap at 0.
     ...(p.stock > 0 && { stock: p.stock }),
     galleryImages: p.images.length > 0 ? p.images : undefined,
+    imageBlurs: p.imageBlurs,
     sizeOptions: p.sizes.map((s) => ({ label: s, available: sizeAvailability ? sizeAvailability.get(s) ?? true : true })),
     // The detail accordion expects an array of short bullets — `productDetails`
     // already comes from the OE `details_5` list. The long description is

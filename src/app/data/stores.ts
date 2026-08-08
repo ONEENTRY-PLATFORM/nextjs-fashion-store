@@ -18,6 +18,9 @@ export interface Store {
   hours: { day: string; time: string }[];
   services: string[];
   image: string;
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one; the mock stores below have none. */
+  imageBlur?: string;
   mapUrl: string;
   isflagship: boolean;
   tag?: string;

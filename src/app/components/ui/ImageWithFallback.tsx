@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react';
 import Image, { type ImageProps } from 'next/image';
+import CmsImage from './CmsImage';
 
 /** Bag SVG — matches the placeholder used in ProductCard */
 function BagPlaceholder({ grayscale }: { grayscale?: boolean }) {
@@ -13,15 +14,21 @@ function BagPlaceholder({ grayscale }: { grayscale?: boolean }) {
   );
 }
 
-interface ImageWithFallbackProps extends Omit<ImageProps, 'onError'> {
+interface ImageWithFallbackProps extends Omit<ImageProps, 'onError' | 'placeholder' | 'blurDataURL'> {
   grayscale?: boolean;
+  /** Base64 LQIP from the CMS, when the caller has one. */
+  blur?: string;
 }
 
 /**
  * Drop-in replacement for next/image that shows the standard bag placeholder
  * on load error — same as ProductCard in the catalog.
+ *
+ * Delegates to {@link CmsImage} so the "blur only when there is a data URI"
+ * guard lives in exactly one place; passing `placeholder="blur"` without a
+ * `blurDataURL` makes Next throw on remote sources.
  */
-export function ImageWithFallback({ grayscale, alt, ...props }: ImageWithFallbackProps) {
+export function ImageWithFallback({ grayscale, alt, blur, ...props }: ImageWithFallbackProps) {
   const [error, setError] = useState(false);
 
   // next/image throws on empty/missing src — short-circuit to the placeholder
@@ -32,9 +39,10 @@ export function ImageWithFallback({ grayscale, alt, ...props }: ImageWithFallbac
   if (!hasSrc || error) return <BagPlaceholder grayscale={grayscale} />;
 
   return (
-    <Image
+    <CmsImage
       {...props}
       alt={alt}
+      blur={blur}
       onError={() => setError(true)}
     />
   );

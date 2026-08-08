@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react';
 
-import Image from 'next/image';
 import type { ShopCategory } from '../../data/categories';
 import { CATEGORY_SECTION_LABELS } from '../../data/commonLabels';
 import type { CategoryItemFromCms } from '../../../lib/oneentry/blocks/category-section';
 import { useMounted } from '../../hooks/useMounted';
 import { Link } from '../../../lib/i18n/navigation';
+import CmsImage from '../ui/CmsImage';
 
 // Base delay (ms) before cards animate in — waits for the parent AnimatedSection fade-up (~650ms).
 // On back navigation sessionStorage='1' so animated=true and this is never used.
@@ -85,8 +85,9 @@ export function CategorySection({
               style={animated ? undefined : { animation: `hp-fade-up 0.5s ${CARD_BASE_DELAY + i * CARD_STAGGER}ms ease-out both` }}
             >
               {/* Image */}
-              <Image
+              <CmsImage
                 src={cat.image}
+                blur={cat.imageBlur}
                 alt={cat.label}
                 fill
                 sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 17vw"

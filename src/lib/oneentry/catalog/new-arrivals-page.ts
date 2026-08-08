@@ -1,6 +1,6 @@
 import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
-import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
+import { getApi, getImage, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
 
 export interface NewArrivalsPageFromCms {
@@ -9,12 +9,18 @@ export interface NewArrivalsPageFromCms {
     heading: string;
     subheading: string;
     image: string;
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+     *  through an OE preview template have one. */
+    imageBlur?: string;
   };
   footer: {
     eyebrow: string;
     heading: string;
     body: string;
     image: string;
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+     *  through an OE preview template have one. */
+    imageBlur?: string;
   };
 }
 
@@ -41,13 +47,15 @@ async function fetchNewArrivalsPage(lang: Lang): Promise<NewArrivalsPageFromCms 
         eyebrow:    s('page_new_arrivals_top_banner_lable'),
         heading:    s('page_new_arrivals_top_banner_title'),
         subheading: s('page_new_arrivals_top_banner_sub_title'),
-        image:      getImageUrl(attrs['page_new_arrivals_top_banner_pictures']?.value),
+        image:      getImage(attrs['page_new_arrivals_top_banner_pictures']?.value).url,
+        imageBlur:  getImage(attrs['page_new_arrivals_top_banner_pictures']?.value).blur,
       },
       footer: {
         eyebrow: s('page_new_arrivals_footer_banner_lable'),
         heading: s('page_new_arrivals_footer_banner_title'),
         body:    s('page_new_arrivals_footer_banner_sub_title'),
-        image:   getImageUrl(attrs['page_new_arrivals_footer_banner_pictures']?.value),
+        image:   getImage(attrs['page_new_arrivals_footer_banner_pictures']?.value).url,
+        imageBlur: getImage(attrs['page_new_arrivals_footer_banner_pictures']?.value).blur,
       },
     };
   } catch {

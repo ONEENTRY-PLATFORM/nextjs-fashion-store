@@ -12,6 +12,7 @@ import { hexToColorName } from '../../utils/colorNames';
 import { stripTrailingZeros } from '../../utils/formatPrice';
 import { QUICK_VIEW_LABELS } from '../../data/productPageLabels';
 import { useMounted } from '../../hooks/useMounted';
+import CmsImage from '../ui/CmsImage';
 
 /* ─── List-view card (only when showListMode=true) ─── */
 export function CatalogListProductCard({ product, accent }: { product: Product; accent: string }) {
@@ -59,8 +60,9 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
       style={{ '--sale': SALE_COLOR, '--accent': accent } as React.CSSProperties}
     >
       <div className="relative shrink-0 overflow-hidden w-45 aspect-3/4 border-r border-white">
-        <Image
+        <CmsImage
           src={product.image}
+          blur={product.imageBlurs?.[product.image]}
           alt={product.name}
           fill
           sizes="180px"

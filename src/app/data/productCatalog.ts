@@ -43,6 +43,11 @@ export interface CatalogProduct {
   stock?: number;
   /** Product-specific gallery images (5 photos). From OE `pictures_22`. */
   galleryImages?: string[];
+  /** Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
+   *  URL rather than index so `colorImages` / `galleryImages` can be sliced
+   *  independently. Only files uploaded through an OE preview template have
+   *  one, so every consumer must treat a miss as "no blur". */
+  imageBlurs?: Record<string, string>;
   /** Product-specific size options. From OE `size_10`. */
   sizeOptions?: SizeOption[];
   /** Product-specific specifications. From OE attribute set. */
@@ -98,6 +103,8 @@ export interface PdpProductVariant {
   sku?: string;
   image?: string;
   images?: string[];
+  /** Blur data URI per image URL — see the same field on the product above. */
+  imageBlurs?: Record<string, string>;
   descriptionHtml?: string;
   /** OE availability flag. `coming_soon` renders as "Pre-order" and still
    *  lets the customer add to cart; `out_of_stock` disables purchase. */

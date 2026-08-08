@@ -1,7 +1,7 @@
 import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { getApi, getApiSafe, getImageUrls, isError } from '../index';
+import { blurByUrl, getApi, getApiSafe, getImages, isError, type OeImage } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
@@ -44,6 +44,10 @@ export interface CatalogProduct {
   images: string[];
   /** First image — preview thumbnail. Empty string if none. */
   preview: string;
+  /** Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
+   *  URL rather than index so the adapters can slice `images` freely. Only
+   *  files uploaded through an OE preview template have one. */
+  imageBlurs: Record<string, string>;
   /** Clothing-only extras coming from the OE attribute set. */
   fit: string;
   liningMaterial: string;
@@ -95,6 +99,8 @@ export interface CatalogProductVariant {
   sku: string;
   preview: string;
   images: string[];
+  /** Blur data URI per image URL — see the same field on the product above. */
+  imageBlurs: Record<string, string>;
   stock: number;
   /** Copied from the raw product so the storefront can fall back to the
    *  status flag when the merchant doesn't track the numeric stock field. */
@@ -248,7 +254,7 @@ const richTextValue = (attr: RawAttr | undefined): string => {
 /** Gallery URLs for an OE `groupOfImages` / multi-file attribute. Delegates to
  *  the shared normalizer so a single-file attribute (which OE ships as a bare
  *  object rather than an array) still resolves. */
-const imagesValue = (attr: RawAttr | undefined): string[] => getImageUrls(attr?.value);
+const imagesValue = (attr: RawAttr | undefined): OeImage[] => getImages(attr?.value);
 
 const pickAttributes = (raw: RawProduct, lang: Lang): Record<string, RawAttr> => {
   const attrs = raw.attributeValues ?? {};
@@ -312,7 +318,8 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
   // continue to find them: pictures / color / size / lining / country / fitrise.
   // OE markers that simply don't exist in this tenant — `insulation`, `details`,
   // `careinstructions`, `stockqty` — fall through to empty values.
-  const images = imagesValue(findAttr(attrs, ['gallery', 'pictures']));
+  const gallery = imagesValue(findAttr(attrs, ['gallery', 'pictures']));
+  const images = gallery.map((img) => img.url);
   const brand = listValues(findAttr(attrs, ['brand']))[0] ?? '';
   const colors = listValues(findAttr(attrs, ['colors', 'color']));
   const sizes = listValues(findAttr(attrs, ['sizes', 'size']));
@@ -383,6 +390,7 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
     categories: Array.isArray(raw.categories) ? raw.categories.map(normalizeCategoryPath) : [],
     images,
     preview: images[0] ?? '',
+    imageBlurs: blurByUrl(gallery),
     descriptionHtml,
     careInstructions,
     fit,
@@ -543,6 +551,7 @@ function aggregateByName(items: CatalogProduct[], allById: Map<number, CatalogPr
       sku: v.sku,
       preview: v.preview,
       images: v.images,
+      imageBlurs: v.imageBlurs,
       stock: v.stock,
       statusIdentifier: v.statusIdentifier,
       descriptionHtml: v.descriptionHtml,
@@ -725,7 +734,7 @@ export const loadProductById = withTiming('loadProductById', cache(
     const variants: CatalogProductVariant[] = family.map((v) => ({
       id: v.id, colors: v.colors, sizes: v.sizes, price: v.price, sku: v.sku,
       ...(v.salePrice !== undefined && { salePrice: v.salePrice }),
-      preview: v.preview, images: v.images, stock: v.stock,
+      preview: v.preview, images: v.images, imageBlurs: v.imageBlurs, stock: v.stock,
       statusIdentifier: v.statusIdentifier,
       descriptionHtml: v.descriptionHtml,
     }));

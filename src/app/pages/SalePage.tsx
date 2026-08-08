@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
@@ -36,6 +35,7 @@ import { useSearchParams } from 'next/navigation';
 import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
 import { useMounted } from '../hooks/useMounted';
 import { Link } from '../../lib/i18n/navigation';
+import CmsImage from '../components/ui/CmsImage';
 
 const SALE_KEY = 'sale';
 
@@ -507,8 +507,10 @@ export function SalePage({ initialProducts, saleEndsAt, pageBlocks, cmsPage }: {
             fallbacks when the admin hasn't filled a field. */}
         <div className="px-4 lg:px-8">
           <div className="my-10 relative overflow-hidden group min-h-45 max-h-65">
-            <Image
+            <CmsImage
               src={cmsPage?.promo.image || 'https://images.unsplash.com/photo-1739424464070-63b6cc9086aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGZhc2hpb24lMjBlZGl0b3JpYWwlMjBtaW5pbWFsJTIwYmxhY2slMjBvdXRmaXR8ZW58MXx8fHwxNzcyMDMwNjUwfDA&ixlib=rb-4.1.0&q=80&w=1080'}
+              // The Unsplash fallback has no LQIP, only the CMS picture does.
+              blur={cmsPage?.promo.image ? cmsPage.promo.imageBlur : undefined}
               alt={L.promoImageAlt}
               fill
               sizes="(max-width: 1024px) 100vw, 80vw"

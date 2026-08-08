@@ -1,6 +1,6 @@
 import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
-import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
+import { getApi, getImage, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
 
 export interface StoreLocationsPageFromCms {
@@ -9,6 +9,9 @@ export interface StoreLocationsPageFromCms {
     title: string;
     text: string;
     image: string;
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+     *  through an OE preview template have one. */
+    imageBlur?: string;
   };
   flagshipCallout: {
     subtitle: string;
@@ -64,7 +67,8 @@ export const loadStoreLocationsPage = cache(
           eyebrow: v('page_store_location_top_banner_sub_title'),
           title: v('page_store_location_top_banner_title'),
           text: v('page_store_location_top_banner_text'),
-          image: getImageUrl(attrs['page_store_location_top_banner_image']?.value),
+          image: getImage(attrs['page_store_location_top_banner_image']?.value).url,
+          imageBlur: getImage(attrs['page_store_location_top_banner_image']?.value).blur,
         },
         flagshipCallout: {
           subtitle: v('page_store_location_footer_banner_subtitle'),

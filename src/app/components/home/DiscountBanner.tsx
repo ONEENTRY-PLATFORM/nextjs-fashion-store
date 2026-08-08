@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react';
 
-import Image from 'next/image';
 import { ShoppingBag } from 'lucide-react';
 import type { DiscountBannerFromCms } from '../../../lib/oneentry/blocks/discount-banner';
 import { useMounted } from '../../hooks/useMounted';
 import { Link } from '../../../lib/i18n/navigation';
+import CmsImage from '../ui/CmsImage';
 
 export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBannerFromCms | null } = {}) {
   const [hovered, setHovered] = useState(false);
@@ -27,8 +27,9 @@ export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBann
       onMouseLeave={() => setHovered(false)}
     >
       {/* Background Image */}
-      <Image
+      <CmsImage
         src={banner.image}
+        blur={banner.imageBlur}
         alt={banner.alt}
         fill
         sizes="100vw"

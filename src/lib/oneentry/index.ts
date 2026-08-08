@@ -294,11 +294,63 @@ export function getLang(): string {
   return currentLang;
 }
 
-/** One entry of an OE `image` / `file` / `groupOfImages` attribute value. */
+/**
+ * One entry of an OE `image` / `file` / `groupOfImages` attribute value.
+ *
+ * `previewLink` has two shapes on the wire, and which one you get depends on
+ * whether the file was uploaded through a preview template:
+ *
+ * - **legacy** — a plain string URL to a recompressed copy of the original. Same
+ *   pixel dimensions, roughly half the bytes; useless as a placeholder.
+ * - **preview-template** — an object keyed by preview level,
+ *   `{ [level]: [blurDataUri, previewUrl] }`, where the first entry of the pair
+ *   is a ~130-character base64 WebP LQIP. `defaultPreview` names the level to
+ *   read, and the tenant currently ships `default` (20×20) plus `thumb`.
+ *
+ * Reading the object shape into an `<img src>` stringifies it to
+ * `"[object Object]"` and 404s, so every consumer must go through
+ * {@link getImage}.
+ */
 type OeFileValue = {
   downloadLink?: unknown;
   previewLink?: unknown;
+  defaultPreview?: unknown;
 };
+
+/**
+ * A CMS image reduced to what the renderer needs: where to fetch it, and the
+ * inline placeholder to paint until it arrives.
+ * @property {string} url - Absolute URL of the full-size image.
+ * @property {string} [blur] - Base64 data URI for `next/image`'s `blurDataURL`.
+ */
+export type OeImage = {
+  url: string;
+  blur?: string;
+};
+
+/**
+ * Pull the LQIP data URI out of a file record, when the upload went through a
+ * preview template.
+ *
+ * The pair is `[blurDataUri, previewUrl]`; only the first entry is inlineable.
+ * `defaultPreview` picks the level, falling back to `default` — and then to
+ * whichever level exists, so a tenant that renames its levels still gets a
+ * placeholder instead of silently losing one.
+ * @param {OeFileValue} file - A single OE file record.
+ * @returns {string | undefined} Base64 data URI, or `undefined` when absent.
+ */
+function fileBlur(file: OeFileValue): string | undefined {
+  const preview = file.previewLink;
+  if (!preview || typeof preview !== 'object') return undefined;
+
+  const levels = preview as Record<string, unknown>;
+  const named = typeof file.defaultPreview === 'string' ? file.defaultPreview : 'default';
+  const pair = levels[named] ?? levels.default ?? Object.values(levels)[0];
+  if (!Array.isArray(pair)) return undefined;
+
+  const [blur] = pair;
+  return typeof blur === 'string' && blur.startsWith('data:') ? blur : undefined;
+}
 
 /**
  * Normalize any OE image-ish attribute value into a single URL.
@@ -316,24 +368,88 @@ type OeFileValue = {
  * @returns {string} An absolute URL, or `''` when there is no usable image.
  */
 export function getImageUrl(value: unknown): string {
-  if (!value) return '';
-  if (typeof value === 'string') return value;
+  return getImage(value).url;
+}
 
-  // Unwrap `{ value: … }` — callers pass either the attribute or its value.
-  const unwrapped =
-    !Array.isArray(value) && typeof value === 'object' && 'value' in value
-      ? (value as { value: unknown }).value
-      : value;
-  if (!unwrapped) return '';
+/**
+ * Strip the `{ value: … }` attribute envelope, so callers may pass either the
+ * attribute or its value.
+ * @param {unknown} value - Attribute or attribute value.
+ * @returns {unknown} The unwrapped value.
+ */
+function unwrapAttr(value: unknown): unknown {
+  return !Array.isArray(value) && typeof value === 'object' && value !== null && 'value' in value
+    ? (value as { value: unknown }).value
+    : value;
+}
+
+/**
+ * Normalize any OE image-ish attribute value into a URL plus its inline blur
+ * placeholder.
+ *
+ * Same shape tolerance as {@link getImageUrl} — one uploaded file arrives as a
+ * bare object, two or more as an array. The blur is only present for files
+ * uploaded through a preview template; callers must treat it as optional and
+ * fall back to `placeholder="empty"`.
+ * @param {unknown} value - Attribute, attribute value, array or bare object.
+ * @returns {OeImage} URL (`''` when there is no usable image) and optional blur.
+ */
+export function getImage(value: unknown): OeImage {
+  if (!value) return { url: '' };
+  if (typeof value === 'string') return { url: value };
+
+  const unwrapped = unwrapAttr(value);
+  if (!unwrapped) return { url: '' };
 
   const first = Array.isArray(unwrapped) ? unwrapped[0] : unwrapped;
-  if (!first || typeof first !== 'object') return '';
+  if (!first || typeof first !== 'object') return { url: '' };
 
   const file = first as OeFileValue;
+  const blur = fileBlur(file);
+
   if (typeof file.downloadLink === 'string' && file.downloadLink) {
-    return file.downloadLink;
+    return { url: file.downloadLink, blur };
   }
-  return typeof file.previewLink === 'string' ? file.previewLink : '';
+  // Only the legacy string shape is a usable `src`; the preview-template object
+  // would stringify to "[object Object]".
+  return { url: typeof file.previewLink === 'string' ? file.previewLink : '', blur };
+}
+
+/**
+ * Every image of an OE attribute, in wire order, each with its blur.
+ *
+ * The gallery counterpart of {@link getImage}; entries without a usable URL are
+ * dropped, exactly as {@link getImageUrls} does.
+ * @param {unknown} value - Attribute, attribute value, array or bare object.
+ * @returns {OeImage[]} Non-empty images, possibly an empty array.
+ */
+export function getImages(value: unknown): OeImage[] {
+  if (!value) return [];
+
+  const unwrapped = unwrapAttr(value);
+  if (!unwrapped) return [];
+
+  const list = Array.isArray(unwrapped) ? unwrapped : [unwrapped];
+  return list.map((item) => getImage(item)).filter((img) => img.url.length > 0);
+}
+
+/**
+ * Index a gallery's blurs by image URL.
+ *
+ * Keyed by URL rather than by position on purpose: the adapters slice the image
+ * list several ways (`colorImages`, `galleryImages`, per-variant previews), and
+ * a parallel blur array would have to be sliced in lockstep every time — one
+ * missed slice and every card shows the wrong placeholder. A map survives any
+ * reshuffling, and it serializes to the client as plain JSON.
+ * @param {OeImage[]} images - Images from {@link getImages}.
+ * @returns {Record<string, string>} URL → blur data URI, omitting images without one.
+ */
+export function blurByUrl(images: OeImage[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const img of images) {
+    if (img.blur) map[img.url] = img.blur;
+  }
+  return map;
 }
 
 /**
@@ -344,16 +460,7 @@ export function getImageUrl(value: unknown): string {
  * @returns {string[]} Non-empty URLs, possibly an empty array.
  */
 export function getImageUrls(value: unknown): string[] {
-  if (!value) return [];
-
-  const unwrapped =
-    !Array.isArray(value) && typeof value === 'object' && 'value' in value
-      ? (value as { value: unknown }).value
-      : value;
-  if (!unwrapped) return [];
-
-  const list = Array.isArray(unwrapped) ? unwrapped : [unwrapped];
-  return list.map((item) => getImageUrl(item)).filter((url) => url.length > 0);
+  return getImages(value).map((img) => img.url);
 }
 
 /**

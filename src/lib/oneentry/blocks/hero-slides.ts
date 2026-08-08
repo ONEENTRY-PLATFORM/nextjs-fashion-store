@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getApiSafe, getImageUrl, isError } from '../index';
+import { getApiSafe, getImage, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -9,6 +9,9 @@ import { REVALIDATE_HOME } from '../../isr';
 export interface HeroSlideFromCms {
   id: number;
   image: string;
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one. */
+  imageBlur?: string;
   eyebrow: string;
   headline: string;
   subtext: string;
@@ -34,9 +37,11 @@ const GENDER_BY_POSITION: Array<'women' | 'men'> = ['women', 'men', 'women'];
 
 const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
   const v = raw.attributeValues ?? {};
+  const picture = getImage(v?.['image_id4']);
   return {
     id: raw.id,
-    image: getImageUrl(v?.['image_id4']),
+    image: picture.url,
+    imageBlur: picture.blur,
     headline: asString(v['string_id1']),
     eyebrow: asString(v['string_id2']),
     subtext: asString(v['string_id3']),

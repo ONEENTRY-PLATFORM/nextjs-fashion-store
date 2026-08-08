@@ -1,11 +1,18 @@
 import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import CmsImage from '../../components/ui/CmsImage';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { FullscreenViewer } from './FullscreenViewer';
 import { PRODUCT_GALLERY_LABELS } from '../../data/productPageLabels';
 import { useT } from '../../../lib/oneentry/labels/DictContext';
 
-export function ProductGallery({ images, productName }: { images: string[]; productName: string }) {
+export function ProductGallery({ images, productName, imageBlurs }: {
+  images: string[];
+  productName: string;
+  /** Blur data URI per image URL. Keyed by URL so the thumbnail strip and the
+   *  main frame can each look up their own without tracking indices. */
+  imageBlurs?: Record<string, string>;
+}) {
   // OE products occasionally come back with empty image URLs (placeholder
   // entries while admin is filling in pictures). next/image throws when
   // `src=""`, so drop empties up front.
@@ -65,8 +72,9 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
                   : 'outline-[1.5px] outline-[#e5e5e5] outline-offset-0'
               }`}
             >
-              <Image
+              <CmsImage
                 src={img}
+                blur={imageBlurs?.[img]}
                 alt={`${productName} thumbnail ${i + 1}`}
                 fill
                 sizes="72px"
@@ -86,8 +94,9 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
             onDoubleClick={() => setFullscreen(true)}
             onClick={() => setFullscreen(true)}
           >
-            <Image
+            <CmsImage
               src={safeImages[safeSelected]}
+              blur={imageBlurs?.[safeImages[safeSelected]]}
               alt={`${productName} – photo ${safeSelected + 1}`}
               // No class here contains "gallery", so the specs'
               // `[class*="gallery"] img` locator matched nothing.
@@ -141,7 +150,7 @@ export function ProductGallery({ images, productName }: { images: string[]; prod
       </div>
 
       {fullscreen && (
-        <FullscreenViewer images={safeImages} startIndex={safeSelected} onClose={() => setFullscreen(false)} productName={productName} />
+        <FullscreenViewer images={safeImages} startIndex={safeSelected} onClose={() => setFullscreen(false)} productName={productName} imageBlurs={imageBlurs} />
       )}
     </>
   );

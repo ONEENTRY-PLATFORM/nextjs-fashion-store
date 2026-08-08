@@ -4,6 +4,7 @@ import { ACCENT_WOMEN } from '../../constants/colors';
 import { TIMINGS } from '../../constants/timings';
 import { useCatalogAccent } from '../../context/CatalogAccentContext';
 import Image from 'next/image';
+import CmsImage from '../ui/CmsImage';
 import { createPortal } from 'react-dom';
 import { Heart, ShoppingBag, Eye } from 'lucide-react';
 
@@ -49,6 +50,10 @@ export interface Product {
   colors: string[];
   /** Per-color images (same index as colors). Falls back to product.image if missing. */
   colorImages?: string[];
+  /** Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
+   *  URL so it stays correct however `colorImages` is sliced or reordered.
+   *  Absent for images that predate OE preview templates. */
+  imageBlurs?: Record<string, string>;
   /** Per-color stock status (same index as colors). undefined = in stock. */
   colorStock?: boolean[];
   sizes?: string[];
@@ -244,6 +249,9 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const variantImage = activeVariant?.image;
   const candidateImage = variantImage || product.colorImages?.[safeColorIdx] || product.image;
   const activeImage = candidateImage || '/icons/ui/bag-placeholder.svg';
+  /** LQIP for whichever image ended up active. Keyed by URL, so swapping colour
+   *  or variant picks up the right one without any index bookkeeping. */
+  const activeBlur = product.imageBlurs?.[activeImage];
   const activePrice = activeVariant?.price ?? product.price;
   // Prefer the picked variant's own sale price when it has one — otherwise
   // the card would show a strike-through pair mixing variant.price
@@ -407,7 +415,9 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
       <div
         suppressHydrationWarning
         className={`relative overflow-hidden aspect-3/4 bg-[#f2f1ef] ${
-          hasRealImage && !imgLoaded && !imgError ? 'animate-pulse' : ''
+          // With an LQIP there is already something to look at, so the grey
+          // pulse would only fight the blur-up.
+          hasRealImage && !imgLoaded && !imgError && !activeBlur ? 'animate-pulse' : ''
         }`}
       >
         {imgError || !hasRealImage ? (
@@ -415,10 +425,15 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
             <Image src="/icons/ui/bag-placeholder.svg" alt="" width={48} height={48} unoptimized />
           </div>
         ) : (
-          <div className={`absolute inset-0 transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}>
-            <Image
+          <div className={`absolute inset-0 transition-opacity duration-500 ${
+            // Without an LQIP the cell stays blank until `onLoad`; with one the
+            // blur itself is the placeholder, so it must be visible from paint.
+            imgLoaded || activeBlur ? 'opacity-100' : 'opacity-0'
+          }`}>
+            <CmsImage
               ref={attachImg}
               src={activeImage}
+              blur={activeBlur}
               alt={product.brand ? `${product.name} by ${product.brand}` : product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"

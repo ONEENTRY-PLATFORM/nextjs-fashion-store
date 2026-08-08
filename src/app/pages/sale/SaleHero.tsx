@@ -1,11 +1,11 @@
 'use client'
-import Image from 'next/image';
 import { Tag, ChevronRight } from 'lucide-react';
 import { CountdownUnit } from './SaleCountdown';
 import { SALE_PAGE_LABELS as L } from '../../data/salePageLabels';
 import { useT } from '../../../lib/oneentry/labels/DictContext';
 import type { SalePageFromCms } from '../../../lib/oneentry/catalog/sale-page';
 import { sanitizeHtml } from '../../../lib/sanitize-html';
+import CmsImage from '../../components/ui/CmsImage';
 
 interface SaleHeroProps {
   countdown: { days: number; hours: number; minutes: number; seconds: number };
@@ -61,6 +61,8 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
   const lSeconds = useT('sale_page_top_banner_sec',   L.countdownSeconds);
 
   const heroImage    = cms?.hero.image || FALLBACK_HERO_IMAGE;
+  // Only the CMS picture has an LQIP; the bundled fallback has none.
+  const heroBlur     = cms?.hero.image ? cms.hero.imageBlur : undefined;
   const eyebrow      = cms?.hero.eyebrow || L.heroEyebrow;
   const contentHtml  = cms?.hero.contentHtml || '';
   const ctaLabel     = cms?.hero.ctaLabel || L.heroShopSale;
@@ -71,8 +73,9 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
 
   return (
     <div className="relative overflow-hidden">
-      <Image
+      <CmsImage
         src={heroImage}
+        blur={heroBlur}
         alt={L.heroImageAlt}
         fill
         sizes="100vw"

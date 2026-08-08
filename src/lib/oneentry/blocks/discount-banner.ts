@@ -1,6 +1,6 @@
 import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
-import { getApiSafe, getImageUrl, isError } from '../index';
+import { getApiSafe, getImage, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { logCaught } from '../log';
@@ -8,6 +8,9 @@ import { REVALIDATE_HOME } from '../../isr';
 
 export interface DiscountBannerFromCms {
   image: string;
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one. */
+  imageBlur?: string;
   alt: string;
   badge: string;
   discountText: string;
@@ -46,8 +49,10 @@ const loadDiscountBannerCached = withTiming('loadDiscountBanner', unstable_cache
         wrapped && typeof wrapped === 'object'
           ? wrapped
           : (av as Record<string, AttrValue>);
+      const picture = getImage(attrs.hp_b_b_pic?.value);
       const banner: DiscountBannerFromCms = {
-        image:        getImageUrl(attrs.hp_b_b_pic?.value),
+        image:        picture.url,
+        imageBlur:    picture.blur,
         alt:          asString(attrs.hp_b_b_title?.value),
         badge:        asString(attrs.hp_b_b_lable?.value),
         discountText: asString(attrs.hp_b_b_title?.value),

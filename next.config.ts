@@ -88,13 +88,24 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    // OE CDN already serves reasonably-sized preview JPEGs, and the
-    // `/_next/image` optimization proxy on this deployment was aborting a
-    // significant fraction of concurrent requests (client-side
-    // ERR_ABORTED). Serving the CDN URLs directly is faster in practice
-    // and removes an entire failure surface. `remotePatterns` stays for
-    // completeness in case any component opts back into optimization via
-    // `unoptimized={false}`.
+    // Image optimization stays OFF. Originally disabled because `/_next/image`
+    // aborted a significant fraction of concurrent requests in production
+    // (client-side ERR_ABORTED); re-measured on a prod build after CMS pictures
+    // gained an LQIP, and the bottleneck is still there:
+    //
+    //   cold cache   — 13 of 28 photos transcoded within 30s (0 non-200)
+    //   warm, twice  — 24 of 28 within 12s, no failures
+    //   4 parallel browser contexts — every page load times out
+    //
+    // The optimizer re-encodes 1440×2160 originals on demand, so a catalog page
+    // serialises behind it. What it would have bought — AVIF/WebP and a real
+    // `srcset` for the `sizes` hints the call sites declare — is worth less
+    // than the stall, especially now that the blur placeholder covers the wait
+    // that made unoptimized loading look broken in the first place.
+    //
+    // Flipping this to `false` is a one-line change and the blur works either
+    // way; if you do, cap Playwright workers too, or the image E2E flakes.
+    // `remotePatterns` stays for components that opt in via `unoptimized={false}`.
     unoptimized: true,
     remotePatterns: [
       {

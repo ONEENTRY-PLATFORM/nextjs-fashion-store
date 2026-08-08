@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getApiSafe, getImageUrl, isError } from '../index';
+import { getApiSafe, getImage, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -11,6 +11,9 @@ export interface CategoryItemFromCms {
   label: string;
   chip: string;
   image: string;
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one. */
+  imageBlur?: string;
   href: string;
 }
 
@@ -61,7 +64,8 @@ export const loadCategorySection = withTiming('loadCategorySection', unstable_ca
         if (!chip) continue;
         const v = it.attributeValues ?? {};
         const label = asString(v['string_id1']);
-        const image = getImageUrl(v?.['image_id4']);
+        const picture = getImage(v?.['image_id4']);
+        const image = picture.url;
         if (!label || !image) continue;
         const explicitHref = asString(v['string_id3']) || asString(v['string_id7']);
         const href = explicitHref || `/women/clothing?clothingType=${encodeURIComponent(label)}`;
@@ -70,6 +74,7 @@ export const loadCategorySection = withTiming('loadCategorySection', unstable_ca
           label,
           chip,
           image,
+          imageBlur: picture.blur,
           href,
         });
       }

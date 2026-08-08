@@ -1,6 +1,6 @@
 import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
-import { getApi, getImageUrl, isError, isOneEntryEnabled } from '../index';
+import { getApi, getImage, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
 
 export interface SalePageFromCms {
@@ -24,6 +24,9 @@ export interface SalePageFromCms {
      *  parsed `saleEndsAt` timestamp. */
     timerEndsText: string;
     image: string;
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+     *  through an OE preview template have one. */
+    imageBlur?: string;
   };
   promo: {
     eyebrow: string;
@@ -32,6 +35,9 @@ export interface SalePageFromCms {
     ctaLabel: string;
     ctaHref: string;
     image: string;
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+     *  through an OE preview template have one. */
+    imageBlur?: string;
   };
   /** Epoch ms parsed from `page_sale_top_banner_timer.value.fullDate`, or
    *  `null` when the admin cleared the field. Callers fall back to the
@@ -90,7 +96,8 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
         ctaLabel:      s('page_sale_top_banner_cta'),
         timerLabel:    s('page_sale_top_banner_timer_lable'),
         timerEndsText: s('page_sale_top_banner_timer_text'),
-        image:         getImageUrl(attrs['page_sale_top_banner_picture']?.value),
+        image:         getImage(attrs['page_sale_top_banner_picture']?.value).url,
+        imageBlur:     getImage(attrs['page_sale_top_banner_picture']?.value).blur,
       },
       promo: {
         eyebrow:  s('page_sale_footer_banner_lable'),
@@ -98,7 +105,8 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
         subtitle: s('page_sale_footer_banner_sub_title'),
         ctaLabel: s('page_sale_footer_banner_cta'),
         ctaHref:  s('page_sale_footer_banner_cta_link'),
-        image:    getImageUrl(attrs['page_sale_footer_banner_picture']?.value),
+        image:    getImage(attrs['page_sale_footer_banner_picture']?.value).url,
+        imageBlur: getImage(attrs['page_sale_footer_banner_picture']?.value).blur,
       },
       saleEndsAt: extractFullDate(attrs['page_sale_top_banner_timer']?.value),
     };

@@ -1,7 +1,7 @@
 'use client'
-import Image from 'next/image';
 import { NEW_ARRIVALS_HERO_LABELS as L } from '../../data/newArrivalsLabels';
 import type { NewArrivalsPageFromCms } from '../../../lib/oneentry/catalog/new-arrivals-page';
+import CmsImage from '../../components/ui/CmsImage';
 
 const FALLBACK_HERO_IMAGE = 'https://images.unsplash.com/photo-1699579091591-f64e682f8ed5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXclMjBhcnJpdmFscyUyMGZhc2hpb24lMjBlZGl0b3JpYWwlMjBsdXh1cnklMjBjbG90aGluZ3xlbnwxfHx8fDE3NzI0NTIzODV8MA&ixlib=rb-4.1.0&q=80&w=1080';
 
@@ -13,13 +13,16 @@ interface NewArrivalsHeroProps {
 
 export function NewArrivalsHero({ cms }: NewArrivalsHeroProps = {}) {
   const heroImage  = cms?.hero.image      || FALLBACK_HERO_IMAGE;
+  // Only the CMS picture has an LQIP; the bundled fallback has none.
+  const heroBlur   = cms?.hero.image ? cms.hero.imageBlur : undefined;
   const eyebrow    = cms?.hero.eyebrow    || L.eyebrow;
   const heading    = cms?.hero.heading    || L.heading;
   const subheading = cms?.hero.subheading || L.subheading;
   return (
     <div className="relative overflow-hidden border-b border-gray-100 min-h-120">
-      <Image
+      <CmsImage
         src={heroImage}
+        blur={heroBlur}
         alt={L.imageAlt}
         fill
         sizes="100vw"

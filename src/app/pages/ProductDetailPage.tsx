@@ -629,7 +629,13 @@ export function ProductDetailPage({
 
             {/* Gallery */}
             <div className="w-full lg:w-[55%] xl:w-[58%] lg:sticky lg:top-33 lg:self-start">
-              <ProductGallery images={dynamicGallery} productName={dynamicName} />
+              <ProductGallery
+                images={dynamicGallery}
+                productName={dynamicName}
+                // Variant photos and the product's own share one blur map:
+                // it is keyed by URL, so whichever set is showing resolves.
+                imageBlurs={activeVariant?.imageBlurs ?? catalogProduct?.imageBlurs}
+              />
             </div>
 
             {/* Product Info */}

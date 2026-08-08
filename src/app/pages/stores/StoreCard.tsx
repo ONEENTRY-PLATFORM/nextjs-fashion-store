@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import {
   MapPin, Phone, Clock, ChevronRight,
   Navigation, Mail, AtSign,
@@ -8,6 +7,7 @@ import {
 import type { Store } from '../../data/stores';
 import { STORE_CARD_LABELS as L_FALLBACK } from '../../data/storesLabels';
 import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import CmsImage from '../../components/ui/CmsImage';
 
 export function StoreCard({ store }: { store: Store }) {
   const L = useDict('store_location_card_', L_FALLBACK);
@@ -35,8 +35,9 @@ export function StoreCard({ store }: { store: Store }) {
       {/* Image */}
       <div className="relative overflow-hidden aspect-16/9 bg-gray-100">
         {store.image && (
-          <Image
+          <CmsImage
             src={store.image}
+            blur={store.imageBlur}
             alt={store.name}
             fill
             sizes="(max-width: 640px) 100vw, 33vw"
@@ -119,8 +120,9 @@ export function StoreCard({ store }: { store: Store }) {
           <div className="relative bg-white w-full flex flex-col md:flex-row overflow-hidden max-w-195 max-h-[90vh] outline-1 outline-black z-1">
             {/* Left — store photo */}
             <div className="md:w-2/5 shrink-0 relative min-h-55">
-              <Image
+              <CmsImage
                 src={store.image}
+                blur={store.imageBlur}
                 alt={store.name}
                 fill
                 sizes="(max-width: 768px) 100vw, 40vw"

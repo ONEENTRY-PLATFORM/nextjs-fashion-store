@@ -1,6 +1,6 @@
 import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
-import { getApiSafe, getImageUrl, isError } from '../index';
+import { getApiSafe, getImage, isError } from '../index';
 import { withTiming } from '../profiling';
 import { t, type Lang } from '../system-text';
 import type { Store } from '../../../app/data/stores';
@@ -96,7 +96,8 @@ const normalize = (raw: RawPage, lang: Lang, dayLabel: string, mockFallback?: St
   const v = (k: string): string => asString(attrs[k]?.value);
   const rawAddress = v('page_store_address');
   const { address, postcode } = splitAddressPostcode(rawAddress);
-  const image = getImageUrl(attrs['page_store_picture']?.value);
+  const picture = getImage(attrs['page_store_picture']?.value);
+  const image = picture.url;
   const services = extractServices(attrs['page_store_services']?.value);
   const hours = formatHours(attrs['page_store_hours']?.value, dayLabel);
   const label = extractLabel(attrs['page_store_lable']?.value);
@@ -114,6 +115,8 @@ const normalize = (raw: RawPage, lang: Lang, dayLabel: string, mockFallback?: St
     hours: hours.length > 0 ? hours : (mockFallback?.hours ?? []),
     services: services.length > 0 ? services : (mockFallback?.services ?? []),
     image: image || mockFallback?.image || '',
+    // Only meaningful when the CMS picture won above; a mock fallback has none.
+    ...(image && picture.blur ? { imageBlur: picture.blur } : {}),
     mapUrl: mapUrl || mockFallback?.mapUrl || '',
     isflagship: label.value === 'flagship' || mockFallback?.isflagship || false,
     tag: label.title || mockFallback?.tag || undefined,

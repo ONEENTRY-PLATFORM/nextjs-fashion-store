@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react';
-import Image from 'next/image';
 
 import { Header } from '../components/header/Header';
 import { Footer } from '../components/footer/Footer';
@@ -15,6 +14,7 @@ import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 import { ACCENT_WOMEN as ACCENT, ACCENT_MEN, BANNER_BG } from '../constants/colors';
 import { useRouter } from '../../lib/i18n/navigation';
+import CmsImage from '../components/ui/CmsImage';
 
 type StoreLocationsPageProps = {
   initialStores?: Store[];
@@ -28,6 +28,8 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
   const stores = initialStores ?? [];
   const flagshipStore: Store | undefined = stores.find(s => s.isflagship) ?? stores[0];
   const heroImage = cmsPage?.hero.image || 'https://images.unsplash.com/photo-1582461420964-9e1ecbbbd138?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1920&q=80';
+  // Only the CMS picture has an LQIP; the Unsplash fallback above has none.
+  const heroBlur = cmsPage?.hero.image ? cmsPage.hero.imageBlur : undefined;
   const heroEyebrow = cmsPage?.hero.eyebrow || L.heroEyebrow;
   const heroTitle = cmsPage?.hero.title || L.heroTitle;
   const heroText = cmsPage?.hero.text || `${stores.length} ${L.heroSubtitleSuffix}`;
@@ -66,8 +68,9 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
       {/* Hero */}
       <div className="relative flex flex-col items-center justify-center text-center overflow-hidden h-80 bg-(--banner-bg)">
         {/* Background photo */}
-        <Image
+        <CmsImage
           src={heroImage}
+          blur={heroBlur}
           alt={L.heroImageAlt}
           fill
           sizes="100vw"
@@ -188,8 +191,9 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         <div className="flex flex-col md:flex-row overflow-hidden mb-12 outline-1 outline-black">
           <div className="md:w-1/2 relative overflow-hidden min-h-70 bg-gray-100">
             {flagshipStore.image && (
-              <Image
+              <CmsImage
                 src={flagshipStore.image}
+                blur={flagshipStore.imageBlur}
                 alt={L.flagshipImageAlt}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"

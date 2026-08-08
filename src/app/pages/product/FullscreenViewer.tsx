@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import CmsImage from '../../components/ui/CmsImage';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { FULLSCREEN_VIEWER_LABELS as L_FALLBACK } from '../../data/productPageLabels';
@@ -10,9 +10,11 @@ interface FullscreenViewerProps {
   startIndex: number;
   onClose: () => void;
   productName: string;
+  /** Blur data URI per image URL, forwarded from the gallery. */
+  imageBlurs?: Record<string, string>;
 }
 
-export function FullscreenViewer({ images, startIndex, onClose, productName }: FullscreenViewerProps) {
+export function FullscreenViewer({ images, startIndex, onClose, productName, imageBlurs }: FullscreenViewerProps) {
   const L = useDict('product_card_actions_viewer_', L_FALLBACK);
   const [current, setCurrent] = useState(startIndex);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,7 +63,7 @@ export function FullscreenViewer({ images, startIndex, onClose, productName }: F
               current === i ? 'opacity-100 outline-white' : 'opacity-45 outline-transparent'
             }`}
           >
-            <Image src={img} alt={`${productName} – photo ${i + 1}`} fill sizes="64px" className="object-cover object-[center_top]" />
+            <CmsImage src={img} blur={imageBlurs?.[img]} alt={`${productName} – photo ${i + 1}`} fill sizes="64px" className="object-cover object-[center_top]" />
           </button>
         ))}
       </div>
@@ -79,8 +81,9 @@ export function FullscreenViewer({ images, startIndex, onClose, productName }: F
         </div>
 
         <div className="flex-1 flex items-center justify-center relative px-16 min-h-0" onClick={onClose}>
-          <Image
+          <CmsImage
             src={images[current]}
+            blur={imageBlurs?.[images[current]]}
             alt={L.photoAltTpl(productName, current, images.length)}
             fill
             sizes="100vw"

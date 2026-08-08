@@ -53,6 +53,10 @@ export interface ShopCategory {
   label: string;
   href: string;
   image: string;
+  /** Blur data URI for `next/image`'s `blurDataURL`. Present only for CMS
+   *  pictures uploaded through an OE preview template — the hard-coded
+   *  fallback categories below have none. */
+  imageBlur?: string;
   chip: string; // which filter chip this belongs to
 }
 

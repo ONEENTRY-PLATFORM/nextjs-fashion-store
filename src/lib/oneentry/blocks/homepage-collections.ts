@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { getApiSafe, getImageUrl, isError } from '../index';
+import { getApiSafe, getImage, isError } from '../index';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
@@ -9,6 +9,9 @@ import { REVALIDATE_HOME } from '../../isr';
 export interface HomepageCollectionItem {
   id: number;
   image: string;
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one. */
+  imageBlur?: string;
   title: string;
   subtitle: string;
   buttonText: string;
@@ -28,9 +31,11 @@ const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 const normalize = (raw: RawSlide): HomepageCollectionItem => {
   const v = raw.attributeValues ?? {};
+  const picture = getImage(v?.['image_id3']);
   return {
     id: raw.id,
-    image: getImageUrl(v?.['image_id3']),
+    image: picture.url,
+    imageBlur: picture.blur,
     title: asString(v['string_id1']),
     subtitle: asString(v['string_id2']),
     buttonText: asString(v['string_id4']),

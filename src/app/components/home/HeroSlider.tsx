@@ -1,12 +1,12 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
-import Image from 'next/image';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import type { HeroSlideFromCms } from '../../../lib/oneentry/blocks/hero-slides';
 type HeroSlide = HeroSlideFromCms;
 import { ACCENT_WOMEN, ACCENT_MEN } from '../../constants/colors';
 import { TIMINGS } from '../../constants/timings';
 import { CAROUSEL_LABELS, HERO_SLIDER_DYNAMIC_ARIA } from '../../data/commonLabels';
+import CmsImage from '../ui/CmsImage';
 
 
 // ─── Gradient per alignment direction ────────────────────────────────────────
@@ -117,8 +117,9 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
             idx === current ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <Image
+          <CmsImage
             src={s.image}
+            blur={s.imageBlur}
             alt={s.headline}
             fill
             sizes="100vw"
