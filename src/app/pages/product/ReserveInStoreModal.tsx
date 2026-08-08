@@ -4,7 +4,7 @@ import { X, Store, Check } from 'lucide-react';
 import { SALE_COLOR } from '../../constants/colors';
 import type { SizeOption } from '../../data/productCatalog';
 import { RESERVE_MODAL_LABELS as L } from '../../data/productPageLabels';
-import { useFormLabel } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormLabel, useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { submitForm } from '../../../lib/oneentry/forms/submit';
 
@@ -35,6 +35,10 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
   // offline fallback. Placeholders have no `additionalFields` on this form, so
   // they keep coming from the set.
   const lbFirstName = useFormLabel('reserve_in_store', 'first_name',  L.labelFirstName);
+  const phFirstName = useFormPlaceholder('reserve_in_store', 'first_name', 'placeholder', L.placeholderFirstName);
+  const phLastName  = useFormPlaceholder('reserve_in_store', 'last_name',  'placeholder', L.placeholderLastName);
+  const phPhone     = useFormPlaceholder('reserve_in_store', 'phone',      'placeholder', L.placeholderPhone);
+  const phEmail     = useFormPlaceholder('reserve_in_store', 'email',      'placeholder', L.placeholderEmail);
   const lbLastName  = useFormLabel('reserve_in_store', 'last_name',   L.labelLastName);
   const lbPhone     = useFormLabel('reserve_in_store', 'phone',       L.labelPhone);
   const lbEmail     = useFormLabel('reserve_in_store', 'email',       L.labelEmail);
@@ -255,7 +259,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       <input
                         value={firstName}
                         onChange={e => { setFirstName(e.target.value); setErrors(err => ({ ...err, firstName: '' })); }}
-                        placeholder={L.placeholderFirstName}
+                        placeholder={phFirstName}
                         className={inputClass(!!errors.firstName)}
                       />
                       {errors.firstName && <p className="text-xs mt-0.5 text-(--sale)">{errors.firstName}</p>}
@@ -265,7 +269,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       <input
                         value={lastName}
                         onChange={e => { setLastName(e.target.value); setErrors(err => ({ ...err, lastName: '' })); }}
-                        placeholder={L.placeholderLastName}
+                        placeholder={phLastName}
                         className={inputClass(!!errors.lastName)}
                       />
                       {errors.lastName && <p className="text-xs mt-0.5 text-(--sale)">{errors.lastName}</p>}
@@ -276,7 +280,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                     <input
                       value={phone}
                       onChange={e => { setPhone(e.target.value); setErrors(err => ({ ...err, phone: '' })); }}
-                      placeholder={L.placeholderPhone}
+                      placeholder={phPhone}
                       type="tel"
                       className={inputClass(!!errors.phone)}
                     />
@@ -287,7 +291,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                     <input
                       value={email}
                       onChange={e => { setEmail(e.target.value); setErrors(err => ({ ...err, email: '' })); }}
-                      placeholder={L.placeholderEmail}
+                      placeholder={phEmail}
                       type="email"
                       className={inputClass(!!errors.email)}
                     />

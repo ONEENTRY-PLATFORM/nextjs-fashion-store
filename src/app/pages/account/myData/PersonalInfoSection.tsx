@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { SectionTitle, EditBtn, Field, FormInput } from '../shared';
 import { useSchemas, useFormMessages } from '../../../utils/useFormMessages';
+import { useFormLabel } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
 import { PERSONAL_INFO_LABELS as L_FALLBACK } from '../../../data/accountLabels';
 import { useDict } from '../../../../lib/oneentry/labels/DictContext';
 import { PERSONAL_INFO_SECTION_ARIA } from '../../../data/commonLabels';
@@ -15,6 +16,11 @@ export function PersonalInfoSection() {
   const L = useDict('user_account_personal_', L_FALLBACK);
   const schemas = useSchemas();
   const M = useFormMessages();
+  // Only these three exist as `user_data` form attributes — first name, email
+  // and phone are account properties, so their labels stay on `user_account`.
+  const lbDob          = useFormLabel('user_data', 'user_birthday',      L.labelDob);
+  const lbShoeSize     = useFormLabel('user_data', 'user_shoes_size',    L.labelShoeSize);
+  const lbClothingSize = useFormLabel('user_data', 'user_clothing_size', L.labelClothingSize);
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,9 +84,9 @@ export function PersonalInfoSection() {
             <FormInput label={L.labelFirstName} value={form.firstName} onChange={patch('firstName')} placeholder={L.placeholderFirstName} error={errors.firstName} />
             <FormInput label={L.labelEmail} value={form.email} onChange={patch('email')} type="email" placeholder={L.placeholderEmail} error={errors.email} />
             <FormInput label={L.labelPhone} value={form.phone} onChange={patch('phone')} type="tel" placeholder={L.placeholderPhone} error={errors.phone} />
-            <FormInput label={L.labelDob} value={form.dob} onChange={v => setForm(f => ({ ...f, dob: v }))} type="date" />
-            <FormInput label={L.labelShoeSize} value={form.shoeSize} onChange={v => setForm(f => ({ ...f, shoeSize: v }))} placeholder={L.placeholderShoeSize} />
-            <FormInput label={L.labelClothingSize} value={form.clothingSize} onChange={v => setForm(f => ({ ...f, clothingSize: v }))} placeholder={L.placeholderClothingSize} />
+            <FormInput label={lbDob} value={form.dob} onChange={v => setForm(f => ({ ...f, dob: v }))} type="date" />
+            <FormInput label={lbShoeSize} value={form.shoeSize} onChange={v => setForm(f => ({ ...f, shoeSize: v }))} placeholder={L.placeholderShoeSize} />
+            <FormInput label={lbClothingSize} value={form.clothingSize} onChange={v => setForm(f => ({ ...f, clothingSize: v }))} placeholder={L.placeholderClothingSize} />
           </div>
           <div>
             <label className={fieldLabel}>{L.labelGender}</label>

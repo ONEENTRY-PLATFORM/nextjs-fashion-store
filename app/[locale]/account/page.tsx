@@ -12,12 +12,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [userAddresses, serviceRequest] = await Promise.all([
+  const [userAddresses, serviceRequest, userData] = await Promise.all([
     loadFormContent('user_addresses'),
     loadFormContent('service_request'),
+    // `user_data` owns the profile extras (birthday, sizes); the remaining
+    // profile fields are account properties with no form attribute behind them.
+    loadFormContent('user_data'),
   ]);
   return (
-    <FormPlaceholdersProvider forms={{ user_addresses: userAddresses, service_request: serviceRequest }}>
+    <FormPlaceholdersProvider forms={{ user_addresses: userAddresses, service_request: serviceRequest, user_data: userData }}>
       <AccountPage />
     </FormPlaceholdersProvider>
   );
