@@ -1,0 +1,4 @@
+# Shell-скрипты всегда с LF: на Windows core.autocrlf=true иначе выдаёт при
+# клоне CRLF, и git-setup.sh падает в Git Bash — терминатор here-doc с \r не
+# совпадает с открывающим, и хук pre-push не ставится.
+*.sh text eol=lf
