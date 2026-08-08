@@ -1,5 +1,14 @@
 /**
- * Form validation messages — all zod schema error messages live here.
+ * Form messages — every zod schema error string, plus the generic save-failure
+ * feedback shared by the account forms.
+ *
+ * These are the **offline fallbacks**. The live copy comes from the OE
+ * `form_messages` set: each key maps to `form_messages_<snake_case_key>`, which
+ * is exactly the convention `useDict` implements, so `useFormMessages()`
+ * overlays the whole object in one call.
+ *
+ * @see ../utils/useFormMessages — the hook
+ * @see ../utils/schemas — `createSchemas`, which takes this shape
  */
 export const VALIDATION_MESSAGES = {
   // Common fields
@@ -36,4 +45,11 @@ export const VALIDATION_MESSAGES = {
   nameOnCardRequired: 'Name on card is required',
   // Promo
   promoRequired: 'Enter a promo code',
+  // Not a zod message: shown when a form submits cleanly but the server
+  // refuses the write and returns no reason of its own.
+  saveFailed: 'Save failed',
 } as const;
+
+/** Shape of {@link VALIDATION_MESSAGES}, widened to plain strings so a CMS
+ *  overlay (which cannot be a literal type) still satisfies it. */
+export type ValidationMessages = Record<keyof typeof VALIDATION_MESSAGES, string>;

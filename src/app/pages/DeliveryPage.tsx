@@ -19,7 +19,7 @@ const DeliveryOrderSummary = dynamic(
 import { useAuth } from '../context/AuthContext';
 import type { OeAddress } from '../../lib/oneentry/auth/actions';
 import { PICKUP_STORES, PARCEL_LOCKERS, DELIVERY_TIME_SLOTS, type PickupStore } from '../data/checkoutConfig';
-import { addressSchema, guestContactSchema } from '../utils/schemas';
+import { useSchemas } from '../utils/useFormMessages';
 
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
 import { GuestCheckoutModal } from './checkout/GuestCheckoutModal';
@@ -89,6 +89,7 @@ export function DeliveryPage({
   deliverySlotsGuest,
   pageBlocks,
 }: DeliveryPageProps = {}) {
+  const schemas = useSchemas();
   const router = useRouter();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
   // Fall back to the literal list if the server layer didn't hand any down —
@@ -198,7 +199,7 @@ export function DeliveryPage({
   }, [mounted, items.length, router]);
 
   const handleConfirmNewAddr = () => {
-    const result = addressSchema.safeParse(newAddrForm);
+    const result = schemas.addressSchema.safeParse(newAddrForm);
     if (!result.success) {
       const errors: Record<string, string> = {};
       for (const issue of result.error.issues) {
@@ -232,7 +233,7 @@ export function DeliveryPage({
     if (method === 'home') {
       const usingSavedAddr = isLoggedIn && savedAddresses.length > 0 && selectedAddressId !== 'new';
       if (!usingSavedAddr && !newAddrConfirmed) {
-        const result = addressSchema.safeParse(newAddrForm);
+        const result = schemas.addressSchema.safeParse(newAddrForm);
         if (!result.success) {
           const errors: Record<string, string> = {};
           for (const issue of result.error.issues) {
@@ -246,7 +247,7 @@ export function DeliveryPage({
     } else if (!isLoggedIn) {
       // Guest selecting Store Pickup / Parcel Locker: must provide contact data
       // so we can notify them when the order is ready.
-      const result = guestContactSchema.safeParse(guestContact);
+      const result = schemas.guestContactSchema.safeParse(guestContact);
       if (!result.success) {
         const errors: Record<string, string> = {};
         for (const issue of result.error.issues) {

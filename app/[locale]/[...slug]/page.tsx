@@ -21,6 +21,7 @@ import { loadCatalogFilter, type ClothingFilterGroup } from '../../../src/lib/on
 import { loadFilterChips, chipToFilterPatch } from '../../../src/lib/oneentry/blocks/filter-chips';
 import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../../src/lib/oneentry/blocks/page-blocks';
 import { loadPageByUrl } from '../../../src/lib/oneentry/catalog/pages';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
 import { faqItemsFromBlocks, buildFaqSchema } from '../../../src/lib/oneentry/blocks/info-sections';
 import { getDictionary, translate } from '../../../src/lib/oneentry/dictionary';
 import { CATALOG_PAGE_LABELS } from '../../../src/app/data/catalogPageLabels';
@@ -123,6 +124,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         alternates: { canonical: `${SITE_URL}/${entry.slug}` },
       };
     }
+  }
+
+  // Catalog pages have an OE page of their own — the same one the block loader
+  // reads, under the `catalogKey` with hyphens swapped for underscores. Overlay
+  // whatever `meta_*` the editor filled there; `buildPageMetadata` (i.e.
+  // `seoData.ts`) stays the fallback for every field left blank.
+  if (entry.type === 'catalog') {
+    return withCmsSeo(entry.catalogKey.replace(/-/g, '_'), buildPageMetadata(entry));
   }
 
   return buildPageMetadata(entry);

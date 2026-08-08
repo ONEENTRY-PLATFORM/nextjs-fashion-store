@@ -4,6 +4,7 @@ import { X, Store, Check } from 'lucide-react';
 import { SALE_COLOR } from '../../constants/colors';
 import type { SizeOption } from '../../data/productCatalog';
 import { RESERVE_MODAL_LABELS as L } from '../../data/productPageLabels';
+import { useFormLabel } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { submitForm } from '../../../lib/oneentry/forms/submit';
 
@@ -29,6 +30,15 @@ interface Props {
 }
 
 export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, stores }: Props) {
+  // Field labels come from the OE `reserve_in_store` form's own attribute
+  // titles; `RESERVE_MODAL_LABELS` (system-text `reserve_in_store`) stays the
+  // offline fallback. Placeholders have no `additionalFields` on this form, so
+  // they keep coming from the set.
+  const lbFirstName = useFormLabel('reserve_in_store', 'first_name',  L.labelFirstName);
+  const lbLastName  = useFormLabel('reserve_in_store', 'last_name',   L.labelLastName);
+  const lbPhone     = useFormLabel('reserve_in_store', 'phone',       L.labelPhone);
+  const lbEmail     = useFormLabel('reserve_in_store', 'email',       L.labelEmail);
+  const lbPickup    = useFormLabel('reserve_in_store', 'pickup_date', L.labelPickup);
   const lTitle    = useT('reserve_in_store_title',   L.title);
   const lSelStore = useT('reserve_in_store_select',  L.selectStore);
   const lSelSize  = useT('reserve_in_store_size',    L.selectSize);
@@ -241,7 +251,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">{L.labelFirstName} <span className="text-(--sale)">*</span></label>
+                      <label className="block text-xs text-gray-500 mb-1.5">{lbFirstName} <span className="text-(--sale)">*</span></label>
                       <input
                         value={firstName}
                         onChange={e => { setFirstName(e.target.value); setErrors(err => ({ ...err, firstName: '' })); }}
@@ -251,7 +261,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       {errors.firstName && <p className="text-xs mt-0.5 text-(--sale)">{errors.firstName}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">{L.labelLastName} <span className="text-(--sale)">*</span></label>
+                      <label className="block text-xs text-gray-500 mb-1.5">{lbLastName} <span className="text-(--sale)">*</span></label>
                       <input
                         value={lastName}
                         onChange={e => { setLastName(e.target.value); setErrors(err => ({ ...err, lastName: '' })); }}
@@ -262,7 +272,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelPhone} <span className="text-(--sale)">*</span></label>
+                    <label className="block text-xs text-gray-500 mb-1.5">{lbPhone} <span className="text-(--sale)">*</span></label>
                     <input
                       value={phone}
                       onChange={e => { setPhone(e.target.value); setErrors(err => ({ ...err, phone: '' })); }}
@@ -273,7 +283,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                     {errors.phone && <p className="text-xs mt-0.5 text-(--sale)">{errors.phone}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelEmail} <span className="text-(--sale)">*</span></label>
+                    <label className="block text-xs text-gray-500 mb-1.5">{lbEmail} <span className="text-(--sale)">*</span></label>
                     <input
                       value={email}
                       onChange={e => { setEmail(e.target.value); setErrors(err => ({ ...err, email: '' })); }}
@@ -284,7 +294,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                     {errors.email && <p className="text-xs mt-0.5 text-(--sale)">{errors.email}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{L.labelPickup} <span className="text-(--sale)">*</span></label>
+                    <label className="block text-xs text-gray-500 mb-1.5">{lbPickup} <span className="text-(--sale)">*</span></label>
                     <input
                       value={pickupDate}
                       onChange={e => { setPickupDate(e.target.value); setErrors(err => ({ ...err, pickupDate: '' })); }}

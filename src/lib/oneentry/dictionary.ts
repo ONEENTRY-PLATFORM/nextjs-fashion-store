@@ -42,6 +42,8 @@ export const DICTIONARY_SET_MARKERS = [
   // Layout chrome and shared UI
   'header',
   'footer',
+  'form_messages',
+  'llms_txt',
   'interface_controls',
   'product-card',
   'system_pages',

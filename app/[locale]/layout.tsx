@@ -104,6 +104,7 @@ export default async function RootLayout({
     subscribeForm,
     reviewFeedbackForm,
     reviewRatingForm,
+    reserveInStoreForm,
     cmsLocales,
   ] = await Promise.all([
     getDictionary(),
@@ -118,6 +119,7 @@ export default async function RootLayout({
     // newsletter form's copy for that subtree.
     loadFormContent('review_feedback'),
     loadFormContent('review_rating'),
+    loadFormContent('reserve_in_store'),
     loadLocales(),
   ]);
   return (
@@ -160,6 +162,7 @@ export default async function RootLayout({
             subscribe_new_drops: subscribeForm,
             review_feedback: reviewFeedbackForm,
             review_rating: reviewRatingForm,
+            reserve_in_store: reserveInStoreForm,
           }}
           cmsLocales={cmsLocales}
         >

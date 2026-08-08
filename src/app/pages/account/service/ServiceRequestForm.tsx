@@ -5,7 +5,7 @@ import type { ServiceCategory } from '../../../data/serviceData';
 import { SERVICE_LABELS as L_FALLBACK } from '../../../data/accountLabels';
 import { useDict } from '../../../../lib/oneentry/labels/DictContext';
 import { submitServiceRequestAction } from '../../../../lib/oneentry/catalog/service-request-submit-action';
-import { useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormLabel, useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
 
 const SERVICE_CATEGORY_LABELS: Record<ServiceCategory, string> = {
   alteration:  L_FALLBACK.categoryLabels.alteration,
@@ -27,6 +27,15 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Field labels and the submit caption belong to the form entity in OE, not
+  // to the `service_maintenance` system-text set. `SERVICE_LABELS` is the
+  // offline fallback.
+  const lbItem        = useFormLabel('service_request', 'item',                   L.labelItem);
+  const lbServiceType = useFormLabel('service_request', 'category',               L.labelServiceType);
+  const lbDate        = useFormLabel('service_request', 'date',                   L.labelDate);
+  const lbDescription = useFormLabel('service_request', 'description',            L.labelDescription);
+  const lbSubmit      = useFormLabel('service_request', 'service_request_submit', L.submitButton);
 
   const phItem        = useFormPlaceholder('service_request', 'item',        'placeholder_item',        L.placeholderItem);
   const phDescription = useFormPlaceholder('service_request', 'description', 'placeholder_description', L.placeholderDescription);
@@ -69,7 +78,7 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
       ) : (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
-            <label className={labelClass}>{L.labelItem}</label>
+            <label className={labelClass}>{lbItem}</label>
             <input
               required
               value={form.item}
@@ -79,7 +88,7 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className={labelClass}>{L.labelServiceType}</label>
+            <label className={labelClass}>{lbServiceType}</label>
             <select
               required
               value={form.category}
@@ -92,7 +101,7 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className={labelClass}>{L.labelDate}</label>
+            <label className={labelClass}>{lbDate}</label>
             <input
               type="date"
               value={form.date}
@@ -101,7 +110,7 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
             />
           </div>
           <div className="flex flex-col gap-1 sm:col-span-2">
-            <label className={labelClass}>{L.labelDescription}</label>
+            <label className={labelClass}>{lbDescription}</label>
             <textarea
               required
               rows={3}
@@ -122,7 +131,7 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
                 hovered ? 'bg-accent' : 'bg-black'
               }`}
             >
-              {isPending ? '...' : L.submitButton}
+              {isPending ? '...' : lbSubmit}
             </button>
           </div>
         </form>

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { SectionTitle, EditBtn, Field, FormInput } from '../shared';
-import { profileSchema } from '../../../utils/schemas';
+import { useSchemas, useFormMessages } from '../../../utils/useFormMessages';
 import { PERSONAL_INFO_LABELS as L_FALLBACK } from '../../../data/accountLabels';
 import { useDict } from '../../../../lib/oneentry/labels/DictContext';
 import { PERSONAL_INFO_SECTION_ARIA } from '../../../data/commonLabels';
@@ -13,6 +13,8 @@ const fieldLabel = 'block text-xs uppercase tracking-wide mb-1.5 font-semibold t
 
 export function PersonalInfoSection() {
   const L = useDict('user_account_personal_', L_FALLBACK);
+  const schemas = useSchemas();
+  const M = useFormMessages();
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,7 +33,7 @@ export function PersonalInfoSection() {
   if (!user) return null;
 
   const save = async () => {
-    const result = profileSchema.safeParse(form);
+    const result = schemas.profileSchema.safeParse(form);
     if (!result.success) {
       const next: Record<string, string> = {};
       for (const issue of result.error.issues) {
@@ -53,7 +55,7 @@ export function PersonalInfoSection() {
     });
     setSaving(false);
     if (!res.ok) {
-      setErrors({ firstName: res.error ?? 'Save failed' });
+      setErrors({ firstName: res.error ?? M.saveFailed });
       return;
     }
     setEditing(false);

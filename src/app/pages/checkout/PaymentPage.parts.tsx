@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { CreditCard, Lock } from 'lucide-react';
-import { paymentSchema } from '../../utils/schemas';
+import { useSchemas } from '../../utils/useFormMessages';
 import { PAYMENT_PARTS_LABELS as L } from '../../data/checkoutLabels';
 
 export type PayMethod =
@@ -70,12 +70,13 @@ export interface CardFormHandle {
 }
 
 export const CardForm = forwardRef<CardFormHandle>(function CardForm(_, ref) {
+  const schemas = useSchemas();
   const [form, setForm] = useState({ cardNumber: '', nameOnCard: '', expiry: '', cvv: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useImperativeHandle(ref, () => ({
     validate: () => {
-      const result = paymentSchema.safeParse(form);
+      const result = schemas.paymentSchema.safeParse(form);
       if (!result.success) {
         const errs: Record<string, string> = {};
         for (const issue of result.error.issues) {

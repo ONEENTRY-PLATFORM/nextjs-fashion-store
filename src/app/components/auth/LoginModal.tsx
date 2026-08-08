@@ -6,7 +6,7 @@ import { TIMINGS } from '../../constants/timings';
 import { X, Eye, EyeOff, Mail } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePathname } from 'next/navigation';
-import { loginSchema } from '../../utils/schemas';
+import { useSchemas } from '../../utils/useFormMessages';
 import { LOGIN_MODAL_LABELS as L } from '../../data/authLabels';
 import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
@@ -42,6 +42,7 @@ function SocialBtn({
 }
 
 export function LoginModal() {
+  const schemas = useSchemas();
   const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth, authError, setAuthError } = useAuth();
   const lTitle      = useT('sign_in_title',          L.title);
   const lOr         = useT('sign_in_or',             L.dividerOr);
@@ -91,7 +92,7 @@ export function LoginModal() {
   if (!loginModalOpen) return null;
 
   const handleLogin = async () => {
-    const result = loginSchema.safeParse({ input: input.trim(), password });
+    const result = schemas.loginSchema.safeParse({ input: input.trim(), password });
     if (!result.success) {
       setError(result.error.issues[0].message);
       return;

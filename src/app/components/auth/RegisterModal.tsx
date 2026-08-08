@@ -5,7 +5,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePathname } from 'next/navigation';
-import { registerSchema } from '../../utils/schemas';
+import { useSchemas } from '../../utils/useFormMessages';
 import { REGISTER_MODAL_LABELS as L } from '../../data/authLabels';
 import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
@@ -59,6 +59,7 @@ function Checkbox({ checked, onChange, children, testId }: {
 }
 
 export function RegisterModal() {
+  const schemas = useSchemas();
   const { registerModalOpen, closeRegisterModal, openLoginModal, signUp, login, startGoogleOAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -100,7 +101,7 @@ export function RegisterModal() {
   if (!registerModalOpen) return null;
 
   const handleRegister = async () => {
-    const result = registerSchema.safeParse({
+    const result = schemas.registerSchema.safeParse({
       firstName: firstName.trim(),
       email: email.trim(),
       password,

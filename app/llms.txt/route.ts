@@ -5,7 +5,10 @@ import {
   DELIVERY_MIN_DAYS, DELIVERY_MAX_DAYS,
   OFFER_CATALOGUE,
 } from '../../src/app/data/seoData';
-import { LLMS_TXT_COPY as L } from '../../src/app/data/llmsTextLabels';
+import { LLMS_TXT_COPY, LLMS_TXT_PREFIX } from '../../src/app/data/llmsTextLabels';
+import { fillTokens } from '../../src/app/utils/fillTokens';
+import { getDictionary } from '../../src/lib/oneentry/dictionary';
+import { mergeDict } from '../../src/lib/oneentry/labels/dict';
 import { loadProducts } from '../../src/lib/oneentry/catalog/products';
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';
 import { INFO_PAGE_META } from '../../src/app/data/infoPages';
@@ -17,6 +20,9 @@ export async function GET() {
   // Pull the aggregated OE catalog for an accurate SKU count — variants are
   // collapsed so a "product family" counts once, matching what the shopper sees.
   const oeCatalog = await loadProducts({ unique: true, limit: 5000 });
+  // Route Handlers have no `[locale]` segment, so the locale is passed
+  // explicitly; `LLMS_TXT_COPY` stays the fallback for anything unset in OE.
+  const L = mergeDict(await getDictionary(DEFAULT_LOCALE), LLMS_TXT_PREFIX, LLMS_TXT_COPY);
   const productCount = oeCatalog.total;
   // Route Handlers sit outside `app/[locale]` and cannot read root params, so
   // the locale is passed explicitly. `/llms.txt` is a single canonical document
@@ -28,7 +34,7 @@ export async function GET() {
 
 > ${SITE_DESCRIPTION}
 
-${L.brandIntroTpl(SITE_NAME, CURRENCY, FREE_SHIPPING_THRESHOLD, RETURN_WINDOW_DAYS)}
+${fillTokens(L.brandIntro, { site: SITE_NAME, currency: CURRENCY, threshold: FREE_SHIPPING_THRESHOLD, returnDays: RETURN_WINDOW_DAYS })}
 
 ${L.sectionShopCategories}
 
@@ -36,21 +42,21 @@ ${OFFER_CATALOGUE.map((c) => `- [${c.name}](${SITE_URL}${c.url})`).join('\n')}
 
 ${L.sectionProductCatalogue}
 
-${L.catalogueNoteTpl(productCount)}
+${fillTokens(L.catalogueNote, { count: productCount })}
 
 ${L.individualProductPagesLabel} \`${SITE_URL}/product/{id}\`
 ${L.sitemapLabel} [${SITE_URL}/sitemap.xml](${SITE_URL}/sitemap.xml)
 
 ${L.sectionDelivery}
 
-${L.deliveryBullets.free(FREE_SHIPPING_THRESHOLD)}
-${L.deliveryBullets.standard(DELIVERY_MIN_DAYS, DELIVERY_MAX_DAYS)}
-${L.deliveryBullets.returns(RETURN_WINDOW_DAYS)}
-${L.deliveryBullets.returnMethods}
+${fillTokens(L.deliveryFree, { threshold: FREE_SHIPPING_THRESHOLD })}
+${fillTokens(L.deliveryStandard, { min: DELIVERY_MIN_DAYS, max: DELIVERY_MAX_DAYS })}
+${fillTokens(L.deliveryReturns, { days: RETURN_WINDOW_DAYS })}
+${L.deliveryReturnMethods}
 
 ${L.sectionStores}
 
-${L.storesIntroTpl(SITE_NAME, stores.length, storeCities)}
+${fillTokens(L.storesIntro, { site: SITE_NAME, count: stores.length, cities: storeCities })}
 
 ${stores.map((s) => `- **${s.name}** — ${s.address}, ${s.city} ${s.postcode} · [Map](${s.mapUrl})`).join('\n')}
 

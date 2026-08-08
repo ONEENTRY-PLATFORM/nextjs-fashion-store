@@ -6,7 +6,8 @@ import { SectionTitle, FormInput } from '../shared';
 import { ADDRESSES_LABELS as L } from '../../../data/accountLabels';
 import { ADDRESSES_SECTION_ARIA } from '../../../data/commonLabels';
 import { useT } from '../../../../lib/oneentry/labels/DictContext';
-import { useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormLabel, useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormMessages } from '../../../utils/useFormMessages';
 
 type AddrForm = {
   name: string;
@@ -23,6 +24,7 @@ const primaryBtn = 'px-5 py-2 text-white text-xs tracking-wider uppercase focus-
 const secondaryBtn = 'px-5 py-2 text-xs tracking-wider uppercase focus-visible:outline-none hover:bg-gray-50 border border-[#d1d5db] rounded-none';
 
 export function AddressesSection() {
+  const M = useFormMessages();
   const { user, updateAddresses } = useAuth();
   const addresses = user?.addresses ?? [];
   const [mode, setMode] = useState<'idle' | 'add' | string>('idle');
@@ -33,6 +35,17 @@ export function AddressesSection() {
   const lAdd         = useT('user_addresses_system_add_cta',         L.add);
   const lSave        = useT('user_addresses_system_save_cta',        L.save);
   const lCancel      = useT('user_addresses_system_cancel_cta',      L.cancel);
+
+  // Labels come from the form's own attribute titles — the field copy belongs
+  // to the form entity in OE, not to a system-text set. `ADDRESSES_LABELS`
+  // stays the offline fallback.
+  const lbLabel        = useFormLabel('user_addresses', 'user_addresses_lable',                L.labelLabel);
+  const lbFullName     = useFormLabel('user_addresses', 'user_addresses_recipient_name',       L.labelFullName);
+  const lbPhone        = useFormLabel('user_addresses', 'user_addresses_recipient_phone',      L.labelPhone);
+  const lbAddressLine1 = useFormLabel('user_addresses', 'user_addresses_line_1',               L.labelAddressLine1);
+  const lbCity         = useFormLabel('user_addresses', 'user_addresses_city',                 L.labelCity);
+  const lbPostalCode   = useFormLabel('user_addresses', 'user_addresses_post_code',            L.labelPostalCode);
+  const lbInstructions = useFormLabel('user_addresses', 'user_addresses_special_instructions', L.labelInstructions);
 
   const phLabel        = useFormPlaceholder('user_addresses', 'user_addresses_lable',                'placeholder_label',                L.placeholderLabel);
   const phFullName     = useFormPlaceholder('user_addresses', 'user_addresses_recipient_name',       'placeholder_name',                 L.placeholderFullName);
@@ -80,7 +93,7 @@ export function AddressesSection() {
           : x);
     const res = await updateAddresses(next);
     if (!res.ok) {
-      setErrors({ fullName: res.error ?? 'Save failed' });
+      setErrors({ fullName: res.error ?? M.saveFailed });
       return;
     }
     setMode('idle');
@@ -111,16 +124,16 @@ export function AddressesSection() {
     <div className="p-4 space-y-3 border border-black">
       <p className="text-xs uppercase tracking-wide font-bold text-[#555]">{heading}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <FormInput label={L.labelLabel} value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder={phLabel} />
-        <FormInput label={L.labelFullName} value={form.fullName} onChange={patch('fullName')} placeholder={phFullName} error={errors.fullName} />
-        <FormInput label={L.labelPhone} type="tel" value={form.phone} onChange={patch('phone')} placeholder={phPhone} error={errors.phone} />
+        <FormInput label={lbLabel} value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder={phLabel} />
+        <FormInput label={lbFullName} value={form.fullName} onChange={patch('fullName')} placeholder={phFullName} error={errors.fullName} />
+        <FormInput label={lbPhone} type="tel" value={form.phone} onChange={patch('phone')} placeholder={phPhone} error={errors.phone} />
         <div className="sm:col-span-2">
-          <FormInput label={L.labelAddressLine1} value={form.line1} onChange={patch('line1')} placeholder={phAddressLine1} error={errors.line1} />
+          <FormInput label={lbAddressLine1} value={form.line1} onChange={patch('line1')} placeholder={phAddressLine1} error={errors.line1} />
         </div>
-        <FormInput label={L.labelCity} value={form.city} onChange={patch('city')} placeholder={phCity} error={errors.city} />
-        <FormInput label={L.labelPostalCode} value={form.postcode} onChange={patch('postcode')} placeholder={phPostalCode} error={errors.postcode} />
+        <FormInput label={lbCity} value={form.city} onChange={patch('city')} placeholder={phCity} error={errors.city} />
+        <FormInput label={lbPostalCode} value={form.postcode} onChange={patch('postcode')} placeholder={phPostalCode} error={errors.postcode} />
         <div className="sm:col-span-2">
-          <FormInput label={L.labelInstructions} value={form.instructions} onChange={v => setForm(f => ({ ...f, instructions: v }))} placeholder={phInstructions} />
+          <FormInput label={lbInstructions} value={form.instructions} onChange={v => setForm(f => ({ ...f, instructions: v }))} placeholder={phInstructions} />
         </div>
       </div>
       <div className="flex gap-2 pt-1">
