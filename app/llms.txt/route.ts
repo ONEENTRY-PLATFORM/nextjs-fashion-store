@@ -1,21 +1,10 @@
 import { INFO_PAGE_META } from '@/app/data/infoPages';
 import { LLMS_TXT_COPY, LLMS_TXT_PREFIX } from '@/app/data/llmsTextLabels';
-import {
-  CURRENCY,
-  DELIVERY_MAX_DAYS,
-  DELIVERY_MIN_DAYS,
-  FREE_SHIPPING_THRESHOLD,
-  OFFER_CATALOGUE,
-  ORG_SOCIALS,
-  RETURN_WINDOW_DAYS,
-  SITE_DESCRIPTION,
-  SITE_NAME,
-  SITE_URL,
-} from '@/app/data/seoData';
+import { OFFER_CATALOGUE, SITE_URL } from '@/app/data/seoData';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { loadProducts } from '@/lib/oneentry/catalog/products';
 import { loadStores } from '@/lib/oneentry/catalog/stores';
-import { getDictionary } from '@/lib/oneentry/dictionary';
+import { getDictionary, getSiteSettings } from '@/lib/oneentry/dictionary';
 import { mergeDict } from '@/lib/oneentry/labels/dict';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 
@@ -28,6 +17,10 @@ export async function GET() {
   // Route Handlers have no `[locale]` segment, so the locale is passed
   // explicitly; `LLMS_TXT_COPY` stays the fallback for anything unset in OE.
   const L = mergeDict(await getDictionary(DEFAULT_LOCALE), LLMS_TXT_PREFIX, LLMS_TXT_COPY);
+  // Brand name, delivery terms and social profiles are editor-owned. The
+  // numbers quoted here must be the same ones the product pages put in their
+  // structured data, which is exactly why they now share one source.
+  const { brand, commerce, currency, socials } = await getSiteSettings(DEFAULT_LOCALE);
   const productCount = oeCatalog.total;
   // Route Handlers sit outside `app/[locale]` and cannot read root params, so
   // the locale is passed explicitly. `/llms.txt` is a single canonical document
@@ -35,11 +28,16 @@ export async function GET() {
   const stores = await loadStores(DEFAULT_LOCALE);
   const storeCities = [...new Set(stores.map((s) => s.city))].join(', ');
 
-  const content = `# ${SITE_NAME}
+  const content = `# ${brand.siteName}
 
-> ${SITE_DESCRIPTION}
+> ${brand.siteDescription}
 
-${fillTokens(L.brandIntro, { site: SITE_NAME, currency: CURRENCY, threshold: FREE_SHIPPING_THRESHOLD, returnDays: RETURN_WINDOW_DAYS })}
+${fillTokens(L.brandIntro, {
+  site: brand.siteName,
+  currency: currency.code,
+  threshold: commerce.freeShippingThreshold,
+  returnDays: commerce.returnWindowDays,
+})}
 
 ${L.sectionShopCategories}
 
@@ -54,14 +52,14 @@ ${L.sitemapLabel} [${SITE_URL}/sitemap.xml](${SITE_URL}/sitemap.xml)
 
 ${L.sectionDelivery}
 
-${fillTokens(L.deliveryFree, { threshold: FREE_SHIPPING_THRESHOLD })}
-${fillTokens(L.deliveryStandard, { min: DELIVERY_MIN_DAYS, max: DELIVERY_MAX_DAYS })}
-${fillTokens(L.deliveryReturns, { days: RETURN_WINDOW_DAYS })}
+${fillTokens(L.deliveryFree, { threshold: commerce.freeShippingThreshold })}
+${fillTokens(L.deliveryStandard, { min: commerce.deliveryMinDays, max: commerce.deliveryMaxDays })}
+${fillTokens(L.deliveryReturns, { days: commerce.returnWindowDays })}
 ${L.deliveryReturnMethods}
 
 ${L.sectionStores}
 
-${fillTokens(L.storesIntro, { site: SITE_NAME, count: stores.length, cities: storeCities })}
+${fillTokens(L.storesIntro, { site: brand.siteName, count: stores.length, cities: storeCities })}
 
 ${stores.map((s) => `- **${s.name}** — ${s.address}, ${s.city} ${s.postcode} · [Map](${s.mapUrl})`).join('\n')}
 
@@ -75,7 +73,7 @@ ${Object.entries(INFO_PAGE_META)
 
 ${L.sectionSocial}
 
-${Object.entries(ORG_SOCIALS)
+${Object.entries(socials)
   .map(([platform, url]) => `- ${platform.charAt(0).toUpperCase() + platform.slice(1)}: ${url}`)
   .join('\n')}
 

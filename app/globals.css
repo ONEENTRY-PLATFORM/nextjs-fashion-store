@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..600;1,14..32,300..600&display=swap');
+/* Inter is loaded by `next/font/google` in `app/[locale]/layout.tsx`, which
+   self-hosts the files and exposes the family as `--font-inter`. It used to be
+   a remote `@import` on this line — Tailwind v4 strips those from the built
+   CSS, so no request was ever made and the whole storefront rendered in the
+   system sans while every component asked for Inter. */
 @import 'tailwindcss' source(none);
 @import 'tw-animate-css';
 
@@ -63,6 +67,9 @@
 }
 
 @theme inline {
+  /* `font-sans` resolves to the self-hosted Inter, with the platform stack
+     behind it for the first paint and for a build made without network. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -109,7 +116,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
   }
 
   html {

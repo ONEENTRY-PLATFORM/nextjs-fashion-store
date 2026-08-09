@@ -19,6 +19,36 @@ import { loadPageByUrl } from './pages';
  * @param canonical - The route's canonical URL.
  * @returns hreflang map, or `undefined`.
  */
+/**
+ * Reduce a canonical to a site-relative path.
+ *
+ * Accepts a bare path (`/cart`), a URL on this origin, **and** a URL on some
+ * other origin — the last one on purpose. Every OE page is a page of this
+ * storefront, so an absolute canonical typed into the admin panel names this
+ * page whatever host it carries; when the deployment moved to a new domain,
+ * those stale absolute values matched no origin, hreflang silently vanished
+ * from every route and each page pointed its canonical at a host that no longer
+ * answers. Keeping only the path makes the value survive a domain change.
+ *
+ * @param   href - Raw canonical from the CMS or the coded fallback.
+ * @returns        A path starting with `/`, or `null` when unusable.
+ */
+function toSitePath(href: string): string | null {
+  const raw = href.trim();
+  if (!raw) return null;
+  if (raw.startsWith(SITE_URL)) return raw.slice(SITE_URL.length) || '/';
+  if (raw.startsWith('/')) return raw;
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const { pathname, search } = new URL(raw);
+      return `${pathname}${search}` || '/';
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 function languagesFor(canonical: NonNullable<Metadata['alternates']>['canonical']): Record<string, string> | undefined {
   if (!canonical) return undefined;
   // `canonical` may be a bare string/URL or an `AlternateLinkDescriptor`
@@ -26,8 +56,8 @@ function languagesFor(canonical: NonNullable<Metadata['alternates']>['canonical'
   const raw = typeof canonical === 'object' && 'url' in canonical ? canonical.url : canonical;
   if (!raw) return undefined;
   const href = typeof raw === 'string' ? raw : raw.toString();
-  const path = href.startsWith(SITE_URL) ? href.slice(SITE_URL.length) || '/' : href;
-  if (!path.startsWith('/')) return undefined;
+  const path = toSitePath(href);
+  if (!path) return undefined;
   return buildLanguageAlternates(SITE_URL, path);
 }
 
@@ -61,11 +91,11 @@ export async function withCmsSeo(pageUrl: string, fallback: Metadata, langArg?: 
    * `seoData.ts` are written unprefixed, and the OE `canonical` attribute is one
    * value shared by every translation of the page. Left alone, `/de/cart` would
    * name `/cart` as its canonical — which asks Google to drop the German page
-   * from the index entirely. External URLs are left untouched.
+   * from the index entirely.
    */
   const localizeCanonical = (raw: string): string => {
-    const path = raw.startsWith(SITE_URL) ? raw.slice(SITE_URL.length) || '/' : raw;
-    if (!path.startsWith('/')) return raw;
+    const path = toSitePath(raw);
+    if (!path) return raw;
     const localized = localizeHref(path, short);
     return `${SITE_URL}${localized === '/' ? '' : localized}`;
   };

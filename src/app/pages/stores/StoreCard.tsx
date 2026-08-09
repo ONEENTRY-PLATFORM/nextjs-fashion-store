@@ -31,7 +31,7 @@ export function StoreCard({ store }: { store: Store }) {
   }, [modalOpen, closeModal]);
 
   return (
-    <div className="flex flex-col bg-white font-[Inter,sans-serif] outline-1 outline-black">
+    <div className="flex flex-col bg-white font-sans outline-1 outline-black">
       {/* Image */}
       <div className="relative aspect-16/9 overflow-hidden bg-gray-100">
         {store.image && (
@@ -110,7 +110,7 @@ export function StoreCard({ store }: { store: Store }) {
 
       {/* ── Modal ── */}
       {modalOpen && (
-        <div className="fixed inset-0 z-500 flex items-center justify-center p-4 font-[Inter,sans-serif]">
+        <div className="fixed inset-0 z-500 flex items-center justify-center p-4 font-sans">
           <div className="absolute inset-0 bg-black/55 backdrop-blur-[6px]" onClick={closeModal} />
 
           <div className="relative z-1 flex max-h-[90vh] w-full max-w-195 flex-col overflow-hidden bg-white outline-1 outline-black md:flex-row">

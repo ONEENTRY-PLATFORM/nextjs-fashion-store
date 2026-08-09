@@ -6,24 +6,24 @@ Grouped by purpose. Every entry lists file, exports, and which components/hooks/
 
 ## 1. Page routing
 
-| File | Exports | Consumers |
-|---|---|---|
-| `pageRegistry.ts` | `PAGE_REGISTRY: Record<pathSlug, PageEntry>` | `app/[...slug]/page.tsx`, `app/sitemap.ts` |
-| `infoPages.ts` | `INFO_PAGES` (title / description / keywords per info slug) | `InfoPage`, `generateMetadata` for `/[...slug]` |
+| File                                                                                                                         | Exports                                                     | Consumers                                       |
+| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
+| `pageRegistry.ts`                                                                                                            | `PAGE_REGISTRY: Record<pathSlug, PageEntry>`                | `app/[...slug]/page.tsx`, `app/sitemap.ts`      |
+| `infoPages.ts`                                                                                                               | `INFO_PAGES` (title / description / keywords per info slug) | `InfoPage`, `generateMetadata` for `/[...slug]` |
 | `pageRegistry.ts` also declares catalog entries with `catalogKey`, `pageMarker` (used to fetch content from OE) and SEO key. |
 
 ## 2. Numeric id conversion helpers
 
-| File | Exports | Consumers |
-|---|---|---|
+| File                    | Exports                              | Consumers                                             |
+| ----------------------- | ------------------------------------ | ----------------------------------------------------- |
 | `cms-product-id-map.ts` | `getCmsProductId(id: string): number | null`, `getPlaygroundProductId(cmsId: number): string | null` | `CartContext`, `WishlistContext`, `track-activity`, checkout `createOrderAction` body builder |
 
 The static mapping table (`CMS_PRODUCT_ID_MAP` / `REVERSE_CMS_PRODUCT_ID_MAP`) has been removed. Both helpers now do pure string↔number conversion: `getCmsProductId` parses a decimal string to a number, and `getPlaygroundProductId` stringifies a finite number. All UI item ids are already OneEntry numeric ids stored as strings.
 
 ## 3. User mock shape
 
-| File | Exports | Consumers |
-|---|---|---|
+| File          | Exports                                                                                                                                                                         | Consumers                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `userData.ts` | Type contracts only: `LoyaltyStatus`, `Gender`, `LoyaltyCard`, `UserAddress`, `UserOrder`, `WishlistItem`, `HistoryOrder`, `WaitingItem`, `UserDataset`, and related interfaces | `userSlice`, `AuthContext`, Storybook stories, page components |
 
 The `USER_DATASET` fixture (Jane Smith mock profile), `USER_SLICE_MESSAGES`, and the `credentials` / `UserCredentials` fields have been **removed**. `userData.ts` is now a pure type-contract module — no runtime data.
@@ -32,21 +32,21 @@ Real user data comes exclusively from `AuthContext.user` (populated by `getCurre
 
 ## 4. Checkout configuration
 
-| File | Exports | Consumers |
-|---|---|---|
-| `checkoutConfig.ts` | `PICKUP_STORES`, `PARCEL_LOCKERS`, `DELIVERY_TIME_SLOTS`, `DELIVERY_PERKS`, `PICKUP_PERKS` — **all fallbacks**: stores come from `loadStores`, lockers from `loadParcelLockers` (`checkout_home_delivery` form), slots from `loadDeliverySchedule` | `DeliveryPage`, `PaymentPage`, `DeliveryOrderSummary`, `CartPage` |
-| `paymentMethodsConfig.ts` | `PAYMENT_PAGE_LABELS` (page chrome + trust badges, all read through `useT('checkout_payment', …)`), `WALLET_BUTTON_LABELS`. `PAYMENT_METHODS_COPY` was **deleted** — method names/descriptions render straight from the OE accounts (`getPaymentAccountsAction`) and the local copy had no reader | `PaymentPage` |
-| `currencyConfig.ts` | `CURRENCY = {code:'USD', symbol:'$', fmt, stripTrailingZeros}` frozen object, plus re-exports `fmt`, `stripTrailingZeros` | Every price render (`ProductCard`, `MiniCart`, `CartPage`, `PaymentPage`, `ConfirmationPage`, `PriceRangeSlider.CURRENCY.formatInteger` etc.) |
+| File                      | Exports                                                                                                                                                                                                                                                                                           | Consumers                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkoutConfig.ts`       | `PICKUP_STORES`, `PARCEL_LOCKERS`, `DELIVERY_TIME_SLOTS`, `DELIVERY_PERKS`, `PICKUP_PERKS` — **all fallbacks**: stores come from `loadStores`, lockers from `loadParcelLockers` (`checkout_home_delivery` form), slots from `loadDeliverySchedule`                                                | `DeliveryPage`, `PaymentPage`, `DeliveryOrderSummary`, `CartPage`                                                                             |
+| `paymentMethodsConfig.ts` | `PAYMENT_PAGE_LABELS` (page chrome + trust badges, all read through `useT('checkout_payment', …)`), `WALLET_BUTTON_LABELS`. `PAYMENT_METHODS_COPY` was **deleted** — method names/descriptions render straight from the OE accounts (`getPaymentAccountsAction`) and the local copy had no reader | `PaymentPage`                                                                                                                                 |
+| `currencyConfig.ts`       | `CURRENCY = {code:'USD', symbol:'$', fmt, stripTrailingZeros}` frozen object, plus re-exports `fmt`, `stripTrailingZeros`                                                                                                                                                                         | Every price render (`ProductCard`, `MiniCart`, `CartPage`, `PaymentPage`, `ConfirmationPage`, `PriceRangeSlider.CURRENCY.formatInteger` etc.) |
 
 Pickup stores and parcel lockers now come from OneEntry — `loadStores()` for the store picker, `loadParcelLockers()` (the `checkout_home_delivery` form, probing the `parcel_locker` / `locker_list` / `lockers` / `locker` attribute markers) for the locker dropdown. Both fall back to the `checkoutConfig.ts` literals when the tenant has no such data, so Storybook and bare unit renders keep working. All coupon validation — on both the Delivery step and the `/cart` promo entry — goes through OE via `previewOrderAction` (see [CHECKOUT.md §2.4](./CHECKOUT.md#24-coupons-7)); no client-side mock remains.
 
 ## 5. Header, footer, navigation
 
-| File | Exports | Consumers |
-|---|---|---|
-| `headerConfig.ts` | Regions, languages, support phone, logo alt, gender nav hrefs | `Header`, `HeaderTopBar` |
-| `footerConfig.ts` | Footer link groups (`FOOTER_LINKS`) + legal links (`BOTTOM_LINKS`) — **both are fallbacks now**; primary source is the OE `footer` menu (see below). Payment / social / support / company constants are still static. | `Footer` |
-| `categories.ts` | `MEGA_DATA` (women/men taxonomy fallback used only if OE menu load fails) | `HeaderMegaMenu` (fallback path) |
+| File              | Exports                                                                                                                                                                                                               | Consumers                        |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `headerConfig.ts` | Regions, languages, support phone, logo alt, gender nav hrefs                                                                                                                                                         | `Header`, `HeaderTopBar`         |
+| `footerConfig.ts` | Footer link groups (`FOOTER_LINKS`) + legal links (`BOTTOM_LINKS`) — **both are fallbacks now**; primary source is the OE `footer` menu (see below). Payment / social / support / company constants are still static. | `Footer`                         |
+| `categories.ts`   | `MEGA_DATA` (women/men taxonomy fallback used only if OE menu load fails)                                                                                                                                             | `HeaderMegaMenu` (fallback path) |
 
 `categories.ts` is a **fallback** — primary source is the OneEntry `Menus` API via `src/lib/oneentry/menus/`.
 
@@ -54,23 +54,23 @@ The single OE `footer` menu drives both halves of the footer navigation, split b
 
 ## 6. Homepage / catalog metadata
 
-| File | Exports | Consumers |
-|---|---|---|
-| `sectionTitles.ts` | Eyebrow / title / subtitle / view-all config for homepage carousels | `HomePage` sections |
-| `promoBlocks.ts` | `PromoItem` type only — `PROMO_ITEMS` array removed; live data comes from OneEntry `homepage-collections` via prop `initialItems` | `PromoBlock` (type reference) |
-| `newArrivalsConfig.ts` | New Arrivals sort options + category filters | `NewArrivalsPage`, `NewArrivalsHero` |
-| `saleConfig.ts` | Sale end date + category filters | `SalePage`, `SaleHero`, `SaleCountdown` |
-| `sizeGuide.ts` | Women's clothing size chart | `SizeGuideModal`, `QuickViewSizeGuide` |
+| File                   | Exports                                                                                                                           | Consumers                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `sectionTitles.ts`     | Eyebrow / title / subtitle / view-all config for homepage carousels                                                               | `HomePage` sections                     |
+| `promoBlocks.ts`       | `PromoItem` type only — `PROMO_ITEMS` array removed; live data comes from OneEntry `homepage-collections` via prop `initialItems` | `PromoBlock` (type reference)           |
+| `newArrivalsConfig.ts` | New Arrivals sort options + category filters                                                                                      | `NewArrivalsPage`, `NewArrivalsHero`    |
+| `saleConfig.ts`        | Sale end date + category filters                                                                                                  | `SalePage`, `SaleHero`, `SaleCountdown` |
+| `sizeGuide.ts`         | Women's clothing size chart                                                                                                       | `SizeGuideModal`, `QuickViewSizeGuide`  |
 
 Most homepage content is fetched from OneEntry Blocks (see [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) §5.1) — these files carry static layout / labels / config that is not (yet) CMS-driven.
 
 ## 7. Product page & catalog data
 
-| File | Exports | Consumers |
-|---|---|---|
+| File                | Exports                                                                                                                                                             | Consumers                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `productCatalog.ts` | `Product` and PDP-specific interfaces (`CatalogProduct`, `SizeOption`, `ProductSpec`, `ProductReview`, `PdpProductVariant`) — type-only for the transitional period | Storybook, tests, occasional fallback where OE data is missing |
-| `specialOffers.ts` | Bundle / offer interface types (data deprecated) | `ProductSpecialOffers` (types only) |
-| `serviceData.ts` | Types only — `SERVICE_REQUESTS` array removed; live data comes from OneEntry `FormData` API (form `service_request`) via `getServiceRequestsAction()` | `ServiceMaintenanceSection` (type reference) |
+| `specialOffers.ts`  | Bundle / offer interface types (data deprecated)                                                                                                                    | `ProductSpecialOffers` (types only)                            |
+| `serviceData.ts`    | Types only — `SERVICE_REQUESTS` array removed; live data comes from OneEntry `FormData` API (form `service_request`) via `getServiceRequestsAction()`               | `ServiceMaintenanceSection` (type reference)                   |
 
 The concrete product arrays that lived in this folder (`women-clothing.ts`, `men-shoes.ts`, etc.) have all been removed — catalog listings now come from OneEntry Products API.
 
@@ -82,35 +82,35 @@ The concrete product arrays that lived in this folder (`women-clothing.ts`, `men
 
 Local label constants used as fallbacks when the corresponding OneEntry label context is missing (e.g. Storybook stories, or during the SSR/CSR bridge on cold start).
 
-| File | Domain |
-|---|---|
-| `commonLabels.ts` | Shared widgets (price range, qty control, carousel, mini-cart aria) |
-| `cartLabels.ts` | Mini-cart + cart page |
-| `favoritesLabels.ts` | Favourites page — every string is now read through `useFavoritesPageT(key, fallback)` against the OE `favorites_page` set (page chrome, empty state and card badges alike), so this file only supplies the offline defaults |
-| `accountLabels.ts` | Account sections (profile, addresses, orders, loyalty, security, preferences) |
-| `authLabels.ts` | Sign-in + registration |
-| `productPageLabels.ts` | Product detail + quick-view |
-| `catalogPageLabels.ts` | Catalog / filter UI |
-| `checkoutLabels.ts` | Checkout copy |
-| `infoPageLabels.ts` | Info page section copy |
-| `errorPageLabels.ts` | 404 / 500 / offline |
-| `notFoundLabels.ts` | 404 page |
-| `offlinePageLabels.ts` | Offline SW state |
-| `confirmationLabels.ts` | Order confirmation |
-| `newArrivalsLabels.ts` | New Arrivals |
-| `salePageLabels.ts` | Sale page (categories / discounts / colors / sort) |
-| `storesLabels.ts` | Store locator |
-| `llmsTextLabels.ts` | Content for `/llms.txt` |
-| `validationMessages.ts` | Form validation error messages |
+| File                    | Domain                                                                                                                                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commonLabels.ts`       | Shared widgets (price range, qty control, carousel, mini-cart aria)                                                                                                                                                         |
+| `cartLabels.ts`         | Mini-cart + cart page                                                                                                                                                                                                       |
+| `favoritesLabels.ts`    | Favourites page — every string is now read through `useFavoritesPageT(key, fallback)` against the OE `favorites_page` set (page chrome, empty state and card badges alike), so this file only supplies the offline defaults |
+| `accountLabels.ts`      | Account sections (profile, addresses, orders, loyalty, security, preferences)                                                                                                                                               |
+| `authLabels.ts`         | Sign-in + registration                                                                                                                                                                                                      |
+| `productPageLabels.ts`  | Product detail + quick-view                                                                                                                                                                                                 |
+| `catalogPageLabels.ts`  | Catalog / filter UI                                                                                                                                                                                                         |
+| `checkoutLabels.ts`     | Checkout copy                                                                                                                                                                                                               |
+| `infoPageLabels.ts`     | Info page section copy                                                                                                                                                                                                      |
+| `errorPageLabels.ts`    | 404 / 500 / offline                                                                                                                                                                                                         |
+| `notFoundLabels.ts`     | 404 page                                                                                                                                                                                                                    |
+| `offlinePageLabels.ts`  | Offline SW state                                                                                                                                                                                                            |
+| `confirmationLabels.ts` | Order confirmation                                                                                                                                                                                                          |
+| `newArrivalsLabels.ts`  | New Arrivals                                                                                                                                                                                                                |
+| `salePageLabels.ts`     | Sale page (categories / discounts / colors / sort)                                                                                                                                                                          |
+| `storesLabels.ts`       | Store locator                                                                                                                                                                                                               |
+| `llmsTextLabels.ts`     | Content for `/llms.txt`                                                                                                                                                                                                     |
+| `validationMessages.ts` | Form validation error messages                                                                                                                                                                                              |
 
 Primary source of these labels is the OneEntry AttributesSets → the 12 label loaders under `src/lib/oneentry/labels/**` (see [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) §5.4).
 
 ## 9. SEO & metadata
 
-| File | Exports | Consumers |
-|---|---|---|
-| `seoData.ts` | `SITE`, `SEO` metadata per route, `PRODUCT_DEFAULTS` (aggregate rating / offer / shipping), `DEFAULT_SPECS`, `DEFAULT_REVIEWS`, `OFFER_CATALOG_ITEMS` | `layout.tsx`, `app/**/page.tsx` metadata exports, JSON-LD renderers |
-| `infoPages.ts` | Info page metadata (title / description / keywords) | Info page `generateMetadata` |
+| File           | Exports                                                                                                                                               | Consumers                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `seoData.ts`   | `SITE`, `SEO` metadata per route, `PRODUCT_DEFAULTS` (aggregate rating / offer / shipping), `DEFAULT_SPECS`, `DEFAULT_REVIEWS`, `OFFER_CATALOG_ITEMS` | `layout.tsx`, `app/**/page.tsx` metadata exports, JSON-LD renderers |
+| `infoPages.ts` | Info page metadata (title / description / keywords)                                                                                                   | Info page `generateMetadata`                                        |
 
 `seoData.ts` still contains the JSON-LD source of truth — currency (`USD`, matching `currencyConfig.ts`), shipping thresholds, return window, delivery range, Twitter handle. See [SEO_OPTIMIZATION.md](./SEO_OPTIMIZATION.md).
 
@@ -118,8 +118,8 @@ Primary source of these labels is the OneEntry AttributesSets → the 12 label l
 
 ## 10. Content
 
-| File | Exports | Consumers |
-|---|---|---|
+| File        | Exports                                                                         | Consumers                                                                                |
+| ----------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `stores.ts` | `Store` type + `DEFAULT_STORE_SCHEMA` (LocalBusiness JSON-LD) + mock store list | `StoreLocationsPage` (mock fallback), `stores.ts` OneEntry loader (adapts to same shape) |
 
 Stores are primarily served from OneEntry — this file is fallback + schema helper.
@@ -141,67 +141,77 @@ If a component still imports from one of these paths, that's an unfinished migra
 
 ## 12. Migration status matrix
 
-| Domain | Source of truth | Notes |
-|---|---|---|
-| Hero slides | OE Blocks (`hero_slider`) | ✅ live |
-| Homepage collections | OE Blocks (`homepage_collections`) | ✅ live |
-| Discount banner | OE Blocks (`discount_banner`) | ✅ live |
-| Category section | OE Blocks (`category_section`) | ✅ live |
-| Homepage product carousels | OE Blocks (`best_sellers` etc.) | ✅ live |
-| Catalog product lists | OE `Products.getAll` / `vector/search` | ✅ live |
-| Filter option values | OE catalog filter (`loadCatalogFilter`, marker = `catalogKey` with `_`) | ✅ live — `app/[...slug]/page.tsx:327-330` |
-| Seasonal trend landings | OE Pages attributes `st_type-of-trends` + `st_trends` via `seasonal-trend.ts` | ✅ live |
-| Sort options | Local config → passed as `sortKey` to OE | ✅ live |
-| Product detail | OE `Products.getProductById` + form-data reviews | ✅ live |
-| Info pages | OE page (`loadPageByUrl`) — body blocks, plus `meta_*` / `canonical` for SEO | ✅ live (`infoPageLabels.ts` is the chrome fallback) |
-| Header / footer menus | OE `Menus.getMenusByMarker` | ✅ live (categories.ts is fallback) |
-| Footer link columns + legal links | OE `footer` menu via `menus/adapt-footer.ts` | ✅ live (`FOOTER_LINKS` / `BOTTOM_LINKS` are fallbacks) |
-| Footer branding (blurb / phone / copyright / support cards / social hrefs) | OE `footer` system-text set via `useFooterT` | ✅ live (`footerConfig.ts` is the fallback) |
-| Payment method icon list (`PAYMENT_METHOD_NAMES`) | `footerConfig.ts` | ❌ static by design — the names key the SVG assets in `public/icons/payment/` |
-| Header branding config | OE `header` system-text set via `useHeaderT` | ✅ live (`headerConfig.ts` is the fallback) |
-| Catalog chrome (gender / category titles, breadcrumbs) | OE `catalog_page` set via `useCatalogPageT` | ✅ live (`catalogPageLabels.ts` is the fallback) |
-| Homepage section chrome (eyebrow / subtitle / view-all link) | The OE block's own `attributeValues` via `blocks/section-chrome.ts` | ✅ live (`sectionTitles.ts` is the fallback) |
-| Info page routing | OE page lookup (`resolveInfoPageSlug`) with the static `INFO_SLUGS` registry as the fast path | ✅ live — a page created in OE resolves without a deploy |
-| Reserve-in-store branches | `loadStores()` (OE `stores` page tree) | ✅ live — per-branch stock badges removed, OE has no branch inventory |
-| Parcel lockers | `loadParcelLockers()` (`checkout_home_delivery` form) | ✅ live (`PARCEL_LOCKERS` is the fallback) |
-| Payment methods | OE payment accounts (`getPaymentAccountsAction`) | ✅ live — local per-method copy deleted |
-| Favorites page copy | OE `favorites_page` set via `useFavoritesPageT` | ✅ live (`favoritesLabels.ts` is the fallback) |
-| FAQ structured data | Derived from the rendered OE `info_section_*` blocks | ✅ live (no static source) |
-| Auth / session | OE `AuthProvider` + cookies | ✅ live |
-| Cart / wishlist per user | OE user state + `syncCart` / `syncWishlist` | ✅ live |
-| Payment accounts | OE `Payments.getAccounts` | ✅ live |
-| Order creation | OE `orders-storage/marker/{marker}/orders` | ✅ live |
-| Reviews | OE form-data (`review_feedback` + `review_rating`) | ✅ live |
-| Service requests | OE form-data (`service_request`) | ✅ live |
-| Waiting list | OE wishlist + product stock inference | ✅ live |
-| Stores locator | OE Pages child pages | ✅ live |
-| Labels (product-card, checkout, PDP, sign-in, etc.) | OE AttributesSets — 12 sets | ✅ live |
-| System text (eyebrows, section headings) | OE `getAttributeSetByMarker` (`system-text.ts`) | ✅ live |
-| Sign-up form schema | OE AttributesSet `users_sign_in_sign_up` | ✅ live |
-| Locale-aware content | Single-locale (`en_US`); every fetcher accepts `lang` | ⚠ single locale for now |
-| Analytics tracking | OE `user-activity/track` | ✅ live |
-| Coupons (checkout Delivery step) | OE `previewOrder` — server-validated + priced | ✅ live |
-| Coupons (`/cart` promo entry) | OE `previewOrder` via `CartContext.applyCoupon` | ✅ live |
-| Product-level `salePrice` (storefront discount overlay) | OE Discounts module — `loadProductDiscounts` + `applyProductDiscount` in `src/lib/oneentry/discounts/product-discount.ts`; applied in `fetchFullCatalog` and `loadProductById` | ✅ live |
-| Pickup stores + parcel lockers | `loadStores()` / `loadParcelLockers()` | ✅ live (`checkoutConfig.ts` is the fallback) — duplicate of the row above, kept for the search term |
+| Domain                                                                                                | Source of truth                                                                                                                                                                | Notes                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero slides                                                                                           | OE Blocks (`hero_slider`)                                                                                                                                                      | ✅ live                                                                                                                                                             |
+| Homepage collections                                                                                  | OE Blocks (`homepage_collections`)                                                                                                                                             | ✅ live                                                                                                                                                             |
+| Discount banner                                                                                       | OE Blocks (`discount_banner`)                                                                                                                                                  | ✅ live                                                                                                                                                             |
+| Category section                                                                                      | OE Blocks (`category_section`)                                                                                                                                                 | ✅ live                                                                                                                                                             |
+| Homepage product carousels                                                                            | OE Blocks (`best_sellers` etc.)                                                                                                                                                | ✅ live                                                                                                                                                             |
+| Catalog product lists                                                                                 | OE `Products.getAll` / `vector/search`                                                                                                                                         | ✅ live                                                                                                                                                             |
+| Filter option values                                                                                  | OE catalog filter (`loadCatalogFilter`, marker = `catalogKey` with `_`)                                                                                                        | ✅ live — `app/[...slug]/page.tsx:327-330`                                                                                                                          |
+| Seasonal trend landings                                                                               | OE Pages attributes `st_type-of-trends` + `st_trends` via `seasonal-trend.ts`                                                                                                  | ✅ live                                                                                                                                                             |
+| Sort options                                                                                          | Local config → passed as `sortKey` to OE                                                                                                                                       | ✅ live                                                                                                                                                             |
+| Product detail                                                                                        | OE `Products.getProductById` + form-data reviews                                                                                                                               | ✅ live                                                                                                                                                             |
+| Info pages                                                                                            | OE page (`loadPageByUrl`) — body blocks, plus `meta_*` / `canonical` for SEO                                                                                                   | ✅ live (`infoPageLabels.ts` is the chrome fallback)                                                                                                                |
+| Header / footer menus                                                                                 | OE `Menus.getMenusByMarker`                                                                                                                                                    | ✅ live (categories.ts is fallback)                                                                                                                                 |
+| Footer link columns + legal links                                                                     | OE `footer` menu via `menus/adapt-footer.ts`                                                                                                                                   | ✅ live (`FOOTER_LINKS` / `BOTTOM_LINKS` are fallbacks)                                                                                                             |
+| Footer branding (blurb / phone / copyright / support cards / social hrefs)                            | OE `footer` system-text set via `useFooterT`                                                                                                                                   | ✅ live (`footerConfig.ts` is the fallback)                                                                                                                         |
+| Payment method icon list (`PAYMENT_METHOD_NAMES`)                                                     | `footerConfig.ts`                                                                                                                                                              | ❌ static by design — the names key the SVG assets in `public/icons/payment/`                                                                                       |
+| Header branding config                                                                                | OE `header` system-text set via `useHeaderT`                                                                                                                                   | ✅ live (`headerConfig.ts` is the fallback)                                                                                                                         |
+| Catalog chrome (gender / category titles, breadcrumbs)                                                | OE `catalog_page` set via `useCatalogPageT`                                                                                                                                    | ✅ live (`catalogPageLabels.ts` is the fallback)                                                                                                                    |
+| Homepage section chrome (eyebrow / subtitle / view-all link)                                          | The OE block's own `attributeValues` via `blocks/section-chrome.ts`                                                                                                            | ✅ live (`sectionTitles.ts` is the fallback)                                                                                                                        |
+| Info page routing                                                                                     | OE page lookup (`resolveInfoPageSlug`) with the static `INFO_SLUGS` registry as the fast path                                                                                  | ✅ live — a page created in OE resolves without a deploy                                                                                                            |
+| Reserve-in-store branches                                                                             | `loadStores()` (OE `stores` page tree)                                                                                                                                         | ✅ live — per-branch stock badges removed, OE has no branch inventory                                                                                               |
+| Parcel lockers                                                                                        | `loadParcelLockers()` (`checkout_home_delivery` form)                                                                                                                          | ✅ live (`PARCEL_LOCKERS` is the fallback)                                                                                                                          |
+| Payment methods                                                                                       | OE payment accounts (`getPaymentAccountsAction`)                                                                                                                               | ✅ live — local per-method copy deleted                                                                                                                             |
+| Favorites page copy                                                                                   | OE `favorites_page` set via `useFavoritesPageT`                                                                                                                                | ✅ live (`favoritesLabels.ts` is the fallback)                                                                                                                      |
+| FAQ structured data                                                                                   | Derived from the rendered OE `info_section_*` blocks                                                                                                                           | ✅ live (no static source)                                                                                                                                          |
+| Auth / session                                                                                        | OE `AuthProvider` + cookies                                                                                                                                                    | ✅ live                                                                                                                                                             |
+| Cart / wishlist per user                                                                              | OE user state + `syncCart` / `syncWishlist`                                                                                                                                    | ✅ live                                                                                                                                                             |
+| Payment accounts                                                                                      | OE `Payments.getAccounts`                                                                                                                                                      | ✅ live                                                                                                                                                             |
+| Order creation                                                                                        | OE `orders-storage/marker/{marker}/orders`                                                                                                                                     | ✅ live                                                                                                                                                             |
+| Reviews                                                                                               | OE form-data (`review_feedback` + `review_rating`)                                                                                                                             | ✅ live                                                                                                                                                             |
+| Service requests                                                                                      | OE form-data (`service_request`)                                                                                                                                               | ✅ live                                                                                                                                                             |
+| Waiting list                                                                                          | OE wishlist + product stock inference                                                                                                                                          | ✅ live                                                                                                                                                             |
+| Stores locator                                                                                        | OE Pages child pages                                                                                                                                                           | ✅ live                                                                                                                                                             |
+| Labels (product-card, checkout, PDP, sign-in, etc.)                                                   | OE AttributesSets — 12 sets                                                                                                                                                    | ✅ live                                                                                                                                                             |
+| System text (eyebrows, section headings)                                                              | OE `getAttributeSetByMarker` (`system-text.ts`)                                                                                                                                | ✅ live                                                                                                                                                             |
+| Sign-up form schema                                                                                   | OE AttributesSet `users_sign_in_sign_up`                                                                                                                                       | ✅ live                                                                                                                                                             |
+| Locale-aware content                                                                                  | Single-locale (`en_US`); every fetcher accepts `lang`                                                                                                                          | ⚠ single locale for now                                                                                                                                             |
+| Analytics tracking                                                                                    | OE `user-activity/track`                                                                                                                                                       | ✅ live                                                                                                                                                             |
+| Coupons (checkout Delivery step)                                                                      | OE `previewOrder` — server-validated + priced                                                                                                                                  | ✅ live                                                                                                                                                             |
+| Coupons (`/cart` promo entry)                                                                         | OE `previewOrder` via `CartContext.applyCoupon`                                                                                                                                | ✅ live                                                                                                                                                             |
+| Product-level `salePrice` (storefront discount overlay)                                               | OE Discounts module — `loadProductDiscounts` + `applyProductDiscount` in `src/lib/oneentry/discounts/product-discount.ts`; applied in `fetchFullCatalog` and `loadProductById` | ✅ live                                                                                                                                                             |
+| Pickup stores + parcel lockers                                                                        | `loadStores()` / `loadParcelLockers()`                                                                                                                                         | ✅ live (`checkoutConfig.ts` is the fallback) — duplicate of the row above, kept for the search term                                                                |
+| Brand identity (name, description, X handle)                                                          | OE `site_settings` set via `getSiteSettings()` / `useSiteSettings()`                                                                                                           | ✅ live (`SITE_SETTINGS_FALLBACK` is the fallback)                                                                                                                  |
+| Currency (code + symbol)                                                                              | OE `site_settings` → `configureCurrency()`                                                                                                                                     | ✅ live — `currencyConfig.ts` holds the `$`/USD default only                                                                                                        |
+| Commerce terms (free-delivery threshold, shipping price, return window, delivery country + lead time) | OE `site_settings`                                                                                                                                                             | ✅ live — the same numbers now feed `llms.txt`, Organization and Product JSON-LD                                                                                    |
+| Social profiles (`sameAs`)                                                                            | OE `site_settings` → `socials`                                                                                                                                                 | ✅ live — a blanked field removes the network                                                                                                                       |
+| Brand palette                                                                                         | OE `site_settings` → `--brand-*` custom properties on `<html>`                                                                                                                 | ✅ live (`constants/colors.ts` now emits `var()` references)                                                                                                        |
+| Referral programme (credit, minimum purchase, expiry)                                                 | OE `site_settings` → `referral`                                                                                                                                                | ✅ live — a zero credit hides the reward banner; per-shopper stats have no source and were removed                                                                  |
+| PWA name / categories, share-image copy                                                               | OE `site_settings`                                                                                                                                                             | ✅ live                                                                                                                                                             |
+| Catalog category routes                                                                               | OE page tree via `loadCatalogRoutes()` / `resolveCatalogRoute()`                                                                                                               | ✅ live — a category added in OE resolves without a deploy, rendered by `CmsCatalogPage`; `PAGE_REGISTRY` keeps the eight shipped ones and their bespoke components |
+| Canonical origin (`SITE_URL`)                                                                         | `NEXT_PUBLIC_SITE_URL` env, then Vercel's production host                                                                                                                      | ❌ deployment-owned by design — an editor must not be able to repoint every canonical                                                                               |
+| Typeface                                                                                              | `next/font` (self-hosted Inter), exposed as Tailwind `font-sans`                                                                                                               | ❌ code-owned — was a remote `@import` Tailwind v4 stripped, so no font loaded at all                                                                               |
 
 ## 12a. Per-route SEO — now CMS-first
 
 `generateMetadata` on every storefront route runs its local `SEO.*` entry through `withCmsSeo(pageUrl, fallback)` (`src/lib/oneentry/catalog/page-seo.ts`), which overlays `meta_title` / `meta_description` / `meta_keywords` / `canonical` from the matching OneEntry page and propagates the overrides into `openGraph` / `twitter`. A blank attribute counts as "not set", so a half-filled page keeps the coded copy for the rest.
 
-| Route | OE page |
-|---|---|
-| `/` | `home` |
-| `/cart` | `cart` |
-| `/account` | `account` |
-| `/favorites` | `favorites` |
-| `/new` | `new` |
-| `/sale` | `sale` |
-| `/stores` | `stores` |
-| `/checkout/delivery` | `delivery_method` |
-| `/checkout/payment` | `payment` |
-| `/checkout/confirmation` | `confirmation` |
-| `/{slug}` (info pages) | the page itself — handled inline in `app/[...slug]/page.tsx` |
+| Route                    | OE page                                                      |
+| ------------------------ | ------------------------------------------------------------ |
+| `/`                      | `home`                                                       |
+| `/cart`                  | `cart`                                                       |
+| `/account`               | `account`                                                    |
+| `/favorites`             | `favorites`                                                  |
+| `/new`                   | `new`                                                        |
+| `/sale`                  | `sale`                                                       |
+| `/stores`                | `stores`                                                     |
+| `/checkout/delivery`     | `delivery_method`                                            |
+| `/checkout/payment`      | `payment`                                                    |
+| `/checkout/confirmation` | `confirmation`                                               |
+| `/{slug}` (info pages)   | the page itself — handled inline in `app/[...slug]/page.tsx` |
 
 `cart` and `delivery_method` had no attribute set at all and were given the shared `forPages` template; `sale`, `new` and `stores` had sets without SEO fields, so the four `meta_*` attributes were added to those sets. `seoData.ts` stays as the offline fallback and still owns robots, OG images and JSON-LD.
 

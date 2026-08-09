@@ -1,26 +1,52 @@
 import type { Metadata } from 'next';
 
+import { SITE_SETTINGS_FALLBACK } from '@/lib/oneentry/site-settings';
+
 // ─── Site-wide defaults ────────────────────────────────────────────────────
-export const SITE_NAME = 'Kekimoro';
-export const SITE_DESCRIPTION =
-  'Premium fashion for men and women. Curated collections, fast worldwide delivery and easy returns.';
-export const SITE_URL = 'https://oneentry-fashion.com';
+// The brand name below is the **offline fallback**, re-exported from the one
+// place that owns the shipped defaults so the two cannot drift. Live values
+// come from the OE `site_settings` set — metadata builders and JSON-LD read it
+// through `getSiteSettings()`. The per-page `SEO` objects further down are
+// build-time literals, so they interpolate the fallback; `withCmsSeo` overlays
+// the editor's `meta_*` on top of them at request time.
+//
+// `SITE_DESCRIPTION`, `TWITTER_HANDLE`, `ORG_SOCIALS`, `CURRENCY`,
+// `FREE_SHIPPING_THRESHOLD`, `RETURN_WINDOW_DAYS`, `DELIVERY_*`,
+// `PWA_MANIFEST_COPY` and `OG_IMAGE_COPY` used to live here as well. They are
+// now fields of `SITE_SETTINGS_FALLBACK` and were removed rather than
+// re-exported: a second name for the same value is how the numbers Google
+// reads drifted away from the ones checkout enforces in the first place.
+export const SITE_NAME = SITE_SETTINGS_FALLBACK.brand.siteName;
+
+/**
+ * The origin every canonical, `hreflang`, sitemap entry, `robots.txt` `host`
+ * and OG URL is built from.
+ *
+ * Deployment-owned, **not** admin-owned: an editor must not be able to point
+ * the whole site's canonicals at another domain from the CMS, and the value is
+ * needed by `robots.ts` / `sitemap.ts`, which run before any CMS read. It is
+ * read from `NEXT_PUBLIC_SITE_URL`, falling back to Vercel's own production
+ * host, and only then to the literal below.
+ *
+ * Only `NEXT_PUBLIC_*` vars are consulted on purpose: the constant is imported
+ * by modules that end up in the client bundle, and a server-only var would
+ * resolve to `undefined` there and produce two different canonicals for the
+ * same page. `NEXT_PUBLIC_VERCEL_URL` is deliberately *not* consulted either —
+ * it names the individual deployment (a hashed preview host), and a canonical
+ * pointing at one would compete with the production page in the index.
+ */
+export const SITE_URL = ((): string => {
+  const clean = (v: string) => v.trim().replace(/\/+$/, '');
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit && explicit.trim().length > 0) return clean(explicit);
+  const productionHost = process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL;
+  if (productionHost && productionHost.trim().length > 0) {
+    return `https://${clean(productionHost).replace(/^https?:\/\//, '')}`;
+  }
+  return 'https://oneentry-next-fashion.vercel.app';
+})();
+
 const BASE = SITE_URL;
-
-// ─── Currency & Twitter handle ─────────────────────────────────────────────
-// Kept in sync with `currencyConfig.ts` — SEO / JSON-LD used to advertise
-// GBP while the storefront actually formatted every price with `$` (USD),
-// which trips Google Merchant / Facebook Catalog feed validation. Align
-// to what the shopper actually sees.
-export const CURRENCY = 'USD';
-export const TWITTER_HANDLE = '@KekimoroFashion';
-
-// ─── Shipping & returns ────────────────────────────────────────────────────
-export const FREE_SHIPPING_THRESHOLD = 50; // $50+ = free delivery
-export const RETURN_WINDOW_DAYS = 28;
-export const DELIVERY_COUNTRY = 'GB';
-export const DELIVERY_MIN_DAYS = 2;
-export const DELIVERY_MAX_DAYS = 5;
 
 // ─── Offer catalogue (used in Organization schema + llms.txt) ─────────────
 export const OFFER_CATALOGUE = [
@@ -36,16 +62,6 @@ export const OFFER_CATALOGUE = [
   { name: 'New Arrivals', url: '/new' },
 ] as const;
 
-// ─── Organisation contact & social data ───────────────────────────────────
-export const ORG_SOCIALS = {
-  instagram: 'https://www.instagram.com/oneentryfashion',
-  twitter: 'https://www.twitter.com/KekimoroFashion',
-  facebook: 'https://www.facebook.com/oneentryfashion',
-  youtube: 'https://www.youtube.com/@oneentryfashion',
-  tiktok: 'https://www.tiktok.com/@oneentryfashion',
-  pinterest: 'https://www.pinterest.com/oneentryfashion',
-};
-
 // ─── Shared OpenGraph image ────────────────────────────────────────────────
 export const OG_IMAGE = {
   url: '/og-image.jpg',
@@ -53,19 +69,6 @@ export const OG_IMAGE = {
   height: 630,
   alt: 'Kekimoro – Premium clothing, shoes and accessories',
 };
-
-// ─── PWA manifest copy ─────────────────────────────────────────────────────
-export const PWA_MANIFEST_COPY = {
-  shortName: 'Kekimoro',
-  categories: ['shopping', 'fashion', 'lifestyle'] as string[],
-} as const;
-
-// ─── OG image rendered banner copy ─────────────────────────────────────────
-export const OG_IMAGE_COPY = {
-  brand: 'Kekimoro',
-  subLabel: 'FASHION',
-  tagline: 'Premium Collections · Men & Women',
-} as const;
 
 // ─── Schema.org day name mapping ──────────────────────────────────────────
 export const SCHEMA_DAYS = {
@@ -102,7 +105,8 @@ export const SCHEMA_BREADCRUMBS = {
 // ─── Product page metadata copy ───────────────────────────────────────────
 export const PRODUCT_META_COPY = {
   fallbackDescription: 'Premium quality fashion item.',
-  shippingNote: 'Free delivery on orders over $50.',
+  /** Currency symbol and threshold come from the CMS commerce settings. */
+  shippingNoteTpl: (symbol: string, threshold: number) => `Free delivery on orders over ${symbol}${threshold}.`,
   keywordBuyOnline: 'buy online',
   twitterPriceLabel: 'Price',
   twitterAvailLabel: 'Availability',
@@ -110,9 +114,8 @@ export const PRODUCT_META_COPY = {
   inStock: 'In Stock',
   specCompositionLabel: 'Composition',
   specMaterialLabel: 'Material',
-  displaySymbol: '$',
-  pricedAsTpl: (sale: string | number | undefined, price: string | number) =>
-    sale ? `$${sale} (was $${price})` : `$${price}`,
+  pricedAsTpl: (symbol: string, sale: string | number | undefined, price: string | number) =>
+    sale ? `${symbol}${sale} (was ${symbol}${price})` : `${symbol}${price}`,
   buyTpl: (name: string, brand: string, price: string) => `Buy ${name} by ${brand} for ${price}.`,
   notFoundTitleTpl: (siteName: string) => `Product Not Found | ${siteName}`,
 } as const;

@@ -114,7 +114,7 @@ export function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove:
 
   return (
     <div
-      className="group relative flex cursor-pointer flex-col bg-white font-[Inter,sans-serif] outline-1 outline-black"
+      className="group relative flex cursor-pointer flex-col bg-white font-sans outline-1 outline-black"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
@@ -150,7 +150,7 @@ export function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove:
           className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-none bg-white/90 transition-all duration-200 hover:bg-white focus-visible:outline-none"
           aria-label={aRemove}
         >
-          <Heart size={16} fill={ACCENT} stroke={ACCENT} className="transition-colors duration-200" />
+          <Heart size={16} style={{ fill: ACCENT, stroke: ACCENT }} className="transition-colors duration-200" />
         </button>
 
         {/* Hover overlay — Add to Cart + Quick View */}

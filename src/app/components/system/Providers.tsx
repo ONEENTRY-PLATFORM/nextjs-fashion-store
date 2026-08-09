@@ -8,6 +8,7 @@ import { CartUnavailableNotice } from '@/app/components/cart/CartUnavailableNoti
 import { ErrorBoundary } from '@/app/components/ui/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/app/context/AuthContext';
 import { OAUTH_ERROR_LABELS } from '@/app/data/authLabels';
+import { configureCurrency } from '@/app/data/currencyConfig';
 import { type AppStore, loadCatalogFromStorage, makeStore } from '@/app/store';
 import { type CatalogsState, hydrateCatalogs } from '@/app/store/catalogSlice';
 import { useRouter } from '@/lib/i18n/navigation';
@@ -22,6 +23,8 @@ import { LocalesProvider } from '@/lib/oneentry/LocalesContext';
 import { FooterMenuProvider } from '@/lib/oneentry/menus/FooterMenuContext';
 import { HeaderMenuProvider } from '@/lib/oneentry/menus/HeaderMenuContext';
 import type { MenuPageNode } from '@/lib/oneentry/menus/menus';
+import { parseSiteSettings } from '@/lib/oneentry/site-settings';
+import { SiteSettingsProvider } from '@/lib/oneentry/SiteSettingsContext';
 
 import { PageViewTracker } from './PageViewTracker';
 import { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar';
@@ -133,6 +136,19 @@ export function Providers({
   // re-run render without side effects).
   const [store] = useState<AppStore>(() => makeStore());
 
+  // Settings are derived from the same dictionary the labels use, so they cost
+  // no extra request. `configureCurrency` runs here rather than in an effect on
+  // purpose: the plain price formatters in `currencyConfig` are called during
+  // the render of components below this one, and an effect fires after that
+  // render — the first paint would use the shipped symbol and then swap, which
+  // is a visible flicker on every price on the page. The call is idempotent and
+  // derived purely from props, so re-running render re-runs it harmlessly.
+  const siteSettings = useMemo(() => {
+    const parsed = parseSiteSettings(dict);
+    configureCurrency(parsed.currency);
+    return parsed;
+  }, [dict]);
+
   useEffect(() => {
     const catalog = loadCatalogFromStorage();
     if (catalog) {
@@ -150,12 +166,13 @@ export function Providers({
         <WishlistSyncEffect />
         <PageViewTracker />
         <DictProvider data={dict}>
-          <LocalesProvider data={cmsLocales}>
-            <FooterMenuProvider columns={footerColumnsMenu} legal={footerMenu}>
-              <HeaderMenuProvider data={headerMenu}>
-                <SignUpFormSchemaProvider data={signUpFormSchema}>
-                  <FormPlaceholdersProvider forms={forms}>
-                    {/* `GoogleAuthErrorSurface` reads the dictionary, so it
+          <SiteSettingsProvider data={siteSettings}>
+            <LocalesProvider data={cmsLocales}>
+              <FooterMenuProvider columns={footerColumnsMenu} legal={footerMenu}>
+                <HeaderMenuProvider data={headerMenu}>
+                  <SignUpFormSchemaProvider data={signUpFormSchema}>
+                    <FormPlaceholdersProvider forms={forms}>
+                      {/* `GoogleAuthErrorSurface` reads the dictionary, so it
                          must sit *inside* `DictProvider` — mounted above it,
                          it silently rendered the offline fallbacks.
                          `useSearchParams()` inside it also opts the tree into
@@ -164,16 +181,17 @@ export function Providers({
                          with "missing-suspense-with-csr-bailout". The
                          component renders nothing — the fallback is
                          intentionally empty. */}
-                    <Suspense fallback={null}>
-                      <GoogleAuthErrorSurface />
-                    </Suspense>
-                    <CartUnavailableNotice />
-                    <ErrorBoundary>{children}</ErrorBoundary>
-                  </FormPlaceholdersProvider>
-                </SignUpFormSchemaProvider>
-              </HeaderMenuProvider>
-            </FooterMenuProvider>
-          </LocalesProvider>
+                      <Suspense fallback={null}>
+                        <GoogleAuthErrorSurface />
+                      </Suspense>
+                      <CartUnavailableNotice />
+                      <ErrorBoundary>{children}</ErrorBoundary>
+                    </FormPlaceholdersProvider>
+                  </SignUpFormSchemaProvider>
+                </HeaderMenuProvider>
+              </FooterMenuProvider>
+            </LocalesProvider>
+          </SiteSettingsProvider>
         </DictProvider>
       </AuthProvider>
     </Provider>

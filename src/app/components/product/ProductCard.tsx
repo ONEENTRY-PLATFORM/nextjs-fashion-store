@@ -508,11 +508,14 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
           className="absolute top-3 right-3 flex size-8 items-center justify-center bg-white/90 transition-all duration-200 hover:bg-white"
           aria-label={aAddToWishlist}
         >
+          {/* `style` rather than the `fill`/`stroke` attributes: the accent is
+              a `var()` reference to the CMS palette, and custom properties are
+              only reliably resolved in a CSS declaration — a presentation
+              attribute holding `var()` is not honoured everywhere. */}
           <Heart
             size={16}
             className="transition-colors duration-200"
-            fill={wishlisted ? accentColor : 'none'}
-            stroke={wishlisted ? accentColor : '#000'}
+            style={{ fill: wishlisted ? accentColor : 'none', stroke: wishlisted ? accentColor : '#000' }}
           />
         </button>
 

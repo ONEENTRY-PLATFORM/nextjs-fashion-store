@@ -76,7 +76,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
 
   return (
     <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
+      className="min-h-screen bg-white font-sans"
       style={
         {
           '--accent': ACCENT,

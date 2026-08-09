@@ -111,10 +111,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
   }, [clearCart]);
 
   return (
-    <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
-      style={{ '--accent': ACCENT } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
       <Header />
 
       <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">

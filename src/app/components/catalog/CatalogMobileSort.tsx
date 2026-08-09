@@ -25,7 +25,7 @@ export function CatalogMobileSort({ isOpen, onClose, sortBy, onSortChange }: Cat
 
   return (
     <div
-      className="fixed inset-0 z-60 flex flex-col justify-end font-[Inter,sans-serif] md:hidden"
+      className="fixed inset-0 z-60 flex flex-col justify-end font-sans md:hidden"
       style={{ '--accent': accentColor } as React.CSSProperties}
       onClick={onClose}
     >

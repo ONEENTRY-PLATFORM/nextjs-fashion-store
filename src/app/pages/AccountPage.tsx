@@ -152,7 +152,7 @@ export function AccountPage() {
       }
     })();
     return (
-      <div className="min-h-screen bg-white font-[Inter,sans-serif]">
+      <div className="min-h-screen bg-white font-sans">
         <Header />
         <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 pb-20 lg:px-8">
           <div className="mb-8 flex items-center justify-between border-b border-[#e5e7eb] pb-5">
@@ -188,7 +188,7 @@ export function AccountPage() {
   // Auth resolved, no user — show the sign-in prompt.
   if (!user) {
     return (
-      <div className="min-h-screen bg-white font-[Inter,sans-serif]">
+      <div className="min-h-screen bg-white font-sans">
         <Header />
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6">
           <User size={56} strokeWidth={1} className="text-gray-300" />
@@ -255,7 +255,7 @@ export function AccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-[Inter,sans-serif]">
+    <div className="min-h-screen bg-white font-sans">
       <Header />
 
       <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 pb-20 lg:px-8">

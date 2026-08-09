@@ -377,14 +377,15 @@ export const REFER_LABELS = {
   eyebrow: 'Exclusive Offer',
   bannerHeadingTpl: (amount: string) => `Give ${amount}, Get ${amount}`,
   bannerBodyPrefix: 'Invite a friend to KEKIMORO. When they place their first order, you both receive a ',
-  bannerBodyCreditPrefix: CURRENCY.symbol,
+  // The currency symbol is not copy — it is rendered from the configured
+  // currency at the call site, so a shop that switches to € does not have to
+  // remember to reword this label too.
   bannerBodyCreditSuffix: ' store credit',
   bannerBodySuffix: '.',
   perReferral: 'per referral',
-  // Stats
-  statFriendsInvited: 'Friends Invited',
-  statOrdersPlaced: 'Orders Placed',
-  statCreditsEarned: 'Credits Earned',
+  // The `statFriendsInvited` / `statOrdersPlaced` / `statCreditsEarned` labels
+  // were dropped with the stats row they titled: nothing on this tenant counts
+  // referrals, so the row could only render fixed zeros.
   // Link
   linkLabel: 'Your Referral Link',
   copyLink: 'Copy Link',

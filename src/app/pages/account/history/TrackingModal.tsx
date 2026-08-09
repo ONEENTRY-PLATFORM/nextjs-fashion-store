@@ -30,7 +30,7 @@ export function TrackingModal({ trackingNo, orderNo, onClose }: TrackingModalPro
   return (
     <div className="fixed inset-0 z-500 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white font-[Inter,sans-serif]">
+      <div className="relative w-full max-w-md bg-white font-sans">
         <div className="flex items-center justify-between border-b border-[#e5e7eb] px-6 py-5">
           <div>
             <p className="mb-0.5 text-[10px] tracking-[0.25em] text-gray-400 uppercase">

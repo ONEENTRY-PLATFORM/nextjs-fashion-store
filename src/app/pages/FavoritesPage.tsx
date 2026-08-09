@@ -162,7 +162,7 @@ export function FavoritesPage({
 
   return (
     <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
+      className="min-h-screen bg-white font-sans"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
     >
       <Header />

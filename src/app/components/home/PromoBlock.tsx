@@ -37,7 +37,7 @@ function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boo
           hovered ? '-translate-y-2' : 'translate-y-0'
         }`}
       >
-        <h3 className="leading-1.15 mb-2 text-center font-[Inter,sans-serif] text-[clamp(1.75rem,3.5vw,2.75rem)] font-semibold text-white">
+        <h3 className="leading-1.15 mb-2 text-center font-sans text-[clamp(1.75rem,3.5vw,2.75rem)] font-semibold text-white">
           {item.title}
         </h3>
         <p className="mb-4 text-[0.8125rem] tracking-widest text-white/80 uppercase">{item.subtitle}</p>
@@ -84,7 +84,7 @@ export function PromoBlock({ initialItems }: { initialItems?: HomepageCollection
   }
 
   return (
-    <section className="w-full font-[Inter,sans-serif]">
+    <section className="w-full font-sans">
       <div className="grid grid-cols-1 gap-0 sm:grid-cols-2">
         {items.map((item, i) => (
           <PromoCard key={item.id} item={item} priority={i === 0} />

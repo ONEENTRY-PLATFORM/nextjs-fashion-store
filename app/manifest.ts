@@ -1,12 +1,24 @@
 import type { MetadataRoute } from 'next';
 
-import { PWA_MANIFEST_COPY, SITE_DESCRIPTION, SITE_NAME } from '@/app/data/seoData';
+import { getSiteSettings } from '@/lib/oneentry/dictionary';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 
-export default function manifest(): MetadataRoute.Manifest {
+/**
+ * Web app manifest.
+ *
+ * Async because the installed-app name and categories are editor-owned (OE
+ * `site_settings`). The route sits outside `app/[locale]`, so it cannot read
+ * root params and the locale is passed explicitly — an install banner is a
+ * single per-origin artefact, so the default locale is the right one.
+ *
+ * @returns The manifest served at `/manifest.webmanifest`.
+ */
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const { brand, pwa } = await getSiteSettings(DEFAULT_LOCALE);
   return {
-    name: SITE_NAME,
-    short_name: PWA_MANIFEST_COPY.shortName,
-    description: SITE_DESCRIPTION,
+    name: brand.siteName,
+    short_name: pwa.shortName,
+    description: brand.siteDescription,
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
@@ -26,6 +38,6 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any',
       },
     ],
-    categories: PWA_MANIFEST_COPY.categories,
+    categories: pwa.categories,
   };
 }

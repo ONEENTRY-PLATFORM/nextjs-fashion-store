@@ -96,7 +96,7 @@ export function CartItemRow({
               }`}
               aria-label={L.removeWishlist}
             >
-              <Heart size={14} fill={inWishlist ? ACCENT : 'none'} />
+              <Heart size={14} style={{ fill: inWishlist ? ACCENT : 'none' }} />
               <span className="hidden sm:inline">{L.wishlist}</span>
             </button>
             <button

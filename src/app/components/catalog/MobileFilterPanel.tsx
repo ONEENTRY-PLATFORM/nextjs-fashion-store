@@ -126,7 +126,7 @@ export function MobileFilterPanel({
 
   return (
     <div
-      className="fixed inset-0 z-60 flex flex-col bg-white font-[Inter,sans-serif]"
+      className="fixed inset-0 z-60 flex flex-col bg-white font-sans"
       style={{ '--accent': accentColor } as React.CSSProperties}
       role="dialog"
       aria-modal="true"

@@ -1,19 +1,7 @@
 import type { Metadata } from 'next';
 
 import { JsonLd } from '@/app/components/system/JsonLd';
-import {
-  CURRENCY,
-  DELIVERY_COUNTRY,
-  FREE_SHIPPING_THRESHOLD,
-  OFFER_CATALOGUE,
-  ORG_SCHEMA_COPY,
-  ORG_SOCIALS,
-  RETURN_WINDOW_DAYS,
-  SEO,
-  SITE_DESCRIPTION,
-  SITE_NAME,
-  SITE_URL,
-} from '@/app/data/seoData';
+import { OFFER_CATALOGUE, ORG_SCHEMA_COPY, SEO, SITE_URL } from '@/app/data/seoData';
 import type { Store } from '@/app/data/stores';
 import { HomePage } from '@/app/pages/HomePage';
 import { loadCategorySection } from '@/lib/oneentry/blocks/category-section';
@@ -24,6 +12,8 @@ import { HOME_PAGE_ID, loadPageBlocksById } from '@/lib/oneentry/blocks/page-blo
 import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadStores } from '@/lib/oneentry/catalog/stores';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getSiteSettings } from '@/lib/oneentry/dictionary';
+import type { SiteSettings } from '@/lib/oneentry/site-settings';
 
 /**
  * Title/description/keywords/canonical come from the OE `home` page when an
@@ -46,37 +36,51 @@ export async function generateMetadata(): Promise<Metadata> {
 // configuration export detected".
 export const revalidate = 300;
 
-function buildOrganizationSchema(flagship: Store | undefined) {
+/**
+ * `Organization` JSON-LD for the storefront.
+ *
+ * Every fact a crawler reads here — brand name, socials, accepted currency,
+ * delivery country, free-delivery threshold, return window — is editor-owned,
+ * so the rich result cannot drift away from what the shop actually offers.
+ * `ORG_SCHEMA_COPY` keeps only the wording that is not a fact (`contactType`,
+ * the "Collections" suffix, the shipping sentence template).
+ *
+ * @param   flagship - The store whose address and phone represent the brand.
+ * @param   settings - Resolved CMS settings.
+ * @returns            A schema.org Organization node.
+ */
+function buildOrganizationSchema(flagship: Store | undefined, settings: SiteSettings) {
+  const { brand, commerce, currency, org, socials } = settings;
   return {
     '@context': 'https://schema.org',
-    '@type': ORG_SCHEMA_COPY.schemaType,
-    name: SITE_NAME,
+    '@type': org.schemaType,
+    name: brand.siteName,
     url: SITE_URL,
     logo: `${SITE_URL}/og-image.jpg`,
-    description: SITE_DESCRIPTION,
-    sameAs: Object.values(ORG_SOCIALS),
-    areaServed: [DELIVERY_COUNTRY, ...ORG_SCHEMA_COPY.areaServed],
-    priceRange: ORG_SCHEMA_COPY.priceRange,
-    currenciesAccepted: CURRENCY,
-    paymentAccepted: ORG_SCHEMA_COPY.paymentAccepted,
-    knowsAbout: [...ORG_SCHEMA_COPY.knowsAbout],
+    description: brand.siteDescription,
+    sameAs: Object.values(socials),
+    areaServed: [commerce.deliveryCountry, ...org.areaServed],
+    priceRange: org.priceRange,
+    currenciesAccepted: currency.code,
+    paymentAccepted: org.paymentAccepted,
+    knowsAbout: [...org.knowsAbout],
     contactPoint: {
       '@type': 'ContactPoint',
       telephone: flagship?.phone ?? '',
       contactType: ORG_SCHEMA_COPY.contactType,
-      areaServed: DELIVERY_COUNTRY,
-      availableLanguage: ORG_SCHEMA_COPY.availableLanguage,
+      areaServed: commerce.deliveryCountry,
+      availableLanguage: org.availableLanguage,
     },
     address: {
       '@type': 'PostalAddress',
       streetAddress: flagship?.address ?? '',
       addressLocality: flagship?.city ?? '',
       postalCode: flagship?.postcode ?? '',
-      addressCountry: DELIVERY_COUNTRY,
+      addressCountry: commerce.deliveryCountry,
     },
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
-      name: `${SITE_NAME} ${ORG_SCHEMA_COPY.collectionsSuffix}`,
+      name: `${brand.siteName} ${ORG_SCHEMA_COPY.collectionsSuffix}`,
       itemListElement: OFFER_CATALOGUE.map((c) => ({
         '@type': 'OfferCatalog',
         name: c.name,
@@ -87,48 +91,60 @@ function buildOrganizationSchema(flagship: Store | undefined) {
       '@type': 'BuyAction',
       target: `${SITE_URL}/women/clothing`,
       description: ORG_SCHEMA_COPY.shippingDescriptionTpl(
-        DELIVERY_COUNTRY,
-        FREE_SHIPPING_THRESHOLD,
-        RETURN_WINDOW_DAYS,
+        commerce.deliveryCountry,
+        commerce.freeShippingThreshold,
+        commerce.returnWindowDays,
       ),
     },
   };
 }
 
-const websiteSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: SITE_NAME,
-  url: SITE_URL,
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: `${SITE_URL}/women/clothing?q={search_term_string}`,
+/**
+ * `WebSite` JSON-LD. A function rather than a constant so the brand name comes
+ * from the CMS read the page already performs.
+ *
+ * @param   siteName - Editor-owned brand name.
+ * @returns            A schema.org WebSite node.
+ */
+function buildWebsiteSchema(siteName: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteName,
+    url: SITE_URL,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${SITE_URL}/women/clothing?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
     },
-    'query-input': 'required name=search_term_string',
-  },
-};
+  };
+}
 
 export default async function Page() {
   // The slider loaders wrap their body in `unstable_cache`, where root params
   // are unreadable — so they cannot resolve the route locale themselves and it
   // has to be passed in. It also keys their cache entry per language.
   const lang = await currentCmsLocale();
-  const [heroSlides, promoItems, discountBanner, categorySection, pageBlocks, stores] = await Promise.all([
-    loadHeroSlides(lang),
-    loadHomepageCollections(lang),
-    loadDiscountBanner(lang),
-    loadCategorySection(lang),
-    // Drive the homepage's middle sections from whatever blocks the admin has
-    // attached to the OE Home page (id=1). Each marker is resolved to a block
-    // detail + product list, ordered by `position`. Adding/removing blocks in
-    // OE admin reshuffles the page without code changes.
-    loadPageBlocksById(HOME_PAGE_ID),
-    loadStores(),
-  ]);
+  const [heroSlides, promoItems, discountBanner, categorySection, pageBlocks, stores, siteSettings] = await Promise.all(
+    [
+      loadHeroSlides(lang),
+      loadHomepageCollections(lang),
+      loadDiscountBanner(lang),
+      loadCategorySection(lang),
+      // Drive the homepage's middle sections from whatever blocks the admin has
+      // attached to the OE Home page (id=1). Each marker is resolved to a block
+      // detail + product list, ordered by `position`. Adding/removing blocks in
+      // OE admin reshuffles the page without code changes.
+      loadPageBlocksById(HOME_PAGE_ID),
+      loadStores(),
+      getSiteSettings(lang),
+    ],
+  );
   const flagship = stores.find((s) => s.isflagship) ?? stores[0];
-  const organizationSchema = buildOrganizationSchema(flagship);
+  const organizationSchema = buildOrganizationSchema(flagship, siteSettings);
 
   // Temporary marker order override — OE admin currently has blocks in a
   // different sequence; remove this re-sort once the order is fixed in OE.
@@ -156,7 +172,7 @@ export default async function Page() {
   return (
     <>
       <JsonLd data={organizationSchema} />
-      <JsonLd data={websiteSchema} />
+      <JsonLd data={buildWebsiteSchema(siteSettings.brand.siteName)} />
       <HomePage
         initialHeroSlides={heroSlides}
         initialPromoItems={promoItems}

@@ -318,15 +318,17 @@ function buildProductSpecs(
  * Map a catalog slug (e.g. "women-clothing") to its OneEntry category path.
  */
 export function catalogKeyToCategoryPath(catalogKey: string): string | null {
-  const map: Record<string, string> = {
-    'women-clothing': '/women/women_clothing',
-    'women-shoes': '/women/women_shoes',
-    'women-bags': '/women/women_bags',
-    'women-accessories': '/women/women_accessories',
-    'men-clothing': '/men/men_clothing',
-    'men-shoes': '/men/men_shoes',
-    'men-bags': '/men/men_bags',
-    'men-accessories': '/men/men_accessories',
-  };
-  return map[catalogKey] ?? null;
+  // Derived, not looked up: OE names a category page `{parent}_{leaf}`
+  // (`women_clothing` under `women`), and the storefront key is that same url
+  // with hyphens. A table here meant a category added in the admin panel had no
+  // product query until someone shipped a ninth line — see
+  // `catalog-routes.ts`, which discovers the tree instead. A CMS-resolved route
+  // carries its own `categoryPath` and does not come through here at all.
+  // Shape-checked rather than membership-checked: OE page urls are lowercase
+  // `a-z0-9` segments, so anything else (an uppercase key, a stray path, an
+  // empty string) is a caller mistake and must not be turned into a plausible
+  // looking category path that quietly returns zero products.
+  const key = (catalogKey ?? '').trim();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(key)) return null;
+  return `/${key.slice(0, key.indexOf('-'))}/${key.replace(/-/g, '_')}`;
 }

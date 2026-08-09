@@ -24,7 +24,7 @@ export function HomePage({
   pageBlocks?: PageBlock[];
 }) {
   return (
-    <div className="min-h-screen bg-white font-[Inter,sans-serif]">
+    <div className="min-h-screen bg-white font-sans">
       <Header />
 
       <main id="main-content">

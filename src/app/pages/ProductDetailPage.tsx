@@ -641,7 +641,7 @@ export function ProductDetailPage({
 
   return (
     <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
+      className="min-h-screen bg-white font-sans"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
     >
       <Header />
@@ -976,7 +976,10 @@ export function ProductDetailPage({
                   }
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-3 text-xs tracking-widest uppercase transition-colors hover:border-black"
                 >
-                  <Heart size={14} fill={wishlisted ? ACCENT : 'none'} stroke={wishlisted ? ACCENT : '#000'} />
+                  <Heart
+                    size={14}
+                    style={{ fill: wishlisted ? ACCENT : 'none', stroke: wishlisted ? ACCENT : '#000' }}
+                  />
                   {wishlisted ? lSavedToWishlist : lSaveToWishlist}
                 </button>
               </div>

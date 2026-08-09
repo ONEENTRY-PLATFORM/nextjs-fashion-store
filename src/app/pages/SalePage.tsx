@@ -380,7 +380,7 @@ export function SalePage({
 
   return (
     <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
+      className="min-h-screen bg-white font-sans"
       style={{ '--sale': SALE_RED, '--accent': SALE_RED } as React.CSSProperties}
     >
       <Header />

@@ -53,7 +53,7 @@ export function CategorySection({
   const visibleCategories = categories.filter((cat) => cat.chip === activeFilter);
 
   return (
-    <section className="py-0 font-[Inter,sans-serif]">
+    <section className="py-0 font-sans">
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
         {/* Title */}
         <h2

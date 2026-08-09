@@ -82,7 +82,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
           </span>
         )}
       </div>
-      <div className="flex flex-1 flex-col justify-between p-5 font-[Inter,sans-serif] md:p-6">
+      <div className="flex flex-1 flex-col justify-between p-5 font-sans md:p-6">
         <div>
           <h3 className="mb-1.5 text-sm font-medium">{product.name}</h3>
           <div className="mb-3 flex items-center gap-2">

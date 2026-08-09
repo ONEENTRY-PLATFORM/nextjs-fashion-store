@@ -35,7 +35,7 @@ export function CheckoutStepper({ currentStep }: Props) {
   return (
     <nav
       aria-label={aProgress}
-      className="flex items-center justify-center px-4 py-6 font-[Inter,sans-serif]"
+      className="flex items-center justify-center px-4 py-6 font-sans"
       style={{ '--accent': ACCENT } as React.CSSProperties}
     >
       {STEPS.map((step, idx) => {

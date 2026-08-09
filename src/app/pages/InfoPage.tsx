@@ -182,7 +182,7 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
       {/* ── Lead ─────────────────────────────────────────────────────── */}
       <div className="mx-auto max-w-7xl px-4 py-14 lg:px-8">
-        <p className="max-w-3xl font-[Inter,sans-serif] text-[clamp(1rem,1.4vw,1.15rem)] leading-relaxed text-black/70">
+        <p className="max-w-3xl font-sans text-[clamp(1rem,1.4vw,1.15rem)] leading-relaxed text-black/70">
           {leadParagraph}
         </p>
       </div>

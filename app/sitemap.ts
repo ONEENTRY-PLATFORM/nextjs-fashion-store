@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 
 import { PAGE_REGISTRY } from '@/app/data/pageRegistry';
 import { SITE_URL } from '@/app/data/seoData';
+import { loadCatalogRoutes } from '@/lib/oneentry/catalog/catalog-routes';
 import { loadInfoPageSlugs } from '@/lib/oneentry/catalog/info-pages';
 import { loadProducts } from '@/lib/oneentry/catalog/products';
 import { buildLanguageAlternates, localizeHref, SHORT_LOCALES } from '@/lib/oneentry/locale';
@@ -41,6 +42,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     }));
 
+  // Catalog categories the editor added in OE after the last deploy. They
+  // resolve at runtime via `resolveCatalogRoute`, so — exactly like the info
+  // pages above — a live, crawlable category would otherwise stay unlisted.
+  const cmsCatalogPages: MetadataRoute.Sitemap = (await loadCatalogRoutes())
+    .filter((route) => !registryPaths.has(route.path))
+    .map((route) => ({
+      url: `${SITE_URL}/${route.path}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.9,
+    }));
+
   // Product pages — pulled from OE. Use the aggregated (`unique`) catalog so
   // colour/size sibling variants don't produce duplicate URLs. `limit` is set
   // high enough to cover the tenant's current SKU count.
@@ -52,7 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const defaultLocaleEntries = [...fixedPages, ...registryPages, ...cmsInfoPages, ...productPages];
+  const defaultLocaleEntries = [...fixedPages, ...registryPages, ...cmsInfoPages, ...cmsCatalogPages, ...productPages];
 
   // One entry per routed locale, each carrying the full `alternates.languages`
   // set. Without the per-locale URLs a translated page is crawlable but

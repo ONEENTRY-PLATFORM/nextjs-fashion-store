@@ -1,4 +1,4 @@
-import { CURRENCY } from './seoData';
+import { SITE_SETTINGS_FALLBACK } from '@/lib/oneentry/site-settings';
 
 export interface Store {
   id: string;
@@ -36,7 +36,9 @@ export interface Store {
  *  stay local rather than coming from OE.
  */
 export const STORE_SCHEMA_DEFAULTS = {
-  currenciesAccepted: CURRENCY,
+  // Shipped default only — a page rendering this schema for real should
+  // overlay the editor's currency from `getSiteSettings()`.
+  currenciesAccepted: SITE_SETTINGS_FALLBACK.currency.code,
   paymentAccepted: 'Cash, Credit Card, Debit Card',
   priceRange: '$$',
   addressCountry: 'GB',

@@ -37,7 +37,7 @@ export function CartUnavailableNotice() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 top-0 z-200 border-b border-[#f59e0b] bg-[#fef3c7] font-[Inter,sans-serif]"
+      className="fixed inset-x-0 top-0 z-200 border-b border-[#f59e0b] bg-[#fef3c7] font-sans"
     >
       <div className="mx-auto flex max-w-7xl items-start gap-3 px-4 py-2.5 lg:px-8">
         <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[#b45309]" />

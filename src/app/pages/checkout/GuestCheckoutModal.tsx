@@ -24,7 +24,7 @@ export function GuestCheckoutModal({ onClose, onSignIn, onRegister, onContinueAs
   return (
     <div className="fixed inset-0 z-400 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white font-[Inter,sans-serif]">
+      <div className="relative w-full max-w-md bg-white font-sans">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#e5e7eb] px-8 py-6">
           <div>

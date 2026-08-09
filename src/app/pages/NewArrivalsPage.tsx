@@ -117,10 +117,7 @@ export function NewArrivalsPage({
   const gridCols = viewCols === 4 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3';
 
   return (
-    <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
-      style={{ '--accent': ACCENT } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
       <Header />
 
       <main id="main-content">

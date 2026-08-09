@@ -3,18 +3,7 @@ import { Suspense } from 'react';
 
 import { JsonLd } from '@/app/components/system/JsonLd';
 import type { CatalogProduct as PdpCatalogProduct } from '@/app/data/productCatalog';
-import {
-  CURRENCY,
-  DELIVERY_COUNTRY,
-  DELIVERY_MAX_DAYS,
-  DELIVERY_MIN_DAYS,
-  FREE_SHIPPING_THRESHOLD,
-  PRODUCT_META_COPY as PM,
-  RETURN_WINDOW_DAYS,
-  SCHEMA_BREADCRUMBS as BC,
-  SITE_NAME,
-  SITE_URL,
-} from '@/app/data/seoData';
+import { PRODUCT_META_COPY as PM, SCHEMA_BREADCRUMBS as BC, SITE_URL } from '@/app/data/seoData';
 import { FrequentlyOrderedAsync } from '@/app/pages/product/FrequentlyOrderedAsync';
 import { RecommendationsSkeleton } from '@/app/pages/product/RecommendationsSkeleton';
 import { ReviewsAsync } from '@/app/pages/product/ReviewsAsync';
@@ -26,6 +15,7 @@ import { adaptCatalogProductToPdpProduct } from '@/lib/oneentry/catalog/adapt';
 import { categoryPathToBreadcrumbs, categoryPathToViewAllHref, loadProductById } from '@/lib/oneentry/catalog/products';
 import { loadProductSpecLabels } from '@/lib/oneentry/catalog/spec-labels';
 import { loadStores } from '@/lib/oneentry/catalog/stores';
+import { getSiteSettings } from '@/lib/oneentry/dictionary';
 import { loadPurchaseBonusForProduct } from '@/lib/oneentry/discounts/purchase-bonus';
 import { FormPlaceholdersProvider } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
@@ -42,19 +32,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ? await loadProductById(numericId).then((p) => (p ? adaptCatalogProductToPdpProduct(p) : null))
       : null;
 
+  // Brand name, currency and the delivery promise quoted in the description
+  // are editor-owned, and must match the offer the same page publishes as
+  // structured data further down.
+  const { brand: siteBrand, commerce, currency } = await getSiteSettings();
+
   if (!product) {
     return {
-      title: PM.notFoundTitleTpl(SITE_NAME),
+      title: PM.notFoundTitleTpl(siteBrand.siteName),
       robots: { index: false, follow: false },
     };
   }
 
-  const price = PM.pricedAsTpl(product.salePrice, product.price);
+  const price = PM.pricedAsTpl(currency.symbol, product.salePrice, product.price);
 
-  const title = `${product.name} | ${product.brand ?? SITE_NAME}`;
-  const description = `${PM.buyTpl(product.name, product.brand ?? SITE_NAME, price)} ${
+  const title = `${product.name} | ${product.brand ?? siteBrand.siteName}`;
+  const description = `${PM.buyTpl(product.name, product.brand ?? siteBrand.siteName, price)} ${
     product.productDetails?.[0] ?? PM.fallbackDescription
-  } ${PM.shippingNote}`;
+  } ${PM.shippingNoteTpl(currency.symbol, commerce.freeShippingThreshold)}`;
 
   return {
     title,
@@ -65,7 +60,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       product.clothingType ?? product.shoeType ?? product.bagType ?? product.accessoryType,
       product.material,
       PM.keywordBuyOnline,
-      SITE_NAME,
+      siteBrand.siteName,
     ]
       .filter(Boolean)
       .join(', '),
@@ -74,7 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       type: 'website',
       url: `${SITE_URL}/product/${id}`,
-      siteName: SITE_NAME,
+      siteName: siteBrand.siteName,
       images: [
         {
           url: product.image,
@@ -92,14 +87,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       // Price + availability shown directly in Twitter card preview
       // @ts-expect-error Next.js Metadata doesn't type custom twitter fields
       label1: PM.twitterPriceLabel,
-      data1: product.salePrice ? `${PM.displaySymbol}${product.salePrice}` : `${PM.displaySymbol}${product.price}`,
+      data1: product.salePrice ? `${currency.symbol}${product.salePrice}` : `${currency.symbol}${product.price}`,
       label2: PM.twitterAvailLabel,
       data2: product.inStock === false ? PM.outOfStock : PM.inStock,
     },
     // Facebook product namespace tags for richer social previews
     other: {
       'product:price:amount': product.salePrice ?? product.price,
-      'product:price:currency': CURRENCY,
+      'product:price:currency': currency.code,
     },
     alternates: { canonical: `${SITE_URL}/product/${id}` },
     robots: { index: true, follow: true },
@@ -133,6 +128,9 @@ export async function generateStaticParams() {
 export default async function Page({ params }: Props) {
   const { id } = await params;
   const numericId = /^\d+$/.test(id) ? Number(id) : null;
+  // Brand, currency and the delivery / returns terms published as structured
+  // data are editor-owned — the same values the metadata above quotes.
+  const { brand: siteBrand, commerce, currency } = await getSiteSettings();
   // PDP copy now travels with the root layout's dictionary, so this is just
   // the product load. `loadPurchaseBonusForProduct` still waits on it (it
   // reads the id / price / categories).
@@ -174,10 +172,10 @@ export default async function Page({ params }: Props) {
         '@type': 'Product',
         name: product.name,
         image: [product.image, ...(product.galleryImages ?? [])].filter(Boolean),
-        description: product.productDetails?.[0] ?? `${product.name} by ${product.brand ?? SITE_NAME}`,
+        description: product.productDetails?.[0] ?? `${product.name} by ${product.brand ?? siteBrand.siteName}`,
         brand: {
           '@type': 'Brand',
-          name: product.brand ?? SITE_NAME,
+          name: product.brand ?? siteBrand.siteName,
         },
         sku: id,
         ...(materialSpec ? { material: materialSpec.value } : {}),
@@ -212,42 +210,42 @@ export default async function Page({ params }: Props) {
         offers: {
           '@type': 'Offer',
           url: `${SITE_URL}/product/${id}`,
-          priceCurrency: CURRENCY,
+          priceCurrency: currency.code,
           price: product.salePrice ?? product.price,
           priceValidUntil: priceValidUntil(),
           availability: product.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
           itemCondition: 'https://schema.org/NewCondition',
           seller: {
             '@type': 'Organization',
-            name: SITE_NAME,
+            name: siteBrand.siteName,
           },
           shippingDetails: {
             '@type': 'OfferShippingDetails',
             shippingRate: {
               '@type': 'MonetaryAmount',
-              value: product.price >= FREE_SHIPPING_THRESHOLD ? '0' : '3.99',
-              currency: CURRENCY,
+              value: product.price >= commerce.freeShippingThreshold ? '0' : String(commerce.standardShippingPrice),
+              currency: currency.code,
             },
             shippingDestination: {
               '@type': 'DefinedRegion',
-              addressCountry: DELIVERY_COUNTRY,
+              addressCountry: commerce.deliveryCountry,
             },
             deliveryTime: {
               '@type': 'ShippingDeliveryTime',
               handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
               transitTime: {
                 '@type': 'QuantitativeValue',
-                minValue: DELIVERY_MIN_DAYS,
-                maxValue: DELIVERY_MAX_DAYS,
+                minValue: commerce.deliveryMinDays,
+                maxValue: commerce.deliveryMaxDays,
                 unitCode: 'DAY',
               },
             },
           },
           hasMerchantReturnPolicy: {
             '@type': 'MerchantReturnPolicy',
-            applicableCountry: DELIVERY_COUNTRY,
+            applicableCountry: commerce.deliveryCountry,
             returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
-            merchantReturnDays: RETURN_WINDOW_DAYS,
+            merchantReturnDays: commerce.returnWindowDays,
             returnMethod: 'https://schema.org/ReturnByMail',
             returnFees: 'https://schema.org/FreeReturn',
           },

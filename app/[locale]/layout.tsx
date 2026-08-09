@@ -1,18 +1,19 @@
 import '../globals.css';
 
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import { locale } from 'next/root-params';
 import { Suspense } from 'react';
 
 import { Providers } from '@/app/components/system/Providers';
 import { ScrollToTop } from '@/app/components/system/ScrollToTop';
 import { A11Y_LABELS } from '@/app/data/commonLabels';
-import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL, TWITTER_HANDLE } from '@/app/data/seoData';
+import { OG_IMAGE, SITE_URL } from '@/app/data/seoData';
 import { loadSignUpFormSchema } from '@/lib/oneentry/auth/sign-up-form';
 // One dictionary for the whole storefront: every attribute marker the CMS
 // knows, flattened to `marker → value`. Screens no longer carry their own
 // label set — see `src/lib/oneentry/dictionary.ts`.
-import { getDictionary } from '@/lib/oneentry/dictionary';
+import { getDictionary, getSiteSettings } from '@/lib/oneentry/dictionary';
 // Site-wide OE forms only. Everything here renders on every route, so the copy
 // travels with the root layout rather than a per-page provider; route-scoped
 // forms mount their own `FormPlaceholdersProvider` next to the page that needs
@@ -29,6 +30,23 @@ import {
 } from '@/lib/oneentry/locale';
 import { loadLocales } from '@/lib/oneentry/locales';
 import { loadMenu } from '@/lib/oneentry/menus/menus';
+import { themeCssVariables } from '@/lib/oneentry/site-settings';
+
+/**
+ * The storefront's typeface.
+ *
+ * Loaded through `next/font` rather than the remote `@import` that used to sit
+ * at the top of `globals.css`: Tailwind v4 strips remote imports from the built
+ * CSS, so that request was never made and every screen rendered in the system
+ * sans while asking for Inter. `next/font` self-hosts the files, which also
+ * removes two cross-origin handshakes from the critical path, and publishes the
+ * family as `--font-inter` — wired to Tailwind's `font-sans` in `globals.css`.
+ */
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -45,24 +63,27 @@ export const viewport: Viewport = {
  */
 export async function generateMetadata(): Promise<Metadata> {
   const shortLocale = (await locale()) ?? DEFAULT_SHORT_LOCALE;
+  // Brand name, description, share-image alt and the X handle are editor-owned
+  // (OE `site_settings`); the origin is not — see `SITE_URL`.
+  const { brand, og } = await getSiteSettings();
   return {
     title: {
-      default: SITE_NAME,
-      template: `%s | ${SITE_NAME}`,
+      default: brand.siteName,
+      template: `%s | ${brand.siteName}`,
     },
-    description: SITE_DESCRIPTION,
+    description: brand.siteDescription,
     metadataBase: new URL(SITE_URL),
     openGraph: {
-      siteName: SITE_NAME,
+      siteName: brand.siteName,
       // OE code (`en_US`, `de_DE`) is already the underscore form Open Graph
       // wants — the hyphenated `htmlLang` spelling belongs to `<html lang>`.
       locale: toCmsLocale(shortLocale),
       type: 'website',
-      images: [OG_IMAGE],
+      images: [{ ...OG_IMAGE, alt: og.imageAlt }],
     },
     twitter: {
-      site: TWITTER_HANDLE,
-      creator: TWITTER_HANDLE,
+      site: brand.twitterHandle,
+      creator: brand.twitterHandle,
       card: 'summary_large_image',
       images: [OG_IMAGE.url],
     },
@@ -119,6 +140,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const shortLocale = (await locale()) ?? DEFAULT_SHORT_LOCALE;
   const [
     dict,
+    siteSettings,
     footerMenu,
     bottomMenu,
     headerMenu,
@@ -129,6 +151,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     cmsLocales,
   ] = await Promise.all([
     getDictionary(),
+    // Same dictionary underneath, parsed: the palette below has to be written
+    // into the document, and the currency has to be installed for the server
+    // formatters, before anything renders.
+    getSiteSettings(),
     loadMenu('footer'),
     // The footer's link columns live in `bottom_menu` (grouping custom items
     // with the info pages under them); `footer` holds the flat legal row. They
@@ -150,7 +176,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     loadLocales(),
   ]);
   return (
-    <html lang={htmlLang(shortLocale)}>
+    // The brand palette rides on `<html>` as custom properties. Server-rendered
+    // rather than injected by a client effect, so a CMS colour is in force on
+    // the very first paint instead of replacing the shipped one a frame later.
+    <html
+      lang={htmlLang(shortLocale)}
+      className={inter.variable}
+      style={themeCssVariables(siteSettings.theme) as React.CSSProperties}
+    >
       <head>
         {/* The dev-only performance.measure guard that used to sit here now
             lives in `instrumentation-client.ts`: a locale switch re-renders

@@ -1,12 +1,27 @@
 import { ImageResponse } from 'next/og';
 
-import { OG_IMAGE, OG_IMAGE_COPY } from '@/app/data/seoData';
+import { OG_IMAGE } from '@/app/data/seoData';
+import { getSiteSettings } from '@/lib/oneentry/dictionary';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 
+// `alt` and `size` are route metadata Next reads statically — they cannot be
+// awaited. The alt text an editor sets is applied where it is actually
+// consumed, on the `openGraph.images` entry in the root layout; this one is the
+// shipped default for the rare crawler that reads the file convention's own.
 export const alt = OG_IMAGE.alt;
 export const size = { width: OG_IMAGE.width, height: OG_IMAGE.height };
 export const contentType = 'image/png';
 
-export default function OgImage() {
+/**
+ * The site-wide share banner, rendered at request time from editor-owned copy
+ * (OE `site_settings` → `Share image — …`). The route sits outside
+ * `app/[locale]` and cannot read root params, so the default locale is used —
+ * one banner per origin.
+ *
+ * @returns A 1200×630 PNG response.
+ */
+export default async function OgImage() {
+  const { og } = await getSiteSettings(DEFAULT_LOCALE);
   return new ImageResponse(
     <div
       style={{
@@ -53,7 +68,7 @@ export default function OgImage() {
           marginBottom: 16,
         }}
       >
-        {OG_IMAGE_COPY.brand}
+        {og.brand}
       </div>
 
       {/* Sub-label */}
@@ -67,7 +82,7 @@ export default function OgImage() {
           marginBottom: 40,
         }}
       >
-        {OG_IMAGE_COPY.subLabel}
+        {og.subLabel}
       </div>
 
       {/* Tagline */}
@@ -79,7 +94,7 @@ export default function OgImage() {
           textTransform: 'uppercase',
         }}
       >
-        {OG_IMAGE_COPY.tagline}
+        {og.tagline}
       </div>
     </div>,
     { ...size },

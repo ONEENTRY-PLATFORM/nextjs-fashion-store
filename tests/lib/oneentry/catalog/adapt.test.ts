@@ -68,10 +68,18 @@ describe('catalogKeyToCategoryPath', () => {
     }
   });
 
-  it('returns null for an unknown catalog key', () => {
-    expect(catalogKeyToCategoryPath('kids-clothing')).toBeNull();
+  it('derives a path for a key that did not exist at build time', () => {
+    // The mapping is a rule, not a table: a category added in the OE admin
+    // panel gets its product query without a code change (see
+    // `catalog-routes.ts`, which discovers the tree).
+    expect(catalogKeyToCategoryPath('kids-clothing')).toBe('/kids/kids_clothing');
+  });
+
+  it('returns null for anything that is not a valid catalog key', () => {
     expect(catalogKeyToCategoryPath('')).toBeNull();
+    expect(catalogKeyToCategoryPath('sale')).toBeNull(); // no parent segment
     expect(catalogKeyToCategoryPath('WOMEN-CLOTHING')).toBeNull(); // case-sensitive
+    expect(catalogKeyToCategoryPath('women/clothing')).toBeNull(); // a path, not a key
   });
 });
 

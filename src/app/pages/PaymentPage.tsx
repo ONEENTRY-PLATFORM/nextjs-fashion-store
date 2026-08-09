@@ -531,10 +531,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   };
 
   return (
-    <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
-      style={{ '--sale': SALE_COLOR } as React.CSSProperties}
-    >
+    <div className="min-h-screen bg-white font-sans" style={{ '--sale': SALE_COLOR } as React.CSSProperties}>
       <Header />
 
       <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">

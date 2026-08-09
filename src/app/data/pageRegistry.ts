@@ -21,8 +21,18 @@ export interface CatalogPageEntry {
   type: 'catalog';
   /** Catalog component key, e.g. 'women-clothing' */
   catalogKey: string;
-  /** Key in the SEO object (seoData.ts) */
-  seoKey: keyof typeof SEO;
+  /**
+   * Key in the SEO object (seoData.ts). Absent on a category discovered from
+   * the CMS after the last deploy — it has no shipped copy, so its metadata
+   * comes from the OE page's own `meta_*` attributes.
+   */
+  seoKey?: keyof typeof SEO;
+  /**
+   * OE product-category path. Set only on CMS-discovered entries, whose leaf
+   * url need not follow the `{parent}_{leaf}` convention the derivation in
+   * `catalogKeyToCategoryPath` assumes.
+   */
+  categoryPath?: string;
   /** Name for schema.org ItemList */
   schemaName: string;
   /** Breadcrumbs [{name, href?}] */
@@ -123,7 +133,9 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
  */
 export function buildPageMetadata(entry: PageEntry): Metadata {
   if (entry.type === 'catalog') {
-    return (SEO[entry.seoKey] ?? {}) as Metadata;
+    // No `seoKey` means the category came from the CMS and has no shipped
+    // copy; the caller overlays the OE page's own `meta_*` on top of this.
+    return (entry.seoKey ? (SEO[entry.seoKey] ?? {}) : {}) as Metadata;
   }
   if (entry.slug === '__hub') {
     return {

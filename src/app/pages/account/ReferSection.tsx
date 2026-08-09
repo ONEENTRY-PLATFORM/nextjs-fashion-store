@@ -6,27 +6,25 @@ import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { REFER_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import { CURRENCY } from '@/app/data/currencyConfig';
+import { SITE_URL } from '@/app/data/seoData';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+import { useSiteSettings } from '@/lib/oneentry/SiteSettingsContext';
 
 import { ACCENT, SectionTitle } from './shared';
-
-// OneEntry doesn't expose a referral programme for this tenant — config stays
-// inline. Real stats / credits would come from a back-office system; for now
-// the section operates as a share-link tool only.
-const ref = {
-  linkBase: 'https://oneentryfashion.com/ref/',
-  creditAmount: 0,
-  stats: { friendsInvited: 0, ordersPlaced: 0, creditsEarned: '$0' },
-  minPurchase: 0,
-  creditExpiryMonths: 0,
-};
 
 export function ReferSection() {
   const L = useDict('user_account_refer_', L_FALLBACK);
   const { user } = useAuth();
+  // Programme terms are editor-owned (OE `site_settings` → `Referral — …`).
+  // `enabled` is derived from the credit: zero means the shop is not paying
+  // anything out, and the section then renders as what it actually is — a
+  // share-your-link tool — instead of advertising a reward nobody honours.
+  const { referral } = useSiteSettings();
   const referralCode = `OE-${(user?.firstName ?? 'FRIEND').toUpperCase().slice(0, 4)}2026`;
-  const referralLink = `${ref.linkBase}${referralCode}`;
+  // On our own origin: the base used to be a hard-coded third-party domain
+  // that does not serve this storefront, so every shared link 404'd.
+  const referralLink = `${SITE_URL}/ref/${referralCode}`;
 
   const [emails, setEmails] = useState('');
   const [sent, setSent] = useState(false);
@@ -71,14 +69,11 @@ export function ReferSection() {
 
   // Rebuilt from the flat `howStepNTitle` / `howStepNDesc` keys. `%amount%` is
   // filled here because an admin-authored string cannot interpolate.
+  const creditLabel = CURRENCY.formatInteger(referral.creditAmount);
   const howSteps = [1, 2, 3].map((n) => ({
     step: String(n).padStart(2, '0'),
-    title: fillTokens(L[`howStep${n}Title` as keyof typeof L] as string, {
-      amount: CURRENCY.formatInteger(ref.creditAmount),
-    }),
-    desc: fillTokens(L[`howStep${n}Desc` as keyof typeof L] as string, {
-      amount: CURRENCY.formatInteger(ref.creditAmount),
-    }),
+    title: fillTokens(L[`howStep${n}Title` as keyof typeof L] as string, { amount: creditLabel }),
+    desc: fillTokens(L[`howStep${n}Desc` as keyof typeof L] as string, { amount: creditLabel }),
   }));
 
   return (
@@ -93,42 +88,36 @@ export function ReferSection() {
     >
       <SectionTitle title={L.title} />
 
-      {/* Hero banner */}
-      <div className="mb-8 flex flex-col items-start justify-between gap-6 bg-(--banner-bg) p-8 sm:flex-row sm:items-center">
-        <div>
-          <p className="mb-1 text-xs tracking-[0.3em] text-gray-400 uppercase">{L.eyebrow}</p>
-          <h2 className="mb-2 text-[clamp(1rem,2vw,1.3rem)] font-bold tracking-widest uppercase">
-            {L.bannerHeadingTpl(CURRENCY.formatInteger(ref.creditAmount))}
-          </h2>
-          <p className="max-w-xs text-sm leading-relaxed text-gray-600">
-            {L.bannerBodyPrefix}
-            <strong>
-              {L.bannerBodyCreditPrefix}
-              {ref.creditAmount}
-              {L.bannerBodyCreditSuffix}
-            </strong>
-            {L.bannerBodySuffix}
-          </p>
-        </div>
-        <div className="shrink-0 text-center">
-          <p className="mb-1 text-5xl font-extrabold text-accent">{CURRENCY.formatInteger(ref.creditAmount)}</p>
-          <p className="text-xs tracking-widest text-gray-400 uppercase">{L.perReferral}</p>
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="mb-8 grid grid-cols-3 gap-px bg-white">
-        {[
-          { label: L.statFriendsInvited, value: String(ref.stats.friendsInvited) },
-          { label: L.statOrdersPlaced, value: String(ref.stats.ordersPlaced) },
-          { label: L.statCreditsEarned, value: ref.stats.creditsEarned },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white px-4 py-5 text-center">
-            <p className="mb-0.5 text-2xl font-bold text-black">{stat.value}</p>
-            <p className="text-xs tracking-widest text-gray-400 uppercase">{stat.label}</p>
+      {/* Reward banner — only when the admin panel actually funds a credit.
+          The per-shopper stats row that used to sit under it was removed: no
+          system on this tenant counts referrals, so it could only ever render
+          three hard-coded zeros dressed up as a dashboard. */}
+      {referral.enabled ? (
+        <div
+          className="mb-8 flex flex-col items-start justify-between gap-6 bg-(--banner-bg) p-8 sm:flex-row sm:items-center"
+          data-testid="refer-reward-banner"
+        >
+          <div>
+            <p className="mb-1 text-xs tracking-[0.3em] text-gray-400 uppercase">{L.eyebrow}</p>
+            <h2 className="mb-2 text-[clamp(1rem,2vw,1.3rem)] font-bold tracking-widest uppercase">
+              {L.bannerHeadingTpl(creditLabel)}
+            </h2>
+            <p className="max-w-xs text-sm leading-relaxed text-gray-600">
+              {L.bannerBodyPrefix}
+              <strong>
+                {CURRENCY.symbol}
+                {referral.creditAmount}
+                {L.bannerBodyCreditSuffix}
+              </strong>
+              {L.bannerBodySuffix}
+            </p>
           </div>
-        ))}
-      </div>
+          <div className="shrink-0 text-center">
+            <p className="mb-1 text-5xl font-extrabold text-accent">{creditLabel}</p>
+            <p className="text-xs tracking-widest text-gray-400 uppercase">{L.perReferral}</p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-6">
         {/* Referral link */}
@@ -202,24 +191,29 @@ export function ReferSection() {
           </button>
         </div>
 
-        {/* How it works */}
-        <div className="pt-4">
-          <p className="mb-4 text-xs font-bold tracking-[0.15em] text-[#555] uppercase">{L.howItWorks}</p>
-          <div className="grid grid-cols-1 gap-px bg-white sm:grid-cols-3">
-            {howSteps.map((s) => (
-              <div key={s.step} className="bg-white px-5 py-6">
-                <p className="mb-2 text-xs font-extrabold tracking-widest text-accent">{s.step}</p>
-                <p className="mb-1.5 text-sm font-bold">{s.title}</p>
-                <p className="text-xs leading-relaxed text-gray-500">{s.desc}</p>
-              </div>
-            ))}
+        {/* How it works — describes earning a credit, so it follows the same
+            switch as the banner. */}
+        {referral.enabled ? (
+          <div className="pt-4">
+            <p className="mb-4 text-xs font-bold tracking-[0.15em] text-[#555] uppercase">{L.howItWorks}</p>
+            <div className="grid grid-cols-1 gap-px bg-white sm:grid-cols-3">
+              {howSteps.map((s) => (
+                <div key={s.step} className="bg-white px-5 py-6">
+                  <p className="mb-2 text-xs font-extrabold tracking-widest text-accent">{s.step}</p>
+                  <p className="mb-1.5 text-sm font-bold">{s.title}</p>
+                  <p className="text-xs leading-relaxed text-gray-500">{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {/* Terms */}
-        <p className="pt-2 text-xs leading-relaxed text-gray-400">
-          {L.termsTpl(ref.minPurchase, ref.creditExpiryMonths)}
-        </p>
+        {referral.enabled ? (
+          <p className="pt-2 text-xs leading-relaxed text-gray-400">
+            {L.termsTpl(referral.minPurchase, referral.creditExpiryMonths)}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ import { useDict } from '@/lib/oneentry/labels/DictContext';
 function ErrorFallback({ message, onRetry }: { message?: string; onRetry: () => void }) {
   const L = useDict('error_boundary_', ERROR_BOUNDARY_LABELS);
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 text-center font-[Inter,sans-serif]">
+    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 text-center font-sans">
       <div className="flex size-16 items-center justify-center border-2 border-[#fecaca] bg-[#fef2f2] text-2xl">✕</div>
       <h2 className="text-lg font-bold tracking-widest uppercase" data-testid="error-boundary-heading">
         {L.heading}

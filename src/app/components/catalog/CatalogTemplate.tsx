@@ -398,10 +398,7 @@ export function CatalogTemplate({
 
   return (
     <CatalogAccentContext.Provider value={ACCENT}>
-      <div
-        className="min-h-screen bg-white font-[Inter,sans-serif]"
-        style={{ '--accent': ACCENT } as React.CSSProperties}
-      >
+      <div className="min-h-screen bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
         <Header />
 
         <main id="main-content">

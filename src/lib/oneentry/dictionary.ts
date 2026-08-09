@@ -1,6 +1,9 @@
 import { cache } from 'react';
 
+import { configureCurrency } from '@/app/data/currencyConfig';
+
 import { currentCmsLocale } from './current-locale';
+import { parseSiteSettings, type SiteSettings } from './site-settings';
 import { getSystemSet, type Lang, readSystemValue, type SystemSchema } from './system-text';
 
 /**
@@ -40,6 +43,11 @@ export type Dictionary = Record<string, string>;
  * Client Component asks for.
  */
 export const DICTIONARY_SET_MARKERS = [
+  // Site-wide settings: brand, commerce terms, socials, theme palette. Not
+  // copy in the usual sense, but it travels the same way and several of the
+  // values (currency symbol, referral terms, accent colours) are needed inside
+  // Client Components — which is exactly what this dictionary is for.
+  'site_settings',
   // Layout chrome and shared UI
   'header',
   'footer',
@@ -158,3 +166,21 @@ export function translate(dict: Dictionary | null | undefined, marker: string, f
   const v = dict?.[marker];
   return typeof v === 'string' && v.length > 0 ? v : fallback;
 }
+
+/**
+ * Server-side settings read: the `site_settings` slice of the dictionary,
+ * parsed into typed values.
+ *
+ * Also installs the CMS currency for this runtime, so the plain formatters in
+ * `currencyConfig` (used by server loaders that cannot call a hook) render the
+ * configured symbol. Awaiting this before formatting prices is what guarantees
+ * the ordering — see the note on {@link configureCurrency}.
+ *
+ * @param   lang - OE locale code. Defaults to the route's.
+ * @returns        Resolved settings, fallbacks included.
+ */
+export const getSiteSettings = cache(async (lang?: Lang): Promise<SiteSettings> => {
+  const settings = parseSiteSettings(await getDictionary(lang));
+  configureCurrency(settings.currency);
+  return settings;
+});

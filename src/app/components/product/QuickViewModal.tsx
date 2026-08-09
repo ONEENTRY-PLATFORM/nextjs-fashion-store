@@ -607,8 +607,10 @@ export function QuickViewModal() {
                 >
                   <Heart
                     size={18}
-                    fill={wishlisted ? ACCENT_WOMEN : 'none'}
-                    stroke={wishlisted ? ACCENT_WOMEN : '#000'}
+                    style={{
+                      fill: wishlisted ? ACCENT_WOMEN : 'none',
+                      stroke: wishlisted ? ACCENT_WOMEN : '#000',
+                    }}
                   />
                 </button>
               </div>

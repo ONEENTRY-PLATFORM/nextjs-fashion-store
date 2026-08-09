@@ -130,7 +130,7 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
 
   return (
     <div
-      className={`group relative flex cursor-pointer flex-col bg-white font-[Inter,sans-serif] outline-1 outline-white transition-[opacity,transform] duration-250 ${
+      className={`group relative flex cursor-pointer flex-col bg-white font-sans outline-1 outline-white transition-[opacity,transform] duration-250 ${
         removing ? 'scale-0.97 opacity-0' : 'scale-100 opacity-100'
       }`}
       onClick={handleCardClick}
@@ -177,7 +177,7 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
           className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-none bg-white/90 transition-all duration-200 hover:bg-white focus-visible:outline-none"
           aria-label={aRemove}
         >
-          <Heart size={16} fill={ACCENT} stroke={ACCENT} className="transition-colors duration-200" />
+          <Heart size={16} style={{ fill: ACCENT, stroke: ACCENT }} className="transition-colors duration-200" />
         </button>
 
         {item.inStock && (

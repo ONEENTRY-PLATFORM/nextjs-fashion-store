@@ -26,7 +26,7 @@ export function WomenCollection({
   const viewAllLabel = chrome?.viewAllLabel ?? CVL.viewAll;
 
   return (
-    <section className="w-full font-[Inter,sans-serif]" style={{ '--accent': WOMEN_COLOR } as React.CSSProperties}>
+    <section className="w-full font-sans" style={{ '--accent': WOMEN_COLOR } as React.CSSProperties}>
       {/* Section Header */}
       <div className="mx-auto mb-6 flex max-w-384 items-center justify-between px-4 lg:px-8">
         <div>

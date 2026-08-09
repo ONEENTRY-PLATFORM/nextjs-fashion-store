@@ -12,7 +12,8 @@ import {
   PAGE_REGISTRY,
   type PageEntry,
 } from '@/app/data/pageRegistry';
-import { SITE_NAME, SITE_URL } from '@/app/data/seoData';
+import { SITE_URL } from '@/app/data/seoData';
+import { CmsCatalogPage } from '@/app/pages/CmsCatalogPage';
 import { InfoPage } from '@/app/pages/InfoPage';
 import { MenAccessoriesPage } from '@/app/pages/MenAccessoriesPage';
 import { MenBagsPage } from '@/app/pages/MenBagsPage';
@@ -28,13 +29,14 @@ import { chipToFilterPatch, loadFilterChips } from '@/lib/oneentry/blocks/filter
 import { buildFaqSchema, faqItemsFromBlocks } from '@/lib/oneentry/blocks/info-sections';
 import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '@/lib/oneentry/catalog/adapt';
+import { type CmsCatalogRoute, resolveCatalogRoute } from '@/lib/oneentry/catalog/catalog-routes';
 import { type CatalogFilters, parseCatalogSearchParams } from '@/lib/oneentry/catalog/filters';
 import { resolveInfoPageSlug } from '@/lib/oneentry/catalog/info-pages';
 import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadPageByUrl } from '@/lib/oneentry/catalog/pages';
 import { loadFilteredProducts, loadProducts } from '@/lib/oneentry/catalog/products';
 import { applySeasonalTrend, resolveSeasonalTrend } from '@/lib/oneentry/catalog/seasonal-trend';
-import { getDictionary, translate } from '@/lib/oneentry/dictionary';
+import { getDictionary, getSiteSettings, translate } from '@/lib/oneentry/dictionary';
 
 /* ─── Map catalogKey → component ─── */
 type CatalogProps = {
@@ -58,6 +60,31 @@ const CATALOG_COMPONENTS: Record<string, React.ComponentType<CatalogProps>> = {
   'men-bags': MenBagsPage,
   'men-accessories': MenAccessoriesPage,
 };
+
+/**
+ * Adapt a CMS-discovered category to the shape the registry-driven branch of
+ * this route already understands, so both kinds of catalog page take exactly
+ * the same code path.
+ *
+ * No `seoKey`: the category has no shipped copy, and its metadata comes from
+ * the OE page's own `meta_*` attributes instead.
+ *
+ * @param   route - Category discovered in the OE page tree.
+ * @returns         A catalog entry with the CMS titles as breadcrumbs.
+ */
+function catalogEntryFromCmsRoute(route: CmsCatalogRoute): CatalogPageEntry {
+  return {
+    type: 'catalog',
+    catalogKey: route.catalogKey,
+    categoryPath: route.categoryPath,
+    schemaName: route.title,
+    breadcrumbs: [
+      { name: 'Home', href: '/' },
+      { name: route.parentTitle, href: `/${route.gender}` },
+      { name: route.title },
+    ],
+  };
+}
 
 /* ─── Types ─── */
 type Props = {
@@ -90,7 +117,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // A path missing from the static registry may still be an info page the
   // editor created in OE after the last deploy — ask the CMS before giving up.
   const dynamicSlug = PAGE_REGISTRY[path] ? null : await resolveInfoPageSlug(path);
-  const entry = PAGE_REGISTRY[path] ?? (dynamicSlug ? { type: 'info' as const, slug: dynamicSlug } : undefined);
+  // Still nothing? It may be a catalog category an editor added in OE after
+  // the last deploy — the same courtesy info pages have had for a while.
+  const cmsCatalog = PAGE_REGISTRY[path] || dynamicSlug ? null : await resolveCatalogRoute(path);
+  const entry =
+    PAGE_REGISTRY[path] ??
+    (dynamicSlug ? { type: 'info' as const, slug: dynamicSlug } : undefined) ??
+    (cmsCatalog ? catalogEntryFromCmsRoute(cmsCatalog) : undefined);
   if (!entry) return {};
 
   // Info pages carry their SEO on the OE page itself (`meta_title`,
@@ -121,7 +154,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // for it either, so fall back to the page's own title.
     if (page?.title && !INFO_PAGE_META[entry.slug]) {
       return {
-        title: `${page.title} | ${SITE_NAME}`,
+        title: `${page.title} | ${(await getSiteSettings()).brand.siteName}`,
         alternates: { canonical: `${SITE_URL}/${entry.slug}` },
       };
     }
@@ -139,10 +172,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /* ─── JSON-LD helpers ─── */
-async function buildCatalogSchemas(entry: CatalogPageEntry) {
+/**
+ * Breadcrumb + ItemList JSON-LD for a catalog page.
+ *
+ * @param   entry - Registry entry, or one adapted from a CMS category.
+ * @param   path  - The route's own path, used as the list's canonical url.
+ * @returns         Both schema nodes.
+ */
+async function buildCatalogSchemas(entry: CatalogPageEntry, path: string) {
   // Seed the schema.org ItemList with the first 10 in-stock products of this
   // catalog — pulled from OE by category path (no id-prefix heuristic).
-  const categoryPath = catalogKeyToCategoryPath(entry.catalogKey);
+  const categoryPath = entry.categoryPath ?? catalogKeyToCategoryPath(entry.catalogKey);
   const productsResult = categoryPath
     ? await loadProducts({ categoryPath, limit: 10 })
     : { items: [] as Awaited<ReturnType<typeof loadProducts>>['items'] };
@@ -154,7 +194,7 @@ async function buildCatalogSchemas(entry: CatalogPageEntry) {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: entry.schemaName,
-    url: `${SITE_URL}/${Object.keys(PAGE_REGISTRY).find((k) => (PAGE_REGISTRY[k] as CatalogPageEntry).catalogKey === entry.catalogKey) ?? ''}`,
+    url: `${SITE_URL}/${path}`,
     numberOfItems: products.length,
     itemListElement: products.map((p, i) => ({
       '@type': 'ListItem',
@@ -209,16 +249,21 @@ export default async function Page({ params, searchParams }: Props) {
   // OE after the last deploy is absent from the static registry but must still
   // render. `React.cache` makes this the same lookup the metadata pass did.
   const dynamicSlug = entryFromExact ? null : await resolveInfoPageSlug(path);
+  const cmsCatalog = entryFromExact || dynamicSlug ? null : await resolveCatalogRoute(path);
   const entry: PageEntry | undefined =
-    entryFromExact ?? (dynamicSlug ? { type: 'info', slug: dynamicSlug } : undefined);
+    entryFromExact ??
+    (dynamicSlug ? { type: 'info', slug: dynamicSlug } : undefined) ??
+    (cmsCatalog ? catalogEntryFromCmsRoute(cmsCatalog) : undefined);
 
   if (!entry) notFound();
 
   /* ── Catalog page ── */
   if (entry.type === 'catalog') {
+    // A registry category renders its bespoke wrapper; one discovered in the
+    // CMS renders the generic template built from the page's own titles.
     const CatalogComponent = CATALOG_COMPONENTS[entry.catalogKey];
-    if (!CatalogComponent) notFound();
-    const { breadcrumb, itemList } = await buildCatalogSchemas(entry);
+    if (!CatalogComponent && !cmsCatalog) notFound();
+    const { breadcrumb, itemList } = await buildCatalogSchemas(entry, path);
 
     // Parse the URL filters once on the server so we can issue a filtered OE
     // request and seed the client with the resolved state.
@@ -268,7 +313,7 @@ export default async function Page({ params, searchParams }: Props) {
 
     const currentPage = filters.page ?? 1;
 
-    const categoryPath = catalogKeyToCategoryPath(entry.catalogKey) ?? undefined;
+    const categoryPath = entry.categoryPath ?? catalogKeyToCategoryPath(entry.catalogKey) ?? undefined;
 
     // Visible slice: paged + filtered + sorted by OE. `loadFilteredProducts`
     // picks the cached-catalog fast path when no attribute filters are set.
@@ -385,17 +430,35 @@ export default async function Page({ params, searchParams }: Props) {
       <>
         <JsonLd data={breadcrumb} />
         <JsonLd data={itemList} />
-        <CatalogComponent
-          initialProducts={initialProducts}
-          initialFilterGroups={initialFilterGroups}
-          initialQuickChips={initialQuickChips}
-          initialTotalStyles={total || initialProducts?.length}
-          currentFilters={filters}
-          currentPage={currentPage}
-          total={total}
-          trendingBlock={trendingBlock}
-          pageBlocks={pageBlocks}
-        />
+        {CatalogComponent ? (
+          <CatalogComponent
+            initialProducts={initialProducts}
+            initialFilterGroups={initialFilterGroups}
+            initialQuickChips={initialQuickChips}
+            initialTotalStyles={total || initialProducts?.length}
+            currentFilters={filters}
+            currentPage={currentPage}
+            total={total}
+            trendingBlock={trendingBlock}
+            pageBlocks={pageBlocks}
+          />
+        ) : (
+          <CmsCatalogPage
+            catalogKey={entry.catalogKey}
+            gender={cmsCatalog?.gender ?? ''}
+            title={cmsCatalog?.title ?? entry.schemaName}
+            parentTitle={cmsCatalog?.parentTitle ?? ''}
+            initialProducts={initialProducts}
+            initialFilterGroups={initialFilterGroups}
+            initialQuickChips={initialQuickChips}
+            initialTotalStyles={total || initialProducts?.length}
+            currentFilters={filters}
+            currentPage={currentPage}
+            total={total}
+            trendingBlock={trendingBlock}
+            pageBlocks={pageBlocks}
+          />
+        )}
       </>
     );
   }
