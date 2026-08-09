@@ -3,7 +3,8 @@ import React from 'react';
 
 import { type useAuth } from '@/app/context/AuthContext';
 import { LOYALTY_CARD_LABELS } from '@/app/data/accountLabels';
-import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { snakeKey } from '@/lib/oneentry/labels/dict';
+import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, fmt } from './shared';
 
@@ -37,7 +38,12 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
   const nextTierIdx = L.tierOrder.indexOf(user.status as (typeof L.tierOrder)[number]) + 1;
   const nextTierName =
     hasNextTier && nextTierIdx > 0 && nextTierIdx < L.tierOrder.length ? L.tierOrder[nextTierIdx] : null;
-  const rawPerks = L.perks[user.status] ?? L.perks.Member ?? L.perks.Silver;
+  // Perks are a `tier → string[]` map: two levels of structure, so `mergeDict`
+  // leaves both alone. Each tier gets one comma-separated marker instead,
+  // resolved for the tier actually on screen.
+  const tier = L.perks[user.status] ? user.status : 'Member';
+  const codedPerks = L.perks[tier] ?? L.perks.Member ?? L.perks.Silver;
+  const rawPerks = useList(`user_account_loyalty_perks_${snakeKey(tier)}`, codedPerks);
   const perks = rawPerks.map((p) => (p === L.perkPlaceholder ? L.perkDiscountTpl(user.discount) : p));
   // No discount block for Member — hide the "0%" card so the top-right column
   // doesn't scream "you get nothing"; just show bonuses which stay meaningful.

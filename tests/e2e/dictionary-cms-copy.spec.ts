@@ -103,6 +103,28 @@ test.describe('CMS dictionary reaches every screen', () => {
     await expect(page.getByText(moreInfo, { exact: true }).first()).toBeVisible({ timeout: 90_000 });
   });
 
+  test('quick view accordion headings come from the CMS', async ({ page }) => {
+    // The `quick_view` set did not exist on the tenant at all, so this modal
+    // rendered its shipped English fallbacks in every locale. Guard the wiring:
+    // set registered in `DICTIONARY_SET_MARKERS`, markers published, copy on
+    // screen.
+    const quickView = await fetchSet('quick_view');
+    const heading = quickView['quick_view_section_1_title'];
+    test.skip(!heading, 'tenant has no `quick_view_section_1_title` published');
+
+    await page.goto('/women/clothing', { waitUntil: 'domcontentloaded' });
+    const card = page.locator('a[href*="/product/"]').first();
+    await card.waitFor({ state: 'visible', timeout: 90_000 });
+    await card.hover();
+    const quickViewBtn = card.getByRole('button', { name: /quick view/i });
+    test.skip(!(await quickViewBtn.isVisible().catch(() => false)), 'quick view control not offered on this card');
+
+    await quickViewBtn.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await expect(dialog.getByText(heading, { exact: true }).first()).toBeVisible();
+  });
+
   test('the in-store services strip is CMS-driven, not hardcoded', async ({ page }) => {
     // These four labels used to be an array of `{icon, label}` in
     // `storesLabels.ts`, which `useDict` passes through untouched — so they

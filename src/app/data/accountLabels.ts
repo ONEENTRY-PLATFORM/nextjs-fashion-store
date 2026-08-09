@@ -296,20 +296,17 @@ export const SERVICE_LABELS = {
   costTbc: 'TBC',
   requestDetails: 'Request Details',
   howItWorks: 'How It Works',
-  howSteps: [
-    {
-      step: '01',
-      title: 'Submit Request',
-      body: 'Tell us what your item needs — alteration, repair, cleaning or restoration.',
-    },
-    { step: '02', title: 'Drop Off', body: 'Bring your item to any Kekimoro store with your confirmation reference.' },
-    {
-      step: '03',
-      title: 'We Get to Work',
-      body: 'Our specialist technicians assess and complete your service request.',
-    },
-    { step: '04', title: 'Collect', body: "You'll be notified when ready. Collect in-store or request delivery." },
-  ] as const,
+  // Flat, not an array of objects: `mergeDict` overlays strings only, so a
+  // nested step would stay frozen in code. The `NN` is the rendered badge and
+  // stays here — it is a number, not copy.
+  howStep1Title: 'Submit Request',
+  howStep1Body: 'Tell us what your item needs — alteration, repair, cleaning or restoration.',
+  howStep2Title: 'Drop Off',
+  howStep2Body: 'Bring your item to any Kekimoro store with your confirmation reference.',
+  howStep3Title: 'We Get to Work',
+  howStep3Body: 'Our specialist technicians assess and complete your service request.',
+  howStep4Title: 'Collect',
+  howStep4Body: "You'll be notified when ready. Collect in-store or request delivery.",
   statuses: {
     open: 'Open',
     'in-progress': 'In Progress',
@@ -361,11 +358,12 @@ export const FEEDBACK_LABELS = {
   placeholderMessage: 'Tell us what you loved or what we can improve…',
   charsNeededTpl: 'more characters needed',
   charsCounterTpl: '/ 500',
-  howSteps: [
-    { step: '01', title: 'Rate Your Experience', desc: 'Give a star rating that reflects your overall satisfaction.' },
-    { step: '02', title: 'Choose a Category', desc: 'Help us route your feedback to the right team.' },
-    { step: '03', title: 'We Take Action', desc: 'Our team reviews every submission and improves accordingly.' },
-  ] as const,
+  howStep1Title: 'Rate Your Experience',
+  howStep1Desc: 'Give a star rating that reflects your overall satisfaction.',
+  howStep2Title: 'Choose a Category',
+  howStep2Desc: 'Help us route your feedback to the right team.',
+  howStep3Title: 'We Take Action',
+  howStep3Desc: 'Our team reviews every submission and improves accordingly.',
   submit: 'Submit Feedback',
   requiredNote: 'Required fields',
   thankTitle: 'Thank You!',
@@ -403,15 +401,15 @@ export const REFER_LABELS = {
   emailSent: 'Invitations Sent!',
   // How it works
   howItWorks: 'How It Works',
-  howSteps: (amount: number) => [
-    { step: '01', title: 'Share Your Link', desc: 'Send your unique referral link or code to friends and family.' },
-    { step: '02', title: 'Friend Signs Up', desc: 'Your friend creates an account and places their first order.' },
-    {
-      step: '03',
-      title: `Both Get ${CURRENCY.formatInteger(amount)}`,
-      desc: `You receive ${CURRENCY.formatInteger(amount)} store credit. Your friend gets ${CURRENCY.formatInteger(amount)} off their order.`,
-    },
-  ],
+  // Flat strings so the dictionary can reach them. The third step needs the
+  // credit amount, which an admin-authored value cannot interpolate — hence a
+  // `%amount%` placeholder filled by `fillTokens` at render time.
+  howStep1Title: 'Share Your Link',
+  howStep1Desc: 'Send your unique referral link or code to friends and family.',
+  howStep2Title: 'Friend Signs Up',
+  howStep2Desc: 'Your friend creates an account and places their first order.',
+  howStep3Title: 'Both Get %amount%',
+  howStep3Desc: 'You receive %amount% store credit. Your friend gets %amount% off their order.',
   // Terms
   termsTpl: (minPurchase: number, months: number) =>
     `* Store credit is applied after the referred friend completes their first purchase of ${CURRENCY.formatInteger(minPurchase)} or more. ` +
@@ -474,13 +472,27 @@ export const WAITING_LIST_LABELS = {
 } as const;
 
 // ─── Subscriptions section ──────────────────────────────────────────────────
+/**
+ * Flat on purpose. `mergeDict` overlays **string** entries only — a nested
+ * `{label, desc}` pair is structure to it and would stay frozen in code, which
+ * is exactly how these seven rows ended up un-editable. Flattening them to
+ * `<key>Label` / `<key>Desc` puts every string back under the convention:
+ * `subscription_management_email_newsletter_label`, and so on.
+ */
 export const SUBSCRIPTIONS_LABELS = {
   title: 'Subscription Management',
-  emailNewsletter: { label: 'Email Newsletter', desc: 'Trends, events, exclusive offers & new arrivals' },
-  smsNotifications: { label: 'SMS Notifications', desc: 'Order updates, flash sales & special events' },
-  pushNotifications: { label: 'Push Notifications', desc: 'Browser notifications for new arrivals & sales' },
-  orderUpdates: { label: 'Order Updates', desc: 'Shipping status, delivery confirmations & returns' },
-  newArrivals: { label: 'New Arrivals', desc: 'Be first to know when new collections drop' },
-  saleAlerts: { label: 'Sale Alerts', desc: 'Exclusive early access to sales & promotions' },
-  loyaltyUpdates: { label: 'Loyalty Updates', desc: 'Bonus points, tier upgrades & member rewards' },
+  emailNewsletterLabel: 'Email Newsletter',
+  emailNewsletterDesc: 'Trends, events, exclusive offers & new arrivals',
+  smsNotificationsLabel: 'SMS Notifications',
+  smsNotificationsDesc: 'Order updates, flash sales & special events',
+  pushNotificationsLabel: 'Push Notifications',
+  pushNotificationsDesc: 'Browser notifications for new arrivals & sales',
+  orderUpdatesLabel: 'Order Updates',
+  orderUpdatesDesc: 'Shipping status, delivery confirmations & returns',
+  newArrivalsLabel: 'New Arrivals',
+  newArrivalsDesc: 'Be first to know when new collections drop',
+  saleAlertsLabel: 'Sale Alerts',
+  saleAlertsDesc: 'Exclusive early access to sales & promotions',
+  loyaltyUpdatesLabel: 'Loyalty Updates',
+  loyaltyUpdatesDesc: 'Bonus points, tier upgrades & member rewards',
 } as const;

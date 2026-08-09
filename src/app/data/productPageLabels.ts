@@ -259,24 +259,17 @@ export const QUICK_VIEW_LABELS = {
   wishlistAdd: 'Add to wishlist',
   wishlistRemove: 'Remove from wishlist',
   thumbnailAltPrefix: 'View',
-  sections: [
-    {
-      title: 'Description',
-      content:
-        'Elevate your wardrobe with this stunning piece. Crafted from premium materials with attention to detail, ' +
-        'this item combines style and comfort for any occasion.',
-    },
-    {
-      title: 'Size & Fit',
-      content: 'Model is 5\'9" and wears a size S. True to size fit. For a relaxed fit, we recommend sizing up.',
-    },
-    {
-      title: 'Details',
-      content: '100% Premium Cotton. Machine wash cold. Imported. Style #OE2024',
-    },
-    {
-      title: 'Delivery & Returns',
-      content: 'Free standard shipping on orders over $75. Express shipping available. Free returns within 30 days.',
-    },
-  ] as const,
+  // Flat, so `mergeDict` can overlay each string: an array of objects is
+  // structure to it and would keep this placeholder copy on screen forever.
+  section1Title: 'Description',
+  section1Content:
+    'Elevate your wardrobe with this stunning piece. Crafted from premium materials with attention to detail, ' +
+    'this item combines style and comfort for any occasion.',
+  section2Title: 'Size & Fit',
+  section2Content: `Model is 5'9" and wears a size S. True to size fit. For a relaxed fit, we recommend sizing up.`,
+  section3Title: 'Details',
+  section3Content: '100% Premium Cotton. Machine wash cold. Imported. Style #OE2024',
+  section4Title: 'Delivery & Returns',
+  section4Content:
+    'Free standard shipping on orders over $75. Express shipping available. Free returns within 30 days.',
 } as const;

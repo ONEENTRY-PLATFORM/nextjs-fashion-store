@@ -8,13 +8,19 @@ import { WRITE_REVIEW_LABELS } from '@/app/data/productPageLabels';
 import { trackActivity } from '@/app/utils/track-activity';
 import { useFormLabel, useFormMessage, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
-import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 /** Fallback option list — values must match the OE `listTitles` markers. */
 const OCCASIONS_FALLBACK = WRITE_REVIEW_LABELS.occasions.map((o) => ({ title: o.label, value: o.value }));
+/** Star captions 1–5; the shipped array is 1-based and starts with a blank. */
+const RATE_LABELS_FALLBACK = WRITE_REVIEW_LABELS.rateLabels.filter(Boolean);
 
 export function WriteReviewModal({ onClose, productId }: { onClose: () => void; productId?: number }) {
   const L = useDict('customer_reviews_write_', WRITE_REVIEW_LABELS);
+  // Star captions. Stored without the leading blank the code used to carry
+  // for 1-based indexing — `useList` drops empty entries, and a CSV that
+  // starts with a comma is a trap for whoever edits it in the panel.
+  const rateLabels = useList('customer_reviews_write_rate_labels', RATE_LABELS_FALLBACK);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -178,7 +184,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
                     />
                   </button>
                 ))}
-                {rating > 0 && <span className="ml-2 text-xs text-gray-400">{L.rateLabels[rating]}</span>}
+                {rating > 0 && <span className="ml-2 text-xs text-gray-400">{rateLabels[rating - 1]}</span>}
               </div>
               {errors.rating && <p className="mt-1 text-xs text-(--sale)">{errors.rating}</p>}
             </div>

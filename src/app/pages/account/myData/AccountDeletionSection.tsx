@@ -6,10 +6,13 @@ import { useAuth } from '@/app/context/AuthContext';
 import { ACCOUNT_DELETION_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import { SectionTitle } from '@/app/pages/account/shared';
 import { useRouter } from '@/lib/i18n/navigation';
-import { useDict } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useList } from '@/lib/oneentry/labels/DictContext';
 
 export function AccountDeletionSection() {
   const L = useDict('user_account_deletion_', L_FALLBACK);
+  // An array is structure to `mergeDict`, so the consequences of deleting an
+  // account were the one part of this warning an editor could not touch.
+  const warningPoints = useList('user_account_deletion_warning_points', L.warningPoints);
   const { logout } = useAuth();
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -23,7 +26,7 @@ export function AccountDeletionSection() {
           <div className="space-y-1.5">
             <p className="text-sm font-semibold text-(--sale)">{L.warningTitle}</p>
             <ul className="space-y-1 text-xs text-gray-600">
-              {L.warningPoints.map((point) => (
+              {warningPoints.map((point) => (
                 <li key={point}>• {point}</li>
               ))}
             </ul>

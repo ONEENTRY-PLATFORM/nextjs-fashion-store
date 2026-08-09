@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 import { SIZE_GUIDE_LABELS } from '@/app/data/productPageLabels';
 import { parseSizeTable, serializeSizeTable } from '@/app/data/sizeGuide';
-import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 /** Quick View shows the metric chart: `size|chest|waist|hips`. */
 const QUICK_VIEW_COLUMNS = ['size', 'chest', 'waist', 'hips'] as const;
@@ -12,6 +12,8 @@ const QUICK_VIEW_FALLBACK = SIZE_GUIDE_LABELS.rows as readonly QuickViewRow[];
 
 export function QuickViewSizeGuide({ onClose }: { onClose: () => void }) {
   const L = useDict('size_guide_qv_', SIZE_GUIDE_LABELS);
+  // Header row of the table — an array, so it needs a marker of its own.
+  const colHeaders = useList('size_guide_qv_col_headers', L.colHeaders);
   const SIZE_GUIDE_ROWS = parseSizeTable<QuickViewRow>(
     useT('size_guide_quick_view_rows', serializeSizeTable(QUICK_VIEW_FALLBACK, QUICK_VIEW_COLUMNS)),
     QUICK_VIEW_COLUMNS,
@@ -43,7 +45,7 @@ export function QuickViewSizeGuide({ onClose }: { onClose: () => void }) {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="bg-gray-50">
-                {L.colHeaders.map((h, i) => (
+                {colHeaders.map((h, i) => (
                   <th
                     key={h}
                     className={`border border-gray-200 px-3 py-2 text-xs font-semibold tracking-wider uppercase ${i === 0 ? 'text-left' : 'text-center'}`}

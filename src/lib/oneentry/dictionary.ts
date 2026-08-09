@@ -61,6 +61,9 @@ export const DICTIONARY_SET_MARKERS = [
   // Product detail
   'product_card_delivery_returns',
   'product_card_actions',
+  // Added with the quick-view accordion copy — the set did not exist before, so
+  // that screen rendered its shipped English fallbacks in every locale.
+  'quick_view',
   'special_offers_product_card',
   'special-offers-bundle-product-card',
   'customer-reviews',

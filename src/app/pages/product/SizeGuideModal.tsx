@@ -3,12 +3,15 @@ import { useEffect } from 'react';
 
 import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '@/app/data/productPageLabels';
 import { parseSizeGuide, serializeSizeGuide, SIZE_GUIDE_DATA } from '@/app/data/sizeGuide';
-import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 export function SizeGuideModal({ onClose }: { onClose: () => void }) {
   const L = useDict('size_guide_', L_FALLBACK);
   // The chart itself is editable too — one row per line, `size|us|bust|waist|hip`.
   const rows = parseSizeGuide(useT('size_guide_rows', serializeSizeGuide(SIZE_GUIDE_DATA)));
+  // The rows already come from the CMS; the header row was the one part of
+  // this table still frozen in code, because `mergeDict` skips arrays.
+  const colHeaders = useList('size_guide_col_headers', L.colHeaders);
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -35,7 +38,7 @@ export function SizeGuideModal({ onClose }: { onClose: () => void }) {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-[#f5f5f5]">
-                  {L.colHeaders.map((h) => (
+                  {colHeaders.map((h) => (
                     <th
                       key={h}
                       className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase"

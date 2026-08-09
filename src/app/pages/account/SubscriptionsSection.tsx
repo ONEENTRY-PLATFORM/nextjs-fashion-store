@@ -7,15 +7,25 @@ import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { SectionTitle } from './shared';
 
-const EMPTY_SUBS = {
-  emailNewsletter: false,
-  smsNotifications: false,
-  pushNotifications: false,
-  orderUpdates: false,
-  newArrivals: false,
-  saleAlerts: false,
-  loyaltyUpdates: false,
-};
+/**
+ * The toggles, in render order. Also the shape of {@link EMPTY_SUBS} and the
+ * stem of every dictionary marker (`<key>Label` / `<key>Desc`), so the rows,
+ * the default state and the CMS copy cannot drift apart.
+ */
+const SUBSCRIPTION_KEYS = [
+  'emailNewsletter',
+  'smsNotifications',
+  'pushNotifications',
+  'orderUpdates',
+  'newArrivals',
+  'saleAlerts',
+  'loyaltyUpdates',
+] as const;
+
+const EMPTY_SUBS = Object.fromEntries(SUBSCRIPTION_KEYS.map((k) => [k, false])) as Record<
+  (typeof SUBSCRIPTION_KEYS)[number],
+  boolean
+>;
 
 /**
  * One notification toggle row. Declared at module scope, not inside
@@ -78,48 +88,15 @@ export function SubscriptionsSection() {
     <div>
       <SectionTitle title={lTitle} />
       <div className="space-y-3">
-        <Toggle
-          value={subs.emailNewsletter}
-          onChange={() => toggle('emailNewsletter')}
-          label={L.emailNewsletter.label}
-          desc={L.emailNewsletter.desc}
-        />
-        <Toggle
-          value={subs.smsNotifications}
-          onChange={() => toggle('smsNotifications')}
-          label={L.smsNotifications.label}
-          desc={L.smsNotifications.desc}
-        />
-        <Toggle
-          value={subs.pushNotifications}
-          onChange={() => toggle('pushNotifications')}
-          label={L.pushNotifications.label}
-          desc={L.pushNotifications.desc}
-        />
-        <Toggle
-          value={subs.orderUpdates}
-          onChange={() => toggle('orderUpdates')}
-          label={L.orderUpdates.label}
-          desc={L.orderUpdates.desc}
-        />
-        <Toggle
-          value={subs.newArrivals}
-          onChange={() => toggle('newArrivals')}
-          label={L.newArrivals.label}
-          desc={L.newArrivals.desc}
-        />
-        <Toggle
-          value={subs.saleAlerts}
-          onChange={() => toggle('saleAlerts')}
-          label={L.saleAlerts.label}
-          desc={L.saleAlerts.desc}
-        />
-        <Toggle
-          value={subs.loyaltyUpdates}
-          onChange={() => toggle('loyaltyUpdates')}
-          label={L.loyaltyUpdates.label}
-          desc={L.loyaltyUpdates.desc}
-        />
+        {SUBSCRIPTION_KEYS.map((key) => (
+          <Toggle
+            key={key}
+            value={subs[key]}
+            onChange={() => toggle(key)}
+            label={L[`${key}Label`]}
+            desc={L[`${key}Desc`]}
+          />
+        ))}
       </div>
     </div>
   );

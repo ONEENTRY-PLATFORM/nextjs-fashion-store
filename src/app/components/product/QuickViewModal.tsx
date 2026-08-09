@@ -236,6 +236,13 @@ export function QuickViewModal() {
     setShowWriteReview(true);
   };
 
+  // Rebuilt from the flat `sectionNTitle` / `sectionNContent` keys so every
+  // string routes through the dictionary.
+  const sections = [1, 2, 3, 4].map((n) => ({
+    title: L[`section${n}Title` as keyof typeof L] as string,
+    content: L[`section${n}Content` as keyof typeof L] as string,
+  }));
+
   return (
     <div
       className="fixed inset-0 z-200 flex items-center justify-center"
@@ -609,7 +616,7 @@ export function QuickViewModal() {
 
             {/* Expandable Sections */}
             <div className="border-t border-gray-200">
-              {L.sections.map((section) => (
+              {sections.map((section) => (
                 <div key={section.title} className="border-b border-gray-200">
                   <button
                     onClick={() => toggleSection(section.title)}

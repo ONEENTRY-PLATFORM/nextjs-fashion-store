@@ -6,6 +6,7 @@ import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { REFER_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import { CURRENCY } from '@/app/data/currencyConfig';
+import { fillTokens } from '@/app/utils/fillTokens';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, SectionTitle } from './shared';
@@ -67,6 +68,18 @@ export function ReferSection() {
   };
 
   const sectionLabel = 'block text-xs uppercase tracking-[0.15em] mb-2 font-bold text-[#555]';
+
+  // Rebuilt from the flat `howStepNTitle` / `howStepNDesc` keys. `%amount%` is
+  // filled here because an admin-authored string cannot interpolate.
+  const howSteps = [1, 2, 3].map((n) => ({
+    step: String(n).padStart(2, '0'),
+    title: fillTokens(L[`howStep${n}Title` as keyof typeof L] as string, {
+      amount: CURRENCY.formatInteger(ref.creditAmount),
+    }),
+    desc: fillTokens(L[`howStep${n}Desc` as keyof typeof L] as string, {
+      amount: CURRENCY.formatInteger(ref.creditAmount),
+    }),
+  }));
 
   return (
     <div
@@ -193,7 +206,7 @@ export function ReferSection() {
         <div className="pt-4">
           <p className="mb-4 text-xs font-bold tracking-[0.15em] text-[#555] uppercase">{L.howItWorks}</p>
           <div className="grid grid-cols-1 gap-px bg-white sm:grid-cols-3">
-            {L.howSteps(ref.creditAmount).map((s) => (
+            {howSteps.map((s) => (
               <div key={s.step} className="bg-white px-5 py-6">
                 <p className="mb-2 text-xs font-extrabold tracking-widest text-accent">{s.step}</p>
                 <p className="mb-1.5 text-sm font-bold">{s.title}</p>

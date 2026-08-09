@@ -6,7 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { FEEDBACK_LABELS } from '@/app/data/accountLabels';
-import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, fmt, SectionTitle } from './shared';
 
@@ -44,8 +44,17 @@ export function FeedbackSection() {
   const submitLabel = useT('user_account_feedback_submit', L.submit);
   const requiredNote = useT('user_account_feedback_required_fields', L.requiredNote);
 
-  const categories = L.categories;
-  const ratingLabels = L.rating;
+  // `mergeDict` overlays strings only, so the array and the 1–5 map below stay
+  // frozen in code unless they get markers of their own: one comma-separated
+  // list, and one nested overlay keyed by the rating itself.
+  const categories = useList('user_account_feedback_categories', L.categories);
+  // Same flattening as the service section: one key per step field.
+  const howSteps = [1, 2, 3].map((n) => ({
+    step: String(n).padStart(2, '0'),
+    title: L[`howStep${n}Title` as keyof typeof L] as string,
+    desc: L[`howStep${n}Desc` as keyof typeof L] as string,
+  }));
+  const ratingLabels = useDict('user_account_feedback_rating_', L.rating);
 
   const sectionVars = {
     '--sale': SALE_COLOR,
@@ -209,7 +218,7 @@ export function FeedbackSection() {
 
         {/* How it works steps */}
         <div className="grid grid-cols-1 gap-px bg-white sm:grid-cols-3">
-          {L.howSteps.map((s) => (
+          {howSteps.map((s) => (
             <div key={s.step} className="bg-white px-5 py-6">
               <p className="mb-2 text-xs font-extrabold tracking-widest text-accent">{s.step}</p>
               <p className="mb-1.5 text-sm font-bold">{s.title}</p>
