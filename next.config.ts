@@ -105,7 +105,18 @@ const nextConfig: NextConfig = {
     //
     // Flipping this to `false` is a one-line change and the blur works either
     // way; if you do, cap Playwright workers too, or the image E2E flakes.
-    // `remotePatterns` stays for components that opt in via `unoptimized={false}`.
+    //
+    // Note it really is all-or-nothing: `unoptimized: true` here disables the
+    // optimizer outright, and a per-image `unoptimized={false}` does *not*
+    // buy its way back in (verified on Next 16 — the prop only overrides in
+    // the other direction). `remotePatterns` stays because it is what the
+    // config would need the moment this flag flips.
+    //
+    // The cost is currently paid by the homepage hero: a ~575 KB 1600 px JPEG
+    // painted into a 412 px viewport, which is most of the simulated LCP on a
+    // throttled connection. The cheaper fix is CMS-side — re-uploading those
+    // block images through an OE preview template gives `previewLink` a
+    // resized variant to serve (and an LQIP with it), no optimizer involved.
     unoptimized: true,
     remotePatterns: [
       {

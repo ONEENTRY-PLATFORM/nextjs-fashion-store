@@ -3,7 +3,7 @@ import { Heart, Menu, Search, ShoppingBag, User } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
@@ -41,6 +41,33 @@ import { useT } from '@/lib/oneentry/labels/DictContext';
 import { adaptHeaderMenuToMega } from '@/lib/oneentry/menus/adapt-header';
 import { useHeaderMenu } from '@/lib/oneentry/menus/HeaderMenuContext';
 
+/**
+ * Reads `?gender=` and hands it to the header, rendering nothing itself.
+ *
+ * It exists purely to keep `useSearchParams()` out of `<Header>`: the hook
+ * opts its caller out of static prerendering, and Next resolves that by
+ * bailing the *nearest Suspense boundary* to client-side rendering. `<Header>`
+ * is mounted bare at the top of every screen, so the nearest boundary was the
+ * route's own `loading.tsx` — which meant the entire page shipped as skeleton
+ * HTML and only became real markup after hydration (no `<img>` in the
+ * document, so the preload scanner never saw the LCP image).
+ *
+ * Suspended here instead, the bailout is contained to a component whose
+ * fallback is `null`, and everything around it prerenders as before.
+ *
+ * @param props - Component props.
+ * @param props.onChange - Receives the gender in the query, or `null`.
+ * @returns Nothing.
+ */
+function GenderQuerySync({ onChange }: { onChange: (gender: Gender | null) => void }) {
+  const searchParams = useSearchParams();
+  const queryGender = searchParams?.get('gender');
+  useEffect(() => {
+    onChange(queryGender === 'men' ? 'men' : queryGender === 'women' ? 'women' : null);
+  }, [queryGender, onChange]);
+  return null;
+}
+
 export function Header() {
   const lSearch = useT('search', SEARCH_PLACEHOLDER);
   // Header copy from the OE `header` set — local constants are the fallback.
@@ -65,7 +92,9 @@ export function Header() {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  // Filled in by `<GenderQuerySync>` below — see the note on that component for
+  // why the query is not read here directly.
+  const [queryGender, setQueryGender] = useState<Gender | null>(null);
 
   // On category pages the gender is in the path (`/women/...`, `/men/...`).
   // On flat pages (`/new`, `/sale`) it comes from the `?gender=` query so the
@@ -73,9 +102,7 @@ export function Header() {
   const urlGender: Gender = (() => {
     if (pathname.startsWith('/men')) return 'men';
     if (pathname.startsWith('/women')) return 'women';
-    const q = searchParams?.get('gender');
-    if (q === 'men') return 'men';
-    return 'women';
+    return queryGender ?? 'women';
   })();
   const urlSubCat: string | null = (() => {
     if (pathname.includes('/clothing')) return 'clothing';
@@ -165,162 +192,173 @@ export function Header() {
   }, []);
 
   return (
-    <header
-      className="sticky top-0 z-50 bg-white"
-      style={
-        {
-          '--women': WOMEN_COLOR,
-          '--men': MEN_COLOR,
-          '--accent': accentColor,
-        } as React.CSSProperties
-      }
-    >
-      <HeaderTopBar />
+    <>
+      {/* Outside `<header>`, not inside it: a boundary that bailed to
+          client-side rendering is re-rendered on the client, and with it
+          nested in the header React briefly held a second, freshly built
+          `<header>` in the DOM before dropping the server one. Rendering
+          `null` either way, the boundary costs nothing where it sits now. */}
+      <Suspense fallback={null}>
+        <GenderQuerySync onChange={setQueryGender} />
+      </Suspense>
 
-      {/* ── MAIN HEADER ── */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-384 px-8 lg:px-12">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setMobileOpen(true)}
-                className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 lg:hidden"
-                aria-label={aOpenMenu}
-              >
-                <Menu size={22} />
-              </button>
-              <Link href="/" className="shrink-0">
-                <Image src={logoImage} alt={lLogoAlt} width={146} height={32} className="object-contain" priority />
-              </Link>
+      <header
+        className="sticky top-0 z-50 bg-white"
+        style={
+          {
+            '--women': WOMEN_COLOR,
+            '--men': MEN_COLOR,
+            '--accent': accentColor,
+          } as React.CSSProperties
+        }
+      >
+        <HeaderTopBar />
+
+        {/* ── MAIN HEADER ── */}
+        <div className="border-b border-gray-200 bg-white">
+          <div className="mx-auto max-w-384 px-8 lg:px-12">
+            <div className="flex h-16 items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setMobileOpen(true)}
+                  className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 lg:hidden"
+                  aria-label={aOpenMenu}
+                >
+                  <Menu size={22} />
+                </button>
+                <Link href="/" className="shrink-0">
+                  <Image src={logoImage} alt={lLogoAlt} width={146} height={32} className="object-contain" priority />
+                </Link>
+              </div>
+
+              <nav aria-label={aMainNav} className="mx-8 hidden flex-1 items-center justify-center lg:flex">
+                <div className="flex items-center gap-6">
+                  {(['women', 'men'] as Gender[]).map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => {
+                        setActiveGender(g);
+                        // Stay on /new or /sale when the shopper swaps
+                        // gender — just re-scope the current page instead of
+                        // yanking them into `/women/clothing`.
+                        if (pathname === '/new' || pathname === '/sale') {
+                          router.push(`${pathname}?gender=${g}`);
+                        } else {
+                          router.push(GENDER_NAV_HREFS[g]);
+                        }
+                      }}
+                      className={`relative flex h-10 items-center text-sm font-medium tracking-widest uppercase transition-all duration-150 ease-in-out ${
+                        urlGender === g ? (g === 'women' ? 'text-(--women)' : 'text-(--men)') : 'text-black'
+                      }`}
+                    >
+                      {g.toUpperCase()}
+                      {urlGender === g && (
+                        <span
+                          className={`absolute inset-x-0 bottom-0 h-0.5 transition-all duration-150 ${
+                            urlGender === 'women' ? 'bg-(--women)' : 'bg-(--men)'
+                          }`}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </nav>
+
+              <div className="flex items-center">
+                <div className="relative hidden w-64 lg:flex">
+                  <HeaderSearch placeholder={lSearch} ariaLabel={aSearchDesk} variant="desktop" />
+                </div>
+                <button
+                  onClick={() => setSearchOpen(!searchOpen)}
+                  className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 md:hidden"
+                  aria-label={aToggleSearch}
+                >
+                  <Search size={20} />
+                </button>
+                <button
+                  className="hidden min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70 md:flex"
+                  onClick={() => (isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal())}
+                  aria-label={aAccount}
+                >
+                  <User size={20} />
+                </button>
+                <button
+                  className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
+                  onClick={() => router.push(WISHLIST_HREF)}
+                  aria-label={aWishlist}
+                >
+                  <Heart size={20} />
+                  {mounted && wishlistCount > 0 && (
+                    <span
+                      data-testid="header-wishlist-count"
+                      className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-(--women) text-[10px] text-white"
+                    >
+                      {wishlistCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
+                  onClick={openMiniCart}
+                  aria-label={aBag}
+                >
+                  <ShoppingBag size={20} />
+                  {mounted && totalItems > 0 && (
+                    <span
+                      // No class here contains "badge", so the specs'
+                      // `[class*="badge"]` locator never matched the counter.
+                      data-testid="header-cart-count"
+                      className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-accent text-[10px] text-white"
+                    >
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <nav aria-label={aMainNav} className="mx-8 hidden flex-1 items-center justify-center lg:flex">
-              <div className="flex items-center gap-6">
-                {(['women', 'men'] as Gender[]).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => {
-                      setActiveGender(g);
-                      // Stay on /new or /sale when the shopper swaps
-                      // gender — just re-scope the current page instead of
-                      // yanking them into `/women/clothing`.
-                      if (pathname === '/new' || pathname === '/sale') {
-                        router.push(`${pathname}?gender=${g}`);
-                      } else {
-                        router.push(GENDER_NAV_HREFS[g]);
-                      }
-                    }}
-                    className={`relative flex h-10 items-center text-sm font-medium tracking-widest uppercase transition-all duration-150 ease-in-out ${
-                      urlGender === g ? (g === 'women' ? 'text-(--women)' : 'text-(--men)') : 'text-black'
-                    }`}
-                  >
-                    {g.toUpperCase()}
-                    {urlGender === g && (
-                      <span
-                        className={`absolute inset-x-0 bottom-0 h-0.5 transition-all duration-150 ${
-                          urlGender === 'women' ? 'bg-(--women)' : 'bg-(--men)'
-                        }`}
-                      />
-                    )}
-                  </button>
-                ))}
+            {searchOpen && (
+              <div className="pb-4 md:hidden">
+                <HeaderSearch placeholder={lSearchMobile} ariaLabel={aSearchMob} autoFocus variant="mobile" />
               </div>
-            </nav>
-
-            <div className="flex items-center">
-              <div className="relative hidden w-64 lg:flex">
-                <HeaderSearch placeholder={lSearch} ariaLabel={aSearchDesk} variant="desktop" />
-              </div>
-              <button
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 md:hidden"
-                aria-label={aToggleSearch}
-              >
-                <Search size={20} />
-              </button>
-              <button
-                className="hidden min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70 md:flex"
-                onClick={() => (isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal())}
-                aria-label={aAccount}
-              >
-                <User size={20} />
-              </button>
-              <button
-                className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
-                onClick={() => router.push(WISHLIST_HREF)}
-                aria-label={aWishlist}
-              >
-                <Heart size={20} />
-                {mounted && wishlistCount > 0 && (
-                  <span
-                    data-testid="header-wishlist-count"
-                    className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-(--women) text-[10px] text-white"
-                  >
-                    {wishlistCount}
-                  </span>
-                )}
-              </button>
-              <button
-                className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
-                onClick={openMiniCart}
-                aria-label={aBag}
-              >
-                <ShoppingBag size={20} />
-                {mounted && totalItems > 0 && (
-                  <span
-                    // No class here contains "badge", so the specs'
-                    // `[class*="badge"]` locator never matched the counter.
-                    data-testid="header-cart-count"
-                    className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-accent text-[10px] text-white"
-                  >
-                    {totalItems}
-                  </span>
-                )}
-              </button>
-            </div>
+            )}
           </div>
-
-          {searchOpen && (
-            <div className="pb-4 md:hidden">
-              <HeaderSearch placeholder={lSearchMobile} ariaLabel={aSearchMob} autoFocus variant="mobile" />
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* ── SUBCATEGORY NAV + MEGA DROPDOWN ── */}
-      <HeaderMegaMenu
-        activeGender={activeGender}
-        accentColor={accentColor}
-        urlSubCat={urlSubCat}
-        activeDropdown={activeDropdown}
-        currentDropdownData={currentDropdownData}
-        dropdownRef={dropdownRef}
-        onSubCatEnter={handleSubCatEnter}
-        onSubCatLeave={handleSubCatLeave}
-        onDropdownEnter={handleDropdownEnter}
-        onDropdownLeave={handleDropdownLeave}
-        onCloseDropdown={() => setActiveDropdown(null)}
-        getNavHref={getNavHref}
-      />
+        {/* ── SUBCATEGORY NAV + MEGA DROPDOWN ── */}
+        <HeaderMegaMenu
+          activeGender={activeGender}
+          accentColor={accentColor}
+          urlSubCat={urlSubCat}
+          activeDropdown={activeDropdown}
+          currentDropdownData={currentDropdownData}
+          dropdownRef={dropdownRef}
+          onSubCatEnter={handleSubCatEnter}
+          onSubCatLeave={handleSubCatLeave}
+          onDropdownEnter={handleDropdownEnter}
+          onDropdownLeave={handleDropdownLeave}
+          onCloseDropdown={() => setActiveDropdown(null)}
+          getNavHref={getNavHref}
+        />
 
-      {/* ── MOBILE DRAWER ── */}
-      <HeaderMobileDrawer
-        isOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        mobileGender={mobileGender}
-        onMobileGenderChange={setMobileGender}
-        mobileExpandedCat={mobileExpandedCat}
-        setMobileExpandedCat={setMobileExpandedCat}
-        accentColor={accentColor}
-        urlSubCat={urlSubCat}
-        getNavHref={getNavHref}
-      />
+        {/* ── MOBILE DRAWER ── */}
+        <HeaderMobileDrawer
+          isOpen={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          mobileGender={mobileGender}
+          onMobileGenderChange={setMobileGender}
+          mobileExpandedCat={mobileExpandedCat}
+          setMobileExpandedCat={setMobileExpandedCat}
+          accentColor={accentColor}
+          urlSubCat={urlSubCat}
+          getNavHref={getNavHref}
+        />
 
-      <MiniCart />
-      <LoginModal />
-      <RegisterModal />
-      <QuickViewModal />
-    </header>
+        <MiniCart />
+        <LoginModal />
+        <RegisterModal />
+        <QuickViewModal />
+      </header>
+    </>
   );
 }

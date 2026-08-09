@@ -21,6 +21,25 @@ const PROJECT_URL = process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY
 const APP_TOKEN = process.env.NEXT_PUBLIC_ONEENTRY_TOKEN ?? process.env.ONEENTRY_TOKEN ?? '';
 
 /**
+ * Origin that serves CMS media (`/cloud-static/...`). Every block picture and
+ *  catalogue photo — including the homepage hero, which is the LCP element —
+ *  is loaded from here, and it is a different origin from the app itself, so
+ *  the first image pays for a DNS lookup plus a TLS handshake before a single
+ *  byte arrives. Exported so the document head can `preconnect` and get that
+ *  out of the way while the HTML is still parsing.
+ *
+ * Empty string when the SDK is unconfigured or the URL is unparseable — call
+ *  sites are expected to skip the hint rather than emit `<link href="">`.
+ */
+export const CMS_MEDIA_ORIGIN = (() => {
+  try {
+    return PROJECT_URL ? new URL(PROJECT_URL).origin : '';
+  } catch {
+    return '';
+  }
+})();
+
+/**
  * Default OE locale. Mirrors `DEFAULT_LOCALE` in `./locale`, duplicated here to
  *  keep this module dependency-free (it is imported by literally every OE
  *  consumer, including `proxy.ts` transitively). Both are constants, so the two

@@ -27,6 +27,10 @@ export function CategorySection({
     label: c.label,
     chip: c.chip,
     image: c.image,
+    // Same omission the hero had: `cat.imageBlur` is read below, but the
+    // mapping never carried it across, so the tiles had no LQIP to show while
+    // the (unoptimized, full-size) photo downloaded.
+    imageBlur: c.imageBlur,
     href: c.href,
   }));
   const [activeFilter, setActiveFilter] = useState(chips[0] ?? '');

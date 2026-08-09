@@ -18,6 +18,7 @@ import { getDictionary } from '@/lib/oneentry/dictionary';
 // forms mount their own `FormPlaceholdersProvider` next to the page that needs
 // them (see `app/[locale]/product/[id]/page.tsx`, `account`, `checkout`).
 import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
+import { CMS_MEDIA_ORIGIN } from '@/lib/oneentry/index';
 import {
   buildLanguageAlternates,
   DEFAULT_SHORT_LOCALE,
@@ -85,12 +86,17 @@ export async function generateMetadata(): Promise<Metadata> {
       // stale hreflang behind.
       languages: buildLanguageAlternates(SITE_URL),
     },
+    // Only files that exist. The list used to name three PNGs under
+    // `/icons/` that were never committed; because a missing route still
+    // answers 200 with the not-found *page*, every visit downloaded ~28 KB of
+    // gzipped HTML as its favicon — on a high-priority connection, in the
+    // middle of the LCP window. `app/icon.svg` and `app/favicon.ico` are real,
+    // and Next serves both from its file conventions.
     icons: {
       icon: [
-        { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
-        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/icon.svg', type: 'image/svg+xml', sizes: 'any' },
+        { url: '/favicon.ico', sizes: '48x48' },
       ],
-      apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
       shortcut: '/favicon.ico',
     },
   };
@@ -150,9 +156,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             lives in `instrumentation-client.ts`: a locale switch re-renders
             this layout on the client, and React never executes a `<script>`
             it renders there — it only warns about it. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://images.unsplash.com" />
+        {/* The CMS media origin serves every photo on the site, the LCP hero
+            included, so its connection is worth opening before the parser gets
+            to the first `<img>`. The Google Fonts hints that used to sit here
+            were removed: Tailwind v4 strips the remote `@import` in
+            `globals.css` at build time, so no request is ever made to those
+            origins and the two handshakes were pure overhead. Unsplash keeps
+            the DNS hint only — it is a fallback source used by a handful of
+            routes, never on the pages that matter for LCP. */}
+        {CMS_MEDIA_ORIGIN ? <link rel="preconnect" href={CMS_MEDIA_ORIGIN} /> : null}
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
       <body>

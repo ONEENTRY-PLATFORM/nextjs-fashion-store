@@ -49,6 +49,9 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
   const slides: HeroSlide[] = (initialSlides ?? []).map((s) => ({
     id: s.id,
     image: s.image,
+    // Was dropped by this mapping, so `s.imageBlur` below always read
+    // `undefined` and the hero rendered with no LQIP even when the CMS had one.
+    imageBlur: s.imageBlur,
     eyebrow: s.eyebrow,
     headline: s.headline,
     subtext: s.subtext,
@@ -62,6 +65,12 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
   const [paused, setPaused] = useState(false);
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const regionId = useId();
+  // Slides 2 and 3 are full-bleed photos of the same weight as the first one,
+  // and they sit *inside* the viewport at `opacity-0` — which means the browser
+  // fetches them eagerly no matter what `loading` says. On a mobile connection
+  // that puts ~1.3 MB in front of the LCP image. Their `<img>` is therefore
+  // withheld until the main thread goes idle; the visible slide is unaffected.
+  const [preloadPending, setPreloadPending] = useState(true);
 
   const aCarouselRole = useT('interface_controls_carousel_role', CAROUSEL_LABELS.carouselRole);
   const aFeatured = useT('interface_controls_featured_collections', CAROUSEL_LABELS.featuredCollections);
@@ -76,6 +85,20 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
     return () => {
       if (transitionTimer.current) clearTimeout(transitionTimer.current);
     };
+  }, []);
+
+  // `requestIdleCallback` rather than a timer: it fires once the hero has
+  // painted and the hydration work has drained, which is exactly when the
+  // remaining slides stop competing for bandwidth. The `timeout` caps the wait
+  // on a busy main thread, and the `setTimeout` branch covers browsers without
+  // the API. Both are well inside the first auto-advance (see TIMINGS).
+  useEffect(() => {
+    if (typeof window.requestIdleCallback !== 'function') {
+      const timer = setTimeout(() => setPreloadPending(false), TIMINGS.HERO_SLIDE_TRANSITION);
+      return () => clearTimeout(timer);
+    }
+    const handle = window.requestIdleCallback(() => setPreloadPending(false), { timeout: 2000 });
+    return () => window.cancelIdleCallback?.(handle);
   }, []);
 
   const goTo = useCallback(
@@ -123,6 +146,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
       {slides.map((s, idx) => (
         <div
           key={s.id}
+          id={`${regionId}-slide-${idx}`}
           role="group"
           aria-roledescription={aSlideRole}
           aria-label={fillTokens(aSlideDescription, {
@@ -135,15 +159,19 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
             idx === current ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <CmsImage
-            src={s.image}
-            blur={s.imageBlur}
-            alt={s.headline}
-            fill
-            sizes="100vw"
-            className="object-cover object-[center_20%]"
-            priority={idx === 0}
-          />
+          {idx === current || !preloadPending ? (
+            <CmsImage
+              src={s.image}
+              blur={s.imageBlur}
+              alt={s.headline}
+              fill
+              sizes="100vw"
+              className="object-cover object-[center_20%]"
+              priority={idx === 0}
+              fetchPriority={idx === 0 ? 'high' : undefined}
+              data-testid={idx === 0 ? 'hero-slide-image' : undefined}
+            />
+          ) : null}
           {/* Directional gradient overlay per alignment */}
           <div className="absolute inset-0" style={{ background: GRADIENTS[s.align] }} />
         </div>
