@@ -18,7 +18,8 @@ const getServerSnapshot = () => false;
  * useEffect"). `useSyncExternalStore` gives the same two-phase value with a
  * single render pass and is the officially sanctioned way to read
  * "am I hydrated yet".
- * @returns {boolean} `true` once the component is running in the browser.
+ *
+ * @returns `true` once the component is running in the browser.
  */
 export function useMounted(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

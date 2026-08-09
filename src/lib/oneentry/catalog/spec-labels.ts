@@ -1,5 +1,5 @@
-import { getSystemSet, readSystemValue, type Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
+import { getSystemSet, type Lang, readSystemValue } from '../system-text';
 import { PRODUCT_SPEC_FALLBACK_LABELS, type ProductSpecKey } from './adapt';
 
 /** OE marker of the system-text set holding the PDP specification row labels. */
@@ -24,9 +24,7 @@ const SPEC_LABEL_KEYS: Record<ProductSpecKey, string> = {
  * left empty fall back to {@link PRODUCT_SPEC_FALLBACK_LABELS}, and an OE
  * outage yields the fallbacks wholesale rather than blank rows.
  */
-export async function loadProductSpecLabels(
-  lang: Lang = DEFAULT_LOCALE,
-): Promise<Record<ProductSpecKey, string>> {
+export async function loadProductSpecLabels(lang: Lang = DEFAULT_LOCALE): Promise<Record<ProductSpecKey, string>> {
   const schema = await getSystemSet(SPEC_LABELS_MARKER, lang);
   const out = { ...PRODUCT_SPEC_FALLBACK_LABELS };
   for (const [key, marker] of Object.entries(SPEC_LABEL_KEYS) as [ProductSpecKey, string][]) {

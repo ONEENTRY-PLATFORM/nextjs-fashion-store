@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * `FAQPage` structured data on `/faq` is derived from the OneEntry section
@@ -17,7 +17,13 @@ test.describe('FAQ structured data', () => {
 
     const blobs = await page.locator('script[type="application/ld+json"]').allTextContents();
     const faqBlobs = blobs
-      .map((raw) => { try { return JSON.parse(raw); } catch { return null; } })
+      .map((raw) => {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      })
       .filter((data): data is { mainEntity?: { name?: string }[] } => data?.['@type'] === 'FAQPage');
 
     // No Q&A sections in OE → no FAQPage node. That is a pass, not a gap.
@@ -26,8 +32,7 @@ test.describe('FAQ structured data', () => {
     const questions = faqBlobs.flatMap((b) => (b.mainEntity ?? []).map((q) => (q.name ?? '').trim()));
     expect(questions.length).toBeGreaterThan(0);
 
-    const headings = (await page.locator('[data-testid="info-section"] h2').allInnerTexts())
-      .map((t) => t.trim());
+    const headings = (await page.locator('[data-testid="info-section"] h2').allInnerTexts()).map((t) => t.trim());
 
     for (const question of questions) {
       expect(headings).toContain(question);
@@ -39,7 +44,13 @@ test.describe('FAQ structured data', () => {
     await page.locator('[data-testid="info-sections"]').waitFor({ state: 'attached', timeout: 60_000 });
 
     const blobs = await page.locator('script[type="application/ld+json"]').allTextContents();
-    const types = blobs.map((raw) => { try { return JSON.parse(raw)?.['@type']; } catch { return null; } });
+    const types = blobs.map((raw) => {
+      try {
+        return JSON.parse(raw)?.['@type'];
+      } catch {
+        return null;
+      }
+    });
     expect(types).not.toContain('FAQPage');
   });
 });

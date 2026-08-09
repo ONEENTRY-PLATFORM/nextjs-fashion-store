@@ -17,7 +17,9 @@
  * `use*T(key, fallback)` call — the two styles coexist per file.
  */
 
-/** `camelCase` / `PascalCase` → `snake_case`; digits stay attached to the word. */
+/**
+ * `camelCase` / `PascalCase` → `snake_case`; digits stay attached to the word.
+ */
 export function snakeKey(name: string): string {
   return name
     .replace(/([a-z0-9])([A-Z])/g, '$1_$2')

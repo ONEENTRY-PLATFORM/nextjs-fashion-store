@@ -44,22 +44,28 @@ export interface CatalogFilters {
   /** Shoe filters shipped by OE's `women_shoes` / `men_shoes` filter defs. */
   soleMaterials?: string[];
   insoleMaterials?: string[];
-  /** Discount toggle — surfaces the OE filter group of the same name. Truthy
-   *  when the shopper has picked any value in the group. */
+  /**
+   * Discount toggle — surfaces the OE filter group of the same name. Truthy
+   *  when the shopper has picked any value in the group.
+   */
   discountOnly?: boolean;
   sort?: string;
   page?: number;
   chip?: string;
-  /** OE category `pageUrl` — a specific leaf inside the current section
+  /**
+   * OE category `pageUrl` — a specific leaf inside the current section
    *  (e.g. `dresses_skirts`). When present, only products whose category
-   *  path ends with this segment are shown. */
+   *  path ends with this segment are shown.
+   */
   category?: string;
 }
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 
-/** URL param key → CatalogFilters list field. Multi-value entries are
- *  comma-separated in the URL (e.g. `?color=Black,White`). */
+/**
+ * URL param key → CatalogFilters list field. Multi-value entries are
+ *  comma-separated in the URL (e.g. `?color=Black,White`).
+ */
 const LIST_KEYS: Record<string, keyof CatalogFilters> = {
   color: 'colors',
   size: 'sizes',
@@ -78,8 +84,10 @@ const LIST_KEYS: Record<string, keyof CatalogFilters> = {
   insoleMaterial: 'insoleMaterials',
 };
 
-/** Inverse of LIST_KEYS — used by serializeCatalogSearchParams to flip a
- *  CatalogFilters object back into URL params. */
+/**
+ * Inverse of LIST_KEYS — used by serializeCatalogSearchParams to flip a
+ *  CatalogFilters object back into URL params.
+ */
 const LIST_FIELD_TO_KEY: Record<string, string> = Object.fromEntries(
   Object.entries(LIST_KEYS).map(([urlKey, field]) => [field as string, urlKey]),
 );
@@ -92,7 +100,10 @@ const firstString = (v: string | string[] | undefined): string | undefined => {
 const splitCsv = (v: string | string[] | undefined): string[] | undefined => {
   if (!v) return undefined;
   const flat = Array.isArray(v) ? v.join(',') : v;
-  const parts = flat.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+  const parts = flat
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
   return parts.length > 0 ? parts : undefined;
 };
 
@@ -102,9 +113,11 @@ const toFiniteNumber = (v: string | undefined): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-/** Parse Next.js `searchParams` into a typed `CatalogFilters` object.
+/**
+ * Parse Next.js `searchParams` into a typed `CatalogFilters` object.
  *  Skips unknown keys silently so non-filter query params (`utm_source`, etc.)
- *  don't interfere. */
+ *  don't interfere.
+ */
 export function parseCatalogSearchParams(sp: RawSearchParams): CatalogFilters {
   const out: CatalogFilters = {};
   const minPrice = toFiniteNumber(firstString(sp.minPrice));
@@ -134,9 +147,11 @@ export function parseCatalogSearchParams(sp: RawSearchParams): CatalogFilters {
   return out;
 }
 
-/** Serialize a `CatalogFilters` back into a URL query string suitable for
+/**
+ * Serialize a `CatalogFilters` back into a URL query string suitable for
  *  `router.replace`. Empty / undefined fields are stripped so they don't bloat
- *  the URL with `?color=&size=&minPrice=`. */
+ *  the URL with `?color=&size=&minPrice=`.
+ */
 export function serializeCatalogSearchParams(filters: CatalogFilters): string {
   const params = new URLSearchParams();
   if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
@@ -196,28 +211,24 @@ const FE_GROUP_TO_FILTER_FIELD: Record<string, keyof CatalogFilters> = {
   insoleMaterial: 'insoleMaterials',
 };
 
-/** Returns true if the filter group key has a backing OE marker we know about
+/**
+ * Returns true if the filter group key has a backing OE marker we know about
  *  (i.e. flipping it actually filters the products). UI uses this to grey
- *  out unsupported groups instead of letting the user toggle a no-op. */
+ *  out unsupported groups instead of letting the user toggle a no-op.
+ */
 export function isFilterGroupSupported(groupKey: string): boolean {
-  return groupKey in FE_GROUP_TO_FILTER_FIELD
-    || groupKey === 'price'
-    || groupKey === 'storeAvailability';
+  return groupKey in FE_GROUP_TO_FILTER_FIELD || groupKey === 'price' || groupKey === 'storeAvailability';
 }
 
-/** Toggle a single filter option (e.g. checkbox click on the Color filter)
- *  inside a `CatalogFilters` object. Returns a new object; doesn't mutate. */
-export function toggleFilterOption(
-  filters: CatalogFilters,
-  groupKey: string,
-  optionValue: string,
-): CatalogFilters {
+/**
+ * Toggle a single filter option (e.g. checkbox click on the Color filter)
+ *  inside a `CatalogFilters` object. Returns a new object; doesn't mutate.
+ */
+export function toggleFilterOption(filters: CatalogFilters, groupKey: string, optionValue: string): CatalogFilters {
   const field = FE_GROUP_TO_FILTER_FIELD[groupKey];
   if (!field) return filters;
   const current = ((filters as Record<string, unknown>)[field] as string[] | undefined) ?? [];
-  const next = current.includes(optionValue)
-    ? current.filter((v) => v !== optionValue)
-    : [...current, optionValue];
+  const next = current.includes(optionValue) ? current.filter((v) => v !== optionValue) : [...current, optionValue];
   const out: CatalogFilters = { ...filters };
   if (next.length > 0) (out as Record<string, unknown>)[field] = next;
   else delete (out as Record<string, unknown>)[field];
@@ -226,19 +237,20 @@ export function toggleFilterOption(
   return out;
 }
 
-/** Selected values for a filter group, used by the UI to render check marks. */
-export function getSelectedOptionsForGroup(
-  filters: CatalogFilters,
-  groupKey: string,
-): string[] {
+/**
+ * Selected values for a filter group, used by the UI to render check marks.
+ */
+export function getSelectedOptionsForGroup(filters: CatalogFilters, groupKey: string): string[] {
   const field = FE_GROUP_TO_FILTER_FIELD[groupKey];
   if (!field) return [];
   return ((filters as Record<string, unknown>)[field] as string[] | undefined) ?? [];
 }
 
-/** Total number of selected filter values across all supported groups —
+/**
+ * Total number of selected filter values across all supported groups —
  *  drives the "FILTERS (n)" badge in the catalog header. Counts the
- *  price range as 1 if any bound is set, inStock as 1 when active. */
+ *  price range as 1 if any bound is set, inStock as 1 when active.
+ */
 export function countActiveFilters(filters: CatalogFilters): number {
   let n = 0;
   if (filters.minPrice !== undefined || filters.maxPrice !== undefined) n += 1;

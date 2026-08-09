@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
+
 import { CatalogMobileSort } from '../app/components/catalog/CatalogMobileSort';
 
 const meta = {

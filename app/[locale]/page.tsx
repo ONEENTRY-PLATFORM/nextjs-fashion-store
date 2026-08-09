@@ -1,23 +1,33 @@
 import type { Metadata } from 'next';
-import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
-import {
-  SEO, SITE_NAME, SITE_DESCRIPTION, SITE_URL, ORG_SOCIALS,
-  CURRENCY, OFFER_CATALOGUE,
-  FREE_SHIPPING_THRESHOLD, RETURN_WINDOW_DAYS, DELIVERY_COUNTRY,
-  ORG_SCHEMA_COPY,
-} from '../../src/app/data/seoData';
-import { HomePage } from '../../src/app/pages/HomePage';
+
 import { JsonLd } from '../../src/app/components/system/JsonLd';
+import {
+  CURRENCY,
+  DELIVERY_COUNTRY,
+  FREE_SHIPPING_THRESHOLD,
+  OFFER_CATALOGUE,
+  ORG_SCHEMA_COPY,
+  ORG_SOCIALS,
+  RETURN_WINDOW_DAYS,
+  SEO,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+} from '../../src/app/data/seoData';
+import type { Store } from '../../src/app/data/stores';
+import { HomePage } from '../../src/app/pages/HomePage';
+import { loadCategorySection } from '../../src/lib/oneentry/blocks/category-section';
+import { loadDiscountBanner } from '../../src/lib/oneentry/blocks/discount-banner';
 import { loadHeroSlides } from '../../src/lib/oneentry/blocks/hero-slides';
 import { loadHomepageCollections } from '../../src/lib/oneentry/blocks/homepage-collections';
-import { loadDiscountBanner } from '../../src/lib/oneentry/blocks/discount-banner';
-import { loadCategorySection } from '../../src/lib/oneentry/blocks/category-section';
 import { HOME_PAGE_ID, loadPageBlocksById } from '../../src/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
 import { loadStores } from '../../src/lib/oneentry/catalog/stores';
-import type { Store } from '../../src/app/data/stores';
 
-/** Title/description/keywords/canonical come from the OE `home` page when an
- *  editor filled them; `SEO.home` stays as the offline fallback. */
+/**
+ * Title/description/keywords/canonical come from the OE `home` page when an
+ *  editor filled them; `SEO.home` stays as the offline fallback.
+ */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('home', SEO.home);
 }
@@ -75,7 +85,11 @@ function buildOrganizationSchema(flagship: Store | undefined) {
     potentialAction: {
       '@type': 'BuyAction',
       target: `${SITE_URL}/women/clothing`,
-      description: ORG_SCHEMA_COPY.shippingDescriptionTpl(DELIVERY_COUNTRY, FREE_SHIPPING_THRESHOLD, RETURN_WINDOW_DAYS),
+      description: ORG_SCHEMA_COPY.shippingDescriptionTpl(
+        DELIVERY_COUNTRY,
+        FREE_SHIPPING_THRESHOLD,
+        RETURN_WINDOW_DAYS,
+      ),
     },
   };
 }
@@ -96,14 +110,7 @@ const websiteSchema = {
 };
 
 export default async function Page() {
-  const [
-    heroSlides,
-    promoItems,
-    discountBanner,
-    categorySection,
-    pageBlocks,
-    stores,
-  ] = await Promise.all([
+  const [heroSlides, promoItems, discountBanner, categorySection, pageBlocks, stores] = await Promise.all([
     loadHeroSlides(),
     loadHomepageCollections(),
     loadDiscountBanner(),
@@ -127,7 +134,7 @@ export default async function Page() {
     'hero_slider',
     'category_section',
     'homepage_new_arrivals',
-    'promo_block',          // "блок с четырьмя большими фото"
+    'promo_block', // "блок с четырьмя большими фото"
     'homepage_sale',
     'homepage_best_sellers',
     'discount_banner',

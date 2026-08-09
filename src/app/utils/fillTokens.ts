@@ -11,14 +11,12 @@
  *
  * Unknown tokens are left untouched rather than blanked — a typo in the admin
  * panel then shows up as a visible `%typo%` instead of silently vanishing.
- * @param   {string} template - Copy containing `%token%` markers.
- * @param   {Record<string, string | number>} values - Token values.
- * @returns {string} The copy with every known token replaced.
+ *
+ * @param template - Copy containing `%token%` markers.
+ * @param values - Token values.
+ * @returns The copy with every known token replaced.
  */
-export function fillTokens(
-  template: string,
-  values: Record<string, string | number>,
-): string {
+export function fillTokens(template: string, values: Record<string, string | number>): string {
   return template.replace(/%([a-zA-Z][a-zA-Z0-9_]*)%/g, (match, name: string) =>
     Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match,
   );

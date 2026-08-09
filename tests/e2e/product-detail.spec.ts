@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { assertPresent, clearState, gotoProduct } from './helpers';
 
 // Resolved per worker from the catalogue — see `gotoProduct`. The previous
@@ -10,7 +11,7 @@ test.describe('Product Detail Page', () => {
     PRODUCT_URL = await gotoProduct(page);
     await clearState(page);
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState('networkidle');
   });
 
   test('renders product name, price, and image', async ({ page }) => {
@@ -21,7 +22,7 @@ test.describe('Product Detail Page', () => {
   test.describe('Gallery', () => {
     test('clicking thumbnail changes main image', async ({ page }) => {
       const thumbnails = page.locator('button:has(img)').or(page.locator('[class*="thumbnail"] button'));
-      if (await thumbnails.count() > 1) {
+      if ((await thumbnails.count()) > 1) {
         await thumbnails.nth(1).click();
         await page.waitForTimeout(300);
       }
@@ -59,7 +60,7 @@ test.describe('Product Detail Page', () => {
       // Case-insensitive attribute match: the label is built as
       // `<name> — Out of stock` (`productPageLabels.outOfStockTitle`).
       const oosSwatches = page.locator('[data-testid="pdp-color-swatch"][aria-label*="out of stock" i]');
-      if (await oosSwatches.count() > 0) {
+      if ((await oosSwatches.count()) > 0) {
         await expect(oosSwatches.first()).toBeDisabled();
       }
     });
@@ -71,7 +72,7 @@ test.describe('Product Detail Page', () => {
       // case-insensitive) — "Store Locations" in the header came first, so
       // this test used to navigate away instead of picking a size.
       const available = page.locator('[data-testid="pdp-size-chip"]:not([disabled])');
-      if (await available.count() > 0) {
+      if ((await available.count()) > 0) {
         const chip = available.first();
         await chip.click();
         await expect(chip).toHaveAttribute('aria-pressed', 'true');
@@ -103,7 +104,7 @@ test.describe('Product Detail Page', () => {
     test('add to cart with size selected succeeds', async ({ page }) => {
       // Select an in-stock size (see the note on the size-chip locator above).
       const available = page.locator('[data-testid="pdp-size-chip"]:not([disabled])');
-      if (await available.count() > 0) await available.first().click();
+      if ((await available.count()) > 0) await available.first().click();
       // Add to cart
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
       if (await addBtn.isVisible()) {
@@ -215,7 +216,7 @@ test.describe('Product Detail Page', () => {
     // this guards, and it is data-independent.
     test('selecting a different color keeps the main image rendered', async ({ page }) => {
       const swatches = page.getByTestId('pdp-color-swatch');
-      if (await swatches.count() > 1) {
+      if ((await swatches.count()) > 1) {
         const mainImage = page.getByTestId('pdp-gallery-main-image');
         const imgBefore = await mainImage.getAttribute('src');
         assertPresent(imgBefore, 'gallery image src before the colour switch');

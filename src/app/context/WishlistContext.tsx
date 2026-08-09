@@ -1,15 +1,13 @@
-'use client'
+'use client';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import type { RootState, AppDispatch } from '../store';
-import { wishlistActions } from '../store/wishlistSlice';
-import {
-  getCmsProductId,
-  getPlaygroundProductId,
-} from '../data/cms-product-id-map';
-import { useAuth } from './AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+
 import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
+import { getCmsProductId, getPlaygroundProductId } from '../data/cms-product-id-map';
+import type { AppDispatch, RootState } from '../store';
+import { wishlistActions } from '../store/wishlistSlice';
 import { trackActivity } from '../utils/track-activity';
+import { useAuth } from './AuthContext';
 
 export interface WishlistItem {
   id: string;
@@ -18,9 +16,11 @@ export interface WishlistItem {
   price: string;
   salePrice?: string;
   image: string;
-  /** Parallel to `colors[]` — thumbnail to show per swatch. Callers set it
+  /**
+   * Parallel to `colors[]` — thumbnail to show per swatch. Callers set it
    *  from the OE variant list so the favourite card can flip its image when
-   *  the shopper picks another colour inline. */
+   *  the shopper picks another colour inline.
+   */
   colorImages?: string[];
   colors: string[];
   colorStock?: boolean[];
@@ -172,30 +172,41 @@ export function useWishlist(): WishlistContextType {
     const key = JSON.stringify(oeItems);
     if (key === lastPushedRef.current) return;
     lastPushedRef.current = key;
-    const t = setTimeout(() => { void syncWishlist(oeItems); }, 400);
+    const t = setTimeout(() => {
+      void syncWishlist(oeItems);
+    }, 400);
     return () => clearTimeout(t);
   }, [items, isLoggedIn, syncWishlist]);
 
-  const addItem = useCallback((item: WishlistItem) => {
-    dispatch(wishlistActions.addItem(item));
-    const cmsId = getCmsProductId(item.id);
-    if (cmsId !== null) trackActivity({ type: 'product_add_to_wishlist', productId: cmsId });
-  }, [dispatch]);
+  const addItem = useCallback(
+    (item: WishlistItem) => {
+      dispatch(wishlistActions.addItem(item));
+      const cmsId = getCmsProductId(item.id);
+      if (cmsId !== null) trackActivity({ type: 'product_add_to_wishlist', productId: cmsId });
+    },
+    [dispatch],
+  );
 
-  const removeItem = useCallback((id: string) => {
-    const cmsId = getCmsProductId(id);
-    if (cmsId !== null) trackActivity({ type: 'product_remove_from_wishlist', productId: cmsId });
-    dispatch(wishlistActions.removeItem(id));
-  }, [dispatch]);
+  const removeItem = useCallback(
+    (id: string) => {
+      const cmsId = getCmsProductId(id);
+      if (cmsId !== null) trackActivity({ type: 'product_remove_from_wishlist', productId: cmsId });
+      dispatch(wishlistActions.removeItem(id));
+    },
+    [dispatch],
+  );
 
-  const toggleItem = useCallback((item: WishlistItem) => {
-    const exists = items.some((i) => i.id === item.id);
-    if (exists) {
-      removeItem(item.id);
-    } else {
-      addItem(item);
-    }
-  }, [items, addItem, removeItem]);
+  const toggleItem = useCallback(
+    (item: WishlistItem) => {
+      const exists = items.some((i) => i.id === item.id);
+      if (exists) {
+        removeItem(item.id);
+      } else {
+        addItem(item);
+      }
+    },
+    [items, addItem, removeItem],
+  );
 
   const updateSelection = useCallback(
     (id: string, selectedColor?: string, selectedSize?: string) =>

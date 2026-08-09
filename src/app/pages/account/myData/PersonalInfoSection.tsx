@@ -1,25 +1,29 @@
-'use client'
+'use client';
 import { useState } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import { SectionTitle, EditBtn, Field, FormInput } from '../shared';
-import { useSchemas, useFormMessages } from '../../../utils/useFormMessages';
-import { useFormLabel } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { PERSONAL_INFO_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import { useDict } from '../../../../lib/oneentry/labels/DictContext';
-import { PERSONAL_INFO_SECTION_ARIA } from '../../../data/commonLabels';
 
-const primaryBtn = 'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';
-const secondaryBtn = 'px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visible:outline-none hover:bg-gray-50 transition-colors border border-[#d1d5db] rounded-none';
+import { useFormLabel } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { useDict } from '../../../../lib/oneentry/labels/DictContext';
+import { useAuth } from '../../../context/AuthContext';
+import { PERSONAL_INFO_LABELS as L_FALLBACK } from '../../../data/accountLabels';
+import { PERSONAL_INFO_SECTION_ARIA } from '../../../data/commonLabels';
+import { useFormMessages, useSchemas } from '../../../utils/useFormMessages';
+import { EditBtn, Field, FormInput, SectionTitle } from '../shared';
+
+const primaryBtn =
+  'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';
+const secondaryBtn =
+  'px-6 py-2.5 text-xs tracking-[0.15em] uppercase focus-visible:outline-none hover:bg-gray-50 transition-colors border border-[#d1d5db] rounded-none';
 const fieldLabel = 'block text-xs uppercase tracking-wide mb-1.5 font-semibold text-[#555]';
 
 export function PersonalInfoSection() {
   const L = useDict('user_account_personal_', L_FALLBACK);
+  const A = useDict('user_account_personal_aria_', PERSONAL_INFO_SECTION_ARIA);
   const schemas = useSchemas();
   const M = useFormMessages();
   // Only these three exist as `user_data` form attributes — first name, email
   // and phone are account properties, so their labels stay on `user_account`.
-  const lbDob          = useFormLabel('user_data', 'user_birthday',      L.labelDob);
-  const lbShoeSize     = useFormLabel('user_data', 'user_shoes_size',    L.labelShoeSize);
+  const lbDob = useFormLabel('user_data', 'user_birthday', L.labelDob);
+  const lbShoeSize = useFormLabel('user_data', 'user_shoes_size', L.labelShoeSize);
   const lbClothingSize = useFormLabel('user_data', 'user_clothing_size', L.labelClothingSize);
   const { user, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
@@ -68,40 +72,72 @@ export function PersonalInfoSection() {
   };
 
   const patch = (key: keyof typeof form) => (v: string) => {
-    setForm(f => ({ ...f, [key]: v }));
-    setErrors(e => ({ ...e, [key]: '' }));
+    setForm((f) => ({ ...f, [key]: v }));
+    setErrors((e) => ({ ...e, [key]: '' }));
   };
 
   return (
     <div>
-      <SectionTitle
-        title={L.title}
-        action={!editing && <EditBtn onClick={() => setEditing(true)} />}
-      />
+      <SectionTitle title={L.title} action={!editing && <EditBtn onClick={() => setEditing(true)} />} />
       {editing ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormInput label={L.labelFirstName} value={form.firstName} onChange={patch('firstName')} placeholder={L.placeholderFirstName} error={errors.firstName} />
-            <FormInput label={L.labelEmail} value={form.email} onChange={patch('email')} type="email" placeholder={L.placeholderEmail} error={errors.email} />
-            <FormInput label={L.labelPhone} value={form.phone} onChange={patch('phone')} type="tel" placeholder={L.placeholderPhone} error={errors.phone} />
-            <FormInput label={lbDob} value={form.dob} onChange={v => setForm(f => ({ ...f, dob: v }))} type="date" />
-            <FormInput label={lbShoeSize} value={form.shoeSize} onChange={v => setForm(f => ({ ...f, shoeSize: v }))} placeholder={L.placeholderShoeSize} />
-            <FormInput label={lbClothingSize} value={form.clothingSize} onChange={v => setForm(f => ({ ...f, clothingSize: v }))} placeholder={L.placeholderClothingSize} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormInput
+              label={L.labelFirstName}
+              value={form.firstName}
+              onChange={patch('firstName')}
+              placeholder={L.placeholderFirstName}
+              error={errors.firstName}
+            />
+            <FormInput
+              label={L.labelEmail}
+              value={form.email}
+              onChange={patch('email')}
+              type="email"
+              placeholder={L.placeholderEmail}
+              error={errors.email}
+            />
+            <FormInput
+              label={L.labelPhone}
+              value={form.phone}
+              onChange={patch('phone')}
+              type="tel"
+              placeholder={L.placeholderPhone}
+              error={errors.phone}
+            />
+            <FormInput
+              label={lbDob}
+              value={form.dob}
+              onChange={(v) => setForm((f) => ({ ...f, dob: v }))}
+              type="date"
+            />
+            <FormInput
+              label={lbShoeSize}
+              value={form.shoeSize}
+              onChange={(v) => setForm((f) => ({ ...f, shoeSize: v }))}
+              placeholder={L.placeholderShoeSize}
+            />
+            <FormInput
+              label={lbClothingSize}
+              value={form.clothingSize}
+              onChange={(v) => setForm((f) => ({ ...f, clothingSize: v }))}
+              placeholder={L.placeholderClothingSize}
+            />
           </div>
           <div>
             <label className={fieldLabel}>{L.labelGender}</label>
             <div className="flex w-48">
-              {(['female', 'male'] as const).map(g => (
+              {(['female', 'male'] as const).map((g) => (
                 <button
                   key={g}
                   onClick={() => setGender(g)}
                   aria-pressed={gender === g}
-                  className={`flex-1 py-2.5 text-xs capitalize tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors border rounded-none ${
+                  className={`flex-1 rounded-none border py-2.5 text-xs tracking-wide capitalize transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black ${
                     g === 'male' ? '-ml-px' : ''
                   } ${
                     gender === g
-                      ? 'border-black bg-black text-white font-bold'
-                      : 'border-[#d1d5db] bg-white text-[#555] font-normal'
+                      ? 'border-black bg-black font-bold text-white'
+                      : 'border-[#d1d5db] bg-white font-normal text-[#555]'
                   }`}
                 >
                   {g === 'female' ? L.fieldGenderFemale : L.fieldGenderMale}
@@ -110,16 +146,21 @@ export function PersonalInfoSection() {
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={save} disabled={saving} aria-label={PERSONAL_INFO_SECTION_ARIA.save} className={primaryBtn + ' disabled:opacity-60 disabled:pointer-events-none'}>
+            <button
+              onClick={save}
+              disabled={saving}
+              aria-label={A.save}
+              className={primaryBtn + ' disabled:pointer-events-none disabled:opacity-60'}
+            >
               {L.saveChanges}
             </button>
-            <button onClick={() => setEditing(false)} aria-label={PERSONAL_INFO_SECTION_ARIA.cancel} className={secondaryBtn}>
+            <button onClick={() => setEditing(false)} aria-label={A.cancel} className={secondaryBtn}>
               {L.cancel}
             </button>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
           <Field label={L.fieldName} value={user.firstName} />
           <Field label={L.fieldEmail} value={user.email} />
           <Field label={L.fieldPhone} value={user.phone} />

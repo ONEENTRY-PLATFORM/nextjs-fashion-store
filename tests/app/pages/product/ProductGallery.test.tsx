@@ -1,13 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
-import React from 'react';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 
 // ---- Mock next/image --------------------------------------------------------
 // jsdom has no image layout engine; next/image renders nothing useful there.
 // Replace it with a plain <img> so we can query src/alt normally.
 vi.mock('next/image', () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) =>
-    React.createElement('img', props),
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => React.createElement('img', props),
 }));
 
 // ---- Mock FullscreenViewer --------------------------------------------------
@@ -54,9 +53,7 @@ describe('ProductGallery — real gallery (non-empty images)', () => {
 
     // No img whose src contains the placeholder path should exist
     const imgs = screen.getAllByRole('img');
-    const hasPlaceholder = imgs.some((img) =>
-      (img as HTMLImageElement).src.includes('bag-placeholder.svg'),
-    );
+    const hasPlaceholder = imgs.some((img) => (img as HTMLImageElement).src.includes('bag-placeholder.svg'));
     expect(hasPlaceholder).toBe(false);
   });
 });

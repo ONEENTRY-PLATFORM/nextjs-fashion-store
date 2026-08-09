@@ -2,13 +2,14 @@
 
 import NextLink from 'next/link';
 import { usePathname, useRouter as useNextRouter } from 'next/navigation';
-import { useCallback, useMemo, type ComponentProps } from 'react';
+import { type ComponentProps, useCallback, useMemo } from 'react';
+
 import {
   DEFAULT_SHORT_LOCALE,
   localeFromPath,
   localizeHref,
-  stripLocale,
   type ShortLocaleCode,
+  stripLocale,
 } from '../oneentry/locale';
 
 /**
@@ -28,7 +29,8 @@ import {
 
 /**
  * Active locale for the current URL. `/cart` → the default, `/fr/cart` → `fr`.
- * @returns {string} Short locale code.
+ *
+ * @returns Short locale code.
  */
 export function useLocale(): ShortLocaleCode {
   const pathname = usePathname();
@@ -47,14 +49,12 @@ export function usePathnameWithoutLocale(): string {
  * External URLs, anchors and `mailto:`/`tel:` pass through untouched — see
  * `localizeHref`. Under the default locale the href is returned verbatim, so
  * markup and rendered output are unchanged on a single-locale deployment.
- * @param   {object}    props      - Same props as `next/link`.
- * @param   {string}    props.href - App-relative or absolute href.
- * @returns {JSX.Element}          A locale-prefixed link.
+ *
+ * @param    props      - Same props as `next/link`.
+ * @param    props.href - App-relative or absolute href.
+ * @returns          A locale-prefixed link.
  */
-export function Link({
-  href,
-  ...rest
-}: ComponentProps<typeof NextLink>): React.JSX.Element {
+export function Link({ href, ...rest }: ComponentProps<typeof NextLink>): React.JSX.Element {
   const locale = useLocale();
   const localized = typeof href === 'string' ? localizeHref(href, locale) : href;
   return <NextLink href={localized} {...rest} />;
@@ -75,26 +75,22 @@ interface LocaleRouter {
  *
  * `back`, `forward` and `refresh` are passed straight through — they operate on
  * history, not on hrefs.
- * @returns {LocaleRouter} Locale-aware router.
+ *
+ * @returns Locale-aware router.
  */
 export function useRouter(): LocaleRouter {
   const router = useNextRouter();
   const locale = useLocale();
 
   const push = useCallback(
-    (href: string, options?: { scroll?: boolean }) =>
-      router.push(localizeHref(href, locale), options),
+    (href: string, options?: { scroll?: boolean }) => router.push(localizeHref(href, locale), options),
     [router, locale],
   );
   const replace = useCallback(
-    (href: string, options?: { scroll?: boolean }) =>
-      router.replace(localizeHref(href, locale), options),
+    (href: string, options?: { scroll?: boolean }) => router.replace(localizeHref(href, locale), options),
     [router, locale],
   );
-  const prefetch = useCallback(
-    (href: string) => router.prefetch(localizeHref(href, locale)),
-    [router, locale],
-  );
+  const prefetch = useCallback((href: string) => router.prefetch(localizeHref(href, locale)), [router, locale]);
 
   return useMemo(
     () => ({
@@ -111,9 +107,10 @@ export function useRouter(): LocaleRouter {
 
 /**
  * Href for the same page in another locale — what the language switcher needs.
- * @param   {string} pathname - Current path, prefix included or not.
- * @param   {string} target   - Locale to switch to.
- * @returns {string}          Path under the target locale.
+ *
+ * @param pathname - Current path, prefix included or not.
+ * @param target   - Locale to switch to.
+ * @returns          Path under the target locale.
  */
 export function switchLocaleHref(pathname: string, target: ShortLocaleCode): string {
   return localizeHref(stripLocale(pathname || '/'), target || DEFAULT_SHORT_LOCALE);

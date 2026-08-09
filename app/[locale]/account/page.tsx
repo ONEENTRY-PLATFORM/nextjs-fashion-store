@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
+
 import { SEO } from '../../../src/app/data/seoData';
 import { AccountPage } from '../../../src/app/pages/AccountPage';
-import { loadFormContent } from '../../../src/lib/oneentry/forms/placeholders';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
 import { FormPlaceholdersProvider } from '../../../src/lib/oneentry/forms/FormPlaceholdersContext';
+import { loadFormContent } from '../../../src/lib/oneentry/forms/placeholders';
 
-/** Title/description/keywords/canonical come from the OE `account` page when an
- *  editor filled them; `SEO.account` stays as the offline fallback. */
+/**
+ * Title/description/keywords/canonical come from the OE `account` page when an
+ *  editor filled them; `SEO.account` stays as the offline fallback.
+ */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('account', SEO.account);
 }
@@ -20,7 +23,9 @@ export default async function Page() {
     loadFormContent('user_data'),
   ]);
   return (
-    <FormPlaceholdersProvider forms={{ user_addresses: userAddresses, service_request: serviceRequest, user_data: userData }}>
+    <FormPlaceholdersProvider
+      forms={{ user_addresses: userAddresses, service_request: serviceRequest, user_data: userData }}
+    >
       <AccountPage />
     </FormPlaceholdersProvider>
   );

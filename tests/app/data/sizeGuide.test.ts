@@ -1,10 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import {
-  SIZE_GUIDE_DATA,
-  parseSizeGuide,
-  serializeSizeGuide,
-  parseSizeTable,
-} from '@/app/data/sizeGuide';
+import { describe, expect, it } from 'vitest';
+
+import { parseSizeGuide, parseSizeTable, serializeSizeGuide, SIZE_GUIDE_DATA } from '@/app/data/sizeGuide';
 
 const COLS = ['size', 'chest'] as const;
 type Row = Record<(typeof COLS)[number], string>;

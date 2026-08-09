@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { priceValidUntil } from '@/app/utils/price-valid-until';
 
 afterEach(() => {

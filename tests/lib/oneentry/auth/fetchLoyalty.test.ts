@@ -59,11 +59,8 @@ function readAmount(cond: RawCondition | undefined): number | null {
 function parseRawDiscount(r: RawDiscount): OeLoyaltyTier {
   const dv = r.discountValue ?? {};
   const isPercent =
-    (dv.discountType ?? '').toUpperCase() === 'PERCENTAGE' ||
-    (dv.discountType ?? '').toUpperCase() === 'PERCENT';
-  const ltvCond = (r.conditions ?? []).find(
-    (c) => c.conditionType === 'USER_LTV' || c.type === 'USER_LTV',
-  );
+    (dv.discountType ?? '').toUpperCase() === 'PERCENTAGE' || (dv.discountType ?? '').toUpperCase() === 'PERCENT';
+  const ltvCond = (r.conditions ?? []).find((c) => c.conditionType === 'USER_LTV' || c.type === 'USER_LTV');
   const minCartCond = (r.conditions ?? []).find(
     (c) => c.conditionType === 'MIN_CART_AMOUNT' || c.type === 'MIN_CART_AMOUNT',
   );

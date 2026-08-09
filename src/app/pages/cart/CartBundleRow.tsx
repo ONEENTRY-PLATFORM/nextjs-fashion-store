@@ -1,12 +1,14 @@
-'use client'
+'use client';
+import { Link as LinkIcon, Trash2 } from 'lucide-react';
+
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { Trash2, Link as LinkIcon } from 'lucide-react';
 import { QtyControl } from '../../components/ui/QtyControl';
 import type { CartItem } from '../../context/CartContext';
-import { fmt } from '../../utils/formatPrice';
-import { CART_ROW_LABELS as L } from '../../data/cartLabels';
-import { CART_LINE_LABELS as CLL } from '../../data/commonLabels';
+import { CART_ROW_LABELS } from '../../data/cartLabels';
+import { CART_LINE_LABELS } from '../../data/commonLabels';
 import { hexToColorName } from '../../utils/colorNames';
+import { fmt } from '../../utils/formatPrice';
 
 interface CartBundleRowProps {
   bundleId: string;
@@ -17,21 +19,23 @@ interface CartBundleRowProps {
 }
 
 export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuantity, onRemove }: CartBundleRowProps) {
+  const CLL = useDict('interface_controls_cart_line_', CART_LINE_LABELS);
+  const L = useDict('checkout_cart_row_', CART_ROW_LABELS);
   const bundleTotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
   const bundleOriginal = items.reduce((s, i) => s + (i.originalPrice ?? i.price) * i.quantity, 0);
   const qty = items[0]?.quantity ?? 1;
 
   return (
     <div className={isLast ? '' : 'border-b border-[#e5e7eb]'}>
-      <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-dashed border-[#e5e7eb] bg-[#fffbfb]">
+      <div className="flex items-center justify-between border-b border-dashed border-[#e5e7eb] bg-[#fffbfb] px-5 pt-4 pb-2">
         <div className="flex items-center gap-2 text-accent">
           <LinkIcon size={13} />
-          <span className="text-xs tracking-[0.12em] uppercase font-bold">{L.bundleLabel}</span>
-          <span className="text-xs text-gray-400 font-normal">{L.bundleRemoveable}</span>
+          <span className="text-xs font-bold tracking-[0.12em] uppercase">{L.bundleLabel}</span>
+          <span className="text-xs font-normal text-gray-400">{L.bundleRemoveable}</span>
         </div>
         <button
           onClick={onRemove}
-          className="flex items-center gap-1 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-(--sale)"
+          className="flex items-center gap-1 text-xs text-(--sale) transition-opacity hover:opacity-70 focus-visible:outline-none"
         >
           <Trash2 size={13} />
           <span>{L.bundleRemove}</span>
@@ -41,29 +45,37 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
       {items.map((item, idx) => (
         <div
           key={item.id}
-          className={`flex gap-4 p-5 bg-[#fffbfb] ${
+          className={`flex gap-4 bg-[#fffbfb] p-5 ${
             idx < items.length - 1 ? 'border-b border-dashed border-[#f0f0f0]' : ''
           }`}
         >
-          <div className="shrink-0 pt-1 w-4" />
+          <div className="w-4 shrink-0 pt-1" />
 
-          <div className="relative shrink-0 w-27.5 h-35">
+          <div className="relative h-35 w-27.5 shrink-0">
             <ImageWithFallback src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
           </div>
 
-          <div className="flex-1 min-w-0 flex flex-col justify-between">
+          <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div>
-              <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
-              <p className="text-sm mb-1 leading-snug font-semibold">{item.name}</p>
+              <p className="mb-0.5 text-xs tracking-widest text-gray-400 uppercase">{item.brand}</p>
+              <p className="mb-1 text-sm leading-snug font-semibold">{item.name}</p>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                <span>{CLL.colorPrefix} {hexToColorName(item.color)}</span>
+                <span>
+                  {CLL.colorPrefix} {hexToColorName(item.color)}
+                </span>
                 <span>·</span>
-                <span>{CLL.skuPrefix} {item.sku}</span>
+                <span>
+                  {CLL.skuPrefix} {item.sku}
+                </span>
               </div>
             </div>
             {idx === items.length - 1 && (
-              <div className="flex items-center gap-3 mt-4">
-                <QtyControl value={qty} onMinus={() => onUpdateQuantity(item.id, -1)} onPlus={() => onUpdateQuantity(item.id, +1)} />
+              <div className="mt-4 flex items-center gap-3">
+                <QtyControl
+                  value={qty}
+                  onMinus={() => onUpdateQuantity(item.id, -1)}
+                  onPlus={() => onUpdateQuantity(item.id, +1)}
+                />
                 <span className="text-xs text-gray-400">{L.bundleQuantityNote}</span>
               </div>
             )}
@@ -78,11 +90,13 @@ export function CartBundleRow({ bundleId: _bundleId, items, isLast, onUpdateQuan
         </div>
       ))}
 
-      <div className="flex items-center justify-between px-5 py-3 bg-[#fff8f8] border-t border-[#fde8e8]">
-        <span className="text-xs text-gray-500 tracking-wide">{L.bundleTotal}</span>
+      <div className="flex items-center justify-between border-t border-[#fde8e8] bg-[#fff8f8] px-5 py-3">
+        <span className="text-xs tracking-wide text-gray-500">{L.bundleTotal}</span>
         <div className="flex items-center gap-3">
           {bundleOriginal > bundleTotal && (
-            <span className="text-xs text-green-600 font-semibold">{L.bundleSavePrefix} {fmt(bundleOriginal - bundleTotal)}</span>
+            <span className="text-xs font-semibold text-green-600">
+              {L.bundleSavePrefix} {fmt(bundleOriginal - bundleTotal)}
+            </span>
           )}
           <span className="text-sm font-bold">{fmt(bundleTotal)}</span>
           {bundleOriginal > bundleTotal && (

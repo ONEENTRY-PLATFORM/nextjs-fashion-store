@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, toCmsLocale, type CmsLocaleCode } from './locale';
+import { type CmsLocaleCode, DEFAULT_LOCALE, toCmsLocale } from './locale';
 
 /**
  * The OE locale code for the route currently rendering.
@@ -20,7 +20,8 @@ import { DEFAULT_LOCALE, toCmsLocale, type CmsLocaleCode } from './locale';
  * Falls back to the default rather than throwing, because the API is genuinely
  * unavailable in Server Actions, Route Handlers and `unstable_cache`; callers
  * in those places pass the locale explicitly and the fallback never applies.
- * @returns {Promise<string>} OE locale code, e.g. `en_US`.
+ *
+ * @returns OE locale code, e.g. `en_US`.
  */
 export async function currentCmsLocale(): Promise<CmsLocaleCode> {
   try {

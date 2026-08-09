@@ -11,8 +11,9 @@
  */
 
 import { type Metadata } from 'next';
-import { SEO, SITE_URL } from './seoData';
+
 import { INFO_PAGE_META, INFO_SLUGS } from './infoPages';
+import { SEO, SITE_URL } from './seoData';
 
 /* ─── Types ─── */
 
@@ -45,44 +46,28 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     catalogKey: 'women-clothing',
     seoKey: 'womenClothing',
     schemaName: "Women's Clothing",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Women's", href: '/women/clothing' },
-      { name: 'Clothing' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Women's", href: '/women/clothing' }, { name: 'Clothing' }],
   },
   'women/shoes': {
     type: 'catalog',
     catalogKey: 'women-shoes',
     seoKey: 'womenShoes',
     schemaName: "Women's Shoes",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Women's", href: '/women/clothing' },
-      { name: 'Shoes' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Women's", href: '/women/clothing' }, { name: 'Shoes' }],
   },
   'women/bags': {
     type: 'catalog',
     catalogKey: 'women-bags',
     seoKey: 'womenBags',
     schemaName: "Women's Bags",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Women's", href: '/women/clothing' },
-      { name: 'Bags' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Women's", href: '/women/clothing' }, { name: 'Bags' }],
   },
   'women/accessories': {
     type: 'catalog',
     catalogKey: 'women-accessories',
     seoKey: 'womenAccessories',
     schemaName: "Women's Accessories",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Women's", href: '/women/clothing' },
-      { name: 'Accessories' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Women's", href: '/women/clothing' }, { name: 'Accessories' }],
   },
 
   /* ──────────── CATALOG — Men ──────────── */
@@ -91,44 +76,28 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
     catalogKey: 'men-clothing',
     seoKey: 'menClothing',
     schemaName: "Men's Clothing",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Men's", href: '/men/clothing' },
-      { name: 'Clothing' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Men's", href: '/men/clothing' }, { name: 'Clothing' }],
   },
   'men/shoes': {
     type: 'catalog',
     catalogKey: 'men-shoes',
     seoKey: 'menShoes',
     schemaName: "Men's Shoes",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Men's", href: '/men/clothing' },
-      { name: 'Shoes' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Men's", href: '/men/clothing' }, { name: 'Shoes' }],
   },
   'men/bags': {
     type: 'catalog',
     catalogKey: 'men-bags',
     seoKey: 'menBags',
     schemaName: "Men's Bags",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Men's", href: '/men/clothing' },
-      { name: 'Bags' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Men's", href: '/men/clothing' }, { name: 'Bags' }],
   },
   'men/accessories': {
     type: 'catalog',
     catalogKey: 'men-accessories',
     seoKey: 'menAccessories',
     schemaName: "Men's Accessories",
-    breadcrumbs: [
-      { name: 'Home', href: '/' },
-      { name: "Men's", href: '/men/clothing' },
-      { name: 'Accessories' },
-    ],
+    breadcrumbs: [{ name: 'Home', href: '/' }, { name: "Men's", href: '/men/clothing' }, { name: 'Accessories' }],
   },
 
   /* ──────────── INFO — Content pages ──────────── */
@@ -141,15 +110,17 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   // the storefront resolving to the same InfoPage instead of a 404.
   ...Object.fromEntries(
     INFO_SLUGS.flatMap((slug) => [
-      [slug,            { type: 'info' as const, slug }],
-      [`info/${slug}`,  { type: 'info' as const, slug }],
+      [slug, { type: 'info' as const, slug }],
+      [`info/${slug}`, { type: 'info' as const, slug }],
     ]),
   ),
 };
 
 /* ─── Helpers ─── */
 
-/** Generate metadata for the catch-all route */
+/**
+ * Generate metadata for the catch-all route
+ */
 export function buildPageMetadata(entry: PageEntry): Metadata {
   if (entry.type === 'catalog') {
     return (SEO[entry.seoKey] ?? {}) as Metadata;
@@ -172,7 +143,9 @@ export function buildPageMetadata(entry: PageEntry): Metadata {
   };
 }
 
-/** JSON-LD breadcrumb schema */
+/**
+ * JSON-LD breadcrumb schema
+ */
 export function buildBreadcrumbSchema(breadcrumbs: Array<{ name: string; href?: string }>) {
   return {
     '@context': 'https://schema.org',

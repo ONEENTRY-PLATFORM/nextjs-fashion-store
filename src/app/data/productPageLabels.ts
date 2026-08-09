@@ -36,12 +36,12 @@ export const PRODUCT_DEFAULTS = {
   savedToWishlist: 'Saved to Wishlist',
 } as const;
 
-
 // Product detail action buttons
 export const PRODUCT_ACTION_LABELS = {
   addToCart: 'Add to Cart',
   addedToCart: 'Added to Cart!',
-  announceAddedToCart: (name: string) => `${name} added to cart`,
+  /** `%name%` — the product name, announced to screen readers on add. */
+  announceAddedToCart: '%name% added to cart',
   outOfStock: 'Out of Stock',
   reserveInStore: 'Reserve in Store',
   inStock: 'In Stock',
@@ -146,10 +146,10 @@ export const WRITE_REVIEW_LABELS = {
   // `travel`, `sport`) — display labels are storefront copy.
   occasions: [
     { value: 'everyday', label: 'Everyday' },
-    { value: 'work',     label: 'Work' },
-    { value: 'party',    label: 'Party' },
-    { value: 'travel',   label: 'Travel' },
-    { value: 'sport',    label: 'Sport' },
+    { value: 'work', label: 'Work' },
+    { value: 'party', label: 'Party' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'sport', label: 'Sport' },
   ] as const,
 } as const;
 
@@ -177,8 +177,7 @@ export const PRODUCT_GALLERY_LABELS = {
 export const FULLSCREEN_VIEWER_LABELS = {
   closeAria: 'Close',
   photoPositionTpl: (current: number, total: number) => `${current + 1} / ${total}`,
-  photoAltTpl: (name: string, current: number, total: number) =>
-    `${name} – photo ${current + 1} of ${total}`,
+  photoAltTpl: (name: string, current: number, total: number) => `${name} – photo ${current + 1} of ${total}`,
 } as const;
 
 // ─── ProductSpecialOffers ───────────────────────────────────────────────────
@@ -215,12 +214,12 @@ export const SIZE_GUIDE_LABELS = {
   colHeaders: ['Size', 'Chest', 'Waist', 'Hips'] as const,
   tipNote: 'Tip: If you are between sizes, we recommend choosing the larger size.',
   rows: [
-    { size: 'XS',  chest: '80–84',   waist: '60–64',  hips: '86–90'   },
-    { size: 'S',   chest: '84–88',   waist: '64–68',  hips: '90–94'   },
-    { size: 'M',   chest: '88–92',   waist: '68–72',  hips: '94–98'   },
-    { size: 'L',   chest: '92–96',   waist: '72–76',  hips: '98–102'  },
-    { size: 'XL',  chest: '96–100',  waist: '76–80',  hips: '102–106' },
-    { size: 'XXL', chest: '100–104', waist: '80–84',  hips: '106–110' },
+    { size: 'XS', chest: '80–84', waist: '60–64', hips: '86–90' },
+    { size: 'S', chest: '84–88', waist: '64–68', hips: '90–94' },
+    { size: 'M', chest: '88–92', waist: '68–72', hips: '94–98' },
+    { size: 'L', chest: '92–96', waist: '72–76', hips: '98–102' },
+    { size: 'XL', chest: '96–100', waist: '76–80', hips: '102–106' },
+    { size: 'XXL', chest: '100–104', waist: '80–84', hips: '106–110' },
   ] as const,
 } as const;
 
@@ -269,7 +268,7 @@ export const QUICK_VIEW_LABELS = {
     },
     {
       title: 'Size & Fit',
-      content: "Model is 5'9\" and wears a size S. True to size fit. For a relaxed fit, we recommend sizing up.",
+      content: 'Model is 5\'9" and wears a size S. True to size fit. For a relaxed fit, we recommend sizing up.',
     },
     {
       title: 'Details',

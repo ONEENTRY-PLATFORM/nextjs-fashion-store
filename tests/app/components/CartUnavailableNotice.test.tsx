@@ -10,9 +10,9 @@
  * All four behaviours are exercised here with vi.useFakeTimers() so we don't
  * actually wait five seconds.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, act } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
 import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Controlled mock for useCart — individual tests set these before rendering.

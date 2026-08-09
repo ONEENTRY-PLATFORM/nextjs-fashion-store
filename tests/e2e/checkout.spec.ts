@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+
 import { clearState, gotoProduct, login, selectFirstAvailableSize, VALID_CREDS } from './helpers';
 
 // Helper: add an item to cart and go to checkout
@@ -48,10 +49,12 @@ test.describe('Checkout — Delivery', () => {
     // stays enabled (form uses submit-time validation, not disabled state)
     // — so instead assert that a click on empty form does NOT navigate
     // to /payment.
-    const continueBtn = page.getByRole('button', {
-      name: /continue to payment|place order/i,
-    }).first();
-    if (await continueBtn.count() > 0) {
+    const continueBtn = page
+      .getByRole('button', {
+        name: /continue to payment|place order/i,
+      })
+      .first();
+    if ((await continueBtn.count()) > 0) {
       await continueBtn.click().catch(() => {});
       await page.waitForTimeout(500);
       // Should still be on /delivery — form should block navigation on invalid input.
@@ -159,9 +162,10 @@ test.describe('Checkout — Confirmation', () => {
   test('continue shopping navigates away', async ({ page }) => {
     await page.goto('/checkout/confirmation');
     await page.waitForLoadState('networkidle');
-    const continueBtn = page.getByRole('button', { name: /continue shopping/i }).or(
-      page.getByRole('link', { name: /continue shopping/i })
-    ).first();
+    const continueBtn = page
+      .getByRole('button', { name: /continue shopping/i })
+      .or(page.getByRole('link', { name: /continue shopping/i }))
+      .first();
     if (await continueBtn.isVisible()) {
       await continueBtn.click();
       await expect(page).not.toHaveURL(/confirmation/);
@@ -231,9 +235,11 @@ test.describe('Checkout — Delivery extras', () => {
     if (await guestBtn.isVisible()) await guestBtn.click();
     await page.waitForTimeout(500);
 
-    const saveCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: /save|future/i }).or(
-      page.locator('label:has-text("Save") input[type="checkbox"]')
-    ).first();
+    const saveCheckbox = page
+      .locator('input[type="checkbox"]')
+      .filter({ hasText: /save|future/i })
+      .or(page.locator('label:has-text("Save") input[type="checkbox"]'))
+      .first();
     if (await saveCheckbox.isVisible()) {
       await saveCheckbox.check();
       await expect(saveCheckbox).toBeChecked();
@@ -299,7 +305,8 @@ test.describe('Checkout — Delivery navigation', () => {
     if (await guestBtn.isVisible().catch(() => false)) await guestBtn.click();
     await page.waitForTimeout(300);
     // Use the primary Back to Cart CTA (not the "Cart (completed)" stepper).
-    const backBtn = page.getByRole('button', { name: /back to cart|back to bag/i })
+    const backBtn = page
+      .getByRole('button', { name: /back to cart|back to bag/i })
       .or(page.getByRole('link', { name: /back to cart|back to bag/i }))
       .first();
     if (await backBtn.isVisible()) {
@@ -449,9 +456,10 @@ test.describe('Checkout — Payment methods', () => {
   test('payment page back button navigates to delivery', async ({ page }) => {
     await page.goto('/checkout/payment');
     await page.waitForLoadState('networkidle');
-    const backBtn = page.getByRole('button', { name: /back|return/i }).or(
-      page.getByRole('link', { name: /back|delivery/i })
-    ).first();
+    const backBtn = page
+      .getByRole('button', { name: /back|return/i })
+      .or(page.getByRole('link', { name: /back|delivery/i }))
+      .first();
     if (await backBtn.isVisible()) {
       await backBtn.click();
       await expect(page).toHaveURL(/delivery/, { timeout: 5000 });
@@ -466,7 +474,7 @@ test.describe('Checkout — Payment methods', () => {
       await installOption.click();
       await page.waitForTimeout(300);
       const monthOptions = page.locator('text=/3 month|6 month/i');
-      if (await monthOptions.count() > 0) {
+      if ((await monthOptions.count()) > 0) {
         await expect(monthOptions.first()).toBeVisible();
       }
     }
@@ -490,7 +498,10 @@ test.describe('Checkout — Full logged-in journey', () => {
     await firstCard.evaluate((el) => (el as HTMLAnchorElement).click());
     await page.waitForLoadState('networkidle');
     // Match XS-XXL and numeric shoe sizes so any product category works.
-    const sizeBtn = page.locator('button').filter({ hasText: /^(XS|S|M|L|XL|XXL|3[6-9]|4[0-6])$/ }).first();
+    const sizeBtn = page
+      .locator('button')
+      .filter({ hasText: /^(XS|S|M|L|XL|XXL|3[6-9]|4[0-6])$/ })
+      .first();
     await sizeBtn.waitFor({ state: 'visible', timeout: 10_000 });
     await sizeBtn.click();
     const addBtn = page.locator('button:has-text("Add to Cart")');
@@ -498,7 +509,9 @@ test.describe('Checkout — Full logged-in journey', () => {
     await addBtn.click();
     // MiniCart opens on add — best-effort dismiss (may not always slide in
     // synchronously with add on all product types).
-    await page.locator('text=/Your Bag|Your Cart|mini cart/i').first()
+    await page
+      .locator('text=/Your Bag|Your Cart|mini cart/i')
+      .first()
       .waitFor({ state: 'visible', timeout: 3000 })
       .catch(() => {});
     const closeBtn = page.locator('button[aria-label="Close"]').first();

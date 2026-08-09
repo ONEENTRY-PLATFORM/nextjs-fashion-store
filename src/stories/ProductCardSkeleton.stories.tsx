@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { ProductCardSkeleton } from '../app/components/product/ProductCardSkeleton';
 
 const meta = {

@@ -76,21 +76,25 @@ describe('withTiming — profiling enabled', () => {
 
   it('logs [OE-timing] <name> ok on success', async () => {
     const { withTiming } = await importFresh();
-    const wrapped = withTiming('loadStores', vi.fn(async () => 'ok'));
-    await wrapped();
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringMatching(/^\[OE-timing\] loadStores ok \d+\.\dms$/),
+    const wrapped = withTiming(
+      'loadStores',
+      vi.fn(async () => 'ok'),
     );
+    await wrapped();
+    expect(console.warn).toHaveBeenCalledWith(expect.stringMatching(/^\[OE-timing\] loadStores ok \d+\.\dms$/));
   });
 
   it('logs [OE-timing] <name> FAIL and re-throws on error', async () => {
     const { withTiming } = await importFresh();
     const boom = new Error('network failure');
-    const wrapped = withTiming('loadProducts', vi.fn(async () => { throw boom; }));
-    await expect(wrapped()).rejects.toThrow('network failure');
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringMatching(/^\[OE-timing\] loadProducts FAIL \d+\.\dms$/),
+    const wrapped = withTiming(
+      'loadProducts',
+      vi.fn(async () => {
+        throw boom;
+      }),
     );
+    await expect(wrapped()).rejects.toThrow('network failure');
+    expect(console.warn).toHaveBeenCalledWith(expect.stringMatching(/^\[OE-timing\] loadProducts FAIL \d+\.\dms$/));
   });
 });
 
@@ -108,7 +112,10 @@ describe('withTiming — slow-ms threshold', () => {
     vi.stubEnv('OE_PROFILE_SLOW_MS', '9999');
     const { withTiming } = await importFresh();
     // The fn completes near-instantly — well below 9999 ms threshold
-    const wrapped = withTiming('fastFn', vi.fn(async () => 'fast'));
+    const wrapped = withTiming(
+      'fastFn',
+      vi.fn(async () => 'fast'),
+    );
     await wrapped();
     expect(console.warn).not.toHaveBeenCalled();
   });
@@ -116,7 +123,10 @@ describe('withTiming — slow-ms threshold', () => {
   it('logs when threshold is 0 (log everything)', async () => {
     vi.stubEnv('OE_PROFILE_SLOW_MS', '0');
     const { withTiming } = await importFresh();
-    const wrapped = withTiming('anyFn', vi.fn(async () => 'x'));
+    const wrapped = withTiming(
+      'anyFn',
+      vi.fn(async () => 'x'),
+    );
     await wrapped();
     expect(console.warn).toHaveBeenCalled();
   });
@@ -124,7 +134,10 @@ describe('withTiming — slow-ms threshold', () => {
   it('uses 0 as threshold when OE_PROFILE_SLOW_MS is non-numeric', async () => {
     vi.stubEnv('OE_PROFILE_SLOW_MS', 'bad');
     const { withTiming } = await importFresh();
-    const wrapped = withTiming('anyFn', vi.fn(async () => 'x'));
+    const wrapped = withTiming(
+      'anyFn',
+      vi.fn(async () => 'x'),
+    );
     await wrapped();
     // threshold falls back to 0, so all calls are logged
     expect(console.warn).toHaveBeenCalled();
@@ -145,7 +158,10 @@ describe('ring buffer — clearTimings / readTimings', () => {
 
   it('readTimings() returns [] after clearTimings()', async () => {
     const { withTiming, clearTimings, readTimings } = await importFresh();
-    const wrapped = withTiming('x', vi.fn(async () => 1));
+    const wrapped = withTiming(
+      'x',
+      vi.fn(async () => 1),
+    );
     await wrapped();
     clearTimings();
     expect(readTimings()).toEqual([]);
@@ -154,7 +170,10 @@ describe('ring buffer — clearTimings / readTimings', () => {
   it('push fewer than capacity → all records returned in insertion order', async () => {
     const { withTiming, clearTimings, readTimings } = await importFresh();
     clearTimings();
-    const wrapped = withTiming('alpha', vi.fn(async () => 'a'));
+    const wrapped = withTiming(
+      'alpha',
+      vi.fn(async () => 'a'),
+    );
     await wrapped();
     await wrapped();
     await wrapped();
@@ -170,8 +189,16 @@ describe('ring buffer — clearTimings / readTimings', () => {
   it('withTiming records ok:true on success and ok:false on failure', async () => {
     const { withTiming, clearTimings, readTimings } = await importFresh();
     clearTimings();
-    const good = withTiming('good', vi.fn(async () => 'ok'));
-    const bad = withTiming('bad', vi.fn(async () => { throw new Error('boom'); }));
+    const good = withTiming(
+      'good',
+      vi.fn(async () => 'ok'),
+    );
+    const bad = withTiming(
+      'bad',
+      vi.fn(async () => {
+        throw new Error('boom');
+      }),
+    );
     await good();
     await expect(bad()).rejects.toThrow();
     const records = readTimings();
@@ -186,7 +213,10 @@ describe('ring buffer — clearTimings / readTimings', () => {
     vi.stubEnv('OE_PROFILE', '');
     const { withTiming, clearTimings, readTimings } = await importFresh();
     clearTimings();
-    const wrapped = withTiming('noop', vi.fn(async () => 42));
+    const wrapped = withTiming(
+      'noop',
+      vi.fn(async () => 42),
+    );
     // withTiming returns the identity fn when disabled, so the call goes
     // through but nothing is recorded.
     await wrapped();
@@ -232,9 +262,18 @@ describe('ring buffer — overflow evicts oldest entries', () => {
     clearTimings();
     let counter = 0;
     // Use separate named fns to track first vs last.
-    const first = withTiming('entry-FIRST', vi.fn(async () => ++counter));
-    const middle = withTiming('entry-MIDDLE', vi.fn(async () => ++counter));
-    const last = withTiming('entry-LAST', vi.fn(async () => ++counter));
+    const first = withTiming(
+      'entry-FIRST',
+      vi.fn(async () => ++counter),
+    );
+    const middle = withTiming(
+      'entry-MIDDLE',
+      vi.fn(async () => ++counter),
+    );
+    const last = withTiming(
+      'entry-LAST',
+      vi.fn(async () => ++counter),
+    );
 
     await first(); // entry #1 — will be evicted
     // Fill up remaining capacity-1 slots (4999 more) to reach exactly 5000.
@@ -265,7 +304,10 @@ describe('globalThis ring — writes via import#1 are visible via import#2', () 
     // Import #1 — push one record via withTiming
     const mod1 = await importFresh();
     mod1.clearTimings();
-    const wrapped = mod1.withTiming('cross-bundle-fn', vi.fn(async () => 'ok'));
+    const wrapped = mod1.withTiming(
+      'cross-bundle-fn',
+      vi.fn(async () => 'ok'),
+    );
     await wrapped();
 
     // Import #2 — reload the module; it should find the same globalThis ring
@@ -356,8 +398,14 @@ describe('aggregateTimings()', () => {
     ];
     vi.spyOn(performance, 'now').mockImplementation(() => sequence[nowCalls++] ?? 0);
 
-    const fast = withTiming('fast-loader', vi.fn(async () => 'f'));
-    const slow = withTiming('slow-loader', vi.fn(async () => 's'));
+    const fast = withTiming(
+      'fast-loader',
+      vi.fn(async () => 'f'),
+    );
+    const slow = withTiming(
+      'slow-loader',
+      vi.fn(async () => 's'),
+    );
     for (let i = 0; i < 5; i++) await fast();
     for (let i = 0; i < 5; i++) await slow();
 
@@ -376,8 +424,16 @@ describe('aggregateTimings()', () => {
     clearTimings();
     vi.spyOn(performance, 'now').mockReturnValue(0);
 
-    const good = withTiming('mixed', vi.fn(async () => 'ok'));
-    const fail = withTiming('mixed', vi.fn(async () => { throw new Error('x'); }));
+    const good = withTiming(
+      'mixed',
+      vi.fn(async () => 'ok'),
+    );
+    const fail = withTiming(
+      'mixed',
+      vi.fn(async () => {
+        throw new Error('x');
+      }),
+    );
     await good();
     await good();
     await expect(fail()).rejects.toThrow();

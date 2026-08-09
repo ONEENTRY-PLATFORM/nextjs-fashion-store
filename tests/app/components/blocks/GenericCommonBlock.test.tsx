@@ -10,9 +10,9 @@
  *  5. Returns null when no image AND no headline/text is configured.
  *  6. Wrapped attribute shape ({ en_US: { key: { value } } }) flattened correctly.
  */
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -34,11 +34,7 @@ vi.mock('next/image', () => ({
 
 // next/link → plain <a>.
 vi.mock('next/link', () => ({
-  default: ({
-    href,
-    children,
-    ...rest
-  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+  default: ({ href, children, ...rest }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
     <a href={href} data-testid="banner-cta" {...rest}>
       {children}
     </a>
@@ -71,9 +67,9 @@ describe('GenericCommonBlock — flat attribute shape', () => {
       <GenericCommonBlock
         title="Fallback Title"
         attributeValues={flatAttrs({
-          hp_b_b_lable:       { value: 'EYEBROW TEXT' },
-          hp_b_b_title:       { value: 'Main Heading' },
-          hp_b_b_sub_title:   { value: 'Supporting Line' },
+          hp_b_b_lable: { value: 'EYEBROW TEXT' },
+          hp_b_b_title: { value: 'Main Heading' },
+          hp_b_b_sub_title: { value: 'Supporting Line' },
           hp_b_b_description: { value: 'Body copy here.' },
         })}
       />,
@@ -93,7 +89,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
         title="Banner"
         attributeValues={flatAttrs({
           hp_b_b_title: { value: 'Banner Title' },
-          hp_b_b_pic:   { value: [{ downloadLink: 'https://cdn.example.com/banner.jpg' }] },
+          hp_b_b_pic: { value: [{ downloadLink: 'https://cdn.example.com/banner.jpg' }] },
         })}
       />,
     );
@@ -110,7 +106,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
       <GenericCommonBlock
         title="Banner"
         attributeValues={flatAttrs({
-          hp_b_b_title:    { value: 'Shop Now Banner' },
+          hp_b_b_title: { value: 'Shop Now Banner' },
           hp_b_b_cta_text: { value: 'Shop Now' },
           hp_b_b_cta_link: { value: '/shop/all' },
         })}
@@ -130,7 +126,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
       <GenericCommonBlock
         title="Banner"
         attributeValues={flatAttrs({
-          hp_b_b_title:    { value: 'No Link Banner' },
+          hp_b_b_title: { value: 'No Link Banner' },
           hp_b_b_cta_text: { value: 'Click Me' },
           // hp_b_b_cta_link intentionally absent
         })}
@@ -147,7 +143,7 @@ describe('GenericCommonBlock — flat attribute shape', () => {
       <GenericCommonBlock
         title="Banner"
         attributeValues={flatAttrs({
-          hp_b_b_title:    { value: 'No Text Banner' },
+          hp_b_b_title: { value: 'No Text Banner' },
           hp_b_b_cta_link: { value: '/shop/all' },
           // hp_b_b_cta_text intentionally absent
         })}
@@ -201,7 +197,7 @@ describe('GenericCommonBlock — wrapped attribute shape', () => {
         lang="en_US"
         attributeValues={{
           en_US: {
-            hp_b_b_title:     { value: 'Wrapped Title' },
+            hp_b_b_title: { value: 'Wrapped Title' },
             hp_b_b_sub_title: { value: 'Wrapped Subtitle' },
           },
         }}
@@ -222,7 +218,7 @@ describe('GenericCommonBlock — wrapped attribute shape', () => {
         attributeValues={{
           en_US: {
             hp_b_b_title: { value: 'Wrapped Banner' },
-            hp_b_b_pic:   { value: [{ downloadLink: 'https://cdn.example.com/wrapped.jpg' }] },
+            hp_b_b_pic: { value: [{ downloadLink: 'https://cdn.example.com/wrapped.jpg' }] },
           },
         }}
       />,

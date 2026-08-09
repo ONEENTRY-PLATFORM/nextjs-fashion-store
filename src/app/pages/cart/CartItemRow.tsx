@@ -1,15 +1,17 @@
-'use client'
+'use client';
+import { Heart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { Trash2, Heart } from 'lucide-react';
 import { QtyControl } from '../../components/ui/QtyControl';
 import { SizeDropdown } from '../../components/ui/SizeDropdown';
-import type { CartItem } from '../../context/CartContext';
-import { fmt } from '../../utils/formatPrice';
 import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
-import { CART_ROW_LABELS as L } from '../../data/cartLabels';
-import { CART_LINE_LABELS as CLL } from '../../data/commonLabels';
+import type { CartItem } from '../../context/CartContext';
+import { CART_ROW_LABELS } from '../../data/cartLabels';
+import { CART_LINE_LABELS } from '../../data/commonLabels';
 import { hexToColorName } from '../../utils/colorNames';
+import { fmt } from '../../utils/formatPrice';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 
@@ -28,9 +30,19 @@ interface CartItemRowProps {
 }
 
 export function CartItemRow({
-  item, isLast, isSelected, inWishlist, availableSizes,
-  onToggleSelect, onToggleWishlist, onUpdateSize, onUpdateQuantity, onRemove,
+  item,
+  isLast,
+  isSelected,
+  inWishlist,
+  availableSizes,
+  onToggleSelect,
+  onToggleWishlist,
+  onUpdateSize,
+  onUpdateQuantity,
+  onRemove,
 }: CartItemRowProps) {
+  const CLL = useDict('interface_controls_cart_line_', CART_LINE_LABELS);
+  const L = useDict('checkout_cart_row_', CART_ROW_LABELS);
   const isShoe = item.sku.includes('-SH-');
 
   return (
@@ -41,7 +53,7 @@ export function CartItemRow({
     >
       <div className="shrink-0 pt-1">
         <span
-          className={`w-4 h-4 flex items-center justify-center cursor-pointer rounded-none border-[1.5px] ${
+          className={`flex size-4 cursor-pointer items-center justify-center rounded-none border-[1.5px] ${
             isSelected ? 'border-black bg-black' : 'border-[#c8c8c8] bg-white'
           }`}
           onClick={onToggleSelect}
@@ -50,27 +62,36 @@ export function CartItemRow({
         </span>
       </div>
 
-      <div className="relative shrink-0 w-27.5 h-35">
+      <div className="relative h-35 w-27.5 shrink-0">
         <ImageWithFallback src={item.image} alt={item.name} fill sizes="110px" className="object-cover" />
       </div>
 
-      <div className="flex-1 min-w-0 flex flex-col justify-between">
+      <div className="flex min-w-0 flex-1 flex-col justify-between">
         <div>
-          <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
-          <p className="text-sm mb-1 leading-snug font-semibold">{item.name}</p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mb-2">
-            <span>{CLL.colorPrefix} {hexToColorName(item.color)}</span>
+          <p className="mb-0.5 text-xs tracking-widest text-gray-400 uppercase">{item.brand}</p>
+          <p className="mb-1 text-sm leading-snug font-semibold">{item.name}</p>
+          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+            <span>
+              {CLL.colorPrefix} {hexToColorName(item.color)}
+            </span>
             <span>·</span>
-            <span>{CLL.skuPrefix} {item.sku}</span>
+            <span>
+              {CLL.skuPrefix} {item.sku}
+            </span>
           </div>
           <SizeDropdown value={item.size} onChange={onUpdateSize} isShoe={isShoe} availableSizes={availableSizes} />
         </div>
-        <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
-          <QtyControl value={item.quantity} max={item.stockLimit} onMinus={() => onUpdateQuantity(-1)} onPlus={() => onUpdateQuantity(+1)} />
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <QtyControl
+            value={item.quantity}
+            max={item.stockLimit}
+            onMinus={() => onUpdateQuantity(-1)}
+            onPlus={() => onUpdateQuantity(+1)}
+          />
           <div className="flex items-center gap-4">
             <button
               onClick={onToggleWishlist}
-              className={`flex items-center gap-1 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity ${
+              className={`flex items-center gap-1 text-xs transition-opacity hover:opacity-70 focus-visible:outline-none ${
                 inWishlist ? 'text-accent' : 'text-gray-500'
               }`}
               aria-label={L.removeWishlist}
@@ -78,7 +99,11 @@ export function CartItemRow({
               <Heart size={14} fill={inWishlist ? ACCENT : 'none'} />
               <span className="hidden sm:inline">{L.wishlist}</span>
             </button>
-            <button onClick={onRemove} className="flex items-center gap-1 text-xs focus-visible:outline-none hover:opacity-70 transition-opacity text-gray-500" aria-label={L.removeItem}>
+            <button
+              onClick={onRemove}
+              className="flex items-center gap-1 text-xs text-gray-500 transition-opacity hover:opacity-70 focus-visible:outline-none"
+              aria-label={L.removeItem}
+            >
               <Trash2 size={14} />
               <span className="hidden sm:inline">{L.remove}</span>
             </button>
@@ -91,7 +116,9 @@ export function CartItemRow({
         {item.originalPrice && item.originalPrice > item.price && (
           <>
             <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
-            <p className="text-xs mt-0.5 text-(--sale) font-semibold">-{fmt((item.originalPrice - item.price) * item.quantity)}</p>
+            <p className="mt-0.5 text-xs font-semibold text-(--sale)">
+              -{fmt((item.originalPrice - item.price) * item.quantity)}
+            </p>
           </>
         )}
       </div>

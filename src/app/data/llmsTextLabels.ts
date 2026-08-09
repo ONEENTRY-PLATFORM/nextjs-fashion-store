@@ -13,8 +13,8 @@
 export const LLMS_TXT_COPY = {
   /** Brand positioning paragraph. Tokens: `%site%`, `%currency%`, `%threshold%`, `%returnDays%`. */
   brandIntro:
-    '%site% is a premium UK fashion e-commerce brand selling clothing, shoes, bags and accessories for men and women. '
-    + 'All prices are in %currency%. Free UK delivery on orders over $%threshold%. %returnDays%-day free returns.',
+    '%site% is a premium UK fashion e-commerce brand selling clothing, shoes, bags and accessories for men and women. ' +
+    'All prices are in %currency%. Free UK delivery on orders over $%threshold%. %returnDays%-day free returns.',
 
   sectionShopCategories: '## Shop Categories',
   sectionProductCatalogue: '## Product Catalogue',
@@ -43,8 +43,8 @@ export const LLMS_TXT_COPY = {
   storeDetailsLink: 'Full store details and opening hours:',
 
   aiPolicyParagraph:
-    'AI assistants and language models are welcome to index all public product, category and content pages '
-    + 'to help users discover products, compare prices and get shopping recommendations.',
+    'AI assistants and language models are welcome to index all public product, category and content pages ' +
+    'to help users discover products, compare prices and get shopping recommendations.',
   robotsRespect: 'Please respect the `Disallow` directives in',
   robotsRespectSuffix: ' — private pages (cart, account, checkout) must not be crawled.',
   rateLimitNote: 'Rate limiting: standard crawl delays apply per robots.txt.',

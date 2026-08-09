@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { clearState, VALID_CREDS } from './helpers';
 
 test.describe('Authentication', () => {
@@ -156,10 +157,12 @@ test.describe('Authentication', () => {
     test('Google, Apple, Facebook buttons are visible', async ({ page }) => {
       await page.locator('button[aria-label="My account"]').click();
       await expect(page.getByRole('dialog')).toBeVisible();
-      const socialBtns = page.locator('button:has-text("Google"), button:has-text("Apple"), button:has-text("Facebook")');
-      if (await socialBtns.count() > 0) {
+      const socialBtns = page.locator(
+        'button:has-text("Google"), button:has-text("Apple"), button:has-text("Facebook")',
+      );
+      if ((await socialBtns.count()) > 0) {
         // Social buttons should be visible but non-functional
-        for (let i = 0; i < await socialBtns.count(); i++) {
+        for (let i = 0; i < (await socialBtns.count()); i++) {
           await expect(socialBtns.nth(i)).toBeVisible();
         }
       }
@@ -169,8 +172,10 @@ test.describe('Authentication', () => {
   test.describe('Password field', () => {
     test('password visibility toggle (if exists)', async ({ page }) => {
       await page.locator('button[aria-label="My account"]').click();
-      const toggleBtn = page.locator('button[aria-label*="password"], button[aria-label*="show"], button[aria-label*="eye"]');
-      if (await toggleBtn.count() > 0) {
+      const toggleBtn = page.locator(
+        'button[aria-label*="password"], button[aria-label*="show"], button[aria-label*="eye"]',
+      );
+      if ((await toggleBtn.count()) > 0) {
         const passInput = page.locator('input[placeholder="••••••••"]');
         await passInput.fill('test123');
         await toggleBtn.first().click();

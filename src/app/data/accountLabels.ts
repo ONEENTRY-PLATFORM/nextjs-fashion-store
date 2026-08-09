@@ -24,15 +24,15 @@ export const LOYALTY_CARD_LABELS = {
   perks: {
     // Entry-level for shoppers who haven't yet unlocked a paid tier.
     // Intentionally soft — no discount, just the account basics.
-    Member:   ['Save items to your wishlist', 'Order history at your fingertips', 'Personalised recommendations'],
+    Member: ['Save items to your wishlist', 'Order history at your fingertips', 'Personalised recommendations'],
     // First bullet on paid tiers is `perkPlaceholder` on purpose — the
     // LoyaltyCard swaps it for `${pct}% off every order` at render time,
     // reading the real percentage from OE (`Discounts.marker.<tier>`).
     // Hardcoding "5% off" here made every Bronze member look 5% regardless
     // of what the merchant actually configured.
-    Bronze:   ['Discount on every order', 'Free standard returns', 'Early access to sales'],
-    Silver:   ['Discount on every order', 'Free returns & exchanges', 'Priority customer support'],
-    Gold:     ['Discount on every order', 'Free express delivery', 'Dedicated personal stylist'],
+    Bronze: ['Discount on every order', 'Free standard returns', 'Early access to sales'],
+    Silver: ['Discount on every order', 'Free returns & exchanges', 'Priority customer support'],
+    Gold: ['Discount on every order', 'Free express delivery', 'Dedicated personal stylist'],
     Platinum: ['Discount on every order', 'Same-day delivery', 'Exclusive VIP events & previews'],
   } as Record<string, readonly string[]>,
   tierOrder: ['Member', 'Bronze', 'Silver', 'Gold', 'Platinum'] as const,
@@ -297,9 +297,17 @@ export const SERVICE_LABELS = {
   requestDetails: 'Request Details',
   howItWorks: 'How It Works',
   howSteps: [
-    { step: '01', title: 'Submit Request', body: 'Tell us what your item needs — alteration, repair, cleaning or restoration.' },
+    {
+      step: '01',
+      title: 'Submit Request',
+      body: 'Tell us what your item needs — alteration, repair, cleaning or restoration.',
+    },
     { step: '02', title: 'Drop Off', body: 'Bring your item to any Kekimoro store with your confirmation reference.' },
-    { step: '03', title: 'We Get to Work', body: 'Our specialist technicians assess and complete your service request.' },
+    {
+      step: '03',
+      title: 'We Get to Work',
+      body: 'Our specialist technicians assess and complete your service request.',
+    },
     { step: '04', title: 'Collect', body: "You'll be notified when ready. Collect in-store or request delivery." },
   ] as const,
   statuses: {
@@ -336,7 +344,14 @@ export const FEEDBACK_LABELS = {
     4: 'Satisfied',
     5: 'Very Satisfied',
   } as Record<number, string>,
-  categories: ['Product Quality', 'Delivery', 'Customer Service', 'Website Experience', 'Returns & Refunds', 'Other'] as const,
+  categories: [
+    'Product Quality',
+    'Delivery',
+    'Customer Service',
+    'Website Experience',
+    'Returns & Refunds',
+    'Other',
+  ] as const,
   labelCategory: 'Feedback Category',
   labelOrder: 'Related Order',
   optionalSuffix: '(optional)',
@@ -391,7 +406,11 @@ export const REFER_LABELS = {
   howSteps: (amount: number) => [
     { step: '01', title: 'Share Your Link', desc: 'Send your unique referral link or code to friends and family.' },
     { step: '02', title: 'Friend Signs Up', desc: 'Your friend creates an account and places their first order.' },
-    { step: '03', title: `Both Get ${CURRENCY.formatInteger(amount)}`, desc: `You receive ${CURRENCY.formatInteger(amount)} store credit. Your friend gets ${CURRENCY.formatInteger(amount)} off their order.` },
+    {
+      step: '03',
+      title: `Both Get ${CURRENCY.formatInteger(amount)}`,
+      desc: `You receive ${CURRENCY.formatInteger(amount)} store credit. Your friend gets ${CURRENCY.formatInteger(amount)} off their order.`,
+    },
   ],
   // Terms
   termsTpl: (minPurchase: number, months: number) =>
@@ -435,9 +454,21 @@ export const WAITING_LIST_LABELS = {
   ctaUnavailable: 'Unavailable',
   ctaAddToCart: 'Add to Cart',
   howSteps: [
-    { step: '01', title: 'Save Your Size', desc: 'Add sold-out items to your waiting list with your preferred size and colour.' },
-    { step: '02', title: 'Get Notified', desc: 'Toggle the bell icon to receive alerts the moment stock is replenished.' },
-    { step: '03', title: 'Shop First', desc: 'Waiting list members get early access before items go back on general sale.' },
+    {
+      step: '01',
+      title: 'Save Your Size',
+      desc: 'Add sold-out items to your waiting list with your preferred size and colour.',
+    },
+    {
+      step: '02',
+      title: 'Get Notified',
+      desc: 'Toggle the bell icon to receive alerts the moment stock is replenished.',
+    },
+    {
+      step: '03',
+      title: 'Shop First',
+      desc: 'Waiting list members get early access before items go back on general sale.',
+    },
   ] as const,
   loadingAria: 'Loading waiting list',
 } as const;

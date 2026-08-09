@@ -11,9 +11,9 @@
  *  5. Empty slides prop → component returns null.
  *  6. Slides without image AND without headline are filtered out.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
+import { describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -40,11 +40,7 @@ vi.mock('next/image', () => ({
 
 // next/link → plain <a>.
 vi.mock('next/link', () => ({
-  default: ({
-    href,
-    children,
-    ...rest
-  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+  default: ({ href, children, ...rest }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
     <a href={href} data-testid="slide-cta" {...rest}>
       {children}
     </a>
@@ -65,13 +61,13 @@ vi.mock('lucide-react', () => ({
 const semanticSlide = (overrides: Record<string, unknown> = {}) => ({
   id: 1,
   attributeValues: {
-    hp_b_b_title:       { value: 'Semantic Headline' },
-    hp_b_b_lable:       { value: 'Semantic Eyebrow' },
+    hp_b_b_title: { value: 'Semantic Headline' },
+    hp_b_b_lable: { value: 'Semantic Eyebrow' },
     hp_b_b_description: { value: 'Semantic subtext copy' },
     // extractImage receives `attr.value` — the array must be nested under `value`.
-    hp_b_b_pic:         { value: [{ downloadLink: 'https://cdn.example.com/semantic.jpg' }] },
-    hp_b_b_cta_text:    { value: 'Shop Now' },
-    hp_b_b_cta_link:    { value: '/shop/all' },
+    hp_b_b_pic: { value: [{ downloadLink: 'https://cdn.example.com/semantic.jpg' }] },
+    hp_b_b_cta_text: { value: 'Shop Now' },
+    hp_b_b_cta_link: { value: '/shop/all' },
     ...overrides,
   },
 });
@@ -84,7 +80,7 @@ const positionalSlide = () => ({
     string_id2: { value: 'Positional Eyebrow' },
     string_id3: { value: 'Positional Subtext' },
     // pickPositional returns `attrs[key]?.value` — array must be under `.value`.
-    image_id4:  { value: [{ downloadLink: 'https://cdn.example.com/positional.jpg' }] },
+    image_id4: { value: [{ downloadLink: 'https://cdn.example.com/positional.jpg' }] },
     string_id5: { value: 'Buy Now' },
     string_id6: { value: '/buy/now' },
   },
@@ -185,11 +181,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
   it('shows prev/next buttons and dot buttons when multiple slides are present', async () => {
     const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
-    render(
-      <GenericSliderBlock
-        slides={[makeSlide('First Slide', 1), makeSlide('Second Slide', 2)]}
-      />,
-    );
+    render(<GenericSliderBlock slides={[makeSlide('First Slide', 1), makeSlide('Second Slide', 2)]} />);
 
     expect(screen.getByRole('button', { name: /previous slide/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /next slide/i })).toBeTruthy();
@@ -201,11 +193,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
 
     render(
       <GenericSliderBlock
-        slides={[
-          makeSlide('First Slide', 1),
-          makeSlide('Second Slide', 2),
-          makeSlide('Third Slide', 3),
-        ]}
+        slides={[makeSlide('First Slide', 1), makeSlide('Second Slide', 2), makeSlide('Third Slide', 3)]}
       />,
     );
 
@@ -224,11 +212,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
   it('clicking Prev wraps around to the last slide from the first', async () => {
     const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
-    render(
-      <GenericSliderBlock
-        slides={[makeSlide('Alpha', 1), makeSlide('Beta', 2), makeSlide('Gamma', 3)]}
-      />,
-    );
+    render(<GenericSliderBlock slides={[makeSlide('Alpha', 1), makeSlide('Beta', 2), makeSlide('Gamma', 3)]} />);
 
     // On the first slide. Click prev — should jump to the last.
     fireEvent.click(screen.getByRole('button', { name: /previous slide/i }));
@@ -239,11 +223,7 @@ describe('GenericSliderBlock — multi-slide navigation', () => {
   it('clicking a dot button navigates directly to that slide', async () => {
     const { GenericSliderBlock } = await import('@/app/components/blocks/GenericSliderBlock');
 
-    render(
-      <GenericSliderBlock
-        slides={[makeSlide('Dot Slide A', 1), makeSlide('Dot Slide B', 2)]}
-      />,
-    );
+    render(<GenericSliderBlock slides={[makeSlide('Dot Slide A', 1), makeSlide('Dot Slide B', 2)]} />);
 
     // Click "Go to slide 2" dot.
     fireEvent.click(screen.getByRole('button', { name: /go to slide 2/i }));

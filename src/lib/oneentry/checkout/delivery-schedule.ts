@@ -1,9 +1,10 @@
-import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
+
+import { DELIVERY_TIME_SLOTS } from '../../../app/data/checkoutConfig';
+import { REVALIDATE_STORES } from '../../isr';
+import { currentCmsLocale } from '../current-locale';
 import { getApi, isError } from '../index';
 import type { Lang } from '../system-text';
-import { REVALIDATE_STORES } from '../../isr';
-import { DELIVERY_TIME_SLOTS } from '../../../app/data/checkoutConfig';
 
 export interface DeliveryTimeSlot {
   id: string;
@@ -27,7 +28,8 @@ const FALLBACK: DeliverySchedule = {
   disabledWeekdays: [0],
 };
 
-/** Marker triple per checkout variant. The `_guest` variant mirrors the
+/**
+ * Marker triple per checkout variant. The `_guest` variant mirrors the
  *  authed form field-for-field — same attribute types on `forForms_*_guest`,
  *  every marker gets a `_guest` suffix (matches the OE admin convention
  *  used by `PaymentPage.tsx.delivery_date-time_guest` etc.).
@@ -35,7 +37,8 @@ const FALLBACK: DeliverySchedule = {
  *  `asetMarker` is the attribute-SET marker, not the form marker — the
  *  timeInterval config lives on the schema of the aset the form's built on
  *  (`Forms.getFormByMarker` strips schema `.value` down to a placeholder,
- *  so we hit `AttributesSets.getAttributesByMarker` instead). */
+ *  so we hit `AttributesSets.getAttributesByMarker` instead).
+ */
 const MARKERS = {
   authed: {
     asetMarker: 'checkout_home',
@@ -65,10 +68,12 @@ type RawAttrSchema = {
 
 const pad = (n: number): string => (n < 10 ? `0${n}` : String(n));
 
-/** Bucket the slot's start hour into a short prose subtitle so the picker
+/**
+ * Bucket the slot's start hour into a short prose subtitle so the picker
  *  keeps the "Morning / Afternoon / Evening" chip it always had. Falls back
  *  to an empty string when the admin picks an odd time (e.g. overnight) —
- *  the label alone still communicates the range. */
+ *  the label alone still communicates the range.
+ */
 function slotSub(startHour: number): string {
   if (startHour < 12) return 'Morning';
   if (startHour < 17) return 'Afternoon';
@@ -76,10 +81,12 @@ function slotSub(startHour: number): string {
   return '';
 }
 
-/** Turn the OE `dates: [startISO, endISO]` range into the set of weekdays
+/**
+ * Turn the OE `dates: [startISO, endISO]` range into the set of weekdays
  *  actually covered (inclusive, using UTC to avoid TZ drift — admin encodes
  *  the range in UTC and `2026-07-20T00:00:00Z` should count as Monday for
- *  every visitor). */
+ *  every visitor).
+ */
 function activeWeekdaysFromRange(dates: string[]): Set<number> {
   const out = new Set<number>();
   if (!Array.isArray(dates) || dates.length < 2) return out;
@@ -110,10 +117,7 @@ async function loadScheduleFor(variant: DeliveryScheduleVariant, lang: Lang): Pr
     const attrs = result as unknown as RawAttrSchema[];
 
     const dateAttr = attrs.find(
-      (a) =>
-        typeof a === 'object' && a !== null &&
-        a.marker === spec.dateAttr &&
-        a.type === 'timeInterval',
+      (a) => typeof a === 'object' && a !== null && a.marker === spec.dateAttr && a.type === 'timeInterval',
     );
     if (!dateAttr) return FALLBACK;
 
@@ -150,9 +154,8 @@ async function loadScheduleFor(variant: DeliveryScheduleVariant, lang: Lang): Pr
     // Date range → allowed weekdays. Admin's Mon–Fri range → {1..5}, so
     // disabledWeekdays = {0, 6}. Everything outside `active` is disabled.
     const active = activeWeekdaysFromRange(Array.isArray(row.dates) ? row.dates : []);
-    const disabledWeekdays: number[] = active.size > 0
-      ? [0, 1, 2, 3, 4, 5, 6].filter((d) => !active.has(d))
-      : FALLBACK.disabledWeekdays;
+    const disabledWeekdays: number[] =
+      active.size > 0 ? [0, 1, 2, 3, 4, 5, 6].filter((d) => !active.has(d)) : FALLBACK.disabledWeekdays;
 
     return {
       slots: slots.length > 0 ? slots : FALLBACK.slots,
@@ -185,20 +188,22 @@ async function loadScheduleFor(variant: DeliveryScheduleVariant, lang: Lang): Pr
  * Falls back to the hardcoded 7-days / skip-Sun / three-slot config when
  * OE is unreachable, the attribute is missing, or the row is empty.
  */
-/** `lang` is an explicit argument so it forms part of the `unstable_cache`
- *  key; root params are also unreadable inside a cached function. */
+/**
+ * `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function.
+ */
 const loadDeliveryScheduleCached = unstable_cache(
-  async (variant: DeliveryScheduleVariant, lang: Lang): Promise<DeliverySchedule> =>
-    loadScheduleFor(variant, lang),
+  async (variant: DeliveryScheduleVariant, lang: Lang): Promise<DeliverySchedule> => loadScheduleFor(variant, lang),
   ['oe-delivery-schedule'],
   { revalidate: REVALIDATE_STORES, tags: ['oe-forms'] },
 );
 
 /**
  * Delivery schedule for the current route's locale.
- * @param   {DeliveryScheduleVariant} [variant] - Authed or guest schedule.
- * @param   {Lang}                    [langArg] - Explicit OE locale; defaults to the route's.
- * @returns {Promise<DeliverySchedule>} Schedule, with shipped fallbacks.
+ *
+ * @param [variant] - Authed or guest schedule.
+ * @param                    [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns Schedule, with shipped fallbacks.
  */
 export async function loadDeliverySchedule(
   variant: DeliveryScheduleVariant = 'authed',
@@ -207,15 +212,13 @@ export async function loadDeliverySchedule(
   return loadDeliveryScheduleCached(variant, langArg ?? (await currentCmsLocale()));
 }
 
-/** Build the calendar strip the picker renders: `daysAhead` future dates
+/**
+ * Build the calendar strip the picker renders: `daysAhead` future dates
  *  starting tomorrow, skipping any weekday in `disabledWeekdays`. Kept as a
  *  plain function (no `useMemo`) so it works identically in the server
- *  component and in unit tests. */
-export function buildDeliveryDates(
-  daysAhead: number,
-  disabledWeekdays: number[],
-  now: Date = new Date(),
-): Date[] {
+ *  component and in unit tests.
+ */
+export function buildDeliveryDates(daysAhead: number, disabledWeekdays: number[], now: Date = new Date()): Date[] {
   const skip = new Set(disabledWeekdays);
   const out: Date[] = [];
   const cursor = new Date(now);

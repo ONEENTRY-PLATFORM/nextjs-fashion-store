@@ -12,10 +12,7 @@
  *   absent.
  * @returns `true` when a fresh hydration merge should run; `false` to skip.
  */
-export function shouldHydrateForUser(
-  userIdentifier: string | null | undefined,
-  storedFlag: string | null,
-): boolean {
+export function shouldHydrateForUser(userIdentifier: string | null | undefined, storedFlag: string | null): boolean {
   if (!userIdentifier) return false;
   return storedFlag !== userIdentifier;
 }

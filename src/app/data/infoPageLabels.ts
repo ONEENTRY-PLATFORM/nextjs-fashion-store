@@ -49,10 +49,10 @@ export const INFO_PAGE_SECTIONS = [
 
 /** Stats strip — OE keys `info_stat_{n}_value` / `info_stat_{n}_label`. */
 export const INFO_PAGE_STATS = [
-  { value: '40+',     label: 'Countries Shipped' },
-  { value: '120+',    label: 'Partner Brands' },
+  { value: '40+', label: 'Countries Shipped' },
+  { value: '120+', label: 'Partner Brands' },
   { value: '30 days', label: 'Free Returns' },
-  { value: '24 / 7',  label: 'Customer Support' },
+  { value: '24 / 7', label: 'Customer Support' },
 ] as const;
 
 /**

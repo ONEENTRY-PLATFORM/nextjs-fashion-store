@@ -1,5 +1,5 @@
-import type { MenuPageNode } from './menus';
 import type { Gender, SubCat } from '../../../app/data/categories';
+import type { MenuPageNode } from './menus';
 
 /**
  * Shape consumed by `Header` / `HeaderMobileDrawer` — mirrors the legacy
@@ -9,8 +9,10 @@ import type { Gender, SubCat } from '../../../app/data/categories';
  */
 export interface HeaderMegaItem {
   label: string;
-  /** OE `pageUrl` of the leaf node — used to filter the catalog by that
-   *  specific category path (e.g. `?category=dresses_skirts`). */
+  /**
+   * OE `pageUrl` of the leaf node — used to filter the catalog by that
+   *  specific category path (e.g. `?category=dresses_skirts`).
+   */
   pageUrl: string;
 }
 export type HeaderMega = Record<Gender, Record<Exclude<SubCat, null>, { title: string; items: HeaderMegaItem[] }[]>>;
@@ -19,9 +21,11 @@ const SUBCAT_KEYS: Exclude<SubCat, null>[] = ['shoes', 'clothing', 'bags', 'acce
 
 const norm = (s: string) => s.toLowerCase().trim();
 
-/** Try to match a node against a known gender by string. Positional fallback
+/**
+ * Try to match a node against a known gender by string. Positional fallback
  *  applies later — this is just an optimisation when the OE admin does use
- *  meaningful `pageUrl`s / `menuTitle`s. */
+ *  meaningful `pageUrl`s / `menuTitle`s.
+ */
 const matchGender = (node: MenuPageNode): Gender | null => {
   const n = norm(node.pageUrl) || norm(node.menuTitle) || norm(node.title);
   if (n.includes('women')) return 'women';
@@ -29,7 +33,9 @@ const matchGender = (node: MenuPageNode): Gender | null => {
   return null;
 };
 
-/** Same idea for subcats. */
+/**
+ * Same idea for subcats.
+ */
 const matchSubCat = (node: MenuPageNode): Exclude<SubCat, null> | null => {
   const n = norm(node.pageUrl) || norm(node.menuTitle) || norm(node.title);
   for (const key of SUBCAT_KEYS) if (n.includes(key)) return key;
@@ -81,7 +87,10 @@ export function adaptHeaderMenuToMega(pages: MenuPageNode[]): HeaderMega | null 
 
     // Pass 1: keyword matching for subcats.
     const subNodes: Record<Exclude<SubCat, null>, MenuPageNode | null> = {
-      shoes: null, clothing: null, bags: null, accessories: null,
+      shoes: null,
+      clothing: null,
+      bags: null,
+      accessories: null,
     };
     for (const child of children) {
       const s = matchSubCat(child);

@@ -1,23 +1,39 @@
-'use client'
+'use client';
+import { Link as LinkIcon, ShoppingBag, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
+
+import { useRouter } from '../../../lib/i18n/navigation';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { type CartItem, useCart } from '../../context/CartContext';
+import { MINI_CART_LABELS } from '../../data/cartLabels';
+import { MINI_CART_ARIA_LABELS, MINI_CART_DYNAMIC_ARIA } from '../../data/commonLabels';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { fillTokens } from '../../utils/fillTokens';
 import { fmt } from '../../utils/formatPrice';
 import { ImageWithFallback } from '../ui/ImageWithFallback';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { X, ShoppingBag, Link as LinkIcon } from 'lucide-react';
 import { QtyControl } from '../ui/QtyControl';
-import { useCart, type CartItem } from '../../context/CartContext';
 
-import { MINI_CART_LABELS as L } from '../../data/cartLabels';
-import { MINI_CART_ARIA_LABELS, MINI_CART_DYNAMIC_ARIA } from '../../data/commonLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useRouter } from '../../../lib/i18n/navigation';
-
-type RenderRow =
-  | { kind: 'item'; item: CartItem }
-  | { kind: 'bundle'; bundleId: string; items: CartItem[] };
+type RenderRow = { kind: 'item'; item: CartItem } | { kind: 'bundle'; bundleId: string; items: CartItem[] };
 
 export function MiniCart() {
-  const { items, miniCartOpen, closeMiniCart, removeItem, removeBundle, updateQuantity, subtotal, totalItems, personalDiscount, totalDue, couponCode, couponDiscount, preview, previewLoading, giftItems } = useCart();
+  const L = useDict('your_bag_mini_', MINI_CART_LABELS);
+  const {
+    items,
+    miniCartOpen,
+    closeMiniCart,
+    removeItem,
+    removeBundle,
+    updateQuantity,
+    subtotal,
+    totalItems,
+    personalDiscount,
+    totalDue,
+    couponCode,
+    couponDiscount,
+    preview,
+    previewLoading,
+    giftItems,
+  } = useCart();
   // Line items already reflect the sale price (item.price) with the
   // strike-through UX; keep the summary aligned so the shopper sees the
   // same numbers here and in the catalog / PDP. OE's `totalDue` is used
@@ -28,19 +44,22 @@ export function MiniCart() {
   const displayTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : subtotal;
   const router = useRouter();
   const trapRef = useFocusTrap(miniCartOpen, closeMiniCart);
-  const lHeading      = useT('your_bag_title',          L.heading);
-  const lSubtotal     = useT('your_bag_subtotal',       L.subtotal);
-  const lShippingNote = useT('your_bag_text',           L.shippingNote);
-  const lCheckout     = useT('your_bag_checkout_cta',   L.checkout);
+  const lHeading = useT('your_bag_title', L.heading);
+  const lSubtotal = useT('your_bag_subtotal', L.subtotal);
+  const lShippingNote = useT('your_bag_text', L.shippingNote);
+  const lCheckout = useT('your_bag_checkout_cta', L.checkout);
   const lViewFullCart = useT('your_bag_view_fuul_cart', L.viewFullCart);
-  const lSize         = useT('your_bag_size_prefix',    L.sizePrefix);
-  const lQty          = useT('your_bag_qty_prefix',     L.qtyPrefix);
-  const lFreeGift     = useT('your_bag_free_gift',      L.freeGift);
-  const lFree         = useT('your_bag_free',           L.free);
-  const lLoyalty      = useT('your_bag_loyalty_discount', L.loyaltyDiscount);
-  const lPromo        = useT('your_bag_promo_prefix',   L.promoPrefix);
-  const lTotal        = useT('your_bag_total',          L.total);
+  const lSize = useT('your_bag_size_prefix', L.sizePrefix);
+  const lQty = useT('your_bag_qty_prefix', L.qtyPrefix);
+  const lFreeGift = useT('your_bag_free_gift', L.freeGift);
+  const lFree = useT('your_bag_free', L.free);
+  const lLoyalty = useT('your_bag_loyalty_discount', L.loyaltyDiscount);
+  const lPromo = useT('your_bag_promo_prefix', L.promoPrefix);
+  const lTotal = useT('your_bag_total', L.total);
   const lAppliedAtCheckout = useT('your_bag_applied_at_checkout', L.appliedAtCheckout);
+  const aPanel = useT('your_bag_aria_panel', MINI_CART_ARIA_LABELS.yourBag);
+  const aRemoveBundle = useT('your_bag_remove_bundle', MINI_CART_ARIA_LABELS.removeBundle);
+  const aRemoveItem = useT('your_bag_remove_item', MINI_CART_DYNAMIC_ARIA.removeFromCart);
 
   const rows = useMemo<RenderRow[]>(() => {
     const result: RenderRow[] = [];
@@ -50,7 +69,11 @@ export function MiniCart() {
         result.push({ kind: 'item', item });
       } else if (!seen.has(item.bundleId)) {
         seen.add(item.bundleId);
-        result.push({ kind: 'bundle', bundleId: item.bundleId, items: items.filter(i => i.bundleId === item.bundleId) });
+        result.push({
+          kind: 'bundle',
+          bundleId: item.bundleId,
+          items: items.filter((i) => i.bundleId === item.bundleId),
+        });
       }
     }
     return result;
@@ -59,7 +82,9 @@ export function MiniCart() {
   useEffect(() => {
     if (miniCartOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [miniCartOpen]);
 
   if (!miniCartOpen) return null;
@@ -74,22 +99,19 @@ export function MiniCart() {
         ref={trapRef}
         role="dialog"
         aria-modal="true"
-        aria-label={MINI_CART_ARIA_LABELS.yourBag}
-        className="absolute top-0 right-0 bottom-0 w-full max-w-105 bg-white flex flex-col border-l border-gray-200"
+        aria-label={aPanel}
+        className="absolute inset-y-0 right-0 flex w-full max-w-105 flex-col border-l border-gray-200 bg-white"
       >
-
         {/* Header */}
-        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-3">
             <ShoppingBag size={20} />
-            <h2 className="text-sm tracking-[0.2em] uppercase font-bold">{lHeading}</h2>
-            <span className="text-xs px-1.5 py-0.5 text-white font-semibold bg-primary-women">
-              {totalItems}
-            </span>
+            <h2 className="text-sm font-bold tracking-[0.2em] uppercase">{lHeading}</h2>
+            <span className="bg-primary-women px-1.5 py-0.5 text-xs font-semibold text-white">{totalItems}</span>
           </div>
           <button
             onClick={closeMiniCart}
-            className="w-8 h-8 flex items-center justify-center hover:opacity-70 transition-opacity focus-visible:outline-none"
+            className="flex size-8 items-center justify-center transition-opacity hover:opacity-70 focus-visible:outline-none"
             aria-label={L.closeLabel}
           >
             <X size={20} strokeWidth={1.5} />
@@ -99,12 +121,12 @@ export function MiniCart() {
         {/* Items */}
         <div className="flex-1 overflow-y-auto">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-4 px-8 text-center">
+            <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
               <ShoppingBag size={48} strokeWidth={1} className="text-gray-300" />
-              <p className="text-sm text-gray-400 tracking-wide">{L.emptyTitle}</p>
+              <p className="text-sm tracking-wide text-gray-400">{L.emptyTitle}</p>
               <button
                 onClick={closeMiniCart}
-                className="px-8 py-3 text-xs tracking-[0.2em] uppercase text-white bg-black hover:bg-primary-women active:bg-primary-men transition-colors duration-200 focus-visible:outline-none"
+                className="bg-black px-8 py-3 text-xs tracking-[0.2em] text-white uppercase transition-colors duration-200 hover:bg-primary-women focus-visible:outline-none active:bg-primary-men"
               >
                 {L.emptyCta}
               </button>
@@ -115,21 +137,29 @@ export function MiniCart() {
                 if (row.kind === 'item') {
                   const item = row.item;
                   return (
-                    <div key={item.id} className="flex gap-4 px-6 py-5 border-b border-gray-100">
-                      <div className="relative shrink-0 w-20 h-24">
-                        <ImageWithFallback src={item.image} alt={item.name} fill sizes="80px" className="object-cover" />
+                    <div key={item.id} className="flex gap-4 border-b border-gray-100 px-6 py-5">
+                      <div className="relative h-24 w-20 shrink-0">
+                        <ImageWithFallback
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
                       </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div className="flex min-w-0 flex-1 flex-col justify-between">
                         <div>
-                          <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
-                          <p className="text-sm leading-tight mb-1 font-semibold">{item.name}</p>
+                          <p className="mb-0.5 text-xs tracking-widest text-gray-400 uppercase">{item.brand}</p>
+                          <p className="mb-1 text-sm leading-tight font-semibold">{item.name}</p>
                           <div className="flex items-center gap-2 text-xs text-gray-500">
                             <span>{item.color}</span>
                             <span>·</span>
-                            <span>{lSize} {item.size}</span>
+                            <span>
+                              {lSize} {item.size}
+                            </span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-3">
+                        <div className="mt-3 flex items-center justify-between">
                           <QtyControl
                             value={item.quantity}
                             max={item.stockLimit}
@@ -140,12 +170,18 @@ export function MiniCart() {
                           <div className="text-right">
                             <span className="text-sm font-semibold">{fmt(item.price * item.quantity)}</span>
                             {item.originalPrice && item.originalPrice > item.price && (
-                              <span className="block text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</span>
+                              <span className="block text-xs text-gray-400 line-through">
+                                {fmt(item.originalPrice * item.quantity)}
+                              </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <button onClick={() => removeItem(item.id)} className="shrink-0 self-start mt-0.5 w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity focus-visible:outline-none" aria-label={MINI_CART_DYNAMIC_ARIA.removeFromCart(item.name)}>
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        className="mt-0.5 flex size-6 shrink-0 items-center justify-center self-start transition-opacity hover:opacity-60 focus-visible:outline-none"
+                        aria-label={fillTokens(aRemoveItem, { name: item.name })}
+                      >
                         <X size={14} strokeWidth={1.5} />
                       </button>
                     </div>
@@ -162,12 +198,14 @@ export function MiniCart() {
                     <div className="flex items-center justify-between px-6 pt-4 pb-2">
                       <div className="flex items-center gap-2">
                         <LinkIcon size={12} className="text-gray-400" />
-                        <span className="text-xs tracking-widest uppercase font-semibold text-primary-women">{L.bundleLabel}</span>
+                        <span className="text-xs font-semibold tracking-widest text-primary-women uppercase">
+                          {L.bundleLabel}
+                        </span>
                       </div>
                       <button
                         onClick={() => removeBundle(row.bundleId)}
-                        className="w-6 h-6 flex items-center justify-center hover:opacity-60 transition-opacity focus-visible:outline-none text-gray-400 hover:text-black"
-                        aria-label={MINI_CART_ARIA_LABELS.removeBundle}
+                        className="flex size-6 items-center justify-center text-gray-400 transition-opacity hover:text-black hover:opacity-60 focus-visible:outline-none"
+                        aria-label={aRemoveBundle}
                       >
                         <X size={14} strokeWidth={1.5} />
                       </button>
@@ -175,14 +213,25 @@ export function MiniCart() {
 
                     {/* Bundle items */}
                     {row.items.map((item, idx) => (
-                      <div key={item.id} className={`flex gap-3 px-6 py-3 ${idx > 0 ? 'border-t border-dashed border-[#f0f0f0]' : ''}`}>
-                        <div className="relative shrink-0 w-16 h-20">
-                          <ImageWithFallback src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
+                      <div
+                        key={item.id}
+                        className={`flex gap-3 px-6 py-3 ${idx > 0 ? 'border-t border-dashed border-[#f0f0f0]' : ''}`}
+                      >
+                        <div className="relative h-20 w-16 shrink-0">
+                          <ImageWithFallback
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                          />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{item.brand}</p>
-                          <p className="text-xs leading-tight font-semibold mb-0.5">{item.name}</p>
-                          <p className="text-xs text-gray-400">{item.color} · {lSize} {item.size}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="mb-0.5 text-xs tracking-widest text-gray-400 uppercase">{item.brand}</p>
+                          <p className="mb-0.5 text-xs leading-tight font-semibold">{item.name}</p>
+                          <p className="text-xs text-gray-400">
+                            {item.color} · {lSize} {item.size}
+                          </p>
                           {/* Multiply by qty like every other line-item
                               price surface (single items + bundle footer);
                               without it a bundle line showed the per-unit
@@ -192,10 +241,12 @@ export function MiniCart() {
                               when `originalPrice <= item.price` — a stale
                               catalog entry with equal or lower "was" price
                               used to strike a smaller number. */}
-                          <div className="flex items-center justify-between mt-2">
+                          <div className="mt-2 flex items-center justify-between">
                             <span className="text-xs font-semibold">{fmt(item.price * item.quantity)}</span>
                             {item.originalPrice && item.originalPrice > item.price && (
-                              <span className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</span>
+                              <span className="text-xs text-gray-400 line-through">
+                                {fmt(item.originalPrice * item.quantity)}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -203,7 +254,7 @@ export function MiniCart() {
                     ))}
 
                     {/* Bundle footer: qty + total */}
-                    <div className="flex items-center justify-between px-6 pb-4 pt-3 border-t border-[#f0f0f0]">
+                    <div className="flex items-center justify-between border-t border-[#f0f0f0] px-6 pt-3 pb-4">
                       <QtyControl
                         value={qty}
                         max={row.items[0]?.stockLimit}
@@ -213,32 +264,38 @@ export function MiniCart() {
                       />
                       <div className="text-right">
                         <span className="text-sm font-semibold">{fmt(bundleTotal)}</span>
-                        {bundleOriginal > bundleTotal && <span className="block text-xs text-gray-400 line-through">{fmt(bundleOriginal)}</span>}
+                        {bundleOriginal > bundleTotal && (
+                          <span className="block text-xs text-gray-400 line-through">{fmt(bundleOriginal)}</span>
+                        )}
                       </div>
                     </div>
                   </div>
                 );
               })}
               {giftItems.map((gift) => (
-                <div key={`gift-${gift.productId}`} className="flex gap-4 px-6 py-5 border-b border-gray-100">
-                  <div className="relative shrink-0 w-20 h-24">
+                <div key={`gift-${gift.productId}`} className="flex gap-4 border-b border-gray-100 px-6 py-5">
+                  <div className="relative h-24 w-20 shrink-0">
                     <ImageWithFallback src={gift.image} alt={gift.name} fill sizes="80px" className="object-cover" />
                   </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div className="flex min-w-0 flex-1 flex-col justify-between">
                     <div>
-                      <p className="text-sm leading-tight mb-1 font-semibold">{gift.name}</p>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
+                      <p className="mb-1 text-sm leading-tight font-semibold">{gift.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className="border border-[#bbf7d0] bg-[#f0fdf4] px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-green-600 uppercase">
                           {lFreeGift}
                         </span>
-                        <span className="text-xs text-gray-500">{lQty} {gift.quantity}</span>
+                        <span className="text-xs text-gray-500">
+                          {lQty} {gift.quantity}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-end mt-3">
+                    <div className="mt-3 flex items-center justify-end">
                       <div className="text-right">
-                        <span className="text-sm font-semibold text-green-600 uppercase tracking-wide">{lFree}</span>
+                        <span className="text-sm font-semibold tracking-wide text-green-600 uppercase">{lFree}</span>
                         {gift.price > 0 && (
-                          <span className="block text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</span>
+                          <span className="block text-xs text-gray-400 line-through">
+                            {fmt(gift.price * gift.quantity)}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -251,14 +308,14 @@ export function MiniCart() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="shrink-0 px-6 py-5 border-t border-gray-200 bg-white">
+          <div className="shrink-0 border-t border-gray-200 bg-white px-6 py-5">
             {/* Subtotal = sum of `item.price` (already sale price when
                 the catalog / PDP overlay produced one). Line items above
                 render the strike-through UX, so no redundant "Items
                 discount" row here — that was the original math bug
                 ("$31.5 − $3.5 = $35"). */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-500 tracking-wide">{lSubtotal}</span>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm tracking-wide text-gray-500">{lSubtotal}</span>
               <span className="text-base font-semibold">{fmt(subtotal)}</span>
             </div>
             {/* Skeleton for first preview — user sees SOMETHING is loading
@@ -268,50 +325,58 @@ export function MiniCart() {
                 old preview visible so numbers don't flash. */}
             {previewLoading && !preview ? (
               <>
-                <div className="flex items-center justify-between mb-2" aria-busy="true">
-                  <div className="h-3 w-24 bg-gray-100 animate-pulse" />
-                  <div className="h-3 w-14 bg-gray-100 animate-pulse" />
+                <div className="mb-2 flex items-center justify-between" aria-busy="true">
+                  <div className="h-3 w-24 animate-pulse bg-gray-100" />
+                  <div className="h-3 w-14 animate-pulse bg-gray-100" />
                 </div>
-                <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100" aria-busy="true">
-                  <div className="h-3.5 w-14 bg-gray-100 animate-pulse" />
-                  <div className="h-4 w-20 bg-gray-100 animate-pulse" />
+                <div className="mb-4 flex items-center justify-between border-t border-gray-100 pt-2" aria-busy="true">
+                  <div className="h-3.5 w-14 animate-pulse bg-gray-100" />
+                  <div className="h-4 w-20 animate-pulse bg-gray-100" />
                 </div>
               </>
             ) : (
               <>
                 {personalDiscount - couponDiscount > 0 && (
-                  <div className="flex items-center justify-between mb-2 text-sm text-(--sale)">
+                  <div className="mb-2 flex items-center justify-between text-sm text-(--sale)">
                     <span>{lLoyalty}</span>
                     <span className="font-semibold">−{fmt(personalDiscount - couponDiscount)}</span>
                   </div>
                 )}
                 {couponDiscount > 0 && couponCode && (
-                  <div className="flex items-center justify-between mb-2 text-sm text-(--sale)">
-                    <span>{lPromo} ({couponCode})</span>
+                  <div className="mb-2 flex items-center justify-between text-sm text-(--sale)">
+                    <span>
+                      {lPromo} ({couponCode})
+                    </span>
                     <span className="font-semibold">−{fmt(couponDiscount)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between mb-4 pt-2 border-t border-gray-100">
+                <div className="mb-4 flex items-center justify-between border-t border-gray-100 pt-2">
                   <span className="text-sm font-bold">{lTotal}</span>
                   <span className="text-base font-bold">{fmt(displayTotal)}</span>
                 </div>
-                {(personalDiscount > 0 || couponDiscount > 0) && preview && (preview.totalDue !== subtotal) && (
-                  <p className="text-[10px] text-gray-400 mb-3">{lAppliedAtCheckout}</p>
+                {(personalDiscount > 0 || couponDiscount > 0) && preview && preview.totalDue !== subtotal && (
+                  <p className="mb-3 text-[10px] text-gray-400">{lAppliedAtCheckout}</p>
                 )}
               </>
             )}
-            <p className="text-xs text-gray-400 mb-4">{lShippingNote}</p>
+            <p className="mb-4 text-xs text-gray-400">{lShippingNote}</p>
             {/* CTA buttons */}
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => { closeMiniCart(); router.push('/checkout/delivery'); }}
-                className="w-full py-4 text-sm tracking-[0.2em] uppercase text-white bg-black hover:bg-primary-women active:bg-primary-men font-bold transition-colors duration-200 focus-visible:outline-none"
+                onClick={() => {
+                  closeMiniCart();
+                  router.push('/checkout/delivery');
+                }}
+                className="w-full bg-black py-4 text-sm font-bold tracking-[0.2em] text-white uppercase transition-colors duration-200 hover:bg-primary-women focus-visible:outline-none active:bg-primary-men"
               >
                 {lCheckout}
               </button>
               <button
-                onClick={() => { closeMiniCart(); router.push('/cart'); }}
-                className="w-full py-3.5 text-sm tracking-[0.2em] uppercase border border-black font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 focus-visible:outline-none"
+                onClick={() => {
+                  closeMiniCart();
+                  router.push('/cart');
+                }}
+                className="w-full border border-black py-3.5 text-sm font-semibold tracking-[0.2em] uppercase transition-colors duration-200 hover:bg-gray-50 focus-visible:outline-none active:bg-gray-100"
               >
                 {lViewFullCart}
               </button>

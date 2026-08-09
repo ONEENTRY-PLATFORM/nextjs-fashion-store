@@ -1,9 +1,10 @@
-'use client'
-import React from 'react';
+'use client';
+import { Check, Link2, Share2 } from 'lucide-react';
 import Image from 'next/image';
-import { Share2, Check, Link2 } from 'lucide-react';
-import { SHARE_DROPDOWN_LABELS as L } from '../../data/productPageLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
+import React from 'react';
+
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { SHARE_DROPDOWN_LABELS } from '../../data/productPageLabels';
 
 const ShareIcon = ({ src, alt }: { src: string; alt: string }) => (
   <Image src={src} alt={alt} width={14} height={14} unoptimized />
@@ -12,24 +13,24 @@ const ShareIcon = ({ src, alt }: { src: string; alt: string }) => (
 type ShareLinkDef = { label: string; icon: React.ReactNode; getHref: (url: string) => string };
 const SHARE_LINKS: ShareLinkDef[] = [
   {
-    label: L.facebook,
-    icon: <ShareIcon src="/icons/share/facebook.svg" alt={L.facebook} />,
-    getHref: url => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    label: SHARE_DROPDOWN_LABELS.facebook,
+    icon: <ShareIcon src="/icons/share/facebook.svg" alt={SHARE_DROPDOWN_LABELS.facebook} />,
+    getHref: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
   },
   {
-    label: L.twitter,
-    icon: <ShareIcon src="/icons/share/x.svg" alt={L.twitterShortName} />,
-    getHref: url => `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`,
+    label: SHARE_DROPDOWN_LABELS.twitter,
+    icon: <ShareIcon src="/icons/share/x.svg" alt={SHARE_DROPDOWN_LABELS.twitterShortName} />,
+    getHref: (url) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`,
   },
   {
-    label: L.pinterest,
-    icon: <ShareIcon src="/icons/share/pinterest.svg" alt={L.pinterest} />,
-    getHref: url => `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(url)}`,
+    label: SHARE_DROPDOWN_LABELS.pinterest,
+    icon: <ShareIcon src="/icons/share/pinterest.svg" alt={SHARE_DROPDOWN_LABELS.pinterest} />,
+    getHref: (url) => `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(url)}`,
   },
   {
-    label: L.whatsapp,
-    icon: <ShareIcon src="/icons/share/whatsapp.svg" alt={L.whatsapp} />,
-    getHref: url => `https://wa.me/?text=${encodeURIComponent(url)}`,
+    label: SHARE_DROPDOWN_LABELS.whatsapp,
+    icon: <ShareIcon src="/icons/share/whatsapp.svg" alt={SHARE_DROPDOWN_LABELS.whatsapp} />,
+    getHref: (url) => `https://wa.me/?text=${encodeURIComponent(url)}`,
   },
 ];
 
@@ -42,27 +43,32 @@ interface ProductShareDropdownProps {
 }
 
 export function ProductShareDropdown({
-  shareRef, showShare, setShowShare, copied, onCopyLink,
+  shareRef,
+  showShare,
+  setShowShare,
+  copied,
+  onCopyLink,
 }: ProductShareDropdownProps) {
+  const L = useDict('product_card_actions_share_', SHARE_DROPDOWN_LABELS);
   const lShare = useT('product-card_share', L.triggerLabel);
   return (
     <div ref={shareRef} className="relative">
       <button
-        onClick={() => setShowShare(v => !v)}
-        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-black transition-colors"
+        onClick={() => setShowShare((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-gray-400 transition-colors hover:text-black"
       >
         <Share2 size={13} /> {lShare}
       </button>
 
       {showShare && (
-        <div className="absolute right-0 top-7 z-50 bg-white border border-gray-200 shadow-lg py-1 min-w-40 rounded-md">
-          {SHARE_LINKS.map(item => (
+        <div className="absolute top-7 right-0 z-50 min-w-40 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+          {SHARE_LINKS.map((item) => (
             <a
               key={item.label}
               href={item.getHref(typeof window !== 'undefined' ? window.location.href : '')}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 px-4 py-2.5 text-xs text-gray-700 transition-colors hover:bg-gray-50"
               onClick={() => setShowShare(false)}
             >
               {item.icon}
@@ -70,11 +76,11 @@ export function ProductShareDropdown({
             </a>
           ))}
 
-          <div className="border-t border-gray-100 mx-2 my-1" />
+          <div className="mx-2 my-1 border-t border-gray-100" />
 
           <button
             onClick={onCopyLink}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs transition-colors ${
+            className={`flex w-full items-center gap-3 px-4 py-2.5 text-xs transition-colors ${
               copied ? 'text-green-600' : 'text-[#374151]'
             }`}
           >

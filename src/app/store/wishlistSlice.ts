@@ -1,9 +1,12 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { WishlistItem } from '../context/WishlistContext';
-import type { WishlistItem as DataWishlistItem, WaitingItem } from '../data/userData';
-import { CURRENCY } from '../data/currencyConfig';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-/** Convert userData.WishlistItem → WishlistContext.WishlistItem */
+import type { WishlistItem } from '../context/WishlistContext';
+import { CURRENCY } from '../data/currencyConfig';
+import type { WaitingItem, WishlistItem as DataWishlistItem } from '../data/userData';
+
+/**
+ * Convert userData.WishlistItem → WishlistContext.WishlistItem
+ */
 function fromDataWishlist(item: DataWishlistItem): WishlistItem {
   return {
     id: item.id,
@@ -19,7 +22,9 @@ function fromDataWishlist(item: DataWishlistItem): WishlistItem {
   };
 }
 
-/** Convert userData.WaitingItem → WishlistContext.WishlistItem */
+/**
+ * Convert userData.WaitingItem → WishlistContext.WishlistItem
+ */
 function fromWaitingItem(item: WaitingItem): WishlistItem {
   return {
     id: item.id,
@@ -48,7 +53,7 @@ const wishlistSlice = createSlice({
   initialState,
   reducers: {
     addItem(state, action: PayloadAction<WishlistItem>) {
-      const idx = state.items.findIndex(i => i.id === action.payload.id);
+      const idx = state.items.findIndex((i) => i.id === action.payload.id);
       if (idx === -1) {
         state.items.push(action.payload);
       } else {
@@ -65,18 +70,18 @@ const wishlistSlice = createSlice({
       }
     },
     removeItem(state, action: PayloadAction<string>) {
-      state.items = state.items.filter(i => i.id !== action.payload);
+      state.items = state.items.filter((i) => i.id !== action.payload);
     },
     toggleItem(state, action: PayloadAction<WishlistItem>) {
-      const exists = state.items.some(i => i.id === action.payload.id);
+      const exists = state.items.some((i) => i.id === action.payload.id);
       if (exists) {
-        state.items = state.items.filter(i => i.id !== action.payload.id);
+        state.items = state.items.filter((i) => i.id !== action.payload.id);
       } else {
         state.items.push(action.payload);
       }
     },
     updateSelection(state, action: PayloadAction<{ id: string; selectedColor?: string; selectedSize?: string }>) {
-      const item = state.items.find(i => i.id === action.payload.id);
+      const item = state.items.find((i) => i.id === action.payload.id);
       if (item) {
         if (action.payload.selectedColor !== undefined) item.selectedColor = action.payload.selectedColor;
         if (action.payload.selectedSize !== undefined) item.selectedSize = action.payload.selectedSize;
@@ -89,17 +94,14 @@ const wishlistSlice = createSlice({
      * Called on login: merges server wishlist + waitingList with guest items.
      * Server items take precedence (dedup by id); guest-only items are appended.
      */
-    mergeUserWishlist(
-      state,
-      action: PayloadAction<{ wishlist: DataWishlistItem[]; waitingList: WaitingItem[] }>,
-    ) {
+    mergeUserWishlist(state, action: PayloadAction<{ wishlist: DataWishlistItem[]; waitingList: WaitingItem[] }>) {
       const serverItems: WishlistItem[] = [
         ...action.payload.wishlist.map(fromDataWishlist),
         ...action.payload.waitingList.map(fromWaitingItem),
       ];
-      const serverIds = new Set(serverItems.map(i => i.id));
+      const serverIds = new Set(serverItems.map((i) => i.id));
       // Guest items not present on server (added before login)
-      const guestOnly = state.items.filter(i => !serverIds.has(i.id));
+      const guestOnly = state.items.filter((i) => !serverIds.has(i.id));
       state.items = [...serverItems, ...guestOnly];
     },
   },

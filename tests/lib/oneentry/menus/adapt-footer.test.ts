@@ -1,9 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import {
-  footerHref,
-  footerColumnsFromMenu,
-  footerBottomLinksFromMenu,
-} from '@/lib/oneentry/menus/adapt-footer';
+import { describe, expect, it } from 'vitest';
+
+import { footerBottomLinksFromMenu, footerColumnsFromMenu, footerHref } from '@/lib/oneentry/menus/adapt-footer';
 import type { MenuPageNode } from '@/lib/oneentry/menus/menus';
 
 const node = (over: Partial<MenuPageNode> & { id: number }): MenuPageNode => ({
@@ -61,9 +58,7 @@ describe('footerColumnsFromMenu', () => {
 
     const columns = footerColumnsFromMenu(menu);
     expect(columns.map((c) => c.title)).toEqual(['About Company', 'Help']);
-    expect(columns[0]?.links).toEqual([
-      { key: '11', label: 'Store Locator', href: '/stores' },
-    ]);
+    expect(columns[0]?.links).toEqual([{ key: '11', label: 'Store Locator', href: '/stores' }]);
     // Children are ordered by their own position, not by array order.
     expect(columns[1]?.links.map((l) => l.label)).toEqual(['FAQ', 'Delivery']);
   });

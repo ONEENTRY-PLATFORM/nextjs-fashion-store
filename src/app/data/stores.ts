@@ -2,11 +2,13 @@ import { CURRENCY } from './seoData';
 
 export interface Store {
   id: string;
-  /** OneEntry numeric page id. Used as the `entity` value when placing a
+  /**
+   * OneEntry numeric page id. Used as the `entity` value when placing a
    *  Store Pickup order — OE stores are represented as child pages under
    *  `stores`, and the checkout form field expects the numeric id, not the
    *  pageUrl slug. Only populated for stores that came from OE (mock fallback
-   *  entries leave it undefined). */
+   *  entries leave it undefined).
+   */
   oeId?: number;
   name: string;
   city: string;
@@ -18,17 +20,21 @@ export interface Store {
   hours: { day: string; time: string }[];
   services: string[];
   image: string;
-  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one; the mock stores below have none. */
+  /**
+   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one; the mock stores below have none.
+   */
   imageBlur?: string;
   mapUrl: string;
   isflagship: boolean;
   tag?: string;
 }
 
-/** Shared schema.org defaults used when building LocalBusiness JSON-LD.
+/**
+ * Shared schema.org defaults used when building LocalBusiness JSON-LD.
  *  These are payment/currency/country defaults — not per-store data, so they
- *  stay local rather than coming from OE. */
+ *  stay local rather than coming from OE.
+ */
 export const STORE_SCHEMA_DEFAULTS = {
   currenciesAccepted: CURRENCY,
   paymentAccepted: 'Cash, Credit Card, Debit Card',
@@ -36,9 +42,11 @@ export const STORE_SCHEMA_DEFAULTS = {
   addressCountry: 'GB',
 } as const;
 
-/** Mock store dataset — used as fallback by `loadStores()` while OE store
+/**
+ * Mock store dataset — used as fallback by `loadStores()` while OE store
  *  pages are being filled in. Restored temporarily; once every OE store page
- *  has full attributes the fallback can be dropped again. */
+ *  has full attributes the fallback can be dropped again.
+ */
 export const STORES: Store[] = [
   {
     id: 'oxford-street',
@@ -55,7 +63,8 @@ export const STORES: Store[] = [
       { day: 'Bank Holidays', time: '11:00 – 17:00' },
     ],
     services: ['Personal Styling', 'Click & Collect', 'Returns', 'Gift Wrapping', 'Alterations'],
-    image: 'https://images.unsplash.com/photo-1750603247133-1fd1b4e4aca4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1750603247133-1fd1b4e4aca4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
     mapUrl: 'https://maps.google.com/?q=214+Oxford+Street+London+W1C+1AX',
     isflagship: true,
     tag: 'FLAGSHIP',
@@ -74,8 +83,9 @@ export const STORES: Store[] = [
       { day: 'Sunday', time: '11:00 – 17:00' },
     ],
     services: ['Personal Styling', 'Click & Collect', 'Returns', 'Gift Wrapping'],
-    image: 'https://images.unsplash.com/photo-1765285333722-23780756fce1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
-    mapUrl: "https://maps.google.com/?q=87+Kings+Road+Chelsea+London+SW3+4NX",
+    image:
+      'https://images.unsplash.com/photo-1765285333722-23780756fce1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
+    mapUrl: 'https://maps.google.com/?q=87+Kings+Road+Chelsea+London+SW3+4NX',
     isflagship: false,
     tag: 'NEW',
   },
@@ -93,7 +103,8 @@ export const STORES: Store[] = [
       { day: 'Sunday', time: '11:00 – 17:00' },
     ],
     services: ['Personal Styling', 'Click & Collect', 'Returns', 'Gift Wrapping'],
-    image: 'https://images.unsplash.com/photo-1765603729821-804d347a3680?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1765603729821-804d347a3680?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
     mapUrl: 'https://maps.google.com/?q=3+Hardman+Square+Manchester+M3+3EB',
     isflagship: false,
   },
@@ -111,7 +122,8 @@ export const STORES: Store[] = [
       { day: 'Sunday', time: '11:00 – 17:00' },
     ],
     services: ['Click & Collect', 'Returns', 'Gift Wrapping'],
-    image: 'https://images.unsplash.com/photo-1760942088467-f4647b261ab5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1760942088467-f4647b261ab5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
     mapUrl: 'https://maps.google.com/?q=Bullring+Birmingham+B5+4BU',
     isflagship: false,
   },
@@ -129,7 +141,8 @@ export const STORES: Store[] = [
       { day: 'Sunday', time: '12:00 – 17:00' },
     ],
     services: ['Personal Styling', 'Click & Collect', 'Returns'],
-    image: 'https://images.unsplash.com/photo-1769107805465-bfd41863f1a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1769107805465-bfd41863f1a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
     mapUrl: 'https://maps.google.com/?q=58+George+Street+Edinburgh+EH2+2LR',
     isflagship: false,
   },
@@ -147,7 +160,8 @@ export const STORES: Store[] = [
       { day: 'Sunday', time: '11:00 – 17:00' },
     ],
     services: ['Click & Collect', 'Returns', 'Gift Wrapping'],
-    image: 'https://images.unsplash.com/photo-1719418709598-e7af7b24a423?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
+    image:
+      'https://images.unsplash.com/photo-1719418709598-e7af7b24a423?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800&q=80',
     mapUrl: 'https://maps.google.com/?q=22+Gardner+Street+Brighton+BN1+1UP',
     isflagship: false,
   },

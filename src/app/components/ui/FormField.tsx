@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+
 import { SALE_COLOR } from '../../constants/colors';
 
 interface FormFieldProps {
@@ -12,19 +13,24 @@ interface FormFieldProps {
   error?: string;
 }
 
-export function FormField({ label, placeholder, type = 'text', name, autoComplete, value, onChange, error }: FormFieldProps) {
+export function FormField({
+  label,
+  placeholder,
+  type = 'text',
+  name,
+  autoComplete,
+  value,
+  onChange,
+  error,
+}: FormFieldProps) {
   const id = useId();
   const [focused, setFocused] = useState(false);
-  const borderClass = error
-    ? 'border-(--sale)'
-    : focused
-      ? 'border-black'
-      : 'border-[#d1d5db]';
+  const borderClass = error ? 'border-(--sale)' : focused ? 'border-black' : 'border-[#d1d5db]';
   return (
     <div style={{ '--sale': SALE_COLOR } as React.CSSProperties}>
       <label
         htmlFor={id}
-        className={`block text-xs tracking-wide uppercase mb-1.5 font-semibold ${
+        className={`mb-1.5 block text-xs font-semibold tracking-wide uppercase ${
           error ? 'text-(--sale)' : 'text-[#555]'
         }`}
       >
@@ -37,15 +43,15 @@ export function FormField({ label, placeholder, type = 'text', name, autoComplet
         autoComplete={autoComplete}
         placeholder={placeholder}
         value={value}
-        onChange={onChange ? e => onChange(e.target.value) : undefined}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`w-full px-4 py-3 text-sm outline-none transition-colors border rounded-none ${borderClass}`}
+        className={`w-full rounded-none border px-4 py-3 text-sm transition-colors outline-none ${borderClass}`}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
       />
       {error && (
-        <p id={`${id}-error`} className="text-xs mt-1 text-(--sale)" role="alert">
+        <p id={`${id}-error`} className="mt-1 text-xs text-(--sale)" role="alert">
           {error}
         </p>
       )}

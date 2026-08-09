@@ -55,12 +55,17 @@ export function footerColumnsFromMenu(nodes: MenuPageNode[]): FooterColumn[] {
     .map((n) => ({
       key: String(n.id),
       title: nodeLabel(n),
-      links: [...n.children].sort(byPosition).map(toLink).filter((l) => l.label.length > 0),
+      links: [...n.children]
+        .sort(byPosition)
+        .map(toLink)
+        .filter((l) => l.label.length > 0),
     }))
     .filter((col) => col.title.length > 0 && col.links.length > 0);
 }
 
-/** Legal links for the bottom bar: the childless root nodes of the menu. */
+/**
+ * Legal links for the bottom bar: the childless root nodes of the menu.
+ */
 export function footerBottomLinksFromMenu(nodes: MenuPageNode[]): FooterLinkItem[] {
   return [...nodes]
     .filter((n) => n.children.length === 0)

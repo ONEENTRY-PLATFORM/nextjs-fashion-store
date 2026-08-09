@@ -1,7 +1,8 @@
-'use client'
-import { X, LogIn, UserPlus, ShoppingBag } from 'lucide-react';
-import { AUTH_LABELS } from '../../data/authLabels';
+'use client';
+import { LogIn, ShoppingBag, UserPlus, X } from 'lucide-react';
+
 import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { AUTH_LABELS } from '../../data/authLabels';
 
 interface GuestCheckoutModalProps {
   onClose: () => void;
@@ -11,72 +12,71 @@ interface GuestCheckoutModalProps {
 }
 
 export function GuestCheckoutModal({ onClose, onSignIn, onRegister, onContinueAsGuest }: GuestCheckoutModalProps) {
-  const lEyebrow      = useT('checkout_modal_sub_title',                       AUTH_LABELS.guestModalEyebrow);
-  const lHeading      = useT('checkout_modal_title',                           AUTH_LABELS.guestModalHeading);
-  const lSignInTitle  = useT('checkout_modal_sign_in_button_title',            AUTH_LABELS.signIn.title);
-  const lSignInText   = useT('checkout_modal_sign_in_button_text',             AUTH_LABELS.signIn.subtitle);
-  const lCreateTitle  = useT('checkout_modal_create_account_button_title',     AUTH_LABELS.register.title);
-  const lCreateText   = useT('checkout_modal_create_account_button_text',      AUTH_LABELS.register.subtitle);
-  const lOr           = useT('checkout_modal_or',                              AUTH_LABELS.divider);
-  const lGuestTitle   = useT('checkout_modal_continue_as_guest_button_title',  AUTH_LABELS.guest.title);
-  const lGuestText    = useT('checkout_modal_continue_as_guest_button_text',   AUTH_LABELS.guest.subtitle);
+  const lEyebrow = useT('checkout_modal_sub_title', AUTH_LABELS.guestModalEyebrow);
+  const lHeading = useT('checkout_modal_title', AUTH_LABELS.guestModalHeading);
+  const lSignInTitle = useT('checkout_modal_sign_in_button_title', AUTH_LABELS.signIn.title);
+  const lSignInText = useT('checkout_modal_sign_in_button_text', AUTH_LABELS.signIn.subtitle);
+  const lCreateTitle = useT('checkout_modal_create_account_button_title', AUTH_LABELS.register.title);
+  const lCreateText = useT('checkout_modal_create_account_button_text', AUTH_LABELS.register.subtitle);
+  const lOr = useT('checkout_modal_or', AUTH_LABELS.divider);
+  const lGuestTitle = useT('checkout_modal_continue_as_guest_button_title', AUTH_LABELS.guest.title);
+  const lGuestText = useT('checkout_modal_continue_as_guest_button_text', AUTH_LABELS.guest.subtitle);
   return (
     <div className="fixed inset-0 z-400 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md font-[Inter,sans-serif]">
-
+      <div className="relative w-full max-w-md bg-white font-[Inter,sans-serif]">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-[#e5e7eb]">
+        <div className="flex items-center justify-between border-b border-[#e5e7eb] px-8 py-6">
           <div>
-            <p className="text-xs tracking-[0.25em] uppercase text-gray-400 mb-0.5">{lEyebrow}</p>
-            <h2 className="text-lg tracking-widest uppercase font-bold">{lHeading}</h2>
+            <p className="mb-0.5 text-xs tracking-[0.25em] text-gray-400 uppercase">{lEyebrow}</p>
+            <h2 className="text-lg font-bold tracking-widest uppercase">{lHeading}</h2>
           </div>
           <button
             onClick={onClose}
-            className="hover:opacity-60 transition-opacity focus-visible:outline-none ml-4 shrink-0"
+            className="ml-4 shrink-0 transition-opacity hover:opacity-60 focus-visible:outline-none"
           >
             <X size={20} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Options */}
-        <div className="px-8 py-6 space-y-3">
+        <div className="space-y-3 px-8 py-6">
           <button
             onClick={onSignIn}
-            className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors focus-visible:outline-none group border-2 border-black bg-black text-white hover:bg-[#222]"
+            className="group flex w-full items-center gap-4 border-2 border-black bg-black px-5 py-4 text-left text-white transition-colors hover:bg-[#222] focus-visible:outline-none"
           >
             <LogIn size={18} strokeWidth={1.5} />
             <div className="flex-1">
-              <p className="text-sm tracking-wide uppercase font-bold">{lSignInTitle}</p>
-              <p className="text-xs mt-0.5 opacity-70">{lSignInText}</p>
+              <p className="text-sm font-bold tracking-wide uppercase">{lSignInTitle}</p>
+              <p className="mt-0.5 text-xs opacity-70">{lSignInText}</p>
             </div>
           </button>
 
           <button
             onClick={onRegister}
-            className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors focus-visible:outline-none border-2 border-black bg-white text-black hover:bg-[#f9f9f9]"
+            className="flex w-full items-center gap-4 border-2 border-black bg-white px-5 py-4 text-left text-black transition-colors hover:bg-[#f9f9f9] focus-visible:outline-none"
           >
             <UserPlus size={18} strokeWidth={1.5} />
             <div className="flex-1">
-              <p className="text-sm tracking-wide uppercase font-bold">{lCreateTitle}</p>
-              <p className="text-xs mt-0.5 text-gray-400">{lCreateText}</p>
+              <p className="text-sm font-bold tracking-wide uppercase">{lCreateTitle}</p>
+              <p className="mt-0.5 text-xs text-gray-400">{lCreateText}</p>
             </div>
           </button>
 
           <div className="flex items-center gap-3 py-1">
             <div className="flex-1 border-t border-[#e5e7eb]" />
-            <span className="text-xs text-gray-400 tracking-widest uppercase">{lOr}</span>
+            <span className="text-xs tracking-widest text-gray-400 uppercase">{lOr}</span>
             <div className="flex-1 border-t border-[#e5e7eb]" />
           </div>
 
           <button
             onClick={onContinueAsGuest}
-            className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors focus-visible:outline-none border border-[#e5e7eb] bg-white text-[#374151] hover:bg-[#f9fafb]"
+            className="flex w-full items-center gap-4 border border-[#e5e7eb] bg-white px-5 py-4 text-left text-[#374151] transition-colors hover:bg-[#f9fafb] focus-visible:outline-none"
           >
             <ShoppingBag size={18} strokeWidth={1.5} className="text-gray-400" />
             <div className="flex-1">
-              <p className="text-sm tracking-wide uppercase font-semibold">{lGuestTitle}</p>
-              <p className="text-xs mt-0.5 text-gray-400">{lGuestText}</p>
+              <p className="text-sm font-semibold tracking-wide uppercase">{lGuestTitle}</p>
+              <p className="mt-0.5 text-xs text-gray-400">{lGuestText}</p>
             </div>
           </button>
         </div>

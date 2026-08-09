@@ -1,17 +1,20 @@
-'use client'
-import { useState, useEffect } from 'react';
-import { X, ChevronDown } from 'lucide-react';
-import { FilterBody } from './MobileFilterBody';
+'use client';
+import { ChevronDown, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { useCatalogAccent } from '../../context/CatalogAccentContext';
-import { MOBILE_FILTER_ARIA, CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import { CATALOG_VIEW_LABELS as CVL_FALLBACK, MOBILE_FILTER_ARIA } from '../../data/commonLabels';
+import { FilterBody } from './MobileFilterBody';
 
 /* ─── Types ──────────────────────────────────────────────── */
 export interface MobileFilterOption {
   label: string;
-  /** Stable identity reported back through `onToggleFilter`. Defaults to
+  /**
+   * Stable identity reported back through `onToggleFilter`. Defaults to
    *  `label` — set it when the label is editable copy (e.g. a CMS-managed
-   *  category name) so renaming the label cannot break the filter. */
+   *  category name) so renaming the label cannot break the filter.
+   */
   value?: string;
   count?: number;
   color?: string;
@@ -35,7 +38,11 @@ interface Props {
 
 /* ─── Single accordion row ───────────────────────────────── */
 function AccordionRow({
-  group, isExpanded, onToggle, selectedFilters, onToggleFilter,
+  group,
+  isExpanded,
+  onToggle,
+  selectedFilters,
+  onToggleFilter,
 }: {
   group: MobileFilterGroup;
   isExpanded: boolean;
@@ -49,26 +56,24 @@ function AccordionRow({
     <div className="border-b border-gray-200">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-5 focus-visible:outline-none h-13"
+        className="flex h-13 w-full items-center justify-between px-5 focus-visible:outline-none"
         aria-expanded={isExpanded}
       >
         <span className="flex items-center gap-2 text-[13px] font-bold tracking-[0.12em] uppercase">
           {group.label}
           {selCount > 0 && (
-            <span className="text-[11px] font-semibold tracking-normal normal-case text-accent">
-              ({selCount})
-            </span>
+            <span className="text-[11px] font-semibold tracking-normal text-accent normal-case">({selCount})</span>
           )}
         </span>
         <ChevronDown
           size={16}
-          className={`shrink-0 text-[#555] transition-transform duration-360 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          className={`shrink-0 text-[#555] transition-transform duration-360 ease-in-out ${
             isExpanded ? 'rotate-180' : 'rotate-0'
           }`}
         />
       </button>
       <div
-        className={`overflow-hidden transition-[max-height] duration-360 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`overflow-hidden transition-[max-height] duration-360 ease-in-out ${
           isExpanded ? 'max-h-300' : 'max-h-0'
         }`}
       >
@@ -80,14 +85,21 @@ function AccordionRow({
 
 /* ─── MobileFilterPanel ──────────────────────────────────── */
 export function MobileFilterPanel({
-  isOpen, onClose, filterGroups, selectedFilters, onToggleFilter, onClearAll,
+  isOpen,
+  onClose,
+  filterGroups,
+  selectedFilters,
+  onToggleFilter,
+  onClearAll,
 }: Props) {
   const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
+  const aProductFilters = useT('interface_controls_mobile_filters_aria', MOBILE_FILTER_ARIA.productFilters);
+  const aCloseFilters = useT('interface_controls_close_filters', MOBILE_FILTER_ARIA.closeFilters);
   const accentColor = useCatalogAccent();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     let nonSectionCount = 0;
-    filterGroups.forEach(g => {
+    filterGroups.forEach((g) => {
       if (g.type === 'section') {
         init[g.key] = false;
       } else {
@@ -98,45 +110,50 @@ export function MobileFilterPanel({
     return init;
   });
 
-  const toggleSection = (key: string) =>
-    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleSection = (key: string) => setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const totalActive = Object.values(selectedFilters).flat().length;
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-60 bg-white flex flex-col font-[Inter,sans-serif]"
+      className="fixed inset-0 z-60 flex flex-col bg-white font-[Inter,sans-serif]"
       style={{ '--accent': accentColor } as React.CSSProperties}
       role="dialog"
       aria-modal="true"
-      aria-label={MOBILE_FILTER_ARIA.productFilters}
+      aria-label={aProductFilters}
     >
       {/* Fixed Header */}
-      <div className="shrink-0 flex items-center justify-between px-5 border-b border-gray-200 h-14">
-        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center focus-visible:outline-none -ml-2" aria-label={MOBILE_FILTER_ARIA.closeFilters}>
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-5">
+        <button
+          onClick={onClose}
+          className="-ml-2 flex size-10 items-center justify-center focus-visible:outline-none"
+          aria-label={aCloseFilters}
+        >
           <X size={20} strokeWidth={1.5} />
         </button>
         <h2 className="flex items-center gap-2 text-[13px] font-bold tracking-[0.22em] uppercase">
           {CVL.filtersHeading}
           {totalActive > 0 && (
-            <span className="flex items-center justify-center text-white min-w-5 h-5 rounded-none text-[11px] font-bold px-[5px] bg-accent">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-none bg-accent px-[5px] text-[11px] font-bold text-white">
               {totalActive}
             </span>
           )}
         </h2>
         <button
-          onClick={() => { if (totalActive > 0) onClearAll(); }}
-          className={`focus-visible:outline-none text-xs min-w-15 text-right ${
-            totalActive > 0
-              ? 'text-[#111] underline cursor-pointer'
-              : 'text-gray-300 no-underline cursor-default'
+          onClick={() => {
+            if (totalActive > 0) onClearAll();
+          }}
+          className={`min-w-15 text-right text-xs focus-visible:outline-none ${
+            totalActive > 0 ? 'cursor-pointer text-[#111] underline' : 'cursor-default text-gray-300 no-underline'
           }`}
         >
           {CVL.clearAll}
@@ -145,14 +162,14 @@ export function MobileFilterPanel({
 
       {/* Scrollable accordion body */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
-        {filterGroups.map(group => {
+        {filterGroups.map((group) => {
           if (group.type === 'section') {
             return (
-              <div key={group.key} className="flex items-center gap-3 px-5 border-y border-gray-200 h-10 bg-[#f9f9f9]">
-                <span className="text-[9px] tracking-[0.22em] uppercase font-extrabold text-gray-400 whitespace-nowrap">
+              <div key={group.key} className="flex h-10 items-center gap-3 border-y border-gray-200 bg-[#f9f9f9] px-5">
+                <span className="text-[9px] font-extrabold tracking-[0.22em] whitespace-nowrap text-gray-400 uppercase">
                   {group.label}
                 </span>
-                <span className="flex-1 h-px bg-gray-200" />
+                <span className="h-px flex-1 bg-gray-200" />
               </div>
             );
           }

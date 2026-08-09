@@ -1,9 +1,18 @@
-import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import React, { useEffect } from 'react';
+
 import { ProductCard } from '../app/components/product/ProductCard';
 import { useAppDispatch } from '../app/store/hooks';
 import { wishlistActions } from '../app/store/wishlistSlice';
-import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT, MOCK_MULTICOLOR_PRODUCT, MOCK_WISHLIST_ITEM, MOCK_COMING_SOON_PRODUCT, MOCK_PREORDER_PRODUCT } from './mockData';
+import {
+  MOCK_COMING_SOON_PRODUCT,
+  MOCK_MULTICOLOR_PRODUCT,
+  MOCK_OOS_PRODUCT,
+  MOCK_PREORDER_PRODUCT,
+  MOCK_PRODUCT,
+  MOCK_SALE_PRODUCT,
+  MOCK_WISHLIST_ITEM,
+} from './mockData';
 
 const meta = {
   title: 'Components / ProductCard',

@@ -7,6 +7,7 @@
  * behaviour the move had to preserve exactly.
  */
 import { describe, expect, it } from 'vitest';
+
 import { genderFilterFromQuery, matchesGender } from '@/app/utils/gender-filter';
 
 describe('genderFilterFromQuery', () => {

@@ -16,9 +16,9 @@ vi.mock('@/lib/oneentry/catalog/products-action', () => ({
 }));
 
 // ---- Import subjects AFTER mocks are declared --------------------------------
-import * as oeIndex from '@/lib/oneentry/index';
-import * as productsAction from '@/lib/oneentry/catalog/products-action';
 import { loadCartComplementProductsAction } from '@/lib/oneentry/blocks/cart-complement-action';
+import * as productsAction from '@/lib/oneentry/catalog/products-action';
+import * as oeIndex from '@/lib/oneentry/index';
 
 const getApiSafe = vi.mocked(oeIndex.getApiSafe);
 const hasStoredSession = vi.mocked(oeIndex.hasStoredSession);

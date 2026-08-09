@@ -1,6 +1,7 @@
 /// <reference types="@testing-library/jest-dom" />
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { SizeDropdown } from '@/app/components/ui/SizeDropdown';
 import { SIZE_DROPDOWN_LABELS as L } from '@/app/data/commonLabels';
 
@@ -43,9 +44,7 @@ describe('SizeDropdown', () => {
 
     it('falls back to [oneSize] and renders static badge when value is oneSize', () => {
       const onChange = vi.fn();
-      const { container } = render(
-        <SizeDropdown value={L.oneSize} onChange={onChange} isShoe={false} />,
-      );
+      const { container } = render(<SizeDropdown value={L.oneSize} onChange={onChange} isShoe={false} />);
       // Single-option => static badge, no button, no chevron
       expect(container.querySelector('button')).toBeNull();
       expect(container.textContent).toContain(`${L.sizeLabel} ${L.oneSize}`);
@@ -55,9 +54,7 @@ describe('SizeDropdown', () => {
   describe('availableSizes === []', () => {
     it('renders nothing', () => {
       const onChange = vi.fn();
-      const { container } = render(
-        <SizeDropdown value="M" onChange={onChange} isShoe={false} availableSizes={[]} />,
-      );
+      const { container } = render(<SizeDropdown value="M" onChange={onChange} isShoe={false} availableSizes={[]} />);
       expect(container.firstChild).toBeNull();
     });
   });
@@ -87,12 +84,7 @@ describe('SizeDropdown', () => {
     it('renders trigger showing current value, opens menu with only provided options, and calls onChange on click', () => {
       const onChange = vi.fn();
       const { container } = render(
-        <SizeDropdown
-          value="M"
-          onChange={onChange}
-          isShoe={false}
-          availableSizes={['S', 'M', 'L']}
-        />,
+        <SizeDropdown value="M" onChange={onChange} isShoe={false} availableSizes={['S', 'M', 'L']} />,
       );
 
       // Trigger is present (interactive)
@@ -127,12 +119,7 @@ describe('SizeDropdown', () => {
     it('does not include hardcoded shoe sizes even when isShoe=true, availableSizes wins', () => {
       const onChange = vi.fn();
       const { container } = render(
-        <SizeDropdown
-          value="S"
-          onChange={onChange}
-          isShoe={true}
-          availableSizes={['S', 'M', 'L']}
-        />,
+        <SizeDropdown value="S" onChange={onChange} isShoe={true} availableSizes={['S', 'M', 'L']} />,
       );
       const trigger = container.querySelector('button');
       fireEvent.click(trigger!);

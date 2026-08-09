@@ -1,24 +1,27 @@
-'use client'
-import React, { useState, useMemo } from 'react';
-import { useAuth } from '../../context/AuthContext';
+'use client';
 import { Check, ChevronDown, MessageSquare } from 'lucide-react';
-import { SectionTitle, ACCENT, fmt } from './shared';
 import Image from 'next/image';
-import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
-import { FEEDBACK_LABELS as L } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
+import React, { useMemo, useState } from 'react';
+
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { BANNER_BG, SALE_COLOR } from '../../constants/colors';
+import { useAuth } from '../../context/AuthContext';
+import { FEEDBACK_LABELS } from '../../data/accountLabels';
+import { ACCENT, fmt, SectionTitle } from './shared';
 
 export function FeedbackSection() {
+  const L = useDict('user_account_feedback_', FEEDBACK_LABELS);
   const { user } = useAuth();
   // Orders for the feedback "select order" dropdown come from /me orders.
   const orders = useMemo(
-    () => (user?.oeOrders ?? []).map((o) => ({
-      id: `OE-${o.id}`,
-      date: o.createdDate
-        ? new Date(o.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-        : '',
-      total: parseFloat(o.totalSum) || 0,
-    })),
+    () =>
+      (user?.oeOrders ?? []).map((o) => ({
+        id: `OE-${o.id}`,
+        date: o.createdDate
+          ? new Date(o.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '',
+        total: parseFloat(o.totalSum) || 0,
+      })),
     [user?.oeOrders],
   );
   const [rating, setRating] = useState(0);
@@ -30,15 +33,15 @@ export function FeedbackSection() {
   const [submitHovered, setSubmitHovered] = useState(false);
   const [msgFocused, setMsgFocused] = useState(false);
 
-  const title         = useT('user_account_feedback_top_banner_sub_title', L.title);
-  const eyebrow       = useT('user_account_feedback_top_banner_sub_title', L.eyebrow);
-  const bannerHead    = useT('user_account_feedback_top_banner_title',     L.bannerHeading);
-  const bannerHint    = useT('user_account_feedback_top_banner_text',      L.bannerHint);
-  const thankTitle    = useT('user_account_feedback_title',                L.thankTitle);
-  const thankBody     = useT('user_account_feedback_text',                 L.thankBody);
-  const submitAnother = useT('user_account_feedback_cta',                  L.submitAnother);
-  const submitLabel   = useT('user_account_feedback_submit',               L.submit);
-  const requiredNote  = useT('user_account_feedback_required_fields',      L.requiredNote);
+  const title = useT('user_account_feedback_top_banner_sub_title', L.title);
+  const eyebrow = useT('user_account_feedback_top_banner_sub_title', L.eyebrow);
+  const bannerHead = useT('user_account_feedback_top_banner_title', L.bannerHeading);
+  const bannerHint = useT('user_account_feedback_top_banner_text', L.bannerHint);
+  const thankTitle = useT('user_account_feedback_title', L.thankTitle);
+  const thankBody = useT('user_account_feedback_text', L.thankBody);
+  const submitAnother = useT('user_account_feedback_cta', L.submitAnother);
+  const submitLabel = useT('user_account_feedback_submit', L.submit);
+  const requiredNote = useT('user_account_feedback_required_fields', L.requiredNote);
 
   const categories = L.categories;
   const ratingLabels = L.rating;
@@ -55,17 +58,21 @@ export function FeedbackSection() {
     return (
       <div style={sectionVars}>
         <SectionTitle title={title} />
-        <div className="flex flex-col items-center justify-center py-20 gap-4 bg-(--banner-bg)">
-          <div className="w-14 h-14 flex items-center justify-center bg-black">
+        <div className="flex flex-col items-center justify-center gap-4 bg-(--banner-bg) py-20">
+          <div className="flex size-14 items-center justify-center bg-black">
             <Check size={28} color="#fff" />
           </div>
-          <p className="text-sm tracking-widest uppercase font-bold">{thankTitle}</p>
-          <p className="text-sm text-gray-500 text-center max-w-xs leading-relaxed">
-            {thankBody}
-          </p>
+          <p className="text-sm font-bold tracking-widest uppercase">{thankTitle}</p>
+          <p className="max-w-xs text-center text-sm leading-relaxed text-gray-500">{thankBody}</p>
           <button
-            onClick={() => { setSubmitted(false); setRating(0); setCategory(''); setOrder(''); setMessage(''); }}
-            className="mt-2 px-8 py-3 text-xs tracking-[0.2em] uppercase text-white focus-visible:outline-none bg-black rounded-none font-bold"
+            onClick={() => {
+              setSubmitted(false);
+              setRating(0);
+              setCategory('');
+              setOrder('');
+              setMessage('');
+            }}
+            className="mt-2 rounded-none bg-black px-8 py-3 text-xs font-bold tracking-[0.2em] text-white uppercase focus-visible:outline-none"
           >
             {submitAnother}
           </button>
@@ -79,33 +86,28 @@ export function FeedbackSection() {
       <SectionTitle title={L.title} />
 
       {/* Header banner */}
-      <div className="mb-8 px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-(--banner-bg)">
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 bg-(--banner-bg) px-8 py-7 sm:flex-row sm:items-center">
         <div>
-          <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-1">{eyebrow}</p>
-          <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.2rem)] font-bold">
-            {bannerHead}
-          </h2>
+          <p className="mb-1 text-xs tracking-[0.3em] text-gray-400 uppercase">{eyebrow}</p>
+          <h2 className="text-[clamp(1rem,2vw,1.2rem)] font-bold tracking-widest uppercase">{bannerHead}</h2>
         </div>
-        <p className="text-xs text-gray-500 leading-relaxed max-w-xs">
-          {bannerHint}
-        </p>
+        <p className="max-w-xs text-xs leading-relaxed text-gray-500">{bannerHint}</p>
       </div>
 
       <div className="space-y-8">
-
         {/* Star Rating */}
         <div>
-          <label className="block text-xs uppercase tracking-[0.15em] mb-4 font-bold text-[#555]">
+          <label className="mb-4 block text-xs font-bold tracking-[0.15em] text-[#555] uppercase">
             {L.ratingLabel} <span className="text-(--sale)">{L.requiredMark}</span>
           </label>
           <div className="flex items-center gap-2">
-            {[1, 2, 3, 4, 5].map(star => (
+            {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
                 onClick={() => setRating(star)}
-                className={`focus-visible:outline-none transition-transform duration-100 ${
+                className={`transition-transform duration-100 focus-visible:outline-none ${
                   (hoveredRating || rating) >= star ? 'scale-115' : 'scale-100'
                 }`}
                 aria-label={`${L.starAriaPrefix} ${star} ${L.starAriaSuffix}`}
@@ -120,7 +122,7 @@ export function FeedbackSection() {
               </button>
             ))}
             {(hoveredRating || rating) > 0 && (
-              <span className="ml-2 text-xs tracking-wide font-semibold text-accent">
+              <span className="ml-2 text-xs font-semibold tracking-wide text-accent">
                 {ratingLabels[hoveredRating || rating]}
               </span>
             )}
@@ -129,18 +131,18 @@ export function FeedbackSection() {
 
         {/* Category */}
         <div>
-          <label className="block text-xs uppercase tracking-[0.15em] mb-3 font-bold text-[#555]">
+          <label className="mb-3 block text-xs font-bold tracking-[0.15em] text-[#555] uppercase">
             {L.labelCategory}
           </label>
           <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setCategory(c => c === cat ? '' : cat)}
-                className={`px-4 py-2 text-xs tracking-wider uppercase focus-visible:outline-none transition-colors border rounded-none ${
+                onClick={() => setCategory((c) => (c === cat ? '' : cat))}
+                className={`rounded-none border px-4 py-2 text-xs tracking-wider uppercase transition-colors focus-visible:outline-none ${
                   category === cat
-                    ? 'border-black bg-black text-white font-bold'
-                    : 'border-[#d1d5db] bg-white text-[#555] font-normal'
+                    ? 'border-black bg-black font-bold text-white'
+                    : 'border-[#d1d5db] bg-white font-normal text-[#555]'
                 }`}
               >
                 {cat}
@@ -152,20 +154,26 @@ export function FeedbackSection() {
         {/* Related Order */}
         <div>
           <label className={labelClass}>
-            {L.labelOrder} <span className="text-gray-400 normal-case tracking-normal font-normal">{L.optionalSuffix}</span>
+            {L.labelOrder}{' '}
+            <span className="font-normal tracking-normal text-gray-400 normal-case">{L.optionalSuffix}</span>
           </label>
           <div className="relative">
             <select
               value={order}
-              onChange={e => setOrder(e.target.value)}
-              className="w-full px-4 py-3 text-sm outline-none appearance-none bg-white cursor-pointer border border-[#d1d5db] rounded-none"
+              onChange={(e) => setOrder(e.target.value)}
+              className="w-full cursor-pointer appearance-none rounded-none border border-[#d1d5db] bg-white px-4 py-3 text-sm outline-none"
             >
               <option value="">{L.placeholderOrder}</option>
-              {orders.map(o => (
-                <option key={o.id} value={o.id}>{o.id} — {o.date} ({fmt(o.total)})</option>
+              {orders.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.id} — {o.date} ({fmt(o.total)})
+                </option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400" />
+            <ChevronDown
+              size={14}
+              className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400"
+            />
           </div>
         </div>
 
@@ -174,33 +182,37 @@ export function FeedbackSection() {
           <label className={labelClass}>
             {L.labelMessage} <span className="text-(--sale)">{L.requiredMark}</span>
           </label>
-          <p className="text-xs text-gray-400 mb-3">{L.messageHint}</p>
+          <p className="mb-3 text-xs text-gray-400">{L.messageHint}</p>
           <textarea
             value={message}
-            onChange={e => setMessage(e.target.value)}
+            onChange={(e) => setMessage(e.target.value)}
             placeholder={L.placeholderMessage}
             rows={5}
-            className={`w-full px-4 py-3 text-sm outline-none resize-none border rounded-none ${
+            className={`w-full resize-none rounded-none border px-4 py-3 text-sm outline-none ${
               msgFocused ? 'border-black' : 'border-[#d1d5db]'
             }`}
             onFocus={() => setMsgFocused(true)}
             onBlur={() => setMsgFocused(false)}
           />
-          <div className="flex justify-between mt-1">
-            <span className={`text-xs ${message.length < 20 && message.length > 0 ? 'text-(--sale)' : 'text-gray-400'}`}>
+          <div className="mt-1 flex justify-between">
+            <span
+              className={`text-xs ${message.length < 20 && message.length > 0 ? 'text-(--sale)' : 'text-gray-400'}`}
+            >
               {message.length < 20 && message.length > 0 ? `${20 - message.length} ${L.charsNeededTpl}` : ''}
             </span>
-            <span className="text-xs text-gray-300">{message.length} {L.charsCounterTpl}</span>
+            <span className="text-xs text-gray-300">
+              {message.length} {L.charsCounterTpl}
+            </span>
           </div>
         </div>
 
         {/* How it works steps */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-white">
-          {L.howSteps.map(s => (
+        <div className="grid grid-cols-1 gap-px bg-white sm:grid-cols-3">
+          {L.howSteps.map((s) => (
             <div key={s.step} className="bg-white px-5 py-6">
-              <p className="text-xs tracking-widest mb-2 font-extrabold text-accent">{s.step}</p>
-              <p className="text-sm mb-1.5 font-bold">{s.title}</p>
-              <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+              <p className="mb-2 text-xs font-extrabold tracking-widest text-accent">{s.step}</p>
+              <p className="mb-1.5 text-sm font-bold">{s.title}</p>
+              <p className="text-xs leading-relaxed text-gray-500">{s.desc}</p>
             </div>
           ))}
         </div>
@@ -210,14 +222,16 @@ export function FeedbackSection() {
           <button
             onMouseEnter={() => setSubmitHovered(true)}
             onMouseLeave={() => setSubmitHovered(false)}
-            onClick={() => { if (rating && message.length >= 20) setSubmitted(true); }}
+            onClick={() => {
+              if (rating && message.length >= 20) setSubmitted(true);
+            }}
             disabled={!rating || message.length < 20}
-            className={`px-10 py-3.5 text-xs tracking-[0.2em] uppercase text-white flex items-center gap-2 focus-visible:outline-none rounded-none font-bold transition-colors duration-200 ${
+            className={`flex items-center gap-2 rounded-none px-10 py-3.5 text-xs font-bold tracking-[0.2em] text-white uppercase transition-colors duration-200 focus-visible:outline-none ${
               !rating || message.length < 20
-                ? 'bg-gray-400 cursor-not-allowed'
+                ? 'cursor-not-allowed bg-gray-400'
                 : submitHovered
-                  ? 'bg-accent cursor-pointer'
-                  : 'bg-black cursor-pointer'
+                  ? 'cursor-pointer bg-accent'
+                  : 'cursor-pointer bg-black'
             }`}
           >
             <MessageSquare size={13} />

@@ -15,7 +15,8 @@ export const IDENTIFIER_KEY = 'oe_user_identifier';
 
 /**
  * Read the signed-in shopper's OE identifier.
- * @returns {string} The identifier, or `''` when signed out / unavailable.
+ *
+ * @returns The identifier, or `''` when signed out / unavailable.
  */
 export function readUserIdentifier(): string {
   if (typeof window === 'undefined') return '';
@@ -28,8 +29,9 @@ export function readUserIdentifier(): string {
 
 /**
  * Persist (or clear, when given `''`) the shopper's OE identifier.
- * @param {string} identifier - OE `userIdentifier` from the auth response.
- * @returns {void}
+ *
+ * @param identifier - OE `userIdentifier` from the auth response.
+ * @returns
  */
 export function writeUserIdentifier(identifier: string): void {
   if (typeof window === 'undefined') return;
@@ -44,7 +46,8 @@ export function writeUserIdentifier(identifier: string): void {
 /**
  * Read the persisted refresh token. Needed by `AuthProvider.logout`, which
  * takes it as an explicit argument rather than reading SDK state.
- * @returns {string} The stored refresh token, or `''`.
+ *
+ * @returns The stored refresh token, or `''`.
  */
 export function readRefreshToken(): string {
   if (typeof window === 'undefined') return '';

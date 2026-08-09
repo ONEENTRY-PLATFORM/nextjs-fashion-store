@@ -15,6 +15,7 @@
  * option — its state is shared by every concurrent visitor.
  */
 import { cookies } from 'next/headers';
+
 import { createRequestApi, getApiSafe, isError } from '../index';
 import { se } from '../server-errors';
 
@@ -32,8 +33,9 @@ interface CookieJar {
 
 /**
  * Build the absolute OAuth redirect URI for a given browser origin.
- * @param {string} origin - Browser origin, e.g. `https://shop.example`.
- * @returns {string} Absolute callback URL registered with Google.
+ *
+ * @param origin - Browser origin, e.g. `https://shop.example`.
+ * @returns Absolute callback URL registered with Google.
  */
 function absoluteCallbackUri(origin: string): string {
   return `${origin.replace(/\/$/, '')}${GOOGLE_CALLBACK_PATH}`;
@@ -52,9 +54,10 @@ export interface GoogleOAuthStartError {
  * Start the authorization-code flow: read `config.oauthAuthUrl` from the OE
  * provider (never hardcode Google's endpoint), build the authorize URL, and
  * park the CSRF `state` + the post-login return path in httpOnly cookies.
- * @param {string} origin     - Browser origin, used to build `redirect_uri`.
- * @param {string} [returnTo] - Local path to bounce back to after sign-in.
- * @returns {Promise<GoogleOAuthStart | GoogleOAuthStartError>} URL to redirect to.
+ *
+ * @param origin     - Browser origin, used to build `redirect_uri`.
+ * @param [returnTo] - Local path to bounce back to after sign-in.
+ * @returns URL to redirect to.
  */
 export async function getGoogleAuthUrlAction(
   origin: string,
@@ -74,7 +77,7 @@ export async function getGoogleAuthUrlAction(
   try {
     const provider = await api.AuthProvider.getAuthProviderByMarker(GOOGLE_AUTH_MARKER);
     if (isError(provider)) {
-      return { ok: false, error: provider.message ?? await se('googleProviderNotFound') };
+      return { ok: false, error: provider.message ?? (await se('googleProviderNotFound')) };
     }
     const oauthAuthUrl = provider.config?.oauthAuthUrl;
     if (!oauthAuthUrl) {
@@ -100,9 +103,8 @@ export async function getGoogleAuthUrlAction(
     };
     jar.set(GOOGLE_OAUTH_STATE_COOKIE, state, baseOpts);
     // Only allow local return paths, never full URLs — prevents open-redirect.
-    const safeReturn = typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')
-      ? returnTo
-      : '/';
+    const safeReturn =
+      typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/';
     jar.set(GOOGLE_OAUTH_RETURN_COOKIE, safeReturn, baseOpts);
     return { ok: true, url: url.toString() };
   } catch (err) {
@@ -135,12 +137,11 @@ export type GoogleExchangeResult =
  * configured tenant-side. The tokens are handed back to the caller instead of
  * being written into a cookie: the browser owns the session (MCP `tokens`),
  * and `oauth()` — unlike `auth()` — does not place them in SDK state itself.
- * @param {GoogleCallbackContext} ctx - Code, CSRF state, origin, fingerprint.
- * @returns {Promise<GoogleExchangeResult>} Tokens + return path, or an error.
+ *
+ * @param ctx - Code, CSRF state, origin, fingerprint.
+ * @returns Tokens + return path, or an error.
  */
-export async function exchangeGoogleCodeAction(
-  ctx: GoogleCallbackContext,
-): Promise<GoogleExchangeResult> {
+export async function exchangeGoogleCodeAction(ctx: GoogleCallbackContext): Promise<GoogleExchangeResult> {
   if (!ctx.code) return { ok: false, error: await se('googleMissingCode') };
 
   const jar = (await cookies()) as unknown as CookieJar;
@@ -166,7 +167,7 @@ export async function exchangeGoogleCodeAction(
       body as unknown as Parameters<typeof api.AuthProvider.oauth>[1],
     );
     if (isError(result)) {
-      return { ok: false, error: result.message ?? await se('googleRejected') };
+      return { ok: false, error: result.message ?? (await se('googleRejected')) };
     }
     const entity = result as {
       userIdentifier?: string;

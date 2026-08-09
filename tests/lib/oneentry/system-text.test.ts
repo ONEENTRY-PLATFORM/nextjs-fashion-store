@@ -12,8 +12,7 @@ vi.mock('@/lib/oneentry/index', async (importActual) => ({
   getApiSafe: () => ({
     AttributesSets: { getAttributeSetByMarker },
   }),
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
   isOneEntryEnabled: true,
 }));
 
@@ -78,7 +77,10 @@ describe('t when OneEntry is disabled (no env)', () => {
   it('returns fallback without calling SDK', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => null,
+      isOneEntryEnabled: false,
+    }));
     const { t } = await import('@/lib/oneentry/system-text');
     expect(await t('any', 'key', 'fb')).toBe('fb');
     expect(getAttributeSetByMarker).not.toHaveBeenCalled();
@@ -94,10 +96,9 @@ describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () 
   it('re-fetches when the first response was empty (error path)', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
     }));
     const { getSystemSet } = await import('@/lib/oneentry/system-text');
@@ -119,10 +120,9 @@ describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () 
   it('does NOT re-fetch when the first response had a non-empty schema', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
     }));
     const { getSystemSet } = await import('@/lib/oneentry/system-text');
@@ -143,10 +143,9 @@ describe('getSystemSet — empty schema is NOT cached, non-empty IS cached', () 
   it('re-fetches when the first response had a null schema (treated as empty)', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
       getApiSafe: () => ({ AttributesSets: { getAttributeSetByMarker } }),
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
       isOneEntryEnabled: true,
     }));
     const { getSystemSet } = await import('@/lib/oneentry/system-text');

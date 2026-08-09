@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
+
 import { FilterBody } from '../app/components/catalog/MobileFilterBody';
 import type { MobileFilterGroup } from '../app/components/catalog/MobileFilterPanel';
 
@@ -19,9 +20,7 @@ const SIZE_GROUP: MobileFilterGroup = {
   label: 'Size',
   key: 'sizes',
   type: 'size_chips',
-  options: [
-    { label: 'XS' }, { label: 'S' }, { label: 'M' }, { label: 'L' }, { label: 'XL' },
-  ],
+  options: [{ label: 'XS' }, { label: 'S' }, { label: 'M' }, { label: 'L' }, { label: 'XL' }],
 };
 
 const COLOR_GROUP: MobileFilterGroup = {

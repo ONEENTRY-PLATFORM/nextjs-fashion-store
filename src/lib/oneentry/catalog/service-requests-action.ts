@@ -1,12 +1,8 @@
-import { getApiSafe, isError } from '../index';
+import type { ServiceCategory, ServiceRequest, ServiceStatus } from '../../../app/data/serviceData';
 import { readUserIdentifier } from '../auth/browser-session';
+import { getApiSafe, isError } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
-import type {
-  ServiceRequest,
-  ServiceCategory,
-  ServiceStatus,
-} from '../../../app/data/serviceData';
 
 const STATUS_MAP: Record<string, ServiceStatus> = {
   new: 'open',
@@ -78,13 +74,10 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
 
     return items.map((r): ServiceRequest => {
       const fd = Array.isArray(r.formData) ? r.formData : [];
-      const get = (m: string): unknown =>
-        fd.find((f) => f.marker === m)?.value;
+      const get = (m: string): unknown => fd.find((f) => f.marker === m)?.value;
       const item = String(get('item') ?? '');
       const categoryArr = get('category');
-      const categoryRaw = Array.isArray(categoryArr)
-        ? String(categoryArr[0] ?? '')
-        : String(categoryArr ?? '');
+      const categoryRaw = Array.isArray(categoryArr) ? String(categoryArr[0] ?? '') : String(categoryArr ?? '');
       const descriptionRaw = get('description');
       // text-type values come back as { htmlValue, plainValue, params }
       let description = '';
@@ -95,9 +88,7 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
         };
         description = String(v.plainValue ?? v.htmlValue ?? '');
       }
-      const dateRaw = get('date') as
-        | { fullDate?: string; formattedValue?: string }
-        | undefined;
+      const dateRaw = get('date') as { fullDate?: string; formattedValue?: string } | undefined;
       const createdRaw = r.createdDate ?? r.time;
       const droppedOff = dateRaw?.formattedValue
         ? dateRaw.formattedValue

@@ -1,17 +1,16 @@
-'use client'
+'use client';
 import { useState, useTransition } from 'react';
+
+import { useFormLabel, useFormMessage, useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '../../../lib/oneentry/forms/submit';
-import {
-  useFormPlaceholder,
-  useFormLabel,
-  useFormMessage,
-} from '../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { NEWSLETTER_FORM_LABELS as L } from '../../data/commonLabels';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import { NEWSLETTER_FORM_LABELS } from '../../data/commonLabels';
 
 /** OE form marker — the form lives on the `subscribe` page in the admin panel. */
 const FORM = 'subscribe_new_drops';
 
 export function NewsletterForm() {
+  const L = useDict('footer_newsletter_', NEWSLETTER_FORM_LABELS);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [error, setError] = useState('');
@@ -49,37 +48,38 @@ export function NewsletterForm() {
         // OE returns "Incorrect formIdentifier for provided config" when the
         // form isn't set up in the admin panel. That one stays in code on
         // purpose: it fires precisely when OE has no form to read copy from.
-        const friendly = /formidentifier|form identifier/i.test(result.error)
-          ? L.notConfigured
-          : result.error;
+        const friendly = /formidentifier|form identifier/i.test(result.error) ? L.notConfigured : result.error;
         setError(friendly);
       }
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-sm mx-auto" data-testid="newsletter-form">
+    <form onSubmit={handleSubmit} className="mx-auto flex max-w-sm items-center gap-2" data-testid="newsletter-form">
       <input
         type="email"
         required
         value={email}
-        onChange={(e) => { setEmail(e.target.value); setStatus('idle'); }}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          setStatus('idle');
+        }}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="flex-1 px-3 py-2 text-sm bg-white/5 border border-white/15 outline-none focus:border-white/40 transition-colors"
+        className="flex-1 border border-white/15 bg-white/5 px-3 py-2 text-sm transition-colors outline-none focus:border-white/40"
         disabled={isPending}
         data-testid="newsletter-email"
       />
       <button
         type="submit"
         disabled={isPending || email.trim().length === 0}
-        className="px-4 py-2 text-xs tracking-widest uppercase font-bold text-black bg-white hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="bg-white px-4 py-2 text-xs font-bold tracking-widest text-black uppercase transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
         data-testid="newsletter-submit"
       >
         {isPending ? L.pending : submitLabel}
       </button>
       <span
-        className={`text-xs ml-3 ${status === 'success' ? 'text-green-400' : status === 'error' ? 'text-red-400' : 'sr-only'}`}
+        className={`ml-3 text-xs ${status === 'success' ? 'text-green-400' : status === 'error' ? 'text-red-400' : 'sr-only'}`}
         role="status"
         data-testid="newsletter-status"
       >

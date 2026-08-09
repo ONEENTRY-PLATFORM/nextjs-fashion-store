@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 /**
  * End-to-end coverage for the playground ↔ Platform REST integration of
@@ -41,10 +41,7 @@ test.describe('Playground ↔ Platform wishlist / cart REST integration', () => 
     // useGetWishlistQuery fires on the /account page that auto-renders
     // post-login (before we can navigate to /favorites manually).
     const wishlistRespPromise = page.waitForResponse(
-      (resp) =>
-        resp.url().includes('/users/me/wishlist')
-        && resp.request().method() === 'GET'
-        && resp.status() === 200,
+      (resp) => resp.url().includes('/users/me/wishlist') && resp.request().method() === 'GET' && resp.status() === 200,
       { timeout: 30_000 },
     );
 
@@ -58,10 +55,7 @@ test.describe('Playground ↔ Platform wishlist / cart REST integration', () => 
 
   test('AC #5: GET /users/me/cart returns 1 seeded item for active-1', async ({ page }) => {
     const cartRespPromise = page.waitForResponse(
-      (resp) =>
-        resp.url().includes('/users/me/cart')
-        && resp.request().method() === 'GET'
-        && resp.status() === 200,
+      (resp) => resp.url().includes('/users/me/cart') && resp.request().method() === 'GET' && resp.status() === 200,
       { timeout: 30_000 },
     );
     await loginAsSeedUser(page);
@@ -127,10 +121,11 @@ test.describe('Playground ↔ Platform wishlist / cart REST integration', () => 
     await loginAsSeedUser(page);
 
     // Wait for the initial GET to finish so we're past the merge stage.
-    await page.waitForResponse(
-      (resp) => resp.url().includes('/users/me/wishlist') && resp.request().method() === 'GET',
-      { timeout: 15_000 },
-    ).catch(() => undefined);
+    await page
+      .waitForResponse((resp) => resp.url().includes('/users/me/wishlist') && resp.request().method() === 'GET', {
+        timeout: 15_000,
+      })
+      .catch(() => undefined);
 
     // Drive a wishlist mutation for an UNMAPPED playground id by
     // dispatching directly through the public hook surface area.

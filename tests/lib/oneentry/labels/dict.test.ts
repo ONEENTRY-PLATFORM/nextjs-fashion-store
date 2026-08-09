@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { snakeKey, mergeDict, dictMarkers } from '@/lib/oneentry/labels/dict';
+import { describe, expect, it } from 'vitest';
+
+import { dictMarkers, mergeDict, snakeKey } from '@/lib/oneentry/labels/dict';
 
 describe('snakeKey — code key → OE marker suffix', () => {
   it('splits camelCase', () => {
@@ -61,7 +62,8 @@ describe('mergeDict', () => {
 
 describe('dictMarkers', () => {
   it('lists exactly the markers mergeDict would read', () => {
-    expect(dictMarkers('checkout_delivery_', { useDifferentAddress: 'x', rows: [1, 2] }))
-      .toEqual(['checkout_delivery_use_different_address']);
+    expect(dictMarkers('checkout_delivery_', { useDifferentAddress: 'x', rows: [1, 2] })).toEqual([
+      'checkout_delivery_use_different_address',
+    ]);
   });
 });

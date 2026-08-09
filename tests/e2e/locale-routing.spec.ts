@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * Locale routing uses the "as-needed" scheme: the default locale keeps bare
@@ -10,8 +10,7 @@ import { test, expect } from '@playwright/test';
  * whatever the tenant publishes and however many locales are switched on.
  */
 
-const DEFAULT_SHORT = ((process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US').split('_')[0] ?? 'en')
-  .toLowerCase();
+const DEFAULT_SHORT = ((process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US').split('_')[0] ?? 'en').toLowerCase();
 
 test.describe('as-needed locale routing', () => {
   test('bare URLs serve the default locale and stay bare', async ({ page }) => {
@@ -39,16 +38,14 @@ test.describe('as-needed locale routing', () => {
 
     // `x-default` must point at the unprefixed URL — that is the whole promise
     // of the as-needed scheme.
-    const xDefault = await page
-      .locator('link[rel="alternate"]')
-      .evaluateAll((links) =>
-        links
-          .map((l) => ({
-            lang: l.getAttribute('hreflang') ?? l.getAttribute('hrefLang'),
-            href: l.getAttribute('href'),
-          }))
-          .find((l) => l.lang === 'x-default'),
-      );
+    const xDefault = await page.locator('link[rel="alternate"]').evaluateAll((links) =>
+      links
+        .map((l) => ({
+          lang: l.getAttribute('hreflang') ?? l.getAttribute('hrefLang'),
+          href: l.getAttribute('href'),
+        }))
+        .find((l) => l.lang === 'x-default'),
+    );
     const href = xDefault?.href;
     expect(href).toBeTruthy();
     expect(new URL(href ?? '').pathname).toBe('/');

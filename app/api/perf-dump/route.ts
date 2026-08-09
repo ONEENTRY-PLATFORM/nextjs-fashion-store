@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
-import {
-  OE_PROFILE_ENABLED,
-  aggregateTimings,
-  clearTimings,
-  readTimings,
-} from '../../../src/lib/oneentry/profiling';
+
+import { aggregateTimings, clearTimings, OE_PROFILE_ENABLED, readTimings } from '../../../src/lib/oneentry/profiling';
 import { se } from '../../../src/lib/oneentry/server-errors';
 
 /**
@@ -50,10 +46,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: await se('unauthorized') }, { status: 401 });
   }
   if (!OE_PROFILE_ENABLED) {
-    return NextResponse.json(
-      { error: await se('profileDisabled') },
-      { status: 409 },
-    );
+    return NextResponse.json({ error: await se('profileDisabled') }, { status: 409 });
   }
   const url = new URL(req.url);
   const wantRaw = url.searchParams.get('raw') === '1';

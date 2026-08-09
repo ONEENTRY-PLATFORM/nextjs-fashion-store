@@ -1,5 +1,5 @@
-'use client'
-import { useCallback, useMemo, useRef, type RefObject } from 'react';
+'use client';
+import { type RefObject, useCallback, useMemo, useRef } from 'react';
 
 /** Mouse handlers to spread onto the scrollable element. */
 export interface DragScrollHandlers {
@@ -18,28 +18,33 @@ export interface DragScrollHandlers {
  * reach into that object during render, which React flags as accessing a ref
  * during render. Owning the ref locally keeps the consumer's JSX
  * (`ref={scrollerRef}`) the only place it is touched.
- * @param {RefObject<HTMLDivElement | null>} ref - The scrollable element.
- * @returns {DragScrollHandlers} Handlers to spread onto that element.
+ *
+ * @param ref - The scrollable element.
+ * @returns Handlers to spread onto that element.
  */
-export function useDragScroll(
-  ref: RefObject<HTMLDivElement | null>,
-): DragScrollHandlers {
+export function useDragScroll(ref: RefObject<HTMLDivElement | null>): DragScrollHandlers {
   const dragging = useRef(false);
   const startX = useRef(0);
   const scrollStart = useRef(0);
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    dragging.current = true;
-    startX.current = e.pageX;
-    scrollStart.current = ref.current?.scrollLeft ?? 0;
-    if (ref.current) ref.current.style.cursor = 'grabbing';
-  }, [ref]);
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      dragging.current = true;
+      startX.current = e.pageX;
+      scrollStart.current = ref.current?.scrollLeft ?? 0;
+      if (ref.current) ref.current.style.cursor = 'grabbing';
+    },
+    [ref],
+  );
 
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!dragging.current || !ref.current) return;
-    e.preventDefault();
-    ref.current.scrollLeft = scrollStart.current - (e.pageX - startX.current);
-  }, [ref]);
+  const onMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!dragging.current || !ref.current) return;
+      e.preventDefault();
+      ref.current.scrollLeft = scrollStart.current - (e.pageX - startX.current);
+    },
+    [ref],
+  );
 
   const stopDrag = useCallback(() => {
     dragging.current = false;

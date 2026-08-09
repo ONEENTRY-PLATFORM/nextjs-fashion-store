@@ -1,26 +1,38 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import {
-  SITE_NAME, SITE_URL, CURRENCY,
-  FREE_SHIPPING_THRESHOLD, RETURN_WINDOW_DAYS,
-  DELIVERY_COUNTRY, DELIVERY_MIN_DAYS, DELIVERY_MAX_DAYS,
-  SCHEMA_BREADCRUMBS as BC,
-  PRODUCT_META_COPY as PM,
-} from '../../../../src/app/data/seoData';
-import { ProductDetailPage } from '../../../../src/app/pages/ProductDetailPage';
+
 import { JsonLd } from '../../../../src/app/components/system/JsonLd';
-import { loadProductById, categoryPathToBreadcrumbs, categoryPathToViewAllHref } from '../../../../src/lib/oneentry/catalog/products';
-import { adaptCatalogProductToPdpProduct } from '../../../../src/lib/oneentry/catalog/adapt';
-import { loadProductSpecLabels } from '../../../../src/lib/oneentry/catalog/spec-labels';
-import { loadPurchaseBonusForProduct } from '../../../../src/lib/oneentry/discounts/purchase-bonus';
-import { ReviewsAsync } from '../../../../src/app/pages/product/ReviewsAsync';
-import { ReviewsSkeleton } from '../../../../src/app/pages/product/ReviewsSkeleton';
+import type { CatalogProduct as PdpCatalogProduct } from '../../../../src/app/data/productCatalog';
+import {
+  CURRENCY,
+  DELIVERY_COUNTRY,
+  DELIVERY_MAX_DAYS,
+  DELIVERY_MIN_DAYS,
+  FREE_SHIPPING_THRESHOLD,
+  PRODUCT_META_COPY as PM,
+  RETURN_WINDOW_DAYS,
+  SCHEMA_BREADCRUMBS as BC,
+  SITE_NAME,
+  SITE_URL,
+} from '../../../../src/app/data/seoData';
 import { FrequentlyOrderedAsync } from '../../../../src/app/pages/product/FrequentlyOrderedAsync';
 import { RecommendationsSkeleton } from '../../../../src/app/pages/product/RecommendationsSkeleton';
-import { loadProductBlocks } from '../../../../src/lib/oneentry/blocks/page-blocks';
-import { loadStores } from '../../../../src/lib/oneentry/catalog/stores';
-import type { CatalogProduct as PdpCatalogProduct } from '../../../../src/app/data/productCatalog';
+import { ReviewsAsync } from '../../../../src/app/pages/product/ReviewsAsync';
+import { ReviewsSkeleton } from '../../../../src/app/pages/product/ReviewsSkeleton';
+import { ProductDetailPage } from '../../../../src/app/pages/ProductDetailPage';
 import { priceValidUntil } from '../../../../src/app/utils/price-valid-until';
+import { loadProductBlocks } from '../../../../src/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToPdpProduct } from '../../../../src/lib/oneentry/catalog/adapt';
+import {
+  categoryPathToBreadcrumbs,
+  categoryPathToViewAllHref,
+  loadProductById,
+} from '../../../../src/lib/oneentry/catalog/products';
+import { loadProductSpecLabels } from '../../../../src/lib/oneentry/catalog/spec-labels';
+import { loadStores } from '../../../../src/lib/oneentry/catalog/stores';
+import { loadPurchaseBonusForProduct } from '../../../../src/lib/oneentry/discounts/purchase-bonus';
+import { FormPlaceholdersProvider } from '../../../../src/lib/oneentry/forms/FormPlaceholdersContext';
+import { loadFormContent } from '../../../../src/lib/oneentry/forms/placeholders';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -29,9 +41,10 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const numericId = /^\d+$/.test(id) ? Number(id) : null;
-  const product = numericId !== null
-    ? await loadProductById(numericId).then((p) => p ? adaptCatalogProductToPdpProduct(p) : null)
-    : null;
+  const product =
+    numericId !== null
+      ? await loadProductById(numericId).then((p) => (p ? adaptCatalogProductToPdpProduct(p) : null))
+      : null;
 
   if (!product) {
     return {
@@ -146,19 +159,18 @@ export default async function Page({ params }: Props) {
   const product = oeProduct;
   // Build breadcrumb labels from the product's OE category path so each
   // product lands on its actual taxonomy chain rather than a hardcoded one.
-  const categoryBreadcrumbs = oeProductRaw
-    ? categoryPathToBreadcrumbs(oeProductRaw.categories?.[0])
-    : [];
+  const categoryBreadcrumbs = oeProductRaw ? categoryPathToBreadcrumbs(oeProductRaw.categories?.[0]) : [];
 
   // Aggregate rating computed from OE product reviews. Empty cohort defaults
   // to 0 — schema.org consumers handle a 0-count rating gracefully.
   const reviews = product?.reviews ?? [];
-  const avgRating = reviews.length > 0
-    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
-    : 0;
+  const avgRating =
+    reviews.length > 0 ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0;
 
   const productSpecs = product?.specs ?? [];
-  const materialSpec = productSpecs.find((s) => s.label === PM.specCompositionLabel || s.label === PM.specMaterialLabel);
+  const materialSpec = productSpecs.find(
+    (s) => s.label === PM.specCompositionLabel || s.label === PM.specMaterialLabel,
+  );
 
   const productSchema = product
     ? {
@@ -227,7 +239,12 @@ export default async function Page({ params }: Props) {
             deliveryTime: {
               '@type': 'ShippingDeliveryTime',
               handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
-              transitTime: { '@type': 'QuantitativeValue', minValue: DELIVERY_MIN_DAYS, maxValue: DELIVERY_MAX_DAYS, unitCode: 'DAY' },
+              transitTime: {
+                '@type': 'QuantitativeValue',
+                minValue: DELIVERY_MIN_DAYS,
+                maxValue: DELIVERY_MAX_DAYS,
+                unitCode: 'DAY',
+              },
             },
           },
           hasMerchantReturnPolicy: {
@@ -279,16 +296,22 @@ export default async function Page({ params }: Props) {
     if (p.startsWith('/men')) return 'M';
     return '';
   })();
-  const reviewsSlot = numericId !== null ? (
-    <Suspense fallback={<ReviewsSkeleton />}>
-      <ReviewsAsync productId={numericId} />
-    </Suspense>
-  ) : null;
-  const recommendationsSlot = numericId !== null ? (
-    <Suspense fallback={<RecommendationsSkeleton />}>
-      <FrequentlyOrderedAsync productId={numericId} categoryViewAllHref={categoryViewAllHref} productGender={effectiveGender} />
-    </Suspense>
-  ) : null;
+  const reviewsSlot =
+    numericId !== null ? (
+      <Suspense fallback={<ReviewsSkeleton />}>
+        <ReviewsAsync productId={numericId} />
+      </Suspense>
+    ) : null;
+  const recommendationsSlot =
+    numericId !== null ? (
+      <Suspense fallback={<RecommendationsSkeleton />}>
+        <FrequentlyOrderedAsync
+          productId={numericId}
+          categoryViewAllHref={categoryViewAllHref}
+          productGender={effectiveGender}
+        />
+      </Suspense>
+    ) : null;
 
   // OE-attached product blocks (`Products.getProductBlockById`). Rendered
   // via `<PageBlocksRenderer>` inside `ProductDetailPage`. Empty when the
@@ -305,21 +328,29 @@ export default async function Page({ params }: Props) {
     address: [s.address, s.postcode].filter(Boolean).join(', '),
   }));
 
+  // `reserve_in_store` is the one OE form that only this route renders, so its
+  // content is loaded here instead of the root layout — no reason to ship it in
+  // every other page's RSC payload. `FormPlaceholdersProvider` merges with the
+  // layout-level map, so the newsletter / review copy stays readable below.
+  const reserveInStoreForm = await loadFormContent('reserve_in_store');
+
   return (
     <>
       {productSchema && <JsonLd data={productSchema} />}
       {breadcrumbSchema && <JsonLd data={breadcrumbSchema} />}
-      <ProductDetailPage
-        initialProduct={oeProduct ?? undefined}
-        categoryBreadcrumbs={categoryBreadcrumbs}
-        reviewsSlot={reviewsSlot}
-        recommendationsSlot={recommendationsSlot}
-        currentGender={oeProductRaw?.gender}
-        bonusPoints={purchaseBonus?.points}
-        categoryViewAllHref={categoryViewAllHref}
-        productBlocks={productBlocks}
-        reserveStores={reserveStores}
-      />
+      <FormPlaceholdersProvider forms={{ reserve_in_store: reserveInStoreForm }}>
+        <ProductDetailPage
+          initialProduct={oeProduct ?? undefined}
+          categoryBreadcrumbs={categoryBreadcrumbs}
+          reviewsSlot={reviewsSlot}
+          recommendationsSlot={recommendationsSlot}
+          currentGender={oeProductRaw?.gender}
+          bonusPoints={purchaseBonus?.points}
+          categoryViewAllHref={categoryViewAllHref}
+          productBlocks={productBlocks}
+          reserveStores={reserveStores}
+        />
+      </FormPlaceholdersProvider>
     </>
   );
 }

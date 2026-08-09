@@ -1,9 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import {
-  getCmsProductId,
-  extractCmsProductId,
-  getPlaygroundProductId,
-} from '@/app/data/cms-product-id-map';
+import { describe, expect, it } from 'vitest';
+
+import { extractCmsProductId, getCmsProductId, getPlaygroundProductId } from '@/app/data/cms-product-id-map';
 
 describe('getCmsProductId', () => {
   it('converts a numeric string to a number', () => {

@@ -1,41 +1,37 @@
-'use client'
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+'use client';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { type LoyaltyStatus, type Gender } from '../data/userData';
-import type { AppDispatch } from '../store';
-import { setAuth, clearAuth } from '../store/userSlice';
-import { cartActions } from '../store/cartSlice';
-import { wishlistActions } from '../store/wishlistSlice';
-import { recentlyViewedActions } from '../store/recentlyViewedSlice';
+
+import { getApiSafe, hasActiveSession, reDefine, REFRESH_TOKEN_KEY } from '../../lib/oneentry';
 import {
-  signInAction,
-  signUpAction,
-  signOutAction,
   getCurrentUserAction,
-  updateProfileAction,
-  updateAddressesAction,
-  updateSubscriptionsAction,
-  updateConsentAction,
+  type OeAddress,
+  type OeCartItem,
+  type OeConsent,
+  type OeLoyaltyTier,
+  type OeOrder,
+  type OeRecentlyViewedItem,
+  type OeSubscriptions,
+  type OeUser,
+  type OeWishlistItem,
+  type ProfileUpdate,
+  signInAction,
+  signOutAction,
+  signUpAction,
+  type SignUpInput,
   syncCartAction,
   syncWishlistAction,
-  type SignUpInput,
-  type OeUser,
-  type OeAddress,
-  type OeSubscriptions,
-  type OeConsent,
-  type ProfileUpdate,
-  type OeCartItem,
-  type OeWishlistItem,
-  type OeOrder,
-  type OeLoyaltyTier,
-  type OeRecentlyViewedItem,
+  updateAddressesAction,
+  updateConsentAction,
+  updateProfileAction,
+  updateSubscriptionsAction,
 } from '../../lib/oneentry/auth/actions';
-import {
-  getApiSafe,
-  hasActiveSession,
-  reDefine,
-  REFRESH_TOKEN_KEY,
-} from '../../lib/oneentry';
+import { type Gender, type LoyaltyStatus } from '../data/userData';
+import type { AppDispatch } from '../store';
+import { cartActions } from '../store/cartSlice';
+import { recentlyViewedActions } from '../store/recentlyViewedSlice';
+import { clearAuth, setAuth } from '../store/userSlice';
+import { wishlistActions } from '../store/wishlistSlice';
 import { clearGuestId, getOrCreateGuestId } from '../utils/guest-id';
 
 export interface User {
@@ -56,11 +52,15 @@ export interface User {
   status: LoyaltyStatus;
   totalPurchases: number;
   nextLevelAmount: number;
-  /** Cap on the personal discount value (in currency). Set only when OE
-   *  Discounts returned a `maxAmount` for the active tier. */
+  /**
+   * Cap on the personal discount value (in currency). Set only when OE
+   *  Discounts returned a `maxAmount` for the active tier.
+   */
   discountMaxAmount?: number;
-  /** OE `applicability` (`TO_ORDER` / `TO_PRODUCT`). Present only when a
-   *  personal discount is active. */
+  /**
+   * OE `applicability` (`TO_ORDER` / `TO_PRODUCT`). Present only when a
+   *  personal discount is active.
+   */
   discountApplicability?: string;
   /** LTV required to keep the current tier (OE `USER_LTV` condition). */
   ltvThreshold?: number;
@@ -76,27 +76,33 @@ export interface User {
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
-  /** `false` until the bootstrap /me call finishes (regardless of outcome).
+  /**
+   * `false` until the bootstrap /me call finishes (regardless of outcome).
    *  Consumers that need "logged out for sure" state must gate on this so
    *  the initial render doesn't flash a sign-in screen before the cookie
-   *  session is resolved. */
+   *  session is resolved.
+   */
   authReady: boolean;
   loginModalOpen: boolean;
   registerModalOpen: boolean;
   openLoginModal: () => void;
   closeLoginModal: () => void;
-  /** Human-readable error surfaced to the LoginModal when a login attempt
+  /**
+   * Human-readable error surfaced to the LoginModal when a login attempt
    *  (typically the Google OAuth callback) failed via redirect. Null when
-   *  no error is pending. Consumers clear it by calling `setAuthError(null)`. */
+   *  no error is pending. Consumers clear it by calling `setAuthError(null)`.
+   */
   authError: string | null;
   setAuthError: (msg: string | null) => void;
   openRegisterModal: () => void;
   closeRegisterModal: () => void;
   login: (emailOrPhone: string, password: string) => Promise<boolean>;
-  /** Start the Google OAuth authorization-code flow — user is redirected to
+  /**
+   * Start the Google OAuth authorization-code flow — user is redirected to
    *  Google; on return, our /auth/callback/google route exchanges the code
    *  via OE and sets the session. `returnTo` is the local path to bounce
-   *  back to after auth (defaults to current pathname). */
+   *  back to after auth (defaults to current pathname).
+   */
   startGoogleOAuth: (returnTo?: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
@@ -122,27 +128,34 @@ const EMPTY_USER_DEFAULTS = {
 } as const;
 
 const DEFAULT_SUBSCRIPTIONS = {
-  emailNewsletter: false, smsNotifications: false, pushNotifications: false,
-  orderUpdates: false, newArrivals: false, saleAlerts: false, loyaltyUpdates: false,
+  emailNewsletter: false,
+  smsNotifications: false,
+  pushNotifications: false,
+  orderUpdates: false,
+  newArrivals: false,
+  saleAlerts: false,
+  loyaltyUpdates: false,
 };
 const DEFAULT_CONSENT = { dataProcessing: false, crossBorder: false };
 
-/** Nice-cased tier label (`bronze` → `Bronze`). Handles the empty case. */
+/**
+ * Nice-cased tier label (`bronze` → `Bronze`). Handles the empty case.
+ */
 function toTierLabel(marker: string): LoyaltyStatus {
   const cleaned = marker.trim().toLowerCase();
   if (!cleaned) return 'Member';
   const label = cleaned[0].toUpperCase() + cleaned.slice(1);
-  return (label === 'Bronze' || label === 'Silver' || label === 'Gold' || label === 'Platinum')
-    ? label
-    : 'Member';
+  return label === 'Bronze' || label === 'Silver' || label === 'Gold' || label === 'Platinum' ? label : 'Member';
 }
 
-/** Lifetime value = sum of orders that actually generated revenue for the
+/**
+ * Lifetime value = sum of orders that actually generated revenue for the
  *  merchant — i.e. paid / completed / delivered. Orders still in flight
  *  (new / processing / pending) don't count until money changes hands,
  *  and cancelled / refunded / returned obviously don't either. Matching is
  *  by substring since OE merchants namespace status markers per storage
- *  (`home_paid`, `pickup_delivered`, `home_new`, `home_cancelled`, …). */
+ *  (`home_paid`, `pickup_delivered`, `home_new`, `home_cancelled`, …).
+ */
 function computeLtv(orders: OeUser['orders'] | undefined): number {
   if (!orders) return 0;
   const REVENUE = /paid|complete|deliver|done|closed|finish/i;
@@ -159,7 +172,8 @@ function computeLtv(orders: OeUser['orders'] | undefined): number {
   return Math.round(total * 100) / 100;
 }
 
-/** Pick the highest LTV-gated tier the shopper actually qualifies for.
+/**
+ * Pick the highest LTV-gated tier the shopper actually qualifies for.
  *
  *  We deliberately IGNORE tiers without a `USER_LTV` condition — a merchant
  *  who omitted the LTV rule gates the tier by user-group only, and we don't
@@ -167,12 +181,15 @@ function computeLtv(orders: OeUser['orders'] | undefined): number {
  *  qualify. Handing such a tier out by default (as previously) is how a
  *  brand-new shopper with LTV=$0 ended up Platinum.
  *
- *  Returns `null` when the shopper hasn't cleared even the lowest bar. */
-/** Pick the highest tier the shopper's LTV clears. Cart-amount-gated rungs
+ *  Returns `null` when the shopper hasn't cleared even the lowest bar.
+ */
+/**
+ * Pick the highest tier the shopper's LTV clears. Cart-amount-gated rungs
  *  (silver/gold/… with `MIN_CART_AMOUNT`) are intentionally excluded from
  *  the STATUS display — those apply per-order and don't confer a permanent
  *  identity. `previewOrderAction` evaluates them separately at cart time
- *  (see the fallback loop there). */
+ *  (see the fallback loop there).
+ */
 function pickActiveTier(tiers: OeLoyaltyTier[], ltv: number): OeLoyaltyTier | null {
   const gated = tiers.filter((t) => typeof t.ltvThreshold === 'number');
   if (gated.length === 0) return null;
@@ -182,11 +199,13 @@ function pickActiveTier(tiers: OeLoyaltyTier[], ltv: number): OeLoyaltyTier | nu
   return null;
 }
 
-/** Hardcoded fallback ladder used ONLY when a merchant hasn't yet shipped
+/**
+ * Hardcoded fallback ladder used ONLY when a merchant hasn't yet shipped
  *  the higher tiers in OE. As soon as a tier lands in OE with a real
  *  `USER_LTV` condition, that value takes precedence. Mirrors what the
  *  storefront advertises in `L.perks` so the progress bar always has a
- *  visible target. */
+ *  visible target.
+ */
 const FALLBACK_TIER_LTV: Record<Exclude<LoyaltyStatus, 'Member'>, number> = {
   Bronze: 100,
   Silver: 500,
@@ -194,12 +213,14 @@ const FALLBACK_TIER_LTV: Record<Exclude<LoyaltyStatus, 'Member'>, number> = {
   Platinum: 2000,
 };
 
-/** Next-tier threshold for the loyalty progress bar. Reads OE first; when
+/**
+ * Next-tier threshold for the loyalty progress bar. Reads OE first; when
  *  the merchant hasn't wired the next rung yet, falls back to
  *  `FALLBACK_TIER_LTV` so the shopper still sees a concrete target
  *  (industry practice — H&M / Sephora / Nike all keep the ladder visible
  *  even before the higher tiers unlock). Returns `0` only after the top
- *  hardcoded rung. */
+ *  hardcoded rung.
+ */
 function nextTierThreshold(tiers: OeLoyaltyTier[], activeStatus: LoyaltyStatus): number {
   const gated = tiers.filter((t) => typeof t.ltvThreshold === 'number');
   if (activeStatus === 'Member') {
@@ -227,10 +248,21 @@ function mergeOeUser(oeUser: OeUser | null): User {
     // Pre-auth state: empty user, no mock leakage.
     return {
       ...EMPTY_USER_DEFAULTS,
-      firstName: '', lastName: '', email: '', phone: '', dob: '',
-      gender: 'female', shoeSize: '', clothingSize: '',
-      addresses: [], subscriptions: DEFAULT_SUBSCRIPTIONS, consent: DEFAULT_CONSENT,
-      cartItems: [], wishlistItems: [], oeOrders: [], recentlyViewedItems: [],
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      dob: '',
+      gender: 'female',
+      shoeSize: '',
+      clothingSize: '',
+      addresses: [],
+      subscriptions: DEFAULT_SUBSCRIPTIONS,
+      consent: DEFAULT_CONSENT,
+      cartItems: [],
+      wishlistItems: [],
+      oeOrders: [],
+      recentlyViewedItems: [],
     };
   }
   // Loyalty from OE. `oeUser.loyalty` now carries the full ladder — pick the
@@ -248,7 +280,7 @@ function mergeOeUser(oeUser: OeUser | null): User {
     lastName: oeUser.lastName ?? '',
     email: oeUser.email ?? '',
     phone: oeUser.phone ?? '',
-    gender: ((oeUser.gender === 'male' || oeUser.gender === 'female') ? oeUser.gender : 'female'),
+    gender: oeUser.gender === 'male' || oeUser.gender === 'female' ? oeUser.gender : 'female',
     dob: oeUser.dob ?? '',
     shoeSize: oeUser.shoeSize ?? '',
     clothingSize: oeUser.clothingSize ?? '',
@@ -260,16 +292,18 @@ function mergeOeUser(oeUser: OeUser | null): User {
     oeOrders: oeUser.orders ?? [],
     recentlyViewedItems: oeUser.recentlyViewed ?? [],
     // OE-driven loyalty overrides the mock defaults when data is available.
-    ...(loyalty ? {
-      discount: activeTier?.discountPct ?? 0,
-      bonuses: loyalty.bonusBalance,
-      status,
-      totalPurchases: ltv,
-      nextLevelAmount: nextThreshold,
-      discountMaxAmount: activeTier?.discountMaxAmount ?? undefined,
-      discountApplicability: activeTier?.applicability || undefined,
-      ltvThreshold: activeTier?.ltvThreshold ?? undefined,
-    } : {}),
+    ...(loyalty
+      ? {
+          discount: activeTier?.discountPct ?? 0,
+          bonuses: loyalty.bonusBalance,
+          status,
+          totalPurchases: ltv,
+          nextLevelAmount: nextThreshold,
+          discountMaxAmount: activeTier?.discountMaxAmount ?? undefined,
+          discountApplicability: activeTier?.applicability || undefined,
+          ltvThreshold: activeTier?.ltvThreshold ?? undefined,
+        }
+      : {}),
   };
 }
 
@@ -328,7 +362,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     void bootstrap();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dispatch]);
 
   const [authError, setAuthError] = useState<string | null>(null);
@@ -349,32 +385,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const closeRegisterModal = useCallback(() => setRegisterModalOpen(false), []);
 
-  const login = useCallback(async (emailOrPhone: string, password: string): Promise<boolean> => {
-    // Social provider buttons are a stub until OAuth is wired up — they
-    // simply mark the session "logged in" with an empty user so the UI can
-    // navigate; no fake profile is injected.
-    if (password === 'social') {
-      setUser(mergeOeUser(null));
-      setIsLoggedIn(true);
-      setLoginModalOpen(false);
-      return true;
-    }
+  const login = useCallback(
+    async (emailOrPhone: string, password: string): Promise<boolean> => {
+      // Social provider buttons are a stub until OAuth is wired up — they
+      // simply mark the session "logged in" with an empty user so the UI can
+      // navigate; no fake profile is injected.
+      if (password === 'social') {
+        setUser(mergeOeUser(null));
+        setIsLoggedIn(true);
+        setLoginModalOpen(false);
+        return true;
+      }
 
-    const result = await signInAction(emailOrPhone, password);
-    if (result.ok) {
-      dispatch(setAuth({
-        accessToken: '',
-        refreshToken: '',
-        userIdentifier: result.userIdentifier,
-      }));
-      setUser(mergeOeUser(result.user));
-      setIsLoggedIn(true);
-      setLoginModalOpen(false);
-      return true;
-    }
+      const result = await signInAction(emailOrPhone, password);
+      if (result.ok) {
+        dispatch(
+          setAuth({
+            accessToken: '',
+            refreshToken: '',
+            userIdentifier: result.userIdentifier,
+          }),
+        );
+        setUser(mergeOeUser(result.user));
+        setIsLoggedIn(true);
+        setLoginModalOpen(false);
+        return true;
+      }
 
-    return false;
-  }, [dispatch]);
+      return false;
+    },
+    [dispatch],
+  );
 
   const startGoogleOAuth = useCallback(async (returnTo?: string): Promise<void> => {
     // Full-page redirect flow per MCP `auth-provider` rule. The callback
@@ -385,21 +426,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await kickOff(returnTo);
   }, []);
 
-  const signUp = useCallback(async (input: SignUpInput): Promise<{ ok: boolean; error?: string }> => {
-    const result = await signUpAction(input);
-    if (result.ok) {
-      dispatch(setAuth({
-        accessToken: '',
-        refreshToken: '',
-        userIdentifier: result.userIdentifier,
-      }));
-      setUser(mergeOeUser(result.user));
-      setIsLoggedIn(true);
-      setRegisterModalOpen(false);
-      return { ok: true };
-    }
-    return { ok: false, error: result.error };
-  }, [dispatch]);
+  const signUp = useCallback(
+    async (input: SignUpInput): Promise<{ ok: boolean; error?: string }> => {
+      const result = await signUpAction(input);
+      if (result.ok) {
+        dispatch(
+          setAuth({
+            accessToken: '',
+            refreshToken: '',
+            userIdentifier: result.userIdentifier,
+          }),
+        );
+        setUser(mergeOeUser(result.user));
+        setIsLoggedIn(true);
+        setRegisterModalOpen(false);
+        return { ok: true };
+      }
+      return { ok: false, error: result.error };
+    },
+    [dispatch],
+  );
 
   const logout = useCallback(() => {
     setIsLoggedIn(false);
@@ -426,7 +472,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.removeItem('oe_checkout_payload');
         sessionStorage.removeItem('oe_coupon_code');
         sessionStorage.removeItem('oe_last_order_id');
-      } catch { /* private mode / quota — silent no-op */ }
+      } catch {
+        /* private mode / quota — silent no-op */
+      }
       // Drop the anonymous fingerprint too — otherwise post-logout guest
       // activity (browsing, add-to-cart, orders placed as guest) keeps
       // aggregating under the just-signed-out user's `oe_guest_id` and
@@ -437,7 +485,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [dispatch]);
 
   const updateUser = useCallback((data: Partial<User>) => {
-    setUser(prev => prev ? { ...prev, ...data } : null);
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
   }, []);
 
   const refresh = useCallback(async () => {
@@ -445,54 +493,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (me) setUser(mergeOeUser(me));
   }, []);
 
-  const updateProfile = useCallback(async (patch: ProfileUpdate) => {
-    const res = await updateProfileAction(patch);
-    if (res.ok) await refresh();
-    return res;
-  }, [refresh]);
+  const updateProfile = useCallback(
+    async (patch: ProfileUpdate) => {
+      const res = await updateProfileAction(patch);
+      if (res.ok) await refresh();
+      return res;
+    },
+    [refresh],
+  );
 
   const updateAddresses = useCallback(async (addresses: OeAddress[]) => {
     const res = await updateAddressesAction(addresses);
     if (res.ok) {
       const persisted = res.addresses ?? addresses;
-      setUser(prev => prev ? { ...prev, addresses: persisted } : prev);
+      setUser((prev) => (prev ? { ...prev, addresses: persisted } : prev));
     }
     return res;
   }, []);
 
   const updateSubscriptions = useCallback(async (subs: OeSubscriptions) => {
     const res = await updateSubscriptionsAction(subs);
-    if (res.ok) setUser(prev => prev ? { ...prev, subscriptions: subs } : prev);
+    if (res.ok) setUser((prev) => (prev ? { ...prev, subscriptions: subs } : prev));
     return res;
   }, []);
 
   const updateConsent = useCallback(async (consent: OeConsent) => {
     const res = await updateConsentAction(consent);
-    if (res.ok) setUser(prev => prev ? { ...prev, consent } : prev);
+    if (res.ok) setUser((prev) => (prev ? { ...prev, consent } : prev));
     return res;
   }, []);
 
   const syncCart = useCallback(async (items: OeCartItem[]) => {
     const res = await syncCartAction(items);
-    if (res.ok) setUser(prev => prev ? { ...prev, cartItems: res.items } : prev);
+    if (res.ok) setUser((prev) => (prev ? { ...prev, cartItems: res.items } : prev));
   }, []);
 
   const syncWishlist = useCallback(async (items: OeWishlistItem[]) => {
     const res = await syncWishlistAction(items);
-    if (res.ok) setUser(prev => prev ? { ...prev, wishlistItems: res.items } : prev);
+    if (res.ok) setUser((prev) => (prev ? { ...prev, wishlistItems: res.items } : prev));
   }, []);
 
   return (
-    <AuthContext.Provider value={{
-      isLoggedIn, user, authReady,
-      loginModalOpen, registerModalOpen,
-      openLoginModal, closeLoginModal,
-      openRegisterModal, closeRegisterModal,
-      authError, setAuthError,
-      login, startGoogleOAuth, signUp, logout, updateUser,
-      updateProfile, updateAddresses, updateSubscriptions, updateConsent,
-      syncCart, syncWishlist,
-    }}>
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        user,
+        authReady,
+        loginModalOpen,
+        registerModalOpen,
+        openLoginModal,
+        closeLoginModal,
+        openRegisterModal,
+        closeRegisterModal,
+        authError,
+        setAuthError,
+        login,
+        startGoogleOAuth,
+        signUp,
+        logout,
+        updateUser,
+        updateProfile,
+        updateAddresses,
+        updateSubscriptions,
+        updateConsent,
+        syncCart,
+        syncWishlist,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

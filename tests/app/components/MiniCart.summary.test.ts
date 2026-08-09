@@ -11,7 +11,7 @@
  *
  * Tested as a pure function — no React / Next.js runtime required.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 interface MiniCartTotalInput {
   personalDiscount: number;

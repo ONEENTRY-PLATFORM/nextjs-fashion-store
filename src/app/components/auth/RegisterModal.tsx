@@ -1,17 +1,18 @@
-'use client'
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+import { Eye, EyeOff, X } from 'lucide-react';
 import Image from 'next/image';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { X, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { usePathname } from 'next/navigation';
-import { useSchemas } from '../../utils/useFormMessages';
-import { REGISTER_MODAL_LABELS as L } from '../../data/authLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
-import { useAuthProviders } from '../../hooks/useAuthProviders';
-import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../data/socialProviderRegistry';
+import React, { useEffect, useRef, useState } from 'react';
+
 import { useRouter } from '../../../lib/i18n/navigation';
+import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { useAuth } from '../../context/AuthContext';
+import { REGISTER_MODAL_LABELS } from '../../data/authLabels';
+import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '../../data/socialProviderRegistry';
+import { useAuthProviders } from '../../hooks/useAuthProviders';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useSchemas } from '../../utils/useFormMessages';
 
 /**
  * Consent / subscription checkbox.
@@ -29,7 +30,12 @@ import { useRouter } from '../../../lib/i18n/navigation';
  * behaviour is skipped when the click targets interactive content, so opening
  * the Terms link does not silently tick the box.
  */
-function Checkbox({ checked, onChange, children, testId }: {
+function Checkbox({
+  checked,
+  onChange,
+  children,
+  testId,
+}: {
   checked: boolean;
   onChange: () => void;
   children: React.ReactNode;
@@ -37,21 +43,15 @@ function Checkbox({ checked, onChange, children, testId }: {
   testId?: string;
 }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer text-xs text-gray-600 leading-relaxed">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        data-testid={testId}
-        className="sr-only peer"
-      />
+    <label className="flex cursor-pointer items-start gap-3 text-xs leading-relaxed text-gray-600">
+      <input type="checkbox" checked={checked} onChange={onChange} data-testid={testId} className="peer sr-only" />
       <span
         aria-hidden="true"
-        className={`shrink-0 w-4 h-4 mt-0.5 flex items-center justify-center border transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-black ${
+        className={`mt-0.5 flex size-4 shrink-0 items-center justify-center border transition-colors duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-black ${
           checked ? 'border-black bg-black' : 'border-gray-300 bg-white'
         }`}
       >
-        {checked && <Image src="/icons/ui/check.svg" alt="" width={8} height={8} className="w-2 h-2" unoptimized />}
+        {checked && <Image src="/icons/ui/check.svg" alt="" width={8} height={8} className="size-2" unoptimized />}
       </span>
       <span>{children}</span>
     </label>
@@ -59,19 +59,20 @@ function Checkbox({ checked, onChange, children, testId }: {
 }
 
 export function RegisterModal() {
+  const L = useDict('create_account_modal_', REGISTER_MODAL_LABELS);
   const schemas = useSchemas();
   const { registerModalOpen, closeRegisterModal, openLoginModal, signUp, login, startGoogleOAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isCheckout = pathname?.startsWith('/checkout');
   const trapRef = useFocusTrap(registerModalOpen, closeRegisterModal);
-  const lTitle      = useT('create_account_title',       L.title);
-  const lOr         = useT('create_account_or',          L.dividerOr);
+  const lTitle = useT('create_account_title', L.title);
+  const lOr = useT('create_account_or', L.dividerOr);
   const lBottomText = useT('create_account_bottom_text', L.switchPrompt);
-  const lSignIn     = useT('create_account_sign_in',     L.switchCta);
-  const lRegister   = useT('users_register_cta',         L.ctaSubmit);
-  const lGoogleFail = useT('create_account_google_failed',   L.errorGoogleFailed);
-  const lClose      = useT('create_account_close',           L.closeLabel);
+  const lSignIn = useT('create_account_sign_in', L.switchCta);
+  const lRegister = useT('users_register_cta', L.ctaSubmit);
+  const lGoogleFail = useT('create_account_google_failed', L.errorGoogleFailed);
+  const lClose = useT('create_account_close', L.closeLabel);
   const lLoadingOpt = useT('create_account_loading_options', L.loadingOptions);
   const schema = useSignUpFormSchema();
 
@@ -157,32 +158,33 @@ export function RegisterModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="register-modal-title"
-        className="relative bg-white w-full max-w-md flex flex-col max-h-[92vh] overflow-y-auto"
+        className="relative flex max-h-[92vh] w-full max-w-md flex-col overflow-y-auto bg-white"
       >
-
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 sticky top-0 bg-white z-10 border-b border-gray-200">
-          <h2 id="register-modal-title" className="text-lg tracking-[0.12em] uppercase font-bold">{lTitle}</h2>
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-8 py-5">
+          <h2 id="register-modal-title" className="text-lg font-bold tracking-[0.12em] uppercase">
+            {lTitle}
+          </h2>
           {/* Close button — guest checkout is enabled, so a visible X
               mirrors the backdrop-click behaviour and matches shopper
               expectations for a dismissable modal. */}
           <button
             aria-label={lClose}
             onClick={closeRegisterModal}
-            className="hover:opacity-60 transition-opacity focus-visible:outline-none"
+            className="transition-opacity hover:opacity-60 focus-visible:outline-none"
           >
             <X size={20} strokeWidth={1.5} />
           </button>
         </div>
 
-        <div className="px-8 py-6 space-y-5">
+        <div className="space-y-5 px-8 py-6">
           {/* Social — list from OE via `getAuthProviders()`. Only providers
               with client wiring in SOCIAL_PROVIDER_REGISTRY are actionable;
               the rest render disabled with a "Coming soon" hint. */}
           {authProvidersLoading ? (
             <div className="grid grid-cols-1 gap-2" aria-busy="true" aria-label={lLoadingOpt}>
               {[0, 1, 2].map((i) => (
-                <div key={i} className="py-3 h-9.5 border border-gray-200 bg-gray-100 animate-pulse" />
+                <div key={i} className="h-9.5 animate-pulse border border-gray-200 bg-gray-100 py-3" />
               ))}
             </div>
           ) : socialProviders.length > 0 ? (
@@ -195,10 +197,10 @@ export function RegisterModal() {
                     key={p.identifier}
                     onClick={() => handleSocial(p.identifier)}
                     disabled={!wired}
-                    className="flex items-center justify-center gap-1.5 py-3 text-xs border border-gray-300 font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+                    className="flex items-center justify-center gap-1.5 border border-gray-300 py-3 text-xs font-medium transition-colors duration-200 hover:bg-gray-50 focus-visible:outline-none active:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
                   >
                     {meta?.iconPath && (
-                      <Image src={meta.iconPath} alt="" width={16} height={16} className="w-4 h-4" unoptimized />
+                      <Image src={meta.iconPath} alt="" width={16} height={16} className="size-4" unoptimized />
                     )}
                     {wired ? p.title : `${p.title} — Coming soon`}
                   </button>
@@ -212,44 +214,52 @@ export function RegisterModal() {
           {(authProvidersLoading || socialProviders.length > 0) && (
             <div className="flex items-center gap-3">
               <div className="flex-1 border-t border-gray-200" />
-              <span className="text-xs text-gray-400 tracking-widest uppercase">{lOr}</span>
+              <span className="text-xs tracking-widest text-gray-400 uppercase">{lOr}</span>
               <div className="flex-1 border-t border-gray-200" />
             </div>
           )}
 
           {/* First Name */}
           <div>
-            <label className="block text-xs uppercase tracking-wide mb-1.5 font-semibold text-gray-600">
+            <label className="mb-1.5 block text-xs font-semibold tracking-wide text-gray-600 uppercase">
               {schema.first_name.title || L.firstNameLabel} <span className="text-primary-women">{L.required}</span>
             </label>
             <input
               type={schema.first_name.inputType || 'text'}
               value={firstName}
-              onChange={e => { setFirstName(e.target.value); setError(''); }}
+              onChange={(e) => {
+                setFirstName(e.target.value);
+                setError('');
+              }}
               placeholder={schema.first_name.placeholder || L.firstNamePlaceholder}
               autoComplete={schema.first_name.autoComplete || 'given-name'}
-              className="w-full px-4 py-3 text-sm outline-none border border-gray-300 focus:border-black transition-colors duration-200"
+              className="w-full border border-gray-300 px-4 py-3 text-sm transition-colors duration-200 outline-none focus:border-black"
             />
-            {schema.first_name.helperText && <p className="text-xs text-gray-400 mt-1">{schema.first_name.helperText}</p>}
+            {schema.first_name.helperText && (
+              <p className="mt-1 text-xs text-gray-400">{schema.first_name.helperText}</p>
+            )}
           </div>
 
           {/* Gender */}
           <div>
-            <label className="block text-xs uppercase tracking-wide mb-1.5 font-semibold text-gray-600">
+            <label className="mb-1.5 block text-xs font-semibold tracking-wide text-gray-600 uppercase">
               {schema.gender.title || L.genderLabel}
             </label>
             <div className="flex">
               {(schema.gender.options.length > 0
-                ? schema.gender.options.filter(o => o.value === 'female' || o.value === 'male')
-                : [{ value: 'female', title: L.genderFemale }, { value: 'male', title: L.genderMale }]
+                ? schema.gender.options.filter((o) => o.value === 'female' || o.value === 'male')
+                : [
+                    { value: 'female', title: L.genderFemale },
+                    { value: 'male', title: L.genderMale },
+                  ]
               ).map((opt, i) => (
                 <button
                   key={opt.value}
                   onClick={() => setGender(opt.value as 'female' | 'male')}
-                  className={`flex-1 py-3 text-sm capitalize tracking-wide transition-colors duration-200 focus-visible:outline-none ${
+                  className={`flex-1 py-3 text-sm tracking-wide capitalize transition-colors duration-200 focus-visible:outline-none ${
                     gender === opt.value
-                      ? 'border border-black bg-black text-white font-bold'
-                      : 'border border-gray-300 bg-white text-gray-600 font-normal hover:bg-gray-50'
+                      ? 'border border-black bg-black font-bold text-white'
+                      : 'border border-gray-300 bg-white font-normal text-gray-600 hover:bg-gray-50'
                   } ${i > 0 ? '-ml-px' : ''}`}
                 >
                   {opt.title}
@@ -260,58 +270,71 @@ export function RegisterModal() {
 
           {/* Email */}
           <div>
-            <label className="block text-xs uppercase tracking-wide mb-1.5 font-semibold text-gray-600">
+            <label className="mb-1.5 block text-xs font-semibold tracking-wide text-gray-600 uppercase">
               {schema.email.title || L.emailLabel}
             </label>
             <input
               type={schema.email.inputType || 'email'}
               value={email}
-              onChange={e => { setEmail(e.target.value); setError(''); }}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError('');
+              }}
               placeholder={schema.email.placeholder || L.emailPlaceholder}
               autoComplete={schema.email.autoComplete || 'email'}
-              className="w-full px-4 py-3 text-sm outline-none border border-gray-300 focus:border-black transition-colors duration-200"
+              className="w-full border border-gray-300 px-4 py-3 text-sm transition-colors duration-200 outline-none focus:border-black"
             />
-            {schema.email.helperText && <p className="text-xs text-gray-400 mt-1">{schema.email.helperText}</p>}
+            {schema.email.helperText && <p className="mt-1 text-xs text-gray-400">{schema.email.helperText}</p>}
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs uppercase tracking-wide mb-1.5 font-semibold text-gray-600">
+            <label className="mb-1.5 block text-xs font-semibold tracking-wide text-gray-600 uppercase">
               {schema.password.title || L.passwordLabel}
             </label>
             <div className="relative">
               <input
-                type={showPw ? 'text' : (schema.password.inputType || 'password')}
+                type={showPw ? 'text' : schema.password.inputType || 'password'}
                 value={password}
-                onChange={e => { setPassword(e.target.value); setError(''); }}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                }}
                 placeholder={schema.password.placeholder || L.passwordPlaceholder}
                 autoComplete={schema.password.autoComplete || 'new-password'}
-                className="w-full px-4 py-3 text-sm outline-none pr-10 border border-gray-300 focus:border-black transition-colors duration-200"
+                className="w-full border border-gray-300 px-4 py-3 pr-10 text-sm transition-colors duration-200 outline-none focus:border-black"
               />
-              <button onClick={() => setShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 focus-visible:outline-none">
+              <button
+                onClick={() => setShowPw((p) => !p)}
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 focus-visible:outline-none"
+              >
                 {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            {schema.password.helperText && <p className="text-xs text-gray-400 mt-1">{schema.password.helperText}</p>}
+            {schema.password.helperText && <p className="mt-1 text-xs text-gray-400">{schema.password.helperText}</p>}
           </div>
 
           {/* Marketing checkboxes */}
-          <div className="space-y-3 pt-4 border-t border-gray-100">
-            <Checkbox checked={emailSub} onChange={() => setEmailSub(p => !p)} testId="register-subscribe-email">
+          <div className="space-y-3 border-t border-gray-100 pt-4">
+            <Checkbox checked={emailSub} onChange={() => setEmailSub((p) => !p)} testId="register-subscribe-email">
               {schema.users_subscribe_to_promotional_email.title || L.emailSubscribe}
             </Checkbox>
-            <Checkbox checked={smsSub} onChange={() => setSmsSub(p => !p)} testId="register-subscribe-sms">
+            <Checkbox checked={smsSub} onChange={() => setSmsSub((p) => !p)} testId="register-subscribe-sms">
               {schema.users_subscribe_to_promotional_sms.title || L.smsSubscribe}
             </Checkbox>
           </div>
 
           {/* Legal */}
-          <div className="pt-4 border-t border-gray-100">
-            <Checkbox checked={agreed} onChange={() => setAgreed(p => !p)} testId="register-agree-terms">
+          <div className="border-t border-gray-100 pt-4">
+            <Checkbox checked={agreed} onChange={() => setAgreed((p) => !p)} testId="register-agree-terms">
               {schema.users_agree.text1 || L.agreePrefix}{' '}
-              <a href="#" className="underline text-black">{schema.users_agree.termsTitle || L.termsLink}</a>
-              {' '}{schema.users_agree.text2 || L.agreeAnd}{' '}
-              <a href="#" className="underline text-black">{schema.users_agree.privacyTitle || L.privacyLink}</a>{' '}
+              <a href="#" className="text-black underline">
+                {schema.users_agree.termsTitle || L.termsLink}
+              </a>{' '}
+              {schema.users_agree.text2 || L.agreeAnd}{' '}
+              <a href="#" className="text-black underline">
+                {schema.users_agree.privacyTitle || L.privacyLink}
+              </a>{' '}
               <span className="text-primary-women">{L.required}</span>
             </Checkbox>
           </div>
@@ -322,15 +345,18 @@ export function RegisterModal() {
           <button
             onClick={handleRegister}
             disabled={loading}
-            className="w-full py-4 text-white text-sm tracking-[0.2em] uppercase bg-black hover:bg-primary-women active:bg-primary-men font-semibold transition-colors duration-200 focus-visible:outline-none disabled:opacity-60 disabled:pointer-events-none"
+            className="w-full bg-black py-4 text-sm font-semibold tracking-[0.2em] text-white uppercase transition-colors duration-200 hover:bg-primary-women focus-visible:outline-none active:bg-primary-men disabled:pointer-events-none disabled:opacity-60"
           >
             {loading ? L.ctaLoading : lRegister}
           </button>
 
           {/* Switch */}
-          <p className="text-xs text-center text-gray-500 pb-2">
+          <p className="pb-2 text-center text-xs text-gray-500">
             {lBottomText}{' '}
-            <button onClick={openLoginModal} className="font-bold text-black hover:underline focus-visible:outline-none">
+            <button
+              onClick={openLoginModal}
+              className="font-bold text-black hover:underline focus-visible:outline-none"
+            >
               {lSignIn}
             </button>
           </p>

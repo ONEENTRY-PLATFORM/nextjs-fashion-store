@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+
 import { clearState } from './helpers';
 
 test.describe('Favorites / Wishlist', () => {
@@ -6,7 +7,7 @@ test.describe('Favorites / Wishlist', () => {
     await page.goto('/women/clothing');
     await clearState(page);
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState('networkidle');
   });
 
   test.describe('Empty state', () => {
@@ -19,12 +20,14 @@ test.describe('Favorites / Wishlist', () => {
     test('empty state has Browse and Home buttons', async ({ page }) => {
       await page.goto('/favorites');
       await page.waitForLoadState('networkidle');
-      const browseBtn = page.getByRole('button', { name: /browse/i }).or(
-        page.getByRole('link', { name: /browse/i })
-      ).first();
-      const homeBtn = page.getByRole('button', { name: /home/i }).or(
-        page.getByRole('link', { name: /home/i })
-      ).first();
+      const browseBtn = page
+        .getByRole('button', { name: /browse/i })
+        .or(page.getByRole('link', { name: /browse/i }))
+        .first();
+      const homeBtn = page
+        .getByRole('button', { name: /home/i })
+        .or(page.getByRole('link', { name: /home/i }))
+        .first();
       if (await browseBtn.isVisible()) await expect(browseBtn).toBeVisible();
       if (await homeBtn.isVisible()) await expect(homeBtn).toBeVisible();
     });
@@ -89,7 +92,7 @@ test.describe('Favorites / Wishlist', () => {
       // (its label is the colour name), so the reload below was followed by
       // no assertion at all and the test passed unconditionally.
       const swatches = page.getByTestId('color-swatch');
-      if (await swatches.count() > 1) {
+      if ((await swatches.count()) > 1) {
         const second = swatches.nth(1);
         if (await second.isEnabled()) {
           await second.click();
@@ -100,8 +103,7 @@ test.describe('Favorites / Wishlist', () => {
           await page.reload();
           await page.waitForLoadState('networkidle');
           // Second swatch should still be selected (via updateSelection)
-          await expect(page.getByTestId('color-swatch').nth(1))
-            .toHaveAttribute('aria-pressed', 'true');
+          await expect(page.getByTestId('color-swatch').nth(1)).toHaveAttribute('aria-pressed', 'true');
         }
       }
     });
@@ -131,9 +133,10 @@ test.describe('Favorites / Wishlist', () => {
 
     test('quick view opens from favorites', async ({ page }) => {
       await addAndGoToFavorites(page);
-      const favCard = page.locator('[class*="favorite"], [class*="Favorite"]').first().or(
-        page.locator('a[href*="/product/"]').first()
-      );
+      const favCard = page
+        .locator('[class*="favorite"], [class*="Favorite"]')
+        .first()
+        .or(page.locator('a[href*="/product/"]').first());
       if (await favCard.isVisible()) {
         await favCard.hover();
         await page.waitForTimeout(300);
@@ -193,7 +196,10 @@ test.describe('Favorites / Wishlist', () => {
         await card.hover();
         await page.waitForTimeout(200);
         const heart = card.getByRole('button', { name: /wishlist|favorite/i });
-        if (await heart.isVisible()) { await heart.click(); await page.waitForTimeout(300); }
+        if (await heart.isVisible()) {
+          await heart.click();
+          await page.waitForTimeout(300);
+        }
       }
       await page.goto('/favorites');
       await page.waitForLoadState('networkidle');
@@ -240,7 +246,10 @@ test.describe('Favorites / Wishlist', () => {
       const card = page.locator('a[href*="/product/"]').first();
       await card.hover();
       const heart = card.getByRole('button', { name: /wishlist|favorite/i });
-      if (await heart.isVisible()) { await heart.click(); await page.waitForTimeout(300); }
+      if (await heart.isVisible()) {
+        await heart.click();
+        await page.waitForTimeout(300);
+      }
       await page.goto('/favorites');
       await page.waitForLoadState('networkidle');
       const homeLink = page.locator('a[href="/"], button:has-text("Home")').first();
@@ -266,7 +275,10 @@ test.describe('Favorites / Wishlist', () => {
       await page.waitForLoadState('networkidle');
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(500);
-      const ctaLink = page.locator('a[href*="/women"], a[href*="/men"]').filter({ hasText: /shop|browse|view/i }).first();
+      const ctaLink = page
+        .locator('a[href*="/women"], a[href*="/men"]')
+        .filter({ hasText: /shop|browse|view/i })
+        .first();
       if (await ctaLink.isVisible()) {
         await ctaLink.click();
         await expect(page).not.toHaveURL('/favorites');
@@ -276,9 +288,10 @@ test.describe('Favorites / Wishlist', () => {
     test('carousel scroll left/right buttons work', async ({ page }) => {
       await page.goto('/favorites');
       await page.waitForLoadState('networkidle');
-      const rightBtn = page.getByRole('button', { name: /next|right|→/i }).or(
-        page.locator('button:has(svg)').filter({ hasText: '' }).nth(1)
-      ).first();
+      const rightBtn = page
+        .getByRole('button', { name: /next|right|→/i })
+        .or(page.locator('button:has(svg)').filter({ hasText: '' }).nth(1))
+        .first();
       if (await rightBtn.isVisible()) {
         await rightBtn.click();
         await page.waitForTimeout(500);

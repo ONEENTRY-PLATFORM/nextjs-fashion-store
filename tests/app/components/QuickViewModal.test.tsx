@@ -7,9 +7,9 @@
  * 3. Clicking a color swatch on a one-size product → size stays selected.
  * 4. Clicking a color swatch on a multi-size product → size resets to null.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks — order matters: vi.mock() is hoisted, keep deps simple
@@ -80,7 +80,13 @@ vi.mock('@/app/utils/review-eligibility', () => ({
 
 vi.mock('next/image', () => ({
   // Render a plain <img> so we don't need the Next.js image optimisation pipeline.
-  default: ({ src, alt, fill: _fill, sizes: _sizes, ...rest }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; sizes?: string }) => (
+  default: ({
+    src,
+    alt,
+    fill: _fill,
+    sizes: _sizes,
+    ...rest
+  }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; sizes?: string }) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src as string} alt={alt ?? ''} {...rest} />
   ),
@@ -196,9 +202,7 @@ describe('QuickViewModal — size auto-selection', () => {
     const strikeElements = document.querySelectorAll('.line-through');
     // Filter to only the price strike-through (exclude size-OOS strikethroughs
     // which also use line-through but appear inside button elements)
-    const priceStrike = Array.from(strikeElements).filter(
-      (el) => el.tagName.toLowerCase() === 'span'
-    );
+    const priceStrike = Array.from(strikeElements).filter((el) => el.tagName.toLowerCase() === 'span');
     expect(priceStrike).toHaveLength(0);
   });
 

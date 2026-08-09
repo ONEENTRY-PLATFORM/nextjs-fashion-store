@@ -1,34 +1,43 @@
-import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { getApi, isError, isOneEntryEnabled } from '../index';
-import { withTiming } from '../profiling';
-import { loadProducts, type LoadProductsOptions } from '../catalog/products';
-import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
-import type { Product } from '../../../app/components/product/ProductCard';
-import { DEFAULT_LOCALE } from '../locale';
-import { REVALIDATE_HOME } from '../../isr';
+import { cache } from 'react';
 
-/** Block descriptor returned by `loadPageBlocks`. Generic enough that the
+import type { Product } from '../../../app/components/product/ProductCard';
+import { REVALIDATE_HOME } from '../../isr';
+import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
+import { loadProducts, type LoadProductsOptions } from '../catalog/products';
+import { getApi, isError, isOneEntryEnabled } from '../index';
+import { DEFAULT_LOCALE } from '../locale';
+import { withTiming } from '../profiling';
+
+/**
+ * Block descriptor returned by `loadPageBlocks`. Generic enough that the
  *  consumer (HomePage / PageBlocksRenderer) can switch on `type` + `marker`
  *  to pick the right storefront component AND drive content from
  *  `attributeValues` for admin-created blocks that don't match a hardcoded
- *  marker in the renderer. */
+ *  marker in the renderer.
+ */
 export interface PageBlock {
   marker: string;
   type: string;
   title: string;
   /** Position from OE — already used for sorting before return. */
   position: number;
-  /** For product-list blocks (`trending_block`, `similar_products_block`,
-   *  `product_block`) the resolved products. Empty array otherwise. */
+  /**
+   * For product-list blocks (`trending_block`, `similar_products_block`,
+   *  `product_block`) the resolved products. Empty array otherwise.
+   */
   products: Product[];
-  /** Raw `attributeValues` from OE — passed through so generic type-based
+  /**
+   * Raw `attributeValues` from OE — passed through so generic type-based
    *  renderers can extract image / eyebrow / subtitle / description / CTA
    *  / href without hardcoding the marker. Shape is admin-defined
-   *  (per `attributeSetIdentifier`), so the renderer reads heuristically. */
+   *  (per `attributeSetIdentifier`), so the renderer reads heuristically.
+   */
   attributeValues?: Record<string, unknown>;
-  /** For `slider_block` type — raw slides array from `Blocks.getSlides(marker)`,
-   *  each carrying its own `attributeValues`. Empty/undefined otherwise. */
+  /**
+   * For `slider_block` type — raw slides array from `Blocks.getSlides(marker)`,
+   *  each carrying its own `attributeValues`. Empty/undefined otherwise.
+   */
   slides?: Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
 }
 
@@ -83,7 +92,8 @@ const getCachedSlides = unstable_cache(
     if (isError(result)) return [] as Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
     const arr = Array.isArray(result)
       ? result
-      : (result as unknown as { items?: Array<{ id?: number; attributeValues?: Record<string, unknown> }> })?.items ?? [];
+      : ((result as unknown as { items?: Array<{ id?: number; attributeValues?: Record<string, unknown> }> })?.items ??
+        []);
     return arr;
   },
   ['oe-block-slides'],
@@ -97,7 +107,7 @@ const getCachedTrending = unstable_cache(
     // SDK returns either an array or `{ items }` depending on shape.
     const arr = Array.isArray(result)
       ? result
-      : (result as unknown as { items?: Array<{ id?: number }> })?.items ?? [];
+      : ((result as unknown as { items?: Array<{ id?: number }> })?.items ?? []);
     return arr as Array<{ id?: number }>;
   },
   ['oe-block-trending'],
@@ -149,8 +159,9 @@ async function getFrequentlyOrderedDedup(
   const key = `${marker}::${productId}::${lang}`;
   const existing = inflight.get(key);
   if (existing) return existing;
-  const p = getCachedFrequentlyOrdered(marker, productId, lang)
-    .finally(() => { inflight.delete(key); });
+  const p = getCachedFrequentlyOrdered(marker, productId, lang).finally(() => {
+    inflight.delete(key);
+  });
   inflight.set(key, p);
   return p;
 }
@@ -192,11 +203,7 @@ async function _loadBlockWithProducts(
   const block = await getCachedBlock(marker, lang, 12);
   if (!block) return null;
 
-  const title = (
-    block.localizeInfos?.en_US?.title
-    ?? block.localizeInfos?.title
-    ?? ''
-  ).toString().trim();
+  const title = (block.localizeInfos?.en_US?.title ?? block.localizeInfos?.title ?? '').toString().trim();
   const type = block.type ?? '';
   const position = Number(block.position ?? 0);
   const limit = Number(block.quantity ?? 12) || 12;
@@ -206,12 +213,11 @@ async function _loadBlockWithProducts(
     // Trending blocks read from a separate endpoint that consumes the OE
     // activity stream (views / add-to-cart / purchases) — `getBlockByMarker`
     // doesn't inline products for that type.
-    const inlineItems = type === 'trending_block'
-      ? await getCachedTrending(marker, lang)
-      : (block.similarProducts?.items ?? block.products ?? []);
-    const ids = inlineItems
-      .map((it) => Number(it?.id))
-      .filter((n) => Number.isFinite(n) && n > 0);
+    const inlineItems =
+      type === 'trending_block'
+        ? await getCachedTrending(marker, lang)
+        : (block.similarProducts?.items ?? block.products ?? []);
+    const ids = inlineItems.map((it) => Number(it?.id)).filter((n) => Number.isFinite(n) && n > 0);
     if (ids.length > 0) {
       const { items } = await loadProducts({ ids, limit: ids.length });
       products = items.map(adaptCatalogProductToUiProduct);
@@ -220,13 +226,8 @@ async function _loadBlockWithProducts(
     // page size, re-fetch with the actual limit.
     if (products.length === 0 && limit !== 12) {
       const bigger = await getCachedBlock(marker, lang, limit);
-      const items =
-        bigger?.similarProducts?.items
-        ?? bigger?.products
-        ?? [];
-      const ids2 = items
-        .map((it) => Number(it?.id))
-        .filter((n) => Number.isFinite(n) && n > 0);
+      const items = bigger?.similarProducts?.items ?? bigger?.products ?? [];
+      const ids2 = items.map((it) => Number(it?.id)).filter((n) => Number.isFinite(n) && n > 0);
       if (ids2.length > 0) {
         const { items: catalogItems } = await loadProducts({ ids: ids2, limit: ids2.length });
         products = catalogItems.map(adaptCatalogProductToUiProduct);
@@ -249,16 +250,16 @@ async function _loadBlockWithProducts(
   // Slider blocks carry their content as a separate tree — fetch alongside
   // the block metadata so `<GenericSliderBlock>` doesn't need a follow-up
   // round-trip on the client.
-  const slides = type === 'slider_block'
-    ? await getCachedSlides(marker)
-    : undefined;
+  const slides = type === 'slider_block' ? await getCachedSlides(marker) : undefined;
 
   return { marker, type, title, position, products, attributeValues: block.attributeValues, slides };
 }
 
-/** Marker → product `label` used as the fallback tag when OE's similarity
+/**
+ * Marker → product `label` used as the fallback tag when OE's similarity
  *  block returns no items. Order matters — the client renders however OE
- *  positions the block, but the fallback pulls only tagged products. */
+ *  positions the block, but the fallback pulls only tagged products.
+ */
 const HOMEPAGE_FALLBACK_LABELS: Record<string, string> = {
   homepage_new_arrivals: 'NEW',
   homepage_best_sellers: 'BESTSELLER',
@@ -283,8 +284,9 @@ async function loadHomepageBlockFallback(marker: string, limit: number, lang: st
  * empty segment). Returns each attached block with title, type and (for
  * product-list blocks) resolved products, in admin-defined order.
  */
-export const loadPageBlocksById = withTiming('loadPageBlocksById', cache(
-  async (pageId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+export const loadPageBlocksById = withTiming(
+  'loadPageBlocksById',
+  cache(async (pageId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
     if (!isOneEntryEnabled) return [];
     const page = await getCachedPageById(pageId, lang);
     if (!page) return [];
@@ -297,22 +299,20 @@ export const loadPageBlocksById = withTiming('loadPageBlocksById', cache(
       .map((b): string | null => {
         if (typeof b === 'string') return b.trim() || null;
         if (b && typeof b === 'object') {
-          const marker = (b as { marker?: unknown; identifier?: unknown }).marker
-            ?? (b as { identifier?: unknown }).identifier;
+          const marker =
+            (b as { marker?: unknown; identifier?: unknown }).marker ?? (b as { identifier?: unknown }).identifier;
           return typeof marker === 'string' && marker.trim() ? marker.trim() : null;
         }
         return null;
       })
       .filter((m): m is string => m !== null);
     if (markers.length === 0) return [];
-    const blocks = await Promise.all(
-      markers.map((m) => loadBlockWithProducts(m, { lang })),
-    );
+    const blocks = await Promise.all(markers.map((m) => loadBlockWithProducts(m, { lang })));
     return blocks
       .filter((b): b is PageBlock => b !== null)
       .sort((a, b) => a.position - b.position || markers.indexOf(a.marker) - markers.indexOf(b.marker));
-  },
-));
+  }),
+);
 
 export const HOME_PAGE_ID = 1;
 
@@ -334,8 +334,9 @@ const getCachedBlocksByPageUrl = unstable_cache(
   { revalidate: REVALIDATE_HOME, tags: ['oe-page', 'oe-block'] },
 );
 
-export const loadPageBlocksByUrl = withTiming('loadPageBlocksByUrl', cache(
-  async (pageUrl: string, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+export const loadPageBlocksByUrl = withTiming(
+  'loadPageBlocksByUrl',
+  cache(async (pageUrl: string, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
     if (!isOneEntryEnabled) return [];
     if (!pageUrl || typeof pageUrl !== 'string') return [];
     const raw = await getCachedBlocksByPageUrl(pageUrl, lang);
@@ -344,14 +345,12 @@ export const loadPageBlocksByUrl = withTiming('loadPageBlocksByUrl', cache(
       .map((b) => (typeof b.identifier === 'string' ? b.identifier.trim() : ''))
       .filter((m): m is string => m.length > 0);
     if (markers.length === 0) return [];
-    const blocks = await Promise.all(
-      markers.map((m) => loadBlockWithProducts(m, { lang })),
-    );
+    const blocks = await Promise.all(markers.map((m) => loadBlockWithProducts(m, { lang })));
     return blocks
       .filter((b): b is PageBlock => b !== null)
       .sort((a, b) => a.position - b.position || markers.indexOf(a.marker) - markers.indexOf(b.marker));
-  },
-));
+  }),
+);
 
 /**
  * Fetch the blocks attached to a specific product entity in OE (e.g. a
@@ -369,8 +368,9 @@ const getCachedProductBlocks = unstable_cache(
   { revalidate: REVALIDATE_HOME, tags: ['oe-product', 'oe-block'] },
 );
 
-export const loadProductBlocks = withTiming('loadProductBlocks', cache(
-  async (productId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+export const loadProductBlocks = withTiming(
+  'loadProductBlocks',
+  cache(async (productId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
     if (!isOneEntryEnabled) return [];
     if (!Number.isFinite(productId) || productId <= 0) return [];
     const raw = await getCachedProductBlocks(productId);
@@ -379,14 +379,12 @@ export const loadProductBlocks = withTiming('loadProductBlocks', cache(
       .map((b) => (typeof b.identifier === 'string' ? b.identifier.trim() : ''))
       .filter((m): m is string => m.length > 0);
     if (markers.length === 0) return [];
-    const blocks = await Promise.all(
-      markers.map((m) => loadBlockWithProducts(m, { lang })),
-    );
+    const blocks = await Promise.all(markers.map((m) => loadBlockWithProducts(m, { lang })));
     return blocks
       .filter((b): b is PageBlock => b !== null)
       .sort((a, b) => a.position - b.position || markers.indexOf(a.marker) - markers.indexOf(b.marker));
-  },
-));
+  }),
+);
 
 /**
  * Resolve a `frequently_ordered_block` for a specific product. OE aggregates
@@ -405,11 +403,7 @@ async function _loadFrequentlyOrderedBlock(
   if (!Number.isFinite(productId) || productId <= 0) return null;
 
   const block = await getCachedBlock(marker, lang, 12);
-  const title = (
-    block?.localizeInfos?.en_US?.title
-    ?? block?.localizeInfos?.title
-    ?? ''
-  ).toString().trim();
+  const title = (block?.localizeInfos?.en_US?.title ?? block?.localizeInfos?.title ?? '').toString().trim();
   const type = block?.type ?? 'frequently_ordered_block';
   const position = Number(block?.position ?? 0);
 
@@ -427,9 +421,7 @@ async function _loadFrequentlyOrderedBlock(
     getFrequentlyOrderedDedup(marker, productId, lang),
     new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
   ]);
-  const ids = (data?.items ?? [])
-    .map((it) => Number(it?.id))
-    .filter((n) => Number.isFinite(n) && n > 0);
+  const ids = (data?.items ?? []).map((it) => Number(it?.id)).filter((n) => Number.isFinite(n) && n > 0);
 
   let products: Product[] = [];
   if (ids.length > 0) {

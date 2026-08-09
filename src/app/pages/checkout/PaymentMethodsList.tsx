@@ -1,7 +1,8 @@
 'use client';
 import { Banknote, CreditCard, Lock, QrCode, Smartphone, Wallet } from 'lucide-react';
-import { OptionCard } from './PaymentPage.parts';
+
 import type { PaymentAccount } from '../../../lib/oneentry/payments/accounts';
+import { OptionCard } from './PaymentPage.parts';
 
 // Pick an icon based on OE `identifier` — hand-picked substrings so cash /
 // wallets / card methods each get a recognisable glyph. Unknown identifiers
@@ -51,9 +52,9 @@ export function PaymentMethodsList({
       subtitle={acc.description || undefined}
     >
       {acc.type === 'stripe' && (
-        <div className="pt-4 flex items-start gap-3 px-4 py-3 bg-[#fafafa] border border-[#e5e7eb]">
-          <Lock size={16} className="text-green-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-600 leading-relaxed">{redirectHint}</p>
+        <div className="flex items-start gap-3 border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 pt-4">
+          <Lock size={16} className="mt-0.5 shrink-0 text-green-600" />
+          <p className="text-xs leading-relaxed text-gray-600">{redirectHint}</p>
         </div>
       )}
     </OptionCard>
@@ -63,7 +64,7 @@ export function PaymentMethodsList({
     <>
       {offline.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-xs tracking-[0.2em] uppercase mb-4 px-1 font-bold text-gray-400">
+          <h2 className="mb-4 px-1 text-xs font-bold tracking-[0.2em] text-gray-400 uppercase">
             {offlineSectionTitle}
           </h2>
           {offline.map(renderCard)}
@@ -71,18 +72,16 @@ export function PaymentMethodsList({
       )}
 
       {offline.length > 0 && online.length > 0 && (
-        <div className="flex items-center gap-3 mb-6 text-gray-400">
+        <div className="mb-6 flex items-center gap-3 text-gray-400">
           <div className="flex-1 border-t border-[#e5e7eb]" />
-          <span className="text-xs tracking-widest uppercase font-semibold">{dividerLabel}</span>
+          <span className="text-xs font-semibold tracking-widest uppercase">{dividerLabel}</span>
           <div className="flex-1 border-t border-[#e5e7eb]" />
         </div>
       )}
 
       {online.length > 0 && (
         <div>
-          <h2 className="text-xs tracking-[0.2em] uppercase mb-4 px-1 font-bold text-gray-400">
-            {onlineSectionTitle}
-          </h2>
+          <h2 className="mb-4 px-1 text-xs font-bold tracking-[0.2em] text-gray-400 uppercase">{onlineSectionTitle}</h2>
           {online.map(renderCard)}
         </div>
       )}

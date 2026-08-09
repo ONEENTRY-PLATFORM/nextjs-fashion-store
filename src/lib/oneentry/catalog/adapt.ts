@@ -1,21 +1,37 @@
-import type { CatalogProduct } from './products';
 import type { Product } from '../../../app/components/product/ProductCard';
-import type { CatalogProduct as PdpCatalogProduct } from '../../../app/data/productCatalog';
 import { CURRENCY } from '../../../app/data/currencyConfig';
+import type { CatalogProduct as PdpCatalogProduct } from '../../../app/data/productCatalog';
+import type { CatalogProduct } from './products';
 
 const COLOR_NAME_TO_HEX: Record<string, string> = {
-  black: '#000000', white: '#FFFFFF', grey: '#808080', gray: '#808080',
-  red: '#DA1E1E', blue: '#1B3A5C', navy: '#1B3A5C', green: '#16A34A',
-  brown: '#8B4513', camel: '#C19A6B', beige: '#D2B48C',
-  burgundy: '#800020', pink: '#FFC0CB', purple: '#7C3AED',
-  yellow: '#FFD700', orange: '#FFA500', cream: '#FFFDD0',
-  ivory: '#FFFFF0', khaki: '#BDB76B', olive: '#808000',
-  multicolour: '#7C3AED', multicolor: '#7C3AED', silver: '#C0C0C0',
-  gold: '#FFD700', taupe: '#8B7355',
+  black: '#000000',
+  white: '#FFFFFF',
+  grey: '#808080',
+  gray: '#808080',
+  red: '#DA1E1E',
+  blue: '#1B3A5C',
+  navy: '#1B3A5C',
+  green: '#16A34A',
+  brown: '#8B4513',
+  camel: '#C19A6B',
+  beige: '#D2B48C',
+  burgundy: '#800020',
+  pink: '#FFC0CB',
+  purple: '#7C3AED',
+  yellow: '#FFD700',
+  orange: '#FFA500',
+  cream: '#FFFDD0',
+  ivory: '#FFFFF0',
+  khaki: '#BDB76B',
+  olive: '#808000',
+  multicolour: '#7C3AED',
+  multicolor: '#7C3AED',
+  silver: '#C0C0C0',
+  gold: '#FFD700',
+  taupe: '#8B7355',
 };
 
-const colorToHex = (name: string): string =>
-  COLOR_NAME_TO_HEX[name.toLowerCase().trim()] ?? '#999999';
+const colorToHex = (name: string): string => COLOR_NAME_TO_HEX[name.toLowerCase().trim()] ?? '#999999';
 
 const TAG_TO_LABEL: Record<string, string> = {
   Sale: 'SALE',
@@ -59,9 +75,10 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
   // variant carrying it has stock. Without this every swatch is clickable and
   // the shopper only learns a colour is sold out after opening the PDP.
   const srcVariants = Array.isArray(p.variants) ? p.variants : [];
-  const colorStock = srcVariants.length > 0
-    ? p.colors.map((c) => srcVariants.some((v) => v.colors.includes(c) && variantHasStock(v)))
-    : undefined;
+  const colorStock =
+    srcVariants.length > 0
+      ? p.colors.map((c) => srcVariants.some((v) => v.colors.includes(c) && variantHasStock(v)))
+      : undefined;
   return {
     id: String(p.id),
     name: p.title,
@@ -115,10 +132,11 @@ function genderFromCategoryPath(path: string | undefined): 'W' | 'M' | '' {
  * `SALE_CATEGORY_LABELS` (OE set `sale_page`), keyed by exactly these ids.
  */
 export type SaleCategoryId =
-  | 'womenClothing' | 'menClothing' | 'womenShoes' | 'menShoes'
-  | 'bags' | 'accessories' | 'other';
+  'womenClothing' | 'menClothing' | 'womenShoes' | 'menShoes' | 'bags' | 'accessories' | 'other';
 
-/** Infer the Sale-page bucket from an OneEntry category path. */
+/**
+ * Infer the Sale-page bucket from an OneEntry category path.
+ */
 export function saleCategoryFor(p: CatalogProduct): SaleCategoryId {
   const path = (p.categories[0] ?? '').toLowerCase();
   if (path.startsWith('/women/women_clothing')) return 'womenClothing';
@@ -133,7 +151,9 @@ export function saleCategoryFor(p: CatalogProduct): SaleCategoryId {
 /** New-Arrivals bucket ids — see the note on `SaleCategoryId`. */
 export type NewArrivalCategoryId = 'clothing' | 'shoes' | 'accessories';
 
-/** Infer the New-Arrivals bucket from an OneEntry category path. */
+/**
+ * Infer the New-Arrivals bucket from an OneEntry category path.
+ */
 export function newArrivalCategoryFor(p: CatalogProduct): NewArrivalCategoryId {
   const path = (p.categories[0] ?? '').toLowerCase();
   if (path.includes('_shoes')) return 'shoes';
@@ -222,7 +242,10 @@ export function adaptCatalogProductToPdpProduct(
     ...(p.stock > 0 && { stock: p.stock }),
     galleryImages: p.images.length > 0 ? p.images : undefined,
     imageBlurs: p.imageBlurs,
-    sizeOptions: p.sizes.map((s) => ({ label: s, available: sizeAvailability ? sizeAvailability.get(s) ?? true : true })),
+    sizeOptions: p.sizes.map((s) => ({
+      label: s,
+      available: sizeAvailability ? (sizeAvailability.get(s) ?? true) : true,
+    })),
     // The detail accordion expects an array of short bullets — `productDetails`
     // already comes from the OE `details_5` list. The long description is
     // separately surfaced as `descriptionHtml` so the PDP can render its full
@@ -239,12 +262,13 @@ export function adaptCatalogProductToPdpProduct(
   };
 }
 
-/** Stable identifiers for the Specifications rows. The row *label* is editable
+/**
+ * Stable identifiers for the Specifications rows. The row *label* is editable
  *  in the admin panel (`product_specs` set), so anything that needs to find a
  *  specific row — the PDP's SKU lookup, for one — must match on `key`, never
- *  on the rendered label. */
-export type ProductSpecKey =
-  | 'composition' | 'lining' | 'fit' | 'style' | 'season' | 'brandOrigin' | 'sku';
+ *  on the rendered label.
+ */
+export type ProductSpecKey = 'composition' | 'lining' | 'fit' | 'style' | 'season' | 'brandOrigin' | 'sku';
 
 /** Offline defaults, kept in sync with the `product_specs` OE set. */
 export const PRODUCT_SPEC_FALLBACK_LABELS: Record<ProductSpecKey, string> = {
@@ -257,7 +281,8 @@ export const PRODUCT_SPEC_FALLBACK_LABELS: Record<ProductSpecKey, string> = {
   sku: 'SKU',
 };
 
-/** Build a per-product Specifications list from OE attributes. Skips empty or
+/**
+ * Build a per-product Specifications list from OE attributes. Skips empty or
  *  whitespace-only values so empty fields don't leak into the PDP.
  *
  * @param labels Admin-panel overrides from the `product_specs` set, loaded by
@@ -287,7 +312,9 @@ function buildProductSpecs(
     .filter((row) => row.value.length > 0);
 }
 
-/** Map a catalog slug (e.g. "women-clothing") to its OneEntry category path. */
+/**
+ * Map a catalog slug (e.g. "women-clothing") to its OneEntry category path.
+ */
 export function catalogKeyToCategoryPath(catalogKey: string): string | null {
   const map: Record<string, string> = {
     'women-clothing': '/women/women_clothing',

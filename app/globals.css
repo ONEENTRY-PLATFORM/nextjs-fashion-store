@@ -33,8 +33,8 @@
   --font-weight-normal: 400;
   --ring: oklch(0.708 0 0);
   /* ── Brand tokens ── */
-  --primary-women: #F88A8A;
-  --primary-men: #DA1E1E;
+  --primary-women: #f88a8a;
+  --primary-men: #da1e1e;
   --radius: 0.625rem;
 }
 
@@ -94,7 +94,12 @@
 }
 
 @layer base {
-  button, a, [role="button"], select, label[for], summary {
+  button,
+  a,
+  [role='button'],
+  select,
+  label[for],
+  summary {
     cursor: pointer;
   }
 
@@ -137,9 +142,18 @@
   }
 
   @media (max-width: 768px) {
-    h1 { font-size: 2rem;   line-height: 1.25; }
-    h2 { font-size: 1.5rem; line-height: 1.333; }
-    h3 { font-size: 1.25rem; line-height: 1.4; }
+    h1 {
+      font-size: 2rem;
+      line-height: 1.25;
+    }
+    h2 {
+      font-size: 1.5rem;
+      line-height: 1.333;
+    }
+    h3 {
+      font-size: 1.25rem;
+      line-height: 1.4;
+    }
   }
 
   label {
@@ -173,24 +187,44 @@
 /* ── Pink scrollbar (Women's filter bar) ── */
 .scrollbar-pink {
   scrollbar-width: thin;
-  scrollbar-color: #F88A8A transparent;
+  scrollbar-color: #f88a8a transparent;
   overflow-y: hidden;
 }
-.scrollbar-pink::-webkit-scrollbar { height: 1px; width: 0; }
-.scrollbar-pink::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-pink::-webkit-scrollbar-thumb { background-color: #F88A8A; border-radius: 0; }
-.scrollbar-pink::-webkit-scrollbar-button { display: none; }
+.scrollbar-pink::-webkit-scrollbar {
+  height: 1px;
+  width: 0;
+}
+.scrollbar-pink::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-pink::-webkit-scrollbar-thumb {
+  background-color: #f88a8a;
+  border-radius: 0;
+}
+.scrollbar-pink::-webkit-scrollbar-button {
+  display: none;
+}
 
 /* ── Red scrollbar (Men's filter bar) ── */
 .scrollbar-red {
   scrollbar-width: thin;
-  scrollbar-color: #DA1E1E transparent;
+  scrollbar-color: #da1e1e transparent;
   overflow-y: hidden;
 }
-.scrollbar-red::-webkit-scrollbar { height: 1px; width: 0; }
-.scrollbar-red::-webkit-scrollbar-track { background: transparent; }
-.scrollbar-red::-webkit-scrollbar-thumb { background-color: #DA1E1E; border-radius: 0; }
-.scrollbar-red::-webkit-scrollbar-button { display: none; }
+.scrollbar-red::-webkit-scrollbar {
+  height: 1px;
+  width: 0;
+}
+.scrollbar-red::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-red::-webkit-scrollbar-thumb {
+  background-color: #da1e1e;
+  border-radius: 0;
+}
+.scrollbar-red::-webkit-scrollbar-button {
+  display: none;
+}
 
 /* ── Hero section H1 typography ── */
 .hero-h1 {
@@ -203,6 +237,12 @@
 /* ── Homepage animations ── */
 /* Used by CategorySection for staggered card entrance on first visit */
 @keyframes hp-fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

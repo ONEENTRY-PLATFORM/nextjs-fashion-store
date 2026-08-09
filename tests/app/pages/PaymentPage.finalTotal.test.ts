@@ -13,17 +13,14 @@
  *
  * Tested as a pure function — no React / Next.js runtime required.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 interface ActivePreview {
   totalDue: number;
 }
 
 /** Mirrors the exact derivation in PaymentPage.tsx line 102. */
-function deriveFinalTotal(
-  activePreview: ActivePreview | null,
-  total: number,
-): number {
+function deriveFinalTotal(activePreview: ActivePreview | null, total: number): number {
   // activeTotalDue mirrors: activePreview?.totalDue ?? total
   const activeTotalDue = activePreview?.totalDue ?? total;
   return activePreview ? activeTotalDue : total;

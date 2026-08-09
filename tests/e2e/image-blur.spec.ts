@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 /**
  * LQIP blur placeholders on CMS pictures.
@@ -27,8 +27,9 @@ async function blurState(page: Page) {
       flaggedOn: imgs.filter((i) => i.dataset.blur === 'on').length,
       painted: imgs.filter((i) => (i.style.backgroundImage || '').includes('feGaussianBlur')).length,
       // The LQIP itself lives inside the SVG filter Next wraps around it.
-      carriesLqip: imgs.filter((i) => decodeURIComponent(i.style.backgroundImage || '')
-        .includes('data:image/webp;base64')).length,
+      carriesLqip: imgs.filter((i) =>
+        decodeURIComponent(i.style.backgroundImage || '').includes('data:image/webp;base64'),
+      ).length,
     };
   });
 }
@@ -66,9 +67,9 @@ test.describe('CMS image blur placeholder', () => {
     expect(state.carriesLqip).toBe(state.painted);
 
     // The container must not be hidden behind an opacity gate while it waits.
-    const opacity = await cmsImages(page).first().evaluate(
-      (img) => getComputedStyle(img.parentElement as HTMLElement).opacity,
-    );
+    const opacity = await cmsImages(page)
+      .first()
+      .evaluate((img) => getComputedStyle(img.parentElement as HTMLElement).opacity);
     expect(Number(opacity)).toBeGreaterThan(0);
   });
 

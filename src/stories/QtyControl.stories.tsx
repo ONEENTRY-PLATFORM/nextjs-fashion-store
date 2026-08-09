@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
+
 import { QtyControl } from '../app/components/ui/QtyControl';
 
 const meta = {

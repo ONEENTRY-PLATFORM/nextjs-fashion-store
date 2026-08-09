@@ -1,63 +1,71 @@
-'use client'
-import React, { useState, useEffect } from 'react';
-import { ImageWithFallback } from '../components/ui/ImageWithFallback';
-
-import { Header } from '../components/header/Header';
-import { Footer } from '../components/footer/Footer';
-import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
-import { trackActivity } from '../utils/track-activity';
-import { getOrCreateGuestId } from '../utils/guest-id';
+'use client';
 import { Lock, Shield } from 'lucide-react';
-import { SALE_COLOR } from '../constants/colors';
-import { fmt } from '../utils/formatPrice';
-import { PAYMENT_PAGE_LABELS } from '../data/paymentMethodsConfig';
-import { ORDER_SUMMARY_LABELS as OS } from '../data/checkoutLabels';
-import { CART_LINE_LABELS as CLL } from '../data/commonLabels';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import { getPaymentAccountsAction, type PaymentAccount } from '../../lib/oneentry/payments/accounts';
-import { extractCmsProductId } from '../data/cms-product-id-map';
-import { PaymentMethodsList } from './checkout/PaymentMethodsList';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { useMounted } from '../hooks/useMounted';
+import React, { useEffect, useState } from 'react';
+
 import { useRouter } from '../../lib/i18n/navigation';
+import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
+import { getPaymentAccountsAction, type PaymentAccount } from '../../lib/oneentry/payments/accounts';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
+import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
+import { Footer } from '../components/footer/Footer';
+import { Header } from '../components/header/Header';
+import { ImageWithFallback } from '../components/ui/ImageWithFallback';
+import { SALE_COLOR } from '../constants/colors';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { ORDER_SUMMARY_LABELS } from '../data/checkoutLabels';
+import { extractCmsProductId } from '../data/cms-product-id-map';
+import { CART_LINE_LABELS } from '../data/commonLabels';
+import { PAYMENT_PAGE_LABELS } from '../data/paymentMethodsConfig';
+import { useMounted } from '../hooks/useMounted';
+import { fmt } from '../utils/formatPrice';
+import { getOrCreateGuestId } from '../utils/guest-id';
+import { trackActivity } from '../utils/track-activity';
+import { PaymentMethodsList } from './checkout/PaymentMethodsList';
 
 export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
+  const OS = useDict('checkout_payment_summary_', ORDER_SUMMARY_LABELS);
+  const CLL = useDict('interface_controls_cart_line_', CART_LINE_LABELS);
   const router = useRouter();
-  const { items, total, subtotal, clearCart, couponCode, preview: cartPreview, previewLoading: cartPreviewLoading, giftItems } = useCart();
+  const {
+    items,
+    total,
+    subtotal,
+    clearCart,
+    couponCode,
+    preview: cartPreview,
+    previewLoading: cartPreviewLoading,
+    giftItems,
+  } = useCart();
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [method, setMethod] = useState<string>('');
-  const lPayOnDelivery = useT('checkout_payment_pay_on_delivery',     PAYMENT_PAGE_LABELS.payOnDeliverySection);
-  const lOr            = useT('checkout_payment_or',                  PAYMENT_PAGE_LABELS.orOnlinePrepayment);
-  const lOnline        = useT('checkout_payment_online_prepayment',   PAYMENT_PAGE_LABELS.onlinePrepaymentSection);
-  const lPlaceOrder    = useT('checkout_payment_cta',                 PAYMENT_PAGE_LABELS.placeOrderPrefix);
-  const lSsl           = useT('checkout_payment_ssl',                 PAYMENT_PAGE_LABELS.securityBadges[0] ?? '');
-  const lPci           = useT('checkout_payment_pci',                 PAYMENT_PAGE_LABELS.securityBadges[1] ?? '');
-  const l3d            = useT('checkout_payment_3d',                  PAYMENT_PAGE_LABELS.securityBadges[2] ?? '');
-  const lPageTitle     = useT('checkout_payment_title',               PAYMENT_PAGE_LABELS.pageTitle);
-  const lBackToDeliv   = useT('checkout_payment_back_to_delivery',    PAYMENT_PAGE_LABELS.backToDelivery);
-  const lOrderSummary  = useT('checkout_payment_order_summary',       PAYMENT_PAGE_LABELS.orderSummary);
-  const lFreeGift      = useT('checkout_payment_free_gift',           PAYMENT_PAGE_LABELS.freeGift);
-  const lGiftFree      = useT('checkout_payment_gift_free',           PAYMENT_PAGE_LABELS.giftFree);
-  const lLoyaltyTier   = useT('checkout_payment_loyalty_tier',        PAYMENT_PAGE_LABELS.loyaltyFallbackTier);
-  const lDiscountWord  = useT('checkout_payment_discount_suffix',     PAYMENT_PAGE_LABELS.discountSuffix);
-  const lPromoPrefix   = useT('checkout_payment_promo_prefix',        PAYMENT_PAGE_LABELS.promoPrefix);
-  const lBonusesUsed   = useT('checkout_payment_bonuses_used',        PAYMENT_PAGE_LABELS.bonusesUsed);
-  const lUseBonuses    = useT('checkout_payment_use_bonuses',         PAYMENT_PAGE_LABELS.useBonuses);
-  const lBonusAvail    = useT('checkout_payment_bonus_available',     PAYMENT_PAGE_LABELS.bonusAvailableSuffix);
-  const lErrNoMethod   = useT('checkout_payment_error_no_method',     PAYMENT_PAGE_LABELS.errorNoMethod);
-  const lErrNoDelivery = useT('checkout_payment_error_no_delivery',   PAYMENT_PAGE_LABELS.errorNoDelivery);
-  const lErrRevalidate = useT('checkout_payment_error_revalidate',    PAYMENT_PAGE_LABELS.errorRevalidate);
-  const lErrStripe     = useT('checkout_payment_error_stripe',        PAYMENT_PAGE_LABELS.errorStripeSession);
-  const lErrNoAccounts = useT('checkout_payment_error_no_accounts',   PAYMENT_PAGE_LABELS.errorNoAccounts);
-  const lStripeRedirect = useT(
-    'checkout_payment_stripe_redirect_hint',
-    PAYMENT_PAGE_LABELS.stripeRedirectHint,
-  );
+  const lPayOnDelivery = useT('checkout_payment_pay_on_delivery', PAYMENT_PAGE_LABELS.payOnDeliverySection);
+  const lOr = useT('checkout_payment_or', PAYMENT_PAGE_LABELS.orOnlinePrepayment);
+  const lOnline = useT('checkout_payment_online_prepayment', PAYMENT_PAGE_LABELS.onlinePrepaymentSection);
+  const lPlaceOrder = useT('checkout_payment_cta', PAYMENT_PAGE_LABELS.placeOrderPrefix);
+  const lSsl = useT('checkout_payment_ssl', PAYMENT_PAGE_LABELS.securityBadges[0] ?? '');
+  const lPci = useT('checkout_payment_pci', PAYMENT_PAGE_LABELS.securityBadges[1] ?? '');
+  const l3d = useT('checkout_payment_3d', PAYMENT_PAGE_LABELS.securityBadges[2] ?? '');
+  const lPageTitle = useT('checkout_payment_title', PAYMENT_PAGE_LABELS.pageTitle);
+  const lBackToDeliv = useT('checkout_payment_back_to_delivery', PAYMENT_PAGE_LABELS.backToDelivery);
+  const lOrderSummary = useT('checkout_payment_order_summary', PAYMENT_PAGE_LABELS.orderSummary);
+  const lFreeGift = useT('checkout_payment_free_gift', PAYMENT_PAGE_LABELS.freeGift);
+  const lGiftFree = useT('checkout_payment_gift_free', PAYMENT_PAGE_LABELS.giftFree);
+  const lLoyaltyTier = useT('checkout_payment_loyalty_tier', PAYMENT_PAGE_LABELS.loyaltyFallbackTier);
+  const lDiscountWord = useT('checkout_payment_discount_suffix', PAYMENT_PAGE_LABELS.discountSuffix);
+  const lPromoPrefix = useT('checkout_payment_promo_prefix', PAYMENT_PAGE_LABELS.promoPrefix);
+  const lBonusesUsed = useT('checkout_payment_bonuses_used', PAYMENT_PAGE_LABELS.bonusesUsed);
+  const lUseBonuses = useT('checkout_payment_use_bonuses', PAYMENT_PAGE_LABELS.useBonuses);
+  const lBonusAvail = useT('checkout_payment_bonus_available', PAYMENT_PAGE_LABELS.bonusAvailableSuffix);
+  const lErrNoMethod = useT('checkout_payment_error_no_method', PAYMENT_PAGE_LABELS.errorNoMethod);
+  const lErrNoDelivery = useT('checkout_payment_error_no_delivery', PAYMENT_PAGE_LABELS.errorNoDelivery);
+  const lErrRevalidate = useT('checkout_payment_error_revalidate', PAYMENT_PAGE_LABELS.errorRevalidate);
+  const lErrStripe = useT('checkout_payment_error_stripe', PAYMENT_PAGE_LABELS.errorStripeSession);
+  const lErrNoAccounts = useT('checkout_payment_error_no_accounts', PAYMENT_PAGE_LABELS.errorNoAccounts);
+  const lStripeRedirect = useT('checkout_payment_stripe_redirect_hint', PAYMENT_PAGE_LABELS.stripeRedirectHint);
   const securityBadges = [lSsl, lPci, l3d].filter(Boolean);
 
   const { isLoggedIn, user } = useAuth();
@@ -76,13 +84,10 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const bonusMinAmount = preview?.bonus.minAmount ?? null;
   const bonusMinOrderAmount = preview?.bonus.minOrderAmount ?? null;
   const totalSumForGate = preview?.totalSum ?? 0;
-  const bonusUnlocked = bonusBalance > 0
-    && (bonusMinOrderAmount == null || totalSumForGate >= bonusMinOrderAmount);
+  const bonusUnlocked = bonusBalance > 0 && (bonusMinOrderAmount == null || totalSumForGate >= bonusMinOrderAmount);
   // Hard cap: min(balance, per-order OE max). Falls back to balance alone
   // when OE hasn't reported a per-order cap yet (first render / no preview).
-  const bonusCap = bonusMaxAmount > 0
-    ? Math.min(bonusBalance, bonusMaxAmount)
-    : bonusBalance;
+  const bonusCap = bonusMaxAmount > 0 ? Math.min(bonusBalance, bonusMaxAmount) : bonusBalance;
 
   // Prefer the LOCAL `preview` over the CartContext-wide `cartPreview` for
   // every totals derivation on this page. The local one is refreshed on
@@ -148,7 +153,9 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       if (list.length > 0) setMethod(list[0].identifier);
       setAccountsLoading(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const selectedAccount = accounts.find((a) => a.identifier === method);
@@ -171,11 +178,8 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   //     clamped to `bonusCap`. That way OE never rejects the request for
   //     under-min and we don't over-promise on the summary line.
   const bonusRequested = Math.max(0, Number(bonusInput) || 0);
-  const bonusUnderMin = bonusMinAmount != null && bonusRequested > 0
-    && bonusRequested < bonusMinAmount;
-  const bonusAmount = bonusUnlocked && !bonusUnderMin
-    ? Math.min(bonusRequested, bonusCap)
-    : 0;
+  const bonusUnderMin = bonusMinAmount != null && bonusRequested > 0 && bonusRequested < bonusMinAmount;
+  const bonusAmount = bonusUnlocked && !bonusUnderMin ? Math.min(bonusRequested, bonusCap) : 0;
 
   // Debounce previewOrder so typing into the bonus field doesn't spam OE.
   // `previewInFlight` gates the Place Order button so the shopper can't
@@ -204,13 +208,19 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       if (r.ok) setPreview(r);
       setPreviewFor(previewSignature);
     }, 300);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
     // productsKey covers the array; bonusAmount and couponCode are scalars.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, productsKey, bonusAmount, couponCode]);
 
   const handlePlaceOrder = async () => {
-    if (items.length === 0) { router.push('/'); return; }
+    if (items.length === 0) {
+      router.push('/');
+      return;
+    }
     if (!selectedAccount) {
       setSubmitError(lErrNoMethod);
       return;
@@ -224,7 +234,14 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       storage: 'home' | 'store_pickup' | 'locker';
       isGuest: boolean;
       guestContact?: { fullName?: string; phone?: string; email?: string } | null;
-      homeAddress?: { fullName?: string; phone?: string; line1?: string; city?: string; postcode?: string; instructions?: string } | null;
+      homeAddress?: {
+        fullName?: string;
+        phone?: string;
+        line1?: string;
+        city?: string;
+        postcode?: string;
+        instructions?: string;
+      } | null;
       storeId?: string | number | null;
       lockerId?: string | number | null;
       deliveryDate?: string;
@@ -233,7 +250,9 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     try {
       const raw = sessionStorage.getItem('oe_checkout_payload');
       payload = raw ? JSON.parse(raw) : null;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     if (!payload) {
       setSubmitError(lErrNoDelivery);
       return;
@@ -268,7 +287,9 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       // OE timeInterval expects array of [fromISO, toISO] tuples. Map the
       // morning/afternoon/evening slot to a concrete window on the chosen day.
       const slotToWindow: Record<string, [number, number]> = {
-        morning: [9, 13], afternoon: [13, 17], evening: [17, 21],
+        morning: [9, 13],
+        afternoon: [13, 17],
+        evening: [17, 21],
       };
       const dayIso = (payload.deliveryDate ?? new Date().toISOString()).slice(0, 10);
       const [fromH, toH] = slotToWindow[payload.deliverySlot ?? 'morning'] ?? [9, 13];
@@ -282,13 +303,29 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       if (payload.isGuest && payload.homeAddress) {
         // OE phone field caps at 15 chars; strip spaces so the formatted value fits.
         const compactPhone = (payload.homeAddress.phone ?? payload.guestContact?.phone ?? '').replace(/\s+/g, '');
-        formData.push({ marker: 'checkout_home_guest_full_name', type: 'string', value: payload.homeAddress.fullName ?? payload.guestContact?.fullName ?? '' });
+        formData.push({
+          marker: 'checkout_home_guest_full_name',
+          type: 'string',
+          value: payload.homeAddress.fullName ?? payload.guestContact?.fullName ?? '',
+        });
         formData.push({ marker: 'checkout_home_guest_phone', type: 'string', value: compactPhone });
-        formData.push({ marker: 'checkout_home_guest_address_line1', type: 'string', value: payload.homeAddress.line1 ?? '' });
+        formData.push({
+          marker: 'checkout_home_guest_address_line1',
+          type: 'string',
+          value: payload.homeAddress.line1 ?? '',
+        });
         formData.push({ marker: 'checkout_home_guest_city', type: 'string', value: payload.homeAddress.city ?? '' });
-        formData.push({ marker: 'checkout_home_guest_post_code', type: 'string', value: payload.homeAddress.postcode ?? '' });
+        formData.push({
+          marker: 'checkout_home_guest_post_code',
+          type: 'string',
+          value: payload.homeAddress.postcode ?? '',
+        });
         if (payload.homeAddress.instructions) {
-          formData.push({ marker: 'checkout_home_guest_special_instrations', type: 'string', value: payload.homeAddress.instructions });
+          formData.push({
+            marker: 'checkout_home_guest_special_instrations',
+            type: 'string',
+            value: payload.homeAddress.instructions,
+          });
         }
       }
     } else if (payload.storage === 'store_pickup') {
@@ -299,24 +336,49 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
         value: [String(payload.storeId ?? '')],
       });
       if (payload.isGuest && payload.guestContact) {
-        formData.push({ marker: 'checkout_store_pickup_guest_full_name', type: 'string', value: payload.guestContact.fullName ?? '' });
-        formData.push({ marker: 'checkout_store_pickup_guest_phone', type: 'string', value: (payload.guestContact.phone ?? '').replace(/\s+/g, '') });
-        formData.push({ marker: 'checkout_store_pickup_guest_email', type: 'string', value: payload.guestContact.email ?? '' });
+        formData.push({
+          marker: 'checkout_store_pickup_guest_full_name',
+          type: 'string',
+          value: payload.guestContact.fullName ?? '',
+        });
+        formData.push({
+          marker: 'checkout_store_pickup_guest_phone',
+          type: 'string',
+          value: (payload.guestContact.phone ?? '').replace(/\s+/g, ''),
+        });
+        formData.push({
+          marker: 'checkout_store_pickup_guest_email',
+          type: 'string',
+          value: payload.guestContact.email ?? '',
+        });
       }
     } else if (payload.storage === 'locker') {
       // OE rejects 0 as a missing integer value — shift by 1 so the first locker maps to 1.
-      const lockerNum = typeof payload.lockerId === 'number'
-        ? payload.lockerId + 1
-        : (parseInt(String(payload.lockerId ?? '0'), 10) || 0) + 1;
+      const lockerNum =
+        typeof payload.lockerId === 'number'
+          ? payload.lockerId + 1
+          : (parseInt(String(payload.lockerId ?? '0'), 10) || 0) + 1;
       formData.push({
         marker: payload.isGuest ? 'checkout_locker_guest_pickup_point' : 'checkout_locker_pickup_point',
         type: 'integer',
         value: lockerNum,
       });
       if (payload.isGuest && payload.guestContact) {
-        formData.push({ marker: 'checkout_locker_guest_full_name', type: 'string', value: payload.guestContact.fullName ?? '' });
-        formData.push({ marker: 'checkout_locker_guest_phone', type: 'string', value: (payload.guestContact.phone ?? '').replace(/\s+/g, '') });
-        formData.push({ marker: 'checkout_locker_guest_email', type: 'string', value: payload.guestContact.email ?? '' });
+        formData.push({
+          marker: 'checkout_locker_guest_full_name',
+          type: 'string',
+          value: payload.guestContact.fullName ?? '',
+        });
+        formData.push({
+          marker: 'checkout_locker_guest_phone',
+          type: 'string',
+          value: (payload.guestContact.phone ?? '').replace(/\s+/g, ''),
+        });
+        formData.push({
+          marker: 'checkout_locker_guest_email',
+          type: 'string',
+          value: payload.guestContact.email ?? '',
+        });
       }
     }
 
@@ -352,7 +414,9 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     if (preview && Math.abs(fresh.totalDue - preview.totalDue) > 0.01) {
       setPreview(fresh);
       setPlacing(false);
-      setSubmitError(`Order total changed to ${fmt(fresh.totalDue)} since you last reviewed it. Please check the summary and place the order again.`);
+      setSubmitError(
+        `Order total changed to ${fmt(fresh.totalDue)} since you last reviewed it. Please check the summary and place the order again.`,
+      );
       return;
     }
     // Client-optimistic sale (catalog `applyProductDiscount` overlay) may
@@ -369,13 +433,16 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     // number to Total + CTA, and the shopper's second click IS the re-confirm.
     // Without this skip the guard fires on every click (client `subtotal`
     // never catches up to the OE-honest total) and the order cannot be placed.
-    const alreadyReconciled = preview
-      && Math.abs(fresh.totalSum - preview.totalSum) < 0.01
-      && Math.abs(fresh.totalDue - preview.totalDue) < 0.01;
+    const alreadyReconciled =
+      preview &&
+      Math.abs(fresh.totalSum - preview.totalSum) < 0.01 &&
+      Math.abs(fresh.totalDue - preview.totalDue) < 0.01;
     if (!alreadyReconciled && Math.abs(fresh.totalSum - subtotal) > 0.01) {
       setPreview(fresh);
       setPlacing(false);
-      setSubmitError(`We now show ${fmt(fresh.totalDue)} at checkout — some sale prices no longer apply for this session. Please review the summary and place the order again.`);
+      setSubmitError(
+        `We now show ${fmt(fresh.totalDue)} at checkout — some sale prices no longer apply for this session. Please review the summary and place the order again.`,
+      );
       return;
     }
     setPreview(fresh);
@@ -417,7 +484,11 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     // of hallucinating a random `OE-XXXXXXXX` for the shopper (a fake id was
     // useless in a support call). Falls back to a random id only if this
     // read fails, e.g. after the Stripe round-trip when sessionStorage cleared.
-    try { sessionStorage.setItem('oe_last_order_id', String(res.orderId)); } catch { /* ignore */ }
+    try {
+      sessionStorage.setItem('oe_last_order_id', String(res.orderId));
+    } catch {
+      /* ignore */
+    }
     // Snapshot the actual charged amount for the Confirmation page — cart
     // is cleared above, so reading `useCart().total` on the next screen
     // returns 0 and the "Total Paid" line renders $0. Pass the OE-side
@@ -425,13 +496,19 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     // wasn't hydrated) so the shopper sees the real charge.
     try {
       sessionStorage.setItem('oe_last_order_total', String(finalTotal));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     // Stripe / online payment methods: OE returns a hosted checkout URL.
     // Redirect to it; the user finishes the payment on Stripe and OE marks
     // the order completed via webhook. Cash / card-on-delivery have no URL —
     // jump straight to the local confirmation page.
     if (res.paymentUrl) {
-      try { sessionStorage.removeItem('oe_checkout_payload'); } catch { /* ignore */ }
+      try {
+        sessionStorage.removeItem('oe_checkout_payload');
+      } catch {
+        /* ignore */
+      }
       window.location.href = res.paymentUrl;
       return;
     }
@@ -439,12 +516,16 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     // error instead of silently pushing to the confirmation page. The order
     // stayed created on OE's side, but the buyer hasn't paid.
     if (selectedAccount.type === 'stripe') {
-      setSubmitError(res.paymentSessionError
-        ? `Stripe session could not be created: ${res.paymentSessionError}`
-        : lErrStripe);
+      setSubmitError(
+        res.paymentSessionError ? `Stripe session could not be created: ${res.paymentSessionError}` : lErrStripe,
+      );
       return;
     }
-    try { sessionStorage.removeItem('oe_checkout_payload'); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem('oe_checkout_payload');
+    } catch {
+      /* ignore */
+    }
     router.push('/checkout/confirmation');
   };
 
@@ -455,29 +536,25 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     >
       <Header />
 
-      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 pb-20">
+      <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
           <CheckoutStepper currentStep={2} />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 pt-8">
+        <div className="flex flex-col gap-8 pt-8 lg:flex-row">
           {/* ── Left: Payment Options ── */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl tracking-[0.15em] uppercase mb-6 font-bold">
-              {lPageTitle}
-            </h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="mb-6 text-xl font-bold tracking-[0.15em] uppercase">{lPageTitle}</h1>
 
             {accountsLoading ? (
               <div className="space-y-3">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-19 bg-gray-100 animate-pulse rounded-none" />
+                  <div key={i} className="h-19 animate-pulse rounded-none bg-gray-100" />
                 ))}
               </div>
             ) : accounts.length === 0 ? (
-              <p className="text-sm text-gray-500 py-6">
-                {lErrNoAccounts}
-              </p>
+              <p className="py-6 text-sm text-gray-500">{lErrNoAccounts}</p>
             ) : (
               <PaymentMethodsList
                 accounts={accounts}
@@ -491,40 +568,43 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
             )}
 
             {/* Security badges */}
-            <div className="flex flex-wrap items-center gap-4 mt-6 px-4 py-3 bg-[#fafafa] border border-[#e5e7eb]">
+            <div className="mt-6 flex flex-wrap items-center gap-4 border border-[#e5e7eb] bg-[#fafafa] px-4 py-3">
               {securityBadges.map((badge, idx) => (
                 <div key={badge} className="flex items-center gap-2 text-xs text-gray-500">
-                  {idx === 1 ? <Lock size={14} className="text-green-600" /> : <Shield size={14} className="text-green-600" />}
+                  {idx === 1 ? (
+                    <Lock size={14} className="text-green-600" />
+                  ) : (
+                    <Shield size={14} className="text-green-600" />
+                  )}
                   <span>{badge}</span>
                 </div>
               ))}
             </div>
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-8">
+            <div className="mt-8 flex items-center justify-between">
               <button
                 onClick={() => router.push('/checkout/delivery')}
-                className="flex items-center gap-2 text-sm focus-visible:outline-none hover:opacity-70 transition-opacity text-[#555]"
+                className="flex items-center gap-2 text-sm text-[#555] transition-opacity hover:opacity-70 focus-visible:outline-none"
               >
                 {lBackToDeliv}
               </button>
               <div className="flex flex-col items-end gap-2">
-                {submitError && (
-                  <p className="text-xs text-(--sale) max-w-md text-right">{submitError}</p>
-                )}
+                {submitError && <p className="max-w-md text-right text-xs text-(--sale)">{submitError}</p>}
                 <button
                   onClick={handlePlaceOrder}
                   disabled={placing || previewInFlight || !preview}
-                  className="flex items-center justify-center gap-2 px-10 py-4 text-white text-sm tracking-[0.2em] uppercase focus-visible:outline-none hover:opacity-90 transition-opacity bg-black rounded-lg font-semibold disabled:opacity-60 disabled:pointer-events-none"
+                  className="flex items-center justify-center gap-2 rounded-lg bg-black px-10 py-4 text-sm font-semibold tracking-[0.2em] text-white uppercase transition-opacity hover:opacity-90 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60"
                 >
                   {(placing || previewInFlight || !preview) && (
                     <span
-                      className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                      className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent"
                       aria-hidden="true"
                     />
                   )}
                   <span>
-                    {lPlaceOrder}{mounted ? ` · ${fmt(finalTotal)}` : ''}
+                    {lPlaceOrder}
+                    {mounted ? ` · ${fmt(finalTotal)}` : ''}
                   </span>
                 </button>
               </div>
@@ -532,54 +612,72 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
           </div>
 
           {/* ── Right: Order Summary ── */}
-          <div className="lg:w-80 xl:w-96 shrink-0">
+          <div className="shrink-0 lg:w-80 xl:w-96">
             <div className="sticky top-32 border border-[#e5e7eb]">
-              <div className="px-6 py-4 border-b border-[#e5e7eb]">
-                <h2 className="text-sm tracking-[0.15em] uppercase font-bold">
-                  {lOrderSummary}
-                </h2>
+              <div className="border-b border-[#e5e7eb] px-6 py-4">
+                <h2 className="text-sm font-bold tracking-[0.15em] uppercase">{lOrderSummary}</h2>
               </div>
-              <div className="px-6 py-5 space-y-3">
-                {mounted && items.map(item => (
-                  <div key={item.id} className="flex gap-3">
-                    <div className="relative shrink-0 w-12 h-14">
-                      <ImageWithFallback src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs leading-snug font-medium">{item.name}</p>
-                      <p className="text-xs text-gray-400">{CLL.qtyLabel} {item.quantity} · {CLL.sizeLabel} {item.size}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
-                      {item.originalPrice && item.originalPrice > item.price && (
-                        <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {mounted && giftItems.map(gift => (
-                  <div key={`gift-${gift.productId}`} className="flex gap-3">
-                    <div className="relative shrink-0 w-12 h-14">
-                      <ImageWithFallback src={gift.image} alt={gift.name} fill sizes="48px" className="object-cover" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs leading-snug font-medium">{gift.name}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
-                          {lFreeGift}
-                        </span>
-                        <span className="text-xs text-gray-400">{CLL.qtyLabel} {gift.quantity}</span>
+              <div className="space-y-3 px-6 py-5">
+                {mounted &&
+                  items.map((item) => (
+                    <div key={item.id} className="flex gap-3">
+                      <div className="relative h-14 w-12 shrink-0">
+                        <ImageWithFallback
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs leading-snug font-medium">{item.name}</p>
+                        <p className="text-xs text-gray-400">
+                          {CLL.qtyLabel} {item.quantity} · {CLL.sizeLabel} {item.size}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
+                        {item.originalPrice && item.originalPrice > item.price && (
+                          <p className="text-xs text-gray-400 line-through">
+                            {fmt(item.originalPrice * item.quantity)}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">{lGiftFree}</p>
-                      {gift.price > 0 && (
-                        <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
-                      )}
+                  ))}
+                {mounted &&
+                  giftItems.map((gift) => (
+                    <div key={`gift-${gift.productId}`} className="flex gap-3">
+                      <div className="relative h-14 w-12 shrink-0">
+                        <ImageWithFallback
+                          src={gift.image}
+                          alt={gift.name}
+                          fill
+                          sizes="48px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs leading-snug font-medium">{gift.name}</p>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <span className="border border-[#bbf7d0] bg-[#f0fdf4] px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-green-600 uppercase">
+                            {lFreeGift}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {CLL.qtyLabel} {gift.quantity}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-xs font-semibold tracking-wide text-green-600 uppercase">{lGiftFree}</p>
+                        {gift.price > 0 && (
+                          <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <div className="border-t border-[#e5e7eb] pt-3 space-y-2">
+                  ))}
+                <div className="space-y-2 border-t border-[#e5e7eb] pt-3">
                   {/* Loyalty (personal tier) vs Promo (coupon) split so the
                       shopper can see which discount is which. `preview.
                       discountAmount` is the total OE deducted before bonuses;
@@ -588,20 +686,24 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       doesn't jump when discounts land. */}
                   {mounted && cartPreviewLoading && !activePreview ? (
                     <div className="flex justify-between text-xs" aria-busy="true">
-                      <div className="h-3 w-24 bg-gray-100 animate-pulse" />
-                      <div className="h-3 w-12 bg-gray-100 animate-pulse" />
+                      <div className="h-3 w-24 animate-pulse bg-gray-100" />
+                      <div className="h-3 w-12 animate-pulse bg-gray-100" />
                     </div>
                   ) : (
                     <>
                       {mounted && activePersonalDiscount > 0 && (
                         <div className="flex justify-between text-xs text-(--sale)">
-                          <span>{user?.status ?? lLoyaltyTier} {lDiscountWord}</span>
+                          <span>
+                            {user?.status ?? lLoyaltyTier} {lDiscountWord}
+                          </span>
                           <span className="font-semibold">−{fmt(activePersonalDiscount)}</span>
                         </div>
                       )}
                       {mounted && activeCouponDiscount > 0 && couponCode && (
                         <div className="flex justify-between text-xs text-(--sale)">
-                          <span>{lPromoPrefix} ({couponCode})</span>
+                          <span>
+                            {lPromoPrefix} ({couponCode})
+                          </span>
                           <span className="font-semibold">−{fmt(activeCouponDiscount)}</span>
                         </div>
                       )}
@@ -615,14 +717,16 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                   )}
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">{OS.delivery}</span>
-                    <span className="text-green-600 font-semibold">{OS.deliveryFree}</span>
+                    <span className="font-semibold text-green-600">{OS.deliveryFree}</span>
                   </div>
                   {mounted && isLoggedIn && bonusBalance > 0 && (
-                    <div className="pt-2 border-t border-[#e5e7eb]">
+                    <div className="border-t border-[#e5e7eb] pt-2">
                       <div className="flex items-center justify-between gap-2">
                         <label htmlFor="bonus-input" className="text-xs text-gray-600">
                           {lUseBonuses}
-                          <span className="text-gray-400 ml-1">/ {bonusBalance.toLocaleString()} {lBonusAvail}</span>
+                          <span className="ml-1 text-gray-400">
+                            / {bonusBalance.toLocaleString()} {lBonusAvail}
+                          </span>
                         </label>
                         <input
                           id="bonus-input"
@@ -632,7 +736,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                           value={bonusInput}
                           onChange={(e) => setBonusInput(e.target.value)}
                           disabled={!bonusUnlocked}
-                          className="w-20 text-right text-xs px-2 py-1 border border-gray-300 focus:border-black outline-none disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                          className="w-20 border border-gray-300 px-2 py-1 text-right text-xs outline-none focus:border-black disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                           placeholder="0"
                         />
                       </div>
@@ -641,26 +745,26 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                           small, the "min N per redemption" and "capped" hints
                           would be misleading. */}
                       {!bonusUnlocked && bonusMinOrderAmount != null && (
-                        <p className="text-[10px] text-gray-400 mt-1">
+                        <p className="mt-1 text-[10px] text-gray-400">
                           Add {fmt(bonusMinOrderAmount - totalSumForGate)} more to use bonuses
                         </p>
                       )}
                       {bonusUnlocked && bonusUnderMin && bonusMinAmount != null && (
-                        <p className="text-[10px] text-(--sale) mt-1">
+                        <p className="mt-1 text-[10px] text-(--sale)">
                           Minimum {bonusMinAmount.toLocaleString()} bonuses per redemption
                         </p>
                       )}
                       {bonusUnlocked && !bonusUnderMin && bonusRequested > bonusCap && bonusCap > 0 && (
-                        <p className="text-[10px] text-gray-400 mt-1">
+                        <p className="mt-1 text-[10px] text-gray-400">
                           Capped at {bonusCap.toLocaleString()} for this order
                         </p>
                       )}
                     </div>
                   )}
-                  <div className="flex justify-between items-baseline pt-1 border-t border-[#e5e7eb]">
+                  <div className="flex items-baseline justify-between border-t border-[#e5e7eb] pt-1">
                     <span className="text-sm font-bold">{OS.total}</span>
                     {mounted && cartPreviewLoading && !activePreview ? (
-                      <div className="h-5 w-20 bg-gray-100 animate-pulse" aria-busy="true" />
+                      <div className="h-5 w-20 animate-pulse bg-gray-100" aria-busy="true" />
                     ) : (
                       <span className="text-lg font-bold">{mounted ? fmt(finalTotal) : ''}</span>
                     )}
@@ -674,9 +778,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
       {/* OE-attached blocks for the `payment` page — rendered below the
           payment form. Empty → nothing renders. */}
-      {pageBlocks && pageBlocks.length > 0 && (
-        <PageBlocksRenderer blocks={pageBlocks} />
-      )}
+      {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
 
       <Footer />
     </div>

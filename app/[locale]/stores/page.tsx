@@ -1,15 +1,24 @@
 import type { Metadata } from 'next';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { SEO, SITE_URL, SCHEMA_DAYS as D, STORE_SCHEMA_NAME as N, ORG_SCHEMA_COPY } from '../../../src/app/data/seoData';
-import { STORE_SCHEMA_DEFAULTS, type Store } from '../../../src/app/data/stores';
-import { StoreLocationsPage } from '../../../src/app/pages/StoreLocationsPage';
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
-import { loadStoreLocationsPage } from '../../../src/lib/oneentry/catalog/store-locations-page';
-import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
 
-/** Title/description/keywords/canonical come from the OE `stores` page when an
- *  editor filled them; `SEO.stores` stays as the offline fallback. */
+import { JsonLd } from '../../../src/app/components/system/JsonLd';
+import {
+  ORG_SCHEMA_COPY,
+  SCHEMA_DAYS as D,
+  SEO,
+  SITE_URL,
+  STORE_SCHEMA_NAME as N,
+} from '../../../src/app/data/seoData';
+import { type Store, STORE_SCHEMA_DEFAULTS } from '../../../src/app/data/stores';
+import { StoreLocationsPage } from '../../../src/app/pages/StoreLocationsPage';
+import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
+import { loadStoreLocationsPage } from '../../../src/lib/oneentry/catalog/store-locations-page';
+import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
+
+/**
+ * Title/description/keywords/canonical come from the OE `stores` page when an
+ *  editor filled them; `SEO.stores` stays as the offline fallback.
+ */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('stores', SEO.stores);
 }
@@ -51,16 +60,16 @@ function buildStoreSchema(store: Store) {
 // Map human-readable day labels to schema.org day names
 function mapDayLabel(day: string): string[] {
   const map: Record<string, string[]> = {
-    [D.monThruSat]:       [D.monday, D.tuesday, D.wednesday, D.thursday, D.friday, D.saturday],
+    [D.monThruSat]: [D.monday, D.tuesday, D.wednesday, D.thursday, D.friday, D.saturday],
     [D.monThruSatHyphen]: [D.monday, D.tuesday, D.wednesday, D.thursday, D.friday, D.saturday],
-    [D.monday]:           [D.monday],
-    [D.tuesday]:          [D.tuesday],
-    [D.wednesday]:        [D.wednesday],
-    [D.thursday]:         [D.thursday],
-    [D.friday]:           [D.friday],
-    [D.saturday]:         [D.saturday],
-    [D.sunday]:           [D.sunday],
-    [D.bankHolidays]:     [],
+    [D.monday]: [D.monday],
+    [D.tuesday]: [D.tuesday],
+    [D.wednesday]: [D.wednesday],
+    [D.thursday]: [D.thursday],
+    [D.friday]: [D.friday],
+    [D.saturday]: [D.saturday],
+    [D.sunday]: [D.sunday],
+    [D.bankHolidays]: [],
   };
   return map[day] ?? [];
 }

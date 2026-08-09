@@ -1,11 +1,11 @@
-'use client'
+'use client';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import { CatalogTemplate, type FilterGroup } from '../components/catalog/CatalogTemplate';
 import type { Product } from '../components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 const PRODUCTS_PER_PAGE = 16;
 
@@ -32,11 +32,11 @@ export function WomenBagsPage({
 } = {}) {
   // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
   // offline fallback.
-  const lTitle      = useT('catalog_page_bags',              CL.bags);
-  const lGender     = useT('catalog_page_women',             CL.women);
-  const lCrumbHome  = useT('catalog_page_breadcrumb_home',   CL.breadcrumbHome);
-  const lCrumbWomen = useT('catalog_page_breadcrumb_women',  CL.breadcrumbWomen);
-  const lCrumbCat   = useT('catalog_page_breadcrumb_bags',   CL.breadcrumbBags);
+  const lTitle = useT('catalog_page_bags', CL.bags);
+  const lGender = useT('catalog_page_women', CL.women);
+  const lCrumbHome = useT('catalog_page_breadcrumb_home', CL.breadcrumbHome);
+  const lCrumbWomen = useT('catalog_page_breadcrumb_women', CL.breadcrumbWomen);
+  const lCrumbCat = useT('catalog_page_breadcrumb_bags', CL.breadcrumbBags);
   return (
     <CatalogTemplate
       pageBlocks={pageBlocks}
@@ -56,11 +56,7 @@ export function WomenBagsPage({
       priceMax={600}
       priceDefault={[0, 600]}
       scrollbarClass="scrollbar-pink"
-      breadcrumbs={[
-        { label: lCrumbHome, href: '/' },
-        { label: lCrumbWomen, href: '/women' },
-        { label: lCrumbCat },
-      ]}
+      breadcrumbs={[{ label: lCrumbHome, href: '/' }, { label: lCrumbWomen, href: '/women' }, { label: lCrumbCat }]}
     />
   );
 }

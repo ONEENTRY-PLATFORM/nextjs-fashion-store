@@ -10,6 +10,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { PreviewOrderInput } from '@/lib/oneentry/auth/actions';
 
 // ── OE SDK mock ──────────────────────────────────────────────────────────────
@@ -196,11 +197,11 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
   });
 
   it('returns giftItems: [] when orderPreview has no gift entries', async () => {
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      orderPreview: [
-        { id: 9171, quantity: 1, price: '50.00', isGift: false },
-      ],
-    }));
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        orderPreview: [{ id: 9171, quantity: 1, price: '50.00', isGift: false }],
+      }),
+    );
     const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
@@ -209,29 +210,31 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
   });
 
   it('parses a single gift entry into giftItems', async () => {
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      orderPreview: [
-        { id: 9171, quantity: 1, price: '50.00', isGift: false },
-        { id: 5555, quantity: 2, price: '29.99', isGift: true },
-      ],
-    }));
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        orderPreview: [
+          { id: 9171, quantity: 1, price: '50.00', isGift: false },
+          { id: 5555, quantity: 2, price: '29.99', isGift: true },
+        ],
+      }),
+    );
     const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.giftItems).toEqual([
-      { productId: 5555, quantity: 2, price: 29.99 },
-    ]);
+    expect(res.giftItems).toEqual([{ productId: 5555, quantity: 2, price: 29.99 }]);
   });
 
   it('parses multiple gift entries, excludes non-gift rows', async () => {
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      orderPreview: [
-        { id: 1, quantity: 3, price: '10.00', isGift: false },
-        { id: 2, quantity: 1, price: '0.00', isGift: true },
-        { id: 3, quantity: 2, price: '15.50', isGift: true },
-      ],
-    }));
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        orderPreview: [
+          { id: 1, quantity: 3, price: '10.00', isGift: false },
+          { id: 2, quantity: 1, price: '0.00', isGift: true },
+          { id: 3, quantity: 2, price: '15.50', isGift: true },
+        ],
+      }),
+    );
     const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
@@ -242,9 +245,11 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
   });
 
   it('defaults quantity to 1 and price to 0 when fields are missing', async () => {
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      orderPreview: [{ id: 7, isGift: true }],
-    }));
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        orderPreview: [{ id: 7, isGift: true }],
+      }),
+    );
     const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
@@ -253,12 +258,14 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
   });
 
   it('filters out gift entries with invalid/missing productId', async () => {
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      orderPreview: [
-        { id: 0, quantity: 1, price: '5.00', isGift: true },
-        { quantity: 1, price: '5.00', isGift: true }, // no id
-      ],
-    }));
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        orderPreview: [
+          { id: 0, quantity: 1, price: '5.00', isGift: true },
+          { quantity: 1, price: '5.00', isGift: true }, // no id
+        ],
+      }),
+    );
     const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction(baseInput);
     expect(res.ok).toBe(true);
@@ -270,10 +277,12 @@ describe('previewOrderAction — giftItems parsing from orderPreview[]', () => {
 // ── Tests: couponDiscountAmount — gift-only vs monetary coupons ───────────────
 
 /** OE discount config shape returned by Discounts.getDiscountByMarker */
-function makeDiscountCfg(overrides: {
-  discountValue?: { value?: number | null } | null;
-  gifts?: unknown[];
-} = {}) {
+function makeDiscountCfg(
+  overrides: {
+    discountValue?: { value?: number | null } | null;
+    gifts?: unknown[];
+  } = {},
+) {
   return {
     conditions: [],
     endDate: null,
@@ -296,26 +305,26 @@ describe('previewOrderAction — couponDiscountAmount', () => {
     // The coupon knocks off $0 in price — OE just appends a gift to orderPreview.
     // totalSum === totalSumWithDiscount so discountAmount = 0, but even if
     // a tier discount fires we must not attribute it to the coupon.
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      totalSum: '100.00',
-      totalSumWithDiscount: '100.00',
-      discountConfig: {
-        coupon: {
-          code: 'GIFTME',
-          valid: true,
-          applied: true,
-          discountIdentifier: 'gift_coupon',
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        totalSum: '100.00',
+        totalSumWithDiscount: '100.00',
+        discountConfig: {
+          coupon: {
+            code: 'GIFTME',
+            valid: true,
+            applied: true,
+            discountIdentifier: 'gift_coupon',
+          },
         },
-      },
-      orderPreview: [
-        { id: 9171, quantity: 1, price: '100.00', isGift: false },
-        { id: 5555, quantity: 1, price: '30.00', isGift: true },
-      ],
-    }));
-    // Simulate gift-only: no monetary value, has gifts
-    getDiscountByMarkerMock.mockResolvedValue(
-      makeDiscountCfg({ discountValue: null, gifts: [{ productId: 5555 }] }),
+        orderPreview: [
+          { id: 9171, quantity: 1, price: '100.00', isGift: false },
+          { id: 5555, quantity: 1, price: '30.00', isGift: true },
+        ],
+      }),
     );
+    // Simulate gift-only: no monetary value, has gifts
+    getDiscountByMarkerMock.mockResolvedValue(makeDiscountCfg({ discountValue: null, gifts: [{ productId: 5555 }] }));
     const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction({
       ...baseInput,
@@ -329,19 +338,21 @@ describe('previewOrderAction — couponDiscountAmount', () => {
   });
 
   it('sets couponDiscountAmount = 0 when discountValue.value is 0 and gifts non-empty', async () => {
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      totalSum: '100.00',
-      totalSumWithDiscount: '100.00',
-      discountConfig: {
-        coupon: {
-          code: 'GIFTONLY',
-          valid: true,
-          applied: true,
-          discountIdentifier: 'gift_only_zero',
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        totalSum: '100.00',
+        totalSumWithDiscount: '100.00',
+        discountConfig: {
+          coupon: {
+            code: 'GIFTONLY',
+            valid: true,
+            applied: true,
+            discountIdentifier: 'gift_only_zero',
+          },
         },
-      },
-      orderPreview: [],
-    }));
+        orderPreview: [],
+      }),
+    );
     getDiscountByMarkerMock.mockResolvedValue(
       makeDiscountCfg({ discountValue: { value: 0 }, gifts: [{ productId: 999 }] }),
     );
@@ -354,26 +365,24 @@ describe('previewOrderAction — couponDiscountAmount', () => {
 
   it('retains couponDiscountAmount = discountAmount for a monetary coupon', async () => {
     // 20% off coupon: $100 -> $80, discountAmount = $20
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      totalSum: '100.00',
-      totalSumWithDiscount: '80.00',
-      totalDue: '80.00',
-      discountConfig: {
-        coupon: {
-          code: 'SAVE20',
-          valid: true,
-          applied: true,
-          discountIdentifier: 'monetary_coupon',
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        totalSum: '100.00',
+        totalSumWithDiscount: '80.00',
+        totalDue: '80.00',
+        discountConfig: {
+          coupon: {
+            code: 'SAVE20',
+            valid: true,
+            applied: true,
+            discountIdentifier: 'monetary_coupon',
+          },
         },
-      },
-      orderPreview: [
-        { id: 9171, quantity: 1, price: '100.00', isGift: false },
-      ],
-    }));
-    // Monetary coupon: has discountValue.value > 0, no gifts
-    getDiscountByMarkerMock.mockResolvedValue(
-      makeDiscountCfg({ discountValue: { value: 20 }, gifts: [] }),
+        orderPreview: [{ id: 9171, quantity: 1, price: '100.00', isGift: false }],
+      }),
     );
+    // Monetary coupon: has discountValue.value > 0, no gifts
+    getDiscountByMarkerMock.mockResolvedValue(makeDiscountCfg({ discountValue: { value: 20 }, gifts: [] }));
     const { previewOrderAction } = await import('@/lib/oneentry/auth/actions');
     const res = await previewOrderAction({ ...baseInput, couponCode: 'SAVE20' });
     expect(res.ok).toBe(true);
@@ -385,23 +394,25 @@ describe('previewOrderAction — couponDiscountAmount', () => {
 
   it('retains couponDiscountAmount for a coupon with both a discount value and gifts', async () => {
     // A "buy X get Y free" with a 10% price reduction — has both gifts and monetary value
-    previewOrderMock.mockResolvedValue(makePreviewResponse({
-      totalSum: '100.00',
-      totalSumWithDiscount: '90.00',
-      totalDue: '90.00',
-      discountConfig: {
-        coupon: {
-          code: 'COMBO',
-          valid: true,
-          applied: true,
-          discountIdentifier: 'combo_coupon',
+    previewOrderMock.mockResolvedValue(
+      makePreviewResponse({
+        totalSum: '100.00',
+        totalSumWithDiscount: '90.00',
+        totalDue: '90.00',
+        discountConfig: {
+          coupon: {
+            code: 'COMBO',
+            valid: true,
+            applied: true,
+            discountIdentifier: 'combo_coupon',
+          },
         },
-      },
-      orderPreview: [
-        { id: 9171, quantity: 1, price: '100.00', isGift: false },
-        { id: 1234, quantity: 1, price: '0.00', isGift: true },
-      ],
-    }));
+        orderPreview: [
+          { id: 9171, quantity: 1, price: '100.00', isGift: false },
+          { id: 1234, quantity: 1, price: '0.00', isGift: true },
+        ],
+      }),
+    );
     // Has both monetary value AND gifts — not gift-only, so discount is attributed
     getDiscountByMarkerMock.mockResolvedValue(
       makeDiscountCfg({ discountValue: { value: 10 }, gifts: [{ productId: 1234 }] }),

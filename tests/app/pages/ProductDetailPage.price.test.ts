@@ -16,7 +16,7 @@
  *
  * Tested as a pure function so no React / Next.js runtime is required.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 type Variant = {
   price?: number;
@@ -48,10 +48,7 @@ function derivePdpPrice(
 describe('derivePdpPrice', () => {
   // Case 1 — no discount at all: sale UI must be hidden.
   it('returns full price and null originalPrice when there is no salePrice', () => {
-    const { dynamicPrice, dynamicOriginalPrice } = derivePdpPrice(
-      null,
-      { price: 100 },
-    );
+    const { dynamicPrice, dynamicOriginalPrice } = derivePdpPrice(null, { price: 100 });
     expect(dynamicPrice).toBe(100);
     expect(dynamicOriginalPrice).toBeNull();
   });
@@ -59,10 +56,7 @@ describe('derivePdpPrice', () => {
   // Case 2 — variant.salePrice < variant.price with a visible percentage:
   // both dynamicPrice (sale) and dynamicOriginalPrice (full) should be set.
   it('shows sale when variant salePrice produces >= 1% discount', () => {
-    const { dynamicPrice, dynamicOriginalPrice } = derivePdpPrice(
-      { price: 200, salePrice: 150 },
-      { price: 200 },
-    );
+    const { dynamicPrice, dynamicOriginalPrice } = derivePdpPrice({ price: 200, salePrice: 150 }, { price: 200 });
     expect(dynamicPrice).toBe(150);
     expect(dynamicOriginalPrice).toBe(200);
   });
@@ -73,8 +67,8 @@ describe('derivePdpPrice', () => {
   // rounds to 0% → NO sale UI should render.
   it('suppresses sale when variant.price equals family full price and family salePrice produces < 1% discount', () => {
     const { dynamicPrice, dynamicOriginalPrice } = derivePdpPrice(
-      { price: 35 },                       // variant has no salePrice
-      { price: 35, salePrice: 34.999 },    // family: sub-cent discount
+      { price: 35 }, // variant has no salePrice
+      { price: 35, salePrice: 34.999 }, // family: sub-cent discount
     );
     // 1 - 34.999/35 ≈ 0.000028... → rounds to 0 → no discount shown
     expect(dynamicPrice).toBe(35);
@@ -83,10 +77,7 @@ describe('derivePdpPrice', () => {
 
   // Case 4 — discount rounds to exactly 0% (34.998 on 35): strike hidden.
   it('hides sale when discount rounds to 0%', () => {
-    const { dynamicPrice, dynamicOriginalPrice } = derivePdpPrice(
-      null,
-      { price: 35, salePrice: 34.998 },
-    );
+    const { dynamicPrice, dynamicOriginalPrice } = derivePdpPrice(null, { price: 35, salePrice: 34.998 });
     expect(Math.round((1 - 34.998 / 35) * 100)).toBe(0); // sanity
     expect(dynamicPrice).toBe(35);
     expect(dynamicOriginalPrice).toBeNull();

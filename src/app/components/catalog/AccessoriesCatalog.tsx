@@ -1,21 +1,21 @@
-'use client'
+'use client';
 /**
  * AccessoriesCatalog — thin wrapper over ShoesCatalog.
  *
  * All rendering logic lives in ShoesCatalog; this file only overrides the
  * catalog title and breadcrumb label.
  */
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { CATALOG_PAGE_LABELS as CL } from '../../data/catalogPageLabels';
 import {
+  type CrossSellCategory,
+  type FilterGroup,
+  type FilterOption,
   ShoesCatalog,
   type ShoesCatalogProps,
-  type FilterOption,
-  type FilterGroup,
-  type CrossSellCategory,
 } from './ShoesCatalog';
-import { CATALOG_PAGE_LABELS as CL } from '../../data/catalogPageLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
 
-export type { FilterOption, FilterGroup, CrossSellCategory };
+export type { CrossSellCategory, FilterGroup, FilterOption };
 export type AccessoriesCatalogProps = ShoesCatalogProps;
 
 export function AccessoriesCatalog(props: AccessoriesCatalogProps) {
@@ -23,11 +23,5 @@ export function AccessoriesCatalog(props: AccessoriesCatalogProps) {
   // constants stay as the offline fallback.
   const title = useT('catalog_page_accessories', CL.accessories);
   const crumb = useT('catalog_page_breadcrumb_accessories', CL.breadcrumbAccessories);
-  return (
-    <ShoesCatalog
-      {...props}
-      catalogTitle={title}
-      breadcrumbCategory={crumb}
-    />
-  );
+  return <ShoesCatalog {...props} catalogTitle={title} breadcrumbCategory={crumb} />;
 }

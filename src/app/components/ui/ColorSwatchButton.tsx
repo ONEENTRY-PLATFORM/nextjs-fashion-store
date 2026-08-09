@@ -1,8 +1,9 @@
-'use client'
+'use client';
 import React from 'react';
-import { strikeColor } from '../../utils/colorUtils';
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
+
 import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
+import { strikeColor } from '../../utils/colorUtils';
 
 interface ColorSwatchButtonProps {
   color: string;
@@ -19,7 +20,12 @@ interface ColorSwatchButtonProps {
  * for the out-of-stock variant.
  */
 export function ColorSwatchButton({
-  color, active, outOfStock = false, onClick, label, sizeClass = 'w-4 h-4',
+  color,
+  active,
+  outOfStock = false,
+  onClick,
+  label,
+  sizeClass = 'w-4 h-4',
 }: ColorSwatchButtonProps) {
   const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
   return (
@@ -27,7 +33,7 @@ export function ColorSwatchButton({
       onClick={onClick}
       className={`relative ${sizeClass} shrink-0 transition-transform duration-150 focus-visible:outline-none ${
         active ? 'scale-125 border-2 border-black' : 'border border-gray-300'
-      } ${outOfStock ? 'opacity-60 cursor-not-allowed' : ''}`}
+      } ${outOfStock ? 'cursor-not-allowed opacity-60' : ''}`}
       style={{ backgroundColor: color }}
       title={outOfStock ? CVL.outOfStockLower : label}
       aria-label={label}
@@ -41,7 +47,7 @@ export function ColorSwatchButton({
     >
       {outOfStock && (
         <span
-          className="absolute inset-0 pointer-events-none"
+          className="pointer-events-none absolute inset-0"
           style={{
             background: `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${strikeColor(color)} calc(50% - 0.5px), ${strikeColor(color)} calc(50% + 0.5px), transparent calc(50% + 0.5px))`,
           }}

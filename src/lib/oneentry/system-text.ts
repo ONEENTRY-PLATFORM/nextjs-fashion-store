@@ -1,38 +1,38 @@
 import { cache } from 'react';
+
 import { getApiSafe, isError } from './index';
 import { DEFAULT_LOCALE } from './locale';
 import { logCaught } from './log';
 
-/** OE locale code accepted by the SDK (`en_US`, `fr_FR`, …). Widened from the
+/**
+ * OE locale code accepted by the SDK (`en_US`, `fr_FR`, …). Widened from the
  *  original `'en_US'` literal when locale routing landed — every fetcher still
- *  defaults to {@link DEFAULT_LOCALE}, so single-locale behaviour is unchanged. */
+ *  defaults to {@link DEFAULT_LOCALE}, so single-locale behaviour is unchanged.
+ */
 export type Lang = string;
 
-/** OE returns the attribute-set schema in two shapes depending on which call
+/**
+ * OE returns the attribute-set schema in two shapes depending on which call
  *  surfaces it. The REST `/attributes-sets/marker/{m}` endpoint returns
  *  `initialValue: { en_US: { value: 'Share' } }` (language-keyed), but the
  *  TypeScript SDK call `AttributesSets.getAttributeSetByMarker` flattens it to
  *  `initialValue: { value: 'Share' }` once it's already resolved against the
- *  requested locale. The reader needs to accept both. */
+ *  requested locale. The reader needs to accept both.
+ */
 type SystemAttrItem = {
   type?: string;
   identifier?: string;
-  initialValue?:
-    | Partial<Record<Lang, { value?: string | null }>>
-    | { value?: string | null };
-  localizeInfos?:
-    | Partial<Record<Lang, { title?: string }>>
-    | { title?: string };
+  initialValue?: Partial<Record<Lang, { value?: string | null }>> | { value?: string | null };
+  localizeInfos?: Partial<Record<Lang, { title?: string }>> | { title?: string };
 };
 
 export type SystemSchema = Record<string, SystemAttrItem>;
 
-/** Extract the string value from a system-text attribute item, working with
- *  both the language-keyed shape and the already-flattened SDK shape. */
-export function readSystemValue(
-  item: SystemAttrItem | undefined,
-  lang: Lang = DEFAULT_LOCALE,
-): string | null {
+/**
+ * Extract the string value from a system-text attribute item, working with
+ *  both the language-keyed shape and the already-flattened SDK shape.
+ */
+export function readSystemValue(item: SystemAttrItem | undefined, lang: Lang = DEFAULT_LOCALE): string | null {
   if (!item) return null;
   const iv = item.initialValue;
   if (!iv || typeof iv !== 'object') return null;
@@ -88,41 +88,34 @@ async function fetchSystemSet(marker: string, lang: Lang): Promise<SystemSchema>
   }
 }
 
-export const getSystemSet = cache(
-  async (marker: string, lang: Lang = DEFAULT_LOCALE): Promise<SystemSchema> => {
-    const key = `${marker}|${lang}`;
-    const now = Date.now();
-    const cached = systemSetCache.get(key);
-    if (cached && now - cached.at < SYSTEM_SET_TTL_MS) return cached.value;
-    const inflight = systemSetInflight.get(key);
-    if (inflight) return inflight;
-    const p = fetchSystemSet(marker, lang)
-      .then((value) => {
-        // Only cache non-empty results — a transient OE hiccup (network
-        // blip, brief 500) should NOT poison labels for the whole TTL.
-        // Empty schemas fall through to the caller's `fallback` copy on
-        // the next request instead of getting pinned. `unstable_cache`-
-        // like poisoning was a real audit finding: one 5-min window
-        // could kill every label render app-wide.
-        if (Object.keys(value).length > 0) {
-          touchSystemSet(key, { at: Date.now(), value });
-        }
-        return value;
-      })
-      .finally(() => {
-        systemSetInflight.delete(key);
-      });
-    systemSetInflight.set(key, p);
-    return p;
-  },
-);
+export const getSystemSet = cache(async (marker: string, lang: Lang = DEFAULT_LOCALE): Promise<SystemSchema> => {
+  const key = `${marker}|${lang}`;
+  const now = Date.now();
+  const cached = systemSetCache.get(key);
+  if (cached && now - cached.at < SYSTEM_SET_TTL_MS) return cached.value;
+  const inflight = systemSetInflight.get(key);
+  if (inflight) return inflight;
+  const p = fetchSystemSet(marker, lang)
+    .then((value) => {
+      // Only cache non-empty results — a transient OE hiccup (network
+      // blip, brief 500) should NOT poison labels for the whole TTL.
+      // Empty schemas fall through to the caller's `fallback` copy on
+      // the next request instead of getting pinned. `unstable_cache`-
+      // like poisoning was a real audit finding: one 5-min window
+      // could kill every label render app-wide.
+      if (Object.keys(value).length > 0) {
+        touchSystemSet(key, { at: Date.now(), value });
+      }
+      return value;
+    })
+    .finally(() => {
+      systemSetInflight.delete(key);
+    });
+  systemSetInflight.set(key, p);
+  return p;
+});
 
-export async function t(
-  marker: string,
-  key: string,
-  fallback: string,
-  lang: Lang = DEFAULT_LOCALE,
-): Promise<string> {
+export async function t(marker: string, key: string, fallback: string, lang: Lang = DEFAULT_LOCALE): Promise<string> {
   const schema = await getSystemSet(marker, lang);
   const value = readSystemValue(schema?.[key], lang);
   return value && value.length > 0 ? value : fallback;

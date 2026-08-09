@@ -1,11 +1,10 @@
-'use client'
+'use client';
 import { ChevronDown } from 'lucide-react';
-
-
 import { type RefObject } from 'react';
-import { SUB_CATEGORIES, type Gender, type SubCat, type MegaSection } from '../../data/categories';
+
+import { Link, useRouter } from '../../../lib/i18n/navigation';
 import { SALE_YELLOW } from '../../constants/colors';
-import { useRouter, Link } from '../../../lib/i18n/navigation';
+import { type Gender, type MegaSection, SUB_CATEGORIES, type SubCat } from '../../data/categories';
 
 interface HeaderMegaMenuProps {
   activeGender: Gender;
@@ -40,11 +39,11 @@ export function HeaderMegaMenu({
 
   return (
     <div
-      className="hidden lg:block text-white transition-colors duration-150 ease-in-out relative bg-accent"
+      className="relative hidden bg-accent text-white transition-colors duration-150 ease-in-out lg:block"
       style={{ '--accent': accentColor, '--sale-yellow': SALE_YELLOW } as React.CSSProperties}
       onMouseLeave={onSubCatLeave}
     >
-      <div className="max-w-384 mx-auto px-8 lg:px-12">
+      <div className="mx-auto max-w-384 px-8 lg:px-12">
         <div className="flex items-center justify-center">
           {SUB_CATEGORIES.map((cat) => {
             const key = cat.toLowerCase();
@@ -53,9 +52,7 @@ export function HeaderMegaMenu({
             // pages so their product list is scoped to that gender (matches the
             // menu context the shopper is in).
             const genderQs = `?gender=${activeGender}`;
-            const catalogHref = hasDropdown
-              ? getNavHref(activeGender, key)
-              : key === 'new' ? `/new${genderQs}` : null;
+            const catalogHref = hasDropdown ? getNavHref(activeGender, key) : key === 'new' ? `/new${genderQs}` : null;
             const isSale = key === 'sale';
             const isActive = activeDropdown === key || urlSubCat === key;
             return (
@@ -69,7 +66,7 @@ export function HeaderMegaMenu({
                 }}
                 className={`relative px-5 py-3 text-xs tracking-widest uppercase transition-all duration-100 ${
                   isSale
-                    ? 'text-(--sale-yellow) font-extrabold tracking-[0.22em] bg-[#da1e1e]/35 cursor-pointer'
+                    ? 'cursor-pointer bg-[#da1e1e]/35 font-extrabold tracking-[0.22em] text-(--sale-yellow)'
                     : `text-white ${urlSubCat === key ? 'font-bold' : 'font-medium'} ${
                         isActive ? 'bg-black/15' : 'bg-transparent'
                       } ${catalogHref ? 'cursor-pointer' : 'cursor-default'}`
@@ -78,7 +75,7 @@ export function HeaderMegaMenu({
                 {isSale ? (
                   <span className="flex items-center gap-1">
                     {cat}
-                    <span className="inline-block w-[5px] h-[5px] rounded-full align-middle bg-(--sale-yellow) animate-pulse" />
+                    <span className="inline-block size-[5px] animate-pulse rounded-full bg-(--sale-yellow) align-middle" />
                   </span>
                 ) : (
                   <>
@@ -100,24 +97,26 @@ export function HeaderMegaMenu({
       {currentDropdownData && (
         <div
           ref={dropdownRef}
-          className="absolute top-full left-0 right-0 bg-white text-black shadow-xl z-50 border-t-2 border-accent"
+          className="absolute inset-x-0 top-full z-50 border-t-2 border-accent bg-white text-black shadow-xl"
           onMouseEnter={onDropdownEnter}
           onMouseLeave={onDropdownLeave}
         >
-          <div className="max-w-384 mx-auto px-8 py-8">
+          <div className="mx-auto max-w-384 p-8">
             <div className="flex gap-16">
               {currentDropdownData.map((section, idx) => (
-                <div key={`${section.title}-${idx}`} className="flex-1 min-w-40">
-                  <h4 className="text-xs tracking-widest uppercase mb-4 pb-2 border-b border-gray-200 text-accent">
+                <div key={`${section.title}-${idx}`} className="min-w-40 flex-1">
+                  <h4 className="mb-4 border-b border-gray-200 pb-2 text-xs tracking-widest text-accent uppercase">
                     {section.title}
                   </h4>
                   <ul className="space-y-2">
                     {section.items.map((item) => (
                       <li key={`${item.pageUrl || item.label}`}>
                         <Link
-                          href={activeDropdown ? getNavHref(activeGender, activeDropdown, item.pageUrl || item.label) : '/'}
+                          href={
+                            activeDropdown ? getNavHref(activeGender, activeDropdown, item.pageUrl || item.label) : '/'
+                          }
                           onClick={onCloseDropdown}
-                          className="text-sm text-gray-700 hover:text-black hover:underline transition-colors block"
+                          className="block text-sm text-gray-700 transition-colors hover:text-black hover:underline"
                         >
                           {item.label}
                         </Link>

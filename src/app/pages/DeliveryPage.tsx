@@ -1,11 +1,11 @@
-'use client'
-import React, { useState, useEffect, useMemo } from 'react';
+'use client';
 import dynamic from 'next/dynamic';
+import React, { useEffect, useMemo, useState } from 'react';
 
-import { Header } from '../components/header/Header';
-import { Footer } from '../components/footer/Footer';
-import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
 import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
+import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
+import { Footer } from '../components/footer/Footer';
+import { Header } from '../components/header/Header';
 import { useCart } from '../context/CartContext';
 
 // Render Order Summary client-only — its content reads from the Redux cart
@@ -13,34 +13,35 @@ import { useCart } from '../context/CartContext';
 // would produce an empty (or stale) snapshot that conflicts with the
 // post-hydration client tree.
 const DeliveryOrderSummary = dynamic(
-  () => import('./checkout/DeliveryOrderSummary').then(m => m.DeliveryOrderSummary),
+  () => import('./checkout/DeliveryOrderSummary').then((m) => m.DeliveryOrderSummary),
   { ssr: false },
 );
-import { useAuth } from '../context/AuthContext';
+import { useRouter } from '../../lib/i18n/navigation';
 import type { OeAddress } from '../../lib/oneentry/auth/actions';
-import { PICKUP_STORES, PARCEL_LOCKERS, DELIVERY_TIME_SLOTS, type PickupStore } from '../data/checkoutConfig';
-import { useSchemas } from '../utils/useFormMessages';
-
+import type { DeliveryTimeSlot } from '../../lib/oneentry/checkout/delivery-schedule';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
+import { useAuth } from '../context/AuthContext';
+import { DELIVERY_TIME_SLOTS, PARCEL_LOCKERS, PICKUP_STORES, type PickupStore } from '../data/checkoutConfig';
+import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_PAGE_LABELS } from '../data/checkoutLabels';
+import { useMounted } from '../hooks/useMounted';
+import { useSchemas } from '../utils/useFormMessages';
+import { DeliveryMethodHome } from './checkout/DeliveryMethodHome';
+import { DeliveryMethodLocker } from './checkout/DeliveryMethodLocker';
+import { DeliveryMethodStore } from './checkout/DeliveryMethodStore';
 import { GuestCheckoutModal } from './checkout/GuestCheckoutModal';
 import { type GuestContactFormState } from './checkout/GuestContactForm';
-import { DeliveryMethodStore } from './checkout/DeliveryMethodStore';
-import { DeliveryMethodLocker } from './checkout/DeliveryMethodLocker';
-import { DeliveryMethodHome } from './checkout/DeliveryMethodHome';
-import { DELIVERY_PAGE_LABELS as L, DELIVERY_METHOD_HOME_LABELS as DH } from '../data/checkoutLabels';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import type { DeliveryTimeSlot } from '../../lib/oneentry/checkout/delivery-schedule';
-import { useMounted } from '../hooks/useMounted';
-import { useRouter } from '../../lib/i18n/navigation';
 
 type DeliveryMethod = 'home' | 'store' | 'locker';
 
-/** Client-only fallback: when the server layer didn't hand a date strip
+/**
+ * Client-only fallback: when the server layer didn't hand a date strip
  *  down (e.g. Storybook / bare unit test render), synthesise the same
  *  "tomorrow, skip Sundays, 7 dates" shape the OE loader would produce
  *  from its own fallback config. Kept in sync with `FALLBACK` in
  *  `delivery-schedule.ts` — do NOT re-derive from OE here, this branch
- *  only fires when there is no server layer at all. */
+ *  only fires when there is no server layer at all.
+ */
 function getDeliveryDates(count = 7): Date[] {
   const dates: Date[] = [];
   const d = new Date();
@@ -53,26 +54,35 @@ function getDeliveryDates(count = 7): Date[] {
   return dates;
 }
 
-
 interface DeliveryPageProps {
-  /** Pickup stores loaded from OE by the server layer. When OE has none the
+  /**
+   * Pickup stores loaded from OE by the server layer. When OE has none the
    *  server passes the hardcoded `PICKUP_STORES` fallback so the picker still
-   *  renders. */
+   *  renders.
+   */
   pickupStores?: PickupStore[];
-  /** Parcel-locker names loaded from OE by the server layer. Empty (or
+  /**
+   * Parcel-locker names loaded from OE by the server layer. Empty (or
    *  omitted, e.g. Storybook / bare unit tests) keeps the local
-   *  `PARCEL_LOCKERS` fallback so the picker still renders. */
+   *  `PARCEL_LOCKERS` fallback so the picker still renders.
+   */
   parcelLockers?: string[];
-  /** ISO-serialised date strip for the authed variant — built server-side
+  /**
+   * ISO-serialised date strip for the authed variant — built server-side
    *  from `checkout_home_delivery`'s schedule config. When omitted —
    *  Storybook / bare unit tests — the component regenerates it from the
-   *  same 7-days/skip-Sun defaults. */
+   *  same 7-days/skip-Sun defaults.
+   */
   deliveryDatesIsoAuthed?: string[];
-  /** ISO-serialised date strip for the guest variant — built from
-   *  `checkout_home_delivery_guest`'s schedule config. Same fallback. */
+  /**
+   * ISO-serialised date strip for the guest variant — built from
+   *  `checkout_home_delivery_guest`'s schedule config. Same fallback.
+   */
   deliveryDatesIsoGuest?: string[];
-  /** Slots from `checkout_home_delivery.delivery_slot`. Fallback:
-   *  `DELIVERY_TIME_SLOTS`. */
+  /**
+   * Slots from `checkout_home_delivery.delivery_slot`. Fallback:
+   *  `DELIVERY_TIME_SLOTS`.
+   */
   deliverySlotsAuthed?: DeliveryTimeSlot[];
   /** Slots from `checkout_home_delivery_guest.delivery_slot_guest`. */
   deliverySlotsGuest?: DeliveryTimeSlot[];
@@ -89,25 +99,31 @@ export function DeliveryPage({
   deliverySlotsGuest,
   pageBlocks,
 }: DeliveryPageProps = {}) {
+  const DH = useDict('checkout_delivery_', DELIVERY_METHOD_HOME_LABELS);
+  const L = useDict('checkout_delivery_page_', DELIVERY_PAGE_LABELS);
   const schemas = useSchemas();
   const router = useRouter();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
   // Fall back to the literal list if the server layer didn't hand any down —
   // keeps Storybook and unit tests that render <DeliveryPage /> bare working.
-  const stores: PickupStore[] = pickupStores && pickupStores.length > 0
-    ? pickupStores
-    : PICKUP_STORES;
-  const lockers: string[] = parcelLockers && parcelLockers.length > 0
-    ? parcelLockers
-    : PARCEL_LOCKERS;
+  const stores: PickupStore[] = pickupStores && pickupStores.length > 0 ? pickupStores : PICKUP_STORES;
+  const lockers: string[] = parcelLockers && parcelLockers.length > 0 ? parcelLockers : PARCEL_LOCKERS;
   const {
     items,
-    total, personalDiscount, totalDue,
-    couponCode, couponDiscount, couponError, applyCoupon, removeCoupon, giftItems,
-    preview, previewLoading,
+    total,
+    personalDiscount,
+    totalDue,
+    couponCode,
+    couponDiscount,
+    couponError,
+    applyCoupon,
+    removeCoupon,
+    giftItems,
+    preview,
+    previewLoading,
   } = useCart();
-  const lBackToCart  = useT('checkout_delivery_back_to_cart',        L.backToCart);
-  const lContinue    = useT('checkout_delivery_continue_to_payment', L.continueToPayment);
+  const lBackToCart = useT('checkout_delivery_back_to_cart', L.backToCart);
+  const lContinue = useT('checkout_delivery_continue_to_payment', L.continueToPayment);
   // Saved addresses come straight from OE for the signed-in user.
   const savedAddresses = user?.addresses ?? [];
 
@@ -126,9 +142,8 @@ export function DeliveryPage({
   const activeDatesIso = isLoggedIn ? deliveryDatesIsoAuthed : deliveryDatesIsoGuest;
   const activeSlots = isLoggedIn ? deliverySlotsAuthed : deliverySlotsGuest;
   const deliveryDates = useMemo<Date[]>(
-    () => (activeDatesIso && activeDatesIso.length > 0
-      ? activeDatesIso.map((iso) => new Date(iso))
-      : getDeliveryDates(7)),
+    () =>
+      activeDatesIso && activeDatesIso.length > 0 ? activeDatesIso.map((iso) => new Date(iso)) : getDeliveryDates(7),
     [activeDatesIso],
   );
   const timeSlots = activeSlots && activeSlots.length > 0 ? activeSlots : DELIVERY_TIME_SLOTS;
@@ -141,8 +156,7 @@ export function DeliveryPage({
   // buffer and the busy flag while `applyCoupon` awaits `previewOrder`.
   const [couponInput, setCouponInput] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
-  const couponStatus: 'idle' | 'success' | 'error' =
-    couponCode ? 'success' : couponError ? 'error' : 'idle';
+  const couponStatus: 'idle' | 'success' | 'error' = couponCode ? 'success' : couponError ? 'error' : 'idle';
 
   // Client `total` already reflects the sale price (line items use
   // `item.price` with the strike-through UX). Prefer OE's `totalDue`
@@ -167,7 +181,14 @@ export function DeliveryPage({
 
   // Address selection (for logged-in users with saved addresses)
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
-  const [newAddrForm, setNewAddrForm] = useState({ fullName: '', phone: '', line1: '', city: '', postcode: '', instructions: '' });
+  const [newAddrForm, setNewAddrForm] = useState({
+    fullName: '',
+    phone: '',
+    line1: '',
+    city: '',
+    postcode: '',
+    instructions: '',
+  });
   const [addrErrors, setAddrErrors] = useState<Record<string, string>>({});
   const [saveNewAddr, setSaveNewAddr] = useState(true);
   const [newAddrConfirmed, setNewAddrConfirmed] = useState(false);
@@ -181,7 +202,7 @@ export function DeliveryPage({
   // Preselect the shopper's first saved address as soon as the account data
   // lands. Done during render (React's "adjust state when a prop changes")
   // so the radio is already checked on the first paint.
-  const defaultAddressId = isLoggedIn ? savedAddresses[0]?.id ?? null : null;
+  const defaultAddressId = isLoggedIn ? (savedAddresses[0]?.id ?? null) : null;
   const [prevDefaultAddressId, setPrevDefaultAddressId] = useState<string | null>(null);
   if (defaultAddressId !== prevDefaultAddressId) {
     setPrevDefaultAddressId(defaultAddressId);
@@ -268,24 +289,32 @@ export function DeliveryPage({
     };
     const storage = storageByMethod[method];
     // Resolve the address actually used for home delivery (saved or freshly typed).
-    const homeAddress = method === 'home'
-      ? (() => {
-          const usingSaved = isLoggedIn && savedAddresses.length > 0 && selectedAddressId !== 'new';
-          const saved = usingSaved
-            ? savedAddresses.find((a) => a.id === selectedAddressId) ?? savedAddresses[0]
-            : null;
-          if (saved) return {
-            fullName: saved.fullName, phone: saved.phone, line1: saved.line1,
-            city: saved.city, postcode: saved.postcode,
-            instructions: saved.instructions ?? '',
-          };
-          return {
-            fullName: newAddrForm.fullName, phone: newAddrForm.phone, line1: newAddrForm.line1,
-            city: newAddrForm.city, postcode: newAddrForm.postcode,
-            instructions: newAddrForm.instructions,
-          };
-        })()
-      : null;
+    const homeAddress =
+      method === 'home'
+        ? (() => {
+            const usingSaved = isLoggedIn && savedAddresses.length > 0 && selectedAddressId !== 'new';
+            const saved = usingSaved
+              ? (savedAddresses.find((a) => a.id === selectedAddressId) ?? savedAddresses[0])
+              : null;
+            if (saved)
+              return {
+                fullName: saved.fullName,
+                phone: saved.phone,
+                line1: saved.line1,
+                city: saved.city,
+                postcode: saved.postcode,
+                instructions: saved.instructions ?? '',
+              };
+            return {
+              fullName: newAddrForm.fullName,
+              phone: newAddrForm.phone,
+              line1: newAddrForm.line1,
+              city: newAddrForm.city,
+              postcode: newAddrForm.postcode,
+              instructions: newAddrForm.instructions,
+            };
+          })()
+        : null;
     const payload = {
       storage,
       isGuest: !isLoggedIn,
@@ -303,7 +332,9 @@ export function DeliveryPage({
     };
     try {
       sessionStorage.setItem('oe_checkout_payload', JSON.stringify(payload));
-    } catch { /* ignore — feature degrades gracefully */ }
+    } catch {
+      /* ignore — feature degrades gracefully */
+    }
     router.push('/checkout/payment');
   };
 
@@ -323,30 +354,33 @@ export function DeliveryPage({
       className="min-h-screen bg-white font-[Inter,sans-serif]"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
     >
-
       {showGuestModal && (
         <GuestCheckoutModal
           onClose={() => setShowGuestModal(false)}
-          onSignIn={() => { setShowGuestModal(false); openLoginModal(); }}
-          onRegister={() => { setShowGuestModal(false); openRegisterModal(); }}
+          onSignIn={() => {
+            setShowGuestModal(false);
+            openLoginModal();
+          }}
+          onRegister={() => {
+            setShowGuestModal(false);
+            openRegisterModal();
+          }}
           onContinueAsGuest={() => setShowGuestModal(false)}
         />
       )}
 
       <Header />
 
-      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 pb-20">
+      <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
           <CheckoutStepper currentStep={1} />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 pt-8">
+        <div className="flex flex-col gap-8 pt-8 lg:flex-row">
           {/* ── Left: Delivery Options ── */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl tracking-[0.15em] uppercase mb-6 font-bold">
-              {L.pageTitle}
-            </h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="mb-6 text-xl font-bold tracking-[0.15em] uppercase">{L.pageTitle}</h1>
 
             <DeliveryMethodHome
               checked={method === 'home'}
@@ -401,16 +435,16 @@ export function DeliveryPage({
             />
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-8">
+            <div className="mt-8 flex items-center justify-between">
               <button
                 onClick={() => router.push('/cart')}
-                className="flex items-center gap-2 text-sm focus-visible:outline-none hover:opacity-70 transition-opacity text-[#555]"
+                className="flex items-center gap-2 text-sm text-[#555] transition-opacity hover:opacity-70 focus-visible:outline-none"
               >
                 {lBackToCart}
               </button>
               <button
                 onClick={handleContinueToPayment}
-                className="px-10 py-4 text-white text-sm tracking-[0.2em] uppercase focus-visible:outline-none hover:opacity-90 transition-opacity bg-black rounded-lg font-semibold"
+                className="rounded-lg bg-black px-10 py-4 text-sm font-semibold tracking-[0.2em] text-white uppercase transition-opacity hover:opacity-90 focus-visible:outline-none"
               >
                 {lContinue}
               </button>
@@ -441,9 +475,7 @@ export function DeliveryPage({
 
       {/* OE-attached blocks for the `delivery_method` page — rendered
           below the form, before the footer. */}
-      {pageBlocks && pageBlocks.length > 0 && (
-        <PageBlocksRenderer blocks={pageBlocks} />
-      )}
+      {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
 
       <Footer />
     </div>

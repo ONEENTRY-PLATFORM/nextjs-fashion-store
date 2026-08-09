@@ -1,16 +1,19 @@
-import { Suspense } from 'react';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
 import type { Metadata } from 'next';
-import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../../src/app/data/seoData';
-import { SalePage } from '../../../src/app/pages/SalePage';
+import { Suspense } from 'react';
+
 import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
-import { adaptCatalogProductToUiProduct, saleCategoryFor } from '../../../src/lib/oneentry/catalog/adapt';
+import { SCHEMA_BREADCRUMBS as BC, SEO, SITE_URL } from '../../../src/app/data/seoData';
+import { SalePage } from '../../../src/app/pages/SalePage';
 import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToUiProduct, saleCategoryFor } from '../../../src/lib/oneentry/catalog/adapt';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
+import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
 import { loadSalePage } from '../../../src/lib/oneentry/catalog/sale-page';
 
-/** Title/description/keywords/canonical come from the OE `sale` page when an
- *  editor filled them; `SEO.sale` stays as the offline fallback. */
+/**
+ * Title/description/keywords/canonical come from the OE `sale` page when an
+ *  editor filled them; `SEO.sale` stays as the offline fallback.
+ */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('sale', SEO.sale);
 }
@@ -46,16 +49,22 @@ export default async function Page() {
   // The full feed ships to the client; `SalePage` narrows it to the active
   // gender from `?gender=`. The adapter already stamps `gender` with the OE
   // attribute or, when blank, the category path (`/women/…` vs `/men/…`).
-  const initialProducts = products.items.length > 0
-    ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: saleCategoryFor(p) }))
-    : undefined;
+  const initialProducts =
+    products.items.length > 0
+      ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: saleCategoryFor(p) }))
+      : undefined;
   return (
     <>
       <JsonLd data={breadcrumb} />
       {/* SalePage reads `?gender=` via useSearchParams — without this
           boundary the whole route silently reverts to dynamic rendering. */}
       <Suspense fallback={null}>
-        <SalePage initialProducts={initialProducts} saleEndsAt={saleEndsAt ?? undefined} pageBlocks={pageBlocks} cmsPage={cmsPage} />
+        <SalePage
+          initialProducts={initialProducts}
+          saleEndsAt={saleEndsAt ?? undefined}
+          pageBlocks={pageBlocks}
+          cmsPage={cmsPage}
+        />
       </Suspense>
     </>
   );

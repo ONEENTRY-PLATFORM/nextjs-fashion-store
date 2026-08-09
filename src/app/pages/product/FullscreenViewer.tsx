@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
-import CmsImage from '../../components/ui/CmsImage';
-import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { FULLSCREEN_VIEWER_LABELS as L_FALLBACK } from '../../data/productPageLabels';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
 import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import CmsImage from '../../components/ui/CmsImage';
+import { FULLSCREEN_VIEWER_LABELS as L_FALLBACK } from '../../data/productPageLabels';
 
 interface FullscreenViewerProps {
   images: string[];
@@ -22,18 +23,23 @@ export function FullscreenViewer({ images, startIndex, onClose, productName, ima
   const wheelUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    return () => { if (wheelUnlockTimer.current) clearTimeout(wheelUnlockTimer.current); };
+    return () => {
+      if (wheelUnlockTimer.current) clearTimeout(wheelUnlockTimer.current);
+    };
   }, []);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') setCurrent(c => Math.max(0, c - 1));
-      if (e.key === 'ArrowRight') setCurrent(c => Math.min(images.length - 1, c + 1));
+      if (e.key === 'ArrowLeft') setCurrent((c) => Math.max(0, c - 1));
+      if (e.key === 'ArrowRight') setCurrent((c) => Math.min(images.length - 1, c + 1));
     };
     window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
   }, [images.length, onClose]);
 
   useEffect(() => {
@@ -44,43 +50,52 @@ export function FullscreenViewer({ images, startIndex, onClose, productName, ima
       if (wheelLock.current) return;
       wheelLock.current = true;
       if (wheelUnlockTimer.current) clearTimeout(wheelUnlockTimer.current);
-      wheelUnlockTimer.current = setTimeout(() => { wheelLock.current = false; }, 400);
-      if (e.deltaY > 0) setCurrent(c => Math.min(images.length - 1, c + 1));
-      else setCurrent(c => Math.max(0, c - 1));
+      wheelUnlockTimer.current = setTimeout(() => {
+        wheelLock.current = false;
+      }, 400);
+      if (e.deltaY > 0) setCurrent((c) => Math.min(images.length - 1, c + 1));
+      else setCurrent((c) => Math.max(0, c - 1));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [images.length]);
 
   return createPortal(
-    <div ref={containerRef} className="fixed inset-0 flex z-99999 bg-[#111]">
-      <div className="flex flex-col gap-2 py-6 px-3 overflow-y-auto scrollbar-hide w-22 bg-[#1a1a1a] shrink-0">
+    <div ref={containerRef} className="fixed inset-0 z-99999 flex bg-[#111]">
+      <div className="scrollbar-hide flex w-22 shrink-0 flex-col gap-2 overflow-y-auto bg-[#1a1a1a] px-3 py-6">
         {images.map((img, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`relative shrink-0 overflow-hidden transition-all duration-150 focus-visible:outline-none w-16 aspect-3/4 outline-2 outline-offset-2 ${
+            className={`relative aspect-3/4 w-16 shrink-0 overflow-hidden outline-2 outline-offset-2 transition-all duration-150 focus-visible:outline-none ${
               current === i ? 'opacity-100 outline-white' : 'opacity-45 outline-transparent'
             }`}
           >
-            <CmsImage src={img} blur={imageBlurs?.[img]} alt={`${productName} – photo ${i + 1}`} fill sizes="64px" className="object-cover object-[center_top]" />
+            <CmsImage
+              src={img}
+              blur={imageBlurs?.[img]}
+              alt={`${productName} – photo ${i + 1}`}
+              fill
+              sizes="64px"
+              className="object-cover object-[center_top]"
+            />
           </button>
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-6 py-4 shrink-0">
-          <span className="text-white/50 text-sm">{L.photoPositionTpl(current, images.length)}</span>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-center justify-between px-6 py-4">
+          <span className="text-sm text-white/50">{L.photoPositionTpl(current, images.length)}</span>
           <button
             onClick={onClose}
-            className="flex items-center justify-center bg-white text-black hover:bg-gray-200 transition-colors focus-visible:outline-none w-10 h-10 rounded-full"
+            className="flex size-10 items-center justify-center rounded-full bg-white text-black transition-colors hover:bg-gray-200 focus-visible:outline-none"
             aria-label={L.closeAria}
           >
             <X size={18} strokeWidth={2} />
           </button>
         </div>
 
-        <div className="flex-1 flex items-center justify-center relative px-16 min-h-0" onClick={onClose}>
+        <div className="relative flex min-h-0 flex-1 items-center justify-center px-16" onClick={onClose}>
           <CmsImage
             src={images[current]}
             blur={imageBlurs?.[images[current]]}
@@ -88,20 +103,26 @@ export function FullscreenViewer({ images, startIndex, onClose, productName, ima
             fill
             sizes="100vw"
             className="object-contain select-none"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           />
           {current > 0 && (
             <button
-              onClick={e => { e.stopPropagation(); setCurrent(c => c - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white bg-white/10 hover:bg-white/25 transition-colors focus-visible:outline-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrent((c) => c - 1);
+              }}
+              className="absolute top-1/2 left-4 flex size-10 -translate-y-1/2 items-center justify-center bg-white/10 text-white transition-colors hover:bg-white/25 focus-visible:outline-none"
             >
               <ChevronLeft size={22} />
             </button>
           )}
           {current < images.length - 1 && (
             <button
-              onClick={e => { e.stopPropagation(); setCurrent(c => c + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white bg-white/10 hover:bg-white/25 transition-colors focus-visible:outline-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrent((c) => c + 1);
+              }}
+              className="absolute top-1/2 right-4 flex size-10 -translate-y-1/2 items-center justify-center bg-white/10 text-white transition-colors hover:bg-white/25 focus-visible:outline-none"
             >
               <ChevronRight size={22} />
             </button>
@@ -109,6 +130,6 @@ export function FullscreenViewer({ images, startIndex, onClose, productName, ima
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

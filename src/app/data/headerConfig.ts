@@ -26,7 +26,7 @@ export const GENDER_NAV_HREFS: Record<string, string> = {
 };
 
 // ── Gender accent colours (code-owned) ───────────────────────────────────────
-export { ACCENT_WOMEN as WOMEN_COLOR, ACCENT_MEN as MEN_COLOR } from '../constants/colors';
+export { ACCENT_MEN as MEN_COLOR, ACCENT_WOMEN as WOMEN_COLOR } from '../constants/colors';
 
 // ── Shared fallbacks (used by more than one component) ───────────────────────
 /** `header_logo_alt` — Header, Footer and the mobile drawer all render it. */
@@ -53,5 +53,10 @@ export interface MobileFooterLink {
 
 export const MOBILE_FOOTER_LINKS: MobileFooterLink[] = [
   { labelKey: 'header_my_account', fallbackLabel: 'My Account', href: ACCOUNT_HREF, iconType: 'user' },
-  { labelKey: 'header_store_locations', fallbackLabel: 'Store Locations', href: STORE_LOCATIONS_HREF, iconType: 'map-pin' },
+  {
+    labelKey: 'header_store_locations',
+    fallbackLabel: 'Store Locations',
+    href: STORE_LOCATIONS_HREF,
+    iconType: 'map-pin',
+  },
 ];

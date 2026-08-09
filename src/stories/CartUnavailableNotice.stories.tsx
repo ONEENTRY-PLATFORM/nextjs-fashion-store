@@ -1,9 +1,10 @@
 'use client';
-import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import React, { useEffect } from 'react';
+
 import { CartUnavailableNotice } from '../app/components/cart/CartUnavailableNotice';
-import { useAppDispatch } from '../app/store/hooks';
 import { cartActions } from '../app/store/cartSlice';
+import { useAppDispatch } from '../app/store/hooks';
 import { MOCK_CART_ITEM, MOCK_CART_ITEM_SALE } from './mockData';
 
 /** Seeds `state.cart.unavailableRemoved` with one item and renders the notice. */
@@ -11,7 +12,9 @@ function WithOneItem() {
   const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(cartActions.setUnavailableRemoved([MOCK_CART_ITEM]));
-    return () => { dispatch(cartActions.dismissUnavailableRemoved()); };
+    return () => {
+      dispatch(cartActions.dismissUnavailableRemoved());
+    };
   }, [dispatch]);
   return <CartUnavailableNotice />;
 }
@@ -21,7 +24,9 @@ function WithMultipleItems() {
   const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(cartActions.setUnavailableRemoved([MOCK_CART_ITEM, MOCK_CART_ITEM_SALE]));
-    return () => { dispatch(cartActions.dismissUnavailableRemoved()); };
+    return () => {
+      dispatch(cartActions.dismissUnavailableRemoved());
+    };
   }, [dispatch]);
   return <CartUnavailableNotice />;
 }
@@ -32,11 +37,7 @@ function EmptyState() {
   useEffect(() => {
     dispatch(cartActions.dismissUnavailableRemoved());
   }, [dispatch]);
-  return (
-    <div className="p-4 text-sm text-gray-400 italic">
-      (nothing rendered — unavailableRemoved is empty)
-    </div>
-  );
+  return <div className="p-4 text-sm text-gray-400 italic">(nothing rendered — unavailableRemoved is empty)</div>;
 }
 
 const meta = {

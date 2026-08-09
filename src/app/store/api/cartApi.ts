@@ -11,13 +11,9 @@
  * client-side before dispatching.
  */
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
 import type { RootState } from '../index';
-import type {
-  CartApiResponse,
-  CartAddItemArgs,
-  CartRemoveItemArgs,
-  CartSetArgs,
-} from './types/cart';
+import type { CartAddItemArgs, CartApiResponse, CartRemoveItemArgs, CartSetArgs } from './types/cart';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -77,9 +73,4 @@ export const cartApi = createApi({
   }),
 });
 
-export const {
-  useGetCartQuery,
-  useAddCartItemMutation,
-  useRemoveCartItemMutation,
-  useSetCartMutation,
-} = cartApi;
+export const { useGetCartQuery, useAddCartItemMutation, useRemoveCartItemMutation, useSetCartMutation } = cartApi;

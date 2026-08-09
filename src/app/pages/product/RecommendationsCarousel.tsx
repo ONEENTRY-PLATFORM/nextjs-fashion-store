@@ -1,12 +1,15 @@
-import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ProductCard, type Product } from '../../components/product/ProductCard';
+import { useRef } from 'react';
 
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { type Product, ProductCard } from '../../components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
 import { CAROUSEL_LABELS } from '../../data/commonLabels';
 
 export function RecommendationsCarousel({ products }: { products: Product[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const aPrevious = useT('interface_controls_carousel_previous', CAROUSEL_LABELS.previous);
+  const aNext = useT('interface_controls_carousel_next', CAROUSEL_LABELS.next);
 
   const scroll = (dir: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -18,28 +21,22 @@ export function RecommendationsCarousel({ products }: { products: Product[] }) {
     <div className="relative">
       <button
         onClick={() => scroll('left')}
-        className="absolute -left-5 top-1/2 -translate-y-8 z-10 w-10 h-10 bg-white border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors rounded-none"
-        aria-label={CAROUSEL_LABELS.previous}
+        className="absolute top-1/2 -left-5 z-10 flex size-10 -translate-y-8 items-center justify-center rounded-none border border-black bg-white transition-colors hover:bg-black hover:text-white"
+        aria-label={aPrevious}
       >
         <ChevronLeft size={18} />
       </button>
       <button
         onClick={() => scroll('right')}
-        className="absolute -right-5 top-1/2 -translate-y-8 z-10 w-10 h-10 bg-white border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors rounded-none"
-        aria-label={CAROUSEL_LABELS.next}
+        className="absolute top-1/2 -right-5 z-10 flex size-10 -translate-y-8 items-center justify-center rounded-none border border-black bg-white transition-colors hover:bg-black hover:text-white"
+        aria-label={aNext}
       >
         <ChevronRight size={18} />
       </button>
 
-      <div
-        ref={scrollRef}
-        className="flex gap-0 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
-      >
-        {products.map(p => (
-          <div
-            key={p.id}
-            className="shrink-0 border-r border-b border-white w-1/4 min-w-50 snap-start"
-          >
+      <div ref={scrollRef} className="scrollbar-hide flex snap-x snap-mandatory gap-0 overflow-x-auto">
+        {products.map((p) => (
+          <div key={p.id} className="w-1/4 min-w-50 shrink-0 snap-start border-r border-b border-white">
             <ProductCard product={p} accentColor={ACCENT} />
           </div>
         ))}

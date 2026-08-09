@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+
 import type { Product } from '../components/product/ProductCard';
 import { LIMITS } from '../constants/timings';
 
@@ -31,10 +32,10 @@ const recentlyViewedSlice = createSlice({
       const now = Date.now();
 
       // Evict stale items first
-      state.items = state.items.filter(p => now - p.viewedAt < TTL_MS);
+      state.items = state.items.filter((p) => now - p.viewedAt < TTL_MS);
 
       // If already in the list — remove it so we can re-insert at front
-      const existingIndex = state.items.findIndex(p => p.id === product.id);
+      const existingIndex = state.items.findIndex((p) => p.id === product.id);
       if (existingIndex !== -1) {
         state.items.splice(existingIndex, 1);
       }
@@ -47,9 +48,11 @@ const recentlyViewedSlice = createSlice({
         state.items.splice(LIMITS.RECENTLY_VIEWED_MAX, state.items.length - LIMITS.RECENTLY_VIEWED_MAX);
       }
     },
-    /** Replace the trail with whatever came from the server. Used after the
+    /**
+     * Replace the trail with whatever came from the server. Used after the
      *  AuthContext bootstraps and enriches the server's `{productId, viewedAt}`
-     *  pairs with full Product details from the catalog. */
+     *  pairs with full Product details from the catalog.
+     */
     hydrate(state, action: PayloadAction<RecentlyViewedItem[]>) {
       state.items = action.payload.slice(0, LIMITS.RECENTLY_VIEWED_MAX);
     },

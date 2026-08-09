@@ -2,8 +2,10 @@ const MULTI_GRADIENT =
   'conic-gradient(#f00 0deg,#ff0 60deg,#0f0 120deg,#0ff 180deg,#00f 240deg,#f0f 300deg,#f00 360deg)';
 
 interface ColorSwatchProps {
-  /** Hex string, `'multi'` for the rainbow swatch. Falls back to a
-   *  transparent chip when a `color`-type filter option has no hex. */
+  /**
+   * Hex string, `'multi'` for the rainbow swatch. Falls back to a
+   *  transparent chip when a `color`-type filter option has no hex.
+   */
   color?: string;
   selected: boolean;
   /** Diameter in px. Default: 14 */

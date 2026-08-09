@@ -4,7 +4,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { adaptCatalogProductToPdpProduct, adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '@/lib/oneentry/catalog/adapt';
+import {
+  adaptCatalogProductToPdpProduct,
+  adaptCatalogProductToUiProduct,
+  catalogKeyToCategoryPath,
+} from '@/lib/oneentry/catalog/adapt';
 import type { CatalogProduct } from '@/lib/oneentry/catalog/products';
 
 // ─── adaptCatalogProductToUiProduct — statusIdentifier forwarding ─────────────
@@ -48,14 +52,14 @@ describe('adaptCatalogProductToUiProduct — statusIdentifier forwarding', () =>
 describe('catalogKeyToCategoryPath', () => {
   it('maps every known catalog key to the expected OE category path', () => {
     const cases: Array<[string, string]> = [
-      ['women-clothing',    '/women/women_clothing'],
-      ['women-shoes',       '/women/women_shoes'],
-      ['women-bags',        '/women/women_bags'],
+      ['women-clothing', '/women/women_clothing'],
+      ['women-shoes', '/women/women_shoes'],
+      ['women-bags', '/women/women_bags'],
       ['women-accessories', '/women/women_accessories'],
-      ['men-clothing',      '/men/men_clothing'],
-      ['men-shoes',         '/men/men_shoes'],
-      ['men-bags',          '/men/men_bags'],
-      ['men-accessories',   '/men/men_accessories'],
+      ['men-clothing', '/men/men_clothing'],
+      ['men-shoes', '/men/men_shoes'],
+      ['men-bags', '/men/men_bags'],
+      ['men-accessories', '/men/men_accessories'],
     ];
 
     for (const [key, expected] of cases) {

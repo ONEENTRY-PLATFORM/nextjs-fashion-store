@@ -19,7 +19,7 @@ const fakeApi = {
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-  getApiSafe: () => (fakeApi),
+  getApiSafe: () => fakeApi,
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
   isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
@@ -28,7 +28,6 @@ vi.mock('@/lib/oneentry/index', async (importActual) => ({
 // unstable_cache calls the underlying function directly in tests (no real
 // disk/edge cache), so the wrapper is transparent to our assertions.
 vi.mock('next/cache', () => ({
-   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -224,10 +223,12 @@ describe('loadProducts — disabled', () => {
   it('returns fromCms:false when SDK is disabled', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (null),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => null,
       isOneEntryEnabled: false,
-      getApi: () => { throw new Error('SDK disabled'); },
+      getApi: () => {
+        throw new Error('SDK disabled');
+      },
       isError: () => false,
     }));
     const { loadProducts } = await import('@/lib/oneentry/catalog/products');
@@ -266,18 +267,16 @@ describe('loadProductById', () => {
     // `loadProducts — disabled` suite above, then get a fresh module.
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (fakeApi),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => fakeApi,
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
-    ({ loadProductById, loadProductsByIds } = await import('@/lib/oneentry/catalog/products') as {
+    ({ loadProductById, loadProductsByIds } = (await import('@/lib/oneentry/catalog/products')) as {
       loadProductById: (id: number, lang?: string) => Promise<unknown>;
       loadProductsByIds: (ids: number[], lang?: string) => Promise<unknown[]>;
     });
@@ -302,7 +301,7 @@ describe('loadProductById', () => {
   it('returns the single product when related lists are empty', async () => {
     getProductById.mockResolvedValue(makeRaw(1010, 'Solo Jacket'));
     getRelatedProductsById.mockResolvedValue([]);
-    const result = await loadProductById(1010, 'en_US') as { id: number; title: string; variants?: unknown[] } | null;
+    const result = (await loadProductById(1010, 'en_US')) as { id: number; title: string; variants?: unknown[] } | null;
     expect(result).not.toBeNull();
     expect(result!.id).toBe(1010);
     expect(result!.title).toBe('Solo Jacket');
@@ -323,7 +322,10 @@ describe('loadProductById', () => {
     });
     getProductById.mockResolvedValue(rawTarget);
     getRelatedProductsById.mockResolvedValue([rawRelated]);
-    const result = await loadProductById(1020, 'en_US') as { colors: string[]; variants: Array<{ id: number }> } | null;
+    const result = (await loadProductById(1020, 'en_US')) as {
+      colors: string[];
+      variants: Array<{ id: number }>;
+    } | null;
     expect(result).not.toBeNull();
     expect(result!.colors).toEqual(expect.arrayContaining(['Beige', 'Black']));
     expect(result!.variants).toHaveLength(2);
@@ -337,7 +339,7 @@ describe('loadProductById', () => {
     getProductById.mockResolvedValue(rawTarget);
     getRelatedProductsById.mockResolvedValue([]);
     getProductsByIds.mockResolvedValue([rawById]);
-    const result = await loadProductById(1025, 'en_US') as { variants: unknown[] } | null;
+    const result = (await loadProductById(1025, 'en_US')) as { variants: unknown[] } | null;
     expect(result).not.toBeNull();
     expect(result!.variants).toHaveLength(2);
     // getProductsByIds called with the missing id as csv
@@ -351,7 +353,7 @@ describe('loadProductById', () => {
     getProductById.mockResolvedValue(rawTarget);
     getRelatedProductsById.mockResolvedValue([rawSibling]);
     // getProductsByIds should NOT be called because 1031 is already in seen
-    const result = await loadProductById(1026, 'en_US') as { variants: unknown[] } | null;
+    const result = (await loadProductById(1026, 'en_US')) as { variants: unknown[] } | null;
     expect(result).not.toBeNull();
     expect(result!.variants).toHaveLength(2);
     expect(getProductsByIds).not.toHaveBeenCalled();
@@ -362,7 +364,7 @@ describe('loadProductById', () => {
     const rawInStock = makeRaw(1041, 'Dress');
     getProductById.mockResolvedValue(rawOos);
     getRelatedProductsById.mockResolvedValue([rawInStock]);
-    const result = await loadProductById(1040, 'en_US') as { statusIdentifier: string } | null;
+    const result = (await loadProductById(1040, 'en_US')) as { statusIdentifier: string } | null;
     expect(result).not.toBeNull();
     expect(result!.statusIdentifier).toBe('in_stock');
   });
@@ -374,18 +376,16 @@ describe('loadProductsByIds', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (fakeApi),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => fakeApi,
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
-    ({ loadProductsByIds } = await import('@/lib/oneentry/catalog/products') as {
+    ({ loadProductsByIds } = (await import('@/lib/oneentry/catalog/products')) as {
       loadProductsByIds: (ids: number[], lang?: string) => Promise<unknown[]>;
     });
   });
@@ -405,7 +405,7 @@ describe('loadProductsByIds', () => {
   it('calls getProductsByIds with csv of valid ids and normalizes results', async () => {
     const raws = [makeRaw(2001, 'Item A'), makeRaw(2002, 'Item B')];
     getProductsByIds.mockResolvedValue(raws);
-    const result = await loadProductsByIds([2001, 2002], 'en_US') as Array<{ id: number }>;
+    const result = (await loadProductsByIds([2001, 2002], 'en_US')) as Array<{ id: number }>;
     expect(getProductsByIds).toHaveBeenCalledWith('2001,2002', 'en_US');
     expect(result).toHaveLength(2);
     expect(result[0].id).toBe(2001);
@@ -414,7 +414,7 @@ describe('loadProductsByIds', () => {
 
   it('strips invalid ids from the csv and calls endpoint with only valid ones', async () => {
     getProductsByIds.mockResolvedValue([makeRaw(2005, 'Valid Only')]);
-    const result = await loadProductsByIds([2005, -3, 0], 'en_US') as Array<{ id: number }>;
+    const result = (await loadProductsByIds([2005, -3, 0], 'en_US')) as Array<{ id: number }>;
     expect(getProductsByIds).toHaveBeenCalledWith('2005', 'en_US');
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(2005);
@@ -438,15 +438,13 @@ describe('normalize — stock from stockqty only (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (fakeApi),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => fakeApi,
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();
@@ -542,15 +540,13 @@ describe('normalizeCategoryPath — via normalize inside loadProducts', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (fakeApi),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => fakeApi,
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();
@@ -636,15 +632,13 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (fakeApi),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => fakeApi,
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();
@@ -769,18 +763,20 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
     // An unpicked/blank list option: after stripping, cleaned === '' → key must be omitted.
     getProducts.mockResolvedValue({
       total: 1,
-      items: [{
-        id: 5015,
-        statusIdentifier: 'in_stock',
-        price: 100,
-        categories: [],
-        localizeInfos: { en_US: { title: 'P5015' } },
-        attributeValues: {
-          en_US: {
-            discount_12: { value: [{ title: '', value: '' }] },
+      items: [
+        {
+          id: 5015,
+          statusIdentifier: 'in_stock',
+          price: 100,
+          categories: [],
+          localizeInfos: { en_US: { title: 'P5015' } },
+          attributeValues: {
+            en_US: {
+              discount_12: { value: [{ title: '', value: '' }] },
+            },
           },
         },
-      }],
+      ],
     });
     const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
@@ -794,21 +790,23 @@ describe('normalize — discountAttributes (via loadProducts)', () => {
     // rating stored as "80%").
     getProducts.mockResolvedValue({
       total: 1,
-      items: [{
-        id: 5016,
-        statusIdentifier: 'in_stock',
-        price: 100,
-        categories: [],
-        localizeInfos: { en_US: { title: 'P5016' } },
-        attributeValues: {
-          en_US: {
-            // Non-discount attr whose string value contains a % sign.
-            humidity: { value: '80%' },
-            // A discount attr to confirm stripping still runs for that key.
-            discount_12: { value: '15%' },
+      items: [
+        {
+          id: 5016,
+          statusIdentifier: 'in_stock',
+          price: 100,
+          categories: [],
+          localizeInfos: { en_US: { title: 'P5016' } },
+          attributeValues: {
+            en_US: {
+              // Non-discount attr whose string value contains a % sign.
+              humidity: { value: '80%' },
+              // A discount attr to confirm stripping still runs for that key.
+              discount_12: { value: '15%' },
+            },
           },
         },
-      }],
+      ],
     });
     const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
@@ -840,15 +838,13 @@ describe('searchProducts — extractProductIdList regression', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (fakeApi),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => fakeApi,
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
     getProductsByVectorSearch.mockReset();
@@ -879,7 +875,7 @@ describe('searchProducts — extractProductIdList regression', () => {
     });
 
     const { searchProducts } = await import('@/lib/oneentry/catalog/products');
-    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+    const results = (await searchProducts('grey t-shirt', { limit: 12 })) as Array<{ id: number }>;
 
     expect(results.length).toBeGreaterThanOrEqual(1);
     const ids = results.map((p) => p.id);
@@ -899,7 +895,7 @@ describe('searchProducts — extractProductIdList regression', () => {
     });
 
     const { searchProducts } = await import('@/lib/oneentry/catalog/products');
-    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+    const results = (await searchProducts('grey t-shirt', { limit: 12 })) as Array<{ id: number }>;
 
     expect(results.length).toBeGreaterThanOrEqual(1);
     const ids = results.map((p) => p.id);
@@ -920,7 +916,7 @@ describe('searchProducts — extractProductIdList regression', () => {
     });
 
     const { searchProducts } = await import('@/lib/oneentry/catalog/products');
-    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+    const results = (await searchProducts('grey t-shirt', { limit: 12 })) as Array<{ id: number }>;
 
     const ids = results.map((p) => p.id);
     // 200 must appear before 201, and 201 before 202.
@@ -941,7 +937,7 @@ describe('searchProducts — extractProductIdList regression', () => {
     });
 
     const { searchProducts } = await import('@/lib/oneentry/catalog/products');
-    const results = await searchProducts('grey t-shirt', { limit: 12 }) as Array<{ id: number }>;
+    const results = (await searchProducts('grey t-shirt', { limit: 12 })) as Array<{ id: number }>;
 
     const ids = results.map((p) => p.id);
     expect(ids).toContain(300);
@@ -973,15 +969,13 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
   beforeEach(() => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (fakeApi),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => fakeApi,
       isOneEntryEnabled: true,
       getApi: () => fakeApi,
-      isError: (v: unknown) =>
-        !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+      isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
     getProducts.mockReset();
@@ -994,7 +988,7 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
   ) => ({
     id,
     statusIdentifier: 'in_stock',
-    price: topLevelPrice,  // top-level fallback; numeric attr should win
+    price: topLevelPrice, // top-level fallback; numeric attr should win
     categories: [],
     localizeInfos: { en_US: { title: `P${id}` } },
     attributeValues: { en_US: attrOverrides },
@@ -1017,10 +1011,12 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
     // OE also ships a `units_N` reading, it must be ignored.
     getProducts.mockResolvedValue({
       total: 1,
-      items: [makeRawNumericProduct(6002, {
-        stockqty_12: { type: 'integer', value: 3 },
-        units_11:    { type: 'integer', value: 2 },
-      })],
+      items: [
+        makeRawNumericProduct(6002, {
+          stockqty_12: { type: 'integer', value: 3 },
+          units_11: { type: 'integer', value: 2 },
+        }),
+      ],
     });
     const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });
@@ -1030,9 +1026,11 @@ describe('normalize — stringValue numeric-attribute fix (via loadProducts)', (
   it('returns stock=0 when only units_11 is present (units is intentionally ignored)', async () => {
     getProducts.mockResolvedValue({
       total: 1,
-      items: [makeRawNumericProduct(6003, {
-        units_11: { type: 'integer', value: 5 },
-      })],
+      items: [
+        makeRawNumericProduct(6003, {
+          units_11: { type: 'integer', value: 5 },
+        }),
+      ],
     });
     const { loadProducts } = await import('@/lib/oneentry/catalog/products');
     const result = await loadProducts({ unique: false });

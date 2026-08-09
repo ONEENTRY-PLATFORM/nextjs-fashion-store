@@ -1,24 +1,23 @@
-'use client'
+'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import type { RootState, AppDispatch } from '../store';
-import { cartActions } from '../store/cartSlice';
-import {
-  getCmsProductId,
-  getPlaygroundProductId,
-  extractCmsProductId,
-} from '../data/cms-product-id-map';
-import { useAuth } from './AuthContext';
-import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
-import { previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
-import { trackActivity } from '../utils/track-activity';
-import { getOrCreateGuestId } from '../utils/guest-id';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
-/** Free-gift line derived from `preview.giftItems` and enriched with product
+import { previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
+import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
+import { extractCmsProductId, getCmsProductId, getPlaygroundProductId } from '../data/cms-product-id-map';
+import type { AppDispatch, RootState } from '../store';
+import { cartActions } from '../store/cartSlice';
+import { getOrCreateGuestId } from '../utils/guest-id';
+import { trackActivity } from '../utils/track-activity';
+import { useAuth } from './AuthContext';
+
+/**
+ * Free-gift line derived from `preview.giftItems` and enriched with product
  *  details (name, image) so the UI can render it next to regular cart rows.
  *  Not stored in Redux — it's ephemeral and OE-owned; the shopper cannot
  *  remove or requantify a gift, and it disappears the moment the triggering
- *  coupon is removed or the trigger product leaves the cart. */
+ *  coupon is removed or the trigger product leaves the cart.
+ */
 export interface GiftCartItem {
   productId: number;
   name: string;
@@ -40,12 +39,14 @@ export interface CartItem {
   originalPrice?: number;
   image: string;
   bundleId?: string;
-  /** Maximum orderable quantity for this variant — snapshotted at add-time
+  /**
+   * Maximum orderable quantity for this variant — snapshotted at add-time
    *  from OE's `stockqty` attribute. `undefined` means "unknown, uncapped
    *  client-side" (older carts persisted before this field existed, or
    *  server-hydrated placeholders with no stock context); the reducer treats
    *  `undefined` as `Infinity`. When set, `updateQuantity` / `addItem` clamp
-   *  totals to this ceiling so the shopper can't overshoot inventory. */
+   *  totals to this ceiling so the shopper can't overshoot inventory.
+   */
   stockLimit?: number;
 }
 
@@ -65,46 +66,64 @@ interface CartContextType {
   subtotal: number;
   discount: number;
   total: number;
-  /** OE `previewOrder` snapshot for the current cart. Applies the shopper's
+  /**
+   * OE `previewOrder` snapshot for the current cart. Applies the shopper's
    *  personal discount (Bronze / …), plus any coupon or bonus that a
-   *  caller passes in later. `null` while pending or for guests / empty cart. */
+   *  caller passes in later. `null` while pending or for guests / empty cart.
+   */
   preview: PreviewOrderResult | null;
-  /** `true` while `previewOrder` is in flight for the current cart state.
+  /**
+   * `true` while `previewOrder` is in flight for the current cart state.
    *  UI uses this to show a skeleton for discount/total lines instead of
-   *  flashing outdated values or nothing. */
+   *  flashing outdated values or nothing.
+   */
   previewLoading: boolean;
-  /** Amount OE knocks off the order thanks to personal / coupon / promo
-   *  discounts (excludes bonuses — those show as a separate line). */
+  /**
+   * Amount OE knocks off the order thanks to personal / coupon / promo
+   *  discounts (excludes bonuses — those show as a separate line).
+   */
   personalDiscount: number;
-  /** Final total to charge after every discount + bonus applied. Falls back
-   *  to the client-computed `total` when preview isn't available. */
+  /**
+   * Final total to charge after every discount + bonus applied. Falls back
+   *  to the client-computed `total` when preview isn't available.
+   */
   totalDue: number;
   /** Currently applied OE coupon code (uppercased), `null` when none. */
   couponCode: string | null;
-  /** How much the currently applied coupon takes off the order. Zero when
-   *  no coupon is active or OE accepted the code but conditions aren't met. */
+  /**
+   * How much the currently applied coupon takes off the order. Zero when
+   *  no coupon is active or OE accepted the code but conditions aren't met.
+   */
   couponDiscount: number;
-  /** Validation error from the last `applyCoupon` attempt — `null` after a
-   *  successful apply or clear. Rendered under the promo input. */
+  /**
+   * Validation error from the last `applyCoupon` attempt — `null` after a
+   *  successful apply or clear. Rendered under the promo input.
+   */
   couponError: string | null;
-  /** Send a coupon to OE via `previewOrder`. On success (OE accepted the
+  /**
+   * Send a coupon to OE via `previewOrder`. On success (OE accepted the
    *  code AND it produced a discount) the code is stored and subsequent
    *  `previewOrder`/`createOrder` calls include it. On failure the caller
-   *  reads `couponError`. */
+   *  reads `couponError`.
+   */
   applyCoupon: (code: string) => Promise<void>;
   /** Drop the current coupon and refresh the preview without it. */
   removeCoupon: () => void;
-  /** Items dropped by the once-per-session availability check because their
+  /**
+   * Items dropped by the once-per-session availability check because their
    *  OneEntry record is gone (deleted product, wrong env, etc.). Empty until
    *  the check runs — a Providers-level notice component reads this so the
-   *  shopper is told what disappeared instead of just seeing a smaller cart. */
+   *  shopper is told what disappeared instead of just seeing a smaller cart.
+   */
   unavailableRemoved: CartItem[];
   /** Dismiss the availability notice — clears `unavailableRemoved`. */
   dismissUnavailableNotice: () => void;
-  /** Free gifts OE appended to the order (from `preview.giftItems`, enriched
+  /**
+   * Free gifts OE appended to the order (from `preview.giftItems`, enriched
    *  with product name / image). Rendered in the cart & checkout summaries
    *  as separate "FREE GIFT" rows. Empty when no gift-bearing discount is
-   *  active. */
+   *  active.
+   */
   giftItems: GiftCartItem[];
 }
 
@@ -129,9 +148,11 @@ function placeholderFromCmsId(productId: number, qty: number): CartItem {
   };
 }
 
-/** sessionStorage key holding the coupon applied to the current checkout.
+/**
+ * sessionStorage key holding the coupon applied to the current checkout.
  *  Module-scoped so callbacks declared before the coupon state can read it
- *  without landing in the temporal dead zone. */
+ *  without landing in the temporal dead zone.
+ */
 const COUPON_STORAGE_KEY = 'oe_coupon_code';
 
 export function useCart(): CartContextType {
@@ -146,10 +167,7 @@ export function useCart(): CartContextType {
   // `?? []` guards against older persisted state (pre-migration cart blobs in
   // localStorage that were written before this field existed) — otherwise the
   // notice component crashes on `.length` reading undefined.
-  const unavailableRemoved = useSelector(
-    (state: RootState) => state.cart.unavailableRemoved ?? [],
-    shallowEqual,
-  );
+  const unavailableRemoved = useSelector((state: RootState) => state.cart.unavailableRemoved ?? [], shallowEqual);
   const { isLoggedIn, user, syncCart } = useAuth();
 
   // Hydrate Redux from /me/cart on login. Server returns productId+qty; we
@@ -209,31 +227,31 @@ export function useCart(): CartContextType {
         const srv = user.cartItems.find((c) => String(c.productId) === ui.id);
         if (!srv) continue;
         const priceNumber = parseFloat(String(ui.price).replace(/[^\d.]/g, '')) || 0;
-        const salePriceNumber = ui.salePrice
-          ? parseFloat(String(ui.salePrice).replace(/[^\d.]/g, '')) || 0
-          : undefined;
+        const salePriceNumber = ui.salePrice ? parseFloat(String(ui.salePrice).replace(/[^\d.]/g, '')) || 0 : undefined;
         const playgroundId = getPlaygroundProductId(srv.productId);
         const localId = playgroundId ?? String(srv.productId);
         dispatch(cartActions.removeItem(localId));
-        dispatch(cartActions.addItem({
-          id: ui.id,
-          name: ui.name,
-          brand: ui.brand ?? '',
-          color: ui.colors?.[0] ?? '',
-          sku: ui.id,
-          size: ui.sizes?.[0] ?? '',
-          quantity: srv.qty,
-          // Prefer the sale price (matches catalog / PDP UX) and record
-          // the "was" as `originalPrice` so the strike-through renders
-          // downstream. `stockLimit` mirrors the enriched product so
-          // `updateQuantity` can cap the `+` button — otherwise a
-          // hydrated cart lets shoppers set 999 through the plus button
-          // until OE rejects it at preview.
-          price: salePriceNumber !== undefined && salePriceNumber < priceNumber ? salePriceNumber : priceNumber,
-          ...(salePriceNumber !== undefined && salePriceNumber < priceNumber && { originalPrice: priceNumber }),
-          ...(typeof ui.stock === 'number' && ui.stock > 0 && { stockLimit: ui.stock }),
-          image: ui.image,
-        }));
+        dispatch(
+          cartActions.addItem({
+            id: ui.id,
+            name: ui.name,
+            brand: ui.brand ?? '',
+            color: ui.colors?.[0] ?? '',
+            sku: ui.id,
+            size: ui.sizes?.[0] ?? '',
+            quantity: srv.qty,
+            // Prefer the sale price (matches catalog / PDP UX) and record
+            // the "was" as `originalPrice` so the strike-through renders
+            // downstream. `stockLimit` mirrors the enriched product so
+            // `updateQuantity` can cap the `+` button — otherwise a
+            // hydrated cart lets shoppers set 999 through the plus button
+            // until OE rejects it at preview.
+            price: salePriceNumber !== undefined && salePriceNumber < priceNumber ? salePriceNumber : priceNumber,
+            ...(salePriceNumber !== undefined && salePriceNumber < priceNumber && { originalPrice: priceNumber }),
+            ...(typeof ui.stock === 'number' && ui.stock > 0 && { stockLimit: ui.stock }),
+            image: ui.image,
+          }),
+        );
       }
       // Drop any placeholder whose product id didn't come back from the
       // catalog — it's a stale OE cart entry (deleted product, wrong env,
@@ -289,7 +307,9 @@ export function useCart(): CartContextType {
     const key = JSON.stringify(oeItems);
     if (key === lastPushedRef.current) return;
     lastPushedRef.current = key;
-    const t = setTimeout(() => { void syncCart(oeItems); }, 400);
+    const t = setTimeout(() => {
+      void syncCart(oeItems);
+    }, 400);
     return () => clearTimeout(t);
   }, [items, isLoggedIn, syncCart]);
 
@@ -305,41 +325,65 @@ export function useCart(): CartContextType {
   // All mutations are optimistic in Redux. The sync effect above pushes the
   // resulting state to /me/cart, so individual mutations don't need to call
   // the server directly.
-  const addItem = useCallback((item: CartItem) => {
-    dispatch(cartActions.addItem(item));
-    const cmsId = getCmsProductId(item.id);
-    if (cmsId !== null) trackActivity({ type: 'product_add_to_cart', productId: cmsId, meta: { quantity: item.quantity } });
-  }, [dispatch]);
+  const addItem = useCallback(
+    (item: CartItem) => {
+      dispatch(cartActions.addItem(item));
+      const cmsId = getCmsProductId(item.id);
+      if (cmsId !== null)
+        trackActivity({ type: 'product_add_to_cart', productId: cmsId, meta: { quantity: item.quantity } });
+    },
+    [dispatch],
+  );
 
-  const addBundle = useCallback((bundleItems: Omit<CartItem, 'bundleId'>[]) => {
-    dispatch(cartActions.addBundle(bundleItems));
-    for (const it of bundleItems) {
-      const cmsId = getCmsProductId(it.id);
-      if (cmsId !== null) trackActivity({ type: 'product_add_to_cart', productId: cmsId, meta: { quantity: it.quantity, bundle: true } });
-    }
-  }, [dispatch]);
+  const addBundle = useCallback(
+    (bundleItems: Omit<CartItem, 'bundleId'>[]) => {
+      dispatch(cartActions.addBundle(bundleItems));
+      for (const it of bundleItems) {
+        const cmsId = getCmsProductId(it.id);
+        if (cmsId !== null)
+          trackActivity({
+            type: 'product_add_to_cart',
+            productId: cmsId,
+            meta: { quantity: it.quantity, bundle: true },
+          });
+      }
+    },
+    [dispatch],
+  );
 
-  const removeItem = useCallback((id: string) => {
-    const cmsId = getCmsProductId(id);
-    if (cmsId !== null) trackActivity({ type: 'product_remove_from_cart', productId: cmsId });
-    dispatch(cartActions.removeItem(id));
-  }, [dispatch]);
-
-  const removeBundle = useCallback((bundleId: string) => {
-    const removedIds = items.filter((i) => i.bundleId === bundleId).map((i) => i.id);
-    dispatch(cartActions.removeBundle(bundleId));
-    for (const id of removedIds) {
+  const removeItem = useCallback(
+    (id: string) => {
       const cmsId = getCmsProductId(id);
-      if (cmsId !== null) trackActivity({ type: 'product_remove_from_cart', productId: cmsId, meta: { bundle: true } });
-    }
-  }, [dispatch, items]);
+      if (cmsId !== null) trackActivity({ type: 'product_remove_from_cart', productId: cmsId });
+      dispatch(cartActions.removeItem(id));
+    },
+    [dispatch],
+  );
 
-  const updateQuantity = useCallback((id: string, delta: number) => {
-    dispatch(cartActions.updateQuantity({ id, delta }));
-  }, [dispatch]);
+  const removeBundle = useCallback(
+    (bundleId: string) => {
+      const removedIds = items.filter((i) => i.bundleId === bundleId).map((i) => i.id);
+      dispatch(cartActions.removeBundle(bundleId));
+      for (const id of removedIds) {
+        const cmsId = getCmsProductId(id);
+        if (cmsId !== null)
+          trackActivity({ type: 'product_remove_from_cart', productId: cmsId, meta: { bundle: true } });
+      }
+    },
+    [dispatch, items],
+  );
 
-  const updateSize = useCallback((id: string, size: string) => dispatch(cartActions.updateSize({ id, size })), [dispatch]);
+  const updateQuantity = useCallback(
+    (id: string, delta: number) => {
+      dispatch(cartActions.updateQuantity({ id, delta }));
+    },
+    [dispatch],
+  );
 
+  const updateSize = useCallback(
+    (id: string, size: string) => dispatch(cartActions.updateSize({ id, size })),
+    [dispatch],
+  );
 
   // OE `previewOrder` — reruns whenever the cart or applied coupon changes
   // so every screen that shows totals (cart, mini-cart, delivery, payment)
@@ -372,7 +416,9 @@ export function useCart(): CartContextType {
       // would otherwise land in the new order without them touching the
       // form.
       sessionStorage.removeItem('oe_checkout_payload');
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [dispatch]);
   // Shared sequence counter across the auto-preview effect and every manual
   // applyCoupon / removeCoupon call — a late response from a stale request
@@ -434,7 +480,10 @@ export function useCart(): CartContextType {
       setPreviewFor(productsKey);
       setPreviewLoading(false);
     }, 300);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
     // productsKey covers the array; effect re-fires on cart / login / coupon.
     // `items` is intentionally read from the closure (only needed to snapshot
     // dropped item details) — including it would re-fire the preview on every
@@ -446,70 +495,78 @@ export function useCart(): CartContextType {
   const totalDue = preview?.totalDue ?? total;
   const couponDiscount = preview?.couponDiscountAmount ?? 0;
 
-  const applyCoupon = useCallback(async (raw: string) => {
-    const code = raw.trim().toUpperCase();
-    if (!code) {
-      setCouponError('Enter a promo code');
-      return;
-    }
-    if (productsForPreview.length === 0) {
-      setCouponError('Add items to cart first');
-      return;
-    }
-    // Clear the previous preview so the summary rows render as skeletons
-    // while OE recomputes with the new coupon. Otherwise the shopper stares
-    // at the pre-coupon numbers for ~500ms which reads as "nothing changed".
-    setPreview(null);
-    setPreviewLoading(true);
-    const mySeq = ++previewSeqRef.current;
-    // Validate via `previewOrder` — OE returns IError for unknown/expired
-    // codes and `discountConfig.coupon = null` when the code is valid but
-    // conditions (cart total, applicability, expiry) aren't met.
-    const guestId = isLoggedIn ? undefined : getOrCreateGuestId();
-    const r = await previewOrderAction({
-      products: productsForPreview,
-      couponCode: code,
-      ...(guestId ? { guestId } : {}),
-    });
-    // A newer preview / applyCoupon / removeCoupon has already fired since we
-    // started — drop this stale response so we don't overwrite fresher state.
-    if (mySeq !== previewSeqRef.current) return;
-    const setFailure = async (message: string) => {
-      setCouponError(message);
-      // OE rejected the code — restore a preview WITHOUT the coupon so the
-      // summary stops showing a skeleton. `couponCode` never changed here,
-      // so the useEffect won't refire on its own.
-      const restoreSeq = ++previewSeqRef.current;
-      const restored = await previewOrderAction({
+  const applyCoupon = useCallback(
+    async (raw: string) => {
+      const code = raw.trim().toUpperCase();
+      if (!code) {
+        setCouponError('Enter a promo code');
+        return;
+      }
+      if (productsForPreview.length === 0) {
+        setCouponError('Add items to cart first');
+        return;
+      }
+      // Clear the previous preview so the summary rows render as skeletons
+      // while OE recomputes with the new coupon. Otherwise the shopper stares
+      // at the pre-coupon numbers for ~500ms which reads as "nothing changed".
+      setPreview(null);
+      setPreviewLoading(true);
+      const mySeq = ++previewSeqRef.current;
+      // Validate via `previewOrder` — OE returns IError for unknown/expired
+      // codes and `discountConfig.coupon = null` when the code is valid but
+      // conditions (cart total, applicability, expiry) aren't met.
+      const guestId = isLoggedIn ? undefined : getOrCreateGuestId();
+      const r = await previewOrderAction({
         products: productsForPreview,
-        ...(couponCode ? { couponCode } : {}),
+        couponCode: code,
         ...(guestId ? { guestId } : {}),
       });
-      if (restoreSeq !== previewSeqRef.current) return;
-      if (restored.ok) setPreview(restored);
+      // A newer preview / applyCoupon / removeCoupon has already fired since we
+      // started — drop this stale response so we don't overwrite fresher state.
+      if (mySeq !== previewSeqRef.current) return;
+      const setFailure = async (message: string) => {
+        setCouponError(message);
+        // OE rejected the code — restore a preview WITHOUT the coupon so the
+        // summary stops showing a skeleton. `couponCode` never changed here,
+        // so the useEffect won't refire on its own.
+        const restoreSeq = ++previewSeqRef.current;
+        const restored = await previewOrderAction({
+          products: productsForPreview,
+          ...(couponCode ? { couponCode } : {}),
+          ...(guestId ? { guestId } : {}),
+        });
+        if (restoreSeq !== previewSeqRef.current) return;
+        if (restored.ok) setPreview(restored);
+        setPreviewLoading(false);
+      };
+      if (!r.ok) {
+        await setFailure(r.error || 'Invalid promo code');
+        return;
+      }
+      if (!r.couponApplied) {
+        // Prefer the condition-specific message from OE ("Add $X more to
+        // unlock", "unlocks after $Y in lifetime purchases", etc.) — falls
+        // back to a generic hint when we couldn't parse a reason.
+        await setFailure(
+          r.couponReason ??
+            (r.couponValidButNotApplied
+              ? 'Promo code accepted, but conditions are not met for this cart'
+              : 'Invalid promo code'),
+        );
+        return;
+      }
+      setCouponError(null);
+      setCouponCode(code);
+      setPreview(r);
       setPreviewLoading(false);
-    };
-    if (!r.ok) {
-      await setFailure(r.error || 'Invalid promo code');
-      return;
-    }
-    if (!r.couponApplied) {
-      // Prefer the condition-specific message from OE ("Add $X more to
-      // unlock", "unlocks after $Y in lifetime purchases", etc.) — falls
-      // back to a generic hint when we couldn't parse a reason.
-      await setFailure(r.couponReason
-        ?? (r.couponValidButNotApplied
-          ? 'Promo code accepted, but conditions are not met for this cart'
-          : 'Invalid promo code'));
-      return;
-    }
-    setCouponError(null);
-    setCouponCode(code);
-    setPreview(r);
-    setPreviewLoading(false);
-    try { sessionStorage.setItem(COUPON_STORAGE_KEY, code); } catch { /* quota */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productsKey]);
+      try {
+        sessionStorage.setItem(COUPON_STORAGE_KEY, code);
+      } catch {
+        /* quota */
+      }
+    },
+    [productsKey],
+  );
 
   const dismissUnavailableNotice = useCallback(() => {
     dispatch(cartActions.dismissUnavailableRemoved());
@@ -526,7 +583,11 @@ export function useCart(): CartContextType {
     setPreviewLoading(true);
     setCouponCode(null);
     setCouponError(null);
-    try { sessionStorage.removeItem(COUPON_STORAGE_KEY); } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem(COUPON_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   // Hydrate gift lines from `preview.giftItems` with real product data
@@ -539,9 +600,7 @@ export function useCart(): CartContextType {
   const previewGiftsKey = JSON.stringify(previewGifts.map((g) => g.productId));
   useEffect(() => {
     if (previewGifts.length === 0) return;
-    const missing = previewGifts
-      .map((g) => g.productId)
-      .filter((id) => !giftDetails[id]);
+    const missing = previewGifts.map((g) => g.productId).filter((id) => !giftDetails[id]);
     if (missing.length === 0) return;
     let cancelled = false;
     void getProductsByIdsAction(missing).then((enriched) => {
@@ -556,7 +615,9 @@ export function useCart(): CartContextType {
         return next;
       });
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // Depend on the id list rather than the array identity — otherwise the
     // fresh `preview.giftItems` array on every previewOrder response would
     // refetch even when the gift set is unchanged.
@@ -573,43 +634,65 @@ export function useCart(): CartContextType {
     };
   });
 
-  return useMemo(() => ({
-    items,
-    miniCartOpen,
-    openMiniCart,
-    closeMiniCart,
-    addItem,
-    addBundle,
-    removeItem,
-    removeBundle,
-    updateQuantity,
-    updateSize,
-    clearCart,
-    totalItems,
-    subtotal,
-    discount,
-    total,
-    preview,
-    previewLoading: previewLoading || previewStale,
-    personalDiscount,
-    totalDue,
-    couponCode,
-    couponDiscount,
-    couponError,
-    applyCoupon,
-    removeCoupon,
-    unavailableRemoved,
-    dismissUnavailableNotice,
-    giftItems,
-  }), [
-    items, miniCartOpen, openMiniCart, closeMiniCart,
-    addItem, addBundle, removeItem, removeBundle,
-    updateQuantity, updateSize, clearCart,
-    totalItems, subtotal, discount, total,
-    preview, previewLoading, previewStale, personalDiscount, totalDue,
-    couponCode, couponDiscount, couponError,
-    applyCoupon, removeCoupon,
-    unavailableRemoved, dismissUnavailableNotice,
-    giftItems,
-  ]);
+  return useMemo(
+    () => ({
+      items,
+      miniCartOpen,
+      openMiniCart,
+      closeMiniCart,
+      addItem,
+      addBundle,
+      removeItem,
+      removeBundle,
+      updateQuantity,
+      updateSize,
+      clearCart,
+      totalItems,
+      subtotal,
+      discount,
+      total,
+      preview,
+      previewLoading: previewLoading || previewStale,
+      personalDiscount,
+      totalDue,
+      couponCode,
+      couponDiscount,
+      couponError,
+      applyCoupon,
+      removeCoupon,
+      unavailableRemoved,
+      dismissUnavailableNotice,
+      giftItems,
+    }),
+    [
+      items,
+      miniCartOpen,
+      openMiniCart,
+      closeMiniCart,
+      addItem,
+      addBundle,
+      removeItem,
+      removeBundle,
+      updateQuantity,
+      updateSize,
+      clearCart,
+      totalItems,
+      subtotal,
+      discount,
+      total,
+      preview,
+      previewLoading,
+      previewStale,
+      personalDiscount,
+      totalDue,
+      couponCode,
+      couponDiscount,
+      couponError,
+      applyCoupon,
+      removeCoupon,
+      unavailableRemoved,
+      dismissUnavailableNotice,
+      giftItems,
+    ],
+  );
 }

@@ -1,7 +1,9 @@
 import type { PageBlock } from './page-blocks';
 
-/** Marker prefix of the OE `common_block`s that carry the editorial sections
- *  of an info page (`info_section_story`, `info_section_returns`, …). */
+/**
+ * Marker prefix of the OE `common_block`s that carry the editorial sections
+ *  of an info page (`info_section_story`, `info_section_returns`, …).
+ */
 export const INFO_SECTION_BLOCK_PREFIX = 'info_section_';
 
 /** One editorial section as authored in the OE admin panel. */
@@ -61,8 +63,10 @@ export function faqItemsFromBlocks(blocks: PageBlock[] | undefined): FaqItem[] {
     .filter((qa) => qa.question.endsWith('?') && qa.answer.length > 0);
 }
 
-/** `FAQPage` JSON-LD for the given pairs. Callers must skip rendering it
- *  entirely when `items` is empty — an empty `mainEntity` is invalid. */
+/**
+ * `FAQPage` JSON-LD for the given pairs. Callers must skip rendering it
+ *  entirely when `items` is empty — an empty `mainEntity` is invalid.
+ */
 export function buildFaqSchema(items: FaqItem[]) {
   return {
     '@context': 'https://schema.org',

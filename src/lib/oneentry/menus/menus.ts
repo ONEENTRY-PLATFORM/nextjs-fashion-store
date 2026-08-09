@@ -1,5 +1,6 @@
-import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
+
+import { currentCmsLocale } from '../current-locale';
 import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 
@@ -23,10 +24,12 @@ export interface CmsMenu {
 /** Localization fields OE can carry on a page/menu node. */
 type LocalizedFields = { title?: string; menuTitle?: string };
 
-/** The SDK's `Menus.getMenusByMarker` docs promise a "normalized" payload:
+/**
+ * The SDK's `Menus.getMenusByMarker` docs promise a "normalized" payload:
  *  `localizeInfos` is unwrapped to a single locale, so it's `{ title, menuTitle }`
  *  directly. Other OE endpoints return the raw per-locale map
- *  (`{ en_US: {...}, ru_RU: {...} }`), so `RawLocalize` covers both shapes. */
+ *  (`{ en_US: {...}, ru_RU: {...} }`), so `RawLocalize` covers both shapes.
+ */
 type RawLocalize = LocalizedFields | Record<string, LocalizedFields>;
 
 type RawNode = {
@@ -48,10 +51,12 @@ type RawMenu = {
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-/** Extract title/menuTitle regardless of whether OE returned the flat shape
+/**
+ * Extract title/menuTitle regardless of whether OE returned the flat shape
  *  (SDK-normalized) or the raw per-locale map. Without this fallback
  *  `menuTitle`/`title` came out empty because the wrapper-only code path
- *  landed on the string value of `title` instead of a locale object. */
+ *  landed on the string value of `title` instead of a locale object.
+ */
 const pickLocalized = (li: RawLocalize | undefined, lang: Lang): LocalizedFields => {
   if (!li || typeof li !== 'object') return {};
   // Flat shape: SDK already unwrapped for us.
@@ -75,25 +80,23 @@ const normalizeNode = (raw: RawNode, lang: Lang): MenuPageNode => {
   };
 };
 
-export const loadMenu = cache(
-  async (marker: string, langArg?: Lang): Promise<CmsMenu | null> => {
-    const lang = langArg ?? (await currentCmsLocale());
-    const api = getApiSafe();
-    if (!api) return null;
-    try {
-      const result = await api.Menus.getMenusByMarker(marker, lang);
-      if (isError(result)) return null;
-      const raw = result as unknown as RawMenu | null;
-      if (!raw || raw.statusCode) return null;
-      const info = pickLocalized(raw.localizeInfos, lang);
-      return {
-        id: raw.id,
-        identifier: raw.identifier,
-        title: asString(info.title),
-        pages: (raw.pages ?? []).map((p) => normalizeNode(p, lang)),
-      };
-    } catch {
-      return null;
-    }
-  },
-);
+export const loadMenu = cache(async (marker: string, langArg?: Lang): Promise<CmsMenu | null> => {
+  const lang = langArg ?? (await currentCmsLocale());
+  const api = getApiSafe();
+  if (!api) return null;
+  try {
+    const result = await api.Menus.getMenusByMarker(marker, lang);
+    if (isError(result)) return null;
+    const raw = result as unknown as RawMenu | null;
+    if (!raw || raw.statusCode) return null;
+    const info = pickLocalized(raw.localizeInfos, lang);
+    return {
+      id: raw.id,
+      identifier: raw.identifier,
+      title: asString(info.title),
+      pages: (raw.pages ?? []).map((p) => normalizeNode(p, lang)),
+    };
+  } catch {
+    return null;
+  }
+});

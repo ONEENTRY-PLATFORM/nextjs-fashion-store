@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { assertPresent, clearState, gotoProduct, login, productPath, selectFirstAvailableSize } from './helpers';
 
 test.describe('Edge Cases & Adversarial', () => {
-
   test.describe('404 Pages', () => {
     test('non-existent route shows 404 page', async ({ page }) => {
       await page.goto('/this-page-does-not-exist');
@@ -88,7 +88,22 @@ test.describe('Edge Cases & Adversarial', () => {
       // Seed cart
       await page.addInitScript(() => {
         const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
-        store.cart = { items: [{ id: 'wc-1-nav', name: 'Nav Test', brand: 'OE', sku: 'wc-1', color: '#000', size: 'M', quantity: 1, price: 29.99, image: '/icons/icon-192.png' }], miniCartOpen: false };
+        store.cart = {
+          items: [
+            {
+              id: 'wc-1-nav',
+              name: 'Nav Test',
+              brand: 'OE',
+              sku: 'wc-1',
+              color: '#000',
+              size: 'M',
+              quantity: 1,
+              price: 29.99,
+              image: '/icons/icon-192.png',
+            },
+          ],
+          miniCartOpen: false,
+        };
         store.__version = 3;
         localStorage.setItem('oe_store', JSON.stringify(store));
       });
@@ -113,9 +128,9 @@ test.describe('Edge Cases & Adversarial', () => {
 
     test('browser refresh preserves cart state', async ({ page }) => {
       await gotoProduct(page);
-    await clearState(page);
-    await page.reload();
-    await page.waitForLoadState("networkidle");
+      await clearState(page);
+      await page.reload();
+      await page.waitForLoadState('networkidle');
 
       await selectFirstAvailableSize(page);
       const addBtn = page.getByRole('button', { name: /add to cart/i }).first();
@@ -125,10 +140,11 @@ test.describe('Edge Cases & Adversarial', () => {
 
       // Cart lives in `localStorage` under `oe_store`; read it directly so the
       // assertion survives any restyling of the badge.
-      const countPersistedItems = () => page.evaluate(() => {
-        const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
-        return (store.cart?.items ?? []).length as number;
-      });
+      const countPersistedItems = () =>
+        page.evaluate(() => {
+          const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
+          return (store.cart?.items ?? []).length as number;
+        });
       const before = await countPersistedItems();
 
       // Reload
@@ -161,7 +177,7 @@ test.describe('Edge Cases & Adversarial', () => {
       // attribute with an `aria-label` the component never had, so it matched
       // nothing and this test did nothing.
       const oosSwatches = page.locator('[data-testid="pdp-color-swatch"][disabled]');
-      if (await oosSwatches.count() > 0) {
+      if ((await oosSwatches.count()) > 0) {
         const oos = oosSwatches.first();
         // Clicking an OOS swatch must not select it — `force` bypasses the
         // pointer-events guard so we exercise the real handler, not the CSS.
@@ -197,7 +213,9 @@ test.describe('Edge Cases & Adversarial', () => {
       await page.evaluate(() => {
         // Write 1MB of data
         const big = 'x'.repeat(1_000_000);
-        try { localStorage.setItem('oe_test', big); } catch {}
+        try {
+          localStorage.setItem('oe_test', big);
+        } catch {}
       });
       await page.reload();
       await expect(page.locator('body')).toBeVisible();
@@ -308,7 +326,7 @@ test.describe('Edge Cases & Adversarial', () => {
     test('skip to content link exists', async ({ page }) => {
       await page.goto('/');
       const skipLink = page.locator('a:has-text("Skip to"), a[href="#main"]').first();
-      if (await skipLink.count() > 0) {
+      if ((await skipLink.count()) > 0) {
         await expect(skipLink).toBeAttached();
       }
     });
@@ -370,7 +388,9 @@ test.describe('Edge Cases & Adversarial', () => {
     test('FAQ accordion items expand and collapse', async ({ page }) => {
       await page.goto('/faq');
       await page.waitForLoadState('networkidle');
-      const question = page.locator('button:has-text("return"), button:has-text("delivery"), button:has-text("size")').first();
+      const question = page
+        .locator('button:has-text("return"), button:has-text("delivery"), button:has-text("size")')
+        .first();
       if (await question.isVisible()) {
         await question.click();
         await page.waitForTimeout(300);
@@ -402,8 +422,14 @@ test.describe('Edge Cases & Adversarial', () => {
 
   test.describe('Info pages — comprehensive', () => {
     const infoPages = [
-      '/careers', '/rewards', '/gift-certificates', '/terms',
-      '/contact', '/delivery', '/exchange', '/sizing-guide',
+      '/careers',
+      '/rewards',
+      '/gift-certificates',
+      '/terms',
+      '/contact',
+      '/delivery',
+      '/exchange',
+      '/sizing-guide',
     ];
     for (const url of infoPages) {
       test(`info page ${url} renders`, async ({ page }) => {
@@ -451,8 +477,10 @@ test.describe('Edge Cases & Adversarial', () => {
     test('category tabs filter products', async ({ page }) => {
       await page.goto('/new');
       await page.waitForLoadState('networkidle');
-      const tabs = page.locator('button:has-text("Clothing"), button:has-text("Shoes"), button:has-text("Accessories")');
-      if (await tabs.count() > 0) {
+      const tabs = page.locator(
+        'button:has-text("Clothing"), button:has-text("Shoes"), button:has-text("Accessories")',
+      );
+      if ((await tabs.count()) > 0) {
         await tabs.first().click();
         await page.waitForTimeout(500);
       }
@@ -461,8 +489,10 @@ test.describe('Edge Cases & Adversarial', () => {
     test('all category tabs produce results', async ({ page }) => {
       await page.goto('/new');
       await page.waitForLoadState('networkidle');
-      const tabs = page.locator('button:has-text("All"), button:has-text("Clothing"), button:has-text("Shoes"), button:has-text("Accessories")');
-      for (let i = 0; i < await tabs.count(); i++) {
+      const tabs = page.locator(
+        'button:has-text("All"), button:has-text("Clothing"), button:has-text("Shoes"), button:has-text("Accessories")',
+      );
+      for (let i = 0; i < (await tabs.count()); i++) {
         if (await tabs.nth(i).isVisible()) {
           await tabs.nth(i).click();
           await page.waitForTimeout(500);
@@ -491,7 +521,9 @@ test.describe('Edge Cases & Adversarial', () => {
       await page.goto('/');
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(500);
-      const socialLinks = page.locator('footer a[href*="facebook"], footer a[href*="instagram"], footer a[href*="twitter"]');
+      const socialLinks = page.locator(
+        'footer a[href*="facebook"], footer a[href*="instagram"], footer a[href*="twitter"]',
+      );
       const count = await socialLinks.count();
       for (let i = 0; i < count; i++) {
         const href = await socialLinks.nth(i).getAttribute('href');
@@ -505,7 +537,7 @@ test.describe('Edge Cases & Adversarial', () => {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(500);
       const supportItems = page.locator('footer').locator('text=/help center|text us|live chat|email us/i');
-      if (await supportItems.count() > 0) {
+      if ((await supportItems.count()) > 0) {
         await expect(supportItems.first()).toBeVisible();
       }
     });
@@ -515,7 +547,7 @@ test.describe('Edge Cases & Adversarial', () => {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await page.waitForTimeout(500);
       const paymentIcons = page.locator('footer').locator('text=/visa|mastercard|paypal|apple pay/i');
-      if (await paymentIcons.count() > 0) {
+      if ((await paymentIcons.count()) > 0) {
         await expect(paymentIcons.first()).toBeVisible();
       }
     });
@@ -537,9 +569,10 @@ test.describe('Edge Cases & Adversarial', () => {
     test('404 page has links to catalog and home', async ({ page }) => {
       await page.goto('/nonexistent-page-xyz');
       await page.waitForLoadState('networkidle');
-      const homeLink = page.getByRole('link', { name: /home/i }).or(
-        page.getByRole('button', { name: /home/i })
-      ).first();
+      const homeLink = page
+        .getByRole('link', { name: /home/i })
+        .or(page.getByRole('button', { name: /home/i }))
+        .first();
       if (await homeLink.isVisible()) {
         await homeLink.click();
         await expect(page).toHaveURL('/');
@@ -561,9 +594,10 @@ test.describe('Edge Cases & Adversarial', () => {
     test('confirmation "Track Your Order" navigates to account or track page', async ({ page }) => {
       await page.goto('/checkout/confirmation');
       await page.waitForLoadState('networkidle');
-      const trackBtn = page.getByRole('button', { name: /track|order/i }).or(
-        page.getByRole('link', { name: /track|order/i })
-      ).first();
+      const trackBtn = page
+        .getByRole('button', { name: /track|order/i })
+        .or(page.getByRole('link', { name: /track|order/i }))
+        .first();
       if (await trackBtn.isVisible()) {
         await trackBtn.click();
         // Track Your Order may route to /account (logged-in flow) OR to
@@ -575,9 +609,10 @@ test.describe('Edge Cases & Adversarial', () => {
     test('confirmation "Home" button navigates to homepage', async ({ page }) => {
       await page.goto('/checkout/confirmation');
       await page.waitForLoadState('networkidle');
-      const homeBtn = page.getByRole('link', { name: /home/i }).or(
-        page.getByRole('button', { name: /home/i })
-      ).first();
+      const homeBtn = page
+        .getByRole('link', { name: /home/i })
+        .or(page.getByRole('button', { name: /home/i }))
+        .first();
       if (await homeBtn.isVisible()) {
         await homeBtn.click();
         await expect(page).toHaveURL('/');
@@ -635,9 +670,7 @@ test.describe('Edge Cases & Adversarial', () => {
     test('mobile sort dropdown works', async ({ page }) => {
       await page.goto('/women/clothing');
       await page.waitForLoadState('networkidle');
-      const sortBtn = page.getByRole('button', { name: /sort/i }).or(
-        page.locator('select').first()
-      ).first();
+      const sortBtn = page.getByRole('button', { name: /sort/i }).or(page.locator('select').first()).first();
       if (await sortBtn.isVisible()) {
         await sortBtn.click();
         await page.waitForTimeout(300);

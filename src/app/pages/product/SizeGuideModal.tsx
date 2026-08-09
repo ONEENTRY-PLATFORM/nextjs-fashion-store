@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { SIZE_GUIDE_DATA, parseSizeGuide, serializeSizeGuide } from '../../data/sizeGuide';
-import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '../../data/productPageLabels';
+import { useEffect } from 'react';
+
 import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '../../data/productPageLabels';
+import { parseSizeGuide, serializeSizeGuide, SIZE_GUIDE_DATA } from '../../data/sizeGuide';
 
 export function SizeGuideModal({ onClose }: { onClose: () => void }) {
   const L = useDict('size_guide_', L_FALLBACK);
@@ -10,48 +11,55 @@ export function SizeGuideModal({ onClose }: { onClose: () => void }) {
   const rows = parseSizeGuide(useT('size_guide_rows', serializeSizeGuide(SIZE_GUIDE_DATA)));
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   return (
     <div className="fixed inset-0 z-200 flex items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" />
       <div
-        className="relative bg-white w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto rounded-none"
-        onClick={e => e.stopPropagation()}
+        className="relative mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-none bg-white"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="tracking-[0.2em] uppercase text-sm font-bold">{L.title}</h2>
-          <button onClick={onClose} className="p-1 hover:opacity-60 transition-opacity">
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <h2 className="text-sm font-bold tracking-[0.2em] uppercase">{L.title}</h2>
+          <button onClick={onClose} className="p-1 transition-opacity hover:opacity-60">
             <X size={20} />
           </button>
         </div>
         <div className="px-6 py-5">
-          <p className="text-xs text-gray-500 mb-4">{L.measurementsNote}</p>
+          <p className="mb-4 text-xs text-gray-500">{L.measurementsNote}</p>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-[#f5f5f5]">
-                  {L.colHeaders.map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs tracking-wider uppercase border border-gray-200 font-semibold">{h}</th>
+                  {L.colHeaders.map((h) => (
+                    <th
+                      key={h}
+                      className="border border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase"
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, i) => (
                   <tr key={row.size} className={i % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'}>
-                    <td className="px-4 py-3 text-xs border border-gray-200 font-semibold">{row.size}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600 border border-gray-200">{row.us}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600 border border-gray-200">{row.bust}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600 border border-gray-200">{row.waist}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600 border border-gray-200">{row.hip}</td>
+                    <td className="border border-gray-200 px-4 py-3 text-xs font-semibold">{row.size}</td>
+                    <td className="border border-gray-200 px-4 py-3 text-xs text-gray-600">{row.us}</td>
+                    <td className="border border-gray-200 px-4 py-3 text-xs text-gray-600">{row.bust}</td>
+                    <td className="border border-gray-200 px-4 py-3 text-xs text-gray-600">{row.waist}</td>
+                    <td className="border border-gray-200 px-4 py-3 text-xs text-gray-600">{row.hip}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="mt-5 p-4 bg-gray-50 border border-gray-200">
-            <p className="text-xs text-gray-600 leading-relaxed">
+          <div className="mt-5 border border-gray-200 bg-gray-50 p-4">
+            <p className="text-xs leading-relaxed text-gray-600">
               <span className="font-semibold">{L.howToHeader}</span> {L.howToBody}
             </p>
           </div>

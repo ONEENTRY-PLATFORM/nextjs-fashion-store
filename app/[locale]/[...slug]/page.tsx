@@ -1,41 +1,44 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
+import type { Product } from '../../../src/app/components/product/ProductCard';
+import { JsonLd } from '../../../src/app/components/system/JsonLd';
+import { CATALOG_PAGE_LABELS } from '../../../src/app/data/catalogPageLabels';
+import { INFO_PAGE_META } from '../../../src/app/data/infoPages';
 import {
-  PAGE_REGISTRY,
-  buildPageMetadata,
   buildBreadcrumbSchema,
+  buildPageMetadata,
   type CatalogPageEntry,
+  PAGE_REGISTRY,
   type PageEntry,
 } from '../../../src/app/data/pageRegistry';
-import { SITE_URL, SITE_NAME } from '../../../src/app/data/seoData';
-import { resolveInfoPageSlug } from '../../../src/lib/oneentry/catalog/info-pages';
-import { INFO_PAGE_META } from '../../../src/app/data/infoPages';
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { loadProducts, loadFilteredProducts } from '../../../src/lib/oneentry/catalog/products';
-import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../../src/lib/oneentry/catalog/adapt';
-import { parseCatalogSearchParams, type CatalogFilters } from '../../../src/lib/oneentry/catalog/filters';
-import { resolveSeasonalTrend, applySeasonalTrend } from '../../../src/lib/oneentry/catalog/seasonal-trend';
-import type { Product } from '../../../src/app/components/product/ProductCard';
-import { loadCatalogFilter, type ClothingFilterGroup } from '../../../src/lib/oneentry/blocks/clothing-filter';
-import { loadFilterChips, chipToFilterPatch } from '../../../src/lib/oneentry/blocks/filter-chips';
-import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '../../../src/lib/oneentry/blocks/page-blocks';
-import { loadPageByUrl } from '../../../src/lib/oneentry/catalog/pages';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { faqItemsFromBlocks, buildFaqSchema } from '../../../src/lib/oneentry/blocks/info-sections';
-import { getDictionary, translate } from '../../../src/lib/oneentry/dictionary';
-import { CATALOG_PAGE_LABELS } from '../../../src/app/data/catalogPageLabels';
-
-/* ─── Catalog page components (dataset configs) ─── */
-import { WomenCatalogPage }     from '../../../src/app/pages/WomenCatalogPage';
-import { WomenShoesPage }       from '../../../src/app/pages/WomenShoesPage';
-import { WomenBagsPage }        from '../../../src/app/pages/WomenBagsPage';
+import { SITE_NAME, SITE_URL } from '../../../src/app/data/seoData';
+import { InfoPage } from '../../../src/app/pages/InfoPage';
+import { MenAccessoriesPage } from '../../../src/app/pages/MenAccessoriesPage';
+import { MenBagsPage } from '../../../src/app/pages/MenBagsPage';
+import { MenCatalogPage } from '../../../src/app/pages/MenCatalogPage';
+import { MenShoesPage } from '../../../src/app/pages/MenShoesPage';
 import { WomenAccessoriesPage } from '../../../src/app/pages/WomenAccessoriesPage';
-import { MenCatalogPage }       from '../../../src/app/pages/MenCatalogPage';
-import { MenShoesPage }         from '../../../src/app/pages/MenShoesPage';
-import { MenBagsPage }          from '../../../src/app/pages/MenBagsPage';
-import { MenAccessoriesPage }   from '../../../src/app/pages/MenAccessoriesPage';
-import { InfoPage }             from '../../../src/app/pages/InfoPage';
+import { WomenBagsPage } from '../../../src/app/pages/WomenBagsPage';
+/* ─── Catalog page components (dataset configs) ─── */
+import { WomenCatalogPage } from '../../../src/app/pages/WomenCatalogPage';
+import { WomenShoesPage } from '../../../src/app/pages/WomenShoesPage';
+import { type ClothingFilterGroup, loadCatalogFilter } from '../../../src/lib/oneentry/blocks/clothing-filter';
+import { chipToFilterPatch, loadFilterChips } from '../../../src/lib/oneentry/blocks/filter-chips';
+import { buildFaqSchema, faqItemsFromBlocks } from '../../../src/lib/oneentry/blocks/info-sections';
+import {
+  loadBlockWithProducts,
+  loadPageBlocksByUrl,
+  type PageBlock,
+} from '../../../src/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../../src/lib/oneentry/catalog/adapt';
+import { type CatalogFilters, parseCatalogSearchParams } from '../../../src/lib/oneentry/catalog/filters';
+import { resolveInfoPageSlug } from '../../../src/lib/oneentry/catalog/info-pages';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
+import { loadPageByUrl } from '../../../src/lib/oneentry/catalog/pages';
+import { loadFilteredProducts, loadProducts } from '../../../src/lib/oneentry/catalog/products';
+import { applySeasonalTrend, resolveSeasonalTrend } from '../../../src/lib/oneentry/catalog/seasonal-trend';
+import { getDictionary, translate } from '../../../src/lib/oneentry/dictionary';
 
 /* ─── Map catalogKey → component ─── */
 type CatalogProps = {
@@ -50,14 +53,14 @@ type CatalogProps = {
   pageBlocks?: PageBlock[];
 };
 const CATALOG_COMPONENTS: Record<string, React.ComponentType<CatalogProps>> = {
-  'women-clothing':     WomenCatalogPage,
-  'women-shoes':        WomenShoesPage,
-  'women-bags':         WomenBagsPage,
-  'women-accessories':  WomenAccessoriesPage,
-  'men-clothing':       MenCatalogPage,
-  'men-shoes':          MenShoesPage,
-  'men-bags':           MenBagsPage,
-  'men-accessories':    MenAccessoriesPage,
+  'women-clothing': WomenCatalogPage,
+  'women-shoes': WomenShoesPage,
+  'women-bags': WomenBagsPage,
+  'women-accessories': WomenAccessoriesPage,
+  'men-clothing': MenCatalogPage,
+  'men-shoes': MenShoesPage,
+  'men-bags': MenBagsPage,
+  'men-accessories': MenAccessoriesPage,
 };
 
 /* ─── Types ─── */
@@ -66,8 +69,10 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** Server-side product page size. Matches the client default in
- *  `CatalogTemplate`. Per-catalog overrides can be added here later. */
+/**
+ * Server-side product page size. Matches the client default in
+ *  `CatalogTemplate`. Per-catalog overrides can be added here later.
+ */
 const PRODUCTS_PER_PAGE = 16;
 
 // ISR + dynamic auto: catalog pages hit by a clean URL (`/women/shoes`
@@ -145,9 +150,7 @@ async function buildCatalogSchemas(entry: CatalogPageEntry) {
   const productsResult = categoryPath
     ? await loadProducts({ categoryPath, limit: 10 })
     : { items: [] as Awaited<ReturnType<typeof loadProducts>>['items'] };
-  const products = productsResult.items
-    .filter((p) => p.statusIdentifier !== 'out_of_stock')
-    .slice(0, 10);
+  const products = productsResult.items.filter((p) => p.statusIdentifier !== 'out_of_stock').slice(0, 10);
 
   const breadcrumb = buildBreadcrumbSchema(entry.breadcrumbs);
 
@@ -155,7 +158,7 @@ async function buildCatalogSchemas(entry: CatalogPageEntry) {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: entry.schemaName,
-    url: `${SITE_URL}/${Object.keys(PAGE_REGISTRY).find(k => (PAGE_REGISTRY[k] as CatalogPageEntry).catalogKey === entry.catalogKey) ?? ''}`,
+    url: `${SITE_URL}/${Object.keys(PAGE_REGISTRY).find((k) => (PAGE_REGISTRY[k] as CatalogPageEntry).catalogKey === entry.catalogKey) ?? ''}`,
     numberOfItems: products.length,
     itemListElement: products.map((p, i) => ({
       '@type': 'ListItem',
@@ -210,8 +213,8 @@ export default async function Page({ params, searchParams }: Props) {
   // OE after the last deploy is absent from the static registry but must still
   // render. `React.cache` makes this the same lookup the metadata pass did.
   const dynamicSlug = entryFromExact ? null : await resolveInfoPageSlug(path);
-  const entry: PageEntry | undefined = entryFromExact
-    ?? (dynamicSlug ? { type: 'info', slug: dynamicSlug } : undefined);
+  const entry: PageEntry | undefined =
+    entryFromExact ?? (dynamicSlug ? { type: 'info', slug: dynamicSlug } : undefined);
 
   if (!entry) notFound();
 
@@ -239,9 +242,7 @@ export default async function Page({ params, searchParams }: Props) {
     // seed the client UI (rendered as labels only) and to translate a
     // `?chip=<label>` URL param into the real filter effect below.
     const chips = await loadFilterChips(entry.catalogKey);
-    const initialQuickChips = chips && chips.length > 0
-      ? chips.map((c) => c.label)
-      : undefined;
+    const initialQuickChips = chips && chips.length > 0 ? chips.map((c) => c.label) : undefined;
 
     // Chip clicks land as `?chip=<label>`. Look up the descriptor and merge
     // its effect into `filters`:
@@ -305,9 +306,7 @@ export default async function Page({ params, searchParams }: Props) {
       }
     }
     const initialProducts: Product[] | undefined =
-      filtered.items.length > 0
-        ? filtered.items.map(adaptCatalogProductToUiProduct)
-        : undefined;
+      filtered.items.length > 0 ? filtered.items.map(adaptCatalogProductToUiProduct) : undefined;
     const total = filtered.total;
 
     // Counts for filter options come from the full (unfiltered) category, so
@@ -342,10 +341,11 @@ export default async function Page({ params, searchParams }: Props) {
     // (e.g. `women-*` keys never surface men's items even if the OE block
     // returns a mixed list). When OE returns no products at all, we fall back
     // to a slice of the unfiltered category so the carousel still has stock.
-    const catalogGender: 'W' | 'M' | '' =
-      entry.catalogKey.startsWith('women-') ? 'W'
-      : entry.catalogKey.startsWith('men-') ? 'M'
-      : '';
+    const catalogGender: 'W' | 'M' | '' = entry.catalogKey.startsWith('women-')
+      ? 'W'
+      : entry.catalogKey.startsWith('men-')
+        ? 'M'
+        : '';
     // Heading for the trending carousel: OE block title → CMS dictionary →
     // local constant. Read here because the block below may be synthesised
     // from the catalog's own products.
@@ -356,14 +356,14 @@ export default async function Page({ params, searchParams }: Props) {
     );
     let trendingBlock = await loadBlockWithProducts('catalog_trend_blocks', { categoryPath });
     if (trendingBlock && catalogGender) {
-      const filteredByGender = trendingBlock.products.filter(p =>
-        !p.gender || p.gender === catalogGender || p.gender === 'U',
+      const filteredByGender = trendingBlock.products.filter(
+        (p) => !p.gender || p.gender === catalogGender || p.gender === 'U',
       );
       trendingBlock = { ...trendingBlock, products: filteredByGender };
     }
     if ((!trendingBlock || trendingBlock.products.length === 0) && countingProducts.length > 0) {
       const fallbackProducts = countingProducts
-        .filter(p => !catalogGender || !p.gender || p.gender === catalogGender || p.gender === 'U')
+        .filter((p) => !catalogGender || !p.gender || p.gender === catalogGender || p.gender === 'U')
         .slice(0, 12);
       trendingBlock = {
         marker: 'catalog_trend_blocks',
@@ -383,8 +383,7 @@ export default async function Page({ params, searchParams }: Props) {
     // fallback the generic loader doesn't do). Rendering it in both places
     // would double the "We Think You'll Love" carousel.
     const pageBlocksUrl = entry.catalogKey.replace(/-/g, '_');
-    const pageBlocks = (await loadPageBlocksByUrl(pageBlocksUrl))
-      .filter(b => b.marker !== 'catalog_trend_blocks');
+    const pageBlocks = (await loadPageBlocksByUrl(pageBlocksUrl)).filter((b) => b.marker !== 'catalog_trend_blocks');
 
     return (
       <>
@@ -430,7 +429,7 @@ export default async function Page({ params, searchParams }: Props) {
     const breadcrumbSchema = buildBreadcrumbSchema(
       isHub
         ? [{ name: crumbHome, href: '/' }, { name: label('info_breadcrumb_info', 'Info') }]
-        : [{ name: crumbHome, href: '/' }, { name: pageTitle }]
+        : [{ name: crumbHome, href: '/' }, { name: pageTitle }],
     );
 
     // FAQ structured data is derived from the very blocks `<InfoPage>` renders

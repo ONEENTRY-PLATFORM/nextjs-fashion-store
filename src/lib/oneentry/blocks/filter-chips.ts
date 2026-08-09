@@ -1,8 +1,9 @@
 import { cache } from 'react';
+
 import { getApi, isError, isOneEntryEnabled } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
-import { withTiming } from '../profiling';
 import { logCaught } from '../log';
+import { withTiming } from '../profiling';
 
 type RawLocalize = { en_US?: { title?: string }; title?: string };
 type RawItem = {
@@ -58,41 +59,39 @@ function pickTitle(info: RawLocalize | undefined, fallback = ''): string {
  *  - `type: 'attribute'` — chip applies the `marker`+`value` attribute filter.
  */
 export const loadFilterChips = cache(
-  withTiming('loadFilterChips', async (
-    catalogKey: string,
-    lang: string = DEFAULT_LOCALE,
-  ): Promise<FilterChip[] | null> => {
-    if (!isOneEntryEnabled) return null;
-    const marker = `filter_chips_${catalogKey.replace(/-/g, '_')}`;
-    try {
-      const result = await getApi().Filters.getFilterByMarker(marker, lang);
-      if (isError(result)) return null;
-      const raw = result as unknown as RawChipsFilter;
-      const items = [...(raw.items ?? [])].sort(
-        (a, b) => (a.position ?? 0) - (b.position ?? 0),
-      );
-      const chips: FilterChip[] = [];
-      for (const item of items) {
-        const label = pickTitle(item.localizeInfos, item.value ?? '');
-        if (!label) continue;
-        const rawType = item.type ?? '';
-        if (rawType === 'page' && item.url) {
-          chips.push({ label, type: 'page', url: item.url });
-        } else if (rawType === 'attribute' && item.marker && item.value) {
-          chips.push({
-            label,
-            type: 'attribute',
-            marker: item.marker,
-            value: item.value,
-          });
+  withTiming(
+    'loadFilterChips',
+    async (catalogKey: string, lang: string = DEFAULT_LOCALE): Promise<FilterChip[] | null> => {
+      if (!isOneEntryEnabled) return null;
+      const marker = `filter_chips_${catalogKey.replace(/-/g, '_')}`;
+      try {
+        const result = await getApi().Filters.getFilterByMarker(marker, lang);
+        if (isError(result)) return null;
+        const raw = result as unknown as RawChipsFilter;
+        const items = [...(raw.items ?? [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        const chips: FilterChip[] = [];
+        for (const item of items) {
+          const label = pickTitle(item.localizeInfos, item.value ?? '');
+          if (!label) continue;
+          const rawType = item.type ?? '';
+          if (rawType === 'page' && item.url) {
+            chips.push({ label, type: 'page', url: item.url });
+          } else if (rawType === 'attribute' && item.marker && item.value) {
+            chips.push({
+              label,
+              type: 'attribute',
+              marker: item.marker,
+              value: item.value,
+            });
+          }
         }
+        return chips;
+      } catch (err) {
+        logCaught(`filter-chips.loadFilterChips(${marker}, ${lang})`, err);
+        return null;
       }
-      return chips;
-    } catch (err) {
-      logCaught(`filter-chips.loadFilterChips(${marker}, ${lang})`, err);
-      return null;
-    }
-  }),
+    },
+  ),
 );
 
 /**

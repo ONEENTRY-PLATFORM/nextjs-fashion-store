@@ -1,45 +1,48 @@
 export default function ProductLoading() {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="h-33 bg-gray-100 animate-pulse" />
+      <div className="h-33 animate-pulse bg-gray-100" />
 
-      <div className="px-4 lg:px-8 py-6 lg:py-10">
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 max-w-7xl mx-auto">
-
+      <div className="px-4 py-6 lg:px-8 lg:py-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:gap-14">
           {/* Gallery skeleton */}
           <div className="w-full lg:w-[55%]">
-            <div className="aspect-4/5 bg-gray-100 animate-pulse mb-3" />
+            <div className="mb-3 aspect-4/5 animate-pulse bg-gray-100" />
             <div className="flex gap-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="w-16 h-20 bg-gray-100 animate-pulse" style={{ animationDelay: `${i * 50}ms` }} />
+                <div
+                  key={i}
+                  className="h-20 w-16 animate-pulse bg-gray-100"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                />
               ))}
             </div>
           </div>
 
           {/* Info skeleton */}
-          <div className="w-full lg:w-[45%] space-y-4">
-            <div className="h-3 w-24 bg-gray-200 animate-pulse rounded" />
-            <div className="h-7 w-3/4 bg-gray-200 animate-pulse rounded" />
-            <div className="h-3 w-32 bg-gray-100 animate-pulse rounded" />
-            <div className="h-8 w-28 bg-gray-200 animate-pulse rounded mt-2" />
+          <div className="w-full space-y-4 lg:w-[45%]">
+            <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
+            <div className="h-7 w-3/4 animate-pulse rounded bg-gray-200" />
+            <div className="h-3 w-32 animate-pulse rounded bg-gray-100" />
+            <div className="mt-2 h-8 w-28 animate-pulse rounded bg-gray-200" />
 
             {/* Colors */}
             <div className="flex gap-2 pt-2">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="w-8 h-8 bg-gray-200 animate-pulse rounded-full" />
+                <div key={i} className="size-8 animate-pulse rounded-full bg-gray-200" />
               ))}
             </div>
 
             {/* Sizes */}
             <div className="flex gap-2">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="w-12 h-10 bg-gray-100 animate-pulse rounded" />
+                <div key={i} className="h-10 w-12 animate-pulse rounded bg-gray-100" />
               ))}
             </div>
 
             {/* Buttons */}
-            <div className="h-14 bg-gray-200 animate-pulse rounded-lg mt-4" />
-            <div className="h-14 bg-gray-100 animate-pulse rounded-lg" />
+            <div className="mt-4 h-14 animate-pulse rounded-lg bg-gray-200" />
+            <div className="h-14 animate-pulse rounded-lg bg-gray-100" />
           </div>
         </div>
       </div>

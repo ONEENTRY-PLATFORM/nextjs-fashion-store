@@ -5,29 +5,134 @@ interface InfoPageMeta {
 }
 
 export const INFO_PAGE_META: Record<string, InfoPageMeta> = {
-  'about-us':            { title: 'About Us',              description: 'Learn the story behind Kekimoro — our founding, values, sustainability commitments, and the team that makes it all happen.',     keywords: 'about Kekimoro fashion, our story, fashion brand history, sustainable fashion brand' },
-  'careers':             { title: 'Careers',               description: 'Join the Kekimoro team. Explore open roles in buying, design, technology, sustainability, and more.',                              keywords: 'fashion careers, Kekimoro jobs, fashion industry jobs, work in fashion' },
-  'rewards':             { title: 'Rewards Programme',     description: 'Earn points on every purchase with the Kekimoro Rewards programme. Silver, Gold, and Platinum tiers with exclusive benefits.',             keywords: 'fashion loyalty programme, earn points shopping, Kekimoro rewards, fashion rewards' },
-  'gift-certificates':   { title: 'Gift Certificates',     description: 'Give the gift of great style. Kekimoro digital and physical gift cards from $25 to $500 — perfect for any occasion.',                     keywords: 'fashion gift cards, clothing gift voucher, Kekimoro gift certificate' },
-  'refer-a-friend':      { title: 'Refer a Friend',        description: 'Refer a friend to Kekimoro and you both get $15 credit. Share your unique referral link — no limits on referrals.',                       keywords: 'refer a friend fashion, Kekimoro referral programme, earn credit fashion' },
-  'corporate':           { title: 'Corporate',             description: 'Kekimoro Corporate offers tailored gifting, employee wardrobe programmes, and volume pricing for businesses.',                              keywords: 'corporate fashion gifting, employee clothing allowance, business fashion account' },
-  'faq':                 { title: 'FAQ',                   description: 'Answers to the most common questions about Kekimoro — orders, delivery, returns, sizing, and more.',                               keywords: 'Kekimoro FAQ, fashion store questions, delivery FAQ, returns FAQ' },
-  'track-order':         { title: 'Track Your Order',      description: 'Track your Kekimoro order in real time. Find out where your parcel is and when it will arrive.',                                           keywords: 'track fashion order, order tracking, where is my parcel, Kekimoro tracking' },
-  'delivery':            { title: 'Delivery Information',  description: 'Kekimoro delivery options: free standard shipping, express, next-day, and international delivery to 40+ countries.',                       keywords: 'fashion delivery UK, free shipping clothing, international fashion delivery, Kekimoro shipping' },
-  'exchange':            { title: 'Exchanges',             description: 'Free exchanges on all Kekimoro orders within 30 days. Change size or colour easily from your account.',                                    keywords: 'clothing exchange, free size exchange, Kekimoro exchange policy' },
-  'sizing-guide':        { title: 'Sizing Guide',          description: 'Kekimoro sizing guide. How to measure yourself and find your perfect size across all our collections.',                             keywords: 'clothing size guide, how to measure for clothes, fashion size chart, Kekimoro sizing' },
-  'care-guide':          { title: 'Care Guide',            description: 'How to care for your Kekimoro garments — washing, drying, ironing, and storage tips for every fabric type.',                       keywords: 'clothing care guide, how to wash clothes, garment care instructions, fashion maintenance' },
-  'help-center':         { title: 'Help Center',           description: 'Kekimoro Help Center — find answers to your questions instantly or connect with our 24/7 customer support team.',                          keywords: 'fashion help center, Kekimoro customer support, online shopping help' },
-  'contact':             { title: 'Contact Us',            description: 'Contact Kekimoro by email, phone, or live chat. Our support team is available 24/7.',                                              keywords: 'contact Kekimoro fashion, customer service, fashion store contact' },
-  'privacy-policy':      { title: 'Privacy Policy',        description: 'Kekimoro Privacy Policy — how we collect, use, and protect your personal data under UK GDPR.',                                    keywords: 'Kekimoro privacy policy, data protection fashion, GDPR fashion store' },
-  'terms':               { title: 'Terms & Conditions',    description: 'Kekimoro Terms and Conditions governing use of our website and purchase of products.',                                             keywords: 'Kekimoro terms and conditions, fashion store terms, online shopping terms' },
-  'terms-of-sale':       { title: 'Terms of Sale',         description: 'Kekimoro Terms of Sale — payment, dispatch, returns, and your statutory rights as a consumer.',                                   keywords: 'terms of sale fashion, consumer rights fashion, Kekimoro purchase terms' },
-  'terms-of-use':        { title: 'Terms of Use',          description: 'Acceptable use policy for the Kekimoro website, covering intellectual property and prohibited activities.',                         keywords: 'website terms of use, Kekimoro acceptable use, fashion website policy' },
-  'security':            { title: 'Security',              description: 'How Kekimoro keeps your personal and payment data safe — encryption, PCI compliance, and vulnerability disclosure.',               keywords: 'fashion website security, secure online shopping, Kekimoro data security' },
-  'accessibility':       { title: 'Accessibility',         description: 'Kekimoro accessibility statement — our commitment to WCAG 2.1 AA standards and an inclusive experience for all.',                 keywords: 'fashion website accessibility, WCAG fashion, inclusive online shopping' },
-  'user-content-policy': { title: 'User Content Policy',   description: "Community standards for reviews and user submissions on Kekimoro — what's allowed and what isn't.",                              keywords: 'review policy fashion, user content guidelines, Kekimoro community standards' },
-  'promo-terms':         { title: 'Promotional Terms',     description: 'Terms and conditions for all Kekimoro promotions, discount codes, and sale events.',                                               keywords: 'fashion promo terms, discount code terms, Kekimoro sale terms' },
-  'sitemap':             { title: 'Sitemap',               description: 'Full sitemap for Kekimoro — navigate to any page on our site quickly and easily.',                                                 keywords: 'Kekimoro sitemap, fashion store pages, site navigation' },
+  'about-us': {
+    title: 'About Us',
+    description:
+      'Learn the story behind Kekimoro — our founding, values, sustainability commitments, and the team that makes it all happen.',
+    keywords: 'about Kekimoro fashion, our story, fashion brand history, sustainable fashion brand',
+  },
+  careers: {
+    title: 'Careers',
+    description: 'Join the Kekimoro team. Explore open roles in buying, design, technology, sustainability, and more.',
+    keywords: 'fashion careers, Kekimoro jobs, fashion industry jobs, work in fashion',
+  },
+  rewards: {
+    title: 'Rewards Programme',
+    description:
+      'Earn points on every purchase with the Kekimoro Rewards programme. Silver, Gold, and Platinum tiers with exclusive benefits.',
+    keywords: 'fashion loyalty programme, earn points shopping, Kekimoro rewards, fashion rewards',
+  },
+  'gift-certificates': {
+    title: 'Gift Certificates',
+    description:
+      'Give the gift of great style. Kekimoro digital and physical gift cards from $25 to $500 — perfect for any occasion.',
+    keywords: 'fashion gift cards, clothing gift voucher, Kekimoro gift certificate',
+  },
+  'refer-a-friend': {
+    title: 'Refer a Friend',
+    description:
+      'Refer a friend to Kekimoro and you both get $15 credit. Share your unique referral link — no limits on referrals.',
+    keywords: 'refer a friend fashion, Kekimoro referral programme, earn credit fashion',
+  },
+  corporate: {
+    title: 'Corporate',
+    description:
+      'Kekimoro Corporate offers tailored gifting, employee wardrobe programmes, and volume pricing for businesses.',
+    keywords: 'corporate fashion gifting, employee clothing allowance, business fashion account',
+  },
+  faq: {
+    title: 'FAQ',
+    description: 'Answers to the most common questions about Kekimoro — orders, delivery, returns, sizing, and more.',
+    keywords: 'Kekimoro FAQ, fashion store questions, delivery FAQ, returns FAQ',
+  },
+  'track-order': {
+    title: 'Track Your Order',
+    description: 'Track your Kekimoro order in real time. Find out where your parcel is and when it will arrive.',
+    keywords: 'track fashion order, order tracking, where is my parcel, Kekimoro tracking',
+  },
+  delivery: {
+    title: 'Delivery Information',
+    description:
+      'Kekimoro delivery options: free standard shipping, express, next-day, and international delivery to 40+ countries.',
+    keywords: 'fashion delivery UK, free shipping clothing, international fashion delivery, Kekimoro shipping',
+  },
+  exchange: {
+    title: 'Exchanges',
+    description:
+      'Free exchanges on all Kekimoro orders within 30 days. Change size or colour easily from your account.',
+    keywords: 'clothing exchange, free size exchange, Kekimoro exchange policy',
+  },
+  'sizing-guide': {
+    title: 'Sizing Guide',
+    description:
+      'Kekimoro sizing guide. How to measure yourself and find your perfect size across all our collections.',
+    keywords: 'clothing size guide, how to measure for clothes, fashion size chart, Kekimoro sizing',
+  },
+  'care-guide': {
+    title: 'Care Guide',
+    description:
+      'How to care for your Kekimoro garments — washing, drying, ironing, and storage tips for every fabric type.',
+    keywords: 'clothing care guide, how to wash clothes, garment care instructions, fashion maintenance',
+  },
+  'help-center': {
+    title: 'Help Center',
+    description:
+      'Kekimoro Help Center — find answers to your questions instantly or connect with our 24/7 customer support team.',
+    keywords: 'fashion help center, Kekimoro customer support, online shopping help',
+  },
+  contact: {
+    title: 'Contact Us',
+    description: 'Contact Kekimoro by email, phone, or live chat. Our support team is available 24/7.',
+    keywords: 'contact Kekimoro fashion, customer service, fashion store contact',
+  },
+  'privacy-policy': {
+    title: 'Privacy Policy',
+    description: 'Kekimoro Privacy Policy — how we collect, use, and protect your personal data under UK GDPR.',
+    keywords: 'Kekimoro privacy policy, data protection fashion, GDPR fashion store',
+  },
+  terms: {
+    title: 'Terms & Conditions',
+    description: 'Kekimoro Terms and Conditions governing use of our website and purchase of products.',
+    keywords: 'Kekimoro terms and conditions, fashion store terms, online shopping terms',
+  },
+  'terms-of-sale': {
+    title: 'Terms of Sale',
+    description: 'Kekimoro Terms of Sale — payment, dispatch, returns, and your statutory rights as a consumer.',
+    keywords: 'terms of sale fashion, consumer rights fashion, Kekimoro purchase terms',
+  },
+  'terms-of-use': {
+    title: 'Terms of Use',
+    description:
+      'Acceptable use policy for the Kekimoro website, covering intellectual property and prohibited activities.',
+    keywords: 'website terms of use, Kekimoro acceptable use, fashion website policy',
+  },
+  security: {
+    title: 'Security',
+    description:
+      'How Kekimoro keeps your personal and payment data safe — encryption, PCI compliance, and vulnerability disclosure.',
+    keywords: 'fashion website security, secure online shopping, Kekimoro data security',
+  },
+  accessibility: {
+    title: 'Accessibility',
+    description:
+      'Kekimoro accessibility statement — our commitment to WCAG 2.1 AA standards and an inclusive experience for all.',
+    keywords: 'fashion website accessibility, WCAG fashion, inclusive online shopping',
+  },
+  'user-content-policy': {
+    title: 'User Content Policy',
+    description: "Community standards for reviews and user submissions on Kekimoro — what's allowed and what isn't.",
+    keywords: 'review policy fashion, user content guidelines, Kekimoro community standards',
+  },
+  'promo-terms': {
+    title: 'Promotional Terms',
+    description: 'Terms and conditions for all Kekimoro promotions, discount codes, and sale events.',
+    keywords: 'fashion promo terms, discount code terms, Kekimoro sale terms',
+  },
+  sitemap: {
+    title: 'Sitemap',
+    description: 'Full sitemap for Kekimoro — navigate to any page on our site quickly and easily.',
+    keywords: 'Kekimoro sitemap, fashion store pages, site navigation',
+  },
 };
 
 /** All slug keys — used in generateStaticParams and sitemap */

@@ -8,16 +8,14 @@ const fakeApi = {
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-  getApiSafe: () => (fakeApi),
+  getApiSafe: () => fakeApi,
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 // unstable_cache: call the wrapped function directly so caching is transparent.
 vi.mock('next/cache', () => ({
-   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -31,9 +29,7 @@ const importFresh = async () => {
 };
 
 /** Build a minimal CatalogProduct stub. */
-const makeProduct = (
-  overrides: Partial<{ id: number; price: number; categories: string[] }> = {},
-) => ({
+const makeProduct = (overrides: Partial<{ id: number; price: number; categories: string[] }> = {}) => ({
   id: 1,
   price: 100,
   categories: [] as string[],
@@ -88,17 +84,13 @@ describe('loadPurchaseBonusForProduct — null cases', () => {
   });
 
   it('returns null when discountValue.value is 0', async () => {
-    getDiscountByMarker.mockResolvedValue(
-      makeRule({ discountValue: { discountType: 'PERCENT', value: 0 } }),
-    );
+    getDiscountByMarker.mockResolvedValue(makeRule({ discountValue: { discountType: 'PERCENT', value: 0 } }));
     const { loadPurchaseBonusForProduct } = await importFresh();
     expect(await loadPurchaseBonusForProduct(makeProduct({ price: 200 }))).toBeNull();
   });
 
   it('returns null when discountValue.value is negative', async () => {
-    getDiscountByMarker.mockResolvedValue(
-      makeRule({ discountValue: { discountType: 'PERCENT', value: -5 } }),
-    );
+    getDiscountByMarker.mockResolvedValue(makeRule({ discountValue: { discountType: 'PERCENT', value: -5 } }));
     const { loadPurchaseBonusForProduct } = await importFresh();
     expect(await loadPurchaseBonusForProduct(makeProduct({ price: 200 }))).toBeNull();
   });
@@ -106,33 +98,25 @@ describe('loadPurchaseBonusForProduct — null cases', () => {
 
 describe('loadPurchaseBonusForProduct — point calculation', () => {
   it('PERCENT rule: rounds(price * value / 100) — 5% on 126 → 6', async () => {
-    getDiscountByMarker.mockResolvedValue(
-      makeRule({ discountValue: { discountType: 'PERCENT', value: 5 } }),
-    );
+    getDiscountByMarker.mockResolvedValue(makeRule({ discountValue: { discountType: 'PERCENT', value: 5 } }));
     const { loadPurchaseBonusForProduct } = await importFresh();
     expect(await loadPurchaseBonusForProduct(makeProduct({ price: 126 }))).toEqual({ points: 6 });
   });
 
   it('PERCENTAGE alias is treated identically to PERCENT', async () => {
-    getDiscountByMarker.mockResolvedValue(
-      makeRule({ discountValue: { discountType: 'PERCENTAGE', value: 10 } }),
-    );
+    getDiscountByMarker.mockResolvedValue(makeRule({ discountValue: { discountType: 'PERCENTAGE', value: 10 } }));
     const { loadPurchaseBonusForProduct } = await importFresh();
     expect(await loadPurchaseBonusForProduct(makeProduct({ price: 55 }))).toEqual({ points: 6 });
   });
 
   it('FIXED_AMOUNT rule: returns rounded fixed value as points', async () => {
-    getDiscountByMarker.mockResolvedValue(
-      makeRule({ discountValue: { discountType: 'FIXED_AMOUNT', value: 25.7 } }),
-    );
+    getDiscountByMarker.mockResolvedValue(makeRule({ discountValue: { discountType: 'FIXED_AMOUNT', value: 25.7 } }));
     const { loadPurchaseBonusForProduct } = await importFresh();
     expect(await loadPurchaseBonusForProduct(makeProduct())).toEqual({ points: 26 });
   });
 
   it('returns null when computed points round to 0 (e.g. 0.1% on price 1)', async () => {
-    getDiscountByMarker.mockResolvedValue(
-      makeRule({ discountValue: { discountType: 'PERCENT', value: 0.1 } }),
-    );
+    getDiscountByMarker.mockResolvedValue(makeRule({ discountValue: { discountType: 'PERCENT', value: 0.1 } }));
     const { loadPurchaseBonusForProduct } = await importFresh();
     // Math.round(1 * 0.1 / 100) = Math.round(0.001) = 0 → null
     expect(await loadPurchaseBonusForProduct(makeProduct({ price: 1 }))).toBeNull();

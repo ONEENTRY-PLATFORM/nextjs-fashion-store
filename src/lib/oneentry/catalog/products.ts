@@ -1,14 +1,15 @@
-import { currentCmsLocale } from '../current-locale';
-import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
+import { cache } from 'react';
+
+import { REVALIDATE_PRODUCT } from '../../isr';
+import { currentCmsLocale } from '../current-locale';
+import { applyProductDiscount, loadProductDiscounts } from '../discounts/product-discount';
 import { blurByUrl, getApi, getApiSafe, getImages, isError, type OeImage } from '../index';
+import { DEFAULT_LOCALE } from '../locale';
+import { logCaught } from '../log';
 import { withTiming } from '../profiling';
 import type { Lang } from '../system-text';
 import type { CatalogFilters } from './filters';
-import { DEFAULT_LOCALE } from '../locale';
-import { REVALIDATE_PRODUCT } from '../../isr';
-import { loadProductDiscounts, applyProductDiscount } from '../discounts/product-discount';
-import { logCaught } from '../log';
 
 /**
  * Normalized OneEntry product for the storefront. Mirrors the actual
@@ -21,11 +22,13 @@ export interface CatalogProduct {
   description: string;
   statusIdentifier: string;
   price: number;
-  /** Discounted price when an OE `Discounts` rule (`type: DISCOUNT`,
+  /**
+   * Discounted price when an OE `Discounts` rule (`type: DISCOUNT`,
    *  `applicability: TO_PRODUCT`) matches this product by id or category.
    *  Populated in a post-normalize pass by `applyProductDiscount` — see
    *  `src/lib/oneentry/discounts/product-discount.ts`. `undefined` when
-   *  no active rule applies. */
+   *  no active rule applies.
+   */
   salePrice?: number;
   currency: string;
   sku: string;
@@ -44,38 +47,52 @@ export interface CatalogProduct {
   images: string[];
   /** First image — preview thumbnail. Empty string if none. */
   preview: string;
-  /** Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
+  /**
+   * Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
    *  URL rather than index so the adapters can slice `images` freely. Only
-   *  files uploaded through an OE preview template have one. */
+   *  files uploaded through an OE preview template have one.
+   */
   imageBlurs: Record<string, string>;
   /** Clothing-only extras coming from the OE attribute set. */
   fit: string;
   liningMaterial: string;
-  /** Insulation filler (`insulation_17` list value) — used by the
-   *  catalog-level filter row. Empty string when the attribute is unset. */
+  /**
+   * Insulation filler (`insulation_17` list value) — used by the
+   *  catalog-level filter row. Empty string when the attribute is unset.
+   */
   insulation: string;
   productDetails: string[];
-  /** Long-form description (`productdescription_6`) — kept as raw HTML so the
-   *  PDP can render rich markup from the OE editor. Empty string when absent. */
+  /**
+   * Long-form description (`productdescription_6`) — kept as raw HTML so the
+   *  PDP can render rich markup from the OE editor. Empty string when absent.
+   */
   descriptionHtml: string;
-  /** Care symbols / instructions (`careinstructions_18` list). Empty array when
-   *  the attribute isn't set or the values are blank. */
+  /**
+   * Care symbols / instructions (`careinstructions_18` list). Empty array when
+   *  the attribute isn't set or the values are blank.
+   */
   careInstructions: string[];
-  /** Raw string values for every OE attribute marker starting with
+  /**
+   * Raw string values for every OE attribute marker starting with
    *  `discount_` on this product. Populated at normalize time so
    *  `applyProductDiscount` can evaluate `ATTRIBUTE` conditions (which is
    *  how the storefront tenant scopes its "10% off if discount_12=10"
    *  campaigns) without a second SDK call. Keys are full OE markers
    *  (e.g. `discount_12`), values are stringified attribute values
    *  (e.g. `"10"`, `"20"`). `{}` when the product has no discount
-   *  attributes. */
+   *  attributes.
+   */
   discountAttributes: Record<string, string>;
-  /** All variant products in the same title-group (same product, different
+  /**
+   * All variant products in the same title-group (same product, different
    *  color/size combinations). Present only on the aggregated representative
-   *  returned by `aggregateByName` — raw catalog rows have this undefined. */
+   *  returned by `aggregateByName` — raw catalog rows have this undefined.
+   */
   variants?: CatalogProductVariant[];
-  /** Product ids explicitly linked in OE admin ("related products"). Merged
-   *  into `variants` alongside title-group siblings. */
+  /**
+   * Product ids explicitly linked in OE admin ("related products"). Merged
+   *  into `variants` alongside title-group siblings.
+   */
   relatedIds: number[];
 }
 
@@ -90,11 +107,13 @@ export interface CatalogProductVariant {
   colors: string[];
   sizes: string[];
   price: number;
-  /** Discounted price when an OE `Discounts` rule (`type: DISCOUNT`,
+  /**
+   * Discounted price when an OE `Discounts` rule (`type: DISCOUNT`,
    *  `applicability: TO_PRODUCT`) matches THIS variant's id or category.
    *  Not stacked with sibling variants — each variant is a distinct OE
    *  record and gets its own resolution. `undefined` when no rule
-   *  applies or the resolved price isn't strictly below `price`. */
+   *  applies or the resolved price isn't strictly below `price`.
+   */
   salePrice?: number;
   sku: string;
   preview: string;
@@ -102,29 +121,38 @@ export interface CatalogProductVariant {
   /** Blur data URI per image URL — see the same field on the product above. */
   imageBlurs: Record<string, string>;
   stock: number;
-  /** Copied from the raw product so the storefront can fall back to the
-   *  status flag when the merchant doesn't track the numeric stock field. */
+  /**
+   * Copied from the raw product so the storefront can fall back to the
+   *  status flag when the merchant doesn't track the numeric stock field.
+   */
   statusIdentifier: string;
   descriptionHtml: string;
 }
 
-/** Convert an OE category path like `/women/women_clothing/costumes` to a
+/**
+ * Convert an OE category path like `/women/women_clothing/costumes` to a
  *  capitalized breadcrumb-ready label list: `['Women', 'Clothing', 'Costumes']`.
  *  Used by the PDP breadcrumb so each product gets the path it really lives in
- *  rather than a single hardcoded chain. */
+ *  rather than a single hardcoded chain.
+ */
 export function categoryPathToBreadcrumbs(path: string | undefined): string[] {
   if (!path) return [];
   const segments = path.split('/').filter(Boolean);
-  return segments.map((segment) => {
-    // Drop the redundant gender prefix on subcategories (`women_clothing` →
-    // `Clothing`) so the visible label matches storefront navigation labels.
-    const trimmed = segment.replace(/^(women|men)_/, '').replace(/[-_]/g, ' ').trim();
-    if (!trimmed) return '';
-    return trimmed
-      .split(/\s+/)
-      .map((w) => (w.length === 0 ? w : w[0].toUpperCase() + w.slice(1).toLowerCase()))
-      .join(' ');
-  }).filter(Boolean);
+  return segments
+    .map((segment) => {
+      // Drop the redundant gender prefix on subcategories (`women_clothing` →
+      // `Clothing`) so the visible label matches storefront navigation labels.
+      const trimmed = segment
+        .replace(/^(women|men)_/, '')
+        .replace(/[-_]/g, ' ')
+        .trim();
+      if (!trimmed) return '';
+      return trimmed
+        .split(/\s+/)
+        .map((w) => (w.length === 0 ? w : w[0].toUpperCase() + w.slice(1).toLowerCase()))
+        .join(' ');
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -186,9 +214,11 @@ type RawProduct = {
   statusIdentifier?: string;
   localizeInfos?: Record<string, { title?: string }> | { title?: string };
   attributeValues?: Record<string, Record<string, RawAttr>> | Record<string, RawAttr>;
-  /** OneEntry admin lets a merchant link products together as siblings (colour
+  /**
+   * OneEntry admin lets a merchant link products together as siblings (colour
    *  or size variants of the same model). Populated on the raw payload; we
-   *  copy it onto `CatalogProduct` and use it downstream to build `variants`. */
+   *  copy it onto `CatalogProduct` and use it downstream to build `variants`.
+   */
   relatedIds?: number[];
 };
 
@@ -232,15 +262,16 @@ const stringValue = (attr: RawAttr | undefined): string => {
   return '';
 };
 
-/** Same shape as `stringValue` but prefers `htmlValue` so we can surface rich
+/**
+ * Same shape as `stringValue` but prefers `htmlValue` so we can surface rich
  *  text content from the OE editor. Falls back to plain text when the field
- *  hasn't been authored as HTML. */
+ *  hasn't been authored as HTML.
+ */
 const richTextValue = (attr: RawAttr | undefined): string => {
   if (!attr) return '';
   if (Array.isArray(attr.value)) {
     const first = attr.value[0] as
-      | { htmlValue?: unknown; plainValue?: unknown; mdValue?: unknown; value?: unknown; title?: unknown }
-      | undefined;
+      { htmlValue?: unknown; plainValue?: unknown; mdValue?: unknown; value?: unknown; title?: unknown } | undefined;
     const html = asString(first?.htmlValue).trim();
     if (html) return html;
     const md = asString(first?.mdValue).trim();
@@ -251,9 +282,11 @@ const richTextValue = (attr: RawAttr | undefined): string => {
   return '';
 };
 
-/** Gallery URLs for an OE `groupOfImages` / multi-file attribute. Delegates to
+/**
+ * Gallery URLs for an OE `groupOfImages` / multi-file attribute. Delegates to
  *  the shared normalizer so a single-file attribute (which OE ships as a bare
- *  object rather than an array) still resolves. */
+ *  object rather than an array) still resolves.
+ */
 const imagesValue = (attr: RawAttr | undefined): OeImage[] => getImages(attr?.value);
 
 const pickAttributes = (raw: RawProduct, lang: Lang): Record<string, RawAttr> => {
@@ -274,9 +307,14 @@ const titleOf = (raw: RawProduct, lang: Lang): string => {
 };
 
 const GENDER_MAP: Record<string, CatalogProduct['gender']> = {
-  W: 'W', WOMEN: 'W', FEMALE: 'W',
-  M: 'M', MEN: 'M', MALE: 'M',
-  U: 'U', UNISEX: 'U',
+  W: 'W',
+  WOMEN: 'W',
+  FEMALE: 'W',
+  M: 'M',
+  MEN: 'M',
+  MALE: 'M',
+  U: 'U',
+  UNISEX: 'U',
 };
 
 /**
@@ -285,10 +323,7 @@ const GENDER_MAP: Record<string, CatalogProduct['gender']> = {
  * clothing uses `brand_7/color_9/size_10`. Look up by canonical prefix so the
  * normalizer works across every product category.
  */
-const findAttr = (
-  attrs: Record<string, RawAttr>,
-  prefixes: string[],
-): RawAttr | undefined => {
+const findAttr = (attrs: Record<string, RawAttr>, prefixes: string[]): RawAttr | undefined => {
   for (const prefix of prefixes) {
     if (attrs[prefix]) return attrs[prefix];
   }
@@ -408,7 +443,6 @@ interface ListResponse {
   total?: number;
   items?: RawProduct[];
 }
-
 
 /**
  * Pull every product variant in one POST and cache it for the request. We
@@ -572,8 +606,9 @@ function aggregateByName(items: CatalogProduct[], allById: Map<number, CatalogPr
   return out;
 }
 
-export const loadProducts = withTiming('loadProducts', cache(
-  async (opts: LoadProductsOptions = {}): Promise<LoadProductsResult> => {
+export const loadProducts = withTiming(
+  'loadProducts',
+  cache(async (opts: LoadProductsOptions = {}): Promise<LoadProductsResult> => {
     const api = getApiSafe();
     if (!api) return { total: 0, items: [], fromCms: false };
     const lang = opts.lang ?? DEFAULT_LOCALE;
@@ -610,8 +645,8 @@ export const loadProducts = withTiming('loadProducts', cache(
       items: all.slice(offset, offset + limit),
       fromCms: true,
     };
-  },
-));
+  }),
+);
 
 // Targeted single-product fetch — replaces a full 2000-item catalog dump
 // (~30 MB) with a single OE call that returns the requested product only.
@@ -639,9 +674,7 @@ const cachedGetRelated = unstable_cache(
     if (!api) return [];
     const result = await getApi().Products.getRelatedProductsById(id, lang);
     if (isError(result)) return [];
-    const arr = Array.isArray(result)
-      ? result
-      : (result as unknown as { items?: RawProduct[] })?.items ?? [];
+    const arr = Array.isArray(result) ? result : ((result as unknown as { items?: RawProduct[] })?.items ?? []);
     return (arr as RawProduct[]) ?? [];
   },
   ['oe-related-products'],
@@ -668,8 +701,9 @@ const cachedGetByIds = unstable_cache(
   { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
 );
 
-export const loadProductById = withTiming('loadProductById', cache(
-  async (id: number, langArg?: Lang): Promise<CatalogProduct | null> => {
+export const loadProductById = withTiming(
+  'loadProductById',
+  cache(async (id: number, langArg?: Lang): Promise<CatalogProduct | null> => {
     const lang = langArg ?? (await currentCmsLocale());
     const raw = await cachedGetProductById(id, lang);
     if (!raw) return null;
@@ -732,9 +766,16 @@ export const loadProductById = withTiming('loadProductById', cache(
       if (v.stock > 0 || v.statusIdentifier !== 'out_of_stock') anyInStock = true;
     }
     const variants: CatalogProductVariant[] = family.map((v) => ({
-      id: v.id, colors: v.colors, sizes: v.sizes, price: v.price, sku: v.sku,
+      id: v.id,
+      colors: v.colors,
+      sizes: v.sizes,
+      price: v.price,
+      sku: v.sku,
       ...(v.salePrice !== undefined && { salePrice: v.salePrice }),
-      preview: v.preview, images: v.images, imageBlurs: v.imageBlurs, stock: v.stock,
+      preview: v.preview,
+      images: v.images,
+      imageBlurs: v.imageBlurs,
+      stock: v.stock,
       statusIdentifier: v.statusIdentifier,
       descriptionHtml: v.descriptionHtml,
     }));
@@ -749,11 +790,12 @@ export const loadProductById = withTiming('loadProductById', cache(
       stock: familyStock,
       statusIdentifier: anyInStock ? 'in_stock' : target.statusIdentifier,
     };
-  },
-));
+  }),
+);
 
-export const loadProductsByIds = withTiming('loadProductsByIds', cache(
-  async (ids: number[], langArg?: Lang): Promise<CatalogProduct[]> => {
+export const loadProductsByIds = withTiming(
+  'loadProductsByIds',
+  cache(async (ids: number[], langArg?: Lang): Promise<CatalogProduct[]> => {
     const lang = langArg ?? (await currentCmsLocale());
     if (ids.length === 0) return [];
     const validIds = ids.filter((n) => Number.isFinite(n) && n > 0);
@@ -762,14 +804,16 @@ export const loadProductsByIds = withTiming('loadProductsByIds', cache(
     // just to filter it. Falls back to an empty list on error.
     const raws = await cachedGetByIds(validIds.join(','), lang);
     return raws.map((r) => normalize(r, lang));
-  },
-));
+  }),
+);
 
-/** Normalise the two shapes OE returns from product-list endpoints: the flat
+/**
+ * Normalise the two shapes OE returns from product-list endpoints: the flat
  *  `IProductsEntity[]` promised by the SDK typings, or the wrapped
  *  `{items: IProductsEntity[], total: number}` that some endpoints
  *  (notably `/vectorSearch`) actually ship. Returns a plain array we can
- *  `.map()` over. */
+ *  `.map()` over.
+ */
 function extractProductIdList(result: unknown): Array<{ id?: number }> {
   if (Array.isArray(result)) return result as Array<{ id?: number }>;
   const wrapped = (result as { items?: unknown })?.items;
@@ -780,12 +824,7 @@ async function vectorSearchIds(text: string, lang: Lang, limit: number): Promise
   const api = getApiSafe();
   if (!api) return [];
   try {
-    const result = await getApi().Products.getProductsByVectorSearch(
-      { queryText: text },
-      lang,
-      0,
-      limit,
-    );
+    const result = await getApi().Products.getProductsByVectorSearch({ queryText: text }, lang, 0, limit);
     if (isError(result)) return [];
     // SDK types the result as `IProductsEntity[]`, but `/vectorSearch` ships
     // a `{items, total}` wrapper. Accept either shape.
@@ -829,10 +868,7 @@ export async function searchProducts(
   const lang = opts.lang ?? DEFAULT_LOCALE;
   const limit = opts.limit ?? 30;
 
-  const [vectorIds, quickIds] = await Promise.all([
-    vectorSearchIds(text, lang, limit),
-    quickSearchIds(text, lang),
-  ]);
+  const [vectorIds, quickIds] = await Promise.all([vectorSearchIds(text, lang, limit), quickSearchIds(text, lang)]);
 
   // Vector results first (semantic relevance), then quick results, deduped.
   const orderedIds: number[] = [];
@@ -869,12 +905,16 @@ export const searchProductsByVector = searchProducts;
  * ──────────────────────────────────────────────────────────────────────── */
 
 export interface LoadFilteredProductsOptions {
-  /** OE catalog page marker (e.g. `women_shoes`). Currently unused for
-   *  filtering — see `categoryPath` below. */
+  /**
+   * OE catalog page marker (e.g. `women_shoes`). Currently unused for
+   *  filtering — see `categoryPath` below.
+   */
   pageUrl?: string;
-  /** Category-path prefix (e.g. `/women/women_shoes`). Products outside it
+  /**
+   * Category-path prefix (e.g. `/women/women_shoes`). Products outside it
    *  are dropped *after* the OE response since this tenant's catalog pages
-   *  don't carry their products via `getProductsByPageUrl` directly. */
+   *  don't carry their products via `getProductsByPageUrl` directly.
+   */
   categoryPath?: string;
   filters: CatalogFilters;
   /** 1-based page index. Defaults to 1. */
@@ -893,26 +933,27 @@ export interface LoadFilteredProductsResult {
   fromCms: boolean;
 }
 
-/** Resolve the storefront `catalogKey` (e.g. `women-shoes`) to the OE
+/**
+ * Resolve the storefront `catalogKey` (e.g. `women-shoes`) to the OE
  *  catalog page marker (`women_shoes`). Returns null when the key is not a
- *  known catalog or OE has no equivalent page. */
+ *  known catalog or OE has no equivalent page.
+ */
 const CATALOG_KEY_TO_PAGE_URL: Record<string, string> = {
-  'women-clothing':    'women_clothing',
-  'women-shoes':       'women_shoes',
-  'women-bags':        'women_bags',
+  'women-clothing': 'women_clothing',
+  'women-shoes': 'women_shoes',
+  'women-bags': 'women_bags',
   'women-accessories': 'women_accessories',
-  'men-clothing':      'men_clothing',
-  'men-shoes':         'men_shoes',
-  'men-bags':          'men_bags',
-  'men-accessories':   'men_accessories',
+  'men-clothing': 'men_clothing',
+  'men-shoes': 'men_shoes',
+  'men-bags': 'men_bags',
+  'men-accessories': 'men_accessories',
 };
 
 export function catalogKeyToPageUrl(catalogKey: string): string | null {
   return CATALOG_KEY_TO_PAGE_URL[catalogKey] ?? null;
 }
 
-const eqCI = (a: string, b: string): boolean =>
-  a.toLowerCase().trim() === b.toLowerCase().trim();
+const eqCI = (a: string, b: string): boolean => a.toLowerCase().trim() === b.toLowerCase().trim();
 
 const anyMatchCI = (selected: string[], values: string[]): boolean =>
   selected.some((sel) => values.some((v) => eqCI(sel, v)));
@@ -975,9 +1016,7 @@ function matchesCatalogFilters(p: CatalogProduct, f: CatalogFilters): boolean {
 
 export const loadFilteredProducts = withTiming('loadFilteredProducts', _loadFilteredProducts);
 
-async function _loadFilteredProducts(
-  opts: LoadFilteredProductsOptions,
-): Promise<LoadFilteredProductsResult> {
+async function _loadFilteredProducts(opts: LoadFilteredProductsOptions): Promise<LoadFilteredProductsResult> {
   const lang = opts.lang ?? DEFAULT_LOCALE;
   const limit = Math.max(1, opts.limit ?? 24);
   const page = Math.max(1, Math.floor(opts.page ?? opts.filters.page ?? 1));
@@ -1003,7 +1042,7 @@ async function _loadFilteredProducts(
 
   all = aggregateByName(all, byId);
 
-  if (opts.filters.sort === 'price_asc')  all = [...all].sort((a, b) => a.price - b.price);
+  if (opts.filters.sort === 'price_asc') all = [...all].sort((a, b) => a.price - b.price);
   if (opts.filters.sort === 'price_desc') all = [...all].sort((a, b) => b.price - a.price);
 
   const offset = (page - 1) * limit;

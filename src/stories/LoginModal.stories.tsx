@@ -1,13 +1,16 @@
 'use client';
-import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import React, { useEffect } from 'react';
+
 import { LoginModal } from '../app/components/auth/LoginModal';
 import { useAuth } from '../app/context/AuthContext';
 
 /** Wrapper that immediately opens the login modal */
 function OpenLoginModal() {
   const { openLoginModal } = useAuth();
-  useEffect(() => { openLoginModal(); }, [openLoginModal]);
+  useEffect(() => {
+    openLoginModal();
+  }, [openLoginModal]);
   return <LoginModal />;
 }
 

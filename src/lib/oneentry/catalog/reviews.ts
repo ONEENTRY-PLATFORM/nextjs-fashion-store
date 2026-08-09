@@ -1,12 +1,13 @@
-import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
+import { cache } from 'react';
+
+import type { ProductReview } from '../../../app/data/productCatalog';
+import { REVALIDATE_HOME } from '../../isr';
 import { getApi, isError, isOneEntryEnabled } from '../index';
-import { withTiming } from '../profiling';
-import { loadProductById } from './products';
 import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
-import { REVALIDATE_HOME } from '../../isr';
-import type { ProductReview } from '../../../app/data/productCatalog';
+import { withTiming } from '../profiling';
+import { loadProductById } from './products';
 
 type RawFormDataField = { marker: string; type: string; value: unknown };
 interface RawFormDataItem {
@@ -39,12 +40,7 @@ const RATING_MODULE_CONFIG = 12;
 // entries, easily fits the Data Cache. Reviews change slowly, so a 5-min
 // window matches the homepage/block window and is safe.
 const cachedFetchFormData = unstable_cache(
-  async (
-    marker: string,
-    configId: number,
-    productId: number,
-    limit: number,
-  ): Promise<RawFormDataItem[]> => {
+  async (marker: string, configId: number, productId: number, limit: number): Promise<RawFormDataItem[]> => {
     if (!isOneEntryEnabled) return [];
     try {
       const result = await getApi().FormData.getFormsDataByMarker(
@@ -74,14 +70,14 @@ const cachedFetchFormData = unstable_cache(
 
 function value(it: RawFormDataItem, marker: string): unknown {
   const raw = it.formData;
-  const fields: RawFormDataField[] | undefined = Array.isArray(raw)
-    ? raw
-    : raw?.en_US;
+  const fields: RawFormDataField[] | undefined = Array.isArray(raw) ? raw : raw?.en_US;
   return fields?.find((f) => f.marker === marker)?.value;
 }
 
-/** Extract plain text from OE `text` type field which stores values as
- *  `[{ plainValue }]` or `[{ htmlValue }]` or `[{ mdValue }]`. */
+/**
+ * Extract plain text from OE `text` type field which stores values as
+ *  `[{ plainValue }]` or `[{ htmlValue }]` or `[{ mdValue }]`.
+ */
 function textValue(raw: unknown): string {
   if (!Array.isArray(raw) || raw.length === 0) return '';
   const cell = raw[0] as { plainValue?: unknown; htmlValue?: unknown; mdValue?: unknown };
@@ -93,9 +89,11 @@ function textValue(raw: unknown): string {
   return '';
 }
 
-/** Deterministic size picker: same review id → same size on every render.
+/**
+ * Deterministic size picker: same review id → same size on every render.
  *  Cycles through the product's available sizes so different reviewers see
- *  different sizes, instead of all showing the same first entry. */
+ *  different sizes, instead of all showing the same first entry.
+ */
 function pickSize(reviewId: number, sizes: string[]): string {
   if (sizes.length === 0) return '';
   return sizes[reviewId % sizes.length];
@@ -123,8 +121,9 @@ function fmtDate(iso: string | undefined): string {
  * one in 99% of cases. Falls back to averaged-rating when proximity match
  * is ambiguous.
  */
-export const loadProductReviews = withTiming('loadProductReviews', cache(
-  async (productId: number, limit = 100): Promise<ProductReview[]> => {
+export const loadProductReviews = withTiming(
+  'loadProductReviews',
+  cache(async (productId: number, limit = 100): Promise<ProductReview[]> => {
     if (!Number.isFinite(productId) || productId <= 0) return [];
     // Reviews live in OE form-data (2 markers × 1 config × id). Even with
     // `cachedFetchFormData` warming subsequent requests, the very first
@@ -209,5 +208,5 @@ export const loadProductReviews = withTiming('loadProductReviews', cache(
         verified: true,
       };
     });
-  },
-));
+  }),
+);

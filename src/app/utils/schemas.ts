@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { VALIDATION_MESSAGES, type ValidationMessages } from '../data/validationMessages';
 
 /** Shape of the message table the schemas are built from. */
@@ -14,21 +15,16 @@ export type FormMessages = ValidationMessages;
  *
  * `M` is a plain object, so the returned schemas are cheap to recreate; do it
  * inside a `useMemo` keyed on the message table rather than per render.
- * @param   {FormMessages} M - Error messages, CMS values or the shipped copy.
+ *
+ * @param M - Error messages, CMS values or the shipped copy.
  * @returns The seven form schemas, built with those messages.
  */
 export function createSchemas(M: FormMessages) {
   // ─── Reusable field validators ──────────────────────────────────────────────
 
-  const emailSchema = z
-    .string()
-    .min(1, M.emailRequired)
-    .email(M.emailInvalid);
+  const emailSchema = z.string().min(1, M.emailRequired).email(M.emailInvalid);
 
-  const passwordSchema = z
-    .string()
-    .min(8, M.passwordTooShort)
-    .max(128, M.passwordTooLong);
+  const passwordSchema = z.string().min(8, M.passwordTooShort).max(128, M.passwordTooLong);
 
   const phoneSchema = z
     .string()
@@ -54,10 +50,7 @@ export function createSchemas(M: FormMessages) {
       .string()
       .min(1, M.loginInputRequired)
       .refine(
-        val =>
-          val.includes('@')
-            || /^\+?[\d\s\-()\[\]]{7,20}$/.test(val)
-            || /^[A-Za-z0-9._-]{3,80}$/.test(val),
+        (val) => val.includes('@') || /^\+?[\d\s\-()\[\]]{7,20}$/.test(val) || /^[A-Za-z0-9._-]{3,80}$/.test(val),
         M.loginInputInvalid,
       ),
     password: z.string().min(1, M.passwordRequired),
@@ -73,7 +66,7 @@ export function createSchemas(M: FormMessages) {
       confirmPassword: z.string().min(1, M.passwordConfirm),
       acceptsTerms: z.literal(true, { error: () => ({ message: M.acceptTerms }) }),
     })
-    .refine(data => data.password === data.confirmPassword, {
+    .refine((data) => data.password === data.confirmPassword, {
       message: M.passwordsMismatch,
       path: ['confirmPassword'],
     });
@@ -103,13 +96,13 @@ export function createSchemas(M: FormMessages) {
     cardNumber: z
       .string()
       .min(1, M.cardNumberRequired)
-      .refine(val => /^[\d\s]{13,19}$/.test(val), M.cardNumberInvalid)
-      .refine(val => luhn(val), M.cardNumberBad),
+      .refine((val) => /^[\d\s]{13,19}$/.test(val), M.cardNumberInvalid)
+      .refine((val) => luhn(val), M.cardNumberBad),
     expiry: z
       .string()
       .min(1, M.expiryRequired)
       .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, M.expiryFormat)
-      .refine(val => {
+      .refine((val) => {
         const [mm, yy] = val.split('/').map(Number);
         const now = new Date();
         const exp = new Date(2000 + yy, mm - 1);
@@ -119,10 +112,7 @@ export function createSchemas(M: FormMessages) {
       .string()
       .min(1, M.cvvRequired)
       .regex(/^\d{3,4}$/, M.cvvFormat),
-    nameOnCard: z
-      .string()
-      .min(1, M.nameOnCardRequired)
-      .max(100),
+    nameOnCard: z.string().min(1, M.nameOnCardRequired).max(100),
   });
 
   // ─── Profile (My Data) ─────────────────────────────────────────────────────
@@ -130,10 +120,7 @@ export function createSchemas(M: FormMessages) {
   const profileSchema = z.object({
     firstName: z.string().min(1, M.firstNameRequired).max(60),
     email: emailSchema,
-    phone: z.string().refine(
-      val => val === '' || /^\+?[\d\s\-()\[\]]{7,20}$/.test(val),
-      M.phoneInvalid,
-    ),
+    phone: z.string().refine((val) => val === '' || /^\+?[\d\s\-()\[\]]{7,20}$/.test(val), M.phoneInvalid),
     dob: z.string().max(20).optional(),
     shoeSize: z.string().max(10).optional(),
     clothingSize: z.string().max(10).optional(),
@@ -162,7 +149,10 @@ const luhn = (num: string): boolean => {
   let isEven = false;
   for (let i = digits.length - 1; i >= 0; i--) {
     let d = digits[i];
-    if (isEven) { d *= 2; if (d > 9) d -= 9; }
+    if (isEven) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
     sum += d;
     isEven = !isEven;
   }

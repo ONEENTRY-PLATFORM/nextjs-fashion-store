@@ -8,10 +8,10 @@ export interface SizeRow extends Record<string, string> {
 }
 
 export const SIZE_GUIDE_DATA: SizeRow[] = [
-  { size: 'XS', us: '0-2',   bust: '31-32"', waist: '24-25"', hip: '33-34"' },
-  { size: 'S',  us: '4-6',   bust: '33-34"', waist: '26-27"', hip: '35-36"' },
-  { size: 'M',  us: '8-10',  bust: '35-36"', waist: '28-29"', hip: '37-38"' },
-  { size: 'L',  us: '12-14', bust: '37-39"', waist: '30-32"', hip: '39-41"' },
+  { size: 'XS', us: '0-2', bust: '31-32"', waist: '24-25"', hip: '33-34"' },
+  { size: 'S', us: '4-6', bust: '33-34"', waist: '26-27"', hip: '35-36"' },
+  { size: 'M', us: '8-10', bust: '35-36"', waist: '28-29"', hip: '37-38"' },
+  { size: 'L', us: '12-14', bust: '37-39"', waist: '30-32"', hip: '39-41"' },
   { size: 'XL', us: '16-18', bust: '40-42"', waist: '33-35"', hip: '42-44"' },
 ];
 
@@ -50,7 +50,9 @@ export function parseSizeTable<T extends Record<string, string>>(
   return rows.length > 0 ? rows : fallback;
 }
 
-/** Serialise a table back to the editable form — used to seed the CMS value. */
+/**
+ * Serialise a table back to the editable form — used to seed the CMS value.
+ */
 export function serializeSizeTable<T extends Record<string, string>>(
   rows: readonly T[],
   columns: readonly (keyof T & string)[],
@@ -58,9 +60,10 @@ export function serializeSizeTable<T extends Record<string, string>>(
   return rows.map((r) => columns.map((c) => r[c]).join('|')).join('\n');
 }
 
-/** The PDP size guide (inches, with US sizes). */
+/**
+ * The PDP size guide (inches, with US sizes).
+ */
 export const parseSizeGuide = (raw: string | undefined | null): readonly SizeRow[] =>
   parseSizeTable<SizeRow>(raw, SIZE_GUIDE_COLUMNS, SIZE_GUIDE_DATA);
 
-export const serializeSizeGuide = (rows: readonly SizeRow[]): string =>
-  serializeSizeTable(rows, SIZE_GUIDE_COLUMNS);
+export const serializeSizeGuide = (rows: readonly SizeRow[]): string => serializeSizeTable(rows, SIZE_GUIDE_COLUMNS);

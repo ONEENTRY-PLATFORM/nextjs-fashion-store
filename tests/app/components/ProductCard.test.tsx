@@ -27,9 +27,9 @@
  *
  * This exercises the exact branch added in the fix without any live network.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -74,15 +74,27 @@ vi.mock('next/image', () => ({
     },
     ref: React.Ref<HTMLImageElement>,
   ) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img ref={ref} src={src as string} alt={alt ?? ''} onLoad={onLoad} onError={onError} data-testid="product-img" {...rest} />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        ref={ref}
+        src={src as string}
+        alt={alt ?? ''}
+        onLoad={onLoad}
+        onError={onError}
+        data-testid="product-img"
+        {...rest}
+      />
+    );
   }),
 }));
 
 // next/link — plain <a> is enough.
 vi.mock('next/link', () => ({
   default: ({ href, children, ...rest }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} {...rest}>{children}</a>
+    <a href={href} {...rest}>
+      {children}
+    </a>
   ),
 }));
 
@@ -90,11 +102,13 @@ vi.mock('next/link', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeProduct(overrides: Partial<{
-  image: string;
-  colorImages: string[];
-  colors: string[];
-}> = {}) {
+function makeProduct(
+  overrides: Partial<{
+    image: string;
+    colorImages: string[];
+    colors: string[];
+  }> = {},
+) {
   return {
     id: 'p1',
     name: 'Test Product',
@@ -175,9 +189,10 @@ describe('ProductCard — cached-image branch', () => {
     // '#ffffff' → 'White' (via hexToColorName). Use the second swatch button
     // (index 1 from the color section, skipping wishlist).
     const colorSection = allButtons.filter(
-      (b) => b.getAttribute('aria-label') !== null &&
-             !b.getAttribute('aria-label')?.includes('wishlist') &&
-             !b.getAttribute('aria-label')?.includes('Wishlist'),
+      (b) =>
+        b.getAttribute('aria-label') !== null &&
+        !b.getAttribute('aria-label')?.includes('wishlist') &&
+        !b.getAttribute('aria-label')?.includes('Wishlist'),
     );
 
     await act(async () => {

@@ -18,13 +18,12 @@ export interface ProductPreview {
 
 /**
  * Resolve catalogue preview images for the given product ids.
- * @param {number[]} ids - OE numeric product ids.
- * @returns {Promise<ProductPreview[]>} One entry per product that has an image.
+ *
+ * @param ids - OE numeric product ids.
+ * @returns One entry per product that has an image.
  */
 export async function getProductPreviewsAction(ids: number[]): Promise<ProductPreview[]> {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   const items = await loadProductsByIds(ids);
-  return items
-    .filter((p) => Boolean(p.preview))
-    .map((p) => ({ id: p.id, preview: p.preview }));
+  return items.filter((p) => Boolean(p.preview)).map((p) => ({ id: p.id, preview: p.preview }));
 }

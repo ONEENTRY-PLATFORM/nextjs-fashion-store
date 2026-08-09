@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { assertPresent } from './helpers';
 
 test.describe('Catalog — Women Clothing', () => {
@@ -27,7 +28,7 @@ test.describe('Catalog — Women Clothing', () => {
     // the previous `aria-label*="Color"` locator matched nothing and this test
     // never ran a single assertion.
     const swatches = card.getByTestId('color-swatch');
-    if (await swatches.count() > 1) {
+    if ((await swatches.count()) > 1) {
       const secondSwatch = swatches.nth(1);
       if (await secondSwatch.isEnabled()) {
         await secondSwatch.click();
@@ -96,7 +97,7 @@ test.describe('Catalog — Women Clothing', () => {
   test.describe('View modes', () => {
     test('toggle between 3 and 4 column grid', async ({ page }) => {
       const gridToggle = page.locator('button[aria-label*="column"], button[aria-label*="grid"]');
-      if (await gridToggle.count() > 1) {
+      if ((await gridToggle.count()) > 1) {
         await gridToggle.nth(1).click();
         await page.waitForTimeout(300);
         await gridToggle.nth(0).click();
@@ -106,9 +107,10 @@ test.describe('Catalog — Women Clothing', () => {
 
   test.describe('Pagination', () => {
     test('pagination buttons navigate between pages', async ({ page }) => {
-      const nextBtn = page.getByRole('button', { name: /next|→|>/i }).or(
-        page.locator('button:has-text("2")')
-      ).first();
+      const nextBtn = page
+        .getByRole('button', { name: /next|→|>/i })
+        .or(page.locator('button:has-text("2")'))
+        .first();
       if (await nextBtn.isVisible()) {
         await nextBtn.click();
         await page.waitForTimeout(500);
@@ -198,7 +200,10 @@ test.describe('Catalog — Women Clothing', () => {
       if (await quickViewBtn.isVisible()) {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
-        const heart = page.getByRole('dialog').getByRole('button', { name: /wishlist|favorite/i }).first();
+        const heart = page
+          .getByRole('dialog')
+          .getByRole('button', { name: /wishlist|favorite/i })
+          .first();
         if (await heart.isVisible()) {
           await heart.click();
           await page.waitForTimeout(300);
@@ -234,7 +239,10 @@ test.describe('Catalog — Women Clothing', () => {
         const sizeBtn = page.getByRole('dialog').locator('[data-testid="quickview-size-chip"]:not([disabled])').first();
         if (await sizeBtn.isVisible()) await sizeBtn.click();
         // Add to cart
-        const buyBtn = page.getByRole('dialog').getByRole('button', { name: /get it|buy/i }).first();
+        const buyBtn = page
+          .getByRole('dialog')
+          .getByRole('button', { name: /get it|buy/i })
+          .first();
         if (await buyBtn.isVisible()) {
           await buyBtn.click();
           await page.waitForTimeout(500);
@@ -303,7 +311,7 @@ test.describe('Catalog — Women Clothing', () => {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
         const thumbnails = page.getByRole('dialog').locator('button:has(img)');
-        if (await thumbnails.count() > 1) {
+        if ((await thumbnails.count()) > 1) {
           await thumbnails.nth(1).click();
           await page.waitForTimeout(300);
         }
@@ -343,7 +351,11 @@ test.describe('Catalog — Women Clothing', () => {
           await sizeGuide.click();
           await page.waitForTimeout(300);
           // Close via X button inside size guide
-          const xBtn = page.getByRole('dialog').getByRole('button').filter({ has: page.locator('svg') }).first();
+          const xBtn = page
+            .getByRole('dialog')
+            .getByRole('button')
+            .filter({ has: page.locator('svg') })
+            .first();
           if (await xBtn.isVisible()) await xBtn.click();
         }
       }
@@ -388,7 +400,10 @@ test.describe('Catalog — Women Clothing', () => {
         const sizeBtn = page.getByRole('dialog').locator('[data-testid="quickview-size-chip"]:not([disabled])').first();
         if (await sizeBtn.isVisible()) await sizeBtn.click();
         // Click buy
-        const buyBtn = page.getByRole('dialog').getByRole('button', { name: /get it|buy/i }).first();
+        const buyBtn = page
+          .getByRole('dialog')
+          .getByRole('button', { name: /get it|buy/i })
+          .first();
         if (await buyBtn.isVisible()) {
           await buyBtn.click();
           await expect(page).toHaveURL(/checkout\/delivery/, { timeout: 5000 });
@@ -404,9 +419,10 @@ test.describe('Catalog — Women Clothing', () => {
       if (await quickViewBtn.isVisible()) {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
-        const oosSwatches = page.getByRole('dialog')
+        const oosSwatches = page
+          .getByRole('dialog')
           .locator('[data-testid="color-swatch"][aria-label*="out of stock" i]');
-        if (await oosSwatches.count() > 0) {
+        if ((await oosSwatches.count()) > 0) {
           const oos = oosSwatches.first();
           await oos.click({ force: true });
           // Should not crash, swatch stays disabled
@@ -424,7 +440,10 @@ test.describe('Catalog — Women Clothing', () => {
         await quickViewBtn.click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
         // Click buy without selecting anything
-        const buyBtn = page.getByRole('dialog').getByRole('button', { name: /get it|buy/i }).first();
+        const buyBtn = page
+          .getByRole('dialog')
+          .getByRole('button', { name: /get it|buy/i })
+          .first();
         if (await buyBtn.isVisible()) {
           await buyBtn.click();
           // Error should highlight color and size areas
@@ -554,8 +573,14 @@ test.describe('Catalog — Navigation between catalogs', () => {
 
   test('all 8 catalog pages load', async ({ page }) => {
     const catalogs = [
-      '/women/clothing', '/women/shoes', '/women/bags', '/women/accessories',
-      '/men/clothing', '/men/shoes', '/men/bags', '/men/accessories',
+      '/women/clothing',
+      '/women/shoes',
+      '/women/bags',
+      '/women/accessories',
+      '/men/clothing',
+      '/men/shoes',
+      '/men/bags',
+      '/men/accessories',
     ];
     for (const url of catalogs) {
       await page.goto(url);

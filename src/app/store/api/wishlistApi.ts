@@ -11,15 +11,12 @@
  * via `prepareHeaders`. No token → no header → the request will 401 on
  * the server; callers must gate queries with `skip: !authToken`.
  */
-import {
-  createApi,
-  fetchBaseQuery,
-  type FetchBaseQueryError,
-} from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
+
 import type { RootState } from '../index';
 import type {
-  WishlistApiResponse,
   WishlistAddItemArgs,
+  WishlistApiResponse,
   WishlistRemoveItemArgs,
   WishlistSetArgs,
 } from './types/wishlist';
@@ -72,10 +69,7 @@ export const wishlistApi = createApi({
       }),
       invalidatesTags: ['Wishlist'],
     }),
-    removeWishlistItem: builder.mutation<
-      WishlistApiResponse,
-      WishlistRemoveItemArgs
-    >({
+    removeWishlistItem: builder.mutation<WishlistApiResponse, WishlistRemoveItemArgs>({
       query: ({ productId }) => ({
         url: `/users/me/wishlist/items/${productId}`,
         method: 'DELETE',
@@ -105,10 +99,6 @@ export const {
  * `{ status, data }` object — mostly useful in catch blocks where we
  * want to differentiate "transport failure" from "server 4xx".
  */
-export function isFetchBaseQueryError(
-  error: unknown,
-): error is FetchBaseQueryError {
-  return (
-    typeof error === 'object' && error !== null && 'status' in error
-  );
+export function isFetchBaseQueryError(error: unknown): error is FetchBaseQueryError {
+  return typeof error === 'object' && error !== null && 'status' in error;
 }

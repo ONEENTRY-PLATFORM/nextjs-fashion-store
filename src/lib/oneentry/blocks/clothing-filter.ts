@@ -1,4 +1,5 @@
 import { cache } from 'react';
+
 import { getApi, isError, isOneEntryEnabled } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
@@ -7,19 +8,44 @@ import { logCaught } from '../log';
 // `src/app/utils/colorNames` indirectly pulls a client-tagged module into
 // this server-only graph and breaks Turbopack with "require is not defined".
 const HEX_COLOR_NAMES: Record<string, string> = {
-  '#000000': 'Black', '#FFFFFF': 'White', '#ffffff': 'White',
-  '#808080': 'Gray', '#A0A0A0': 'Light Gray', '#C0C0C0': 'Silver',
-  '#36454F': 'Charcoal', '#4A3728': 'Dark Brown', '#5C3A1E': 'Brown',
-  '#8B4513': 'Saddle Brown', '#A0522D': 'Sienna', '#5C4A3A': 'Warm Brown',
-  '#800020': 'Burgundy', '#8B0000': 'Dark Red', '#4A0000': 'Dark Maroon',
-  '#1B3A5C': 'Navy', '#4169E1': 'Royal Blue', '#6495ED': 'Cornflower Blue',
-  '#D4AF37': 'Gold', '#C4A882': 'Camel', '#C19A6B': 'Camel',
-  '#F88A8A': 'Pink', '#FFB6C1': 'Blush', '#FFE4E1': 'Misty Rose',
-  '#E8DCC8': 'Beige', '#F5E6D3': 'Cream', '#F5F5F0': 'Off-White',
-  '#F5F0E8': 'Ivory', '#DA1E1E': 'Red', '#FF6B6B': 'Coral Red',
-  '#FF6B00': 'Orange', '#FFD700': 'Yellow',
-  '#808000': 'Olive', '#8B864E': 'Khaki', '#BDB76B': 'Khaki',
-  '#556B2F': 'Olive Green', '#2E8B57': 'Forest Green', '#3D5A4C': 'Forest Green',
+  '#000000': 'Black',
+  '#FFFFFF': 'White',
+  '#ffffff': 'White',
+  '#808080': 'Gray',
+  '#A0A0A0': 'Light Gray',
+  '#C0C0C0': 'Silver',
+  '#36454F': 'Charcoal',
+  '#4A3728': 'Dark Brown',
+  '#5C3A1E': 'Brown',
+  '#8B4513': 'Saddle Brown',
+  '#A0522D': 'Sienna',
+  '#5C4A3A': 'Warm Brown',
+  '#800020': 'Burgundy',
+  '#8B0000': 'Dark Red',
+  '#4A0000': 'Dark Maroon',
+  '#1B3A5C': 'Navy',
+  '#4169E1': 'Royal Blue',
+  '#6495ED': 'Cornflower Blue',
+  '#D4AF37': 'Gold',
+  '#C4A882': 'Camel',
+  '#C19A6B': 'Camel',
+  '#F88A8A': 'Pink',
+  '#FFB6C1': 'Blush',
+  '#FFE4E1': 'Misty Rose',
+  '#E8DCC8': 'Beige',
+  '#F5E6D3': 'Cream',
+  '#F5F5F0': 'Off-White',
+  '#F5F0E8': 'Ivory',
+  '#DA1E1E': 'Red',
+  '#FF6B6B': 'Coral Red',
+  '#FF6B00': 'Orange',
+  '#FFD700': 'Yellow',
+  '#808000': 'Olive',
+  '#8B864E': 'Khaki',
+  '#BDB76B': 'Khaki',
+  '#556B2F': 'Olive Green',
+  '#2E8B57': 'Forest Green',
+  '#3D5A4C': 'Forest Green',
   '#800080': 'Purple',
 };
 
@@ -127,27 +153,25 @@ const FILTER_GROUP_KEY: Record<string, string> = {
 // (Grey, Green, Blue, Dark Blue, Assorted) get a sensible default here so
 // every option in the OE filter has a swatch.
 const OE_COLOR_HEX: Record<string, string> = {
-  Black:       '#000000',
-  White:       '#FFFFFF',
-  Grey:        '#808080',
-  Gray:        '#808080',
-  Brown:       '#5C3A1E',
-  Beige:       '#E8DCC8',
-  Pink:        '#F88A8A',
-  Red:         '#DA1E1E',
-  Khaki:       '#8B864E',
+  Black: '#000000',
+  White: '#FFFFFF',
+  Grey: '#808080',
+  Gray: '#808080',
+  Brown: '#5C3A1E',
+  Beige: '#E8DCC8',
+  Pink: '#F88A8A',
+  Red: '#DA1E1E',
+  Khaki: '#8B864E',
   'Dark Blue': '#1B3A5C',
-  Blue:        '#4169E1',
-  Green:       '#2E8B57',
+  Blue: '#4169E1',
+  Green: '#2E8B57',
   // Multi-coloured fallback rendered as a conic gradient via the swatch
   // component; the storefront's color renderer treats `multi` specially.
-  Assorted:    'multi',
+  Assorted: 'multi',
 };
 
 const NAME_TO_HEX: Record<string, string> = {
-  ...Object.fromEntries(
-    Object.entries(HEX_COLOR_NAMES).map(([hex, name]) => [name, hex]),
-  ),
+  ...Object.fromEntries(Object.entries(HEX_COLOR_NAMES).map(([hex, name]) => [name, hex])),
   ...OE_COLOR_HEX,
 };
 
@@ -305,7 +329,5 @@ export const loadCatalogFilter = cache(
  * section-specific marker (`women_clothing`, `men_shoes`, …). Kept for
  * transitional callers — defaults to the `women_clothing` marker.
  */
-export const loadClothingFilter = (
-  products: CountableProduct[],
-  lang: string = DEFAULT_LOCALE,
-) => loadCatalogFilter(products, 'women_clothing', lang);
+export const loadClothingFilter = (products: CountableProduct[], lang: string = DEFAULT_LOCALE) =>
+  loadCatalogFilter(products, 'women_clothing', lang);

@@ -4,6 +4,7 @@
  * shape that has been used against naive HTML filters in the wild.
  */
 import { describe, expect, it } from 'vitest';
+
 import { sanitizeHtml } from '@/lib/sanitize-html';
 
 describe('sanitizeHtml — legitimate editor output survives', () => {
@@ -18,14 +19,12 @@ describe('sanitizeHtml — legitimate editor output survives', () => {
   });
 
   it('keeps safe links and images', () => {
-    expect(sanitizeHtml('<a href="https://example.com/x">go</a>'))
-      .toBe('<a href="https://example.com/x">go</a>');
-    expect(sanitizeHtml('<a href="/women/clothing">go</a>'))
-      .toBe('<a href="/women/clothing">go</a>');
-    expect(sanitizeHtml('<a href="mailto:a@b.co">mail</a>'))
-      .toBe('<a href="mailto:a@b.co">mail</a>');
-    expect(sanitizeHtml('<img src="https://cdn.oneentry.cloud/a.jpg" alt="A">'))
-      .toBe('<img src="https://cdn.oneentry.cloud/a.jpg" alt="A" />');
+    expect(sanitizeHtml('<a href="https://example.com/x">go</a>')).toBe('<a href="https://example.com/x">go</a>');
+    expect(sanitizeHtml('<a href="/women/clothing">go</a>')).toBe('<a href="/women/clothing">go</a>');
+    expect(sanitizeHtml('<a href="mailto:a@b.co">mail</a>')).toBe('<a href="mailto:a@b.co">mail</a>');
+    expect(sanitizeHtml('<img src="https://cdn.oneentry.cloud/a.jpg" alt="A">')).toBe(
+      '<img src="https://cdn.oneentry.cloud/a.jpg" alt="A" />',
+    );
   });
 
   it('leaves already-encoded entities alone (no double-escaping)', () => {
@@ -43,8 +42,7 @@ describe('sanitizeHtml — legitimate editor output survives', () => {
 
 describe('sanitizeHtml — event handlers', () => {
   it('strips onerror from an image but keeps the image', () => {
-    expect(sanitizeHtml('<img src="x.jpg" onerror="alert(1)">'))
-      .toBe('<img src="x.jpg" />');
+    expect(sanitizeHtml('<img src="x.jpg" onerror="alert(1)">')).toBe('<img src="x.jpg" />');
   });
 
   it('strips handlers regardless of case and spacing', () => {
@@ -55,8 +53,9 @@ describe('sanitizeHtml — event handlers', () => {
 
   it('is not fooled by a `>` inside a quoted attribute value', () => {
     // A naive `<[^>]*>` match truncates here and leaks the rest as markup.
-    expect(sanitizeHtml('<p title="a > b" onclick="alert(1)">hi</p>'))
-      .toBe('<p title="a &gt; b">hi</p>'.replace('&gt;', '>'));
+    expect(sanitizeHtml('<p title="a > b" onclick="alert(1)">hi</p>')).toBe(
+      '<p title="a &gt; b">hi</p>'.replace('&gt;', '>'),
+    );
   });
 });
 
@@ -125,11 +124,13 @@ describe('sanitizeHtml — layout / click-jacking attributes', () => {
   });
 
   it('forces rel on target="_blank" and ignores the author\'s own rel', () => {
-    expect(sanitizeHtml('<a href="https://x.co" target="_blank" rel="nofollow">x</a>'))
-      .toBe('<a href="https://x.co" target="_blank" rel="noopener noreferrer">x</a>');
+    expect(sanitizeHtml('<a href="https://x.co" target="_blank" rel="nofollow">x</a>')).toBe(
+      '<a href="https://x.co" target="_blank" rel="noopener noreferrer">x</a>',
+    );
     // …including when `rel` is written first.
-    expect(sanitizeHtml('<a rel="nofollow" href="https://x.co" target="_blank">x</a>'))
-      .toBe('<a rel="noopener noreferrer" href="https://x.co" target="_blank">x</a>');
+    expect(sanitizeHtml('<a rel="nofollow" href="https://x.co" target="_blank">x</a>')).toBe(
+      '<a rel="noopener noreferrer" href="https://x.co" target="_blank">x</a>',
+    );
   });
 
   it('drops a target other than _blank', () => {

@@ -30,8 +30,10 @@ const slowThresholdMs = (() => {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 })();
 
-/** True when `OE_PROFILE=1` — export for callers that want to skip work
- *  they only need for profiling (e.g. building a rich label). */
+/**
+ * True when `OE_PROFILE=1` — export for callers that want to skip work
+ *  they only need for profiling (e.g. building a rich label).
+ */
 export const OE_PROFILE_ENABLED = enabled;
 
 /** Single timing record kept in the ring buffer. */
@@ -75,8 +77,10 @@ function getRing(): RingState {
   return state;
 }
 
-/** Push a timing record into the ring buffer. Overwrites oldest entries
- *  once the buffer is full. Used internally by `withTiming`. */
+/**
+ * Push a timing record into the ring buffer. Overwrites oldest entries
+ *  once the buffer is full. Used internally by `withTiming`.
+ */
 function recordTiming(name: string, durationMs: number, ok: boolean): void {
   const ring = getRing();
   ring.buffer[ring.head] = { name, durationMs, ok, ts: Date.now() };
@@ -123,9 +127,11 @@ function percentile(sorted: number[], p: number): number {
   return sorted[idx];
 }
 
-/** Group the buffer by `name` and compute p50/p95/p99. Result is sorted
+/**
+ * Group the buffer by `name` and compute p50/p95/p99. Result is sorted
  *  by p95 descending — slowest loaders first, which is what you almost
- *  always want to look at after a load test. */
+ *  always want to look at after a load test.
+ */
 export function aggregateTimings(): TimingAggregate[] {
   const byName = new Map<string, TimingRecord[]>();
   for (const r of readTimings()) {

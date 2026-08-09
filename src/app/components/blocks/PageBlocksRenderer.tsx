@@ -1,41 +1,48 @@
-'use client'
+'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
-import type { PageBlock } from '../../../lib/oneentry/blocks/page-blocks';
+
+import { loadCartComplementProductsAction } from '../../../lib/oneentry/blocks/cart-complement-action';
+import type { CategorySectionFromCms } from '../../../lib/oneentry/blocks/category-section';
+import type { DiscountBannerFromCms } from '../../../lib/oneentry/blocks/discount-banner';
 import type { HeroSlideFromCms } from '../../../lib/oneentry/blocks/hero-slides';
 import type { HomepageCollectionItem } from '../../../lib/oneentry/blocks/homepage-collections';
-import type { DiscountBannerFromCms } from '../../../lib/oneentry/blocks/discount-banner';
-import type { CategorySectionFromCms } from '../../../lib/oneentry/blocks/category-section';
-import { HeroSlider } from '../home/HeroSlider';
-import { CategorySection } from '../home/CategorySection';
-import { PromoBlock } from '../home/PromoBlock';
-import { DiscountBanner } from '../home/DiscountBanner';
-import { MenCollection } from '../home/MenCollection';
-import { WomenCollection } from '../home/WomenCollection';
-import { NewArrivals } from '../home/NewArrivals';
-import { RecentlyViewedSection } from '../../pages/product/RecentlyViewedSection';
-import { ACCENT_WOMEN } from '../../constants/colors';
-import type { Product } from '../product/ProductCard';
-import { loadCartComplementProductsAction } from '../../../lib/oneentry/blocks/cart-complement-action';
-import { useAuth } from '../../context/AuthContext';
-import { getOrCreateGuestId } from '../../utils/guest-id';
+import type { PageBlock } from '../../../lib/oneentry/blocks/page-blocks';
 import { sectionChromeFromBlock } from '../../../lib/oneentry/blocks/section-chrome';
+import { ACCENT_WOMEN } from '../../constants/colors';
+import { useAuth } from '../../context/AuthContext';
+import { RecentlyViewedSection } from '../../pages/product/RecentlyViewedSection';
+import type { RootState } from '../../store';
+import { getOrCreateGuestId } from '../../utils/guest-id';
+import { CategorySection } from '../home/CategorySection';
+import { DiscountBanner } from '../home/DiscountBanner';
+import { HeroSlider } from '../home/HeroSlider';
+import { MenCollection } from '../home/MenCollection';
+import { NewArrivals } from '../home/NewArrivals';
+import { PromoBlock } from '../home/PromoBlock';
+import { WomenCollection } from '../home/WomenCollection';
+import type { Product } from '../product/ProductCard';
 import { GenericCommonBlock } from './GenericCommonBlock';
 import { GenericSliderBlock } from './GenericSliderBlock';
 
-/** Renders `<RecentlyViewedSection>` seeded from the Redux `recentlyViewed`
+/**
+ * Renders `<RecentlyViewedSection>` seeded from the Redux `recentlyViewed`
  *  trail (same source of truth as HomePage / PDP / Favorites). Deduped by
  *  product name/id so different variants of the same item (Pink XL / White M)
  *  don't each surface as a separate tile. Hidden entirely when the trail is
- *  empty — a brand-new visitor hasn't viewed anything yet. */
-/** Client-side loader for `cart_complement_block` products. OE's
+ *  empty — a brand-new visitor hasn't viewed anything yet.
+ */
+/**
+ * Client-side loader for `cart_complement_block` products. OE's
  *  `Blocks.getCartComplement` resolves cross-sell against the caller's real
  *  session (user access token or guest `x-guest-id`) — impossible from the
  *  shared server singleton, which carries only the app token. So we call
  *  it on mount via a server action that reads the access cookie and
  *  forwards the client's `oe_guest_id` (from localStorage). Empty result →
- *  hides the block entirely. */
+ *  hides the block entirely.
+ *
+ * @returns <NewArrivals></NewArrivals>
+ */
 function CartComplementBlockSlot({ marker, title }: { marker: string; title: string }) {
   const [products, setProducts] = useState<Product[] | null>(null);
   const { isLoggedIn } = useAuth();
@@ -44,9 +51,15 @@ function CartComplementBlockSlot({ marker, title }: { marker: string; title: str
     let cancelled = false;
     const guestId = isLoggedIn ? undefined : getOrCreateGuestId();
     loadCartComplementProductsAction(marker, guestId)
-      .then((items) => { if (!cancelled) setProducts(items); })
-      .catch(() => { if (!cancelled) setProducts([]); });
-    return () => { cancelled = true; };
+      .then((items) => {
+        if (!cancelled) setProducts(items);
+      })
+      .catch(() => {
+        if (!cancelled) setProducts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [marker, isLoggedIn]);
 
   if (!products || products.length === 0) return null;
@@ -70,9 +83,21 @@ function RecentlyViewedBlockSlot() {
   return <RecentlyViewedSection products={unique} accentColor={ACCENT_WOMEN} />;
 }
 
-/** Fade-and-lift-in section — matches HomePage's original animation so
- *  blocks look identical regardless of where they're rendered. */
-function AnimatedSection({ children, className = '', immediate = false }: { children: React.ReactNode; className?: string; immediate?: boolean }) {
+/**
+ * Fade-and-lift-in section — matches HomePage's original animation so
+ *  blocks look identical regardless of where they're rendered.
+ *
+ * @returns <div className={className}>{children}</div>
+ */
+function AnimatedSection({
+  children,
+  className = '',
+  immediate = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  immediate?: boolean;
+}) {
   const [visible, setVisible] = useState(immediate);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -87,7 +112,7 @@ function AnimatedSection({ children, className = '', immediate = false }: { chil
           observer.disconnect();
         }
       },
-      { threshold: 0.05, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.05, rootMargin: '0px 0px -40px 0px' },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -105,7 +130,7 @@ function AnimatedSection({ children, className = '', immediate = false }: { chil
     <div
       ref={ref}
       className={`${className ?? ''} transition-[opacity,transform] duration-650 ease-out ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-7'
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-7 opacity-0'
       }`}
     >
       {children}
@@ -124,6 +149,8 @@ function AnimatedSection({ children, className = '', immediate = false }: { chil
  * `initialCategorySection` are the homepage's dedicated pre-fetched payloads.
  * When rendering on non-homepage routes, leave them undefined — the child
  * components will fetch client-side on mount.
+ *
+ * @returns <div>{rendered blocks}</div>
  */
 export function PageBlocksRenderer({
   blocks,
@@ -144,9 +171,7 @@ export function PageBlocksRenderer({
         const key = `${block.marker}-${idx}`;
         // Hero, when placed as the first block, sits flush against the top.
         // Every other block gets the standard vertical rhythm.
-        const wrapperCls = block.marker === 'hero_slider'
-          ? ''
-          : 'mt-8 md:mt-12 lg:mt-16';
+        const wrapperCls = block.marker === 'hero_slider' ? '' : 'mt-8 md:mt-12 lg:mt-16';
         switch (block.marker) {
           case 'hero_slider':
             return (
@@ -232,10 +257,7 @@ export function PageBlocksRenderer({
             if (block.type === 'common_block') {
               return (
                 <div key={key} className={wrapperCls}>
-                  <GenericCommonBlock
-                    attributeValues={block.attributeValues}
-                    title={block.title}
-                  />
+                  <GenericCommonBlock attributeValues={block.attributeValues} title={block.title} />
                 </div>
               );
             }
@@ -247,10 +269,7 @@ export function PageBlocksRenderer({
             if (block.type === 'slider_block') {
               return (
                 <div key={key} className={wrapperCls}>
-                  <GenericSliderBlock
-                    slides={block.slides}
-                    title={block.title}
-                  />
+                  <GenericSliderBlock slides={block.slides} title={block.title} />
                 </div>
               );
             }
@@ -267,10 +286,8 @@ export function PageBlocksRenderer({
             // matches OE's "block is on the page" mental model.
             if (block.title) {
               return (
-                <section key={key} className={`${wrapperCls} px-4 lg:px-8 py-6`}>
-                  <h2 className="tracking-widest uppercase text-[clamp(1rem,2vw,1.25rem)] font-bold">
-                    {block.title}
-                  </h2>
+                <section key={key} className={`${wrapperCls} px-4 py-6 lg:px-8`}>
+                  <h2 className="text-[clamp(1rem,2vw,1.25rem)] font-bold tracking-widest uppercase">{block.title}</h2>
                 </section>
               );
             }

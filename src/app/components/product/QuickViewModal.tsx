@@ -1,24 +1,28 @@
-'use client'
-import { useState, useEffect } from 'react';
-import { ACCENT_WOMEN, SALE_COLOR, BUY_GREEN, BUY_GREEN_HOVER } from '../../constants/colors';
+'use client';
+import { ChevronDown, Heart, X } from 'lucide-react';
 import Image from 'next/image';
-import { X, ChevronDown, Heart } from 'lucide-react';
-import { StarRating } from '../../pages/product/StarRating';
-import { useQuickView } from '../../context/QuickViewContext';
-import { useCart } from '../../context/CartContext';
-import { useWishlist } from '../../context/WishlistContext';
-import { useAuth } from '../../context/AuthContext';
+import { useEffect, useState } from 'react';
 
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { QuickViewSizeGuide } from './QuickViewSizeGuide';
-import { WriteReviewModal } from '../../pages/product/WriteReviewModal';
-import { QUICK_VIEW_LABELS as L, PRODUCT_ACTION_LABELS as PA, PRODUCT_REVIEWS_LABELS as PR } from '../../data/productPageLabels';
-import { SIZE_DROPDOWN_LABELS } from '../../data/commonLabels';
-import { getProductReviewSummary } from '../../../lib/oneentry/catalog/reviews-actions';
-import { canReviewProduct } from '../../utils/review-eligibility';
 import { useRouter } from '../../../lib/i18n/navigation';
+import { getProductReviewSummary } from '../../../lib/oneentry/catalog/reviews-actions';
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import { ACCENT_WOMEN, BUY_GREEN, BUY_GREEN_HOVER, SALE_COLOR } from '../../constants/colors';
+import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
+import { useQuickView } from '../../context/QuickViewContext';
+import { useWishlist } from '../../context/WishlistContext';
+import { SIZE_DROPDOWN_LABELS } from '../../data/commonLabels';
+import { PRODUCT_ACTION_LABELS, PRODUCT_REVIEWS_LABELS, QUICK_VIEW_LABELS } from '../../data/productPageLabels';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { StarRating } from '../../pages/product/StarRating';
+import { WriteReviewModal } from '../../pages/product/WriteReviewModal';
+import { canReviewProduct } from '../../utils/review-eligibility';
+import { QuickViewSizeGuide } from './QuickViewSizeGuide';
 
 export function QuickViewModal() {
+  const PR = useDict('customer_reviews_', PRODUCT_REVIEWS_LABELS);
+  const PA = useDict('product_card_actions_', PRODUCT_ACTION_LABELS);
+  const L = useDict('quick_view_', QUICK_VIEW_LABELS);
   const { isOpen, product, initialColorIndex, closeQuickView } = useQuickView();
   const { addItem, openMiniCart } = useCart();
   const { toggleItem, isWishlisted } = useWishlist();
@@ -38,7 +42,9 @@ export function QuickViewModal() {
 
   useEffect(() => {
     if (!showSizeGuide) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowSizeGuide(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowSizeGuide(false);
+    };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [showSizeGuide]);
@@ -82,12 +88,16 @@ export function QuickViewModal() {
     const productId = Number(product.id);
     if (!Number.isFinite(productId) || productId <= 0) return;
     let cancelled = false;
-    getProductReviewSummary(productId).then((s) => {
-      if (!cancelled) setReviewSummary(s);
-    }).catch(() => {
-      if (!cancelled) setReviewSummary({ count: 0, avg: null });
-    });
-    return () => { cancelled = true; };
+    getProductReviewSummary(productId)
+      .then((s) => {
+        if (!cancelled) setReviewSummary(s);
+      })
+      .catch(() => {
+        if (!cancelled) setReviewSummary({ count: 0, avg: null });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, product]);
 
   if (!isOpen || !product) return null;
@@ -95,17 +105,17 @@ export function QuickViewModal() {
   // Find the linked variant matching the current color + (optional) size. When
   // no exact match is available we fall back to a colors-only match so the
   // shopper always sees the picked colour reflected in image + price.
-  const activeVariant = product.variants?.find((v) => {
-    const colorHex = selectedColor !== null ? product.colors[selectedColor] : undefined;
-    if (!colorHex) return false;
-    const hasColor = v.colors.includes(colorHex);
-    if (!hasColor) return false;
-    return selectedSize ? v.sizes.includes(selectedSize) : true;
-  }) ?? (
-    selectedColor !== null
+  const activeVariant =
+    product.variants?.find((v) => {
+      const colorHex = selectedColor !== null ? product.colors[selectedColor] : undefined;
+      if (!colorHex) return false;
+      const hasColor = v.colors.includes(colorHex);
+      if (!hasColor) return false;
+      return selectedSize ? v.sizes.includes(selectedSize) : true;
+    }) ??
+    (selectedColor !== null
       ? product.variants?.find((v) => v.colors.includes(product.colors[selectedColor]))
-      : undefined
-  );
+      : undefined);
 
   const activePrice = activeVariant?.price ?? product.price;
   // Prefer the variant's own sale — otherwise the strike-through pair
@@ -118,8 +128,8 @@ export function QuickViewModal() {
   const productImages = activeVariant?.images?.length
     ? activeVariant.images
     : product.galleryImages?.length
-    ? product.galleryImages
-    : [product.image];
+      ? product.galleryImages
+      : [product.image];
 
   // Badges are opt-in: only render when the underlying data actually supports
   // them. `label` comes from OE's Label attribute (adapter forwards it as-is);
@@ -145,25 +155,20 @@ export function QuickViewModal() {
   const stockLabel = productIsOOS
     ? PA.outOfStock
     : isComingSoon
-    ? PA.comingSoon
-    : isPreOrder
-    ? PA.preOrder
-    : PA.inStock;
-  const stockClassName = productIsOOS || isComingSoon
-    ? 'text-[#8B8B8B]'
-    : isPreOrder
-    ? 'text-[#B8860B]'
-    : 'text-[#2E8B57]';
+      ? PA.comingSoon
+      : isPreOrder
+        ? PA.preOrder
+        : PA.inStock;
+  const stockClassName =
+    productIsOOS || isComingSoon ? 'text-[#8B8B8B]' : isPreOrder ? 'text-[#B8860B]' : 'text-[#2E8B57]';
 
   const wishlisted = isWishlisted(product.id);
 
   const handleWishlist = () => {
     // Per-colour thumbnail: prefer the variant image, then the parallel
     // colorImages array, then the parent image.
-    const colorImages = product.colors.map((c, i) =>
-      product.variants?.find((v) => v.colors.includes(c))?.image
-      || product.colorImages?.[i]
-      || product.image,
+    const colorImages = product.colors.map(
+      (c, i) => product.variants?.find((v) => v.colors.includes(c))?.image || product.colorImages?.[i] || product.image,
     );
     toggleItem({
       id: product.id,
@@ -233,13 +238,17 @@ export function QuickViewModal() {
   return (
     <div
       className="fixed inset-0 z-200 flex items-center justify-center"
-      style={{ '--sale': SALE_COLOR, '--accent': ACCENT_WOMEN, '--buy': BUY_GREEN, '--buy-hover': BUY_GREEN_HOVER } as React.CSSProperties}
+      style={
+        {
+          '--sale': SALE_COLOR,
+          '--accent': ACCENT_WOMEN,
+          '--buy': BUY_GREEN,
+          '--buy-hover': BUY_GREEN_HOVER,
+        } as React.CSSProperties
+      }
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={closeQuickView}
-      />
+      <div className="absolute inset-0 bg-black/60" onClick={closeQuickView} />
 
       {showSizeGuide && <QuickViewSizeGuide onClose={() => setShowSizeGuide(false)} />}
 
@@ -256,7 +265,9 @@ export function QuickViewModal() {
             if (Number.isFinite(productId) && productId > 0) {
               getProductReviewSummary(productId)
                 .then((s) => setReviewSummary(s))
-                .catch(() => { /* keep existing summary on failure */ });
+                .catch(() => {
+                  /* keep existing summary on failure */
+                });
             }
           }}
           productId={Number(product.id)}
@@ -269,22 +280,21 @@ export function QuickViewModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="quick-view-title"
-        className="relative bg-white w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col md:flex-row"
+        className="relative mx-4 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden bg-white md:flex-row"
       >
-        
         {/* Close Button */}
         <button
           onClick={closeQuickView}
-          className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white transition-colors"
+          className="absolute top-4 right-4 z-10 flex size-10 items-center justify-center bg-white/90 transition-colors hover:bg-white"
           aria-label={L.closeLabel}
         >
           <X size={20} />
         </button>
 
         {/* Left Column - Images */}
-        <div className="w-full md:w-1/2 bg-gray-50 flex flex-col">
+        <div className="flex w-full flex-col bg-gray-50 md:w-1/2">
           {/* Main Image */}
-          <div className="flex-1 flex items-center justify-center p-8 overflow-hidden relative">
+          <div className="relative flex flex-1 items-center justify-center overflow-hidden p-8">
             <Image
               src={productImages[selectedImage] ?? product.image}
               alt={product.name}
@@ -295,12 +305,12 @@ export function QuickViewModal() {
           </div>
 
           {/* Thumbnail Gallery */}
-          <div className="flex gap-2 p-4 bg-white border-t border-gray-200">
+          <div className="flex gap-2 border-t border-gray-200 bg-white p-4">
             {productImages.map((img, idx) => (
               <button
                 key={idx}
                 onClick={() => setSelectedImage(idx)}
-                className={`relative flex-1 aspect-3/4 overflow-hidden transition-all ${
+                className={`relative aspect-3/4 flex-1 overflow-hidden transition-all ${
                   selectedImage === idx ? 'ring-2 ring-black' : 'opacity-60 hover:opacity-100'
                 }`}
               >
@@ -317,15 +327,15 @@ export function QuickViewModal() {
         </div>
 
         {/* Right Column - Details */}
-        <div className="w-full md:w-1/2 flex flex-col overflow-y-auto">
-          <div className="p-8 flex-1">
+        <div className="flex w-full flex-col overflow-y-auto md:w-1/2">
+          <div className="flex-1 p-8">
             {/* Brand */}
-            <div className="text-xs tracking-widest uppercase text-gray-500 mb-2">
+            <div className="mb-2 text-xs tracking-widest text-gray-500 uppercase">
               {product.brand || L.defaultBrand}
             </div>
 
             {/* Product Name */}
-            <h2 id="quick-view-title" className="text-2xl font-semibold mb-3">
+            <h2 id="quick-view-title" className="mb-3 text-2xl font-semibold">
               {product.name}
             </h2>
 
@@ -334,22 +344,20 @@ export function QuickViewModal() {
                 link, a thin divider and the stock status. Zero-review case
                 is auth-gated: guests get the login modal (which offers
                 register), authed shoppers get the write-review modal. */}
-            <div className="flex items-center gap-3 mb-4 h-5">
+            <div className="mb-4 flex h-5 items-center gap-3">
               {reviewSummary === null ? (
-                <span className="inline-block w-40 h-3 bg-gray-100 animate-pulse rounded-sm" aria-hidden="true" />
+                <span className="inline-block h-3 w-40 animate-pulse rounded-sm bg-gray-100" aria-hidden="true" />
               ) : (
                 <>
                   <StarRating rating={reviewSummary.avg ?? 0} size={14} />
                   <button
                     onClick={reviewSummary.count === 0 ? startWriteReview : goToReviews}
-                    className="text-xs text-gray-500 hover:text-black underline transition-colors"
+                    className="text-xs text-gray-500 underline transition-colors hover:text-black"
                   >
                     {reviewSummary.count} {L.reviewsSuffix}
                   </button>
                   <span className="text-xs text-gray-300">|</span>
-                  <span className={`text-xs font-medium ${stockClassName}`}>
-                    {stockLabel}
-                  </span>
+                  <span className={`text-xs font-medium ${stockClassName}`}>{stockLabel}</span>
                 </>
               )}
             </div>
@@ -359,7 +367,7 @@ export function QuickViewModal() {
                 (no delivered / done order in `oeOrders`). Auto-dismisses
                 with the modal close. */}
             {showPurchaseNotice && (
-              <p role="status" className="mb-4 text-xs text-[#B8860B] leading-relaxed">
+              <p role="status" className="mb-4 text-xs leading-relaxed text-[#B8860B]">
                 {PR.purchaseRequired}
               </p>
             )}
@@ -374,15 +382,12 @@ export function QuickViewModal() {
                 (`"$65.00"`) on the UI `Product` shape, so parse the
                 leading number before comparing — a string compare here
                 is lexicographic and `"$100.00" < "$90.00"` is true. */}
-            <div className="flex items-center gap-3 mb-4">
+            <div className="mb-4 flex items-center gap-3">
               {(() => {
-                const originalPriceRef = activeVariant?.salePrice
-                  ? activeVariant.price
-                  : product.price;
-                const parseAmount = (s: string | undefined): number =>
-                  parseFloat(s?.match(/[\d.]+/)?.[0] ?? '0') || 0;
-                const showSale = activeSalePrice !== undefined
-                  && parseAmount(activeSalePrice) < parseAmount(originalPriceRef);
+                const originalPriceRef = activeVariant?.salePrice ? activeVariant.price : product.price;
+                const parseAmount = (s: string | undefined): number => parseFloat(s?.match(/[\d.]+/)?.[0] ?? '0') || 0;
+                const showSale =
+                  activeSalePrice !== undefined && parseAmount(activeSalePrice) < parseAmount(originalPriceRef);
                 return showSale ? (
                   <>
                     <span className="text-2xl font-semibold text-primary-men">{activeSalePrice}</span>
@@ -396,14 +401,14 @@ export function QuickViewModal() {
 
             {/* Badges */}
             {(showLabelBadge || showLowStock) && (
-              <div className="flex gap-2 mb-6">
+              <div className="mb-6 flex gap-2">
                 {showLabelBadge && (
-                  <span className="px-3 py-1 bg-black text-white text-xs tracking-wider uppercase">
+                  <span className="bg-black px-3 py-1 text-xs tracking-wider text-white uppercase">
                     {product.label}
                   </span>
                 )}
                 {showLowStock && (
-                  <span className="px-3 py-1 bg-primary-men text-white text-xs tracking-wider uppercase">
+                  <span className="bg-primary-men px-3 py-1 text-xs tracking-wider text-white uppercase">
                     {L.badgeLowStock}
                   </span>
                 )}
@@ -412,15 +417,18 @@ export function QuickViewModal() {
 
             {/* Color Selector */}
             <div className="mb-6">
-              <div className="text-sm font-medium mb-3 flex items-center gap-2">
+              <div className="mb-3 flex items-center gap-2 text-sm font-medium">
                 {L.colorLabel}
-                {selectedColor !== null
-                  ? <span className="font-normal text-gray-600">{L.colorSelected}</span>
-                  : <span className={`font-normal ${errors.color ? 'text-(--sale)' : 'text-gray-400'}`}>{L.colorNotSelected}</span>
-                }
+                {selectedColor !== null ? (
+                  <span className="font-normal text-gray-600">{L.colorSelected}</span>
+                ) : (
+                  <span className={`font-normal ${errors.color ? 'text-(--sale)' : 'text-gray-400'}`}>
+                    {L.colorNotSelected}
+                  </span>
+                )}
               </div>
               <div
-                className={`flex items-center gap-3 p-2 transition-colors outline ${
+                className={`flex items-center gap-3 p-2 outline transition-colors ${
                   errors.color ? 'outline-(--sale)' : 'outline-transparent'
                 }`}
               >
@@ -429,15 +437,22 @@ export function QuickViewModal() {
                   return (
                     <button
                       key={color}
-                      onClick={() => { if (!isColorOOS) { setSelectedColor(idx); setSelectedSize(sizes.length === 1 ? sizes[0] : null); setSelectedImage(0); setErrors(e => ({ ...e, color: false })); } }}
+                      onClick={() => {
+                        if (!isColorOOS) {
+                          setSelectedColor(idx);
+                          setSelectedSize(sizes.length === 1 ? sizes[0] : null);
+                          setSelectedImage(0);
+                          setErrors((e) => ({ ...e, color: false }));
+                        }
+                      }}
                       disabled={isColorOOS}
                       aria-disabled={isColorOOS}
-                      className={`relative w-8 h-8 transition-all border border-gray-300 ${
+                      className={`relative size-8 border border-gray-300 transition-all ${
                         isColorOOS
-                          ? 'opacity-40 cursor-not-allowed'
+                          ? 'cursor-not-allowed opacity-40'
                           : selectedColor === idx
-                          ? 'ring-2 ring-black ring-offset-2'
-                          : 'hover:scale-110'
+                            ? 'ring-2 ring-black ring-offset-2'
+                            : 'hover:scale-110'
                       }`}
                       style={{ backgroundColor: color }}
                       aria-label={`${L.colorAriaPrefix} ${idx + 1}${isColorOOS ? ` ${L.colorOutOfStockAria}` : ''}`}
@@ -448,62 +463,66 @@ export function QuickViewModal() {
                       data-testid="color-swatch"
                     >
                       {isColorOOS && (
-                        <span className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_bottom_right,transparent_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%+0.5px),transparent_calc(50%+0.5px))]" />
+                        <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom_right,transparent_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%-0.5px),rgba(0,0,0,0.5)_calc(50%+0.5px),transparent_calc(50%+0.5px))]" />
                       )}
                     </button>
                   );
                 })}
               </div>
-              {errors.color && (
-                <p className="text-xs mt-1.5 text-(--sale)">{L.colorError}</p>
-              )}
+              {errors.color && <p className="mt-1.5 text-xs text-(--sale)">{L.colorError}</p>}
             </div>
 
             {/* Size Selector */}
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-medium flex items-center gap-2">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium">
                   {L.sizeLabel}
-                  {errors.size && (
-                    <span className="text-xs font-normal text-(--sale)">{L.sizeError}</span>
-                  )}
+                  {errors.size && <span className="text-xs font-normal text-(--sale)">{L.sizeError}</span>}
                 </div>
-                <button onClick={() => setShowSizeGuide(true)} className="text-xs text-gray-600 underline hover:text-black">
+                <button
+                  onClick={() => setShowSizeGuide(true)}
+                  className="text-xs text-gray-600 underline hover:text-black"
+                >
                   {L.sizeGuideCta}
                 </button>
               </div>
               <div
-                className={`grid grid-cols-3 gap-2 p-2 transition-colors outline ${
+                className={`grid grid-cols-3 gap-2 p-2 outline transition-colors ${
                   errors.size ? 'outline-(--sale)' : 'outline-transparent'
                 }`}
               >
                 {sizes.map((size) => {
                   const currentColorHex = selectedColor !== null ? product.colors[selectedColor] : undefined;
                   const variantForSize = product.variants?.some(
-                    (v) => v.sizes.includes(size)
-                      && (currentColorHex ? v.colors.includes(currentColorHex) : true)
-                      && v.inStock !== false,
+                    (v) =>
+                      v.sizes.includes(size) &&
+                      (currentColorHex ? v.colors.includes(currentColorHex) : true) &&
+                      v.inStock !== false,
                   );
                   // When the product ships variant metadata, drive per-size
                   // availability off it. Otherwise fall back to the global
                   // stock flag so legacy products still render sensibly.
-                  const isSizeOOS = product.variants && product.variants.length > 0
-                    ? !variantForSize
-                    : product.inStock === false;
+                  const isSizeOOS =
+                    product.variants && product.variants.length > 0 ? !variantForSize : product.inStock === false;
                   return (
                     <button
                       key={size}
-                      onClick={() => { if (!isSizeOOS) { setSelectedSize(size); setErrors(e => ({ ...e, size: false })); } }}
+                      onClick={() => {
+                        if (!isSizeOOS) {
+                          setSelectedSize(size);
+                          setErrors((e) => ({ ...e, size: false }));
+                        }
+                      }}
                       disabled={isSizeOOS}
                       aria-disabled={isSizeOOS}
                       data-testid="quickview-size-chip"
                       aria-pressed={selectedSize === size}
                       className={`py-3 text-sm font-medium transition-all ${
                         isSizeOOS
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through'
+                          ? 'cursor-not-allowed bg-gray-100 text-gray-400 line-through'
                           : selectedSize === size
-                          ? 'bg-black text-white'
-                          : 'bg-white border border-gray-300 hover:border-black'
+                            ? 'bg-black text-white'
+                            : 'border border-gray-300 bg-white hover:border-black'
                       }`}
                     >
                       {size}
@@ -514,10 +533,10 @@ export function QuickViewModal() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col gap-3 mb-6">
+            <div className="mb-6 flex flex-col gap-3">
               <button
                 onClick={handleViewFullDetails}
-                className="w-full py-4 text-sm tracking-wider uppercase font-medium border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-colors"
+                className="w-full border-2 border-black bg-white py-4 text-sm font-medium tracking-wider text-black uppercase transition-colors hover:bg-black hover:text-white"
               >
                 {L.viewFullDetails}
               </button>
@@ -539,7 +558,9 @@ export function QuickViewModal() {
                     // precedence over the family strike.
                     const cartPrice = parseFloat((activeSalePrice ?? activePrice).match(/[\d.]+/)?.[0] ?? '0') || 0;
                     const originalPriceSource = activeVariant?.salePrice ? activeVariant.price : product.price;
-                    const originalPriceRaw = activeSalePrice ? parseFloat(originalPriceSource.match(/[\d.]+/)?.[0] ?? '0') || 0 : undefined;
+                    const originalPriceRaw = activeSalePrice
+                      ? parseFloat(originalPriceSource.match(/[\d.]+/)?.[0] ?? '0') || 0
+                      : undefined;
                     const stockLimit = activeVariant?.stock ?? product.stock;
                     addItem({
                       id: activeVariant?.id ?? `${product.id}-quick`,
@@ -561,7 +582,7 @@ export function QuickViewModal() {
                     // shopper can keep browsing or proceed when ready.
                     openMiniCart();
                   }}
-                  className={`flex-1 py-4 text-sm tracking-wider uppercase font-medium text-white transition-colors ${
+                  className={`flex-1 py-4 text-sm font-medium tracking-wider text-white uppercase transition-colors ${
                     buyBtnHovered ? 'bg-(--buy-hover)' : 'bg-(--buy)'
                   }`}
                   onMouseEnter={() => setBuyBtnHovered(true)}
@@ -571,7 +592,7 @@ export function QuickViewModal() {
                 </button>
                 <button
                   onClick={handleWishlist}
-                  className={`w-14 flex items-center justify-center border-2 transition-colors ${
+                  className={`flex w-14 items-center justify-center border-2 transition-colors ${
                     wishlisted ? 'border-accent bg-[#fff5f5]' : 'border-black bg-white'
                   }`}
                   aria-label={wishlisted ? L.wishlistRemove : L.wishlistAdd}
@@ -591,7 +612,7 @@ export function QuickViewModal() {
                 <div key={section.title} className="border-b border-gray-200">
                   <button
                     onClick={() => toggleSection(section.title)}
-                    className="w-full flex items-center justify-between py-4 text-left hover:bg-gray-50 transition-colors"
+                    className="flex w-full items-center justify-between py-4 text-left transition-colors hover:bg-gray-50"
                   >
                     <span className="text-sm font-medium">{section.title}</span>
                     <ChevronDown
@@ -602,9 +623,7 @@ export function QuickViewModal() {
                     />
                   </button>
                   {expandedSection === section.title && (
-                    <div className="pb-4 px-1 text-sm text-gray-600 leading-relaxed">
-                      {section.content}
-                    </div>
+                    <div className="px-1 pb-4 text-sm leading-relaxed text-gray-600">{section.content}</div>
                   )}
                 </div>
               ))}

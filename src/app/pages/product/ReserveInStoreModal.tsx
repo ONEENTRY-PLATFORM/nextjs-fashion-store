@@ -1,15 +1,18 @@
-'use client'
-import { useState, useEffect, useTransition } from 'react';
-import { X, Store, Check } from 'lucide-react';
+'use client';
+import { Check, Store, X } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+
+import { useFormLabel, useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { submitForm } from '../../../lib/oneentry/forms/submit';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { SALE_COLOR } from '../../constants/colors';
 import type { SizeOption } from '../../data/productCatalog';
-import { RESERVE_MODAL_LABELS as L } from '../../data/productPageLabels';
-import { useFormLabel, useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { submitForm } from '../../../lib/oneentry/forms/submit';
+import { RESERVE_MODAL_LABELS } from '../../data/productPageLabels';
 
-/** Slim store descriptor for the picker — mapped from the OE store pages by
- *  the PDP route so the modal never carries the full `Store` payload. */
+/**
+ * Slim store descriptor for the picker — mapped from the OE store pages by
+ *  the PDP route so the modal never carries the full `Store` payload.
+ */
 export interface ReserveStore {
   /** OE `pageUrl` slug — stable across locales, used as the React key. */
   id: string;
@@ -23,30 +26,33 @@ interface Props {
   onClose: () => void;
   preselectedSize: string | null;
   sizeOptions: SizeOption[];
-  /** Real stores from OneEntry. Per-store stock is deliberately absent: OE
+  /**
+   * Real stores from OneEntry. Per-store stock is deliberately absent: OE
    *  exposes no branch-level inventory, and the previous hardcoded
-   *  "In stock / Low stock" badges promised availability nobody could honour. */
+   *  "In stock / Low stock" badges promised availability nobody could honour.
+   */
   stores: ReserveStore[];
 }
 
 export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, stores }: Props) {
+  const L = useDict('reserve_in_store_', RESERVE_MODAL_LABELS);
   // Field labels come from the OE `reserve_in_store` form's own attribute
   // titles; `RESERVE_MODAL_LABELS` (system-text `reserve_in_store`) stays the
   // offline fallback. Placeholders have no `additionalFields` on this form, so
   // they keep coming from the set.
-  const lbFirstName = useFormLabel('reserve_in_store', 'first_name',  L.labelFirstName);
+  const lbFirstName = useFormLabel('reserve_in_store', 'first_name', L.labelFirstName);
   const phFirstName = useFormPlaceholder('reserve_in_store', 'first_name', 'placeholder', L.placeholderFirstName);
-  const phLastName  = useFormPlaceholder('reserve_in_store', 'last_name',  'placeholder', L.placeholderLastName);
-  const phPhone     = useFormPlaceholder('reserve_in_store', 'phone',      'placeholder', L.placeholderPhone);
-  const phEmail     = useFormPlaceholder('reserve_in_store', 'email',      'placeholder', L.placeholderEmail);
-  const lbLastName  = useFormLabel('reserve_in_store', 'last_name',   L.labelLastName);
-  const lbPhone     = useFormLabel('reserve_in_store', 'phone',       L.labelPhone);
-  const lbEmail     = useFormLabel('reserve_in_store', 'email',       L.labelEmail);
-  const lbPickup    = useFormLabel('reserve_in_store', 'pickup_date', L.labelPickup);
-  const lTitle    = useT('reserve_in_store_title',   L.title);
-  const lSelStore = useT('reserve_in_store_select',  L.selectStore);
-  const lSelSize  = useT('reserve_in_store_size',    L.selectSize);
-  const lDetails  = useT('reserve_in_store_details', L.yourDetails);
+  const phLastName = useFormPlaceholder('reserve_in_store', 'last_name', 'placeholder', L.placeholderLastName);
+  const phPhone = useFormPlaceholder('reserve_in_store', 'phone', 'placeholder', L.placeholderPhone);
+  const phEmail = useFormPlaceholder('reserve_in_store', 'email', 'placeholder', L.placeholderEmail);
+  const lbLastName = useFormLabel('reserve_in_store', 'last_name', L.labelLastName);
+  const lbPhone = useFormLabel('reserve_in_store', 'phone', L.labelPhone);
+  const lbEmail = useFormLabel('reserve_in_store', 'email', L.labelEmail);
+  const lbPickup = useFormLabel('reserve_in_store', 'pickup_date', L.labelPickup);
+  const lTitle = useT('reserve_in_store_title', L.title);
+  const lSelStore = useT('reserve_in_store_select', L.selectStore);
+  const lSelSize = useT('reserve_in_store_size', L.selectSize);
+  const lDetails = useT('reserve_in_store_details', L.yourDetails);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [size, setSize] = useState<string | null>(preselectedSize);
   const [firstName, setFirstName] = useState('');
@@ -63,7 +69,9 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   const tomorrow = new Date();
@@ -87,27 +95,37 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
 
   const handleSubmit = () => {
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
     setSubmitError('');
     startTransition(async () => {
       const result = await submitForm('reserve_in_store', [
-        { marker: 'size',                                  value: size ?? '',              type: 'string' },
-        { marker: 'first_name',                            value: firstName.trim(),        type: 'string' },
-        { marker: 'last_name',                             value: lastName.trim(),         type: 'string' },
-        { marker: 'phone',                                 value: phone.trim(),            type: 'string' },
-        { marker: 'email',                                 value: email.trim(),            type: 'string' },
-        { marker: 'pickup_date',                           value: pickupDate,              type: 'string' },
-        { marker: 'agreed_terms',                          value: String(agreed),          type: 'string' },
+        { marker: 'size', value: size ?? '', type: 'string' },
+        { marker: 'first_name', value: firstName.trim(), type: 'string' },
+        { marker: 'last_name', value: lastName.trim(), type: 'string' },
+        { marker: 'phone', value: phone.trim(), type: 'string' },
+        { marker: 'email', value: email.trim(), type: 'string' },
+        { marker: 'pickup_date', value: pickupDate, type: 'string' },
+        { marker: 'agreed_terms', value: String(agreed), type: 'string' },
         // Prefer the numeric OE page id so the admin sees a resolvable store
         // reference; the slug is the fallback when the id is absent.
-        { marker: 'reserve_in_store_form_select_store',    value: String(store?.oeId ?? selectedStore ?? ''), type: 'string' },
+        {
+          marker: 'reserve_in_store_form_select_store',
+          value: String(store?.oeId ?? selectedStore ?? ''),
+          type: 'string',
+        },
       ]);
-      if (!result.ok) { setSubmitError(result.error); return; }
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
       setSubmitted(true);
     });
   };
 
-  const store = stores.find(s => s.id === selectedStore);
+  const store = stores.find((s) => s.id === selectedStore);
 
   // Input borders depend on per-field error state, so we generate a helper.
   const inputClass = (hasError: boolean) =>
@@ -117,38 +135,42 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
 
   return (
     <div
-      className="fixed inset-0 z-200 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-200 flex items-end justify-center sm:items-center"
       style={{ '--sale': SALE_COLOR } as React.CSSProperties}
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/60" />
       <div
-        className="relative bg-white w-full sm:max-w-xl mx-0 sm:mx-4 max-h-[95vh] flex flex-col rounded-none"
-        onClick={e => e.stopPropagation()}
+        className="relative mx-0 flex max-h-[95vh] w-full flex-col rounded-none bg-white sm:mx-4 sm:max-w-xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-2.5">
             <Store size={16} />
-            <h2 className="tracking-[0.18em] uppercase text-sm font-bold">{lTitle}</h2>
+            <h2 className="text-sm font-bold tracking-[0.18em] uppercase">{lTitle}</h2>
           </div>
-          <button onClick={onClose} className="p-1 hover:opacity-50 transition-opacity" aria-label={L.closeLabel}><X size={20} /></button>
+          <button onClick={onClose} className="p-1 transition-opacity hover:opacity-50" aria-label={L.closeLabel}>
+            <X size={20} />
+          </button>
         </div>
 
-        <div className="px-6 py-3 shrink-0 bg-gray-50 border-b border-gray-100">
-          <p className="text-xs text-gray-500 leading-relaxed">
-            {L.blurbPrefix}{' '}
-            <span className="font-semibold text-black">{L.blurbHoldDuration}</span>{L.blurbSuffix}
+        <div className="shrink-0 border-b border-gray-100 bg-gray-50 px-6 py-3">
+          <p className="text-xs leading-relaxed text-gray-500">
+            {L.blurbPrefix} <span className="font-semibold text-black">{L.blurbHoldDuration}</span>
+            {L.blurbSuffix}
           </p>
         </div>
 
         {submitted ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 py-14 text-center">
-            <div className="w-12 h-12 bg-black flex items-center justify-center mb-5">
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-14 text-center">
+            <div className="mb-5 flex size-12 items-center justify-center bg-black">
               <Check size={22} className="text-white" />
             </div>
-            <p className="tracking-[0.15em] uppercase text-sm mb-1 font-bold">{L.confirmedHeading}</p>
-            <p className="text-xs text-gray-400 mb-6">{L.refPrefix} {refCode}</p>
-            <div className="w-full border border-gray-100 bg-gray-50 px-5 py-4 text-left space-y-2.5 mb-6">
+            <p className="mb-1 text-sm font-bold tracking-[0.15em] uppercase">{L.confirmedHeading}</p>
+            <p className="mb-6 text-xs text-gray-400">
+              {L.refPrefix} {refCode}
+            </p>
+            <div className="mb-6 w-full space-y-2.5 border border-gray-100 bg-gray-50 px-5 py-4 text-left">
               {[
                 [L.receiptStore, store?.name ?? ''],
                 [L.receiptAddress, store?.address ?? ''],
@@ -156,38 +178,41 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                 [L.receiptPickupBy, pickupDate],
                 [L.receiptName, `${firstName} ${lastName}`],
               ].map(([label, value]) => (
-                <div key={label} className="flex justify-between text-xs gap-4">
-                  <span className="text-gray-400 shrink-0">{label}</span>
-                  <span className="font-semibold text-right">{value}</span>
+                <div key={label} className="flex justify-between gap-4 text-xs">
+                  <span className="shrink-0 text-gray-400">{label}</span>
+                  <span className="text-right font-semibold">{value}</span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mb-7">
+            <p className="mb-7 text-xs text-gray-400">
               {L.confirmEmailedPrefix} <span className="font-semibold">{email}</span>
             </p>
             <button
               onClick={onClose}
-              className="px-10 py-3 text-xs tracking-[0.2em] uppercase text-white bg-black hover:bg-gray-800 transition-colors rounded-none"
+              className="rounded-none bg-black px-10 py-3 text-xs tracking-[0.2em] text-white uppercase transition-colors hover:bg-gray-800"
             >
               {L.ctaDone}
             </button>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
-            <div className="px-6 py-6 space-y-7">
+            <div className="space-y-7 p-6">
               <div>
-                <p className="text-xs tracking-[0.12em] uppercase mb-3 font-semibold">
+                <p className="mb-3 text-xs font-semibold tracking-[0.12em] uppercase">
                   {lSelStore} <span className="text-(--sale)">*</span>
                 </p>
                 <div className="space-y-2" data-testid="reserve-store-list">
-                  {stores.map(s => {
+                  {stores.map((s) => {
                     const active = selectedStore === s.id;
                     return (
                       <button
                         key={s.id}
                         data-testid="reserve-store-option"
-                        onClick={() => { setSelectedStore(s.id); setErrors(e => ({ ...e, store: '' })); }}
-                        className={`w-full text-left px-4 py-3 border transition-colors flex items-start justify-between gap-3 rounded-none cursor-pointer ${
+                        onClick={() => {
+                          setSelectedStore(s.id);
+                          setErrors((e) => ({ ...e, store: '' }));
+                        }}
+                        className={`flex w-full cursor-pointer items-start justify-between gap-3 rounded-none border px-4 py-3 text-left transition-colors ${
                           active
                             ? 'border-black bg-black'
                             : errors.store
@@ -197,37 +222,42 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className={`mt-0.5 w-4 h-4 border-2 shrink-0 flex items-center justify-center rounded-none ${
+                            className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-none border-2 ${
                               active ? 'border-white' : 'border-[#d1d5db]'
                             }`}
                           >
-                            {active && <div className="w-2 h-2 bg-white" />}
+                            {active && <div className="size-2 bg-white" />}
                           </div>
                           <div>
                             <p className={`text-xs font-semibold ${active ? 'text-white' : 'text-black'}`}>{s.name}</p>
-                            <p className={`text-xs mt-0.5 ${active ? 'text-[#c4c4c4]' : 'text-gray-400'}`}>{s.address}</p>
+                            <p className={`mt-0.5 text-xs ${active ? 'text-[#c4c4c4]' : 'text-gray-400'}`}>
+                              {s.address}
+                            </p>
                           </div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-                {errors.store && <p className="text-xs mt-1.5 text-(--sale)">{errors.store}</p>}
+                {errors.store && <p className="mt-1.5 text-xs text-(--sale)">{errors.store}</p>}
               </div>
 
               <div>
-                <p className="text-xs tracking-[0.12em] uppercase mb-3 font-semibold">
+                <p className="mb-3 text-xs font-semibold tracking-[0.12em] uppercase">
                   {lSelSize} <span className="text-(--sale)">*</span>
                 </p>
-                <div className="flex gap-2 flex-wrap">
-                  {sizeOptions.map(s => {
+                <div className="flex flex-wrap gap-2">
+                  {sizeOptions.map((s) => {
                     const active = size === s.label;
                     return (
                       <button
                         key={s.label}
                         disabled={!s.available}
-                        onClick={() => { setSize(s.label); setErrors(e => ({ ...e, size: '' })); }}
-                        className={`relative w-12 h-10 text-xs border transition-colors flex items-center justify-center overflow-hidden rounded-none ${
+                        onClick={() => {
+                          setSize(s.label);
+                          setErrors((e) => ({ ...e, size: '' }));
+                        }}
+                        className={`relative flex h-10 w-12 items-center justify-center overflow-hidden rounded-none border text-xs transition-colors ${
                           s.available ? 'cursor-pointer' : 'cursor-not-allowed'
                         } ${
                           active
@@ -239,108 +269,141 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
                       >
                         {s.label}
                         {!s.available && (
-                          <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="absolute top-1/2 -left-0.5 -right-0.5 h-px bg-gray-300 rotate-[-20deg]" />
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                            <span className="absolute -inset-x-0.5 top-1/2 h-px rotate-[-20deg] bg-gray-300" />
                           </span>
                         )}
                       </button>
                     );
                   })}
                 </div>
-                {errors.size && <p className="text-xs mt-1.5 text-(--sale)">{errors.size}</p>}
+                {errors.size && <p className="mt-1.5 text-xs text-(--sale)">{errors.size}</p>}
               </div>
 
               <div>
-                <p className="text-xs tracking-[0.12em] uppercase mb-3 font-semibold">{lDetails}</p>
+                <p className="mb-3 text-xs font-semibold tracking-[0.12em] uppercase">{lDetails}</p>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">{lbFirstName} <span className="text-(--sale)">*</span></label>
+                      {/* `data-testid` on the label, not the input: the OE form
+                          content is what the e2e suite pins (see
+                          `tests/e2e/reserve-in-store-cms.spec.ts`), and the
+                          label carries the attribute's authored title. */}
+                      <label data-testid="reserve-label-first-name" className="mb-1.5 block text-xs text-gray-500">
+                        {lbFirstName} <span className="text-(--sale)">*</span>
+                      </label>
                       <input
+                        data-testid="reserve-input-first-name"
                         value={firstName}
-                        onChange={e => { setFirstName(e.target.value); setErrors(err => ({ ...err, firstName: '' })); }}
+                        onChange={(e) => {
+                          setFirstName(e.target.value);
+                          setErrors((err) => ({ ...err, firstName: '' }));
+                        }}
                         placeholder={phFirstName}
                         className={inputClass(!!errors.firstName)}
                       />
-                      {errors.firstName && <p className="text-xs mt-0.5 text-(--sale)">{errors.firstName}</p>}
+                      {errors.firstName && <p className="mt-0.5 text-xs text-(--sale)">{errors.firstName}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1.5">{lbLastName} <span className="text-(--sale)">*</span></label>
+                      <label data-testid="reserve-label-last-name" className="mb-1.5 block text-xs text-gray-500">
+                        {lbLastName} <span className="text-(--sale)">*</span>
+                      </label>
                       <input
+                        data-testid="reserve-input-last-name"
                         value={lastName}
-                        onChange={e => { setLastName(e.target.value); setErrors(err => ({ ...err, lastName: '' })); }}
+                        onChange={(e) => {
+                          setLastName(e.target.value);
+                          setErrors((err) => ({ ...err, lastName: '' }));
+                        }}
                         placeholder={phLastName}
                         className={inputClass(!!errors.lastName)}
                       />
-                      {errors.lastName && <p className="text-xs mt-0.5 text-(--sale)">{errors.lastName}</p>}
+                      {errors.lastName && <p className="mt-0.5 text-xs text-(--sale)">{errors.lastName}</p>}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{lbPhone} <span className="text-(--sale)">*</span></label>
+                    <label data-testid="reserve-label-phone" className="mb-1.5 block text-xs text-gray-500">
+                      {lbPhone} <span className="text-(--sale)">*</span>
+                    </label>
                     <input
+                      data-testid="reserve-input-phone"
                       value={phone}
-                      onChange={e => { setPhone(e.target.value); setErrors(err => ({ ...err, phone: '' })); }}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setErrors((err) => ({ ...err, phone: '' }));
+                      }}
                       placeholder={phPhone}
                       type="tel"
                       className={inputClass(!!errors.phone)}
                     />
-                    {errors.phone && <p className="text-xs mt-0.5 text-(--sale)">{errors.phone}</p>}
+                    {errors.phone && <p className="mt-0.5 text-xs text-(--sale)">{errors.phone}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{lbEmail} <span className="text-(--sale)">*</span></label>
+                    <label data-testid="reserve-label-email" className="mb-1.5 block text-xs text-gray-500">
+                      {lbEmail} <span className="text-(--sale)">*</span>
+                    </label>
                     <input
+                      data-testid="reserve-input-email"
                       value={email}
-                      onChange={e => { setEmail(e.target.value); setErrors(err => ({ ...err, email: '' })); }}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrors((err) => ({ ...err, email: '' }));
+                      }}
                       placeholder={phEmail}
                       type="email"
                       className={inputClass(!!errors.email)}
                     />
-                    {errors.email && <p className="text-xs mt-0.5 text-(--sale)">{errors.email}</p>}
+                    {errors.email && <p className="mt-0.5 text-xs text-(--sale)">{errors.email}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">{lbPickup} <span className="text-(--sale)">*</span></label>
+                    <label data-testid="reserve-label-pickup-date" className="mb-1.5 block text-xs text-gray-500">
+                      {lbPickup} <span className="text-(--sale)">*</span>
+                    </label>
                     <input
                       value={pickupDate}
-                      onChange={e => { setPickupDate(e.target.value); setErrors(err => ({ ...err, pickupDate: '' })); }}
+                      onChange={(e) => {
+                        setPickupDate(e.target.value);
+                        setErrors((err) => ({ ...err, pickupDate: '' }));
+                      }}
                       type="date"
                       min={minDate}
                       className={inputClass(!!errors.pickupDate)}
                     />
-                    {errors.pickupDate && <p className="text-xs mt-0.5 text-(--sale)">{errors.pickupDate}</p>}
+                    {errors.pickupDate && <p className="mt-0.5 text-xs text-(--sale)">{errors.pickupDate}</p>}
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="flex items-start gap-3 cursor-pointer">
+                <label className="flex cursor-pointer items-start gap-3">
                   <div
-                    onClick={() => { setAgreed(a => !a); setErrors(e => ({ ...e, agreed: '' })); }}
-                    className={`shrink-0 w-4 h-4 border mt-0.5 flex items-center justify-center transition-colors rounded-none cursor-pointer ${
+                    onClick={() => {
+                      setAgreed((a) => !a);
+                      setErrors((e) => ({ ...e, agreed: '' }));
+                    }}
+                    className={`mt-0.5 flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-none border transition-colors ${
                       agreed ? 'bg-black' : 'bg-white'
-                    } ${
-                      errors.agreed ? 'border-(--sale)' : agreed ? 'border-black' : 'border-[#d1d5db]'
-                    }`}
+                    } ${errors.agreed ? 'border-(--sale)' : agreed ? 'border-black' : 'border-[#d1d5db]'}`}
                   >
                     {agreed && <Check size={10} className="text-white" strokeWidth={3} />}
                   </div>
-                  <span className="text-xs text-gray-600 leading-relaxed">
-                    {L.termsPrefix}{' '}
-                    <span className="font-semibold">{L.termsHold}</span> {L.termsSuffix}
+                  <span className="text-xs leading-relaxed text-gray-600">
+                    {L.termsPrefix} <span className="font-semibold">{L.termsHold}</span> {L.termsSuffix}
                   </span>
                 </label>
-                {errors.agreed && <p className="text-xs mt-1.5 ml-7 text-(--sale)">{errors.agreed}</p>}
+                {errors.agreed && <p className="mt-1.5 ml-7 text-xs text-(--sale)">{errors.agreed}</p>}
               </div>
             </div>
           </div>
         )}
 
         {!submitted && (
-          <div className="shrink-0 px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4">
+          <div className="flex shrink-0 items-center justify-between gap-4 border-t border-gray-200 px-6 py-4">
             <span className="text-xs text-gray-400">{submitError || L.requiredFieldsNote}</span>
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="px-10 py-3 text-xs tracking-[0.2em] uppercase text-white bg-black hover:bg-gray-800 transition-colors shrink-0 rounded-none disabled:opacity-50"
+              className="shrink-0 rounded-none bg-black px-10 py-3 text-xs tracking-[0.2em] text-white uppercase transition-colors hover:bg-gray-800 disabled:opacity-50"
             >
               {isPending ? '...' : L.ctaReserve}
             </button>

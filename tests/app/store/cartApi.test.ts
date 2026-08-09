@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import userReducer, { setAuth } from '@/app/store/userSlice';
 
 /**
@@ -82,9 +83,7 @@ describe('cartApi', () => {
   it('POST add cart item sends productId AND absolute qty', async () => {
     const store = makeTestStore();
     store.dispatch(setAuth({ accessToken: 'tkn', refreshToken: 'r', userIdentifier: 'u' }));
-    await store.dispatch(
-      cartApi.endpoints.addCartItem.initiate({ productId: 12, qty: 3 }),
-    );
+    await store.dispatch(cartApi.endpoints.addCartItem.initiate({ productId: 12, qty: 3 }));
     const captured = await captureFetchCall(fetchSpy.mock.calls[0] as Parameters<typeof fetch>);
     expect(captured.method).toBe('POST');
     expect(captured.body).toBe(JSON.stringify({ productId: 12, qty: 3 }));
@@ -93,9 +92,7 @@ describe('cartApi', () => {
   it('PUT setCart sends full items array', async () => {
     const store = makeTestStore();
     store.dispatch(setAuth({ accessToken: 'tkn', refreshToken: 'r', userIdentifier: 'u' }));
-    await store.dispatch(
-      cartApi.endpoints.setCart.initiate({ items: [] }),
-    );
+    await store.dispatch(cartApi.endpoints.setCart.initiate({ items: [] }));
     const captured = await captureFetchCall(fetchSpy.mock.calls[0] as Parameters<typeof fetch>);
     expect(captured.method).toBe('PUT');
     expect(captured.body).toBe(JSON.stringify({ items: [] }));
@@ -104,9 +101,7 @@ describe('cartApi', () => {
   it('DELETE cart item targets the right URL', async () => {
     const store = makeTestStore();
     store.dispatch(setAuth({ accessToken: 'tkn', refreshToken: 'r', userIdentifier: 'u' }));
-    await store.dispatch(
-      cartApi.endpoints.removeCartItem.initiate({ productId: 5 }),
-    );
+    await store.dispatch(cartApi.endpoints.removeCartItem.initiate({ productId: 5 }));
     const captured = await captureFetchCall(fetchSpy.mock.calls[0] as Parameters<typeof fetch>);
     expect(captured.url).toMatch(/\/users\/me\/cart\/items\/5$/);
     expect(captured.method).toBe('DELETE');

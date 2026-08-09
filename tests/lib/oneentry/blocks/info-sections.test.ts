@@ -1,9 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import {
-  infoSectionsFromBlocks,
-  faqItemsFromBlocks,
-  buildFaqSchema,
-} from '@/lib/oneentry/blocks/info-sections';
+import { describe, expect, it } from 'vitest';
+
+import { buildFaqSchema, faqItemsFromBlocks, infoSectionsFromBlocks } from '@/lib/oneentry/blocks/info-sections';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 
 const block = (over: Partial<PageBlock> & { marker: string }): PageBlock => ({
@@ -74,9 +71,7 @@ describe('faqItemsFromBlocks', () => {
       section('info_section_empty', { title: 'Do you ship abroad?', body: '   ' }, 3),
     ];
 
-    expect(faqItemsFromBlocks(blocks)).toEqual([
-      { question: 'What is your return policy?', answer: '30 days.' },
-    ]);
+    expect(faqItemsFromBlocks(blocks)).toEqual([{ question: 'What is your return policy?', answer: '30 days.' }]);
   });
 
   it('returns nothing when the CMS has no Q&A sections — no schema is emitted', () => {

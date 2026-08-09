@@ -1,21 +1,24 @@
-'use client'
+'use client';
+import { ChevronDown, Clock, Package, RotateCcw, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 
-import { useAppSelector } from '../../store/hooks';
+import { useRouter } from '../../../lib/i18n/navigation';
+import { cancelOrderAction, type OeOrder } from '../../../lib/oneentry/auth/actions';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
+import { BANNER_BG, SALE_COLOR } from '../../constants/colors';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { SectionTitle, fmt, ACCENT } from './shared';
-import { SALE_COLOR, BANNER_BG } from '../../constants/colors';
-import { ChevronDown, Package, Clock, RotateCcw, XCircle } from 'lucide-react';
-import { MY_ORDERS_LABELS as L } from '../../data/accountLabels';
+import { MY_ORDERS_LABELS } from '../../data/accountLabels';
 import { MY_ORDERS_DYNAMIC_ARIA } from '../../data/commonLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { cancelOrderAction, type OeOrder } from '../../../lib/oneentry/auth/actions';
 import type { UserOrder } from '../../data/userData';
-import { useRouter } from '../../../lib/i18n/navigation';
+import { useAppSelector } from '../../store/hooks';
+import { fillTokens } from '../../utils/fillTokens';
+import { ACCENT, fmt, SectionTitle } from './shared';
 
-/** Map a raw OneEntry order to the shape the UI already expects. */
+/**
+ * Map a raw OneEntry order to the shape the UI already expects.
+ */
 function adaptOeOrder(o: OeOrder): UserOrder {
   const total = parseFloat(o.totalSum) || 0;
   const date = o.createdDate
@@ -36,9 +39,10 @@ function adaptOeOrder(o: OeOrder): UserOrder {
     new: 'Processing',
     pending: 'Processing',
   };
-  const status: UserOrder['status'] = (o.statusTitle && o.statusTitle.trim())
-    || statusMap[key]
-    || (raw
+  const status: UserOrder['status'] =
+    (o.statusTitle && o.statusTitle.trim()) ||
+    statusMap[key] ||
+    (raw
       ? raw
           .replace(/[_-]+/g, ' ')
           .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -71,13 +75,12 @@ function adaptOeOrder(o: OeOrder): UserOrder {
 }
 
 export function MyOrdersSection() {
+  const L = useDict('my_orders_', MY_ORDERS_LABELS);
   const { user, isLoggedIn } = useAuth();
-  const fallback = useAppSelector(s => s.user.data.orders);
+  const fallback = useAppSelector((s) => s.user.data.orders);
   // When signed in, source orders from OE. Otherwise (e.g. dev preview without
   // auth) keep the redux mock so the layout still demoes.
-  const orders = isLoggedIn && user?.oeOrders
-    ? user.oeOrders.map(adaptOeOrder)
-    : fallback;
+  const orders = isLoggedIn && user?.oeOrders ? user.oeOrders.map(adaptOeOrder) : fallback;
   const router = useRouter();
   const { addItem } = useCart();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -127,20 +130,21 @@ export function MyOrdersSection() {
   };
 
   const viewDetails = useT('my_orders_view_order_details', L.viewOrderDetails);
-  const hideDetails = useT('my_order_hide_details',        L.hideDetails);
-  const lOrderId    = useT('my_orders_order_id',           L.orderId);
-  const lCancelTitle   = useT('my_orders_cancel_title',    L.cancelDialogTitle);
+  const aViewDetails = useT('my_orders_view_details_aria', MY_ORDERS_DYNAMIC_ARIA.viewDetails);
+  const hideDetails = useT('my_order_hide_details', L.hideDetails);
+  const lOrderId = useT('my_orders_order_id', L.orderId);
+  const lCancelTitle = useT('my_orders_cancel_title', L.cancelDialogTitle);
   const lCancelQPrefix = useT('my_orders_cancel_question', L.cancelDialogQuestionPrefix);
-  const lCancelNo      = useT('my_orders_cancel_no',       L.cancelDialogNo);
-  const lCancelConfirm = useT('my_orders_cancel_confirm',  L.cancelDialogConfirm);
-  const lDatePlaced = useT('my_orders_date_placed',        L.datePlaced);
-  const lStatus     = useT('my_orders_status',             L.status);
-  const lTracking   = useT('my_orders_tracking',           L.tracking);
-  const lEstDeliv   = useT('my_orders_est_delivery',       L.estDelivery);
-  const lOrderTotal = useT('my_orders_order_total',        L.orderTotal);
-  const lItem       = useT('my_orders_number_of_items',    L.itemSingular);
-  const lFullHist   = useT('my_order_full_history_cta',    L.fullHistory);
-  const lReorder    = useT('my_order_reorder_cta',         L.reorder);
+  const lCancelNo = useT('my_orders_cancel_no', L.cancelDialogNo);
+  const lCancelConfirm = useT('my_orders_cancel_confirm', L.cancelDialogConfirm);
+  const lDatePlaced = useT('my_orders_date_placed', L.datePlaced);
+  const lStatus = useT('my_orders_status', L.status);
+  const lTracking = useT('my_orders_tracking', L.tracking);
+  const lEstDeliv = useT('my_orders_est_delivery', L.estDelivery);
+  const lOrderTotal = useT('my_orders_order_total', L.orderTotal);
+  const lItem = useT('my_orders_number_of_items', L.itemSingular);
+  const lFullHist = useT('my_order_full_history_cta', L.fullHistory);
+  const lReorder = useT('my_order_reorder_cta', L.reorder);
 
   // Static colours for the three canonical buckets that ship with the UI.
   const statusColor: Record<string, string> = {
@@ -160,15 +164,15 @@ export function MyOrdersSection() {
   // shipping state, then anything unmatched gets a stable hash-picked colour
   // so two different unknown statuses stay visually distinct.
   const KEYWORD_TINTS: Array<{ match: RegExp; color: string; bg: string }> = [
-    { match: /cancel|reject|fail|declin|void/i,             color: '#dc2626', bg: '#fef2f2' },
-    { match: /refund|return/i,                              color: '#9333ea', bg: '#faf5ff' },
-    { match: /deliver|complete|success|finish|done|closed/i,color: '#16a34a', bg: '#f0fdf4' },
-    { match: /paid|payment.?received/i,                     color: '#10b981', bg: '#ecfdf5' },
-    { match: /ship|transit|dispatch|out.for.delivery/i,     color: '#2563eb', bg: '#eff6ff' },
-    { match: /confirm|accepted|approved/i,                  color: '#0891b2', bg: '#ecfeff' },
-    { match: /process|preparing|packing|assembl/i,          color: '#d97706', bg: '#fffbeb' },
-    { match: /pending|awaiting|hold|await/i,                color: '#ca8a04', bg: '#fefce8' },
-    { match: /new|received|created|placed/i,                color: '#6366f1', bg: '#eef2ff' },
+    { match: /cancel|reject|fail|declin|void/i, color: '#dc2626', bg: '#fef2f2' },
+    { match: /refund|return/i, color: '#9333ea', bg: '#faf5ff' },
+    { match: /deliver|complete|success|finish|done|closed/i, color: '#16a34a', bg: '#f0fdf4' },
+    { match: /paid|payment.?received/i, color: '#10b981', bg: '#ecfdf5' },
+    { match: /ship|transit|dispatch|out.for.delivery/i, color: '#2563eb', bg: '#eff6ff' },
+    { match: /confirm|accepted|approved/i, color: '#0891b2', bg: '#ecfeff' },
+    { match: /process|preparing|packing|assembl/i, color: '#d97706', bg: '#fffbeb' },
+    { match: /pending|awaiting|hold|await/i, color: '#ca8a04', bg: '#fefce8' },
+    { match: /new|received|created|placed/i, color: '#6366f1', bg: '#eef2ff' },
   ];
   // 12-colour fallback palette — enough distinct hues that any random
   // status string picks a colour that reads as its own state.
@@ -198,7 +202,7 @@ export function MyOrdersSection() {
   };
 
   const toggle = (id: string) =>
-    setExpanded(prev => {
+    setExpanded((prev) => {
       const s = new Set(prev);
       if (s.has(id)) s.delete(id);
       else s.add(id);
@@ -207,53 +211,58 @@ export function MyOrdersSection() {
 
   return (
     <div
-      style={{
-        '--sale': SALE_COLOR,
-        '--accent': ACCENT,
-        '--banner-bg': BANNER_BG,
-      } as React.CSSProperties}
+      style={
+        {
+          '--sale': SALE_COLOR,
+          '--accent': ACCENT,
+          '--banner-bg': BANNER_BG,
+        } as React.CSSProperties
+      }
     >
       <SectionTitle title={L.title} />
       <div className="space-y-3">
-        {orders.map(rawOrder => {
+        {orders.map((rawOrder) => {
           // Overlay the local-cancel snapshot so the badge flips immediately
           // after the user confirms — OE's `oeOrders` prop only refreshes
           // on next login/hydration, which would otherwise leave the badge
           // stale until page reload.
-          const order: UserOrder = rawOrder.oeId != null && locallyCancelledIds.has(rawOrder.oeId)
-            ? { ...rawOrder, status: 'Cancelled' }
-            : rawOrder;
+          const order: UserOrder =
+            rawOrder.oeId != null && locallyCancelledIds.has(rawOrder.oeId)
+              ? { ...rawOrder, status: 'Cancelled' }
+              : rawOrder;
           const isOpen = expanded.has(order.id);
           const { color, bg } = statusStyle(order.status);
           return (
             <div key={order.id} className="border border-[#e5e7eb]">
               {/* ── Summary row ── */}
               <div className="flex gap-4 p-5">
-                <div className="relative w-16 h-20 shrink-0">
+                <div className="relative h-20 w-16 shrink-0">
                   <ImageWithFallback src={order.image} alt={order.id} fill sizes="64px" className="object-cover" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="text-sm font-bold">{order.id}</p>
                       <p className="text-xs text-gray-400">{order.date}</p>
                     </div>
                     <span
-                      className="text-xs px-2 py-1 font-semibold border"
+                      className="border px-2 py-1 text-xs font-semibold"
                       style={{ backgroundColor: bg, color, borderColor: `${color}30` }}
                     >
                       {order.status}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm mb-3">
-                    <span className="text-gray-500 text-xs">{order.items} {order.items !== 1 ? L.itemPlural : lItem}</span>
+                  <div className="mb-3 flex items-center justify-between text-sm">
+                    <span className="text-xs text-gray-500">
+                      {order.items} {order.items !== 1 ? L.itemPlural : lItem}
+                    </span>
                     <span className="font-bold">{fmt(order.total)}</span>
                   </div>
                   <button
                     onClick={() => toggle(order.id)}
-                    className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold"
+                    className="flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase hover:underline focus-visible:outline-none"
                     aria-expanded={isOpen}
-                    aria-label={MY_ORDERS_DYNAMIC_ARIA.viewDetailsTpl(order.id)}
+                    aria-label={fillTokens(aViewDetails, { id: order.id })}
                   >
                     {isOpen ? hideDetails : viewDetails}
                     <ChevronDown
@@ -268,74 +277,93 @@ export function MyOrdersSection() {
               {isOpen && (
                 <div className="border-t border-[#f0f0f0]">
                   {/* Metadata row */}
-                  <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-3 gap-3 bg-[#fafafa]">
+                  <div className="grid grid-cols-2 gap-3 bg-[#fafafa] px-5 py-4 sm:grid-cols-3">
                     <div>
-                      <p className="text-[10px] text-gray-400 tracking-widest uppercase mb-0.5">{lOrderId}</p>
+                      <p className="mb-0.5 text-[10px] tracking-widest text-gray-400 uppercase">{lOrderId}</p>
                       <p className="text-xs font-bold">{order.id}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-400 tracking-widest uppercase mb-0.5">{lDatePlaced}</p>
-                      <p className="text-xs flex items-center gap-1 font-semibold">
-                        <Clock size={10} className="text-gray-400" />{order.date}
+                      <p className="mb-0.5 text-[10px] tracking-widest text-gray-400 uppercase">{lDatePlaced}</p>
+                      <p className="flex items-center gap-1 text-xs font-semibold">
+                        <Clock size={10} className="text-gray-400" />
+                        {order.date}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-400 tracking-widest uppercase mb-0.5">{lStatus}</p>
-                      <p className="text-xs font-bold" style={{ color }}>{order.status}</p>
+                      <p className="mb-0.5 text-[10px] tracking-widest text-gray-400 uppercase">{lStatus}</p>
+                      <p className="text-xs font-bold" style={{ color }}>
+                        {order.status}
+                      </p>
                     </div>
                     {order.trackingNo && (
                       <div>
-                        <p className="text-[10px] text-gray-400 tracking-widest uppercase mb-0.5">{lTracking}</p>
-                        <p className="text-xs flex items-center gap-1 font-semibold">
-                          <Package size={10} className="text-gray-400" />{order.trackingNo}
+                        <p className="mb-0.5 text-[10px] tracking-widest text-gray-400 uppercase">{lTracking}</p>
+                        <p className="flex items-center gap-1 text-xs font-semibold">
+                          <Package size={10} className="text-gray-400" />
+                          {order.trackingNo}
                         </p>
                       </div>
                     )}
                     {order.estimatedDelivery && (
                       <div>
-                        <p className="text-[10px] text-gray-400 tracking-widest uppercase mb-0.5">{lEstDeliv}</p>
+                        <p className="mb-0.5 text-[10px] tracking-widest text-gray-400 uppercase">{lEstDeliv}</p>
                         <p className="text-xs font-semibold">{order.estimatedDelivery}</p>
                       </div>
                     )}
                   </div>
 
                   {/* Item rows */}
-                  <div className="space-y-px bg-gray-100 border-t border-[#e5e7eb]">
+                  <div className="space-y-px border-t border-[#e5e7eb] bg-gray-100">
                     {order.orderItems.map((item, idx) => (
-                      <div key={`${item.name}-${item.size}-${idx}`} className="flex items-center gap-4 px-5 py-3 bg-white">
-                        <div className="relative shrink-0 overflow-hidden w-12 h-15">
-                          <ImageWithFallback src={item.img} alt={item.name} fill sizes="48px" className="object-cover" />
+                      <div
+                        key={`${item.name}-${item.size}-${idx}`}
+                        className="flex items-center gap-4 bg-white px-5 py-3"
+                      >
+                        <div className="relative h-15 w-12 shrink-0 overflow-hidden">
+                          <ImageWithFallback
+                            src={item.img}
+                            alt={item.name}
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                          />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs truncate font-bold">{item.name}</p>
-                          <div className="flex gap-3 mt-0.5">
-                            <span className="text-[11px] text-gray-500">{L.itemSize}: <span className="font-semibold text-black">{item.size}</span></span>
-                            <span className="text-[11px] text-gray-500">{L.itemColour}: <span className="font-semibold text-black">{item.color}</span></span>
-                            <span className="text-[11px] text-gray-500">{L.itemQty}: <span className="font-semibold text-black">{item.qty}</span></span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-bold">{item.name}</p>
+                          <div className="mt-0.5 flex gap-3">
+                            <span className="text-[11px] text-gray-500">
+                              {L.itemSize}: <span className="font-semibold text-black">{item.size}</span>
+                            </span>
+                            <span className="text-[11px] text-gray-500">
+                              {L.itemColour}: <span className="font-semibold text-black">{item.color}</span>
+                            </span>
+                            <span className="text-[11px] text-gray-500">
+                              {L.itemQty}: <span className="font-semibold text-black">{item.qty}</span>
+                            </span>
                           </div>
                         </div>
-                        <p className="text-xs shrink-0 font-bold">{fmt(item.price * item.qty)}</p>
+                        <p className="shrink-0 text-xs font-bold">{fmt(item.price * item.qty)}</p>
                       </div>
                     ))}
                   </div>
 
                   {/* Footer: total + actions */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-(--banner-bg) border-t border-[#e5e7eb]">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e5e7eb] bg-(--banner-bg) px-5 py-3">
                     <div className="flex items-center gap-4">
-                      <span className="text-xs text-gray-500 tracking-widest uppercase">{lOrderTotal}</span>
+                      <span className="text-xs tracking-widest text-gray-500 uppercase">{lOrderTotal}</span>
                       <span className="text-sm font-extrabold">{fmt(order.total)}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => router.push('/account?tab=history')}
-                        className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold text-accent"
+                        className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-accent uppercase hover:underline focus-visible:outline-none"
                       >
                         {lFullHist}
                       </button>
                       {order.orderItems.some((it) => typeof it.productId === 'number') && (
                         <button
                           onClick={() => handleReorder(order)}
-                          className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold text-gray-500"
+                          className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-gray-500 uppercase hover:underline focus-visible:outline-none"
                         >
                           <RotateCcw size={11} /> {lReorder}
                         </button>
@@ -344,13 +372,16 @@ export function MyOrdersSection() {
                           cancelled/delivered. Uses the shared `/cancel/i` bucket
                           so tenant-specific markers (`home_cancelled`, `store_pickup_cancelled`, …)
                           all match. */}
-                      {order.oeId != null && order.oeStorage
-                        && !locallyCancelledIds.has(order.oeId)
-                        && !/cancel|deliver|complete|refund|return/i.test(order.status)
-                        && (
+                      {order.oeId != null &&
+                        order.oeStorage &&
+                        !locallyCancelledIds.has(order.oeId) &&
+                        !/cancel|deliver|complete|refund|return/i.test(order.status) && (
                           <button
-                            onClick={() => { setCancelError(null); setCancelTarget(order); }}
-                            className="flex items-center gap-1.5 text-xs tracking-wide uppercase focus-visible:outline-none hover:underline font-semibold text-(--sale)"
+                            onClick={() => {
+                              setCancelError(null);
+                              setCancelTarget(order);
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-(--sale) uppercase hover:underline focus-visible:outline-none"
                           >
                             <XCircle size={11} /> Cancel
                           </button>
@@ -374,30 +405,35 @@ export function MyOrdersSection() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="cancel-order-title"
-          onClick={(e) => { if (e.target === e.currentTarget && !cancelBusy) setCancelTarget(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !cancelBusy) setCancelTarget(null);
+          }}
         >
-          <div className="bg-white max-w-sm w-full p-6 border border-[#e5e7eb]">
-            <h3 id="cancel-order-title" className="text-sm tracking-widest uppercase font-bold mb-3">
+          <div className="w-full max-w-sm border border-[#e5e7eb] bg-white p-6">
+            <h3 id="cancel-order-title" className="mb-3 text-sm font-bold tracking-widest uppercase">
               {lCancelTitle}
             </h3>
-            <p className="text-sm text-gray-700 mb-5">
-              {lCancelQPrefix} <strong>{cancelTarget.id}</strong>{L.cancelDialogQuestionSuffix}
+            <p className="mb-5 text-sm text-gray-700">
+              {lCancelQPrefix} <strong>{cancelTarget.id}</strong>
+              {L.cancelDialogQuestionSuffix}
             </p>
             {cancelError && (
-              <p className="text-xs text-(--sale) mb-3" role="alert">{cancelError}</p>
+              <p className="mb-3 text-xs text-(--sale)" role="alert">
+                {cancelError}
+              </p>
             )}
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setCancelTarget(null)}
                 disabled={cancelBusy}
-                className="px-4 py-2 text-xs tracking-wider uppercase font-semibold border border-[#d1d5db] hover:bg-gray-50 disabled:opacity-50"
+                className="border border-[#d1d5db] px-4 py-2 text-xs font-semibold tracking-wider uppercase hover:bg-gray-50 disabled:opacity-50"
               >
                 {lCancelNo}
               </button>
               <button
                 onClick={handleConfirmCancel}
                 disabled={cancelBusy}
-                className="px-4 py-2 text-xs tracking-wider uppercase font-bold text-white bg-black hover:bg-primary-women active:bg-primary-men disabled:opacity-60"
+                className="bg-black px-4 py-2 text-xs font-bold tracking-wider text-white uppercase hover:bg-primary-women active:bg-primary-men disabled:opacity-60"
               >
                 {cancelBusy ? '…' : lCancelConfirm}
               </button>

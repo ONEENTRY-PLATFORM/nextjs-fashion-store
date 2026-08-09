@@ -10,8 +10,7 @@ const getAttributesByMarker = vi.fn();
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApi: () => ({ AttributesSets: { getAttributesByMarker } }),
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -30,10 +29,7 @@ type RawIntervalValue = {
 };
 
 /** Build a minimal AttributesSets response for a given marker and attribute name. */
-function makeAsetResponse(
-  attrMarker: string,
-  row: RawIntervalValue,
-): unknown[] {
+function makeAsetResponse(attrMarker: string, row: RawIntervalValue): unknown[] {
   return [
     {
       marker: attrMarker,
@@ -45,9 +41,18 @@ function makeAsetResponse(
 
 /** Standard three-slot times payload used in the authed happy-path test. */
 const THREE_TIMES: Array<[RawHM, RawHM]> = [
-  [{ hours: 9, minutes: 0 }, { hours: 13, minutes: 0 }],
-  [{ hours: 13, minutes: 0 }, { hours: 17, minutes: 0 }],
-  [{ hours: 17, minutes: 0 }, { hours: 21, minutes: 0 }],
+  [
+    { hours: 9, minutes: 0 },
+    { hours: 13, minutes: 0 },
+  ],
+  [
+    { hours: 13, minutes: 0 },
+    { hours: 17, minutes: 0 },
+  ],
+  [
+    { hours: 17, minutes: 0 },
+    { hours: 21, minutes: 0 },
+  ],
 ];
 
 // Mon 2026-07-20 → Fri 2026-07-24  ⇒  active {1,2,3,4,5}  ⇒  disabled [0,6]
@@ -123,11 +128,12 @@ describe('loadDeliverySchedule — guest happy path', () => {
 describe('loadDeliverySchedule — slot sub buckets', () => {
   it('returns sub="" for a slot whose start hour is 22 (outside Morning/Afternoon/Evening)', async () => {
     const times: Array<[RawHM, RawHM]> = [
-      [{ hours: 22, minutes: 0 }, { hours: 23, minutes: 30 }],
+      [
+        { hours: 22, minutes: 0 },
+        { hours: 23, minutes: 30 },
+      ],
     ];
-    getAttributesByMarker.mockResolvedValue(
-      makeAsetResponse('delivery_date-time', { dates: DATES_MON_FRI, times }),
-    );
+    getAttributesByMarker.mockResolvedValue(makeAsetResponse('delivery_date-time', { dates: DATES_MON_FRI, times }));
     const { loadDeliverySchedule } = await importFresh();
     const schedule = await loadDeliverySchedule('authed', 'en_US');
 
@@ -141,13 +147,17 @@ describe('loadDeliverySchedule — slot sub buckets', () => {
 describe('loadDeliverySchedule — malformed slot hours are skipped', () => {
   it('drops a slot with missing hours but keeps the valid ones', async () => {
     const times: Array<[RawHM, RawHM]> = [
-      [{ hours: 9, minutes: 0 }, { hours: 13, minutes: 0 }],     // valid
-      [{ minutes: 0 } as RawHM, { hours: 17, minutes: 0 }],       // missing start hours → skip
-      [{ hours: 13, minutes: 0 }, { hours: 17, minutes: 0 }],     // valid
+      [
+        { hours: 9, minutes: 0 },
+        { hours: 13, minutes: 0 },
+      ], // valid
+      [{ minutes: 0 } as RawHM, { hours: 17, minutes: 0 }], // missing start hours → skip
+      [
+        { hours: 13, minutes: 0 },
+        { hours: 17, minutes: 0 },
+      ], // valid
     ];
-    getAttributesByMarker.mockResolvedValue(
-      makeAsetResponse('delivery_date-time', { dates: DATES_MON_FRI, times }),
-    );
+    getAttributesByMarker.mockResolvedValue(makeAsetResponse('delivery_date-time', { dates: DATES_MON_FRI, times }));
     const { loadDeliverySchedule } = await importFresh();
     const schedule = await loadDeliverySchedule('authed', 'en_US');
 
@@ -173,9 +183,7 @@ describe('loadDeliverySchedule — empty times array', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('loadDeliverySchedule — empty dates range', () => {
   it('falls back disabledWeekdays to [0] but still builds slots from times', async () => {
-    getAttributesByMarker.mockResolvedValue(
-      makeAsetResponse('delivery_date-time', { dates: [], times: THREE_TIMES }),
-    );
+    getAttributesByMarker.mockResolvedValue(makeAsetResponse('delivery_date-time', { dates: [], times: THREE_TIMES }));
     const { loadDeliverySchedule } = await importFresh();
     const schedule = await loadDeliverySchedule('authed', 'en_US');
 
@@ -205,9 +213,7 @@ describe('loadDeliverySchedule — end < start in dates', () => {
 describe('loadDeliverySchedule — missing attribute on aset', () => {
   it('returns full FALLBACK when the aset has no matching timeInterval attribute', async () => {
     // Return an aset response but with a different marker — attribute not found
-    getAttributesByMarker.mockResolvedValue([
-      { marker: 'some_other_attr', type: 'text', value: [] },
-    ]);
+    getAttributesByMarker.mockResolvedValue([{ marker: 'some_other_attr', type: 'text', value: [] }]);
     const { loadDeliverySchedule } = await importFresh();
     const schedule = await loadDeliverySchedule('authed', 'en_US');
 
@@ -302,12 +308,12 @@ describe('buildDeliveryDates — UTC timezone regression', () => {
     // Expected: Jan 2, Jan 3, Jan 5.
     expect(dates[0].getUTCFullYear()).toBe(2026);
     expect(dates[0].getUTCMonth()).toBe(0);
-    expect(dates[0].getUTCDate()).toBe(2);   // Friday UTC
+    expect(dates[0].getUTCDate()).toBe(2); // Friday UTC
 
-    expect(dates[1].getUTCDate()).toBe(3);   // Saturday UTC
+    expect(dates[1].getUTCDate()).toBe(3); // Saturday UTC
 
     // Jan 4 is Sunday UTC — must be skipped; next date is Jan 5 (Monday).
-    expect(dates[2].getUTCDate()).toBe(5);   // Monday UTC
+    expect(dates[2].getUTCDate()).toBe(5); // Monday UTC
 
     // None of the returned dates should fall on a UTC Sunday.
     for (const d of dates) {

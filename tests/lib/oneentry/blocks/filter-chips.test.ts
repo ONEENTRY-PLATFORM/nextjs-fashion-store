@@ -11,8 +11,7 @@ vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApi: () => ({ Filters: { getFilterByMarker } }),
   isOneEntryEnabled: true,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -115,9 +114,7 @@ describe('loadFilterChips — happy paths', () => {
     });
     const { loadFilterChips } = await importFresh();
     const result = await loadFilterChips('women-clothing');
-    expect(result).toEqual([
-      { label: 'Cotton', type: 'attribute', marker: 'material_5', value: 'Cotton' },
-    ]);
+    expect(result).toEqual([{ label: 'Cotton', type: 'attribute', marker: 'material_5', value: 'Cotton' }]);
   });
 
   it('drops type:attribute items that are missing value', async () => {
@@ -135,9 +132,7 @@ describe('loadFilterChips — happy paths', () => {
     });
     const { loadFilterChips } = await importFresh();
     const result = await loadFilterChips('women-clothing');
-    expect(result).toEqual([
-      { label: 'Medium', type: 'attribute', marker: 'size_3', value: 'M' },
-    ]);
+    expect(result).toEqual([{ label: 'Medium', type: 'attribute', marker: 'size_3', value: 'M' }]);
   });
 
   it('skips items whose resolved title is empty or whitespace', async () => {
@@ -216,8 +211,10 @@ describe('loadFilterChips — disabled', () => {
   it('returns null when isOneEntryEnabled is false', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApi: () => { throw new Error('should not be called'); },
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApi: () => {
+        throw new Error('should not be called');
+      },
       isOneEntryEnabled: false,
       isError: () => false,
     }));
@@ -239,9 +236,7 @@ describe('chipToFilterPatch', () => {
 
   it('returns { attributeField, attributeValue } with correct field for material_14', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips = [
-      { label: 'Leather', type: 'attribute' as const, marker: 'material_14', value: 'Leather' },
-    ];
+    const chips = [{ label: 'Leather', type: 'attribute' as const, marker: 'material_14', value: 'Leather' }];
     expect(chipToFilterPatch('Leather', chips)).toEqual({
       attributeField: 'materials',
       attributeValue: 'Leather',
@@ -266,17 +261,13 @@ describe('chipToFilterPatch', () => {
 
   it('returns null for an attribute chip whose marker does not map to a known field', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips = [
-      { label: 'Mystery', type: 'attribute' as const, marker: 'unknown_99', value: 'X' },
-    ];
+    const chips = [{ label: 'Mystery', type: 'attribute' as const, marker: 'unknown_99', value: 'X' }];
     expect(chipToFilterPatch('Mystery', chips)).toBeNull();
   });
 
   it('correctly maps details_* marker → productDetails', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips = [
-      { label: 'Zip Closure', type: 'attribute' as const, marker: 'details_4', value: 'Zip' },
-    ];
+    const chips = [{ label: 'Zip Closure', type: 'attribute' as const, marker: 'details_4', value: 'Zip' }];
     expect(chipToFilterPatch('Zip Closure', chips)).toEqual({
       attributeField: 'productDetails',
       attributeValue: 'Zip',
@@ -285,9 +276,7 @@ describe('chipToFilterPatch', () => {
 
   it('correctly maps color_* marker → colors', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips = [
-      { label: 'Black', type: 'attribute' as const, marker: 'color_5', value: 'Black' },
-    ];
+    const chips = [{ label: 'Black', type: 'attribute' as const, marker: 'color_5', value: 'Black' }];
     expect(chipToFilterPatch('Black', chips)).toEqual({
       attributeField: 'colors',
       attributeValue: 'Black',
@@ -296,53 +285,46 @@ describe('chipToFilterPatch', () => {
 
   it('correctly maps fit_* → fits and fitrise_* → fits', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const fitChips = [
-      { label: 'Slim', type: 'attribute' as const, marker: 'fit_2', value: 'Slim' },
-    ];
+    const fitChips = [{ label: 'Slim', type: 'attribute' as const, marker: 'fit_2', value: 'Slim' }];
     expect(chipToFilterPatch('Slim', fitChips)).toEqual({ attributeField: 'fits', attributeValue: 'Slim' });
 
-    const fitriseChips = [
-      { label: 'High Rise', type: 'attribute' as const, marker: 'fitrise_1', value: 'High Rise' },
-    ];
-    expect(chipToFilterPatch('High Rise', fitriseChips)).toEqual({ attributeField: 'fits', attributeValue: 'High Rise' });
+    const fitriseChips = [{ label: 'High Rise', type: 'attribute' as const, marker: 'fitrise_1', value: 'High Rise' }];
+    expect(chipToFilterPatch('High Rise', fitriseChips)).toEqual({
+      attributeField: 'fits',
+      attributeValue: 'High Rise',
+    });
   });
 
   it('correctly maps lining_material_* and lining_* → liningMaterials', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips1 = [
-      { label: 'Silk Lining', type: 'attribute' as const, marker: 'lining_material_3', value: 'Silk' },
-    ];
-    expect(chipToFilterPatch('Silk Lining', chips1)).toEqual({ attributeField: 'liningMaterials', attributeValue: 'Silk' });
+    const chips1 = [{ label: 'Silk Lining', type: 'attribute' as const, marker: 'lining_material_3', value: 'Silk' }];
+    expect(chipToFilterPatch('Silk Lining', chips1)).toEqual({
+      attributeField: 'liningMaterials',
+      attributeValue: 'Silk',
+    });
 
-    const chips2 = [
-      { label: 'Fleece', type: 'attribute' as const, marker: 'lining_2', value: 'Fleece' },
-    ];
-    expect(chipToFilterPatch('Fleece', chips2)).toEqual({ attributeField: 'liningMaterials', attributeValue: 'Fleece' });
+    const chips2 = [{ label: 'Fleece', type: 'attribute' as const, marker: 'lining_2', value: 'Fleece' }];
+    expect(chipToFilterPatch('Fleece', chips2)).toEqual({
+      attributeField: 'liningMaterials',
+      attributeValue: 'Fleece',
+    });
   });
 
   it('correctly maps brand_country_* and country_* → brandCountries', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips1 = [
-      { label: 'Italy', type: 'attribute' as const, marker: 'brand_country_1', value: 'Italy' },
-    ];
+    const chips1 = [{ label: 'Italy', type: 'attribute' as const, marker: 'brand_country_1', value: 'Italy' }];
     expect(chipToFilterPatch('Italy', chips1)).toEqual({ attributeField: 'brandCountries', attributeValue: 'Italy' });
 
-    const chips2 = [
-      { label: 'France', type: 'attribute' as const, marker: 'country_2', value: 'France' },
-    ];
+    const chips2 = [{ label: 'France', type: 'attribute' as const, marker: 'country_2', value: 'France' }];
     expect(chipToFilterPatch('France', chips2)).toEqual({ attributeField: 'brandCountries', attributeValue: 'France' });
   });
 
   it('correctly maps label_* and lable_* → labels', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips1 = [
-      { label: 'New', type: 'attribute' as const, marker: 'label_1', value: 'New' },
-    ];
+    const chips1 = [{ label: 'New', type: 'attribute' as const, marker: 'label_1', value: 'New' }];
     expect(chipToFilterPatch('New', chips1)).toEqual({ attributeField: 'labels', attributeValue: 'New' });
 
-    const chips2 = [
-      { label: 'Sale', type: 'attribute' as const, marker: 'lable_2', value: 'Sale' },
-    ];
+    const chips2 = [{ label: 'Sale', type: 'attribute' as const, marker: 'lable_2', value: 'Sale' }];
     expect(chipToFilterPatch('Sale', chips2)).toEqual({ attributeField: 'labels', attributeValue: 'Sale' });
   });
 
@@ -351,19 +333,21 @@ describe('chipToFilterPatch', () => {
     const chips1 = [
       { label: 'Dry Clean', type: 'attribute' as const, marker: 'careinstructions_1', value: 'Dry Clean' },
     ];
-    expect(chipToFilterPatch('Dry Clean', chips1)).toEqual({ attributeField: 'careInstructions', attributeValue: 'Dry Clean' });
+    expect(chipToFilterPatch('Dry Clean', chips1)).toEqual({
+      attributeField: 'careInstructions',
+      attributeValue: 'Dry Clean',
+    });
 
-    const chips2 = [
-      { label: 'Hand Wash', type: 'attribute' as const, marker: 'care_3', value: 'Hand Wash' },
-    ];
-    expect(chipToFilterPatch('Hand Wash', chips2)).toEqual({ attributeField: 'careInstructions', attributeValue: 'Hand Wash' });
+    const chips2 = [{ label: 'Hand Wash', type: 'attribute' as const, marker: 'care_3', value: 'Hand Wash' }];
+    expect(chipToFilterPatch('Hand Wash', chips2)).toEqual({
+      attributeField: 'careInstructions',
+      attributeValue: 'Hand Wash',
+    });
   });
 
   it('correctly maps insulation_* → insulations', async () => {
     const { chipToFilterPatch } = await importFresh();
-    const chips = [
-      { label: 'Down', type: 'attribute' as const, marker: 'insulation_1', value: 'Down' },
-    ];
+    const chips = [{ label: 'Down', type: 'attribute' as const, marker: 'insulation_1', value: 'Down' }];
     expect(chipToFilterPatch('Down', chips)).toEqual({ attributeField: 'insulations', attributeValue: 'Down' });
   });
 });

@@ -16,16 +16,14 @@ const fakeApi = {
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-  getApiSafe: () => (fakeApi),
+  getApiSafe: () => fakeApi,
   getApi: () => fakeApi,
   isOneEntryEnabled: true,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 // unstable_cache is transparent in tests — call the wrapped fn directly.
 vi.mock('next/cache', () => ({
-   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -85,9 +83,7 @@ describe('loadBlockWithProducts — homepage fallback', () => {
     const block = await loadBlockWithProducts('homepage_new_arrivals');
 
     expect(loadProducts).toHaveBeenCalledTimes(1);
-    expect(loadProducts).toHaveBeenCalledWith(
-      expect.objectContaining({ tags: ['NEW'], limit: 12 }),
-    );
+    expect(loadProducts).toHaveBeenCalledWith(expect.objectContaining({ tags: ['NEW'], limit: 12 }));
     expect(block).not.toBeNull();
     expect(block!.products).toEqual([{ id: '1', name: 'ui' }]);
   });
@@ -145,12 +141,8 @@ describe('loadBlockWithProducts — homepage fallback', () => {
     // Inline path calls loadProducts once with {ids: [77]}, fallback would call
     // again with {tags: ['NEW']} — assert only the inline call happened.
     expect(loadProducts).toHaveBeenCalledTimes(1);
-    expect(loadProducts).toHaveBeenCalledWith(
-      expect.objectContaining({ ids: [77] }),
-    );
-    expect(loadProducts).not.toHaveBeenCalledWith(
-      expect.objectContaining({ tags: ['NEW'] }),
-    );
+    expect(loadProducts).toHaveBeenCalledWith(expect.objectContaining({ ids: [77] }));
+    expect(loadProducts).not.toHaveBeenCalledWith(expect.objectContaining({ tags: ['NEW'] }));
     expect(block!.products).toEqual([{ id: '77', name: 'inline' }]);
   });
 });
@@ -172,7 +164,10 @@ describe('loadBlockWithProducts — trending_block path', () => {
     getTrending.mockResolvedValue([{ id: 10 }, { id: 20 }]);
     loadProducts.mockResolvedValue({
       total: 2,
-      items: [{ id: 10, title: 'Sneaker A' }, { id: 20, title: 'Boot B' }],
+      items: [
+        { id: 10, title: 'Sneaker A' },
+        { id: 20, title: 'Boot B' },
+      ],
       fromCms: true,
     });
     adaptCatalogProductToUiProduct.mockImplementation((p: { id: number }) => ({
@@ -185,9 +180,7 @@ describe('loadBlockWithProducts — trending_block path', () => {
 
     expect(getTrending).toHaveBeenCalledOnce();
     expect(getTrending).toHaveBeenCalledWith('trending_shoes', 'en_US');
-    expect(loadProducts).toHaveBeenCalledWith(
-      expect.objectContaining({ ids: [10, 20] }),
-    );
+    expect(loadProducts).toHaveBeenCalledWith(expect.objectContaining({ ids: [10, 20] }));
     expect(block).not.toBeNull();
     expect(block!.type).toBe('trending_block');
     expect(block!.products).toHaveLength(2);
@@ -210,9 +203,7 @@ describe('loadBlockWithProducts — trending_block path', () => {
     const { loadBlockWithProducts } = await importFresh();
     const block = await loadBlockWithProducts('trending_shoes');
 
-    expect(loadProducts).toHaveBeenCalledWith(
-      expect.objectContaining({ ids: [55] }),
-    );
+    expect(loadProducts).toHaveBeenCalledWith(expect.objectContaining({ ids: [55] }));
     expect(block!.products).toHaveLength(1);
   });
 
@@ -247,7 +238,11 @@ describe('loadFrequentlyOrderedBlock — 2 s timeout ceiling', () => {
     getBlockByMarker.mockResolvedValue(blockDescriptor);
 
     // A promise that intentionally never settles — simulates a hung OE endpoint.
-    getFrequentlyOrderedProducts.mockReturnValue(new Promise(() => { /* never */ }));
+    getFrequentlyOrderedProducts.mockReturnValue(
+      new Promise(() => {
+        /* never */
+      }),
+    );
 
     const { loadFrequentlyOrderedBlock } = await importFresh();
     const blockP = loadFrequentlyOrderedBlock('freq_block', 10, 'en_US');
@@ -371,7 +366,7 @@ describe('loadPageBlocksByUrl', () => {
   it('returns [] and does not call the SDK for non-string pageUrl', async () => {
     const { loadPageBlocksByUrl } = await importFresh();
     // Cast to bypass TS — runtime guard must still fire.
-     
+
     const result = await (loadPageBlocksByUrl as any)(42);
     expect(result).toEqual([]);
     expect(getBlocksByPageUrl).not.toHaveBeenCalled();
@@ -391,8 +386,8 @@ describe('loadPageBlocksByUrl', () => {
   it('skips items with missing or whitespace-only identifier', async () => {
     getBlocksByPageUrl.mockResolvedValue([
       { identifier: '', position: 1 },
-      { position: 2 },                          // no identifier key
-      { identifier: '   ', position: 3 },       // whitespace only
+      { position: 2 }, // no identifier key
+      { identifier: '   ', position: 3 }, // whitespace only
       { identifier: 'real_block', position: 4 },
     ]);
     getBlockByMarker.mockResolvedValue(makeBlockDescriptor(4));
@@ -413,7 +408,7 @@ describe('loadPageBlocksByUrl', () => {
       { identifier: 'real_block', position: 2 },
     ]);
     getBlockByMarker.mockImplementation((_marker: string) => {
-      if (_marker === 'ghost_block') return Promise.resolve(null);  // triggers null from loadBlockWithProducts
+      if (_marker === 'ghost_block') return Promise.resolve(null); // triggers null from loadBlockWithProducts
       return Promise.resolve(makeBlockDescriptor(2));
     });
 
@@ -562,9 +557,7 @@ describe('loadBlockWithProducts — slider_block path', () => {
 
   it('calls getSlides and populates PageBlock.slides from { items: [...] } response shape', async () => {
     getBlockByMarker.mockResolvedValue(sliderBlockDescriptor);
-    const mockItems = [
-      { id: 10, attributeValues: { hp_b_b_title: { value: 'Item Slide A' } } },
-    ];
+    const mockItems = [{ id: 10, attributeValues: { hp_b_b_title: { value: 'Item Slide A' } } }];
     // SDK may return `{ items: [...] }` instead of a bare array.
     getSlides.mockResolvedValue({ items: mockItems });
 

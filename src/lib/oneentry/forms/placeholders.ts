@@ -1,20 +1,17 @@
 import { cache } from 'react';
-import { getApiSafe, isError } from '../index';
-import type { Lang } from '../system-text';
+
 import { currentCmsLocale } from '../current-locale';
+import { getApiSafe, isError } from '../index';
 import { logCaught } from '../log';
-import { EMPTY_FORM_CONTENT } from './form-content';
+import type { Lang } from '../system-text';
 import type { FormContent, FormPlaceholders } from './form-content';
+import { EMPTY_FORM_CONTENT } from './form-content';
 
 // Re-exported so existing importers keep their current specifier; the
 // definitions live in a client-safe module (see `form-content.ts`), because
 // this file reaches for `next/root-params` and cannot enter a client bundle.
+export type { FormAttributeContent, FormContent, FormPlaceholders } from './form-content';
 export { EMPTY_FORM_CONTENT } from './form-content';
-export type {
-  FormAttributeContent,
-  FormContent,
-  FormPlaceholders,
-} from './form-content';
 
 type RawLocalize = { title?: unknown } & Record<string, unknown>;
 type RawAdditionalField = { value?: unknown } | null | undefined;
@@ -25,10 +22,13 @@ type RawAttribute = {
   additionalFields?: Record<string, RawAdditionalField> | null;
   listTitles?: RawListTitle[] | null;
 };
-type RawForm = {
-  localizeInfos?: RawLocalize | null;
-  attributes?: RawAttribute[];
-} | null | undefined;
+type RawForm =
+  | {
+      localizeInfos?: RawLocalize | null;
+      attributes?: RawAttribute[];
+    }
+  | null
+  | undefined;
 
 const TTL_MS = 5 * 60 * 1000;
 // LRU cap on the process-wide in-memory cache. Form markers × lang combos are
@@ -127,27 +127,25 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
  * request. Never throws — a missing or erroring form resolves to
  * {@link EMPTY_FORM_CONTENT} so screens fall back to their local copy.
  */
-export const loadFormContent = cache(
-  async (marker: string, langArg?: Lang): Promise<FormContent> => {
-    const lang = langArg ?? (await currentCmsLocale());
-    const key = `${marker}|${lang}`;
-    const now = Date.now();
-    const cached = formCache.get(key);
-    if (cached && now - cached.at < TTL_MS) return cached.value;
-    const pending = inflight.get(key);
-    if (pending) return pending;
-    const p = fetchFormContent(marker, lang)
-      .then((value) => {
-        touchFormCache(key, { at: Date.now(), value });
-        return value;
-      })
-      .finally(() => {
-        inflight.delete(key);
-      });
-    inflight.set(key, p);
-    return p;
-  },
-);
+export const loadFormContent = cache(async (marker: string, langArg?: Lang): Promise<FormContent> => {
+  const lang = langArg ?? (await currentCmsLocale());
+  const key = `${marker}|${lang}`;
+  const now = Date.now();
+  const cached = formCache.get(key);
+  if (cached && now - cached.at < TTL_MS) return cached.value;
+  const pending = inflight.get(key);
+  if (pending) return pending;
+  const p = fetchFormContent(marker, lang)
+    .then((value) => {
+      touchFormCache(key, { at: Date.now(), value });
+      return value;
+    })
+    .finally(() => {
+      inflight.delete(key);
+    });
+  inflight.set(key, p);
+  return p;
+});
 
 /**
  * Back-compat wrapper returning only `additionalFields`.
@@ -155,10 +153,7 @@ export const loadFormContent = cache(
  * @deprecated Prefer {@link loadFormContent}, which also carries field labels,
  * option lists and the form's success/failure messages.
  */
-export async function loadFormPlaceholders(
-  marker: string,
-  langArg?: Lang,
-): Promise<FormPlaceholders> {
+export async function loadFormPlaceholders(marker: string, langArg?: Lang): Promise<FormPlaceholders> {
   const lang = langArg ?? (await currentCmsLocale());
   const content = await loadFormContent(marker, lang);
   const out: FormPlaceholders = {};

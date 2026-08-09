@@ -1,9 +1,9 @@
-'use client'
-import { ShoesCatalog, type FilterGroup } from '../components/catalog/ShoesCatalog';
+'use client';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
+import { type FilterGroup, ShoesCatalog } from '../components/catalog/ShoesCatalog';
 import type { Product } from '../components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
-import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 export function WomenShoesPage({
   initialProducts,

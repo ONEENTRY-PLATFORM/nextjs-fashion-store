@@ -1,24 +1,29 @@
-'use client'
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+'use client';
+import { Eye, Heart, ShoppingBag } from 'lucide-react';
+import Image from 'next/image';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import { Link } from '../../../lib/i18n/navigation';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { ACCENT_WOMEN } from '../../constants/colors';
 import { TIMINGS } from '../../constants/timings';
-import { useCatalogAccent } from '../../context/CatalogAccentContext';
-import Image from 'next/image';
-import CmsImage from '../ui/CmsImage';
-import { createPortal } from 'react-dom';
-import { Heart, ShoppingBag, Eye } from 'lucide-react';
-
-import { useWishlist } from '../../context/WishlistContext';
 import { useCart } from '../../context/CartContext';
+import { useCatalogAccent } from '../../context/CatalogAccentContext';
 import { useQuickView } from '../../context/QuickViewContext';
-import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS, SIZE_DROPDOWN_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
+import { useWishlist } from '../../context/WishlistContext';
+import {
+  CATALOG_VIEW_LABELS,
+  PRODUCT_CARD_ARIA_LABELS,
+  PRODUCT_CARD_LABELS,
+  SIZE_DROPDOWN_LABELS,
+} from '../../data/commonLabels';
 import { QUICK_VIEW_LABELS } from '../../data/productPageLabels';
+import { useMounted } from '../../hooks/useMounted';
 import { hexToColorName as colorName } from '../../utils/colorNames';
 import { stripTrailingZeros } from '../../utils/formatPrice';
+import CmsImage from '../ui/CmsImage';
 import { ColorSwatchButton } from '../ui/ColorSwatchButton';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useMounted } from '../../hooks/useMounted';
-import { Link } from '../../../lib/i18n/navigation';
 
 export interface ProductSpec {
   /** Stable row identifier — match on this, never on the editable `label`. */
@@ -50,9 +55,11 @@ export interface Product {
   colors: string[];
   /** Per-color images (same index as colors). Falls back to product.image if missing. */
   colorImages?: string[];
-  /** Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
+  /**
+   * Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
    *  URL so it stays correct however `colorImages` is sliced or reordered.
-   *  Absent for images that predate OE preview templates. */
+   *  Absent for images that predate OE preview templates.
+   */
   imageBlurs?: Record<string, string>;
   /** Per-color stock status (same index as colors). undefined = in stock. */
   colorStock?: boolean[];
@@ -98,11 +105,15 @@ export interface Product {
   outerMaterial?: string;
   /** Clothing product details (array, e.g. ['Print', 'Embroidery']) */
   productDetails?: string[];
-  /** Insulation filler — surfaced from OE `insulation_17` and consumed by the
-   *  Insulation filter group on catalog pages. */
+  /**
+   * Insulation filler — surfaced from OE `insulation_17` and consumed by the
+   *  Insulation filter group on catalog pages.
+   */
   insulation?: string;
-  /** Care instructions — surfaced from OE `careinstructions_18` and consumed
-   *  by the Care Instructions filter group on catalog pages. */
+  /**
+   * Care instructions — surfaced from OE `careinstructions_18` and consumed
+   *  by the Care Instructions filter group on catalog pages.
+   */
   careInstructions?: string[];
   /** Shoe measurements */
   heelHeight?: number;
@@ -121,22 +132,30 @@ export interface Product {
   recommendedId?: string;
   /** ID of the special-offers group to show on the detail page */
   specialOffersId?: string;
-  /** Gender taxonomy: 'W' (women), 'M' (men), 'U' (unisex). Empty when OE
+  /**
+   * Gender taxonomy: 'W' (women), 'M' (men), 'U' (unisex). Empty when OE
    *  doesn't tag the product. Used by Recently Viewed / You May Also Like /
-   *  trending carousels to keep recommendations gender-consistent. */
+   *  trending carousels to keep recommendations gender-consistent.
+   */
   gender?: 'W' | 'M' | 'U' | '';
-  /** All linked variants in the same title-group. When present, clicking a
+  /**
+   * All linked variants in the same title-group. When present, clicking a
    *  color / size swatch in the card or QuickView swaps the displayed image,
-   *  price, SKU, and stock to the matching variant. */
+   *  price, SKU, and stock to the matching variant.
+   */
   variants?: ProductVariant[];
-  /** Product-level numeric stock — used as a fallback for `CartItem.stockLimit`
+  /**
+   * Product-level numeric stock — used as a fallback for `CartItem.stockLimit`
    *  when a variant-less product is added from QuickView. Undefined when the
-   *  tenant tracks availability via `statusIdentifier` alone. */
+   *  tenant tracks availability via `statusIdentifier` alone.
+   */
   stock?: number;
-  /** OE availability status (`in_stock` | `out_of_stock` | `coming_soon` |
+  /**
+   * OE availability status (`in_stock` | `out_of_stock` | `coming_soon` |
    *  `preorder` | ...). Forwarded from the OE product record so the storefront
    *  can render richer stock copy (Coming Soon / Pre-order) rather than the
-   *  binary `inStock` boolean. */
+   *  binary `inStock` boolean.
+   */
   statusIdentifier?: string;
 }
 
@@ -150,12 +169,16 @@ export interface ProductVariant {
   image: string;
   images: string[];
   inStock: boolean;
-  /** Numeric stock forwarded from OE when the tenant tracks quantities.
-   *  Used by QuickView's Add-to-Cart to seed `CartItem.stockLimit`. */
+  /**
+   * Numeric stock forwarded from OE when the tenant tracks quantities.
+   *  Used by QuickView's Add-to-Cart to seed `CartItem.stockLimit`.
+   */
   stock?: number;
-  /** OE variant availability status — mirrors `Product.statusIdentifier` but
+  /**
+   * OE variant availability status — mirrors `Product.statusIdentifier` but
    *  keyed per variant so a Pre-order colour + In Stock colour of the same
-   *  title-group render distinct copy. */
+   *  title-group render distinct copy.
+   */
   statusIdentifier?: string;
 }
 
@@ -166,6 +189,7 @@ interface ProductCardProps {
 }
 
 function ProductCardInner({ product, accentColor: accentProp, priority = false }: ProductCardProps) {
+  const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);
   const contextAccent = useCatalogAccent();
   const accentColor = accentProp ?? contextAccent ?? ACCENT_WOMEN;
   const { toggleItem, isWishlisted } = useWishlist();
@@ -175,8 +199,9 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   // post-click "Added" copy and "Quick View" labels live in the dedicated
   // `product_card_actions` set on OE.
   const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
-  const lAdded     = useT('added',        PRODUCT_CARD_LABELS.added);
-  const lQuickView = useT('quick_view',   CVL.quickView);
+  const lAdded = useT('added', PRODUCT_CARD_LABELS.added);
+  const lQuickView = useT('quick_view', CVL.quickView);
+  const aAddToWishlist = useT('product-card-aria_add_to_wishlist', PRODUCT_CARD_ARIA_LABELS.addToWishlist);
   const mounted = useMounted();
   const wishlisted = mounted && isWishlisted(product.id);
   // JS-controlled hover state instead of Tailwind `group-hover:` for the
@@ -234,13 +259,14 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   // Pick the variant whose color matches the current swatch, and — if a size
   // is chosen — also matches that size. Falls back to a colors-only match, so
   // clicking a color always finds *some* linked variant when one exists.
-  const activeVariant = product.variants?.find((v) => {
-    const colorHex = product.colors?.[selectedColor];
-    if (!colorHex) return false;
-    const hasColor = v.colors.includes(colorHex);
-    if (!hasColor) return false;
-    return selectedSize ? v.sizes.includes(selectedSize) : true;
-  }) ?? product.variants?.find((v) => v.colors.includes(product.colors?.[selectedColor] ?? ''));
+  const activeVariant =
+    product.variants?.find((v) => {
+      const colorHex = product.colors?.[selectedColor];
+      if (!colorHex) return false;
+      const hasColor = v.colors.includes(colorHex);
+      if (!hasColor) return false;
+      return selectedSize ? v.sizes.includes(selectedSize) : true;
+    }) ?? product.variants?.find((v) => v.colors.includes(product.colors?.[selectedColor] ?? ''));
 
   // Per-color image & stock — guard against out-of-bounds index. Also coerce
   // any empty-string sources to the placeholder fallback below; an empty `src`
@@ -249,8 +275,10 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const variantImage = activeVariant?.image;
   const candidateImage = variantImage || product.colorImages?.[safeColorIdx] || product.image;
   const activeImage = candidateImage || '/icons/ui/bag-placeholder.svg';
-  /** LQIP for whichever image ended up active. Keyed by URL, so swapping colour
-   *  or variant picks up the right one without any index bookkeeping. */
+  /**
+   * LQIP for whichever image ended up active. Keyed by URL, so swapping colour
+   *  or variant picks up the right one without any index bookkeeping.
+   */
   const activeBlur = product.imageBlurs?.[activeImage];
   const activePrice = activeVariant?.price ?? product.price;
   // Prefer the picked variant's own sale price when it has one — otherwise
@@ -272,9 +300,11 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   // Load state is stored together with the src it belongs to, so switching
   // colour variants invalidates it during render — no effect has to reset it
   // (that would be a synchronous `setState` in `useEffect`).
-  const [imgState, setImgState] = useState<{ src: string; loaded: boolean; error: boolean }>(
-    { src: activeImage, loaded: false, error: false },
-  );
+  const [imgState, setImgState] = useState<{ src: string; loaded: boolean; error: boolean }>({
+    src: activeImage,
+    loaded: false,
+    error: false,
+  });
   const imgLoaded = imgState.src === activeImage && imgState.loaded;
   const imgError = imgState.src === activeImage && imgState.error;
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -285,12 +315,15 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   // decoded and painted. A callback ref runs on attach (and re-runs whenever
   // `activeImage` changes, since its identity does), so `complete +
   // naturalWidth` is checked at exactly the right moment.
-  const attachImg = useCallback((el: HTMLImageElement | null) => {
-    imgRef.current = el;
-    if (el && el.complete && el.naturalWidth > 0) {
-      setImgState({ src: activeImage, loaded: true, error: false });
-    }
-  }, [activeImage]);
+  const attachImg = useCallback(
+    (el: HTMLImageElement | null) => {
+      imgRef.current = el;
+      if (el && el.complete && el.naturalWidth > 0) {
+        setImgState({ src: activeImage, loaded: true, error: false });
+      }
+    },
+    [activeImage],
+  );
   const [addedToCart, setAddedToCart] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -347,10 +380,8 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
     // parallel `colorImages` array, then the current active image as a last
     // resort. Without this the favourites card is stuck showing the picture
     // of whichever colour was open when the shopper hit the heart icon.
-    const colorImages = product.colors.map((c, i) =>
-      product.variants?.find((v) => v.colors.includes(c))?.image
-      || product.colorImages?.[i]
-      || activeImage,
+    const colorImages = product.colors.map(
+      (c, i) => product.variants?.find((v) => v.colors.includes(c))?.image || product.colorImages?.[i] || activeImage,
     );
     toggleItem({
       id: product.id,
@@ -407,29 +438,33 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   return (
     <Link
       href={cardHref}
-      className="relative flex flex-col bg-white group cursor-pointer"
+      className="group relative flex cursor-pointer flex-col bg-white"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
       <div
         suppressHydrationWarning
-        className={`relative overflow-hidden aspect-3/4 bg-[#f2f1ef] ${
+        className={`relative aspect-3/4 overflow-hidden bg-[#f2f1ef] ${
           // With an LQIP there is already something to look at, so the grey
           // pulse would only fight the blur-up.
           hasRealImage && !imgLoaded && !imgError && !activeBlur ? 'animate-pulse' : ''
         }`}
       >
         {imgError || !hasRealImage ? (
-          <div className={`w-full h-full flex items-center justify-center bg-[#f2f1ef] ${suppressHoverScale ? 'transition-none' : 'transition-transform duration-500'} ${showHoverScale ? 'scale-105' : ''} ${outOfStock ? 'grayscale opacity-60' : ''}`}>
+          <div
+            className={`flex size-full items-center justify-center bg-[#f2f1ef] ${suppressHoverScale ? 'transition-none' : 'transition-transform duration-500'} ${showHoverScale ? 'scale-105' : ''} ${outOfStock ? 'opacity-60 grayscale' : ''}`}
+          >
             <Image src="/icons/ui/bag-placeholder.svg" alt="" width={48} height={48} unoptimized />
           </div>
         ) : (
-          <div className={`absolute inset-0 transition-opacity duration-500 ${
-            // Without an LQIP the cell stays blank until `onLoad`; with one the
-            // blur itself is the placeholder, so it must be visible from paint.
-            imgLoaded || activeBlur ? 'opacity-100' : 'opacity-0'
-          }`}>
+          <div
+            className={`absolute inset-0 transition-opacity duration-500 ${
+              // Without an LQIP the cell stays blank until `onLoad`; with one the
+              // blur itself is the placeholder, so it must be visible from paint.
+              imgLoaded || activeBlur ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
             <CmsImage
               ref={attachImg}
               src={activeImage}
@@ -437,7 +472,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
               alt={product.brand ? `${product.name} by ${product.brand}` : product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={`object-cover object-top ${suppressHoverScale ? 'transition-none' : 'transition-transform duration-500'} ${showHoverScale ? 'scale-105' : ''} ${outOfStock ? 'grayscale opacity-60' : ''}`}
+              className={`object-cover object-top ${suppressHoverScale ? 'transition-none' : 'transition-transform duration-500'} ${showHoverScale ? 'scale-105' : ''} ${outOfStock ? 'opacity-60 grayscale' : ''}`}
               onLoad={() => setImgState({ src: activeImage, loaded: true, error: false })}
               onError={() => setImgState({ src: activeImage, loaded: false, error: true })}
               priority={priority}
@@ -447,8 +482,8 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
 
         {/* Out of Stock overlay */}
         {outOfStock && (
-          <div className="absolute inset-0 flex items-end justify-center pb-4 pointer-events-none">
-            <span className="px-3 py-1.5 text-xs tracking-[0.15em] uppercase font-semibold text-white bg-black/70">
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-4">
+            <span className="bg-black/70 px-3 py-1.5 text-xs font-semibold tracking-[0.15em] text-white uppercase">
               {CVL.outOfStock}
             </span>
           </div>
@@ -458,7 +493,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         {(product.label || product.badge) && (
           <div className="absolute top-3 left-3">
             <span
-              className={`px-2 py-1 text-white text-xs tracking-wider uppercase font-medium ${
+              className={`px-2 py-1 text-xs font-medium tracking-wider text-white uppercase ${
                 product.label === 'SALE' ? 'bg-(--sale)' : 'bg-black'
               }`}
             >
@@ -470,8 +505,8 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         {/* Wishlist Button */}
         <button
           onClick={handleWishlist}
-          className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white transition-all duration-200"
-          aria-label={PRODUCT_CARD_ARIA_LABELS.addToWishlist}
+          className="absolute top-3 right-3 flex size-8 items-center justify-center bg-white/90 transition-all duration-200 hover:bg-white"
+          aria-label={aAddToWishlist}
         >
           <Heart
             size={16}
@@ -487,44 +522,43 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
             cycle on a card — leaves a stale cached layout box on the sibling image
             wrapper, shifting it ~64px up and revealing the beige card background at
             the bottom of the image. Animate opacity + pointer-events only. */}
-        {!outOfStock && <div
-          className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-4 transition-opacity duration-300 ${
-            isHovered ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          {/* Add to Cart — hidden when product has multiple colors or sizes */}
-          {product.colors.length <= 1 && (!product.sizes || product.sizes.length <= 1) && (
-            <button
-              onClick={handleAddToCart}
-              className={`w-full py-2 text-xs tracking-widest uppercase text-white flex items-center justify-center gap-2 transition-colors duration-200 focus-visible:outline-none ${
-                addedToCart
-                  ? 'bg-primary-men'
-                  : 'bg-black hover:bg-primary-women'
-              }`}
-            >
-              <ShoppingBag size={14} />
-              {addedToCart ? lAdded : lAddToCart}
-            </button>
-          )}
-          <button
-            onClick={handleQuickView}
-            className="w-full py-2 text-xs tracking-widest uppercase font-medium bg-white/95 text-black flex items-center justify-center gap-2 hover:bg-white transition-all duration-200"
+        {!outOfStock && (
+          <div
+            className={`absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 p-4 transition-opacity duration-300 ${
+              isHovered ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+            }`}
           >
-            <Eye size={14} />
-            {lQuickView}
-          </button>
-        </div>}
+            {/* Add to Cart — hidden when product has multiple colors or sizes */}
+            {product.colors.length <= 1 && (!product.sizes || product.sizes.length <= 1) && (
+              <button
+                onClick={handleAddToCart}
+                className={`flex w-full items-center justify-center gap-2 py-2 text-xs tracking-widest text-white uppercase transition-colors duration-200 focus-visible:outline-none ${
+                  addedToCart ? 'bg-primary-men' : 'bg-black hover:bg-primary-women'
+                }`}
+              >
+                <ShoppingBag size={14} />
+                {addedToCart ? lAdded : lAddToCart}
+              </button>
+            )}
+            <button
+              onClick={handleQuickView}
+              className="flex w-full items-center justify-center gap-2 bg-white/95 py-2 text-xs font-medium tracking-widest text-black uppercase transition-all duration-200 hover:bg-white"
+            >
+              <Eye size={14} />
+              {lQuickView}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Product Info — flexible height so the size row can render without
           clipping when a product has multiple linked variants. */}
-      <div className="flex flex-col px-4 pt-4 pb-4 min-h-24 overflow-hidden">
-
+      <div className="flex min-h-24 flex-col overflow-hidden p-4">
         {/* Title with tooltip */}
         <div className="relative mb-1">
           <h3
             ref={titleRef}
-            className="text-sm text-black font-normal truncate"
+            className="truncate text-sm font-normal text-black"
             onMouseEnter={() => {
               const rect = titleRef.current?.getBoundingClientRect();
               if (rect) setTooltipPos({ x: rect.left, y: rect.top });
@@ -539,37 +573,42 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
           </h3>
 
           {/* Floating tooltip — portal to body to escape parent transforms */}
-          {showTooltip && typeof document !== 'undefined' && createPortal(
-            <div
-              className="fixed px-3 py-2 bg-black text-white text-xs tracking-wide pointer-events-none whitespace-normal leading-snug shadow-lg -translate-y-full z-99999 max-w-65"
-              style={{ left: tooltipPos.x, top: tooltipPos.y - 8 }}
-            >
-              {product.name}
-              <span className="absolute left-3 top-full w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-black" />
-            </div>,
-            document.body
-          )}
+          {showTooltip &&
+            typeof document !== 'undefined' &&
+            createPortal(
+              <div
+                className="pointer-events-none fixed z-99999 max-w-65 -translate-y-full bg-black px-3 py-2 text-xs leading-snug tracking-wide whitespace-normal text-white shadow-lg"
+                style={{ left: tooltipPos.x, top: tooltipPos.y - 8 }}
+              >
+                {product.name}
+                <span className="absolute top-full left-3 size-0 border-x-[5px] border-t-[5px] border-x-transparent border-t-black" />
+              </div>,
+              document.body,
+            )}
         </div>
 
         {/* Price — variant salePrice takes precedence over family so the
             strike-through pair is consistent for the currently picked
             variant (matches PDP behaviour). */}
-        <div className="flex items-center gap-2 mb-2">
+        <div className="mb-2 flex items-center gap-2">
           {activeSalePrice ? (
             <>
               <span className="text-sm font-medium text-primary-men">{stripTrailingZeros(activeSalePrice)}</span>
-              <span className="text-xs text-gray-400 line-through">{stripTrailingZeros(activeVariant?.salePrice ? activeVariant.price : product.price)}</span>
+              <span className="text-xs text-gray-400 line-through">
+                {stripTrailingZeros(activeVariant?.salePrice ? activeVariant.price : product.price)}
+              </span>
             </>
           ) : (
-            <span className="text-sm text-black font-medium">{stripTrailingZeros(activePrice)}</span>
+            <span className="text-sm font-medium text-black">{stripTrailingZeros(activePrice)}</span>
           )}
         </div>
 
         {/* Color Swatches */}
         {product.colors.length > 0 && (
-          <div className="flex items-center gap-2 mt-auto">
+          <div className="mt-auto flex items-center gap-2">
             {product.colors.slice(0, 4).map((color, idx) => {
-              const isOOS = product.inStock === false || (product.colorStock ? product.colorStock[idx] === false : false);
+              const isOOS =
+                product.inStock === false || (product.colorStock ? product.colorStock[idx] === false : false);
               const isActive = selectedColor === idx;
               return (
                 <ColorSwatchButton
@@ -578,12 +617,19 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
                   active={isActive}
                   outOfStock={isOOS}
                   label={`${colorName(color)}${isOOS ? CVL.colorSwatchOutOfStockSuffix : ''}`}
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isOOS) { setSelectedColor(idx); setSelectedSize(null); } }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isOOS) {
+                      setSelectedColor(idx);
+                      setSelectedSize(null);
+                    }
+                  }}
                 />
               );
             })}
             {product.colors.length > 4 && (
-              <span className="text-xs text-gray-500 ml-1">+{product.colors.length - 4}</span>
+              <span className="ml-1 text-xs text-gray-500">+{product.colors.length - 4}</span>
             )}
           </div>
         )}
@@ -591,12 +637,15 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         {/* Size chips — only for products with linked variants; picking a
             size flips the card to the matching variant (image / price / SKU). */}
         {product.variants && product.variants.length > 1 && product.sizes && product.sizes.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1">
             {product.sizes.slice(0, 6).map((size, idx) => {
               const active = selectedSize === size;
               const currentColorHex = product.colors?.[selectedColor];
               const isAvailable = product.variants?.some(
-                (v) => v.sizes.includes(size) && (currentColorHex ? v.colors.includes(currentColorHex) : true) && v.inStock !== false,
+                (v) =>
+                  v.sizes.includes(size) &&
+                  (currentColorHex ? v.colors.includes(currentColorHex) : true) &&
+                  v.inStock !== false,
               );
               return (
                 <button
@@ -608,12 +657,12 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
                     setSelectedSize(active ? null : size);
                   }}
                   disabled={!isAvailable}
-                  className={`min-w-7 px-1.5 py-0.5 text-[10px] leading-none tracking-wide uppercase border transition-colors ${
+                  className={`min-w-7 border px-1.5 py-0.5 text-[10px] leading-none tracking-wide uppercase transition-colors ${
                     active
-                      ? 'bg-black text-white border-black'
+                      ? 'border-black bg-black text-white'
                       : isAvailable
-                      ? 'bg-white text-gray-700 border-gray-300 hover:border-black'
-                      : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed line-through'
+                        ? 'border-gray-300 bg-white text-gray-700 hover:border-black'
+                        : 'cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300 line-through'
                   }`}
                 >
                   {size}
@@ -621,7 +670,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
               );
             })}
             {product.sizes.length > 6 && (
-              <span className="text-[10px] text-gray-500 ml-1">+{product.sizes.length - 6}</span>
+              <span className="ml-1 text-[10px] text-gray-500">+{product.sizes.length - 6}</span>
             )}
           </div>
         )}

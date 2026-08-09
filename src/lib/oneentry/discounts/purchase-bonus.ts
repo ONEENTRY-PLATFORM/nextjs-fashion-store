@@ -1,16 +1,21 @@
 import { unstable_cache } from 'next/cache';
-import { getApi, isError, isOneEntryEnabled } from '../index';
-import { withTiming } from '../profiling';
-import { DEFAULT_LOCALE } from '../locale';
+
 import { REVALIDATE_CATALOG } from '../../isr';
 import type { CatalogProduct } from '../catalog/products';
+import { getApi, isError, isOneEntryEnabled } from '../index';
+import { DEFAULT_LOCALE } from '../locale';
+import { withTiming } from '../profiling';
 
-/** OE `Discounts.getDiscountByMarker` marker for the "bonus per purchase" rule
- *  that the tenant admin manages from the OE admin panel. */
+/**
+ * OE `Discounts.getDiscountByMarker` marker for the "bonus per purchase" rule
+ *  that the tenant admin manages from the OE admin panel.
+ */
 const PURCHASE_BONUS_MARKER = 'purchase-of-goods';
 
-/** SDK typings say `IDiscountCondition.value` is a string, but real payloads
- *  return objects (e.g. `{ ids: [...] }`, `{ amount: 100 }`) — narrow locally. */
+/**
+ * SDK typings say `IDiscountCondition.value` is a string, but real payloads
+ *  return objects (e.g. `{ ids: [...] }`, `{ amount: 100 }`) — narrow locally.
+ */
 type RawCondition = {
   type?: string;
   conditionType?: string;
@@ -36,8 +41,10 @@ function condType(c: RawCondition): string {
   return (c.type ?? c.conditionType ?? '').toUpperCase();
 }
 
-/** Pull numeric ids out of a condition value regardless of shape:
- *  scalar, array, or `{ ids: [...] }` / `{ id: N }`. */
+/**
+ * Pull numeric ids out of a condition value regardless of shape:
+ *  scalar, array, or `{ ids: [...] }` / `{ id: N }`.
+ */
 function extractIds(value: unknown): number[] {
   if (value == null) return [];
   if (typeof value === 'number') return Number.isFinite(value) ? [value] : [];
@@ -54,7 +61,9 @@ function extractIds(value: unknown): number[] {
   return [];
 }
 
-/** Pull category needles (ids, markers, or paths) out of a condition value. */
+/**
+ * Pull category needles (ids, markers, or paths) out of a condition value.
+ */
 function extractCategoryNeedles(value: unknown): string[] {
   if (value == null) return [];
   if (typeof value === 'string' || typeof value === 'number') return [String(value)];
@@ -68,20 +77,15 @@ function extractCategoryNeedles(value: unknown): string[] {
 }
 
 function categoryMatches(needle: string, productCategories: string[]): boolean {
-  return productCategories.some((cat) =>
-    cat === needle
-    || cat.split('/').filter(Boolean).includes(needle)
-    || cat.includes(needle),
+  return productCategories.some(
+    (cat) => cat === needle || cat.split('/').filter(Boolean).includes(needle) || cat.includes(needle),
   );
 }
 
 /** Fetch the `purchase-of-goods` bonus rule once per revalidation window. */
 const loadPurchaseBonusRuleCached = unstable_cache(
   async (): Promise<RawBonusRule | null> => {
-    const result = await getApi().Discounts.getDiscountByMarker(
-      PURCHASE_BONUS_MARKER,
-      DEFAULT_LOCALE,
-    );
+    const result = await getApi().Discounts.getDiscountByMarker(PURCHASE_BONUS_MARKER, DEFAULT_LOCALE);
     if (isError(result)) return null;
     return result as unknown as RawBonusRule;
   },
@@ -89,10 +93,12 @@ const loadPurchaseBonusRuleCached = unstable_cache(
   { revalidate: REVALIDATE_CATALOG, tags: ['oe-discounts'] },
 );
 
-/** Compute the bonus points a shopper earns when buying `oeProduct` under the
+/**
+ * Compute the bonus points a shopper earns when buying `oeProduct` under the
  *  `purchase-of-goods` rule. Returns `null` when the rule is missing, inactive,
  *  or does not apply to this product. `1 bonus = 1 currency unit`, so a PERCENT
- *  rule of 5% on a $126 product yields ~6 points. */
+ *  rule of 5% on a $126 product yields ~6 points.
+ */
 export const loadPurchaseBonusForProduct = withTiming('loadPurchaseBonusForProduct', _loadPurchaseBonusForProduct);
 
 async function _loadPurchaseBonusForProduct(
@@ -115,13 +121,9 @@ async function _loadPurchaseBonusForProduct(
   // must match the current product. Other condition kinds (MIN_CART_AMOUNT,
   // USER_LTV, etc.) are cart/user-scoped and don't gate the PDP badge.
   if (productConds.length > 0 || categoryConds.length > 0) {
-    const productMatches = productConds.some((c) =>
-      extractIds(c.value).includes(oeProduct.id),
-    );
+    const productMatches = productConds.some((c) => extractIds(c.value).includes(oeProduct.id));
     const categoryMatchesRule = categoryConds.some((c) =>
-      extractCategoryNeedles(c.value).some((needle) =>
-        categoryMatches(needle, oeProduct.categories),
-      ),
+      extractCategoryNeedles(c.value).some((needle) => categoryMatches(needle, oeProduct.categories)),
     );
     if (!productMatches && !categoryMatchesRule) return null;
   }

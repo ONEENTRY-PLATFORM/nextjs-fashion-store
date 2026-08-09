@@ -1,4 +1,5 @@
 import { cache } from 'react';
+
 import { getApiSafe, isError } from './index';
 import { logCaught } from './log';
 

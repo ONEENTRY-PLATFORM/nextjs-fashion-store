@@ -7,9 +7,9 @@
  * string when the key is absent.  After reading, the key is removed from
  * sessionStorage.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, act, cleanup } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Heavy dependency mocks — all wired before the module is imported
@@ -23,8 +23,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: { src: string; alt: string }) =>
-    React.createElement('img', { src, alt }),
+  default: ({ src, alt }: { src: string; alt: string }) => React.createElement('img', { src, alt }),
 }));
 
 // Cart context — provide a minimal stub with stable clearCart reference
@@ -36,6 +35,7 @@ vi.mock('@/app/context/CartContext', () => ({
 // Dictionary — return the inline fallback for every lookup
 vi.mock('@/lib/oneentry/labels/DictContext', () => ({
   useT: (_key: string, fallback: string) => fallback,
+  useDict: <T extends Record<string, unknown>>(_prefix: string, fallbacks: T) => fallbacks,
 }));
 
 // Layout components — replace with lightweight stubs

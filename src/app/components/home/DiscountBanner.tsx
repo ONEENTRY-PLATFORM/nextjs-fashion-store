@@ -1,10 +1,10 @@
-'use client'
+'use client';
+import { ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 
-import { ShoppingBag } from 'lucide-react';
+import { Link } from '../../../lib/i18n/navigation';
 import type { DiscountBannerFromCms } from '../../../lib/oneentry/blocks/discount-banner';
 import { useMounted } from '../../hooks/useMounted';
-import { Link } from '../../../lib/i18n/navigation';
 import CmsImage from '../ui/CmsImage';
 
 export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBannerFromCms | null } = {}) {
@@ -15,14 +15,12 @@ export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBann
   const banner = initialBanner;
 
   if (!mounted) {
-    return (
-      <section className="relative w-full bg-gray-100 animate-pulse h-120" aria-hidden="true" />
-    );
+    return <section className="relative h-120 w-full animate-pulse bg-gray-100" aria-hidden="true" />;
   }
 
   return (
     <section
-      className="relative w-full overflow-hidden h-120"
+      className="relative h-120 w-full overflow-hidden"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -34,7 +32,7 @@ export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBann
         fill
         sizes="100vw"
         priority
-        className={`object-cover object-[center_30%] transition-transform duration-700 ${hovered ? 'scale-[1.03]' : 'scale-100'}`}
+        className={`object-cover object-[center_30%] transition-transform duration-700 ${hovered ? 'scale-1.03' : 'scale-100'}`}
       />
       {/* Dark Overlay */}
       <div className="absolute inset-0 bg-black/55 transition-opacity duration-300" />
@@ -42,25 +40,23 @@ export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBann
       {/* Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-4 text-center">
         {/* Badge */}
-        <span className="px-5 py-2 text-white text-xs tracking-widest uppercase font-medium bg-primary-men">
+        <span className="bg-primary-men px-5 py-2 text-xs font-medium tracking-widest text-white uppercase">
           {banner.badge}
         </span>
 
         {/* Main Text */}
-        <h2 className="text-white text-[clamp(3.5rem,9vw,7.5rem)] font-semibold tracking-[-0.03em] leading-[0.95]">
+        <h2 className="leading-0.95 text-[clamp(3.5rem,9vw,7.5rem)] font-semibold tracking-[-0.03em] text-white">
           {banner.discountText}
         </h2>
-        <p className="text-white tracking-[0.2em] uppercase font-semibold text-[clamp(1.25rem,3vw,2rem)]">
+        <p className="text-[clamp(1.25rem,3vw,2rem)] font-semibold tracking-[0.2em] text-white uppercase">
           {banner.category}
         </p>
-        <p className="text-white/70 max-w-sm text-base leading-relaxed">
-          {banner.description}
-        </p>
+        <p className="max-w-sm text-base leading-relaxed text-white/70">{banner.description}</p>
 
         {/* CTA Button */}
         <Link
           href={banner.href}
-          className={`mt-2 flex items-center gap-2 px-10 py-4 text-sm tracking-widest uppercase font-medium border-2 border-white transition-all duration-200 no-underline ${
+          className={`mt-2 flex items-center gap-2 border-2 border-white px-10 py-4 text-sm font-medium tracking-widest uppercase no-underline transition-all duration-200 ${
             hovered ? 'bg-white text-black' : 'bg-transparent text-white hover:bg-white/10'
           }`}
         >

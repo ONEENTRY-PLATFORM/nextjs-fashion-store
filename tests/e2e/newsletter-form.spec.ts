@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * The footer newsletter reads every visible string from the OneEntry
@@ -47,10 +47,13 @@ test.describe('Footer newsletter form', () => {
     // lands in the DOM but never reaches component state and the button stays
     // disabled. Retry the fill until the state actually flips.
     await expect
-      .poll(async () => {
-        await email.fill('shopper@example.com');
-        return submit.isEnabled();
-      }, { timeout: 45_000 })
+      .poll(
+        async () => {
+          await email.fill('shopper@example.com');
+          return submit.isEnabled();
+        },
+        { timeout: 45_000 },
+      )
       .toBe(true);
   });
 
@@ -59,10 +62,13 @@ test.describe('Footer newsletter form', () => {
     const submit = page.locator('[data-testid="newsletter-submit"]');
     // Same hydration caveat as above — only click once the button has enabled.
     await expect
-      .poll(async () => {
-        await email.fill(`e2e-${Date.now()}@example.com`);
-        return submit.isEnabled();
-      }, { timeout: 45_000 })
+      .poll(
+        async () => {
+          await email.fill(`e2e-${Date.now()}@example.com`);
+          return submit.isEnabled();
+        },
+        { timeout: 45_000 },
+      )
       .toBe(true);
     await submit.click();
 
@@ -70,8 +76,6 @@ test.describe('Footer newsletter form', () => {
     // must surface a non-empty message in the live region rather than a silent
     // no-op. `sr-only` keeps the idle state invisible, so assert on text.
     const status = page.locator('[data-testid="newsletter-status"]');
-    await expect
-      .poll(async () => (await status.innerText()).trim().length, { timeout: 15000 })
-      .toBeGreaterThan(0);
+    await expect.poll(async () => (await status.innerText()).trim().length, { timeout: 15000 }).toBeGreaterThan(0);
   });
 });

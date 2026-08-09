@@ -63,8 +63,12 @@ const cookieGet = vi.fn((name: string) => {
   const v = store.get(name);
   return v === undefined ? undefined : { value: v };
 });
-const cookieSet = vi.fn((name: string, value: string) => { store.set(name, value); });
-const cookieDelete = vi.fn((name: string) => { store.delete(name); });
+const cookieSet = vi.fn((name: string, value: string) => {
+  store.set(name, value);
+});
+const cookieDelete = vi.fn((name: string) => {
+  store.delete(name);
+});
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: cookieGet, set: cookieSet, delete: cookieDelete }),
 }));
@@ -169,11 +173,7 @@ describe('getGoogleAuthUrlAction', () => {
     });
     const { getGoogleAuthUrlAction } = await importOauth();
     await getGoogleAuthUrlAction('https://shop.example.com', '//evil.com/steal');
-    expect(cookieSet).toHaveBeenCalledWith(
-      'oe_google_oauth_return',
-      '/',
-      expect.objectContaining({ httpOnly: true }),
-    );
+    expect(cookieSet).toHaveBeenCalledWith('oe_google_oauth_return', '/', expect.objectContaining({ httpOnly: true }));
   });
 
   it('coerces absolute-URL returnTo back to "/"', async () => {
@@ -182,20 +182,14 @@ describe('getGoogleAuthUrlAction', () => {
     });
     const { getGoogleAuthUrlAction } = await importOauth();
     await getGoogleAuthUrlAction('https://shop.example.com', 'https://evil.com/steal');
-    expect(cookieSet).toHaveBeenCalledWith(
-      'oe_google_oauth_return',
-      '/',
-      expect.objectContaining({ httpOnly: true }),
-    );
+    expect(cookieSet).toHaveBeenCalledWith('oe_google_oauth_return', '/', expect.objectContaining({ httpOnly: true }));
   });
 });
 
 // -----------------------------------------------------------------------------
 // exchangeGoogleCodeAction
 // -----------------------------------------------------------------------------
-const ctx = (
-  over: Partial<{ code: string; state: string; origin: string; deviceMetadata: string }> = {},
-) => ({
+const ctx = (over: Partial<{ code: string; state: string; origin: string; deviceMetadata: string }> = {}) => ({
   code: 'g-code',
   state: 'saved-state',
   origin: 'https://shop.example.com',

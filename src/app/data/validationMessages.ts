@@ -50,6 +50,8 @@ export const VALIDATION_MESSAGES = {
   saveFailed: 'Save failed',
 } as const;
 
-/** Shape of {@link VALIDATION_MESSAGES}, widened to plain strings so a CMS
- *  overlay (which cannot be a literal type) still satisfies it. */
+/**
+ * Shape of {@link VALIDATION_MESSAGES}, widened to plain strings so a CMS
+ *  overlay (which cannot be a literal type) still satisfies it.
+ */
 export type ValidationMessages = Record<keyof typeof VALIDATION_MESSAGES, string>;

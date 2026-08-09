@@ -1,12 +1,13 @@
-'use client'
-import { useEffect, useState } from 'react';
+'use client';
 import Image from 'next/image';
-import { SectionTitle } from '../shared';
-import { SOCIAL_NETWORKS_LABELS as L } from '../../../data/accountLabels';
-import { useT } from '../../../../lib/oneentry/labels/DictContext';
+import { useEffect, useState } from 'react';
+
 import { startGoogleOAuth } from '../../../../lib/google-auth';
+import { useDict, useT } from '../../../../lib/oneentry/labels/DictContext';
+import { SOCIAL_NETWORKS_LABELS } from '../../../data/accountLabels';
+import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '../../../data/socialProviderRegistry';
 import { useAuthProviders } from '../../../hooks/useAuthProviders';
-import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../../data/socialProviderRegistry';
+import { SectionTitle } from '../shared';
 
 // Local persistence key for the "connected" badge. OE doesn't expose a
 // per-user `linkedProviders` field on this tenant, so we remember the link
@@ -35,6 +36,7 @@ function writeLinkedProviders(providers: string[]): void {
 }
 
 export function SocialNetworksSection() {
+  const L = useDict('user_account_social_', SOCIAL_NETWORKS_LABELS);
   const { providers, loading } = useAuthProviders();
   const socialProviders = providers.filter((p) => !isFormBasedProvider(p.identifier, p.type));
   const [linked, setLinked] = useState<string[]>([]);
@@ -64,9 +66,7 @@ export function SocialNetworksSection() {
   }, []);
 
   const setProviderLinked = (id: string, isLinked: boolean) => {
-    const next = isLinked
-      ? Array.from(new Set([...linked, id]))
-      : linked.filter((p) => p !== id);
+    const next = isLinked ? Array.from(new Set([...linked, id])) : linked.filter((p) => p !== id);
     setLinked(next);
     writeLinkedProviders(next);
   };
@@ -92,45 +92,41 @@ export function SocialNetworksSection() {
     setProviderLinked(id, false);
   };
 
-  const lTitle       = useT('user_account_social_title',         L.title);
-  const lConnected   = useT('user_account_social_connected',     L.connectedBadge);
-  const lDisconnect  = useT('user_account_social_disconnect',    L.disconnect);
-  const lErrConnect  = useT('user_account_social_connect_error', L.errorConnect);
-  const lLoading     = useT('user_account_social_loading',       L.loading);
-  const lEmpty       = useT('user_account_social_empty',         L.emptyProviders);
-  const lComingSoon  = useT('user_account_social_coming_soon',   L.comingSoon);
+  const lTitle = useT('user_account_social_title', L.title);
+  const lConnected = useT('user_account_social_connected', L.connectedBadge);
+  const lDisconnect = useT('user_account_social_disconnect', L.disconnect);
+  const lErrConnect = useT('user_account_social_connect_error', L.errorConnect);
+  const lLoading = useT('user_account_social_loading', L.loading);
+  const lEmpty = useT('user_account_social_empty', L.emptyProviders);
+  const lComingSoon = useT('user_account_social_coming_soon', L.comingSoon);
 
   return (
     <div>
       <SectionTitle title={lTitle} />
       <div className="space-y-3">
-        {loading && socialProviders.length === 0 && (
-          <p className="text-xs text-gray-400">{lLoading}</p>
-        )}
-        {!loading && socialProviders.length === 0 && (
-          <p className="text-xs text-gray-400">{lEmpty}</p>
-        )}
+        {loading && socialProviders.length === 0 && <p className="text-xs text-gray-400">{lLoading}</p>}
+        {!loading && socialProviders.length === 0 && <p className="text-xs text-gray-400">{lEmpty}</p>}
         {socialProviders.map((p) => {
           const meta = SOCIAL_PROVIDER_REGISTRY[p.identifier];
           const wired = meta?.wired ?? false;
           const isLinked = linked.includes(p.identifier);
           const isBusy = busy === p.identifier;
           return (
-            <div key={p.identifier} className="flex items-center justify-between p-4 border border-[#e5e7eb]">
+            <div key={p.identifier} className="flex items-center justify-between border border-[#e5e7eb] p-4">
               <div className="flex items-center gap-3">
                 {meta?.iconPath && (
-                  <Image src={meta.iconPath} alt="" width={18} height={18} className="w-4.5 h-4.5" unoptimized />
+                  <Image src={meta.iconPath} alt="" width={18} height={18} className="size-4.5" unoptimized />
                 )}
-                <span className="text-xs uppercase tracking-wide font-semibold">{p.title}</span>
+                <span className="text-xs font-semibold tracking-wide uppercase">{p.title}</span>
                 {isLinked && (
-                  <span className="text-[10px] tracking-widest uppercase text-green-700 bg-green-50 border border-green-200 px-2 py-0.5">
+                  <span className="border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] tracking-widest text-green-700 uppercase">
                     {lConnected}
                   </span>
                 )}
               </div>
               {!wired ? (
                 <button
-                  className="text-xs tracking-wide uppercase font-semibold text-gray-400 cursor-not-allowed"
+                  className="cursor-not-allowed text-xs font-semibold tracking-wide text-gray-400 uppercase"
                   disabled
                   title={lComingSoon}
                 >
@@ -139,7 +135,7 @@ export function SocialNetworksSection() {
               ) : isLinked ? (
                 <button
                   onClick={() => handleDisconnect(p.identifier)}
-                  className="text-xs tracking-wide uppercase focus-visible:outline-none hover:opacity-70 transition-opacity font-semibold text-black"
+                  className="text-xs font-semibold tracking-wide text-black uppercase transition-opacity hover:opacity-70 focus-visible:outline-none"
                 >
                   {lDisconnect}
                 </button>
@@ -147,7 +143,7 @@ export function SocialNetworksSection() {
                 <button
                   onClick={() => handleConnect(p.identifier)}
                   disabled={isBusy}
-                  className="text-xs tracking-wide uppercase focus-visible:outline-none hover:opacity-70 transition-opacity font-semibold text-black disabled:opacity-50"
+                  className="text-xs font-semibold tracking-wide text-black uppercase transition-opacity hover:opacity-70 focus-visible:outline-none disabled:opacity-50"
                 >
                   {isBusy ? '…' : L.connect}
                 </button>
@@ -156,7 +152,9 @@ export function SocialNetworksSection() {
           );
         })}
         {error && (
-          <p className="text-xs text-red-600 mt-2" role="alert">{error}</p>
+          <p className="mt-2 text-xs text-red-600" role="alert">
+            {error}
+          </p>
         )}
       </div>
     </div>

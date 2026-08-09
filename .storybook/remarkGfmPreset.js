@@ -6,10 +6,7 @@ module.exports = {
       ...options,
       mdxCompileOptions: {
         ...options?.mdxCompileOptions,
-        remarkPlugins: [
-          ...(options?.mdxCompileOptions?.remarkPlugins ?? []),
-          remarkGfm,
-        ],
+        remarkPlugins: [...(options?.mdxCompileOptions?.remarkPlugins ?? []), remarkGfm],
       },
     };
   },

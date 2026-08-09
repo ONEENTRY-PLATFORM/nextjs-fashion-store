@@ -15,15 +15,13 @@ const fakeApi = {
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-  getApiSafe: () => (fakeApi),
+  getApiSafe: () => fakeApi,
   isOneEntryEnabled: true,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 // Strip the ISR cache wrapper so the underlying function runs directly.
 vi.mock('next/cache', () => ({
-   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -77,9 +75,7 @@ describe('normalize — oeId mapping', () => {
   });
 
   it('uses pageUrl as the string id field when present', async () => {
-    getChildPagesByParentUrl.mockResolvedValue([
-      makeRawPage({ id: 169, pageUrl: 'oxford_street' }),
-    ]);
+    getChildPagesByParentUrl.mockResolvedValue([makeRawPage({ id: 169, pageUrl: 'oxford_street' })]);
 
     const { loadStores } = await importFresh();
     const stores = await loadStores('en_US');
@@ -88,9 +84,7 @@ describe('normalize — oeId mapping', () => {
   });
 
   it('falls back to "oe-<id>" for the string id when pageUrl is absent', async () => {
-    getChildPagesByParentUrl.mockResolvedValue([
-      makeRawPage({ id: 42 /* no pageUrl */ }),
-    ]);
+    getChildPagesByParentUrl.mockResolvedValue([makeRawPage({ id: 42 /* no pageUrl */ })]);
 
     const { loadStores } = await importFresh();
     const stores = await loadStores('en_US');

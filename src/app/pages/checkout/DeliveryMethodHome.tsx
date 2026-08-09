@@ -1,14 +1,18 @@
-'use client'
+'use client';
 import { MapPin } from 'lucide-react';
-import { RadioCard } from '../../components/ui/RadioCard';
-import { FormField } from '../../components/ui/FormField';
-import { DELIVERY_TIME_SLOTS, DELIVERY_PERKS } from '../../data/checkoutConfig';
+
 import type { DeliveryTimeSlot } from '../../../lib/oneentry/checkout/delivery-schedule';
-import { DELIVERY_METHOD_HOME_LABELS as L_FALLBACK, DELIVERY_METHOD_SHARED_LABELS as SH } from '../../data/checkoutLabels';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import type { UserAddress } from '../../data/userData';
-import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
 import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { FormField } from '../../components/ui/FormField';
+import { RadioCard } from '../../components/ui/RadioCard';
+import { DELIVERY_PERKS, DELIVERY_TIME_SLOTS } from '../../data/checkoutConfig';
+import {
+  DELIVERY_METHOD_HOME_LABELS as L_FALLBACK,
+  DELIVERY_METHOD_SHARED_LABELS as SH,
+} from '../../data/checkoutLabels';
+import type { UserAddress } from '../../data/userData';
 
 export interface NewAddressForm {
   fullName: string;
@@ -43,38 +47,79 @@ interface DeliveryMethodHomeProps {
   setSelectedDate: (d: Date) => void;
   selectedSlot: string;
   setSelectedSlot: (id: string) => void;
-  /** OE-driven time slots; falls back to the hardcoded set when the parent
-   *  didn't supply anything (Storybook / bare render). */
+  /**
+   * OE-driven time slots; falls back to the hardcoded set when the parent
+   *  didn't supply anything (Storybook / bare render).
+   */
   timeSlots?: DeliveryTimeSlot[];
 }
 
 export function DeliveryMethodHome({
-  checked, onChange,
-  isLoggedIn, savedAddresses, selectedAddressId, setSelectedAddressId,
-  newAddrForm, setNewAddrForm, addrErrors, setAddrErrors,
-  newAddrConfirmed, setNewAddrConfirmed,
-  saveNewAddr, setSaveNewAddr, onConfirmNewAddr,
-  deliveryDates, selectedDate, setSelectedDate, selectedSlot, setSelectedSlot,
+  checked,
+  onChange,
+  isLoggedIn,
+  savedAddresses,
+  selectedAddressId,
+  setSelectedAddressId,
+  newAddrForm,
+  setNewAddrForm,
+  addrErrors,
+  setAddrErrors,
+  newAddrConfirmed,
+  setNewAddrConfirmed,
+  saveNewAddr,
+  setSaveNewAddr,
+  onConfirmNewAddr,
+  deliveryDates,
+  selectedDate,
+  setSelectedDate,
+  selectedSlot,
+  setSelectedSlot,
   timeSlots,
 }: DeliveryMethodHomeProps) {
   const L = useDict('checkout_delivery_', L_FALLBACK);
   const slots = timeSlots && timeSlots.length > 0 ? timeSlots : DELIVERY_TIME_SLOTS;
   const updateAddr = (key: keyof NewAddressForm) => (v: string) => {
-    setNewAddrForm(f => ({ ...f, [key]: v }));
-    setAddrErrors(e => ({ ...e, [key]: '' }));
+    setNewAddrForm((f) => ({ ...f, [key]: v }));
+    setAddrErrors((e) => ({ ...e, [key]: '' }));
   };
 
   const info = useDeliveryMethodInfo();
-  const title    = info?.home.title    ?? L.title;
+  const title = info?.home.title ?? L.title;
   const subtitle = info?.home.subtitle ?? L.subtitle;
-  const perks    = info?.home.perks    ?? DELIVERY_PERKS.map((p) => p.text);
+  const perks = info?.home.perks ?? DELIVERY_PERKS.map((p) => p.text);
 
-  const phFullName     = useFormPlaceholder('user_addresses', 'user_addresses_recipient_name',       'placeholder_name',                 L.placeholderFullName);
-  const phPhone        = useFormPlaceholder('user_addresses', 'user_addresses_recipient_phone',      'placeholder_phone',                L.placeholderPhone);
-  const phAddressLine1 = useFormPlaceholder('user_addresses', 'user_addresses_line_1',               'placeholder_address_line_1',       L.placeholderAddressLine1);
-  const phCity         = useFormPlaceholder('user_addresses', 'user_addresses_city',                 'placeholder_city',                 L.placeholderCity);
-  const phPostalCode   = useFormPlaceholder('user_addresses', 'user_addresses_post_code',            'placeholder_postal_code',          L.placeholderPostalCode);
-  const phInstructions = useFormPlaceholder('user_addresses', 'user_addresses_special_instructions', 'placeholder_special_instructions', L.placeholderInstructions);
+  const phFullName = useFormPlaceholder(
+    'user_addresses',
+    'user_addresses_recipient_name',
+    'placeholder_name',
+    L.placeholderFullName,
+  );
+  const phPhone = useFormPlaceholder(
+    'user_addresses',
+    'user_addresses_recipient_phone',
+    'placeholder_phone',
+    L.placeholderPhone,
+  );
+  const phAddressLine1 = useFormPlaceholder(
+    'user_addresses',
+    'user_addresses_line_1',
+    'placeholder_address_line_1',
+    L.placeholderAddressLine1,
+  );
+  const phCity = useFormPlaceholder('user_addresses', 'user_addresses_city', 'placeholder_city', L.placeholderCity);
+  const phPostalCode = useFormPlaceholder(
+    'user_addresses',
+    'user_addresses_post_code',
+    'placeholder_postal_code',
+    L.placeholderPostalCode,
+  );
+  const phInstructions = useFormPlaceholder(
+    'user_addresses',
+    'user_addresses_special_instructions',
+    'placeholder_special_instructions',
+    L.placeholderInstructions,
+  );
 
   const lFreeBadge = useT('checkout_delivery_free_badge', SH.freeBadge);
   return (
@@ -89,75 +134,124 @@ export function DeliveryMethodHome({
     >
       {/* Address selector for logged-in users */}
       {isLoggedIn && savedAddresses.length > 0 ? (
-        <div className="pt-4 space-y-2">
-          {savedAddresses.map(addr => {
+        <div className="space-y-2 pt-4">
+          {savedAddresses.map((addr) => {
             const isSel = selectedAddressId === addr.id;
             return (
               <button
                 key={addr.id}
-                onClick={() => { setSelectedAddressId(addr.id); setNewAddrConfirmed(false); }}
-                className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none border-2 ${
+                onClick={() => {
+                  setSelectedAddressId(addr.id);
+                  setNewAddrConfirmed(false);
+                }}
+                className={`flex w-full items-start gap-3 border-2 px-4 py-3 text-left transition-colors focus-visible:outline-none ${
                   isSel ? 'border-black bg-[#fafafa]' : 'border-[#e5e7eb] bg-white'
                 }`}
               >
-                <span className={`shrink-0 w-4 h-4 rounded-full mt-0.5 flex items-center justify-center bg-white border-2 ${
-                  isSel ? 'border-black' : 'border-[#c8c8c8]'
-                }`}>
-                  {isSel && <span className="w-2 h-2 rounded-full bg-black" />}
+                <span
+                  className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2 bg-white ${
+                    isSel ? 'border-black' : 'border-[#c8c8c8]'
+                  }`}
+                >
+                  {isSel && <span className="size-2 rounded-full bg-black" />}
                 </span>
                 <div>
-                  <p className="text-xs uppercase tracking-wide font-bold">{addr.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{addr.full}</p>
+                  <p className="text-xs font-bold tracking-wide uppercase">{addr.name}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">{addr.full}</p>
                 </div>
               </button>
             );
           })}
 
           <button
-            onClick={() => { setSelectedAddressId('new'); setNewAddrConfirmed(false); setAddrErrors(() => ({})); }}
-            className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors focus-visible:outline-none border-2 ${
+            onClick={() => {
+              setSelectedAddressId('new');
+              setNewAddrConfirmed(false);
+              setAddrErrors(() => ({}));
+            }}
+            className={`flex w-full items-start gap-3 border-2 px-4 py-3 text-left transition-colors focus-visible:outline-none ${
               selectedAddressId === 'new' ? 'border-black bg-[#fafafa]' : 'border-[#e5e7eb] bg-white'
             }`}
           >
-            <span className={`shrink-0 w-4 h-4 rounded-full mt-0.5 flex items-center justify-center bg-white border-2 ${
-              selectedAddressId === 'new' ? 'border-black' : 'border-[#c8c8c8]'
-            }`}>
-              {selectedAddressId === 'new' && <span className="w-2 h-2 rounded-full bg-black" />}
+            <span
+              className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border-2 bg-white ${
+                selectedAddressId === 'new' ? 'border-black' : 'border-[#c8c8c8]'
+              }`}
+            >
+              {selectedAddressId === 'new' && <span className="size-2 rounded-full bg-black" />}
             </span>
             <div>
-              <p className="text-xs uppercase tracking-wide font-bold">{L.useDifferentAddress}</p>
+              <p className="text-xs font-bold tracking-wide uppercase">{L.useDifferentAddress}</p>
               {selectedAddressId !== 'new' && (
-                <p className="text-xs text-gray-400 mt-0.5">{L.useDifferentAddressHint}</p>
+                <p className="mt-0.5 text-xs text-gray-400">{L.useDifferentAddressHint}</p>
               )}
             </div>
           </button>
 
           {selectedAddressId === 'new' && !newAddrConfirmed && (
-            <div className="pt-3 px-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={L.labelFullName} placeholder={phFullName} value={newAddrForm.fullName} onChange={updateAddr('fullName')} error={addrErrors.fullName} />
-              <FormField label={L.labelPhone} placeholder={phPhone} type="tel" value={newAddrForm.phone} onChange={updateAddr('phone')} error={addrErrors.phone} />
+            <div className="grid grid-cols-1 gap-4 px-1 pt-3 sm:grid-cols-2">
+              <FormField
+                label={L.labelFullName}
+                placeholder={phFullName}
+                value={newAddrForm.fullName}
+                onChange={updateAddr('fullName')}
+                error={addrErrors.fullName}
+              />
+              <FormField
+                label={L.labelPhone}
+                placeholder={phPhone}
+                type="tel"
+                value={newAddrForm.phone}
+                onChange={updateAddr('phone')}
+                error={addrErrors.phone}
+              />
               <div className="sm:col-span-2">
-                <FormField label={L.labelAddressLine1} placeholder={phAddressLine1} value={newAddrForm.line1} onChange={updateAddr('line1')} error={addrErrors.line1} />
+                <FormField
+                  label={L.labelAddressLine1}
+                  placeholder={phAddressLine1}
+                  value={newAddrForm.line1}
+                  onChange={updateAddr('line1')}
+                  error={addrErrors.line1}
+                />
               </div>
-              <FormField label={L.labelCity} placeholder={phCity} value={newAddrForm.city} onChange={updateAddr('city')} error={addrErrors.city} />
-              <FormField label={L.labelPostalCode} placeholder={phPostalCode} value={newAddrForm.postcode} onChange={updateAddr('postcode')} error={addrErrors.postcode} />
+              <FormField
+                label={L.labelCity}
+                placeholder={phCity}
+                value={newAddrForm.city}
+                onChange={updateAddr('city')}
+                error={addrErrors.city}
+              />
+              <FormField
+                label={L.labelPostalCode}
+                placeholder={phPostalCode}
+                value={newAddrForm.postcode}
+                onChange={updateAddr('postcode')}
+                error={addrErrors.postcode}
+              />
               <div className="sm:col-span-2">
-                <FormField label={L.labelInstructions} placeholder={phInstructions} value={newAddrForm.instructions} onChange={updateAddr('instructions')} />
+                <FormField
+                  label={L.labelInstructions}
+                  placeholder={phInstructions}
+                  value={newAddrForm.instructions}
+                  onChange={updateAddr('instructions')}
+                />
               </div>
-              <div className="sm:col-span-2 flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:col-span-2">
                 <input
                   type="checkbox"
                   id="save-addr"
                   checked={saveNewAddr}
-                  onChange={e => setSaveNewAddr(e.target.checked)}
-                  className="cursor-pointer w-3.5 h-3.5 accent-black"
+                  onChange={(e) => setSaveNewAddr(e.target.checked)}
+                  className="size-3.5 cursor-pointer accent-black"
                 />
-                <label htmlFor="save-addr" className="text-xs text-gray-600 cursor-pointer">{L.saveToProfile}</label>
+                <label htmlFor="save-addr" className="cursor-pointer text-xs text-gray-600">
+                  {L.saveToProfile}
+                </label>
               </div>
               <div className="sm:col-span-2">
                 <button
                   onClick={onConfirmNewAddr}
-                  className="px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none hover:opacity-90 transition-opacity bg-black font-semibold"
+                  className="bg-black px-6 py-2.5 text-xs font-semibold tracking-[0.15em] text-white uppercase transition-opacity hover:opacity-90 focus-visible:outline-none"
                 >
                   {L.confirmAddress}
                 </button>
@@ -166,49 +260,86 @@ export function DeliveryMethodHome({
           )}
 
           {selectedAddressId === 'new' && newAddrConfirmed && (
-            <div className="px-1 pt-1 flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 px-1 pt-1">
               <p className="text-xs text-gray-600">
                 {newAddrForm.fullName} · {newAddrForm.line1}, {newAddrForm.city} {newAddrForm.postcode}
               </p>
-              <button onClick={() => setNewAddrConfirmed(false)} className="text-xs underline text-gray-500 hover:text-black shrink-0">{L.editAddress}</button>
+              <button
+                onClick={() => setNewAddrConfirmed(false)}
+                className="shrink-0 text-xs text-gray-500 underline hover:text-black"
+              >
+                {L.editAddress}
+              </button>
             </div>
           )}
         </div>
       ) : (
-        <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label={L.labelFullName} placeholder={phFullName} value={newAddrForm.fullName} onChange={updateAddr('fullName')} error={addrErrors.fullName} />
-          <FormField label={L.labelPhone} placeholder={phPhone} type="tel" value={newAddrForm.phone} onChange={updateAddr('phone')} error={addrErrors.phone} />
+        <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2">
+          <FormField
+            label={L.labelFullName}
+            placeholder={phFullName}
+            value={newAddrForm.fullName}
+            onChange={updateAddr('fullName')}
+            error={addrErrors.fullName}
+          />
+          <FormField
+            label={L.labelPhone}
+            placeholder={phPhone}
+            type="tel"
+            value={newAddrForm.phone}
+            onChange={updateAddr('phone')}
+            error={addrErrors.phone}
+          />
           <div className="sm:col-span-2">
-            <FormField label={L.labelAddressLine1} placeholder={phAddressLine1} value={newAddrForm.line1} onChange={updateAddr('line1')} error={addrErrors.line1} />
+            <FormField
+              label={L.labelAddressLine1}
+              placeholder={phAddressLine1}
+              value={newAddrForm.line1}
+              onChange={updateAddr('line1')}
+              error={addrErrors.line1}
+            />
           </div>
-          <FormField label={L.labelCity} placeholder={phCity} value={newAddrForm.city} onChange={updateAddr('city')} error={addrErrors.city} />
-          <FormField label={L.labelPostalCode} placeholder={phPostalCode} value={newAddrForm.postcode} onChange={updateAddr('postcode')} error={addrErrors.postcode} />
+          <FormField
+            label={L.labelCity}
+            placeholder={phCity}
+            value={newAddrForm.city}
+            onChange={updateAddr('city')}
+            error={addrErrors.city}
+          />
+          <FormField
+            label={L.labelPostalCode}
+            placeholder={phPostalCode}
+            value={newAddrForm.postcode}
+            onChange={updateAddr('postcode')}
+            error={addrErrors.postcode}
+          />
           <div className="sm:col-span-2">
-            <FormField label={L.labelInstructions} placeholder={phInstructions} value={newAddrForm.instructions} onChange={updateAddr('instructions')} />
+            <FormField
+              label={L.labelInstructions}
+              placeholder={phInstructions}
+              value={newAddrForm.instructions}
+              onChange={updateAddr('instructions')}
+            />
           </div>
         </div>
       )}
 
       {/* Delivery Date */}
       <div className="mt-6">
-        <p className="text-xs tracking-wide uppercase mb-3 font-semibold text-[#555]">
-          {L.deliveryDate}
-        </p>
-        <div className="flex gap-2 flex-wrap">
+        <p className="mb-3 text-xs font-semibold tracking-wide text-[#555] uppercase">{L.deliveryDate}</p>
+        <div className="flex flex-wrap gap-2">
           {deliveryDates.map((date, i) => {
             const isSelected = selectedDate.toDateString() === date.toDateString();
             return (
               <button
                 key={i}
                 onClick={() => setSelectedDate(date)}
-                className={`flex flex-col items-center px-3 py-2.5 text-xs focus-visible:outline-none transition-colors min-w-14.5 border-2 ${
+                className={`flex min-w-14.5 flex-col items-center border-2 px-3 py-2.5 text-xs transition-colors focus-visible:outline-none ${
                   isSelected ? 'border-black bg-black text-white' : 'border-[#e5e7eb] bg-white text-[#374151]'
                 }`}
               >
-                <span className="font-bold">
-                  {date.toLocaleDateString('en-GB', { weekday: 'short' })}
-                </span>
-                <span className="font-normal mt-0.5">
+                <span className="font-bold">{date.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+                <span className="mt-0.5 font-normal">
                   {date.getDate()} {date.toLocaleDateString('en-GB', { month: 'short' })}
                 </span>
               </button>
@@ -219,32 +350,30 @@ export function DeliveryMethodHome({
 
       {/* Time Slot */}
       <div className="mt-4">
-        <p className="text-xs tracking-wide uppercase mb-3 font-semibold text-[#555]">
-          {L.deliveryTime}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-2">
-          {slots.map(slot => {
+        <p className="mb-3 text-xs font-semibold tracking-wide text-[#555] uppercase">{L.deliveryTime}</p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {slots.map((slot) => {
             const isSelected = selectedSlot === slot.id;
             return (
               <button
                 key={slot.id}
                 onClick={() => setSelectedSlot(slot.id)}
-                className={`flex flex-col items-center justify-center px-4 py-3 text-xs focus-visible:outline-none transition-colors flex-1 border-2 ${
+                className={`flex flex-1 flex-col items-center justify-center border-2 px-4 py-3 text-xs transition-colors focus-visible:outline-none ${
                   isSelected ? 'border-black bg-black text-white' : 'border-[#e5e7eb] bg-white text-[#374151]'
                 }`}
               >
                 <span className="font-bold">{slot.label}</span>
-                <span className="font-normal mt-0.5 opacity-70">{slot.sub}</span>
+                <span className="mt-0.5 font-normal opacity-70">{slot.sub}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mt-5">
-        {perks.map(text => (
+      <div className="mt-5 flex flex-wrap gap-4">
+        {perks.map((text) => (
           <div key={text} className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="text-green-600 font-bold">✓</span>
+            <span className="font-bold text-green-600">✓</span>
             {text}
           </div>
         ))}

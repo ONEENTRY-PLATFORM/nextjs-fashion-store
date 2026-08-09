@@ -1,33 +1,32 @@
-import type { Metadata, Viewport } from 'next'
-import { locale } from 'next/root-params'
-import { Suspense } from 'react'
-import '../globals.css'
-import { Providers } from '../../src/app/components/system/Providers'
-import { ScrollToTop } from '../../src/app/components/system/ScrollToTop'
-import { SITE_NAME, SITE_DESCRIPTION, SITE_URL, OG_IMAGE, TWITTER_HANDLE } from '../../src/app/data/seoData'
-import { A11Y_LABELS } from '../../src/app/data/commonLabels'
+import '../globals.css';
+
+import type { Metadata, Viewport } from 'next';
+import { locale } from 'next/root-params';
+import { Suspense } from 'react';
+
+import { Providers } from '../../src/app/components/system/Providers';
+import { ScrollToTop } from '../../src/app/components/system/ScrollToTop';
+import { A11Y_LABELS } from '../../src/app/data/commonLabels';
+import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL, TWITTER_HANDLE } from '../../src/app/data/seoData';
+import { loadSignUpFormSchema } from '../../src/lib/oneentry/auth/sign-up-form';
 // One dictionary for the whole storefront: every attribute marker the CMS
 // knows, flattened to `marker → value`. Screens no longer carry their own
 // label set — see `src/lib/oneentry/dictionary.ts`.
-import { getDictionary } from '../../src/lib/oneentry/dictionary'
-import { loadMenu } from '../../src/lib/oneentry/menus/menus'
-import { loadSignUpFormSchema } from '../../src/lib/oneentry/auth/sign-up-form'
-// Footer newsletter renders on every route, so its OE form travels with the
-// root layout rather than a per-page provider.
-import { loadFormContent } from '../../src/lib/oneentry/forms/placeholders'
-import { loadLocales } from '../../src/lib/oneentry/locales'
-import {
-  DEFAULT_SHORT_LOCALE,
-  SHORT_LOCALES,
-  buildLanguageAlternates,
-  htmlLang,
-} from '../../src/lib/oneentry/locale'
+import { getDictionary } from '../../src/lib/oneentry/dictionary';
+// Site-wide OE forms only. Everything here renders on every route, so the copy
+// travels with the root layout rather than a per-page provider; route-scoped
+// forms mount their own `FormPlaceholdersProvider` next to the page that needs
+// them (see `app/[locale]/product/[id]/page.tsx`, `account`, `checkout`).
+import { loadFormContent } from '../../src/lib/oneentry/forms/placeholders';
+import { buildLanguageAlternates, DEFAULT_SHORT_LOCALE, htmlLang, SHORT_LOCALES } from '../../src/lib/oneentry/locale';
+import { loadLocales } from '../../src/lib/oneentry/locales';
+import { loadMenu } from '../../src/lib/oneentry/menus/menus';
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#111111',
-}
+};
 
 export const metadata: Metadata = {
   title: {
@@ -71,28 +70,23 @@ export const metadata: Metadata = {
       { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
-    apple: [
-      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
     shortcut: '/favicon.ico',
   },
-}
+};
 
 /**
  * One static branch per routed locale. Reads the same list as `proxy.ts`, so a
  * locale enabled in `NEXT_PUBLIC_LOCALES` gets its pages generated on the next
  * build with no code change.
- * @returns {Array<{locale: string}>} Locale params to prerender.
+ *
+ * @returns Locale params to prerender.
  */
 export function generateStaticParams(): Array<{ locale: string }> {
   return SHORT_LOCALES.map((locale) => ({ locale }));
 }
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Root parameter: readable from any Server Component without prop drilling,
   // and — unlike `headers()` — it does not opt the tree into dynamic rendering.
   const shortLocale = (await locale()) ?? DEFAULT_SHORT_LOCALE;
@@ -104,22 +98,21 @@ export default async function RootLayout({
     subscribeForm,
     reviewFeedbackForm,
     reviewRatingForm,
-    reserveInStoreForm,
     cmsLocales,
   ] = await Promise.all([
     getDictionary(),
     loadMenu('footer'),
     loadMenu('header'),
     loadSignUpFormSchema(),
+    // Footer newsletter — rendered on every route.
     loadFormContent('subscribe_new_drops'),
     // Review copy lives on the OE forms themselves (labels, option list,
     // success/failure messages), so the modal reads it from there rather than
-    // from a system-text set. Loaded here because `FormPlaceholdersProvider`
-    // is a single map — a nested provider on the PDP would drop the
-    // newsletter form's copy for that subtree.
+    // from a system-text set. Site-wide because `WriteReviewModal` opens from
+    // `QuickViewModal` as well, and the header mounts that one on every route —
+    // not only from the PDP.
     loadFormContent('review_feedback'),
     loadFormContent('review_rating'),
-    loadFormContent('reserve_in_store'),
     loadLocales(),
   ]);
   return (
@@ -146,7 +139,7 @@ export default async function RootLayout({
       <body>
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-black focus:text-white focus:text-xs focus:tracking-widest focus:uppercase"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:bg-black focus:px-4 focus:py-2 focus:text-xs focus:tracking-widest focus:text-white focus:uppercase"
         >
           {A11Y_LABELS.skipToContent}
         </a>
@@ -162,7 +155,6 @@ export default async function RootLayout({
             subscribe_new_drops: subscribeForm,
             review_feedback: reviewFeedbackForm,
             review_rating: reviewRatingForm,
-            reserve_in_store: reserveInStoreForm,
           }}
           cmsLocales={cmsLocales}
         >
@@ -170,5 +162,5 @@ export default async function RootLayout({
         </Providers>
       </body>
     </html>
-  )
+  );
 }

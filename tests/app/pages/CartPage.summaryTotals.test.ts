@@ -10,7 +10,7 @@
  *
  * Tested as a pure function — no React / Next.js runtime required.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 interface FinalTotalInput {
   personalDiscount: number;
@@ -70,9 +70,9 @@ describe('deriveFinalTotal (CartPage)', () => {
 
   // Case 6 — everything zero: client total wins.
   it('uses client total when everything is zero', () => {
-    expect(
-      deriveFinalTotal({ personalDiscount: 0, couponDiscount: 0, bonusApplied: 0, totalDue: 0, total: 0 }),
-    ).toBe(0);
+    expect(deriveFinalTotal({ personalDiscount: 0, couponDiscount: 0, bonusApplied: 0, totalDue: 0, total: 0 })).toBe(
+      0,
+    );
   });
 
   // Case 7 — bonus burned and loyalty discount both active: OE's totalDue wins.

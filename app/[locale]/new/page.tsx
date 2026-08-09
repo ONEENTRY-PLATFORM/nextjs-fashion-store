@@ -1,16 +1,19 @@
-import { Suspense } from 'react';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
 import type { Metadata } from 'next';
-import { SEO, SITE_URL, SCHEMA_BREADCRUMBS as BC } from '../../../src/app/data/seoData';
-import { NewArrivalsPage } from '../../../src/app/pages/NewArrivalsPage';
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
-import { adaptCatalogProductToUiProduct, newArrivalCategoryFor } from '../../../src/lib/oneentry/catalog/adapt';
-import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
-import { loadNewArrivalsPage } from '../../../src/lib/oneentry/catalog/new-arrivals-page';
+import { Suspense } from 'react';
 
-/** Title/description/keywords/canonical come from the OE `new` page when an
- *  editor filled them; `SEO.newArrivals` stays as the offline fallback. */
+import { JsonLd } from '../../../src/app/components/system/JsonLd';
+import { SCHEMA_BREADCRUMBS as BC, SEO, SITE_URL } from '../../../src/app/data/seoData';
+import { NewArrivalsPage } from '../../../src/app/pages/NewArrivalsPage';
+import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToUiProduct, newArrivalCategoryFor } from '../../../src/lib/oneentry/catalog/adapt';
+import { loadNewArrivalsPage } from '../../../src/lib/oneentry/catalog/new-arrivals-page';
+import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
+import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
+
+/**
+ * Title/description/keywords/canonical come from the OE `new` page when an
+ *  editor filled them; `SEO.newArrivals` stays as the offline fallback.
+ */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('new', SEO.newArrivals);
 }
@@ -46,9 +49,10 @@ export default async function Page() {
   // active gender from `?gender=`. The adapter already stamps `gender` with
   // the OE attribute or, when that is blank, the category path
   // (`/women/…` vs `/men/…`), so no extra data is needed for the scope.
-  const initialProducts = products.items.length > 0
-    ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: newArrivalCategoryFor(p) }))
-    : undefined;
+  const initialProducts =
+    products.items.length > 0
+      ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: newArrivalCategoryFor(p) }))
+      : undefined;
   return (
     <>
       <JsonLd data={breadcrumb} />

@@ -1,13 +1,16 @@
 'use client';
-import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import React, { useEffect } from 'react';
+
 import { RegisterModal } from '../app/components/auth/RegisterModal';
 import { useAuth } from '../app/context/AuthContext';
 
 /** Wrapper that immediately opens the register modal */
 function OpenRegisterModal() {
   const { openRegisterModal } = useAuth();
-  useEffect(() => { openRegisterModal(); }, [openRegisterModal]);
+  useEffect(() => {
+    openRegisterModal();
+  }, [openRegisterModal]);
   return <RegisterModal />;
 }
 

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { SaleHero } from '../app/pages/sale/SaleHero';
 import type { SalePageFromCms } from '../lib/oneentry/catalog/sale-page';
 
@@ -8,8 +9,7 @@ const MOCK_COUNTDOWN = { days: 3, hours: 14, minutes: 27, seconds: 9 };
 const MOCK_CMS: SalePageFromCms = {
   hero: {
     eyebrow: 'LIMITED TIME OFFER',
-    contentHtml:
-      '<h1>SEASON<br/>SALE</h1><p>Up to 50% off selected styles — women, men &amp; accessories.</p>',
+    contentHtml: '<h1>SEASON<br/>SALE</h1><p>Up to 50% off selected styles — women, men &amp; accessories.</p>',
     contentPlain: 'SEASON\nSALE\nUP TO 50% OFF\nMajor markdowns across clothing, shoes, bags, and accessories.',
     ctaLabel: 'SHOP SALE',
     timerLabel: 'SALE ENDS IN',
@@ -57,8 +57,10 @@ export const CmsPopulated: Story = {
   },
 };
 
-/** CMS provided but `contentHtml` is empty → falls back to `contentPlain`
- *  parsed line-by-line into the original title / discount / subtitle slots. */
+/**
+ * CMS provided but `contentHtml` is empty → falls back to `contentPlain`
+ *  parsed line-by-line into the original title / discount / subtitle slots.
+ */
 export const CmsNoHtml: Story = {
   name: 'CMS — no contentHtml (plainValue fallback)',
   args: {
@@ -70,9 +72,11 @@ export const CmsNoHtml: Story = {
   },
 };
 
-/** Both `contentHtml` and `contentPlain` are empty → deepest fallback:
+/**
+ * Both `contentHtml` and `contentPlain` are empty → deepest fallback:
  *  all four visual slots are filled by static `L.*` labels
- *  (SEASON / SALE / UP TO 50% OFF / heroSubtitle). */
+ *  (SEASON / SALE / UP TO 50% OFF / heroSubtitle).
+ */
 export const CmsNoHtmlNoPlain: Story = {
   name: 'CMS — no contentHtml, no contentPlain (static labels fallback)',
   args: {

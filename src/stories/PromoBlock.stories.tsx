@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { PromoBlock } from '../app/components/home/PromoBlock';
 import type { HomepageCollectionItem } from '../lib/oneentry/blocks/homepage-collections';
 

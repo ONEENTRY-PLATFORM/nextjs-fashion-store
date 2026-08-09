@@ -1,5 +1,6 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import React from 'react';
+
 import { ErrorBoundary } from '../app/components/ui/ErrorBoundary';
 
 /** Helper component that always throws on render */
@@ -40,10 +41,8 @@ export const CustomFallback: Story = {
   render: () => (
     <ErrorBoundary
       fallback={
-        <div className="p-8 border border-red-200 bg-red-50 text-center">
-          <p className="text-sm text-red-600 font-semibold">
-            Custom fallback — something went wrong.
-          </p>
+        <div className="border border-red-200 bg-red-50 p-8 text-center">
+          <p className="text-sm font-semibold text-red-600">Custom fallback — something went wrong.</p>
         </div>
       }
     >
@@ -57,9 +56,7 @@ export const HappyPath: Story = {
   args: { children: null },
   render: () => (
     <ErrorBoundary>
-      <p className="text-sm text-gray-600 p-4">
-        Children rendered without errors. ErrorBoundary is transparent.
-      </p>
+      <p className="p-4 text-sm text-gray-600">Children rendered without errors. ErrorBoundary is transparent.</p>
     </ErrorBoundary>
   ),
 };

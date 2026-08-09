@@ -8,16 +8,22 @@
  * A minimal localStorage shim replaces `window.localStorage` for the run.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── localStorage shim ────────────────────────────────────────────────────────
 
 const localStorageStore: Record<string, string> = {};
 const localStorageMock = {
   getItem: vi.fn((key: string) => localStorageStore[key] ?? null),
-  setItem: vi.fn((key: string, value: string) => { localStorageStore[key] = value; }),
-  removeItem: vi.fn((key: string) => { delete localStorageStore[key]; }),
-  clear: vi.fn(() => { Object.keys(localStorageStore).forEach(k => delete localStorageStore[k]); }),
+  setItem: vi.fn((key: string, value: string) => {
+    localStorageStore[key] = value;
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete localStorageStore[key];
+  }),
+  clear: vi.fn(() => {
+    Object.keys(localStorageStore).forEach((k) => delete localStorageStore[k]);
+  }),
 };
 
 // Inject before the module loads so `typeof window !== 'undefined'` is true.
@@ -25,9 +31,9 @@ vi.stubGlobal('localStorage', localStorageMock);
 
 // ── module under test ────────────────────────────────────────────────────────
 
-import { makeStore } from '@/app/store/index';
-import { cartActions } from '@/app/store/cartSlice';
 import type { CartItem } from '@/app/context/CartContext';
+import { cartActions } from '@/app/store/cartSlice';
+import { makeStore } from '@/app/store/index';
 
 const STORAGE_KEY = 'oe_store';
 const STORAGE_VERSION = 5;

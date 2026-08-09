@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { GenericSliderBlock } from '../app/components/blocks/GenericSliderBlock';
 
 const meta = {
@@ -25,12 +26,12 @@ function makeSemanticSlide(
   return {
     id,
     attributeValues: {
-      hp_b_b_pic:         { value: [{ downloadLink: pic }] },
-      hp_b_b_lable:       { value: lable },
-      hp_b_b_title:       { value: title },
+      hp_b_b_pic: { value: [{ downloadLink: pic }] },
+      hp_b_b_lable: { value: lable },
+      hp_b_b_title: { value: title },
       hp_b_b_description: { value: description },
-      hp_b_b_cta_text:    { value: cta_text },
-      hp_b_b_cta_link:    { value: cta_link },
+      hp_b_b_cta_text: { value: cta_text },
+      hp_b_b_cta_link: { value: cta_link },
     },
   };
 }
@@ -52,7 +53,7 @@ function makePositionalSlide(
       string_id1: { value: headline },
       string_id2: { value: eyebrow },
       string_id3: { value: subtext },
-      image_id4:  { value: [{ downloadLink: imageUrl }] },
+      image_id4: { value: [{ downloadLink: imageUrl }] },
       string_id5: { value: cta },
       string_id6: { value: href },
     },
@@ -73,7 +74,7 @@ export const MultipleSlides: Story = {
         'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1600&q=80',
         'New Collection',
         'Summer 2025',
-        'Explore the season\'s most coveted pieces — curated for warmth, movement, and effortless style.',
+        "Explore the season's most coveted pieces — curated for warmth, movement, and effortless style.",
         'Shop Women',
         '/catalog/women',
         1,

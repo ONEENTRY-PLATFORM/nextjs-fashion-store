@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+coverage
+storybook-static
+test-results
+playwright-report
+public
+package-lock.json
+*.tsbuildinfo

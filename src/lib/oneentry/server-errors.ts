@@ -14,8 +14,8 @@
  *
  * @see .claude/temp/HARDCODED_TEXTS.md — the migration this closes
  */
-import { t, type Lang } from './system-text';
 import { DEFAULT_LOCALE } from './locale';
+import { type Lang, t } from './system-text';
 
 /** OE marker of the system-text set holding these messages. */
 export const SERVER_ERRORS_MARKER = 'server_errors';
@@ -32,8 +32,7 @@ export const SERVER_ERROR_FALLBACKS = {
   oneEntryEnvNotConfigured: 'OneEntry env not configured',
   sdkNotInitialised: 'OneEntry SDK not initialised',
   sdkNotConfiguredServer: 'OneEntry SDK is not configured on the server.',
-  sdkNotConfiguredEnv:
-    'OneEntry SDK is not configured. Set NEXT_PUBLIC_ONEENTRY_URL and NEXT_PUBLIC_ONEENTRY_TOKEN.',
+  sdkNotConfiguredEnv: 'OneEntry SDK is not configured. Set NEXT_PUBLIC_ONEENTRY_URL and NEXT_PUBLIC_ONEENTRY_TOKEN.',
   googleProviderNotFound: 'Google provider not found',
   googleRejected: 'Google sign-in rejected by OneEntry',
   googleFailed: 'Google sign-in failed',

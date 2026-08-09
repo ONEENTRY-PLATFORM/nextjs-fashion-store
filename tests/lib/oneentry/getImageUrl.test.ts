@@ -9,6 +9,7 @@
  * second picture.
  */
 import { describe, expect, it } from 'vitest';
+
 import { getImage, getImages, getImageUrl, getImageUrls } from '@/lib/oneentry/index';
 
 const file = (name: string) => ({
@@ -52,8 +53,9 @@ describe('getImageUrl — shape tolerance', () => {
 
 describe('getImageUrl — fallbacks and empty cases', () => {
   it('falls back to previewLink when downloadLink is absent', () => {
-    expect(getImageUrl({ previewLink: 'https://cdn.oneentry.cloud/only-preview.jpg' }))
-      .toBe('https://cdn.oneentry.cloud/only-preview.jpg');
+    expect(getImageUrl({ previewLink: 'https://cdn.oneentry.cloud/only-preview.jpg' })).toBe(
+      'https://cdn.oneentry.cloud/only-preview.jpg',
+    );
   });
 
   it('prefers downloadLink over previewLink', () => {
@@ -92,9 +94,7 @@ describe('getImageUrls — galleries', () => {
   });
 
   it('drops entries without a usable link', () => {
-    expect(getImageUrls([file('keep'), {}, { downloadLink: '' }])).toEqual([
-      'https://cdn.oneentry.cloud/keep.jpg',
-    ]);
+    expect(getImageUrls([file('keep'), {}, { downloadLink: '' }])).toEqual(['https://cdn.oneentry.cloud/keep.jpg']);
   });
 
   it.each([
@@ -121,9 +121,7 @@ describe('getImage — preview-template LQIP', () => {
   });
 
   it('honours defaultPreview when picking the level', () => {
-    expect(getImage(lqipFile('coat', { defaultPreview: 'thumb' })).blur).toBe(
-      'data:image/webp;base64,thumb-coat',
-    );
+    expect(getImage(lqipFile('coat', { defaultPreview: 'thumb' })).blur).toBe('data:image/webp;base64,thumb-coat');
   });
 
   it('falls back to the only level when the named one is missing', () => {
@@ -144,10 +142,12 @@ describe('getImage — preview-template LQIP', () => {
   });
 
   it('ignores a pair whose first entry is not a data uri', () => {
-    expect(getImage({
-      downloadLink: 'https://cdn.oneentry.cloud/a.jpg',
-      previewLink: { default: ['https://cdn.oneentry.cloud/a.preview.jpg', 'x'] },
-    }).blur).toBeUndefined();
+    expect(
+      getImage({
+        downloadLink: 'https://cdn.oneentry.cloud/a.jpg',
+        previewLink: { default: ['https://cdn.oneentry.cloud/a.preview.jpg', 'x'] },
+      }).blur,
+    ).toBeUndefined();
   });
 
   it('unwraps the attribute envelope like getImageUrl does', () => {

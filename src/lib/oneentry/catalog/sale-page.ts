@@ -1,31 +1,40 @@
-import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
+
+import { currentCmsLocale } from '../current-locale';
 import { getApi, getImage, isError, isOneEntryEnabled } from '../index';
 import type { Lang } from '../system-text';
 
 export interface SalePageFromCms {
   hero: {
     eyebrow: string;
-    /** Rich HTML from OE `text` attribute (`htmlValue`) — rendered via
+    /**
+     * Rich HTML from OE `text` attribute (`htmlValue`) — rendered via
      *  `dangerouslySetInnerHTML` when meaningful. Empty string when the
      *  admin's rich-text editor value is blank (OE returns `"<p><br></p>"`
-     *  for empty fields — normalized to `''` here). */
+     *  for empty fields — normalized to `''` here).
+     */
     contentHtml: string;
-    /** Plain-text version of the same `text` attribute (`plainValue`).
+    /**
+     * Plain-text version of the same `text` attribute (`plainValue`).
      *  Used as fallback when `contentHtml` is empty — the SaleHero splits
      *  it line-by-line to fill the original title / discount / subtitle
      *  slots so the banner keeps its visual weight even if the admin
-     *  filled only the plain-text field. */
+     *  filled only the plain-text field.
+     */
     contentPlain: string;
     ctaLabel: string;
     timerLabel: string;
-    /** Free-form caption under the countdown (e.g. "Ends March 15…"). Empty
+    /**
+     * Free-form caption under the countdown (e.g. "Ends March 15…"). Empty
      *  when the admin left it blank — caller falls back to formatting the
-     *  parsed `saleEndsAt` timestamp. */
+     *  parsed `saleEndsAt` timestamp.
+     */
     timerEndsText: string;
     image: string;
-    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-     *  through an OE preview template have one. */
+    /**
+     * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+     *  through an OE preview template have one.
+     */
     imageBlur?: string;
   };
   promo: {
@@ -35,13 +44,17 @@ export interface SalePageFromCms {
     ctaLabel: string;
     ctaHref: string;
     image: string;
-    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-     *  through an OE preview template have one. */
+    /**
+     * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+     *  through an OE preview template have one.
+     */
     imageBlur?: string;
   };
-  /** Epoch ms parsed from `page_sale_top_banner_timer.value.fullDate`, or
+  /**
+   * Epoch ms parsed from `page_sale_top_banner_timer.value.fullDate`, or
    *  `null` when the admin cleared the field. Callers fall back to the
-   *  hard-coded `SALE_END_DATE` so the countdown never renders blank. */
+   *  hard-coded `SALE_END_DATE` so the countdown never renders blank.
+   */
   saleEndsAt: number | null;
 }
 
@@ -84,28 +97,27 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
     const av = page.attributeValues ?? {};
     // Handle both wrapped (`{ en_US: {...} }`) and flat (`{ marker: {...} }`).
     const wrapped = (av as Record<string, Record<string, RawAttr>>)[lang];
-    const attrs: Record<string, RawAttr> = (wrapped && typeof wrapped === 'object')
-      ? wrapped
-      : (av as Record<string, RawAttr>);
+    const attrs: Record<string, RawAttr> =
+      wrapped && typeof wrapped === 'object' ? wrapped : (av as Record<string, RawAttr>);
     const s = (k: string): string => asString(attrs[k]?.value);
     return {
       hero: {
-        eyebrow:       s('page_sale_top_banner_lable'),
-        contentHtml:   extractHtml(attrs['page_sale_top_banner_text']?.value),
-        contentPlain:  extractPlain(attrs['page_sale_top_banner_text']?.value),
-        ctaLabel:      s('page_sale_top_banner_cta'),
-        timerLabel:    s('page_sale_top_banner_timer_lable'),
+        eyebrow: s('page_sale_top_banner_lable'),
+        contentHtml: extractHtml(attrs['page_sale_top_banner_text']?.value),
+        contentPlain: extractPlain(attrs['page_sale_top_banner_text']?.value),
+        ctaLabel: s('page_sale_top_banner_cta'),
+        timerLabel: s('page_sale_top_banner_timer_lable'),
         timerEndsText: s('page_sale_top_banner_timer_text'),
-        image:         getImage(attrs['page_sale_top_banner_picture']?.value).url,
-        imageBlur:     getImage(attrs['page_sale_top_banner_picture']?.value).blur,
+        image: getImage(attrs['page_sale_top_banner_picture']?.value).url,
+        imageBlur: getImage(attrs['page_sale_top_banner_picture']?.value).blur,
       },
       promo: {
-        eyebrow:  s('page_sale_footer_banner_lable'),
-        title:    s('page_sale_footer_banner_title'),
+        eyebrow: s('page_sale_footer_banner_lable'),
+        title: s('page_sale_footer_banner_title'),
         subtitle: s('page_sale_footer_banner_sub_title'),
         ctaLabel: s('page_sale_footer_banner_cta'),
-        ctaHref:  s('page_sale_footer_banner_cta_link'),
-        image:    getImage(attrs['page_sale_footer_banner_picture']?.value).url,
+        ctaHref: s('page_sale_footer_banner_cta_link'),
+        image: getImage(attrs['page_sale_footer_banner_picture']?.value).url,
         imageBlur: getImage(attrs['page_sale_footer_banner_picture']?.value).blur,
       },
       saleEndsAt: extractFullDate(attrs['page_sale_top_banner_timer']?.value),
@@ -115,25 +127,25 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
   }
 }
 
-/** Cached loader — refresh every 60s so admin edits to the sale banner
+/**
+ * Cached loader — refresh every 60s so admin edits to the sale banner
  *  surface without a manual redeploy, but hot page loads still hit cache.
  *
  *  `lang` is a required argument rather than something the cached body reads
  *  for itself: `unstable_cache` keys on its arguments, so passing it in is
- *  what keeps one locale's banner out of another's cache entry. */
-const loadSalePageCached = unstable_cache(
-  (lang: Lang) => fetchSalePage(lang),
-  ['oe-sale-page'],
-  { revalidate: 60, tags: ['oe-page'] },
-);
+ *  what keeps one locale's banner out of another's cache entry.
+ */
+const loadSalePageCached = unstable_cache((lang: Lang) => fetchSalePage(lang), ['oe-sale-page'], {
+  revalidate: 60,
+  tags: ['oe-page'],
+});
 
 /**
  * Sale page attributes for the current route's locale.
- * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
- * @returns {Promise<SalePageFromCms | null>} Page attributes, or `null`.
+ *
+ * @param [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns Page attributes, or `null`.
  */
-export async function loadSalePage(
-  langArg?: Lang,
-): Promise<Awaited<ReturnType<typeof fetchSalePage>>> {
+export async function loadSalePage(langArg?: Lang): Promise<Awaited<ReturnType<typeof fetchSalePage>>> {
   return loadSalePageCached(langArg ?? (await currentCmsLocale()));
 }

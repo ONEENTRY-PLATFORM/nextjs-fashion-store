@@ -10,8 +10,7 @@ const getFormByMarker = vi.fn();
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApi: () => ({ Forms: { getFormByMarker } }),
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -21,10 +20,14 @@ const importFresh = async () => {
 
 // ── Fallback constants (mirror checkoutLabels / checkoutConfig) ────────────────
 // We import them statically once; the mock above keeps their module untouched.
-import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_METHOD_STORE_LABELS, DELIVERY_METHOD_LOCKER_LABELS } from '@/app/data/checkoutLabels';
 import { DELIVERY_PERKS, PICKUP_PERKS } from '@/app/data/checkoutConfig';
+import {
+  DELIVERY_METHOD_HOME_LABELS,
+  DELIVERY_METHOD_LOCKER_LABELS,
+  DELIVERY_METHOD_STORE_LABELS,
+} from '@/app/data/checkoutLabels';
 
-const FALLBACK_HOME_PERKS  = DELIVERY_PERKS.map((p) => p.text);
+const FALLBACK_HOME_PERKS = DELIVERY_PERKS.map((p) => p.text);
 const FALLBACK_STORE_PERKS = PICKUP_PERKS.map((p) => p.text);
 
 // ── Helper: builds a minimal valid OE form response ──────────────────────────
@@ -49,19 +52,19 @@ function makeForm(overrides: {
 
 // Full happy-path list items
 const FULL_LIST = [
-  { value: 'courier', title: 'OE Home Title',   extended: { value: 'OE home subtitle'   } },
-  { value: 'pickup',  title: 'OE Store Title',  extended: { value: 'OE store subtitle'  } },
-  { value: 'locker',  title: 'OE Locker Title', extended: { value: 'OE locker subtitle' } },
+  { value: 'courier', title: 'OE Home Title', extended: { value: 'OE home subtitle' } },
+  { value: 'pickup', title: 'OE Store Title', extended: { value: 'OE store subtitle' } },
+  { value: 'locker', title: 'OE Locker Title', extended: { value: 'OE locker subtitle' } },
 ];
 
 const FULL_ADDL = {
-  home_free_delivery:              { value: 'Free delivery' },
-  home_partial_purchase:           { value: 'Partial purchase' },
-  'home_in-home-fitting':          { value: 'In-home fitting' },
-  store_pickup_free:               { value: 'Free pickup' },
-  store_pickup_partial_purchase:   { value: 'Partial purchase OE' },
-  store_pickup_fitting_room:       { value: 'Fitting room OE' },
-  locaer_text:                     { value: 'PIN hint from OE' },
+  home_free_delivery: { value: 'Free delivery' },
+  home_partial_purchase: { value: 'Partial purchase' },
+  'home_in-home-fitting': { value: 'In-home fitting' },
+  store_pickup_free: { value: 'Free pickup' },
+  store_pickup_partial_purchase: { value: 'Partial purchase OE' },
+  store_pickup_fitting_room: { value: 'Fitting room OE' },
+  locaer_text: { value: 'PIN hint from OE' },
 };
 
 beforeEach(() => {
@@ -116,9 +119,7 @@ describe('loadDeliveryMethodInfo — missing listTitles entry for one method', (
   it('falls back to local title/subtitle for the missing method only; others use OE data', async () => {
     // listTitles has courier and pickup, but NOT locker
     const partialList = FULL_LIST.filter((it) => it.value !== 'locker');
-    getFormByMarker.mockResolvedValue(
-      makeForm({ listTitles: partialList, additionalFields: FULL_ADDL }),
-    );
+    getFormByMarker.mockResolvedValue(makeForm({ listTitles: partialList, additionalFields: FULL_ADDL }));
     const { loadDeliveryMethodInfo } = await importFresh();
     const info = await loadDeliveryMethodInfo();
 
@@ -137,9 +138,7 @@ describe('loadDeliveryMethodInfo — missing listTitles entry for one method', (
 // ─────────────────────────────────────────────────────────────────────────────
 describe('loadDeliveryMethodInfo — missing additionalFields perks', () => {
   it('falls back to local perks list when additionalFields is empty', async () => {
-    getFormByMarker.mockResolvedValue(
-      makeForm({ listTitles: FULL_LIST, additionalFields: {} }),
-    );
+    getFormByMarker.mockResolvedValue(makeForm({ listTitles: FULL_LIST, additionalFields: {} }));
     const { loadDeliveryMethodInfo } = await importFresh();
     const info = await loadDeliveryMethodInfo();
 
@@ -152,14 +151,12 @@ describe('loadDeliveryMethodInfo — missing additionalFields perks', () => {
   it('falls back only for methods with blank perks; other method perks stay from OE', async () => {
     // Only home perks present, store perks absent
     const partialAddl: Record<string, { value: string }> = {
-      home_free_delivery:    { value: 'Free delivery' },
+      home_free_delivery: { value: 'Free delivery' },
       home_partial_purchase: { value: 'Partial purchase' },
       'home_in-home-fitting': { value: 'In-home fitting' },
-      locaer_text:           { value: 'PIN from OE' },
+      locaer_text: { value: 'PIN from OE' },
     };
-    getFormByMarker.mockResolvedValue(
-      makeForm({ listTitles: FULL_LIST, additionalFields: partialAddl }),
-    );
+    getFormByMarker.mockResolvedValue(makeForm({ listTitles: FULL_LIST, additionalFields: partialAddl }));
     const { loadDeliveryMethodInfo } = await importFresh();
     const info = await loadDeliveryMethodInfo();
 

@@ -1,4 +1,5 @@
-import { test, expect, type ConsoleMessage, type Page } from '@playwright/test';
+import { type ConsoleMessage, expect, type Page, test } from '@playwright/test';
+
 import { assertPresent } from './helpers';
 
 /**
@@ -73,7 +74,8 @@ test.describe('Security headers', () => {
     // At least one image must have actually decoded — a blocked `img-src`
     // shows up as naturalWidth 0 rather than as a missing element.
     const decoded = await page.evaluate(() =>
-      [...document.querySelectorAll('img')].some((img) => img.naturalWidth > 0));
+      [...document.querySelectorAll('img')].some((img) => img.naturalWidth > 0),
+    );
     expect(decoded, 'at least one image must load').toBe(true);
     expect(violations).toEqual([]);
   });

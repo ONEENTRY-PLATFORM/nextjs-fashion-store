@@ -1,66 +1,83 @@
-'use client'
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Header } from '../components/header/Header';
-import { Footer } from '../components/footer/Footer';
-import { useAuth } from '../context/AuthContext';
+'use client';
 import {
-  User, ShoppingBag, Star, Wrench, Clock, Heart, Bell, MessageSquare,
-  Mail, ChevronRight, LogOut, ChevronDown,
+  Bell,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Heart,
+  LogOut,
+  Mail,
+  MessageSquare,
+  ShoppingBag,
+  Star,
+  User,
+  Wrench,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
-import { MyDataSection }              from './account/MyDataSection';
-import { MyOrdersSection }            from './account/MyOrdersSection';
-import { BonusesSection }             from './account/BonusesSection';
-import { WishlistSection }            from './account/WishlistSection';
-import { ServiceMaintenanceSection }  from './account/ServiceMaintenanceSection';
-import { HistorySection }             from './account/HistorySection';
-import { WaitingListSection }         from './account/WaitingListSection';
-import { FeedbackSection }            from './account/FeedbackSection';
-import { SubscriptionsSection }       from './account/SubscriptionsSection';
+import { useRouter } from '../../lib/i18n/navigation';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
+import { Footer } from '../components/footer/Footer';
+import { Header } from '../components/header/Header';
+import { useAuth } from '../context/AuthContext';
+import { ACCOUNT_PAGE_LABELS as APL, ACCOUNT_SECTION_TITLES } from '../data/accountLabels';
+import { BonusesSection } from './account/BonusesSection';
+import { FeedbackSection } from './account/FeedbackSection';
+import { HistorySection } from './account/HistorySection';
+import { MyDataSection } from './account/MyDataSection';
+import { MyOrdersSection } from './account/MyOrdersSection';
+import { ServiceMaintenanceSection } from './account/ServiceMaintenanceSection';
 import {
+  BonusesSkeleton,
+  FeedbackSkeleton,
+  HistorySkeleton,
   MyDataSkeleton,
   MyOrdersSkeleton,
-  BonusesSkeleton,
   ServiceSkeleton,
-  HistorySkeleton,
-  WishlistSkeleton,
-  WaitingListSkeleton,
-  FeedbackSkeleton,
   SubscriptionsSkeleton,
+  WaitingListSkeleton,
+  WishlistSkeleton,
 } from './account/shared';
-import { ACCOUNT_PAGE_LABELS as APL, ACCOUNT_SECTION_TITLES as AST } from '../data/accountLabels';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import { useRouter } from '../../lib/i18n/navigation';
+import { SubscriptionsSection } from './account/SubscriptionsSection';
+import { WaitingListSection } from './account/WaitingListSection';
+import { WishlistSection } from './account/WishlistSection';
 
 type Section =
-  | 'my-data' | 'my-orders' | 'my-bonuses' | 'service'
-  | 'history' | 'wishlist' | 'waiting-list'
-  | 'feedback' | 'subscriptions';
+  | 'my-data'
+  | 'my-orders'
+  | 'my-bonuses'
+  | 'service'
+  | 'history'
+  | 'wishlist'
+  | 'waiting-list'
+  | 'feedback'
+  | 'subscriptions';
 
 export function AccountPage() {
+  const AST = useDict('user_account_section_', ACCOUNT_SECTION_TITLES);
   const { user, authReady, logout, openLoginModal } = useAuth();
-  const signOut         = useT('sign_out',                  APL.signOut);
-  const welcomeBack     = useT('welcome_back',              APL.welcomeBack);
-  const signInPrompt    = useT('sign_in_required',          APL.signInPrompt);
-  const signInCta       = useT('sign_in_required_cta',      APL.signInCta);
-  const titleMyOrders   = useT('my_orders_title',           AST.myOrders);
-  const titleBonuses    = useT('my_bonuses_title',          AST.bonuses);
-  const titleService    = useT('service_maintenance_title', AST.service);
-  const titleHistory    = useT('purchase_history_title',    AST.history);
-  const titleWishlist   = useT('user_account_wishlist_title', AST.wishlist);
-  const titleWaitingLst = useT('waiting_list_title',        AST.waitingList);
-  const titleFeedback   = useT('user_account_feedback_title', AST.feedback);
+  const signOut = useT('sign_out', APL.signOut);
+  const welcomeBack = useT('welcome_back', APL.welcomeBack);
+  const signInPrompt = useT('sign_in_required', APL.signInPrompt);
+  const signInCta = useT('sign_in_required_cta', APL.signInCta);
+  const titleMyOrders = useT('my_orders_title', AST.myOrders);
+  const titleBonuses = useT('my_bonuses_title', AST.bonuses);
+  const titleService = useT('service_maintenance_title', AST.service);
+  const titleHistory = useT('purchase_history_title', AST.history);
+  const titleWishlist = useT('user_account_wishlist_title', AST.wishlist);
+  const titleWaitingLst = useT('waiting_list_title', AST.waitingList);
+  const titleFeedback = useT('user_account_feedback_title', AST.feedback);
 
   const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
-    { key: 'my-data',       label: AST.myData,        icon: <User size={16} /> },
-    { key: 'my-orders',     label: titleMyOrders,     icon: <ShoppingBag size={16} /> },
-    { key: 'my-bonuses',    label: titleBonuses,      icon: <Star size={16} /> },
-    { key: 'service',       label: titleService,      icon: <Wrench size={16} /> },
-    { key: 'history',       label: titleHistory,      icon: <Clock size={16} /> },
-    { key: 'wishlist',      label: titleWishlist,     icon: <Heart size={16} /> },
-    { key: 'waiting-list',  label: titleWaitingLst,   icon: <Bell size={16} /> },
-    { key: 'feedback',      label: titleFeedback,     icon: <MessageSquare size={16} /> },
+    { key: 'my-data', label: AST.myData, icon: <User size={16} /> },
+    { key: 'my-orders', label: titleMyOrders, icon: <ShoppingBag size={16} /> },
+    { key: 'my-bonuses', label: titleBonuses, icon: <Star size={16} /> },
+    { key: 'service', label: titleService, icon: <Wrench size={16} /> },
+    { key: 'history', label: titleHistory, icon: <Clock size={16} /> },
+    { key: 'wishlist', label: titleWishlist, icon: <Heart size={16} /> },
+    { key: 'waiting-list', label: titleWaitingLst, icon: <Bell size={16} /> },
+    { key: 'feedback', label: titleFeedback, icon: <MessageSquare size={16} /> },
     { key: 'subscriptions', label: AST.subscriptions, icon: <Mail size={16} /> },
   ];
   const router = useRouter();
@@ -80,7 +97,7 @@ export function AccountPage() {
   const [prevTabParam, setPrevTabParam] = useState<string | null>(null);
   if (tabParam !== prevTabParam) {
     setPrevTabParam(tabParam);
-    if (tabParam && NAV_ITEMS.some(n => n.key === tabParam)) {
+    if (tabParam && NAV_ITEMS.some((n) => n.key === tabParam)) {
       setActiveSection(tabParam as Section);
     }
   }
@@ -111,35 +128,45 @@ export function AccountPage() {
   if (!authReady) {
     const skeleton = (() => {
       switch (activeSection) {
-        case 'my-data':       return <MyDataSkeleton />;
-        case 'my-orders':     return <MyOrdersSkeleton />;
-        case 'my-bonuses':    return <BonusesSkeleton />;
-        case 'service':       return <ServiceSkeleton />;
-        case 'history':       return <HistorySkeleton />;
-        case 'wishlist':      return <WishlistSkeleton />;
-        case 'waiting-list':  return <WaitingListSkeleton />;
-        case 'feedback':      return <FeedbackSkeleton />;
-        case 'subscriptions': return <SubscriptionsSkeleton />;
-        default:              return <MyDataSkeleton />;
+        case 'my-data':
+          return <MyDataSkeleton />;
+        case 'my-orders':
+          return <MyOrdersSkeleton />;
+        case 'my-bonuses':
+          return <BonusesSkeleton />;
+        case 'service':
+          return <ServiceSkeleton />;
+        case 'history':
+          return <HistorySkeleton />;
+        case 'wishlist':
+          return <WishlistSkeleton />;
+        case 'waiting-list':
+          return <WaitingListSkeleton />;
+        case 'feedback':
+          return <FeedbackSkeleton />;
+        case 'subscriptions':
+          return <SubscriptionsSkeleton />;
+        default:
+          return <MyDataSkeleton />;
       }
     })();
     return (
       <div className="min-h-screen bg-white font-[Inter,sans-serif]">
         <Header />
-        <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 py-8 pb-20">
-          <div className="flex items-center justify-between mb-8 border-b border-[#e5e7eb] pb-5">
+        <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 pb-20 lg:px-8">
+          <div className="mb-8 flex items-center justify-between border-b border-[#e5e7eb] pb-5">
             <div>
-              <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{welcomeBack}</p>
-              <div className="h-7 w-40 bg-gray-100 animate-pulse rounded-none" />
+              <p className="mb-0.5 text-xs tracking-widest text-gray-400 uppercase">{welcomeBack}</p>
+              <div className="h-7 w-40 animate-pulse rounded-none bg-gray-100" />
             </div>
           </div>
-          <div className="flex flex-col lg:flex-row gap-8">
-            <aside className="lg:w-60 shrink-0 hidden lg:block">
+          <div className="flex flex-col gap-8 lg:flex-row">
+            <aside className="hidden shrink-0 lg:block lg:w-60">
               <nav className="sticky top-24">
                 {NAV_ITEMS.map((item, idx) => (
                   <div
                     key={item.key}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-sm border-l-[3px] border-l-transparent ${
+                    className={`flex w-full items-center gap-3 border-l-[3px] border-l-transparent px-4 py-3.5 text-sm ${
                       idx < NAV_ITEMS.length - 1 ? 'border-b border-b-[#f0f0f0]' : ''
                     }`}
                   >
@@ -149,7 +176,7 @@ export function AccountPage() {
                 ))}
               </nav>
             </aside>
-            <div className="flex-1 min-w-0">{skeleton}</div>
+            <div className="min-w-0 flex-1">{skeleton}</div>
           </div>
         </main>
         <Footer />
@@ -162,12 +189,12 @@ export function AccountPage() {
     return (
       <div className="min-h-screen bg-white font-[Inter,sans-serif]">
         <Header />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6">
           <User size={56} strokeWidth={1} className="text-gray-300" />
           <p className="text-sm text-gray-400">{signInPrompt}</p>
           <button
             onClick={openLoginModal}
-            className="px-10 py-4 text-white text-xs tracking-[0.2em] uppercase focus-visible:outline-none bg-black rounded-none font-bold"
+            className="rounded-none bg-black px-10 py-4 text-xs font-bold tracking-[0.2em] text-white uppercase focus-visible:outline-none"
           >
             {signInCta}
           </button>
@@ -177,33 +204,52 @@ export function AccountPage() {
     );
   }
 
-  const activeLabel = NAV_ITEMS.find(n => n.key === activeSection)?.label ?? '';
+  const activeLabel = NAV_ITEMS.find((n) => n.key === activeSection)?.label ?? '';
 
   const renderSection = () => {
     if (sectionLoading) {
       switch (activeSection) {
-        case 'my-data':       return <MyDataSkeleton />;
-        case 'my-orders':     return <MyOrdersSkeleton />;
-        case 'my-bonuses':    return <BonusesSkeleton />;
-        case 'service':       return <ServiceSkeleton />;
-        case 'history':       return <HistorySkeleton />;
-        case 'wishlist':      return <WishlistSkeleton />;
-        case 'waiting-list':  return <WaitingListSkeleton />;
-        case 'feedback':      return <FeedbackSkeleton />;
-        case 'subscriptions': return <SubscriptionsSkeleton />;
+        case 'my-data':
+          return <MyDataSkeleton />;
+        case 'my-orders':
+          return <MyOrdersSkeleton />;
+        case 'my-bonuses':
+          return <BonusesSkeleton />;
+        case 'service':
+          return <ServiceSkeleton />;
+        case 'history':
+          return <HistorySkeleton />;
+        case 'wishlist':
+          return <WishlistSkeleton />;
+        case 'waiting-list':
+          return <WaitingListSkeleton />;
+        case 'feedback':
+          return <FeedbackSkeleton />;
+        case 'subscriptions':
+          return <SubscriptionsSkeleton />;
       }
     }
     switch (activeSection) {
-      case 'my-data':       return <MyDataSection />;
-      case 'my-orders':     return <MyOrdersSection />;
-      case 'my-bonuses':    return <BonusesSection />;
-      case 'wishlist':      return <WishlistSection />;
-      case 'subscriptions': return <SubscriptionsSection />;
-      case 'history':       return <HistorySection />;
-      case 'service':       return <ServiceMaintenanceSection />;
-      case 'waiting-list':  return <WaitingListSection />;
-      case 'feedback':      return <FeedbackSection />;
-      default:              return null;
+      case 'my-data':
+        return <MyDataSection />;
+      case 'my-orders':
+        return <MyOrdersSection />;
+      case 'my-bonuses':
+        return <BonusesSection />;
+      case 'wishlist':
+        return <WishlistSection />;
+      case 'subscriptions':
+        return <SubscriptionsSection />;
+      case 'history':
+        return <HistorySection />;
+      case 'service':
+        return <ServiceMaintenanceSection />;
+      case 'waiting-list':
+        return <WaitingListSection />;
+      case 'feedback':
+        return <FeedbackSection />;
+      default:
+        return null;
     }
   };
 
@@ -211,16 +257,19 @@ export function AccountPage() {
     <div className="min-h-screen bg-white font-[Inter,sans-serif]">
       <Header />
 
-      <main id="main-content" className="max-w-7xl mx-auto px-4 lg:px-8 py-8 pb-20">
+      <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 pb-20 lg:px-8">
         {/* Page heading */}
-        <div className="flex items-center justify-between mb-8 border-b border-[#e5e7eb] pb-5">
+        <div className="mb-8 flex items-center justify-between border-b border-[#e5e7eb] pb-5">
           <div>
-            <p className="text-xs text-gray-400 tracking-widest uppercase mb-0.5">{welcomeBack}</p>
-            <h1 className="text-2xl tracking-[0.12em] uppercase font-bold">{user.firstName}</h1>
+            <p className="mb-0.5 text-xs tracking-widest text-gray-400 uppercase">{welcomeBack}</p>
+            <h1 className="text-2xl font-bold tracking-[0.12em] uppercase">{user.firstName}</h1>
           </div>
           <button
-            onClick={() => { logout(); router.push('/'); }}
-            className="flex items-center gap-2 text-xs tracking-wide uppercase focus-visible:outline-none hover:opacity-70 transition-opacity font-semibold"
+            onClick={() => {
+              logout();
+              router.push('/');
+            }}
+            className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase transition-opacity hover:opacity-70 focus-visible:outline-none"
           >
             <LogOut size={14} />
             <span className="hidden sm:inline">{signOut}</span>
@@ -229,19 +278,19 @@ export function AccountPage() {
 
         {/* Mobile nav toggle */}
         <button
-          onClick={() => setMobileNavOpen(o => !o)}
-          className="lg:hidden w-full flex items-center justify-between px-4 py-3 mb-4 focus-visible:outline-none border border-[#e5e7eb] rounded-none"
+          onClick={() => setMobileNavOpen((o) => !o)}
+          className="mb-4 flex w-full items-center justify-between rounded-none border border-[#e5e7eb] px-4 py-3 focus-visible:outline-none lg:hidden"
         >
-          <span className="text-sm tracking-wide font-semibold">{activeLabel}</span>
+          <span className="text-sm font-semibold tracking-wide">{activeLabel}</span>
           <ChevronDown
             size={16}
             className={`transition-transform duration-200 ${mobileNavOpen ? 'rotate-180' : 'rotate-0'}`}
           />
         </button>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col gap-8 lg:flex-row">
           {/* ── Sidebar ── */}
-          <aside className={`lg:w-60 shrink-0 ${mobileNavOpen ? 'block' : 'hidden lg:block'}`}>
+          <aside className={`shrink-0 lg:w-60 ${mobileNavOpen ? 'block' : 'hidden lg:block'}`}>
             <nav className="sticky top-24">
               {NAV_ITEMS.map((item, idx) => {
                 const active = activeSection === item.key;
@@ -249,10 +298,10 @@ export function AccountPage() {
                   <button
                     key={item.key}
                     onClick={() => handleSectionChange(item.key)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-left text-sm transition-all focus-visible:outline-none border-l-[3px] ${
+                    className={`flex w-full items-center gap-3 border-l-[3px] px-4 py-3.5 text-left text-sm transition-all focus-visible:outline-none ${
                       active
-                        ? 'border-l-black bg-[#f9f9f9] text-black font-bold'
-                        : 'border-l-transparent bg-white text-[#555] font-normal'
+                        ? 'border-l-black bg-[#f9f9f9] font-bold text-black'
+                        : 'border-l-transparent bg-white font-normal text-[#555]'
                     } ${idx < NAV_ITEMS.length - 1 ? 'border-b border-b-[#f0f0f0]' : ''}`}
                   >
                     <span className={`transition-colors duration-150 ${active ? 'text-black' : 'text-gray-400'}`}>
@@ -267,9 +316,7 @@ export function AccountPage() {
           </aside>
 
           {/* ── Main Panel ── */}
-          <div className="flex-1 min-w-0">
-            {renderSection()}
-          </div>
+          <div className="min-w-0 flex-1">{renderSection()}</div>
         </div>
       </main>
 

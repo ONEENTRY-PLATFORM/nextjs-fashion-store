@@ -1,5 +1,6 @@
-import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
+
+import { currentCmsLocale } from '../current-locale';
 import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
 
@@ -26,9 +27,10 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
   // wrapper (whose values would be objects keyed by attribute markers).
   const rawAttrs = (raw.attributeValues ?? {}) as Record<string, unknown>;
   const localeSlice = rawAttrs[lang];
-  const attrs: Record<string, unknown> = (localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice))
-    ? (localeSlice as Record<string, unknown>)
-    : rawAttrs;
+  const attrs: Record<string, unknown> =
+    localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice)
+      ? (localeSlice as Record<string, unknown>)
+      : rawAttrs;
   return {
     id: asNumber(raw.id),
     identifier: asString(raw.identifier),
@@ -38,19 +40,17 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
   };
 };
 
-export const loadPageByUrl = cache(
-  async (pageUrl: string, langArg?: Lang): Promise<CmsPage | null> => {
-    const lang = langArg ?? (await currentCmsLocale());
-    const api = getApiSafe();
-    if (!api) return null;
-    try {
-      const result = await api.Pages.getPageByUrl(pageUrl, lang);
-      if (isError(result)) return null;
-      const raw = result as unknown as Record<string, unknown> | null;
-      if (!raw || raw.statusCode) return null;
-      return normalize(raw, lang);
-    } catch {
-      return null;
-    }
-  },
-);
+export const loadPageByUrl = cache(async (pageUrl: string, langArg?: Lang): Promise<CmsPage | null> => {
+  const lang = langArg ?? (await currentCmsLocale());
+  const api = getApiSafe();
+  if (!api) return null;
+  try {
+    const result = await api.Pages.getPageByUrl(pageUrl, lang);
+    if (isError(result)) return null;
+    const raw = result as unknown as Record<string, unknown> | null;
+    if (!raw || raw.statusCode) return null;
+    return normalize(raw, lang);
+  } catch {
+    return null;
+  }
+});

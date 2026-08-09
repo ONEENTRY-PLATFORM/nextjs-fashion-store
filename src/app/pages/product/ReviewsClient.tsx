@@ -1,10 +1,11 @@
-'use client'
+'use client';
 import { useEffect, useMemo, useState } from 'react';
+
+import { useDict } from '../../../lib/oneentry/labels/DictContext';
 import type { ProductReview } from '../../components/product/ProductCard';
 import { useAuth } from '../../context/AuthContext';
-import { canReviewProduct } from '../../utils/review-eligibility';
 import { PRODUCT_REVIEWS_LABELS as L_FALLBACK } from '../../data/productPageLabels';
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
+import { canReviewProduct } from '../../utils/review-eligibility';
 import { ProductReviewsSection } from './ProductReviewsSection';
 import { WriteReviewModal } from './WriteReviewModal';
 
@@ -17,13 +18,7 @@ import { WriteReviewModal } from './WriteReviewModal';
  * auth-gated: unauthed shoppers get the login modal (which offers
  * register), authed ones open the write-review modal directly.
  */
-export function ReviewsClient({
-  productId,
-  reviews,
-}: {
-  productId: number;
-  reviews: ProductReview[];
-}) {
+export function ReviewsClient({ productId, reviews }: { productId: number; reviews: ProductReview[] }) {
   const L = useDict('customer_reviews_', L_FALLBACK);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -38,9 +33,8 @@ export function ReviewsClient({
     return () => clearTimeout(t);
   }, [showPurchaseNotice]);
 
-  const avgRating = reviews.length > 0
-    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
-    : 0;
+  const avgRating =
+    reviews.length > 0 ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10 : 0;
 
   const ratingCounts = useMemo(() => {
     const buckets = [5, 4, 3, 2, 1].map((stars) => ({
@@ -87,9 +81,7 @@ export function ReviewsClient({
         setShowReviewModal={requestWriteReview}
         purchaseNotice={showPurchaseNotice ? L.purchaseRequired : null}
       />
-      {showReviewModal && (
-        <WriteReviewModal onClose={() => setShowReviewModal(false)} productId={productId} />
-      )}
+      {showReviewModal && <WriteReviewModal onClose={() => setShowReviewModal(false)} productId={productId} />}
     </>
   );
 }

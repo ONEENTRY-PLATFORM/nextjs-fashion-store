@@ -1,17 +1,14 @@
-'use client'
-import { ChevronDown, X, User, MapPin, Phone } from 'lucide-react';
-
+'use client';
+import { ChevronDown, MapPin, Phone, User, X } from 'lucide-react';
 import Image from 'next/image';
-import logoImage from '../../../assets/kekimoro-logo-black.png';
-import { SUB_CATEGORIES, type Gender } from '../../data/categories';
-import { useHeaderMenu } from '../../../lib/oneentry/menus/HeaderMenuContext';
-import { adaptHeaderMenuToMega } from '../../../lib/oneentry/menus/adapt-header';
-import {
-  LOGO_ALT, SUPPORT_PHONE, GENDER_NAV_HREFS, MOBILE_FOOTER_LINKS,
-} from '../../data/headerConfig';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useRouter, Link } from '../../../lib/i18n/navigation';
 
+import logoImage from '../../../assets/kekimoro-logo-black.png';
+import { Link, useRouter } from '../../../lib/i18n/navigation';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { adaptHeaderMenuToMega } from '../../../lib/oneentry/menus/adapt-header';
+import { useHeaderMenu } from '../../../lib/oneentry/menus/HeaderMenuContext';
+import { type Gender, SUB_CATEGORIES } from '../../data/categories';
+import { GENDER_NAV_HREFS, LOGO_ALT, MOBILE_FOOTER_LINKS, SUPPORT_PHONE } from '../../data/headerConfig';
 
 interface HeaderMobileDrawerProps {
   isOpen: boolean;
@@ -37,8 +34,8 @@ export function HeaderMobileDrawer({
   getNavHref,
 }: HeaderMobileDrawerProps) {
   // Header copy from the OE `header` set; constants are the offline fallback.
-  const lLogoAlt   = useT('header_logo_alt', LOGO_ALT);
-  const lPhone     = useT('header_support_phone', SUPPORT_PHONE);
+  const lLogoAlt = useT('header_logo_alt', LOGO_ALT);
+  const lPhone = useT('header_support_phone', SUPPORT_PHONE);
   const aCloseMenu = useT('header_aria_close_menu', 'Close menu');
 
   const router = useRouter();
@@ -48,13 +45,10 @@ export function HeaderMobileDrawer({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-100 lg:hidden"
-      style={{ '--accent': accentColor } as React.CSSProperties}
-    >
+    <div className="fixed inset-0 z-100 lg:hidden" style={{ '--accent': accentColor } as React.CSSProperties}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="absolute left-0 top-0 bottom-0 w-80 bg-white flex flex-col overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="absolute inset-y-0 left-0 flex w-80 flex-col overflow-y-auto bg-white">
+        <div className="flex items-center justify-between border-b border-gray-200 p-4">
           <Image src={logoImage} alt={lLogoAlt} width={128} height={28} className="object-contain" priority />
           <button onClick={onClose} className="p-1" aria-label={aCloseMenu}>
             <X size={22} />
@@ -71,7 +65,7 @@ export function HeaderMobileDrawer({
                 router.push(GENDER_NAV_HREFS[g]);
                 onClose();
               }}
-              className={`flex-1 py-3 text-sm tracking-widest uppercase font-medium transition-colors ${
+              className={`flex-1 py-3 text-sm font-medium tracking-widest uppercase transition-colors ${
                 mobileGender === g ? 'bg-accent text-white' : 'bg-white text-black'
               }`}
             >
@@ -85,18 +79,16 @@ export function HeaderMobileDrawer({
           {SUB_CATEGORIES.map((cat) => {
             const key = cat.toLowerCase();
             const hasDropdown = ['shoes', 'clothing', 'bags', 'accessories'].includes(key);
-            const sections = hasDropdown && mega ? mega[mobileGender][key as 'shoes' | 'clothing' | 'bags' | 'accessories'] : null;
+            const sections =
+              hasDropdown && mega ? mega[mobileGender][key as 'shoes' | 'clothing' | 'bags' | 'accessories'] : null;
             return (
               <div key={cat} className="border-b border-gray-100">
                 <button
-                  onClick={() => hasDropdown
-                    ? setMobileExpandedCat(mobileExpandedCat === key ? null : key)
-                    : undefined
+                  onClick={() =>
+                    hasDropdown ? setMobileExpandedCat(mobileExpandedCat === key ? null : key) : undefined
                   }
-                  className={`w-full flex items-center justify-between px-4 py-4 text-sm tracking-wider uppercase border-l-[3px] ${
-                    urlSubCat === key
-                      ? 'text-accent font-bold border-accent'
-                      : 'font-medium border-transparent'
+                  className={`flex w-full items-center justify-between border-l-[3px] p-4 text-sm tracking-wider uppercase ${
+                    urlSubCat === key ? 'border-accent font-bold text-accent' : 'border-transparent font-medium'
                   }`}
                 >
                   {cat}
@@ -112,17 +104,15 @@ export function HeaderMobileDrawer({
                 {mobileExpandedCat === key && sections && (
                   <div className="pb-4">
                     {sections.map((section, idx) => (
-                      <div key={`${section.title}-${idx}`} className="px-4 mb-4">
-                        <p className="text-xs tracking-widest uppercase mb-2 text-accent">
-                          {section.title}
-                        </p>
+                      <div key={`${section.title}-${idx}`} className="mb-4 px-4">
+                        <p className="mb-2 text-xs tracking-widest text-accent uppercase">{section.title}</p>
                         <ul className="space-y-1">
                           {section.items.map((item) => (
                             <li key={item.pageUrl || item.label}>
                               <Link
                                 href={getNavHref(mobileGender, key, item.pageUrl || item.label)}
                                 onClick={onClose}
-                                className="text-sm text-gray-600 block py-1 hover:text-black transition-colors"
+                                className="block py-1 text-sm text-gray-600 transition-colors hover:text-black"
                               >
                                 {item.label}
                               </Link>
@@ -139,7 +129,7 @@ export function HeaderMobileDrawer({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 space-y-4">
+        <div className="space-y-4 border-t border-gray-200 p-4">
           {MOBILE_FOOTER_LINKS.map((link) => (
             <MobileFooterLinkRow key={link.href} link={link} onClose={onClose} />
           ))}
@@ -152,15 +142,11 @@ export function HeaderMobileDrawer({
   );
 }
 
-/** One drawer footer link. Extracted so `useHeaderT` is a top-level hook call
- *  rather than one inside a `.map()` callback. */
-function MobileFooterLinkRow({
-  link,
-  onClose,
-}: {
-  link: (typeof MOBILE_FOOTER_LINKS)[number];
-  onClose: () => void;
-}) {
+/**
+ * One drawer footer link. Extracted so `useHeaderT` is a top-level hook call
+ *  rather than one inside a `.map()` callback.
+ */
+function MobileFooterLinkRow({ link, onClose }: { link: (typeof MOBILE_FOOTER_LINKS)[number]; onClose: () => void }) {
   const label = useT(link.labelKey, link.fallbackLabel);
   return (
     <Link href={link.href} onClick={onClose} className="flex items-center gap-2 text-sm">

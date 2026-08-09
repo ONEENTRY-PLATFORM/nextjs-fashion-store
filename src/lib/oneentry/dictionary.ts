@@ -1,6 +1,7 @@
 import { cache } from 'react';
+
 import { currentCmsLocale } from './current-locale';
-import { getSystemSet, readSystemValue, type Lang, type SystemSchema } from './system-text';
+import { getSystemSet, type Lang, readSystemValue, type SystemSchema } from './system-text';
 
 /**
  * The storefront's UI-text dictionary: every attribute marker the CMS knows,
@@ -92,7 +93,9 @@ export const DICTIONARY_SET_MARKERS = [
   'store_pages',
 ] as const;
 
-/** Flatten one OE attribute-set schema to `marker → value`, dropping empties. */
+/**
+ * Flatten one OE attribute-set schema to `marker → value`, dropping empties.
+ */
 function flattenSet(schema: SystemSchema, lang: Lang): Dictionary {
   const out: Dictionary = {};
   for (const [key, item] of Object.entries(schema)) {
@@ -114,49 +117,41 @@ function flattenSet(schema: SystemSchema, lang: Lang): Dictionary {
  * With no argument the locale comes from the `[locale]` route segment via
  * {@link currentCmsLocale}; pass one explicitly from Server Actions and Route
  * Handlers, where root parameters are unavailable.
+ *
  * @param   {Lang}                 [lang] - OE locale code. Defaults to the route's.
  * @returns {Promise<Dictionary>}         Flat `marker → value` map.
  */
-export const getDictionary = cache(
-  async (langArg?: Lang): Promise<Dictionary> => {
-    const lang = langArg ?? (await currentCmsLocale());
-    const sets = await Promise.all(
-      DICTIONARY_SET_MARKERS.map(async (marker) =>
-        flattenSet(await getSystemSet(marker, lang), lang),
-      ),
-    );
+export const getDictionary = cache(async (langArg?: Lang): Promise<Dictionary> => {
+  const lang = langArg ?? (await currentCmsLocale());
+  const sets = await Promise.all(
+    DICTIONARY_SET_MARKERS.map(async (marker) => flattenSet(await getSystemSet(marker, lang), lang)),
+  );
 
-    const dict: Dictionary = {};
-    for (const set of sets) {
-      for (const [key, value] of Object.entries(set)) {
-        // First writer wins. Markers are unique tenant-wide today; a future
-        // collision would be an admin-side mistake, so surface it in dev
-        // rather than letting one screen silently reword another.
-        if (dict[key] === undefined) {
-          dict[key] = value;
-        } else if (process.env.NODE_ENV !== 'production' && dict[key] !== value) {
-          console.warn(
-            `[oneentry] duplicate dictionary marker "${key}" with differing values — keeping the first.`,
-          );
-        }
+  const dict: Dictionary = {};
+  for (const set of sets) {
+    for (const [key, value] of Object.entries(set)) {
+      // First writer wins. Markers are unique tenant-wide today; a future
+      // collision would be an admin-side mistake, so surface it in dev
+      // rather than letting one screen silently reword another.
+      if (dict[key] === undefined) {
+        dict[key] = value;
+      } else if (process.env.NODE_ENV !== 'production' && dict[key] !== value) {
+        console.warn(`[oneentry] duplicate dictionary marker "${key}" with differing values — keeping the first.`);
       }
     }
-    return dict;
-  },
-);
+  }
+  return dict;
+});
 
 /**
  * Resolve one marker against a dictionary, falling back to the shipped copy.
- * @param   {Dictionary | null | undefined} dict     - Loaded dictionary, if any.
- * @param   {string}                        marker   - Attribute marker to read.
- * @param   {string}                        fallback - Inline English copy.
- * @returns {string}                                 The CMS value or `fallback`.
+ *
+ * @param dict     - Loaded dictionary, if any.
+ * @param                        marker   - Attribute marker to read.
+ * @param                        fallback - Inline English copy.
+ * @returns                                 The CMS value or `fallback`.
  */
-export function translate(
-  dict: Dictionary | null | undefined,
-  marker: string,
-  fallback: string,
-): string {
+export function translate(dict: Dictionary | null | undefined, marker: string, fallback: string): string {
   const v = dict?.[marker];
   return typeof v === 'string' && v.length > 0 ? v : fallback;
 }

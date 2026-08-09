@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { login } from './helpers';
 
 test.describe('Header — Desktop', () => {
@@ -9,7 +10,10 @@ test.describe('Header — Desktop', () => {
   test('logo navigates to homepage', async ({ page }) => {
     await page.goto('/women/clothing');
     // Logo alt text is 'KEKIMORO' (see src/app/data/headerConfig.ts LOGO_ALT).
-    await page.getByRole('link', { name: /kekimoro/i }).first().click();
+    await page
+      .getByRole('link', { name: /kekimoro/i })
+      .first()
+      .click();
     await expect(page).toHaveURL('/');
   });
 

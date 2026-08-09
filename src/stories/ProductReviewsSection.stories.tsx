@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { ProductReviewsSection } from '../app/pages/product/ProductReviewsSection';
+import React, { useRef } from 'react';
+
 import type { ProductReview } from '../app/components/product/ProductCard';
+import { ProductReviewsSection } from '../app/pages/product/ProductReviewsSection';
 
 // ─── Mock reviews ────────────────────────────────────────────────────────────
 
@@ -23,7 +24,7 @@ const MOCK_REVIEWS: ProductReview[] = [
     rating: 4,
     date: '2024-10-28',
     title: 'Great quality, slightly long',
-    body: 'Love the material and the colour. The length runs a tiny bit long on me (I am 5\'4\') but otherwise perfect.',
+    body: "Love the material and the colour. The length runs a tiny bit long on me (I am 5'4') but otherwise perfect.",
     size: 'XS',
     helpful: 7,
     verified: true,
@@ -34,7 +35,7 @@ const MOCK_REVIEWS: ProductReview[] = [
     rating: 5,
     date: '2024-10-10',
     title: 'Perfect for special occasions',
-    body: 'Wore this to a wedding and got so many compliments. The satin drapes beautifully and doesn\'t crease easily.',
+    body: "Wore this to a wedding and got so many compliments. The satin drapes beautifully and doesn't crease easily.",
     size: 'M',
     helpful: 20,
     verified: false,
@@ -64,11 +65,7 @@ function buildRatingCounts(reviews: ProductReview[]) {
 
 function avgOf(reviews: ProductReview[]) {
   if (!reviews.length) return 0;
-  return (
-    Math.round(
-      (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10,
-    ) / 10
-  );
+  return Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10;
 }
 
 // ─── Wrapper provides the ref ─────────────────────────────────────────────────

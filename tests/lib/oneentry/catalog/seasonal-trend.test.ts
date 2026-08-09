@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
 
 const getPageByUrl = vi.fn();
@@ -7,8 +8,7 @@ vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Pages: { getPageByUrl } }),
   isOneEntryEnabled: true,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -236,8 +236,8 @@ describe('resolveSeasonalTrend — disabled', () => {
   it('returns null when the SDK is not initialised', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (null),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => null,
       isOneEntryEnabled: false,
       isError: () => false,
     }));

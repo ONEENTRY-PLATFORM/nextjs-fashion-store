@@ -1,23 +1,20 @@
 import type { MetadataRoute } from 'next';
-import { SITE_URL } from '../src/app/data/seoData';
+
 import { PAGE_REGISTRY } from '../src/app/data/pageRegistry';
-import { loadProducts } from '../src/lib/oneentry/catalog/products';
+import { SITE_URL } from '../src/app/data/seoData';
 import { loadInfoPageSlugs } from '../src/lib/oneentry/catalog/info-pages';
-import {
-  SHORT_LOCALES,
-  buildLanguageAlternates,
-  localizeHref,
-} from '../src/lib/oneentry/locale';
+import { loadProducts } from '../src/lib/oneentry/catalog/products';
+import { buildLanguageAlternates, localizeHref, SHORT_LOCALES } from '../src/lib/oneentry/locale';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();
 
   // Fixed pages that are not in PAGE_REGISTRY
   const fixedPages: MetadataRoute.Sitemap = [
-    { url: SITE_URL,                      lastModified: now, changeFrequency: 'daily',  priority: 1.0 },
-    { url: `${SITE_URL}/sale`,            lastModified: now, changeFrequency: 'daily',  priority: 0.8 },
-    { url: `${SITE_URL}/new`,             lastModified: now, changeFrequency: 'daily',  priority: 0.8 },
-    { url: `${SITE_URL}/stores`,          lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
+    { url: SITE_URL, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
+    { url: `${SITE_URL}/sale`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/new`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/stores`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ];
 
   // Dynamic pages from registry
@@ -55,21 +52,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const defaultLocaleEntries = [
-    ...fixedPages,
-    ...registryPages,
-    ...cmsInfoPages,
-    ...productPages,
-  ];
+  const defaultLocaleEntries = [...fixedPages, ...registryPages, ...cmsInfoPages, ...productPages];
 
   // One entry per routed locale, each carrying the full `alternates.languages`
   // set. Without the per-locale URLs a translated page is crawlable but
   // unlisted; without the alternates the two versions look like duplicates
   // rather than translations of each other.
   return defaultLocaleEntries.flatMap((entry) => {
-    const bare = entry.url.startsWith(SITE_URL)
-      ? entry.url.slice(SITE_URL.length) || '/'
-      : entry.url;
+    const bare = entry.url.startsWith(SITE_URL) ? entry.url.slice(SITE_URL.length) || '/' : entry.url;
     const languages = buildLanguageAlternates(SITE_URL, bare);
     return SHORT_LOCALES.map((short) => {
       const localized = localizeHref(bare, short);

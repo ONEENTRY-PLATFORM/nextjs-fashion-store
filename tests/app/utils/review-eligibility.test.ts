@@ -10,6 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import { canReviewProduct } from '@/app/utils/review-eligibility';
 
 // ── Minimal inline shape ──────────────────────────────────────────────────────
@@ -20,7 +21,7 @@ type MinOrder = {
 };
 
 /** Cast a MinOrder array to the param type expected by canReviewProduct. */
- 
+
 const asOrders = (orders: MinOrder[]) => orders as any;
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -102,13 +103,7 @@ describe('canReviewProduct', () => {
   // ── 6. Non-terminal statuses ───────────────────────────────────────────────
 
   describe('returns false for non-terminal statusIdentifiers even when product is present', () => {
-    const cases: string[] = [
-      'processing',
-      'shipped',
-      'cancelled',
-      'refunded',
-      '',
-    ];
+    const cases: string[] = ['processing', 'shipped', 'cancelled', 'refunded', ''];
 
     for (const status of cases) {
       it(`returns false for statusIdentifier: '${JSON.stringify(status)}'`, () => {
@@ -129,18 +124,18 @@ describe('canReviewProduct', () => {
 
   it('returns true when only one of several orders is delivered and contains the product', () => {
     const orders = asOrders([
-      deliveredOrder('processing'),               // wrong status, right product
-      deliveredOrder('done', [999]),              // right status, wrong product
-      deliveredOrder('cancelled'),                // wrong status, right product
-      deliveredOrder('pickup_delivered'),         // right status, right product
+      deliveredOrder('processing'), // wrong status, right product
+      deliveredOrder('done', [999]), // right status, wrong product
+      deliveredOrder('cancelled'), // wrong status, right product
+      deliveredOrder('pickup_delivered'), // right status, right product
     ]);
     expect(canReviewProduct(orders, PRODUCT_ID)).toBe(true);
   });
 
   it('returns false when no order is both delivered and contains the product', () => {
     const orders = asOrders([
-      deliveredOrder('processing'),               // wrong status, right product
-      deliveredOrder('done', [999]),              // right status, wrong product
+      deliveredOrder('processing'), // wrong status, right product
+      deliveredOrder('done', [999]), // right status, wrong product
     ]);
     expect(canReviewProduct(orders, PRODUCT_ID)).toBe(false);
   });

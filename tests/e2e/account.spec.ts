@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { clearState, login } from './helpers';
 
 test.describe('Account Page', () => {
@@ -51,7 +52,9 @@ test.describe('Account Page', () => {
       if (await bonusTab.isVisible()) {
         await bonusTab.click();
         await page.waitForTimeout(500);
-        await expect(page.locator('text=/silver|gold|bronze|platinum|points|bonus/i').first()).toBeVisible({ timeout: 5000 });
+        await expect(page.locator('text=/silver|gold|bronze|platinum|points|bonus/i').first()).toBeVisible({
+          timeout: 5000,
+        });
       }
     });
   });
@@ -259,7 +262,7 @@ test.describe('Account — Not logged in', () => {
     await page.goto('/account');
     await clearState(page);
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState('networkidle');
     const loginPrompt = page.locator('text=/sign in|log in|create account/i').first();
     const accountContent = page.locator('text=/my data|jane/i').first();
     const hasLogin = await loginPrompt.isVisible().catch(() => false);
@@ -271,7 +274,7 @@ test.describe('Account — Not logged in', () => {
     await page.goto('/account');
     await clearState(page);
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState('networkidle');
     const loginBtn = page.getByRole('button', { name: /sign in|log in/i }).first();
     if (await loginBtn.isVisible()) {
       await loginBtn.click();

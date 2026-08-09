@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getAuthProvidersAction, type AuthProviderInfo } from '../../lib/oneentry/auth/actions';
+
+import { type AuthProviderInfo, getAuthProvidersAction } from '../../lib/oneentry/auth/actions';
 
 /**
  * Module-level cache so LoginModal, RegisterModal and SocialNetworksSection

@@ -1,31 +1,27 @@
-'use client'
+'use client';
+import { AlertTriangle, ArrowRight, ChevronRight, ShoppingBag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 
-import { Header } from '../components/header/Header';
+import { useRouter } from '../../lib/i18n/navigation';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
 import { Footer } from '../components/footer/Footer';
-import { useWishlist } from '../context/WishlistContext';
-import { useCart } from '../context/CartContext';
-import { extractCmsProductId } from '../data/cms-product-id-map';
-import {
-  ShoppingBag, ChevronRight,
-  ArrowRight, Trash2, AlertTriangle,
-} from 'lucide-react';
+import { Header } from '../components/header/Header';
+import type { Product } from '../components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
+import { extractCmsProductId } from '../data/cms-product-id-map';
+import { FAVORITES_PAGE_LABELS } from '../data/favoritesLabels';
+import { useMounted } from '../hooks/useMounted';
+import type { RootState } from '../store';
 import { FavoriteCard } from './favorites/FavoriteCard';
 import { FavoritesCarousel } from './favorites/FavoritesCarousel';
 import { FavoritesEmptyState } from './favorites/FavoritesEmptyState';
 import { RecentlyViewedSection } from './product/RecentlyViewedSection';
-import { FAVORITES_PAGE_LABELS as L } from '../data/favoritesLabels';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import type { Product } from '../components/product/ProductCard';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../store';
-import { useAuth } from '../context/AuthContext';
-import { useMounted } from '../hooks/useMounted';
-import { useRouter } from '../../lib/i18n/navigation';
-
 
 /* ─── Main Page ─── */
 export function FavoritesPage({
@@ -35,10 +31,13 @@ export function FavoritesPage({
 }: {
   recommended?: Product[];
   trending?: Product[];
-  /** OE-attached blocks for the `favorites` page. Rendered above the
-   *  wishlist header via `<PageBlocksRenderer>`. */
+  /**
+   * OE-attached blocks for the `favorites` page. Rendered above the
+   *  wishlist header via `<PageBlocksRenderer>`.
+   */
   pageBlocks?: PageBlock[];
 } = {}) {
+  const L = useDict('favorites_page_', FAVORITES_PAGE_LABELS);
   const { items, clearAll, count } = useWishlist();
   const { addItem: addToCart } = useCart();
   const router = useRouter();
@@ -47,21 +46,21 @@ export function FavoritesPage({
   // Every visible string resolves through the OE `favorites_page` set, with the
   // local dictionary as the offline fallback — a partially wired page would let
   // an editor change some labels while others stayed frozen in code.
-  const lItems     = useT('favorites_page_items',              L.itemPlural);
-  const lItem      = useT('favorites_page_item',               L.itemSingular);
-  const lMoveAll   = useT('favorites_page_move_all_to_bag',    L.moveAllToBag);
-  const lClearAll  = useT('favorites_page_clear_all',          L.clearAll);
-  const lBottom    = useT('favorites_page_bottom_link',        L.ctaContinue);
-  const lCrumbHome = useT('favorites_page_breadcrumb_home',    L.breadcrumbHome);
+  const lItems = useT('favorites_page_items', L.itemPlural);
+  const lItem = useT('favorites_page_item', L.itemSingular);
+  const lMoveAll = useT('favorites_page_move_all_to_bag', L.moveAllToBag);
+  const lClearAll = useT('favorites_page_clear_all', L.clearAll);
+  const lBottom = useT('favorites_page_bottom_link', L.ctaContinue);
+  const lCrumbHome = useT('favorites_page_breadcrumb_home', L.breadcrumbHome);
   const lCrumbCurr = useT('favorites_page_breadcrumb_current', L.breadcrumbCurrent);
-  const lTitle     = useT('favorites_page_title',              L.pageTitle);
-  const lConfirm   = useT('favorites_page_confirm_clear',      L.confirmClear);
-  const lYes       = useT('favorites_page_confirm_yes',        L.confirmYes);
-  const lCancel    = useT('favorites_page_confirm_cancel',     L.confirmCancel);
-  const lDropTitle = useT('favorites_page_price_drop_title',   L.priceDropTitle);
-  const lDropBody  = useT('favorites_page_price_drop_body',    L.priceDropBody);
-  const lRecommend = useT('favorites_page_recommended',        L.recommendedHeading);
-  const lTrending  = useT('favorites_page_trending',           L.trendingHeading);
+  const lTitle = useT('favorites_page_title', L.pageTitle);
+  const lConfirm = useT('favorites_page_confirm_clear', L.confirmClear);
+  const lYes = useT('favorites_page_confirm_yes', L.confirmYes);
+  const lCancel = useT('favorites_page_confirm_cancel', L.confirmCancel);
+  const lDropTitle = useT('favorites_page_price_drop_title', L.priceDropTitle);
+  const lDropBody = useT('favorites_page_price_drop_body', L.priceDropBody);
+  const lRecommend = useT('favorites_page_recommended', L.recommendedHeading);
+  const lTrending = useT('favorites_page_trending', L.trendingHeading);
 
   // Live Recently-Viewed trail from Redux (shared with PDP). Dedupe by title
   // so different variants of the same product (Pink XL / White M / …) don't
@@ -130,7 +129,7 @@ export function FavoritesPage({
   // passes and trip React's hydration mismatch warning. Same shape either
   // way so the empty-first-paint doesn't jump.
   const RECOMMENDATION_PRODUCTS_SCOPED = mounted ? recommended.filter(matchesPreferredGender) : recommended;
-  const TRENDING_PRODUCTS_SCOPED       = mounted ? trending.filter(matchesPreferredGender)    : trending;
+  const TRENDING_PRODUCTS_SCOPED = mounted ? trending.filter(matchesPreferredGender) : trending;
 
   const handleMoveAllToCart = () => {
     // Forward `originalPrice` so sale items keep the strike-through UX
@@ -138,24 +137,26 @@ export function FavoritesPage({
     // clean numeric productId (previous `${id}-auto` id dropped the
     // line from `getCmsProductId`-based checks).
     const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^0-9.]/g, '')) || 0;
-    items.filter(i => i.inStock).forEach(item => {
-      const priceNumber = parsePrice(item.salePrice ?? item.price);
-      const originalPrice = item.salePrice ? parsePrice(item.price) : undefined;
-      const cmsId = extractCmsProductId(item.id);
-      const cartId = cmsId !== null ? String(cmsId) : item.id;
-      addToCart({
-        id: cartId,
-        name: item.name,
-        price: priceNumber,
-        ...(originalPrice !== undefined && { originalPrice }),
-        image: item.image,
-        size: item.selectedSize ?? item.sizes[0] ?? '',
-        color: item.colors[0] ?? '',
-        quantity: 1,
-        brand: item.brand ?? '',
-        sku: cartId,
+    items
+      .filter((i) => i.inStock)
+      .forEach((item) => {
+        const priceNumber = parsePrice(item.salePrice ?? item.price);
+        const originalPrice = item.salePrice ? parsePrice(item.price) : undefined;
+        const cmsId = extractCmsProductId(item.id);
+        const cartId = cmsId !== null ? String(cmsId) : item.id;
+        addToCart({
+          id: cartId,
+          name: item.name,
+          price: priceNumber,
+          ...(originalPrice !== undefined && { originalPrice }),
+          image: item.image,
+          size: item.selectedSize ?? item.sizes[0] ?? '',
+          color: item.colors[0] ?? '',
+          quantity: 1,
+          brand: item.brand ?? '',
+          sku: cartId,
+        });
       });
-    });
   };
 
   return (
@@ -167,24 +168,36 @@ export function FavoritesPage({
 
       <main id="main-content" className="pb-20">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-gray-400 px-4 lg:px-8 pt-6 mb-6 tracking-wide">
-          <button onClick={() => router.push('/')} className="hover:text-black transition-colors focus-visible:outline-none" data-testid="favorites-breadcrumb-home">{lCrumbHome}</button>
+        <nav className="mb-6 flex items-center gap-2 px-4 pt-6 text-xs tracking-wide text-gray-400 lg:px-8">
+          <button
+            onClick={() => router.push('/')}
+            className="transition-colors hover:text-black focus-visible:outline-none"
+            data-testid="favorites-breadcrumb-home"
+          >
+            {lCrumbHome}
+          </button>
           <ChevronRight size={12} />
-          <span className="text-black font-semibold" data-testid="favorites-breadcrumb-current">{lCrumbCurr}</span>
+          <span className="font-semibold text-black" data-testid="favorites-breadcrumb-current">
+            {lCrumbCurr}
+          </span>
         </nav>
 
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-4 lg:px-8 border-b-2 border-black pb-4">
+        <div className="mb-8 flex flex-col justify-between gap-4 border-b-2 border-black px-4 pb-4 sm:flex-row sm:items-center lg:px-8">
           <div className="flex items-baseline gap-3">
-            <h1 className="text-2xl tracking-[0.12em] uppercase font-bold" data-testid="favorites-title">{lTitle}</h1>
-            <span className="text-sm text-gray-400">({mounted ? count : 0} {mounted && count === 1 ? lItem : lItems})</span>
+            <h1 className="text-2xl font-bold tracking-[0.12em] uppercase" data-testid="favorites-title">
+              {lTitle}
+            </h1>
+            <span className="text-sm text-gray-400">
+              ({mounted ? count : 0} {mounted && count === 1 ? lItem : lItems})
+            </span>
           </div>
 
           {mounted && count > 0 && (
             <div className="flex items-center gap-3">
               <button
                 onClick={handleMoveAllToCart}
-                className="flex items-center gap-2 px-4 py-2.5 text-white text-xs tracking-wider uppercase focus-visible:outline-none hover:opacity-90 transition-opacity bg-black font-bold"
+                className="flex items-center gap-2 bg-black px-4 py-2.5 text-xs font-bold tracking-wider text-white uppercase transition-opacity hover:opacity-90 focus-visible:outline-none"
               >
                 <ShoppingBag size={13} />
                 {lMoveAll}
@@ -192,7 +205,7 @@ export function FavoritesPage({
               {!showClearConfirm ? (
                 <button
                   onClick={() => setShowClearConfirm(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-xs tracking-wider uppercase focus-visible:outline-none hover:bg-gray-50 transition-colors border border-[#d1d5db] text-[#666] font-semibold"
+                  className="flex items-center gap-2 border border-[#d1d5db] px-4 py-2.5 text-xs font-semibold tracking-wider text-[#666] uppercase transition-colors hover:bg-gray-50 focus-visible:outline-none"
                 >
                   <Trash2 size={12} />
                   {lClearAll}
@@ -201,14 +214,17 @@ export function FavoritesPage({
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">{lConfirm}</span>
                   <button
-                    onClick={() => { clearAll(); setShowClearConfirm(false); }}
-                    className="px-3 py-1.5 text-white text-xs uppercase focus-visible:outline-none bg-(--sale) font-bold"
+                    onClick={() => {
+                      clearAll();
+                      setShowClearConfirm(false);
+                    }}
+                    className="bg-(--sale) px-3 py-1.5 text-xs font-bold text-white uppercase focus-visible:outline-none"
                   >
                     {lYes}
                   </button>
                   <button
                     onClick={() => setShowClearConfirm(false)}
-                    className="px-3 py-1.5 text-xs uppercase focus-visible:outline-none hover:bg-gray-50 border border-[#d1d5db]"
+                    className="border border-[#d1d5db] px-3 py-1.5 text-xs uppercase hover:bg-gray-50 focus-visible:outline-none"
                   >
                     {lCancel}
                   </button>
@@ -221,19 +237,22 @@ export function FavoritesPage({
         {/* Content */}
         {!mounted ? (
           /* Skeleton grid — shown before hydration */
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-white px-4 lg:px-8" aria-hidden="true">
+          <div
+            className="grid grid-cols-2 gap-px bg-white px-4 sm:grid-cols-3 lg:grid-cols-4 lg:px-8"
+            aria-hidden="true"
+          >
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
                 className="flex flex-col bg-white [animation-delay:var(--delay)]"
                 style={{ '--delay': `${i * 60}ms` } as React.CSSProperties}
               >
-                <div className="aspect-3/4 bg-gray-100 animate-pulse" />
-                <div className="p-3 flex flex-col gap-2">
-                  <div className="h-3 bg-gray-100 animate-pulse rounded w-1/3" />
-                  <div className="h-3 bg-gray-100 animate-pulse rounded w-2/3" />
-                  <div className="h-4 bg-gray-100 animate-pulse rounded w-1/4" />
-                  <div className="h-9 bg-gray-100 animate-pulse rounded mt-1" />
+                <div className="aspect-3/4 animate-pulse bg-gray-100" />
+                <div className="flex flex-col gap-2 p-3">
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-gray-100" />
+                  <div className="h-3 w-2/3 animate-pulse rounded bg-gray-100" />
+                  <div className="h-4 w-1/4 animate-pulse rounded bg-gray-100" />
+                  <div className="mt-1 h-9 animate-pulse rounded bg-gray-100" />
                 </div>
               </div>
             ))}
@@ -243,19 +262,18 @@ export function FavoritesPage({
         ) : (
           <>
             {/* Price drop notice */}
-            {items.some(i => i.priceAlert) && (
-              <div className="flex items-center gap-3 px-4 py-3 mb-0 text-sm bg-[#FFFBEB] border border-[#FDE68A]">
-                <AlertTriangle size={16} className="text-[#D97706] shrink-0" />
+            {items.some((i) => i.priceAlert) && (
+              <div className="mb-0 flex items-center gap-3 border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-sm">
+                <AlertTriangle size={16} className="shrink-0 text-[#D97706]" />
                 <p className="text-[#92400E]">
-                  <span className="font-bold">{lDropTitle}</span>
-                  {' '}{lDropBody}
+                  <span className="font-bold">{lDropTitle}</span> {lDropBody}
                 </p>
               </div>
             )}
 
             {/* Product Grid — edge to edge */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-white mb-16">
-              {items.map(item => (
+            <div className="mb-16 grid grid-cols-2 gap-px bg-white sm:grid-cols-3 lg:grid-cols-4">
+              {items.map((item) => (
                 <FavoriteCard key={item.id} item={item} />
               ))}
             </div>
@@ -263,7 +281,7 @@ export function FavoritesPage({
         )}
 
         {/* Recommendations */}
-        <div className="space-y-12 pt-12 px-4 lg:px-8 border-t border-gray-200">
+        <div className="space-y-12 border-t border-gray-200 px-4 pt-12 lg:px-8">
           <FavoritesCarousel title={lRecommend} products={RECOMMENDATION_PRODUCTS_SCOPED} />
           <FavoritesCarousel title={lTrending} products={TRENDING_PRODUCTS_SCOPED} />
         </div>
@@ -276,10 +294,10 @@ export function FavoritesPage({
         )}
 
         {/* Back to Catalog CTA */}
-        <div className="mt-16 text-center px-4 lg:px-8">
+        <div className="mt-16 px-4 text-center lg:px-8">
           <button
             onClick={() => router.push(L.ctaContinueHref)}
-            className="inline-flex items-center gap-2 text-sm tracking-wider uppercase focus-visible:outline-none hover:gap-3 transition-all font-bold"
+            className="inline-flex items-center gap-2 text-sm font-bold tracking-wider uppercase transition-all hover:gap-3 focus-visible:outline-none"
           >
             {lBottom} <ArrowRight size={16} />
           </button>
@@ -287,9 +305,7 @@ export function FavoritesPage({
 
         {/* OE-attached blocks for the `favorites` page — rendered at the
             bottom below the wishlist / recommendations. Empty → nothing. */}
-        {pageBlocks && pageBlocks.length > 0 && (
-          <PageBlocksRenderer blocks={pageBlocks} />
-        )}
+        {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
       </main>
 
       <Footer />

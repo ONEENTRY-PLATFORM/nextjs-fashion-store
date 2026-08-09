@@ -1,16 +1,19 @@
-'use client'
-import { useState, useRef } from 'react';
-import { X, Search } from 'lucide-react';
-import type { MobileFilterGroup } from './MobileFilterPanel';
+'use client';
+import { Search, X } from 'lucide-react';
 import Image from 'next/image';
-import { ColorSwatch } from '../ui/ColorSwatch';
+import { useRef, useState } from 'react';
+
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { COMMON_EMPTY_STATES } from '../../data/commonLabels';
+import { fillTokens } from '../../utils/fillTokens';
+import { ColorSwatch } from '../ui/ColorSwatch';
+import type { MobileFilterGroup } from './MobileFilterPanel';
 
 /* ─── 18 × 18 px touch checkbox ─────────────────────────── */
 export function CheckboxUI({ checked }: { checked: boolean }) {
   return (
     <span
-      className={`w-4.5 h-4.5 border-[1.5px] rounded-none shrink-0 flex items-center justify-center transition-[background-color,border-color] duration-150 ${
+      className={`flex size-4.5 shrink-0 items-center justify-center rounded-none border-[1.5px] transition-[background-color,border-color] duration-150 ${
         checked ? 'border-black bg-black' : 'border-[#c8c8c8] bg-white'
       }`}
     >
@@ -28,6 +31,8 @@ interface FilterBodyProps {
 /* ─── Accordion content for each filter type ─────────────── */
 export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBodyProps) {
   const [search, setSearch] = useState('');
+  const lSearchInGroup = useT('interface_controls_search_in_group', COMMON_EMPTY_STATES.searchInGroup);
+  const lNoResults = useT('interface_controls_no_results', COMMON_EMPTY_STATES.noResults);
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = selectedFilters[group.key] ?? [];
 
@@ -38,25 +43,23 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
   /* ── Size chips ── */
   if (group.type === 'size_chips') {
     return (
-      <div className="px-5 pb-5 pt-2">
+      <div className="px-5 pt-2 pb-5">
         <div className="flex flex-wrap gap-2">
-          {group.options.map(opt => {
+          {group.options.map((opt) => {
             const optValue = opt.value ?? opt.label;
             const isSelected = selected.includes(optValue);
             return (
               <button
                 key={optValue}
                 onClick={() => onToggleFilter(group.key, optValue)}
-                className={`focus-visible:outline-none transition-all min-w-13 min-h-11 px-2.5 py-1 text-[13px] border-[1.5px] rounded-none flex flex-col items-center justify-center leading-[1.1] ${
+                className={`leading-1.1 flex min-h-11 min-w-13 flex-col items-center justify-center rounded-none border-[1.5px] px-2.5 py-1 text-[13px] transition-all focus-visible:outline-none ${
                   isSelected
-                    ? 'font-bold border-black bg-black text-white'
-                    : 'font-normal border-[#d1d5db] bg-white text-[#333]'
+                    ? 'border-black bg-black font-bold text-white'
+                    : 'border-[#d1d5db] bg-white font-normal text-[#333]'
                 }`}
               >
                 {opt.label}
-                {opt.count !== undefined && (
-                  <span className="text-[9px] opacity-60 mt-px">({opt.count})</span>
-                )}
+                {opt.count !== undefined && <span className="mt-px text-[9px] opacity-60">({opt.count})</span>}
               </button>
             );
           })}
@@ -68,32 +71,40 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
   /* ── Search + checkbox ── */
   if (group.type === 'search_checkbox') {
     const visible = search.trim()
-      ? group.options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+      ? group.options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
       : group.options;
     return (
-      <div className="px-5 pb-5 pt-2">
+      <div className="px-5 pt-2 pb-5">
         <div className="relative mb-3">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <Search size={13} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
           <input
             ref={inputRef}
             type="text"
-            placeholder={COMMON_EMPTY_STATES.searchInGroupTpl(group.label)}
+            placeholder={fillTokens(lSearchInGroup, { group: group.label.toLowerCase() })}
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 focus-visible:outline-none bg-white h-10 text-[13px] border border-[#d1d5db] rounded-none"
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-10 w-full rounded-none border border-[#d1d5db] bg-white pr-3 pl-8 text-[13px] focus-visible:outline-none"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black focus-visible:outline-none">
+            <button
+              onClick={() => setSearch('')}
+              className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-black focus-visible:outline-none"
+            >
               <X size={12} />
             </button>
           )}
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-0">
-          {visible.map(option => {
+          {visible.map((option) => {
             const isSelected = selected.includes(option.value ?? option.label);
             return (
               <label key={option.label} className={rowClass}>
-                <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.value ?? option.label)} className="sr-only" />
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => onToggleFilter(group.key, option.value ?? option.label)}
+                  className="sr-only"
+                />
                 <CheckboxUI checked={isSelected} />
                 <span className={optionTextClass}>
                   {option.label}
@@ -102,9 +113,7 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
               </label>
             );
           })}
-          {visible.length === 0 && (
-            <p className="col-span-2 text-center py-4 text-xs text-gray-400">{COMMON_EMPTY_STATES.noResults}</p>
-          )}
+          {visible.length === 0 && <p className="col-span-2 py-4 text-center text-xs text-gray-400">{lNoResults}</p>}
         </div>
       </div>
     );
@@ -113,13 +122,18 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
   /* ── Color swatches ── */
   if (group.type === 'color') {
     return (
-      <div className="px-5 pb-5 pt-2">
+      <div className="px-5 pt-2 pb-5">
         <div className="grid grid-cols-2 gap-x-4 gap-y-0">
-          {group.options.map(option => {
+          {group.options.map((option) => {
             const isSelected = selected.includes(option.value ?? option.label);
             return (
               <label key={option.label} className={rowClass}>
-                <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.value ?? option.label)} className="sr-only" />
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => onToggleFilter(group.key, option.value ?? option.label)}
+                  className="sr-only"
+                />
                 <CheckboxUI checked={isSelected} />
                 <ColorSwatch color={option.color} selected={isSelected} size={22} />
                 <span className={optionTextClass}>
@@ -136,13 +150,18 @@ export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBod
 
   /* ── Default: 2-col checkbox grid ── */
   return (
-    <div className="px-5 pb-5 pt-2">
+    <div className="px-5 pt-2 pb-5">
       <div className="grid grid-cols-2 gap-x-4 gap-y-0">
-        {group.options.map(option => {
+        {group.options.map((option) => {
           const isSelected = selected.includes(option.value ?? option.label);
           return (
             <label key={option.label} className={rowClass}>
-              <input type="checkbox" checked={isSelected} onChange={() => onToggleFilter(group.key, option.value ?? option.label)} className="sr-only" />
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onToggleFilter(group.key, option.value ?? option.label)}
+                className="sr-only"
+              />
               <CheckboxUI checked={isSelected} />
               <span className={optionTextClass}>
                 {option.label}

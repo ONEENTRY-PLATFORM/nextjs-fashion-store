@@ -3,8 +3,10 @@ import { loadProductReviews } from './reviews';
 
 export interface ProductReviewSummary {
   count: number;
-  /** Average rating (1–5) rounded to one decimal. `null` when there are no
-   *  reviews yet — callers should hide the star row entirely in that case. */
+  /**
+   * Average rating (1–5) rounded to one decimal. `null` when there are no
+   *  reviews yet — callers should hide the star row entirely in that case.
+   */
   avg: number | null;
 }
 
@@ -14,9 +16,7 @@ export interface ProductReviewSummary {
  * so we don't serialize the full review objects to the client just to
  * render the rating pill.
  */
-export async function getProductReviewSummary(
-  productId: number,
-): Promise<ProductReviewSummary> {
+export async function getProductReviewSummary(productId: number): Promise<ProductReviewSummary> {
   const reviews = await loadProductReviews(productId, 200);
   if (reviews.length === 0) return { count: 0, avg: null };
   const sum = reviews.reduce((s, r) => s + r.rating, 0);

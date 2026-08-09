@@ -1,11 +1,12 @@
-'use client'
+'use client';
+import { CheckCircle, ChevronDown, Tag, X } from 'lucide-react';
 import Image from 'next/image';
-import { CheckCircle, ChevronDown, X, Tag } from 'lucide-react';
-import { useCart, type GiftCartItem } from '../../context/CartContext';
-import { DELIVERY_SUMMARY_LABELS as L } from '../../data/checkoutLabels';
+
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { SALE_COLOR } from '../../constants/colors';
+import { type GiftCartItem, useCart } from '../../context/CartContext';
+import { DELIVERY_SUMMARY_LABELS } from '../../data/checkoutLabels';
 import { fmt } from '../../utils/formatPrice';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
 
 interface Props {
   summaryOpen: boolean;
@@ -30,11 +31,13 @@ interface Props {
   previewLoading: boolean;
   /** `true` once the first preview has arrived; suppresses skeleton for subsequent refetches. */
   hasPreview: boolean;
-  /** Free gifts OE appended to the order (hydrated with product name/image).
+  /**
+   * Free gifts OE appended to the order (hydrated with product name/image).
    *  Passed from the parent so an in-session Apply Coupon fires the parent's
    *  `useCart` instance while this component reads its own — otherwise the
    *  gift wouldn't appear until the shopper reloads and both instances re-init
-   *  from the persisted coupon. */
+   *  from the persisted coupon.
+   */
   giftItems: GiftCartItem[];
 }
 
@@ -56,63 +59,61 @@ export function DeliveryOrderSummary({
   hasPreview,
   giftItems,
 }: Props) {
+  const L = useDict('checkout_delivery_summary_', DELIVERY_SUMMARY_LABELS);
   const { items } = useCart();
-  const lHeading      = useT('checkout_delivery_order_summary_title',          L.heading);
-  const lPromoLabel   = useT('checkout_delivery_promo_code',                   L.promoCodeLabel);
-  const lPromoPh      = useT('checkout_delivery_enter_promo_code',             L.promoPlaceholder);
-  const lPromoApply   = useT('checkout_delivery_promocode_cta',                L.promoApply);
-  const lDelivery     = useT('checkout_delivery_summary_delivery',             L.delivery);
-  const lFree         = useT('checkout_delivery_order_summary_delivery_free',  L.deliveryFree);
-  const lTotal        = useT('checkout_delivery_order_summary_total',          L.total);
-  const lFreeGift     = useT('checkout_delivery_free_gift',                    L.freeGift);
-  const lGiftFree     = useT('checkout_delivery_gift_free',                    L.giftFree);
-  const lLoyalty      = useT('checkout_delivery_loyalty_discount',             L.loyaltyDiscount);
+  const lHeading = useT('checkout_delivery_order_summary_title', L.heading);
+  const lPromoLabel = useT('checkout_delivery_promo_code', L.promoCodeLabel);
+  const lPromoPh = useT('checkout_delivery_enter_promo_code', L.promoPlaceholder);
+  const lPromoApply = useT('checkout_delivery_promocode_cta', L.promoApply);
+  const lDelivery = useT('checkout_delivery_summary_delivery', L.delivery);
+  const lFree = useT('checkout_delivery_order_summary_delivery_free', L.deliveryFree);
+  const lTotal = useT('checkout_delivery_order_summary_total', L.total);
+  const lFreeGift = useT('checkout_delivery_free_gift', L.freeGift);
+  const lGiftFree = useT('checkout_delivery_gift_free', L.giftFree);
+  const lLoyalty = useT('checkout_delivery_loyalty_discount', L.loyaltyDiscount);
 
   return (
-    <div
-      className="lg:w-80 xl:w-96 shrink-0"
-      style={{ '--sale': SALE_COLOR } as React.CSSProperties}
-    >
+    <div className="shrink-0 lg:w-80 xl:w-96" style={{ '--sale': SALE_COLOR } as React.CSSProperties}>
       <div className="sticky top-32 border border-[#e5e7eb]">
         {/* Mobile toggle */}
         <button
-          className={`w-full flex items-center justify-between px-6 py-4 focus-visible:outline-none lg:cursor-default ${
+          className={`flex w-full items-center justify-between px-6 py-4 focus-visible:outline-none lg:cursor-default ${
             summaryOpen ? 'border-b border-[#e5e7eb]' : ''
           }`}
-          onClick={() => setSummaryOpen(o => !o)}
+          onClick={() => setSummaryOpen((o) => !o)}
           aria-expanded={summaryOpen}
         >
-          <h2 className="text-sm tracking-[0.15em] uppercase font-bold">
-            {lHeading}
-          </h2>
+          <h2 className="text-sm font-bold tracking-[0.15em] uppercase">{lHeading}</h2>
           <ChevronDown
             size={14}
-            className={`lg:hidden transition-transform ${summaryOpen ? 'rotate-180' : 'rotate-0'}`}
+            className={`transition-transform lg:hidden ${summaryOpen ? 'rotate-180' : 'rotate-0'}`}
           />
         </button>
 
-        <div className="px-6 py-5 space-y-3">
-          {items.map(item => (
+        <div className="space-y-3 px-6 py-5">
+          {items.map((item) => (
             <div key={item.id} className="flex gap-3">
-              <div className="relative shrink-0 w-12 h-14">
+              <div className="relative h-14 w-12 shrink-0">
                 <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs leading-snug font-medium">{item.name}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <p className="text-xs text-gray-400">{L.qtyPrefix} {item.quantity} · {L.sizePrefix} {item.size}</p>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <p className="text-xs text-gray-400">
+                    {L.qtyPrefix} {item.quantity} · {L.sizePrefix} {item.size}
+                  </p>
                   {item.color && (
                     <>
                       <span className="text-xs text-gray-400">·</span>
                       <span
-                        className="w-3 h-3 rounded-full shrink-0 inline-block border border-[#e5e7eb]"
+                        className="inline-block size-3 shrink-0 rounded-full border border-[#e5e7eb]"
                         style={{ backgroundColor: item.color }}
                       />
                     </>
                   )}
                 </div>
               </div>
-              <div className="text-right shrink-0">
+              <div className="shrink-0 text-right">
                 <p className="text-xs font-semibold">{fmt(item.price * item.quantity)}</p>
                 {item.originalPrice && item.originalPrice > item.price && (
                   <p className="text-xs text-gray-400 line-through">{fmt(item.originalPrice * item.quantity)}</p>
@@ -121,22 +122,24 @@ export function DeliveryOrderSummary({
             </div>
           ))}
 
-          {giftItems.map(gift => (
+          {giftItems.map((gift) => (
             <div key={`gift-${gift.productId}`} className="flex gap-3">
-              <div className="relative shrink-0 w-12 h-14">
+              <div className="relative h-14 w-12 shrink-0">
                 <Image src={gift.image} alt={gift.name} fill sizes="48px" className="object-cover" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs leading-snug font-medium">{gift.name}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-[10px] tracking-widest uppercase font-bold text-green-600 bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5">
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <span className="border border-[#bbf7d0] bg-[#f0fdf4] px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-green-600 uppercase">
                     {lFreeGift}
                   </span>
-                  <p className="text-xs text-gray-400">{L.qtyPrefix} {gift.quantity}</p>
+                  <p className="text-xs text-gray-400">
+                    {L.qtyPrefix} {gift.quantity}
+                  </p>
                 </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">{lGiftFree}</p>
+              <div className="shrink-0 text-right">
+                <p className="text-xs font-semibold tracking-wide text-green-600 uppercase">{lGiftFree}</p>
                 {gift.price > 0 && (
                   <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
                 )}
@@ -146,18 +149,21 @@ export function DeliveryOrderSummary({
 
           {/* ── Coupon ── */}
           <div className="border-t border-[#e5e7eb] pt-3">
-            <p className="text-xs uppercase tracking-widest mb-2 flex items-center gap-1.5 font-bold text-[#555]">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-widest text-[#555] uppercase">
               <Tag size={12} />
               {lPromoLabel}
             </p>
 
             {appliedCoupon ? (
-              <div className="flex items-center justify-between px-3 py-2 bg-[#f0fdf4] border border-[#bbf7d0]">
+              <div className="flex items-center justify-between border border-[#bbf7d0] bg-[#f0fdf4] px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <CheckCircle size={13} className="text-green-600 shrink-0" />
-                  <span className="text-xs font-mono tracking-widest font-bold text-green-600">{appliedCoupon}</span>
+                  <CheckCircle size={13} className="shrink-0 text-green-600" />
+                  <span className="font-mono text-xs font-bold tracking-widest text-green-600">{appliedCoupon}</span>
                 </div>
-                <button onClick={handleRemoveCoupon} className="focus-visible:outline-none hover:opacity-60 transition-opacity ml-2 shrink-0">
+                <button
+                  onClick={handleRemoveCoupon}
+                  className="ml-2 shrink-0 transition-opacity hover:opacity-60 focus-visible:outline-none"
+                >
                   <X size={13} className="text-gray-500" />
                 </button>
               </div>
@@ -167,30 +173,39 @@ export function DeliveryOrderSummary({
                   <input
                     type="text"
                     value={couponInput}
-                    onChange={e => { setCouponInput(e.target.value); }}
-                    onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value);
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
                     placeholder={lPromoPh}
-                    className={`flex-1 px-3 py-2 text-xs outline-none font-mono tracking-widest uppercase min-w-0 border rounded-none ${
+                    className={`min-w-0 flex-1 rounded-none border px-3 py-2 font-mono text-xs tracking-widest uppercase outline-none ${
                       couponStatus === 'error' ? 'border-(--sale)' : 'border-[#d1d5db]'
                     }`}
-                    onFocus={e => { if (couponStatus !== 'error') e.target.style.borderColor = '#000'; }}
-                    onBlur={e => { if (couponStatus !== 'error') e.target.style.borderColor = '#d1d5db'; }}
+                    onFocus={(e) => {
+                      if (couponStatus !== 'error') e.target.style.borderColor = '#000';
+                    }}
+                    onBlur={(e) => {
+                      if (couponStatus !== 'error') e.target.style.borderColor = '#d1d5db';
+                    }}
                   />
                   <button
                     onClick={handleApplyCoupon}
                     disabled={!couponInput.trim() || couponLoading}
-                    className={`px-4 py-2 text-xs tracking-wide uppercase text-white focus-visible:outline-none flex items-center justify-center shrink-0 font-bold min-w-16 transition-colors duration-200 ${
-                      !couponInput.trim() || couponLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-black cursor-pointer'
+                    className={`flex min-w-16 shrink-0 items-center justify-center px-4 py-2 text-xs font-bold tracking-wide text-white uppercase transition-colors duration-200 focus-visible:outline-none ${
+                      !couponInput.trim() || couponLoading
+                        ? 'cursor-not-allowed bg-gray-400'
+                        : 'cursor-pointer bg-black'
                     }`}
                   >
-                    {couponLoading
-                      ? <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      : lPromoApply
-                    }
+                    {couponLoading ? (
+                      <span className="inline-block size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      lPromoApply
+                    )}
                   </button>
                 </div>
                 {couponStatus === 'error' && (
-                  <p className="text-xs mt-1.5 flex items-center gap-1 text-(--sale)">
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-(--sale)">
                     <X size={11} /> {couponError ?? L.promoInvalid}
                   </p>
                 )}
@@ -198,11 +213,11 @@ export function DeliveryOrderSummary({
             )}
           </div>
 
-          <div className="border-t border-[#e5e7eb] pt-3 space-y-2">
+          <div className="space-y-2 border-t border-[#e5e7eb] pt-3">
             {previewLoading && !hasPreview ? (
               <div className="flex justify-between text-xs" aria-busy="true">
-                <div className="h-3 w-24 bg-gray-100 animate-pulse" />
-                <div className="h-3 w-12 bg-gray-100 animate-pulse" />
+                <div className="h-3 w-24 animate-pulse bg-gray-100" />
+                <div className="h-3 w-12 animate-pulse bg-gray-100" />
               </div>
             ) : (
               <>
@@ -214,7 +229,9 @@ export function DeliveryOrderSummary({
                 )}
                 {couponDiscount > 0 && appliedCoupon && (
                   <div className="flex justify-between text-xs text-(--sale)">
-                    <span>{L.promo} ({appliedCoupon})</span>
+                    <span>
+                      {L.promo} ({appliedCoupon})
+                    </span>
                     <span className="font-semibold">−{fmt(couponDiscount)}</span>
                   </div>
                 )}
@@ -222,12 +239,12 @@ export function DeliveryOrderSummary({
             )}
             <div className="flex justify-between text-xs">
               <span className="text-gray-500">{lDelivery}</span>
-              <span className="text-green-600 font-semibold">{lFree}</span>
+              <span className="font-semibold text-green-600">{lFree}</span>
             </div>
-            <div className="flex justify-between items-baseline pt-1 border-t border-[#e5e7eb]">
+            <div className="flex items-baseline justify-between border-t border-[#e5e7eb] pt-1">
               <span className="text-sm font-bold">{lTotal}</span>
               {previewLoading && !hasPreview ? (
-                <div className="h-5 w-20 bg-gray-100 animate-pulse" aria-busy="true" />
+                <div className="h-5 w-20 animate-pulse bg-gray-100" aria-busy="true" />
               ) : (
                 <span className="text-lg font-bold">{fmt(finalTotal)}</span>
               )}

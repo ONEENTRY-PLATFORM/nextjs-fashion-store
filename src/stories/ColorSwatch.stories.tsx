@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { ColorSwatch } from '../app/components/ui/ColorSwatch';
 
 const meta = {
@@ -42,12 +43,10 @@ export const Large: Story = {
 export const AllWomenColors: Story = {
   args: { color: '#000000', selected: false },
   render: () => (
-    <div className="flex gap-3 flex-wrap">
-      {['#000000', '#FFFFFF', '#C4A882', '#A0A0A0', '#8B0000', '#556B2F', '#F88A8A', 'multi'].map(
-        (c, i) => (
-          <ColorSwatch key={c} color={c} selected={i === 0} size={18} />
-        )
-      )}
+    <div className="flex flex-wrap gap-3">
+      {['#000000', '#FFFFFF', '#C4A882', '#A0A0A0', '#8B0000', '#556B2F', '#F88A8A', 'multi'].map((c, i) => (
+        <ColorSwatch key={c} color={c} selected={i === 0} size={18} />
+      ))}
     </div>
   ),
 };

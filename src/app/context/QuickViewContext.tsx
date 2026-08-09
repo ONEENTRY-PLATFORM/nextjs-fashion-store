@@ -1,11 +1,12 @@
-'use client'
-import { useRef, useCallback } from 'react';
-import { Product } from '../components/product/ProductCard';
+'use client';
+import { useCallback, useRef } from 'react';
+
+import { type Product } from '../components/product/ProductCard';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
-  openQuickView as openQuickViewAction,
-  closeQuickView as closeQuickViewAction,
   clearQuickViewProduct,
+  closeQuickView as closeQuickViewAction,
+  openQuickView as openQuickViewAction,
 } from '../store/uiSlice';
 
 interface QuickViewContextValue {
@@ -18,15 +19,18 @@ interface QuickViewContextValue {
 
 export function useQuickView(): QuickViewContextValue {
   const dispatch = useAppDispatch();
-  const isOpen = useAppSelector(s => s.ui.quickView.isOpen);
-  const product = useAppSelector(s => s.ui.quickView.product);
-  const initialColorIndex = useAppSelector(s => s.ui.quickView.initialColorIndex);
+  const isOpen = useAppSelector((s) => s.ui.quickView.isOpen);
+  const product = useAppSelector((s) => s.ui.quickView.product);
+  const initialColorIndex = useAppSelector((s) => s.ui.quickView.initialColorIndex);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openQuickView = useCallback((p: Product, colorIndex?: number) => {
-    if (clearTimer.current) clearTimeout(clearTimer.current);
-    dispatch(openQuickViewAction({ product: p, initialColorIndex: colorIndex ?? null }));
-  }, [dispatch]);
+  const openQuickView = useCallback(
+    (p: Product, colorIndex?: number) => {
+      if (clearTimer.current) clearTimeout(clearTimer.current);
+      dispatch(openQuickViewAction({ product: p, initialColorIndex: colorIndex ?? null }));
+    },
+    [dispatch],
+  );
 
   const closeQuickView = useCallback(() => {
     dispatch(closeQuickViewAction());

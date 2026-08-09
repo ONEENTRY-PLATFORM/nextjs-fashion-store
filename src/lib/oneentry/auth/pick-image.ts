@@ -22,8 +22,9 @@ export type RawPicture = { downloadLink?: string; previewLink?: unknown };
  * Lives in its own file so it can be imported from unit tests — sibling
  * `actions.ts` is marked `'use server'` and therefore may only export async
  * functions (Next.js server-actions rule).
- * @param {RawPicture | RawPicture[] | null | undefined} v - Raw OE picture payload.
- * @returns {string} An absolute URL, or `''` when there is no usable image.
+ *
+ * @param v - Raw OE picture payload.
+ * @returns An absolute URL, or `''` when there is no usable image.
  */
 export function pickImage(v: RawPicture | RawPicture[] | null | undefined): string {
   if (!v) return '';

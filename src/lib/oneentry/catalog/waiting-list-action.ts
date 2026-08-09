@@ -5,10 +5,10 @@
  * browser off the session the SDK singleton already carries; the catalogue
  * enrichment stays on the server behind a cached Server Action.
  */
-import { getCatalogProductsByIdsAction } from './products-action';
+import type { WaitingItem, WaitingStockStatus } from '../../../app/data/userData';
 import { getWishlistAction } from '../auth/actions';
 import type { CatalogProduct } from './products';
-import type { WaitingItem, WaitingStockStatus } from '../../../app/data/userData';
+import { getCatalogProductsByIdsAction } from './products-action';
 
 const stockToStatus = (p: CatalogProduct): WaitingStockStatus => {
   if (p.statusIdentifier === 'out_of_stock' || p.stock <= 0) return 'out_of_stock';
@@ -21,7 +21,8 @@ const stockToStatus = (p: CatalogProduct): WaitingStockStatus => {
  * enriched with current stock status from the OE catalog. The traditional
  * "waiting list" semantics (out-of-stock items the user wants to be
  * notified about) are inferred — out_of_stock + low_stock items qualify.
- * @returns {Promise<WaitingItem[]>} Wishlist entries with stock status.
+ *
+ * @returns Wishlist entries with stock status.
  */
 export async function getWaitingListAction(): Promise<WaitingItem[]> {
   const wishlist = await getWishlistAction();
@@ -32,19 +33,21 @@ export async function getWaitingListAction(): Promise<WaitingItem[]> {
     const p = byId.get(srv.productId);
     if (!p) return [];
     const status = stockToStatus(p);
-    return [{
-      id: String(p.id),
-      name: p.title,
-      brand: p.brand,
-      price: p.price,
-      img: p.preview,
-      size: p.sizes[0] ?? '',
-      color: p.colors[0] ?? '',
-      status,
-      notify: true,
-      addedDate: srv.addedAt
-        ? new Date(srv.addedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-        : '',
-    }];
+    return [
+      {
+        id: String(p.id),
+        name: p.title,
+        brand: p.brand,
+        price: p.price,
+        img: p.preview,
+        size: p.sizes[0] ?? '',
+        color: p.colors[0] ?? '',
+        status,
+        notify: true,
+        addedDate: srv.addedAt
+          ? new Date(srv.addedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '',
+      },
+    ];
   });
 }

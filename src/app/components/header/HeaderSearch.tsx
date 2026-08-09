@@ -1,17 +1,19 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-
 import { Search } from 'lucide-react';
-import type { Product } from '../product/ProductCard';
-import { searchProductsAction } from '../../../lib/oneentry/catalog/search-action';
-import { trackActivity } from '../../utils/track-activity';
-import { HEADER_SEARCH_LABELS as HS } from '../../data/commonLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useRouter } from '../../../lib/i18n/navigation';
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-/** Shortest query worth sending to OE — one or two characters match almost
- *  the whole catalogue and the dropdown becomes noise. */
+import { useRouter } from '../../../lib/i18n/navigation';
+import { searchProductsAction } from '../../../lib/oneentry/catalog/search-action';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { HEADER_SEARCH_LABELS as HS } from '../../data/commonLabels';
+import { trackActivity } from '../../utils/track-activity';
+import type { Product } from '../product/ProductCard';
+
+/**
+ * Shortest query worth sending to OE — one or two characters match almost
+ *  the whole catalogue and the dropdown becomes noise.
+ */
 const MIN_QUERY_LENGTH = 2;
 
 /** Idle time before a query is sent, in ms. */
@@ -34,8 +36,8 @@ export function HeaderSearch({
   variant?: 'desktop' | 'mobile';
 }) {
   const router = useRouter();
-  const lSearching  = useT('interface_controls_searching',  HS.searching);
-  const lNoResults  = useT('interface_controls_no_results', HS.noResults);
+  const lSearching = useT('interface_controls_searching', HS.searching);
+  const lNoResults = useT('interface_controls_no_results', HS.noResults);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   // Results are stored together with the query that produced them. Deriving
@@ -79,17 +81,21 @@ export function HeaderSearch({
     }
   }, [open]);
 
-  const handleSelect = useCallback((id: string) => {
-    setOpen(false);
-    // Clearing the query is enough — `results` is derived from it, so the
-    // stale hits drop out on the same render.
-    setQuery('');
-    router.push(`/product/${id}`);
-  }, [router]);
+  const handleSelect = useCallback(
+    (id: string) => {
+      setOpen(false);
+      // Clearing the query is enough — `results` is derived from it, so the
+      // stale hits drop out on the same render.
+      setQuery('');
+      router.push(`/product/${id}`);
+    },
+    [router],
+  );
 
-  const inputClass = variant === 'desktop'
-    ? 'w-full border border-gray-300 px-4 py-2 text-sm outline-none focus:border-black transition-colors rounded-none'
-    : 'w-full border border-gray-300 px-4 py-2 text-sm outline-none rounded-none';
+  const inputClass =
+    variant === 'desktop'
+      ? 'w-full border border-gray-300 px-4 py-2 text-sm outline-none focus:border-black transition-colors rounded-none'
+      : 'w-full border border-gray-300 px-4 py-2 text-sm outline-none rounded-none';
 
   return (
     <div ref={wrapperRef} className="relative w-full">
@@ -97,51 +103,45 @@ export function HeaderSearch({
         <input
           type="text"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
           autoFocus={autoFocus}
           className={inputClass}
           aria-label={ariaLabel}
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-500">
           <Search size={variant === 'desktop' ? 20 : 16} />
         </span>
       </div>
 
       {open && query.trim().length >= 2 && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-gray-200 shadow-lg max-h-[70vh] overflow-y-auto">
+        <div className="absolute inset-x-0 top-full z-50 mt-1 max-h-[70vh] overflow-y-auto border border-gray-200 bg-white shadow-lg">
           {loading ? (
-            <p className="px-4 py-3 text-xs text-gray-400 tracking-wide uppercase">{lSearching}</p>
+            <p className="px-4 py-3 text-xs tracking-wide text-gray-400 uppercase">{lSearching}</p>
           ) : results.length === 0 ? (
-            <p className="px-4 py-3 text-xs text-gray-400 tracking-wide uppercase">{lNoResults}</p>
+            <p className="px-4 py-3 text-xs tracking-wide text-gray-400 uppercase">{lNoResults}</p>
           ) : (
             <ul role="listbox">
               {results.map((p) => (
                 <li key={p.id}>
                   <button
                     onClick={() => handleSelect(p.id)}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors focus-visible:outline-none focus:bg-gray-50"
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-gray-50 focus:bg-gray-50 focus-visible:outline-none"
                   >
-                    <div className="relative shrink-0 w-12 h-14 bg-gray-100">
+                    <div className="relative h-14 w-12 shrink-0 bg-gray-100">
                       {p.image && (
-                        <Image
-                          src={p.image}
-                          alt={p.name}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                          unoptimized
-                        />
+                        <Image src={p.image} alt={p.name} fill sizes="48px" className="object-cover" unoptimized />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate font-medium">{p.name}</p>
-                      {p.brand && (
-                        <p className="text-xs text-gray-500 truncate">{p.brand}</p>
-                      )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      {p.brand && <p className="truncate text-xs text-gray-500">{p.brand}</p>}
                     </div>
-                    <p className="text-sm shrink-0 font-semibold">{p.price}</p>
+                    <p className="shrink-0 text-sm font-semibold">{p.price}</p>
                   </button>
                 </li>
               ))}

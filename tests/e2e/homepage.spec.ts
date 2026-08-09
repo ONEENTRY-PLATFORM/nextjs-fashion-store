@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { assertPresent } from './helpers';
 
 test.describe('Homepage', () => {
@@ -12,8 +13,10 @@ test.describe('Homepage', () => {
   });
 
   test('hero slider auto-rotates', async ({ page }) => {
-    const dots = page.locator('[class*="hero"] button, [class*="Hero"] button, [class*="slider"] button, [class*="Slider"] button');
-    if (await dots.count() > 1) {
+    const dots = page.locator(
+      '[class*="hero"] button, [class*="Hero"] button, [class*="slider"] button, [class*="Slider"] button',
+    );
+    if ((await dots.count()) > 1) {
       // Wait for auto-rotation (slides change roughly every 5s)
       await page.waitForTimeout(6000);
       // At least one dot should have active state
@@ -63,7 +66,9 @@ test.describe('Homepage', () => {
   test('footer social links are present', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     const footer = page.locator('footer');
-    const socialLinks = footer.locator('a[href*="facebook"], a[href*="instagram"], a[href*="twitter"], a[href*="pinterest"], a[href*="youtube"]');
+    const socialLinks = footer.locator(
+      'a[href*="facebook"], a[href*="instagram"], a[href*="twitter"], a[href*="pinterest"], a[href*="youtube"]',
+    );
     expect(await socialLinks.count()).toBeGreaterThan(0);
   });
 
@@ -78,7 +83,7 @@ test.describe('Homepage', () => {
 
   test('hero slider dot/arrow navigation works', async ({ page }) => {
     const arrows = page.locator('button[aria-label*="next"], button[aria-label*="prev"], button[aria-label*="slide"]');
-    if (await arrows.count() > 0) {
+    if ((await arrows.count()) > 0) {
       await arrows.first().click();
       await page.waitForTimeout(500);
     }
@@ -87,7 +92,7 @@ test.describe('Homepage', () => {
   test('sections animate on scroll (IntersectionObserver)', async ({ page }) => {
     // Scroll to bottom incrementally to trigger animations
     for (let i = 1; i <= 5; i++) {
-      await page.evaluate((step) => window.scrollTo(0, document.body.scrollHeight * step / 5), i);
+      await page.evaluate((step) => window.scrollTo(0, (document.body.scrollHeight * step) / 5), i);
       await page.waitForTimeout(400);
     }
     // Page should not crash; all sections should be rendered
@@ -97,7 +102,10 @@ test.describe('Homepage', () => {
   test('discount banner click navigates to sale', async ({ page }) => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(500);
-    const bannerLink = page.locator('a[href*="/sale"], a[href*="/women"]').filter({ hasText: /shop|sale|discount/i }).first();
+    const bannerLink = page
+      .locator('a[href*="/sale"], a[href*="/women"]')
+      .filter({ hasText: /shop|sale|discount/i })
+      .first();
     if (await bannerLink.isVisible()) {
       await bannerLink.click();
       await expect(page).not.toHaveURL('/');

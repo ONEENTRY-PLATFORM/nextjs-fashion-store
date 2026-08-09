@@ -1,11 +1,11 @@
-'use client'
+'use client';
+import Image from 'next/image';
 import { useState } from 'react';
 
-import Image from 'next/image';
-import type { PromoItem } from '../../data/promoBlocks';
-import type { HomepageCollectionItem } from '../../../lib/oneentry/blocks/homepage-collections';
-import { useMounted } from '../../hooks/useMounted';
 import { Link } from '../../../lib/i18n/navigation';
+import type { HomepageCollectionItem } from '../../../lib/oneentry/blocks/homepage-collections';
+import type { PromoItem } from '../../data/promoBlocks';
+import { useMounted } from '../../hooks/useMounted';
 
 function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boolean }) {
   const [hovered, setHovered] = useState(false);
@@ -13,7 +13,7 @@ function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boo
   return (
     <Link
       href={item.href}
-      className="relative overflow-hidden block aspect-4/5"
+      className="relative block aspect-4/5 overflow-hidden"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -23,28 +23,26 @@ function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boo
         fill
         sizes="(max-width: 640px) 100vw, 50vw"
         priority={priority}
-        className={`object-cover transition-transform duration-700 ease-out ${
-          hovered ? 'scale-[1.07]' : 'scale-100'
-        }`}
+        className={`object-cover transition-transform duration-700 ease-out ${hovered ? 'scale-1.07' : 'scale-100'}`}
       />
       {/* Gradient Overlay */}
       <div
-        className={`absolute inset-0 transition-opacity duration-300 bg-[linear-gradient(to_top,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0.1)_60%,transparent_100%)] ${
+        className={`absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0.1)_60%,transparent_100%)] transition-opacity duration-300 ${
           hovered ? 'opacity-90' : 'opacity-70'
         }`}
       />
       {/* Content */}
       <div
-        className={`absolute inset-0 flex flex-col items-center justify-end pb-8 px-4 transition-transform duration-300 ${
+        className={`absolute inset-0 flex flex-col items-center justify-end px-4 pb-8 transition-transform duration-300 ${
           hovered ? '-translate-y-2' : 'translate-y-0'
         }`}
       >
-        <h3 className="text-white text-center mb-2 text-[clamp(1.75rem,3.5vw,2.75rem)] font-semibold font-[Inter,sans-serif] leading-[1.15]">
+        <h3 className="leading-1.15 mb-2 text-center font-[Inter,sans-serif] text-[clamp(1.75rem,3.5vw,2.75rem)] font-semibold text-white">
           {item.title}
         </h3>
-        <p className="text-white/80 tracking-widest uppercase mb-4 text-[0.8125rem]">{item.subtitle}</p>
+        <p className="mb-4 text-[0.8125rem] tracking-widest text-white/80 uppercase">{item.subtitle}</p>
         <span
-          className={`px-6 py-2 text-xs tracking-widest uppercase font-medium transition-all duration-200 rounded-lg border border-white/80 backdrop-blur-xs ${
+          className={`rounded-lg border border-white/80 px-6 py-2 text-xs font-medium tracking-widest uppercase backdrop-blur-xs transition-all duration-200 ${
             hovered ? 'bg-white text-black' : 'bg-white/15 text-white'
           }`}
         >
@@ -72,11 +70,11 @@ export function PromoBlock({ initialItems }: { initialItems?: HomepageCollection
   if (!mounted) {
     return (
       <section className="w-full" aria-hidden="true">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
+        <div className="grid grid-cols-1 gap-0 sm:grid-cols-2">
           {[0, 1].map((i) => (
             <div
               key={i}
-              className="bg-gray-100 animate-pulse aspect-4/5 [animation-delay:var(--delay)]"
+              className="aspect-4/5 animate-pulse bg-gray-100 [animation-delay:var(--delay)]"
               style={{ '--delay': `${i * 100}ms` } as React.CSSProperties}
             />
           ))}
@@ -87,7 +85,7 @@ export function PromoBlock({ initialItems }: { initialItems?: HomepageCollection
 
   return (
     <section className="w-full font-[Inter,sans-serif]">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
+      <div className="grid grid-cols-1 gap-0 sm:grid-cols-2">
         {items.map((item, i) => (
           <PromoCard key={item.id} item={item} priority={i === 0} />
         ))}

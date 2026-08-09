@@ -11,8 +11,7 @@
  * (or `OE_PROFILE=1` — profiling already implies noisy logs). Development
  * mode logs by default so a broken loader shows up in the terminal.
  */
-const explicitlyEnabled =
-  process.env.OE_LOG_CAUGHT === '1' || process.env.OE_PROFILE === '1';
+const explicitlyEnabled = process.env.OE_LOG_CAUGHT === '1' || process.env.OE_PROFILE === '1';
 const enabled = explicitlyEnabled || process.env.NODE_ENV !== 'production';
 
 export function logCaught(scope: string, err: unknown): void {

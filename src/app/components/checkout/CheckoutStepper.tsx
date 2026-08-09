@@ -1,18 +1,24 @@
-'use client'
+'use client';
 
 import { Check } from 'lucide-react';
 
-import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
-import { CHECKOUT_STEPPER_LABELS as L } from '../../data/checkoutLabels';
-import { CHECKOUT_STEPPER_ARIA, CHECKOUT_STEPPER_DYNAMIC_ARIA } from '../../data/commonLabels';
 import { useRouter } from '../../../lib/i18n/navigation';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
+import { CHECKOUT_STEPPER_LABELS } from '../../data/checkoutLabels';
+import { CHECKOUT_STEPPER_ARIA, CHECKOUT_STEPPER_DYNAMIC_ARIA } from '../../data/commonLabels';
 
-const STEPS = [
-  { label: L.cart, path: '/cart' },
-  { label: L.delivery, path: '/checkout/delivery' },
-  { label: L.payment, path: '/checkout/payment' },
-  { label: L.confirmation, path: '/checkout/confirmation' },
-];
+/**
+ * Path per step, keyed by the dictionary key — the copy is editable, the
+ *  route is not, so they are kept apart.
+ */
+const STEP_PATHS = ['cart', 'delivery', 'payment', 'confirmation'] as const;
+const STEP_ROUTES: Record<(typeof STEP_PATHS)[number], string> = {
+  cart: '/cart',
+  delivery: '/checkout/delivery',
+  payment: '/checkout/payment',
+  confirmation: '/checkout/confirmation',
+};
 
 interface Props {
   currentStep: number; // 0-based
@@ -20,12 +26,16 @@ interface Props {
 
 export function CheckoutStepper({ currentStep }: Props) {
   const router = useRouter();
+  const L = useDict('checkout_stepper_', CHECKOUT_STEPPER_LABELS);
+  const A = useDict('checkout_stepper_aria_', CHECKOUT_STEPPER_DYNAMIC_ARIA);
+  const aProgress = useT('checkout_stepper_aria_progress', CHECKOUT_STEPPER_ARIA.checkoutProgress);
+  const STEPS = STEP_PATHS.map((key) => ({ label: L[key], path: STEP_ROUTES[key] }));
   const isLast = (idx: number) => idx === STEPS.length - 1;
 
   return (
     <nav
-      aria-label={CHECKOUT_STEPPER_ARIA.checkoutProgress}
-      className="flex items-center justify-center py-6 px-4 font-[Inter,sans-serif]"
+      aria-label={aProgress}
+      className="flex items-center justify-center px-4 py-6 font-[Inter,sans-serif]"
       style={{ '--accent': ACCENT } as React.CSSProperties}
     >
       {STEPS.map((step, idx) => {
@@ -38,33 +48,30 @@ export function CheckoutStepper({ currentStep }: Props) {
            * The connector line lives inside this wrapper, after the button,
            * so we never need React.Fragment in the map.
            */
-          <div
-            key={step.label}
-            className={`flex items-center ${isLast(idx) ? 'flex-none' : 'flex-1'}`}
-          >
+          <div key={step.label} className={`flex items-center ${isLast(idx) ? 'flex-none' : 'flex-1'}`}>
             {/* Circle + label */}
             <button
               onClick={() => done && router.push(step.path)}
-              aria-label={`${step.label}${done ? CHECKOUT_STEPPER_DYNAMIC_ARIA.stepSuffixCompleted : active ? CHECKOUT_STEPPER_DYNAMIC_ARIA.stepSuffixCurrent : CHECKOUT_STEPPER_DYNAMIC_ARIA.stepSuffixUpcoming}`}
+              aria-label={`${step.label} ${done ? A.stepSuffixCompleted : active ? A.stepSuffixCurrent : A.stepSuffixUpcoming}`}
               aria-current={active ? 'step' : undefined}
-              className={`flex flex-col items-center gap-1.5 focus-visible:outline-none shrink-0 min-w-15 ${
+              className={`flex min-w-15 shrink-0 flex-col items-center gap-1.5 focus-visible:outline-none ${
                 done ? 'cursor-pointer' : 'cursor-default'
               }`}
               disabled={!done && !active}
             >
               <span
-                className={`w-8 h-8 flex items-center justify-center text-xs font-bold transition-all duration-200 ${
+                className={`flex size-8 items-center justify-center text-xs font-bold transition-all duration-200 ${
                   done
                     ? 'bg-black text-white'
                     : active
                       ? 'bg-accent text-white'
-                      : 'bg-white text-[#9ca3af] border-[1.5px] border-[#d1d5db]'
+                      : 'border-[1.5px] border-[#d1d5db] bg-white text-[#9ca3af]'
                 }`}
               >
                 {done ? <Check size={14} strokeWidth={2.5} /> : idx + 1}
               </span>
               <span
-                className={`text-xs tracking-wider uppercase whitespace-nowrap ${
+                className={`text-xs tracking-wider whitespace-nowrap uppercase ${
                   active ? 'font-bold text-black' : done ? 'text-[#555]' : 'text-[#9ca3af]'
                 }`}
               >
@@ -75,7 +82,7 @@ export function CheckoutStepper({ currentStep }: Props) {
             {/* Connector line — only rendered between steps */}
             {!isLast(idx) && (
               <div
-                className={`flex-1 mx-2 h-0.5 mb-4.5 transition-colors duration-300 ${
+                className={`mx-2 mb-4.5 h-0.5 flex-1 transition-colors duration-300 ${
                   idx < currentStep ? 'bg-black' : 'bg-[#e5e7eb]'
                 }`}
               />

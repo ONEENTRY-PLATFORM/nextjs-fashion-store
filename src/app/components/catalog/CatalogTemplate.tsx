@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 /**
  * CatalogTemplate — universal catalog engine.
@@ -7,33 +7,43 @@
  * sorting, pagination and rendering lives here.
  * Each catalog page becomes ~30-50 lines of configuration.
  */
-import { useState, useEffect, useRef, useCallback, useMemo, useTransition, useOptimistic } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Header } from '../header/Header';
+import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
+
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import {
+  CATALOG_PAGINATION_LABELS,
+  CATALOG_SORT_LABELS,
+  CATALOG_VIEW_LABELS as CVL_FALLBACK,
+  COMMON_EMPTY_STATES,
+} from '../../data/commonLabels';
+import { fillTokens } from '../../utils/fillTokens';
+import { PageBlocksRenderer } from '../blocks/PageBlocksRenderer';
 import { Footer } from '../footer/Footer';
+import { Header } from '../header/Header';
+import { NewArrivals } from '../home/NewArrivals';
 import { ProductCard } from '../product/ProductCard';
 import { ProductCardSkeleton } from '../product/ProductCardSkeleton';
-import { ChevronDown, ChevronLeft, ChevronRight, X, Search } from 'lucide-react';
+import { ColorSwatch } from '../ui/ColorSwatch';
+import { CatalogCrossSell } from './CatalogCrossSell';
+import { CatalogListProductCard } from './CatalogListProductCard';
+import { CatalogMobileSort } from './CatalogMobileSort';
+import { CheckboxUI, ColsIcon, SortOptionBtn } from './CatalogTemplate.parts';
+import { type CatalogTemplateProps, type FilterGroup, getPageNumbers, SORT_OPTIONS } from './CatalogTemplate.types';
 import { MobileFilterPanel } from './MobileFilterPanel';
 import { NoFilterResults } from './NoFilterResults';
-import { CatalogListProductCard } from './CatalogListProductCard';
-import { CatalogCrossSell } from './CatalogCrossSell';
-import { NewArrivals } from '../home/NewArrivals';
-import { CatalogMobileSort } from './CatalogMobileSort';
-import { PageBlocksRenderer } from '../blocks/PageBlocksRenderer';
-import { COMMON_EMPTY_STATES, CATALOG_PAGINATION_LABELS, CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { ColorSwatch } from '../ui/ColorSwatch';
 import { PriceRangeSlider } from './PriceRangeSlider';
-import { ColsIcon, CheckboxUI, SortOptionBtn } from './CatalogTemplate.parts';
-import { SORT_OPTIONS, getPageNumbers, type CatalogTemplateProps, type FilterGroup } from './CatalogTemplate.types';
-export type { FilterOption, FilterGroup, ChipFilter, BreadcrumbItem, CrossSellCategory, CatalogTemplateProps } from './CatalogTemplate.types';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { CatalogAccentContext } from '../../context/CatalogAccentContext';
-import {
-  setViewCols as dispatchSetViewCols,
-  setListMode as dispatchSetListMode,
-} from '../../store/catalogSlice';
+
+export type {
+  BreadcrumbItem,
+  CatalogTemplateProps,
+  ChipFilter,
+  CrossSellCategory,
+  FilterGroup,
+  FilterOption,
+} from './CatalogTemplate.types';
+import { Link, useRouter } from '../../../lib/i18n/navigation';
 import {
   type CatalogFilters,
   countActiveFilters,
@@ -42,8 +52,10 @@ import {
   serializeCatalogSearchParams,
   toggleFilterOption,
 } from '../../../lib/oneentry/catalog/filters';
+import { CatalogAccentContext } from '../../context/CatalogAccentContext';
+import { setListMode as dispatchSetListMode, setViewCols as dispatchSetViewCols } from '../../store/catalogSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { trackActivity } from '../../utils/track-activity';
-import { useRouter, Link } from '../../../lib/i18n/navigation';
 
 export function CatalogTemplate({
   catalogKey,
@@ -68,6 +80,11 @@ export function CatalogTemplate({
   crossSell,
 }: CatalogTemplateProps) {
   const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
+  const lNoResultsFound = useT('interface_controls_no_results_found', COMMON_EMPTY_STATES.noResultsFound);
+  const lSearchInGroup = useT('interface_controls_search_in_group', COMMON_EMPTY_STATES.searchInGroup);
+  const lPageOf = useT('interface_controls_page_of', CATALOG_PAGINATION_LABELS.pageOf);
+  const CSL = useDict('interface_controls_sort_option_', CATALOG_SORT_LABELS);
+  const sortOptions = useMemo(() => SORT_OPTIONS.map((o) => ({ value: o.value, label: CSL[o.labelKey] })), [CSL]);
   /* ── Local UI state ── */
   const [sortOpen, setSortOpen] = useState(false);
   const [openFilter, setOpenFilter] = useState<string | null>(null);
@@ -89,38 +106,75 @@ export function CatalogTemplate({
     // defaults so unsupported keys (e.g. sort) still flow through. We use
     // the same parser here as on the server.
     const sp: Record<string, string> = {};
-    searchParams.forEach((v, k) => { sp[k] = v; });
+    searchParams.forEach((v, k) => {
+      sp[k] = v;
+    });
     // Inline parser instead of importing again — keeps client bundle slim.
     const inlineFilters: CatalogFilters = { ...(currentFiltersProp ?? {}) };
     // Wipe list fields so they reflect the current URL, not stale prop state.
-    delete inlineFilters.colors; delete inlineFilters.sizes; delete inlineFilters.brands;
-    delete inlineFilters.styles; delete inlineFilters.materials; delete inlineFilters.seasons;
-    delete inlineFilters.fits; delete inlineFilters.liningMaterials;
-    delete inlineFilters.brandCountries; delete inlineFilters.labels;
-    delete inlineFilters.productDetails; delete inlineFilters.careInstructions; delete inlineFilters.insulations;
-    delete inlineFilters.minPrice; delete inlineFilters.maxPrice;
-    delete inlineFilters.inStockOnly; delete inlineFilters.sort; delete inlineFilters.page;
+    delete inlineFilters.colors;
+    delete inlineFilters.sizes;
+    delete inlineFilters.brands;
+    delete inlineFilters.styles;
+    delete inlineFilters.materials;
+    delete inlineFilters.seasons;
+    delete inlineFilters.fits;
+    delete inlineFilters.liningMaterials;
+    delete inlineFilters.brandCountries;
+    delete inlineFilters.labels;
+    delete inlineFilters.productDetails;
+    delete inlineFilters.careInstructions;
+    delete inlineFilters.insulations;
+    delete inlineFilters.minPrice;
+    delete inlineFilters.maxPrice;
+    delete inlineFilters.inStockOnly;
+    delete inlineFilters.sort;
+    delete inlineFilters.page;
     delete inlineFilters.chip;
-    const csv = (v?: string) => v?.split(',').map(s => s.trim()).filter(Boolean);
-    const num = (v?: string) => { if (!v) return undefined; const n = Number(v); return Number.isFinite(n) ? n : undefined; };
-    const mp = num(sp.minPrice); if (mp !== undefined) inlineFilters.minPrice = mp;
-    const mxp = num(sp.maxPrice); if (mxp !== undefined) inlineFilters.maxPrice = mxp;
+    const csv = (v?: string) =>
+      v
+        ?.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    const num = (v?: string) => {
+      if (!v) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    const mp = num(sp.minPrice);
+    if (mp !== undefined) inlineFilters.minPrice = mp;
+    const mxp = num(sp.maxPrice);
+    if (mxp !== undefined) inlineFilters.maxPrice = mxp;
     if (sp.inStock === 'true') inlineFilters.inStockOnly = true;
-    const colors = csv(sp.color); if (colors?.length) inlineFilters.colors = colors;
-    const sizes = csv(sp.size); if (sizes?.length) inlineFilters.sizes = sizes;
-    const brands = csv(sp.brand); if (brands?.length) inlineFilters.brands = brands;
-    const styles = csv(sp.style); if (styles?.length) inlineFilters.styles = styles;
-    const materials = csv(sp.material); if (materials?.length) inlineFilters.materials = materials;
-    const seasons = csv(sp.season); if (seasons?.length) inlineFilters.seasons = seasons;
-    const fits = csv(sp.fit); if (fits?.length) inlineFilters.fits = fits;
-    const lining = csv(sp.liningMaterial); if (lining?.length) inlineFilters.liningMaterials = lining;
-    const countries = csv(sp.brandCountry); if (countries?.length) inlineFilters.brandCountries = countries;
-    const labels = csv(sp.label); if (labels?.length) inlineFilters.labels = labels;
-    const details = csv(sp.details); if (details?.length) inlineFilters.productDetails = details;
-    const care = csv(sp.careInstructions); if (care?.length) inlineFilters.careInstructions = care;
-    const insulations = csv(sp.insulation); if (insulations?.length) inlineFilters.insulations = insulations;
+    const colors = csv(sp.color);
+    if (colors?.length) inlineFilters.colors = colors;
+    const sizes = csv(sp.size);
+    if (sizes?.length) inlineFilters.sizes = sizes;
+    const brands = csv(sp.brand);
+    if (brands?.length) inlineFilters.brands = brands;
+    const styles = csv(sp.style);
+    if (styles?.length) inlineFilters.styles = styles;
+    const materials = csv(sp.material);
+    if (materials?.length) inlineFilters.materials = materials;
+    const seasons = csv(sp.season);
+    if (seasons?.length) inlineFilters.seasons = seasons;
+    const fits = csv(sp.fit);
+    if (fits?.length) inlineFilters.fits = fits;
+    const lining = csv(sp.liningMaterial);
+    if (lining?.length) inlineFilters.liningMaterials = lining;
+    const countries = csv(sp.brandCountry);
+    if (countries?.length) inlineFilters.brandCountries = countries;
+    const labels = csv(sp.label);
+    if (labels?.length) inlineFilters.labels = labels;
+    const details = csv(sp.details);
+    if (details?.length) inlineFilters.productDetails = details;
+    const care = csv(sp.careInstructions);
+    if (care?.length) inlineFilters.careInstructions = care;
+    const insulations = csv(sp.insulation);
+    if (insulations?.length) inlineFilters.insulations = insulations;
     if (sp.sort) inlineFilters.sort = sp.sort;
-    const page = num(sp.page); if (page !== undefined && page > 0) inlineFilters.page = Math.floor(page);
+    const page = num(sp.page);
+    if (page !== undefined && page > 0) inlineFilters.page = Math.floor(page);
     if (sp.chip) {
       inlineFilters.chip = sp.chip;
     } else {
@@ -165,15 +219,14 @@ export function CatalogTemplate({
   const currentPage = currentPageProp ?? optimisticFilters.page ?? 1;
   const activeChip = optimisticFilters.chip ?? '';
   const priceRange: [number, number] = [
-    optimisticFilters.minPrice ?? (priceDefault?.[0] ?? 0),
-    optimisticFilters.maxPrice ?? (priceDefault?.[1] ?? priceMax),
+    optimisticFilters.minPrice ?? priceDefault?.[0] ?? 0,
+    optimisticFilters.maxPrice ?? priceDefault?.[1] ?? priceMax,
   ];
-  const isPriceActive = optimisticFilters.minPrice !== undefined
-    || optimisticFilters.maxPrice !== undefined;
+  const isPriceActive = optimisticFilters.minPrice !== undefined || optimisticFilters.maxPrice !== undefined;
 
   /* ── Redux retains UI-only prefs (view density, list mode) ── */
   const dispatch = useAppDispatch();
-  const catalogState = useAppSelector(s => s.catalog[catalogKey]);
+  const catalogState = useAppSelector((s) => s.catalog[catalogKey]);
   const viewCols = (catalogState?.viewCols ?? 4) as 3 | 4;
   const listMode = showListMode ? (catalogState?.listMode ?? false) : false;
 
@@ -186,39 +239,63 @@ export function CatalogTemplate({
     trackActivity({ type: 'category_view', meta: { catalogKey } });
   }, [catalogKey]);
 
-  const currentFilterGroup = FILTER_GROUPS.find(g => g.key === openFilter) ?? null;
+  const currentFilterGroup = FILTER_GROUPS.find((g) => g.key === openFilter) ?? null;
   const totalActiveFilters = countActiveFilters(optimisticFilters);
 
   /* ── URL navigation helpers ─────────────────────────────────────────── */
 
-  /** Push a new filter snapshot to the URL. Keeps non-filter params intact
-   *  (utm_, etc.) so they don't get wiped when the user clicks a checkbox. */
-  const pushFilters = useCallback((next: CatalogFilters) => {
-    const baseQs = serializeCatalogSearchParams(next);
-    // Preserve unrelated query params (e.g. analytics).
-    const all = new URLSearchParams(searchParams.toString());
-    const knownKeys = [
-      'minPrice', 'maxPrice', 'inStock', 'sort', 'page', 'chip', 'category',
-      'color', 'size', 'brand', 'style', 'material', 'season',
-      'fit', 'liningMaterial', 'brandCountry', 'label',
-      'details', 'careInstructions', 'insulation',
-    ];
-    knownKeys.forEach((k) => all.delete(k));
-    const merged = new URLSearchParams(baseQs);
-    all.forEach((v, k) => merged.append(k, v));
-    const qs = merged.toString();
-    startTransition(() => {
-      // Flip the UI immediately so checkbox / chip / sort responds before
-      // the server round-trip completes. `useOptimistic` requires the
-      // dispatch to live inside a transition.
-      applyOptimisticFilters(next);
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    });
-  }, [router, pathname, searchParams, applyOptimisticFilters]);
+  /**
+   * Push a new filter snapshot to the URL. Keeps non-filter params intact
+   *  (utm_, etc.) so they don't get wiped when the user clicks a checkbox.
+   */
+  const pushFilters = useCallback(
+    (next: CatalogFilters) => {
+      const baseQs = serializeCatalogSearchParams(next);
+      // Preserve unrelated query params (e.g. analytics).
+      const all = new URLSearchParams(searchParams.toString());
+      const knownKeys = [
+        'minPrice',
+        'maxPrice',
+        'inStock',
+        'sort',
+        'page',
+        'chip',
+        'category',
+        'color',
+        'size',
+        'brand',
+        'style',
+        'material',
+        'season',
+        'fit',
+        'liningMaterial',
+        'brandCountry',
+        'label',
+        'details',
+        'careInstructions',
+        'insulation',
+      ];
+      knownKeys.forEach((k) => all.delete(k));
+      const merged = new URLSearchParams(baseQs);
+      all.forEach((v, k) => merged.append(k, v));
+      const qs = merged.toString();
+      startTransition(() => {
+        // Flip the UI immediately so checkbox / chip / sort responds before
+        // the server round-trip completes. `useOptimistic` requires the
+        // dispatch to live inside a transition.
+        applyOptimisticFilters(next);
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      });
+    },
+    [router, pathname, searchParams, applyOptimisticFilters],
+  );
 
-  const toggleFilter = useCallback((key: string, option: string) => {
-    pushFilters(toggleFilterOption(optimisticFilters, key, option));
-  }, [optimisticFilters, pushFilters]);
+  const toggleFilter = useCallback(
+    (key: string, option: string) => {
+      pushFilters(toggleFilterOption(optimisticFilters, key, option));
+    },
+    [optimisticFilters, pushFilters],
+  );
 
   const clearAll = useCallback(() => {
     setFilterSearch({});
@@ -238,14 +315,16 @@ export function CatalogTemplate({
 
   const setSortBy = (sort: string) => {
     const next: CatalogFilters = { ...optimisticFilters };
-    if (sort === 'featured') delete next.sort; else next.sort = sort;
+    if (sort === 'featured') delete next.sort;
+    else next.sort = sort;
     delete next.page;
     pushFilters(next);
   };
 
   const setActiveChip = (chip: string) => {
     const next: CatalogFilters = { ...optimisticFilters };
-    if (!chip) delete next.chip; else next.chip = chip;
+    if (!chip) delete next.chip;
+    else next.chip = chip;
     delete next.page;
     pushFilters(next);
   };
@@ -254,16 +333,21 @@ export function CatalogTemplate({
   // navigation per pixel. 200 ms feels responsive and avoids re-rendering
   // the server tree under each mouse move.
   const pricePushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const setPriceRange = useCallback((v: [number, number]) => {
-    if (pricePushTimer.current) clearTimeout(pricePushTimer.current);
-    pricePushTimer.current = setTimeout(() => {
-      const next: CatalogFilters = { ...optimisticFilters };
-      if (v[0] > 0) next.minPrice = v[0]; else delete next.minPrice;
-      if (v[1] < priceMax) next.maxPrice = v[1]; else delete next.maxPrice;
-      delete next.page;
-      pushFilters(next);
-    }, 200);
-  }, [optimisticFilters, priceMax, pushFilters]);
+  const setPriceRange = useCallback(
+    (v: [number, number]) => {
+      if (pricePushTimer.current) clearTimeout(pricePushTimer.current);
+      pricePushTimer.current = setTimeout(() => {
+        const next: CatalogFilters = { ...optimisticFilters };
+        if (v[0] > 0) next.minPrice = v[0];
+        else delete next.minPrice;
+        if (v[1] < priceMax) next.maxPrice = v[1];
+        else delete next.maxPrice;
+        delete next.page;
+        pushFilters(next);
+      }, 200);
+    },
+    [optimisticFilters, priceMax, pushFilters],
+  );
 
   /* ── Closing dropdowns ── */
   useEffect(() => {
@@ -272,309 +356,411 @@ export function CatalogTemplate({
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setOpenFilter(null); setSortOpen(false); }
+      if (e.key === 'Escape') {
+        setOpenFilter(null);
+        setSortOpen(false);
+      }
     };
     document.addEventListener('mousedown', onMouse);
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onMouse); document.removeEventListener('keydown', onKey); };
+    return () => {
+      document.removeEventListener('mousedown', onMouse);
+      document.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   const getFilteredOptions = (group: FilterGroup) => {
     const term = (filterSearch[group.key] ?? '').toLowerCase();
     if (!term) return group.options;
-    return group.options.filter(o => o.label.toLowerCase().includes(term));
+    return group.options.filter((o) => o.label.toLowerCase().includes(term));
   };
 
   const gridCols = listMode ? '' : viewCols === 4 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3';
 
-  const hasPriceRange = FILTER_GROUPS.some(g => g.type === 'price_range');
+  const hasPriceRange = FILTER_GROUPS.some((g) => g.type === 'price_range');
   // Drop filter groups whose key doesn't map to an OE attribute (productDetails,
   // careInstructions, insulation, and the mock-shoes-only keys). The user can
   // still see supported groups; unsupported groups would just be no-ops.
   const supportedGroups = useMemo(
-    () => FILTER_GROUPS.filter(g => g.type === 'section' || g.type === 'price_range' || isFilterGroupSupported(g.key)),
+    () =>
+      FILTER_GROUPS.filter((g) => g.type === 'section' || g.type === 'price_range' || isFilterGroupSupported(g.key)),
     [FILTER_GROUPS],
   );
-  const mobileFilterGroups = hasPriceRange
-    ? supportedGroups.filter(g => g.type !== 'price_range')
-    : supportedGroups;
+  const mobileFilterGroups = hasPriceRange ? supportedGroups.filter((g) => g.type !== 'price_range') : supportedGroups;
 
   /* ── Pagination ── */
   const totalForPagination = total ?? TOTAL_STYLES ?? filteredProducts.length;
   const totalPages = Math.max(1, Math.ceil(totalForPagination / PRODUCTS_PER_PAGE));
   const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
 
-  const getPriceSelCount = () => isPriceActive ? 1 : 0;
+  const getPriceSelCount = () => (isPriceActive ? 1 : 0);
 
   return (
     <CatalogAccentContext.Provider value={ACCENT}>
-    <div
-      className="min-h-screen bg-white font-[Inter,sans-serif]"
-      style={{ '--accent': ACCENT } as React.CSSProperties}
-    >
-      <Header />
+      <div
+        className="min-h-screen bg-white font-[Inter,sans-serif]"
+        style={{ '--accent': ACCENT } as React.CSSProperties}
+      >
+        <Header />
 
-      <main id="main-content">
-        {/* ══ Row 1: Title + Breadcrumbs ══ */}
-        <div className="px-4 lg:px-8 py-4 flex items-center justify-between border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <span className="hidden md:block w-px h-6 bg-accent" />
-            <h1 className="tracking-[0.15em] uppercase text-2xl font-bold">
-              {activeChip || title}
-            </h1>
-            <span className="hidden md:inline-flex items-center px-2 py-0.5 text-white text-xs tracking-widest uppercase bg-accent rounded-none">
-              {genderLabel}
-            </span>
-          </div>
-          {breadcrumbs && breadcrumbs.length > 0 && (() => {
-            // Determine the terminal sub-category from two sources:
-            //   1) `activeChip` — chosen via chip filter on the current page.
-            //   2) A `/category/<slug>` suffix on `pathname` — used by OE
-            //      hosting / deep-links to land straight on a sub-category.
-            // Chip wins when both are set (it's the truest "user picked"
-            // signal). Otherwise slug is prettified into a display label.
-            const pathParts = pathname.split('/').filter(Boolean);
-            const catIdx = pathParts.lastIndexOf('category');
-            const slugSubcategory = catIdx >= 0 && catIdx < pathParts.length - 1
-              ? pathParts[catIdx + 1]
-              : '';
-            const prettify = (s: string) => s
-              .split(/[-_]/)
-              .filter(Boolean)
-              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-              .join(' ');
-            const terminalLabel = activeChip || (slugSubcategory ? prettify(slugSubcategory) : '');
-            // Parent link points to the catalog page without the trailing
-            // `/category/<slug>` when we arrived via slug-based URL. Falls
-            // back to the last breadcrumb's own href, then to `pathname`.
-            const parentHref = catIdx >= 0
-              ? '/' + pathParts.slice(0, catIdx).join('/')
-              : (breadcrumbs[breadcrumbs.length - 1].href ?? pathname);
-            const trail = terminalLabel
-              ? [
-                  ...breadcrumbs.slice(0, -1),
-                  { ...breadcrumbs[breadcrumbs.length - 1], href: parentHref },
-                  { label: terminalLabel },
-                ]
-              : breadcrumbs;
-            return (
-              <nav className="hidden md:flex items-center gap-1 text-xs text-gray-400">
-                {trail.map((crumb, i) => (
-                  <span key={i} className="flex items-center gap-1">
-                    {i > 0 && <span className="mx-0.5">/</span>}
-                    {crumb.href ? (
-                      <Link href={crumb.href} className="hover:text-black transition-colors">{crumb.label}</Link>
-                    ) : (
-                      <span className="text-black">{crumb.label}</span>
-                    )}
-                  </span>
-                ))}
-              </nav>
-            );
-          })()}
-        </div>
-
-        {/* ══ STICKY BLOCK — chips + filter bar ══ */}
-        <div
-          ref={filterBarRef}
-          className="sticky top-16 md:top-24 lg:top-33 z-40 bg-white pt-2"
-        >
-          {/* ── Row 2: Chips + View/Sort ── */}
-          <div className="px-4 lg:px-8 py-2 flex items-center justify-between gap-4">
-            {/* Chips */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0 py-1">
-              {QUICK_CHIPS.map((chip) => (
-                <button
-                  key={chip}
-                  onClick={() => setActiveChip(activeChip === chip ? '' : chip)}
-                  className={`shrink-0 px-4 py-2 text-xs whitespace-nowrap focus-visible:outline-none border border-black rounded-md transition-[background-color,color] duration-150 ${
-                    activeChip === chip ? 'bg-black text-white' : 'bg-transparent text-black'
-                  }`}
-                  aria-pressed={activeChip === chip}
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-
-            {/* View + Sort — desktop only */}
-            <div className="hidden md:flex items-center gap-4 shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 mr-1">{CVL.viewPrefix}</span>
-                <button
-                  onClick={() => {
-                    dispatch(dispatchSetViewCols({ catalogKey, cols: 3 }));
-                    if (showListMode) dispatch(dispatchSetListMode({ catalogKey, listMode: false }));
-                  }}
-                  className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
-                    !listMode && viewCols === 3 ? 'opacity-100' : 'opacity-40'
-                  }`}
-                  aria-label={CVL.view3ColAria}
-                >
-                  <ColsIcon cols={3} active={!listMode && viewCols === 3} />
-                </button>
-                <button
-                  onClick={() => {
-                    dispatch(dispatchSetViewCols({ catalogKey, cols: 4 }));
-                    if (showListMode) dispatch(dispatchSetListMode({ catalogKey, listMode: false }));
-                  }}
-                  className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
-                    !listMode && viewCols === 4 ? 'opacity-100' : 'opacity-40'
-                  }`}
-                  aria-label={CVL.view4ColAria}
-                >
-                  <ColsIcon cols={4} active={!listMode && viewCols === 4} />
-                </button>
-              </div>
-
-              {/* Sort dropdown */}
-              <div className="relative" ref={sortRef}>
-                <button
-                  onClick={() => setSortOpen(o => !o)}
-                  className="flex items-center gap-1 text-xs focus-visible:outline-none"
-                >
-                  {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
-                  <ChevronDown
-                    size={11}
-                    className={`transition-transform duration-200 ${sortOpen ? 'rotate-180' : 'rotate-0'}`}
-                  />
-                </button>
-                {sortOpen && (
-                  <div className="absolute top-full right-0 bg-white z-50 min-w-47.5 border border-black rounded-none mt-1.5">
-                    {SORT_OPTIONS.map(opt => (
-                      <SortOptionBtn
-                        key={opt.value}
-                        label={opt.label}
-                        active={sortBy === opt.value}
-                        onClick={() => {
-                          setSortBy(opt.value);
-                          setSortOpen(false);
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <span className="hidden md:flex items-center gap-0.5 text-xs text-gray-500">
-                {CVL.pageOf} {currentPage} {CVL.pageOfMid} {totalPages}
-                <ChevronRight size={11} />
+        <main id="main-content">
+          {/* ══ Row 1: Title + Breadcrumbs ══ */}
+          <div className="flex items-center justify-between border-b border-gray-200 p-4 lg:px-8">
+            <div className="flex items-center gap-3">
+              <span className="hidden h-6 w-px bg-accent md:block" />
+              <h1 className="text-2xl font-bold tracking-[0.15em] uppercase">{activeChip || title}</h1>
+              <span className="hidden items-center rounded-none bg-accent px-2 py-0.5 text-xs tracking-widest text-white uppercase md:inline-flex">
+                {genderLabel}
               </span>
             </div>
+            {breadcrumbs &&
+              breadcrumbs.length > 0 &&
+              (() => {
+                // Determine the terminal sub-category from two sources:
+                //   1) `activeChip` — chosen via chip filter on the current page.
+                //   2) A `/category/<slug>` suffix on `pathname` — used by OE
+                //      hosting / deep-links to land straight on a sub-category.
+                // Chip wins when both are set (it's the truest "user picked"
+                // signal). Otherwise slug is prettified into a display label.
+                const pathParts = pathname.split('/').filter(Boolean);
+                const catIdx = pathParts.lastIndexOf('category');
+                const slugSubcategory = catIdx >= 0 && catIdx < pathParts.length - 1 ? pathParts[catIdx + 1] : '';
+                const prettify = (s: string) =>
+                  s
+                    .split(/[-_]/)
+                    .filter(Boolean)
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(' ');
+                const terminalLabel = activeChip || (slugSubcategory ? prettify(slugSubcategory) : '');
+                // Parent link points to the catalog page without the trailing
+                // `/category/<slug>` when we arrived via slug-based URL. Falls
+                // back to the last breadcrumb's own href, then to `pathname`.
+                const parentHref =
+                  catIdx >= 0
+                    ? '/' + pathParts.slice(0, catIdx).join('/')
+                    : (breadcrumbs[breadcrumbs.length - 1].href ?? pathname);
+                const trail = terminalLabel
+                  ? [
+                      ...breadcrumbs.slice(0, -1),
+                      { ...breadcrumbs[breadcrumbs.length - 1], href: parentHref },
+                      { label: terminalLabel },
+                    ]
+                  : breadcrumbs;
+                return (
+                  <nav className="hidden items-center gap-1 text-xs text-gray-400 md:flex">
+                    {trail.map((crumb, i) => (
+                      <span key={i} className="flex items-center gap-1">
+                        {i > 0 && <span className="mx-0.5">/</span>}
+                        {crumb.href ? (
+                          <Link href={crumb.href} className="transition-colors hover:text-black">
+                            {crumb.label}
+                          </Link>
+                        ) : (
+                          <span className="text-black">{crumb.label}</span>
+                        )}
+                      </span>
+                    ))}
+                  </nav>
+                );
+              })()}
           </div>
 
-          {/* ── Row 3 desktop: Filter buttons ── */}
-          {/* Only render this row when there is at least one real filter
+          {/* ══ STICKY BLOCK — chips + filter bar ══ */}
+          <div ref={filterBarRef} className="sticky top-16 z-40 bg-white pt-2 md:top-24 lg:top-33">
+            {/* ── Row 2: Chips + View/Sort ── */}
+            <div className="flex items-center justify-between gap-4 px-4 py-2 lg:px-8">
+              {/* Chips */}
+              <div className="scrollbar-hide flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
+                {QUICK_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    onClick={() => setActiveChip(activeChip === chip ? '' : chip)}
+                    className={`shrink-0 rounded-md border border-black px-4 py-2 text-xs whitespace-nowrap transition-[background-color,color] duration-150 focus-visible:outline-none ${
+                      activeChip === chip ? 'bg-black text-white' : 'bg-transparent text-black'
+                    }`}
+                    aria-pressed={activeChip === chip}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+
+              {/* View + Sort — desktop only */}
+              <div className="hidden shrink-0 items-center gap-4 md:flex">
+                <div className="flex items-center gap-2">
+                  <span className="mr-1 text-xs text-gray-500">{CVL.viewPrefix}</span>
+                  <button
+                    onClick={() => {
+                      dispatch(dispatchSetViewCols({ catalogKey, cols: 3 }));
+                      if (showListMode) dispatch(dispatchSetListMode({ catalogKey, listMode: false }));
+                    }}
+                    className={`p-1 transition-opacity duration-150 focus-visible:outline-none ${
+                      !listMode && viewCols === 3 ? 'opacity-100' : 'opacity-40'
+                    }`}
+                    aria-label={CVL.view3ColAria}
+                  >
+                    <ColsIcon cols={3} active={!listMode && viewCols === 3} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      dispatch(dispatchSetViewCols({ catalogKey, cols: 4 }));
+                      if (showListMode) dispatch(dispatchSetListMode({ catalogKey, listMode: false }));
+                    }}
+                    className={`p-1 transition-opacity duration-150 focus-visible:outline-none ${
+                      !listMode && viewCols === 4 ? 'opacity-100' : 'opacity-40'
+                    }`}
+                    aria-label={CVL.view4ColAria}
+                  >
+                    <ColsIcon cols={4} active={!listMode && viewCols === 4} />
+                  </button>
+                </div>
+
+                {/* Sort dropdown */}
+                <div className="relative" ref={sortRef}>
+                  <button
+                    onClick={() => setSortOpen((o) => !o)}
+                    className="flex items-center gap-1 text-xs focus-visible:outline-none"
+                  >
+                    {sortOptions.find((o) => o.value === sortBy)?.label}
+                    <ChevronDown
+                      size={11}
+                      className={`transition-transform duration-200 ${sortOpen ? 'rotate-180' : 'rotate-0'}`}
+                    />
+                  </button>
+                  {sortOpen && (
+                    <div className="absolute top-full right-0 z-50 mt-1.5 min-w-47.5 rounded-none border border-black bg-white">
+                      {sortOptions.map((opt) => (
+                        <SortOptionBtn
+                          key={opt.value}
+                          label={opt.label}
+                          active={sortBy === opt.value}
+                          onClick={() => {
+                            setSortBy(opt.value);
+                            setSortOpen(false);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <span className="hidden items-center gap-0.5 text-xs text-gray-500 md:flex">
+                  {CVL.pageOf} {currentPage} {CVL.pageOfMid} {totalPages}
+                  <ChevronRight size={11} />
+                </span>
+              </div>
+            </div>
+
+            {/* ── Row 3 desktop: Filter buttons ── */}
+            {/* Only render this row when there is at least one real filter
               group. `section` entries are just visual separators and don't
               give the shopper anything actionable — a row filled with them
               (or entirely empty) reads as broken white space. Hides the
               styles counter too until a filter group re-appears. */}
-          {supportedGroups.some(g => g.type !== 'section') && (
-          <div className="px-4 lg:px-8 hidden md:flex items-center border-b border-gray-200">
-            <div className={`flex items-center flex-1 overflow-x-auto overflow-y-hidden gap-0 ${scrollbarClass}`}>
-              {supportedGroups.map(group => {
-                if (group.type === 'section') {
-                  return (
-                    <span
-                      key={group.key}
-                      className="shrink-0 px-3 select-none border-l border-gray-200 text-[9px] tracking-[0.18em] uppercase font-bold text-[#bbb] whitespace-nowrap ml-1 py-3.5"
-                    >
-                      {group.label}
-                    </span>
-                  );
-                }
-                const isOpen = openFilter === group.key;
-                const selCount = group.type === 'price_range'
-                  ? getPriceSelCount()
-                  : (selectedFiltersBySelfKey[group.key]?.length ?? 0);
-                return (
-                  <button
-                    key={group.key}
-                    onClick={() => setOpenFilter(isOpen ? null : group.key)}
-                    className={`flex items-center gap-1 py-3 pr-7 text-xs whitespace-nowrap transition-colors focus-visible:outline-none ${
-                      isOpen || selCount > 0 ? 'text-black' : 'text-[#555]'
-                    }`}
-                  >
-                    <span className={selCount > 0 ? 'font-semibold' : 'font-normal'}>{group.label}</span>
-                    {selCount > 0 && (
-                      <span className="text-xs text-accent">({selCount})</span>
-                    )}
-                    <ChevronDown
-                      size={11}
-                      className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          )}
-
-          {/* ── Row 3 mobile: FILTERS | SORT ── */}
-          <div className="flex md:hidden border-b border-black border-t border-t-[#e5e7eb]">
-            <button
-              onClick={() => setMobileFilterOpen(true)}
-              className="flex-1 flex items-center justify-center gap-2 focus-visible:outline-none h-12 font-bold text-[11px] tracking-[0.2em] uppercase border-r border-black"
-            >
-              {CVL.filtersHeading}
-              {totalActiveFilters > 0 && (
-                <span className="text-xs px-1.5 py-0.5 text-white bg-accent rounded-none font-semibold">
-                  {totalActiveFilters}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setMobileSortOpen(true)}
-              className="flex-1 flex items-center justify-center focus-visible:outline-none h-12 font-bold text-[11px] tracking-[0.2em] uppercase"
-            >
-              {CVL.sortHeading}
-            </button>
-          </div>
-
-          {/* ── Mega Dropdown Panel ── */}
-          {openFilter && currentFilterGroup && currentFilterGroup.type !== 'section' && (
-            <div
-              className="absolute left-0 right-0 bg-white z-50 top-full border-t-2 border-t-accent border-b border-b-[#e5e7eb] shadow-[0_8px_32px_rgba(0,0,0,0.09)]"
-              onMouseLeave={() => setOpenFilter(null)}
-            >
-              <div className="flex">
-                {/* Options area */}
-                <div className="flex-1 px-6 py-5 overflow-y-auto max-h-105">
-
-                  {/* Price range */}
-                  {currentFilterGroup.type === 'price_range' && (
-                    <PriceRangeSlider
-                      minBound={0}
-                      maxBound={priceMax}
-                      value={priceRange}
-                      onChange={setPriceRange}
-                    />
-                  )}
-
-                  {/* Searchable checkbox */}
-                  {currentFilterGroup.type === 'search_checkbox' && (
-                    <div>
-                      <div className="relative mb-4">
-                        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder={COMMON_EMPTY_STATES.searchInGroupTpl(currentFilterGroup.label)}
-                          value={filterSearch[currentFilterGroup.key] ?? ''}
-                          onChange={e => setFilterSearch(prev => ({ ...prev, [currentFilterGroup.key]: e.target.value }))}
-                          className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 focus-visible:outline-none focus:border-black transition-colors rounded-none"
+            {supportedGroups.some((g) => g.type !== 'section') && (
+              <div className="hidden items-center border-b border-gray-200 px-4 md:flex lg:px-8">
+                <div className={`flex flex-1 items-center gap-0 overflow-x-auto overflow-y-hidden ${scrollbarClass}`}>
+                  {supportedGroups.map((group) => {
+                    if (group.type === 'section') {
+                      return (
+                        <span
+                          key={group.key}
+                          className="ml-1 shrink-0 border-l border-gray-200 px-3 py-3.5 text-[9px] font-bold tracking-[0.18em] whitespace-nowrap text-[#bbb] uppercase select-none"
+                        >
+                          {group.label}
+                        </span>
+                      );
+                    }
+                    const isOpen = openFilter === group.key;
+                    const selCount =
+                      group.type === 'price_range'
+                        ? getPriceSelCount()
+                        : (selectedFiltersBySelfKey[group.key]?.length ?? 0);
+                    return (
+                      <button
+                        key={group.key}
+                        onClick={() => setOpenFilter(isOpen ? null : group.key)}
+                        className={`flex items-center gap-1 py-3 pr-7 text-xs whitespace-nowrap transition-colors focus-visible:outline-none ${
+                          isOpen || selCount > 0 ? 'text-black' : 'text-[#555]'
+                        }`}
+                      >
+                        <span className={selCount > 0 ? 'font-semibold' : 'font-normal'}>{group.label}</span>
+                        {selCount > 0 && <span className="text-xs text-accent">({selCount})</span>}
+                        <ChevronDown
+                          size={11}
+                          className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
                         />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Row 3 mobile: FILTERS | SORT ── */}
+            <div className="flex border-y border-black border-t-[#e5e7eb] md:hidden">
+              <button
+                onClick={() => setMobileFilterOpen(true)}
+                className="flex h-12 flex-1 items-center justify-center gap-2 border-r border-black text-[11px] font-bold tracking-[0.2em] uppercase focus-visible:outline-none"
+              >
+                {CVL.filtersHeading}
+                {totalActiveFilters > 0 && (
+                  <span className="rounded-none bg-accent px-1.5 py-0.5 text-xs font-semibold text-white">
+                    {totalActiveFilters}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setMobileSortOpen(true)}
+                className="flex h-12 flex-1 items-center justify-center text-[11px] font-bold tracking-[0.2em] uppercase focus-visible:outline-none"
+              >
+                {CVL.sortHeading}
+              </button>
+            </div>
+
+            {/* ── Mega Dropdown Panel ── */}
+            {openFilter && currentFilterGroup && currentFilterGroup.type !== 'section' && (
+              <div
+                className="absolute inset-x-0 top-full z-50 border-t-2 border-b border-t-accent border-b-[#e5e7eb] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.09)]"
+                onMouseLeave={() => setOpenFilter(null)}
+              >
+                <div className="flex">
+                  {/* Options area */}
+                  <div className="max-h-105 flex-1 overflow-y-auto px-6 py-5">
+                    {/* Price range */}
+                    {currentFilterGroup.type === 'price_range' && (
+                      <PriceRangeSlider minBound={0} maxBound={priceMax} value={priceRange} onChange={setPriceRange} />
+                    )}
+
+                    {/* Searchable checkbox */}
+                    {currentFilterGroup.type === 'search_checkbox' && (
+                      <div>
+                        <div className="relative mb-4">
+                          <Search size={13} className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder={fillTokens(lSearchInGroup, { group: currentFilterGroup.label.toLowerCase() })}
+                            value={filterSearch[currentFilterGroup.key] ?? ''}
+                            onChange={(e) =>
+                              setFilterSearch((prev) => ({ ...prev, [currentFilterGroup.key]: e.target.value }))
+                            }
+                            className="w-full rounded-none border border-gray-200 py-1.5 pr-3 pl-8 text-xs transition-colors focus:border-black focus-visible:outline-none"
+                          />
+                        </div>
+                        <div
+                          className="grid gap-x-10 gap-y-0.5"
+                          style={{ gridTemplateColumns: `repeat(${currentFilterGroup.columns ?? 3}, 1fr)` }}
+                        >
+                          {getFilteredOptions(currentFilterGroup).map((option) => {
+                            const selected = !!selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label);
+                            return (
+                              <label key={option.label} className="group flex cursor-pointer items-center gap-2 py-1">
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  onChange={() => toggleFilter(currentFilterGroup.key, option.label)}
+                                  className="sr-only"
+                                />
+                                <CheckboxUI checked={selected} />
+                                <span
+                                  className={`text-xs transition-colors group-hover:text-black ${selected ? 'text-black' : 'text-[#444]'}`}
+                                >
+                                  {option.label}
+                                </span>
+                                {option.count !== undefined && (
+                                  <span className="text-xs text-gray-400">({option.count.toLocaleString()})</span>
+                                )}
+                              </label>
+                            );
+                          })}
+                          {getFilteredOptions(currentFilterGroup).length === 0 && (
+                            <p className="col-span-3 py-2 text-xs text-gray-400">{lNoResultsFound}</p>
+                          )}
+                        </div>
                       </div>
+                    )}
+
+                    {/* Color swatches */}
+                    {currentFilterGroup.type === 'color' && (
+                      <div
+                        className="grid gap-x-10 gap-y-1.5"
+                        style={{ gridTemplateColumns: `repeat(${currentFilterGroup.columns ?? 3}, 1fr)` }}
+                      >
+                        {currentFilterGroup.options.map((option) => {
+                          const selected = !!selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label);
+                          return (
+                            <label key={option.label} className="group flex cursor-pointer items-center gap-2 py-0.5">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => toggleFilter(currentFilterGroup.key, option.label)}
+                                className="sr-only"
+                              />
+                              <CheckboxUI checked={selected} />
+                              <ColorSwatch color={option.color} selected={selected} size={14} />
+                              <span
+                                className={`text-xs transition-colors group-hover:text-black ${selected ? 'text-black' : 'text-[#444]'}`}
+                              >
+                                {option.label}
+                              </span>
+                              {option.count !== undefined && (
+                                <span className="ml-auto text-xs text-gray-400">({option.count.toLocaleString()})</span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Size chips — pressable pills instead of checkboxes. */}
+                    {currentFilterGroup.type === 'size_chips' && (
+                      <div className="flex flex-wrap gap-2">
+                        {currentFilterGroup.options.map((option) => {
+                          const selected = !!selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label);
+                          return (
+                            <button
+                              key={option.label}
+                              type="button"
+                              onClick={() => toggleFilter(currentFilterGroup.key, option.label)}
+                              aria-pressed={selected}
+                              className={`border px-3 py-1.5 text-xs tracking-wider uppercase transition-colors ${
+                                selected
+                                  ? 'border-black bg-black text-white'
+                                  : 'border-gray-300 bg-white text-black hover:border-black'
+                              }`}
+                            >
+                              {option.label}
+                              {option.count !== undefined && (
+                                <span className={`ml-1 text-[10px] ${selected ? 'text-white/70' : 'text-gray-400'}`}>
+                                  ({option.count})
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Standard checkboxes (default) */}
+                    {(!currentFilterGroup.type || currentFilterGroup.type === 'checkbox') && (
                       <div
                         className="grid gap-x-10 gap-y-0.5"
                         style={{ gridTemplateColumns: `repeat(${currentFilterGroup.columns ?? 3}, 1fr)` }}
                       >
-                        {getFilteredOptions(currentFilterGroup).map(option => {
-                          const selected = !!(selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label));
+                        {currentFilterGroup.options.map((option) => {
+                          const selected = !!selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label);
                           return (
-                            <label key={option.label} className="flex items-center gap-2 cursor-pointer py-1 group">
-                              <input type="checkbox" checked={selected} onChange={() => toggleFilter(currentFilterGroup.key, option.label)} className="sr-only" />
+                            <label key={option.label} className="group flex cursor-pointer items-center gap-2 py-1">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => toggleFilter(currentFilterGroup.key, option.label)}
+                                className="sr-only"
+                              />
                               <CheckboxUI checked={selected} />
-                              <span className={`text-xs group-hover:text-black transition-colors ${selected ? 'text-black' : 'text-[#444]'}`}>
+                              <span
+                                className={`text-xs transition-colors group-hover:text-black ${selected ? 'text-black' : 'text-[#444]'}`}
+                              >
                                 {option.label}
                               </span>
                               {option.count !== undefined && (
@@ -583,248 +769,174 @@ export function CatalogTemplate({
                             </label>
                           );
                         })}
-                        {getFilteredOptions(currentFilterGroup).length === 0 && (
-                          <p className="text-xs text-gray-400 col-span-3 py-2">{COMMON_EMPTY_STATES.noResultsFound}</p>
-                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
-                  {/* Color swatches */}
-                  {currentFilterGroup.type === 'color' && (
-                    <div
-                      className="grid gap-x-10 gap-y-1.5"
-                      style={{ gridTemplateColumns: `repeat(${currentFilterGroup.columns ?? 3}, 1fr)` }}
+                  {/* Right action panel */}
+                  <div className="flex min-w-40 flex-col items-center justify-start gap-3 border-l border-[#e5e7eb] px-6 py-5">
+                    <button
+                      onClick={clearAll}
+                      className="w-full rounded-none bg-black px-4 py-2 text-xs tracking-widest text-white uppercase transition-colors hover:bg-gray-800 focus-visible:outline-none"
                     >
-                      {currentFilterGroup.options.map(option => {
-                        const selected = !!(selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label));
-                        return (
-                          <label key={option.label} className="flex items-center gap-2 cursor-pointer py-0.5 group">
-                            <input type="checkbox" checked={selected} onChange={() => toggleFilter(currentFilterGroup.key, option.label)} className="sr-only" />
-                            <CheckboxUI checked={selected} />
-                            <ColorSwatch color={option.color} selected={selected} size={14} />
-                            <span className={`text-xs group-hover:text-black transition-colors ${selected ? 'text-black' : 'text-[#444]'}`}>
-                              {option.label}
-                            </span>
-                            {option.count !== undefined && (
-                              <span className="text-xs text-gray-400 ml-auto">({option.count.toLocaleString()})</span>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Size chips — pressable pills instead of checkboxes. */}
-                  {currentFilterGroup.type === 'size_chips' && (
-                    <div className="flex flex-wrap gap-2">
-                      {currentFilterGroup.options.map(option => {
-                        const selected = !!(selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label));
-                        return (
-                          <button
-                            key={option.label}
-                            type="button"
-                            onClick={() => toggleFilter(currentFilterGroup.key, option.label)}
-                            aria-pressed={selected}
-                            className={`px-3 py-1.5 text-xs tracking-wider uppercase border transition-colors ${
-                              selected
-                                ? 'bg-black text-white border-black'
-                                : 'bg-white text-black border-gray-300 hover:border-black'
-                            }`}
-                          >
-                            {option.label}
-                            {option.count !== undefined && (
-                              <span className={`ml-1 text-[10px] ${selected ? 'text-white/70' : 'text-gray-400'}`}>({option.count})</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Standard checkboxes (default) */}
-                  {(!currentFilterGroup.type || currentFilterGroup.type === 'checkbox') && (
-                    <div
-                      className="grid gap-x-10 gap-y-0.5"
-                      style={{ gridTemplateColumns: `repeat(${currentFilterGroup.columns ?? 3}, 1fr)` }}
-                    >
-                      {currentFilterGroup.options.map(option => {
-                        const selected = !!(selectedFiltersBySelfKey[currentFilterGroup.key]?.includes(option.label));
-                        return (
-                          <label key={option.label} className="flex items-center gap-2 cursor-pointer py-1 group">
-                            <input type="checkbox" checked={selected} onChange={() => toggleFilter(currentFilterGroup.key, option.label)} className="sr-only" />
-                            <CheckboxUI checked={selected} />
-                            <span className={`text-xs group-hover:text-black transition-colors ${selected ? 'text-black' : 'text-[#444]'}`}>
-                              {option.label}
-                            </span>
-                            {option.count !== undefined && (
-                              <span className="text-xs text-gray-400">({option.count.toLocaleString()})</span>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right action panel */}
-                <div className="flex flex-col items-center justify-start gap-3 px-6 py-5 border-l border-[#e5e7eb] min-w-40">
-                  <button
-                    onClick={clearAll}
-                    className="w-full px-4 py-2 text-xs tracking-widest uppercase text-white bg-black hover:bg-gray-800 transition-colors focus-visible:outline-none rounded-none"
-                  >
-                    {CVL.clearAll}
-                  </button>
+                      {CVL.clearAll}
+                    </button>
+                  </div>
                 </div>
               </div>
+            )}
+          </div>
+          {/* end sticky block */}
+
+          {/* ── Active filter chips ── */}
+          {totalActiveFilters > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-2.5 lg:px-8">
+              <span className="text-xs tracking-wider text-gray-500 uppercase">{CVL.activePrefix}</span>
+              {Object.entries(selectedFiltersBySelfKey).flatMap(([key, vals]) =>
+                vals.map((val) => {
+                  const group = FILTER_GROUPS.find((g) => g.key === key);
+                  return (
+                    <button
+                      key={`${key}-${val}`}
+                      onClick={() => toggleFilter(key, val)}
+                      className="group flex items-center gap-1.5 rounded-none border border-gray-300 px-2.5 py-1 text-xs transition-colors hover:border-black"
+                    >
+                      <span className="text-gray-500 group-hover:text-black">{group?.label}: </span>
+                      <span>{val}</span>
+                      <X size={10} className="text-gray-400 group-hover:text-black" />
+                    </button>
+                  );
+                }),
+              )}
+              <button
+                onClick={clearAll}
+                className="ml-1 text-xs text-gray-400 underline transition-colors hover:text-black"
+              >
+                {CVL.clearAllLower}
+              </button>
             </div>
           )}
-        </div>{/* end sticky block */}
 
-        {/* ── Active filter chips ── */}
-        {totalActiveFilters > 0 && (
-          <div className="px-4 lg:px-8 py-2.5 flex flex-wrap items-center gap-2 border-b border-gray-100">
-            <span className="text-xs text-gray-500 tracking-wider uppercase">{CVL.activePrefix}</span>
-            {Object.entries(selectedFiltersBySelfKey).flatMap(([key, vals]) =>
-              vals.map(val => {
-                const group = FILTER_GROUPS.find(g => g.key === key);
-                return (
-                  <button
-                    key={`${key}-${val}`}
-                    onClick={() => toggleFilter(key, val)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs border border-gray-300 hover:border-black transition-colors group rounded-none"
-                  >
-                    <span className="text-gray-500 group-hover:text-black">{group?.label}: </span>
-                    <span>{val}</span>
-                    <X size={10} className="text-gray-400 group-hover:text-black" />
-                  </button>
-                );
-              })
-            )}
-            <button onClick={clearAll} className="text-xs text-gray-400 hover:text-black underline ml-1 transition-colors">
-              {CVL.clearAllLower}
-            </button>
-          </div>
-        )}
-
-        {/* ══ Product Grid ══ */}
-        {/* While a filter / sort / page change is in-flight (transition
+          {/* ══ Product Grid ══ */}
+          {/* While a filter / sort / page change is in-flight (transition
             started by `pushFilters`), swap the grid for skeletons so the
             shopper sees that something is loading and doesn't double-click
             checkboxes. The optimistic filters above already flipped the
             controls themselves. */}
-        {isPending ? (
-          <div className={`grid ${gridCols} gap-px bg-white`}>
-            {Array.from({ length: PRODUCTS_PER_PAGE }).map((_, i) => (
-              <div key={`skeleton-${i}`} className="bg-white">
-                <ProductCardSkeleton />
-              </div>
-            ))}
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <NoFilterResults onClearAll={clearAll} />
-        ) : !listMode ? (
-          <div className={`grid ${gridCols} gap-px bg-white`}>
-            {filteredProducts.map((product, idx) => (
-              <div key={product.id} className="bg-white">
-                <ProductCard product={product} priority={idx < 4} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* List mode (only when showListMode=true) */
-          <div className="border-t border-white">
-            {filteredProducts.map(product => (
-              <CatalogListProductCard key={product.id} product={product} accent={ACCENT} />
-            ))}
-          </div>
-        )}
-
-        {/* ══ Pagination + Progress ══ */}
-        <div className="px-4 lg:px-8 py-12 border-t border-gray-200">
-          <div className="max-w-xs mx-auto text-center mb-8">
-            <p className="text-xs text-gray-500 mb-3">
-              {CVL.youveViewedPrefix}
-              <span className="text-black font-semibold">{Math.min(currentPage * PRODUCTS_PER_PAGE, totalForPagination)}</span>
-              {CVL.youveViewedMid}
-              <span className="text-black font-semibold">{totalForPagination.toLocaleString()}</span>
-              {CVL.youveViewedSuffix}
-            </p>
-            <div className="w-full h-0.5 bg-gray-100">
-              <div
-                className="h-0.5 transition-all duration-500 bg-accent"
-                style={{ width: `${Math.min(100, (PRODUCTS_PER_PAGE / totalForPagination) * 100)}%` }}
-              />
+          {isPending ? (
+            <div className={`grid ${gridCols} gap-px bg-white`}>
+              {Array.from({ length: PRODUCTS_PER_PAGE }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="bg-white">
+                  <ProductCardSkeleton />
+                </div>
+              ))}
             </div>
-          </div>
-          <div className="flex items-center justify-center">
-            <button
-              onClick={() => changePage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="w-9 h-9 flex items-center justify-center border border-black hover:bg-black hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-none"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            {pageNumbers.map((page, i) => (
+          ) : filteredProducts.length === 0 ? (
+            <NoFilterResults onClearAll={clearAll} />
+          ) : !listMode ? (
+            <div className={`grid ${gridCols} gap-px bg-white`}>
+              {filteredProducts.map((product, idx) => (
+                <div key={product.id} className="bg-white">
+                  <ProductCard product={product} priority={idx < 4} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* List mode (only when showListMode=true) */
+            <div className="border-t border-white">
+              {filteredProducts.map((product) => (
+                <CatalogListProductCard key={product.id} product={product} accent={ACCENT} />
+              ))}
+            </div>
+          )}
+
+          {/* ══ Pagination + Progress ══ */}
+          <div className="border-t border-gray-200 px-4 py-12 lg:px-8">
+            <div className="mx-auto mb-8 max-w-xs text-center">
+              <p className="mb-3 text-xs text-gray-500">
+                {CVL.youveViewedPrefix}
+                <span className="font-semibold text-black">
+                  {Math.min(currentPage * PRODUCTS_PER_PAGE, totalForPagination)}
+                </span>
+                {CVL.youveViewedMid}
+                <span className="font-semibold text-black">{totalForPagination.toLocaleString()}</span>
+                {CVL.youveViewedSuffix}
+              </p>
+              <div className="h-0.5 w-full bg-gray-100">
+                <div
+                  className="h-0.5 bg-accent transition-all duration-500"
+                  style={{ width: `${Math.min(100, (PRODUCTS_PER_PAGE / totalForPagination) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
               <button
-                key={`${page}-${i}`}
-                onClick={() => typeof page === 'number' && changePage(page)}
-                disabled={page === '...'}
-                className={`w-9 h-9 flex items-center justify-center border text-xs transition-colors rounded-none border-black -ml-px ${
-                  currentPage === page ? 'bg-black text-white' : 'bg-white text-black'
-                } ${page === '...' ? 'cursor-default' : 'cursor-pointer'}`}
+                onClick={() => changePage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="flex size-9 items-center justify-center rounded-none border border-black transition-colors hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
               >
-                {page}
+                <ChevronLeft size={14} />
               </button>
-            ))}
-            <button
-              onClick={() => changePage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="w-9 h-9 flex items-center justify-center border border-black hover:bg-black hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-none -ml-px"
-            >
-              <ChevronRight size={14} />
-            </button>
+              {pageNumbers.map((page, i) => (
+                <button
+                  key={`${page}-${i}`}
+                  onClick={() => typeof page === 'number' && changePage(page)}
+                  disabled={page === '...'}
+                  className={`-ml-px flex size-9 items-center justify-center rounded-none border border-black text-xs transition-colors ${
+                    currentPage === page ? 'bg-black text-white' : 'bg-white text-black'
+                  } ${page === '...' ? 'cursor-default' : 'cursor-pointer'}`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => changePage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="-ml-px flex size-9 items-center justify-center rounded-none border border-black transition-colors hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+            <p className="mt-4 text-center text-xs text-gray-400">
+              {fillTokens(lPageOf, { current: currentPage, total: totalPages })}
+            </p>
           </div>
-          <p className="text-xs text-gray-400 text-center mt-4">{CATALOG_PAGINATION_LABELS.pageOfTpl(currentPage, totalPages)}</p>
-        </div>
 
-        {/* ══ Cross-sell (optional) ══ */}
-        {crossSell && <CatalogCrossSell crossSell={crossSell} />}
+          {/* ══ Cross-sell (optional) ══ */}
+          {crossSell && <CatalogCrossSell crossSell={crossSell} />}
 
-        {/* ══ Trend Blocks (optional) ══ */}
-        {trendingBlock && trendingBlock.products.length > 0 && (
-          <NewArrivals products={trendingBlock.products} title={trendingBlock.title} />
-        )}
+          {/* ══ Trend Blocks (optional) ══ */}
+          {trendingBlock && trendingBlock.products.length > 0 && (
+            <NewArrivals products={trendingBlock.products} title={trendingBlock.title} />
+          )}
 
-        {/* OE-attached page blocks (admin-ordered by `position`). Rendered
+          {/* OE-attached page blocks (admin-ordered by `position`). Rendered
             at the bottom of the catalog UI — think of them as content the
             admin drops in below the grid rather than a hero. When no blocks
             are attached, `<PageBlocksRenderer>` collapses to nothing. */}
-        {pageBlocks && pageBlocks.length > 0 && (
-          <PageBlocksRenderer blocks={pageBlocks} />
-        )}
-      </main>
+          {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
+        </main>
 
-      <Footer />
+        <Footer />
 
-      {/* ── Mobile Filter Panel ── */}
-      <MobileFilterPanel
-        isOpen={mobileFilterOpen}
-        onClose={() => setMobileFilterOpen(false)}
-        filterGroups={mobileFilterGroups}
-        selectedFilters={selectedFiltersBySelfKey}
-        onToggleFilter={toggleFilter}
-        onClearAll={clearAll}
-      />
+        {/* ── Mobile Filter Panel ── */}
+        <MobileFilterPanel
+          isOpen={mobileFilterOpen}
+          onClose={() => setMobileFilterOpen(false)}
+          filterGroups={mobileFilterGroups}
+          selectedFilters={selectedFiltersBySelfKey}
+          onToggleFilter={toggleFilter}
+          onClearAll={clearAll}
+        />
 
-      {/* ── Mobile Sort Bottom Sheet ── */}
-      <CatalogMobileSort
-        isOpen={mobileSortOpen}
-        onClose={() => setMobileSortOpen(false)}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
-    </div>
+        {/* ── Mobile Sort Bottom Sheet ── */}
+        <CatalogMobileSort
+          isOpen={mobileSortOpen}
+          onClose={() => setMobileSortOpen(false)}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
+      </div>
     </CatalogAccentContext.Provider>
   );
 }

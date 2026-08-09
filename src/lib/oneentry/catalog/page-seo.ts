@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { loadPageByUrl } from './pages';
-import type { Lang } from '../system-text';
-import { currentCmsLocale } from '../current-locale';
+
 import { SITE_URL } from '../../../app/data/seoData';
+import { currentCmsLocale } from '../current-locale';
 import { buildLanguageAlternates } from '../locale';
+import type { Lang } from '../system-text';
+import { loadPageByUrl } from './pages';
 
 /**
  * hreflang alternates for a route, derived from its canonical URL.
@@ -13,17 +14,15 @@ import { buildLanguageAlternates } from '../locale';
  * wholesale and silently drops `languages`. Every route therefore has to carry
  * its own language map — which is why this is applied here rather than left to
  * the root layout.
- * @param   {string | URL | null | undefined} canonical - The route's canonical URL.
- * @returns {Record<string, string> | undefined} hreflang map, or `undefined`.
+ *
+ * @param canonical - The route's canonical URL.
+ * @returns hreflang map, or `undefined`.
  */
-function languagesFor(
-  canonical: NonNullable<Metadata['alternates']>['canonical'],
-): Record<string, string> | undefined {
+function languagesFor(canonical: NonNullable<Metadata['alternates']>['canonical']): Record<string, string> | undefined {
   if (!canonical) return undefined;
   // `canonical` may be a bare string/URL or an `AlternateLinkDescriptor`
   // (`{ url, title }`) — Next accepts both, so unwrap before parsing.
-  const raw =
-    typeof canonical === 'object' && 'url' in canonical ? canonical.url : canonical;
+  const raw = typeof canonical === 'object' && 'url' in canonical ? canonical.url : canonical;
   if (!raw) return undefined;
   const href = typeof raw === 'string' ? raw : raw.toString();
   const path = href.startsWith(SITE_URL) ? href.slice(SITE_URL.length) || '/' : href;
@@ -49,15 +48,13 @@ function languagesFor(
  *                storefront route.
  * @param fallback The route's local metadata.
  */
-export async function withCmsSeo(
-  pageUrl: string,
-  fallback: Metadata,
-  langArg?: Lang,
-): Promise<Metadata> {
+export async function withCmsSeo(pageUrl: string, fallback: Metadata, langArg?: Lang): Promise<Metadata> {
   const lang = langArg ?? (await currentCmsLocale());
   const page = await loadPageByUrl(pageUrl, lang);
 
-  /** Attach hreflang to whatever canonical ends up winning. */
+  /**
+   * Attach hreflang to whatever canonical ends up winning.
+   */
   const withLanguages = (meta: Metadata, canonical?: string): Metadata => {
     const target = canonical ?? meta.alternates?.canonical;
     const languages = languagesFor(target);

@@ -1,6 +1,6 @@
 import { loadFrequentlyOrderedBlock } from '../../../lib/oneentry/blocks/page-blocks';
-import { FrequentlyOrderedClient } from './FrequentlyOrderedClient';
 import type { Product } from '../../components/product/ProductCard';
+import { FrequentlyOrderedClient } from './FrequentlyOrderedClient';
 
 /**
  * Async server component that resolves the OE `frequently_ordered_block` for
@@ -23,9 +23,11 @@ export async function FrequentlyOrderedAsync({
   productId: number;
   marker?: string;
   categoryViewAllHref: string;
-  /** Gender of the current PDP product. When set, the carousel only shows
+  /**
+   * Gender of the current PDP product. When set, the carousel only shows
    *  products of the same gender (or unisex) — keeps women/men feeds
-   *  consistent even when OE block returns mixed results. */
+   *  consistent even when OE block returns mixed results.
+   */
   productGender?: 'W' | 'M' | 'U' | '';
 }) {
   const block = await loadFrequentlyOrderedBlock(marker, productId);

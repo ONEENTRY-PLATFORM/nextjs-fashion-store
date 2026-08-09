@@ -1,52 +1,54 @@
-'use client'
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { Search, User, Heart, ShoppingBag, Menu } from 'lucide-react';
-
-import Image from 'next/image';
+'use client';
+import { Heart, Menu, Search, ShoppingBag, User } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
+import { usePathname, useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
 import logoImage from '../../../assets/kekimoro-logo-black.png';
-import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
-import { HeaderSearch } from './HeaderSearch';
 import { HeaderMegaMenu } from './HeaderMegaMenu';
 import { HeaderMobileDrawer } from './HeaderMobileDrawer';
+import { HeaderSearch } from './HeaderSearch';
 import { HeaderTopBar } from './HeaderTopBar';
 
-const MiniCart       = dynamic(() => import('../cart/MiniCart').then(m => ({ default: m.MiniCart })));
-const LoginModal     = dynamic(() => import('../auth/LoginModal').then(m => ({ default: m.LoginModal })));
-const RegisterModal  = dynamic(() => import('../auth/RegisterModal').then(m => ({ default: m.RegisterModal })));
-const QuickViewModal = dynamic(() => import('../product/QuickViewModal').then(m => ({ default: m.QuickViewModal })));
+const MiniCart = dynamic(() => import('../cart/MiniCart').then((m) => ({ default: m.MiniCart })));
+const LoginModal = dynamic(() => import('../auth/LoginModal').then((m) => ({ default: m.LoginModal })));
+const RegisterModal = dynamic(() => import('../auth/RegisterModal').then((m) => ({ default: m.RegisterModal })));
+const QuickViewModal = dynamic(() => import('../product/QuickViewModal').then((m) => ({ default: m.QuickViewModal })));
 
-import { type Gender, type SubCat } from '../../data/categories';
-import { useHeaderMenu } from '../../../lib/oneentry/menus/HeaderMenuContext';
+import { Link, useRouter } from '../../../lib/i18n/navigation';
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { adaptHeaderMenuToMega } from '../../../lib/oneentry/menus/adapt-header';
+import { useHeaderMenu } from '../../../lib/oneentry/menus/HeaderMenuContext';
+import { type Gender, type SubCat } from '../../data/categories';
 import { HEADER_ARIA } from '../../data/commonLabels';
 import {
-  LOGO_ALT,
-  SEARCH_PLACEHOLDER,
-  ACCOUNT_HREF, WISHLIST_HREF,
+  ACCOUNT_HREF,
   GENDER_NAV_HREFS,
-  WOMEN_COLOR,
+  LOGO_ALT,
   MEN_COLOR,
+  SEARCH_PLACEHOLDER,
+  WISHLIST_HREF,
+  WOMEN_COLOR,
 } from '../../data/headerConfig';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useMounted } from '../../hooks/useMounted';
-import { useRouter, Link } from '../../../lib/i18n/navigation';
 
 export function Header() {
   const lSearch = useT('search', SEARCH_PLACEHOLDER);
   // Header copy from the OE `header` set — local constants are the fallback.
-  const lLogoAlt      = useT('header_logo_alt', LOGO_ALT);
+  const lLogoAlt = useT('header_logo_alt', LOGO_ALT);
   const lSearchMobile = useT('header_search_placeholder_mobile', 'Search...');
-  const aOpenMenu     = useT('header_aria_open_menu', 'Open menu');
+  const aOpenMenu = useT('header_aria_open_menu', 'Open menu');
+  const aMainNav = useT('header_aria_main_navigation', HEADER_ARIA.mainNavigation);
   const aToggleSearch = useT('header_aria_toggle_search', 'Toggle search');
-  const aSearchDesk   = useT('header_aria_search_desktop', 'Search products');
-  const aSearchMob    = useT('header_aria_search_mobile', 'Search products');
-  const aAccount      = useT('header_aria_account', 'My account');
-  const aWishlist     = useT('header_aria_wishlist', 'Wishlist');
-  const aBag          = useT('header_aria_bag', 'Shopping bag');
+  const aSearchDesk = useT('header_aria_search_desktop', 'Search products');
+  const aSearchMob = useT('header_aria_search_mobile', 'Search products');
+  const aAccount = useT('header_aria_account', 'My account');
+  const aWishlist = useT('header_aria_wishlist', 'Wishlist');
+  const aBag = useT('header_aria_bag', 'Shopping bag');
   const [activeGender, setActiveGender] = useState<Gender>('women');
   const [activeDropdown, setActiveDropdown] = useState<SubCat>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -80,9 +82,10 @@ export function Header() {
     return null;
   })();
 
-
   useEffect(() => {
-    return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
   }, []);
 
   // Navigating to a gendered route resets both switches. React's sanctioned
@@ -131,44 +134,52 @@ export function Header() {
   const mega = adaptHeaderMenuToMega(cmsHeaderMenu);
   const currentDropdownData = activeDropdown && mega ? mega[activeGender][activeDropdown] : null;
 
-  const getNavHref = useCallback(
-    (gender: Gender, subcat: string, item?: string): string => {
-      let base: string;
-      switch (subcat) {
-        case 'clothing': base = gender === 'women' ? '/women/clothing' : '/men/clothing'; break;
-        case 'bags': base = gender === 'men' ? '/men/bags' : '/women/bags'; break;
-        case 'shoes': base = gender === 'women' ? '/women/shoes' : '/men/shoes'; break;
-        case 'accessories': base = gender === 'women' ? '/women/accessories' : '/men/accessories'; break;
-        default: return '#';
-      }
-      // Menu items carry the OE `pageUrl` of the underlying category — the
-      // catalog page then filters `p.categories[]` down to that exact leaf,
-      // so clicking "Dresses & Skirts" actually shows dresses & skirts.
-      if (item) return `${base}?category=${encodeURIComponent(item)}`;
-      return base;
-    },
-    []
-  );
+  const getNavHref = useCallback((gender: Gender, subcat: string, item?: string): string => {
+    let base: string;
+    switch (subcat) {
+      case 'clothing':
+        base = gender === 'women' ? '/women/clothing' : '/men/clothing';
+        break;
+      case 'bags':
+        base = gender === 'men' ? '/men/bags' : '/women/bags';
+        break;
+      case 'shoes':
+        base = gender === 'women' ? '/women/shoes' : '/men/shoes';
+        break;
+      case 'accessories':
+        base = gender === 'women' ? '/women/accessories' : '/men/accessories';
+        break;
+      default:
+        return '#';
+    }
+    // Menu items carry the OE `pageUrl` of the underlying category — the
+    // catalog page then filters `p.categories[]` down to that exact leaf,
+    // so clicking "Dresses & Skirts" actually shows dresses & skirts.
+    if (item) return `${base}?category=${encodeURIComponent(item)}`;
+    return base;
+  }, []);
 
   return (
     <header
       className="sticky top-0 z-50 bg-white"
-      style={{
-        '--women': WOMEN_COLOR,
-        '--men': MEN_COLOR,
-        '--accent': accentColor,
-      } as React.CSSProperties}
+      style={
+        {
+          '--women': WOMEN_COLOR,
+          '--men': MEN_COLOR,
+          '--accent': accentColor,
+        } as React.CSSProperties
+      }
     >
       <HeaderTopBar />
 
       {/* ── MAIN HEADER ── */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-384 mx-auto px-8 lg:px-12">
-          <div className="flex items-center justify-between h-16">
+      <div className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-384 px-8 lg:px-12">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="lg:hidden flex items-center justify-center w-10 h-10 hover:opacity-70 transition-opacity"
+                className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 lg:hidden"
                 aria-label={aOpenMenu}
               >
                 <Menu size={22} />
@@ -178,7 +189,7 @@ export function Header() {
               </Link>
             </div>
 
-            <nav aria-label={HEADER_ARIA.mainNavigation} className="hidden lg:flex items-center justify-center flex-1 mx-8">
+            <nav aria-label={aMainNav} className="mx-8 hidden flex-1 items-center justify-center lg:flex">
               <div className="flex items-center gap-6">
                 {(['women', 'men'] as Gender[]).map((g) => (
                   <button
@@ -194,14 +205,14 @@ export function Header() {
                         router.push(GENDER_NAV_HREFS[g]);
                       }
                     }}
-                    className={`relative flex items-center h-10 text-sm tracking-widest uppercase font-medium transition-all duration-150 ease-in-out ${
+                    className={`relative flex h-10 items-center text-sm font-medium tracking-widest uppercase transition-all duration-150 ease-in-out ${
                       urlGender === g ? (g === 'women' ? 'text-(--women)' : 'text-(--men)') : 'text-black'
                     }`}
                   >
                     {g.toUpperCase()}
                     {urlGender === g && (
                       <span
-                        className={`absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-150 ${
+                        className={`absolute inset-x-0 bottom-0 h-0.5 transition-all duration-150 ${
                           urlGender === 'women' ? 'bg-(--women)' : 'bg-(--men)'
                         }`}
                       />
@@ -212,29 +223,25 @@ export function Header() {
             </nav>
 
             <div className="flex items-center">
-              <div className="hidden lg:flex relative w-64">
-                <HeaderSearch
-                  placeholder={lSearch}
-                  ariaLabel={aSearchDesk}
-                  variant="desktop"
-                />
+              <div className="relative hidden w-64 lg:flex">
+                <HeaderSearch placeholder={lSearch} ariaLabel={aSearchDesk} variant="desktop" />
               </div>
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
-                className="md:hidden flex items-center justify-center w-10 h-10 hover:opacity-70 transition-opacity"
+                className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 md:hidden"
                 aria-label={aToggleSearch}
               >
                 <Search size={20} />
               </button>
               <button
-                className="hidden md:flex items-center justify-center min-w-10 min-h-10 hover:opacity-70 transition-opacity"
-                onClick={() => isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal()}
+                className="hidden min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70 md:flex"
+                onClick={() => (isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal())}
                 aria-label={aAccount}
               >
                 <User size={20} />
               </button>
               <button
-                className="relative flex items-center justify-center min-w-10 min-h-10 hover:opacity-70 transition-opacity"
+                className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
                 onClick={() => router.push(WISHLIST_HREF)}
                 aria-label={aWishlist}
               >
@@ -242,14 +249,14 @@ export function Header() {
                 {mounted && wishlistCount > 0 && (
                   <span
                     data-testid="header-wishlist-count"
-                    className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-(--women)"
+                    className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-(--women) text-[10px] text-white"
                   >
                     {wishlistCount}
                   </span>
                 )}
               </button>
               <button
-                className="relative flex items-center justify-center min-w-10 min-h-10 hover:opacity-70 transition-opacity"
+                className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
                 onClick={openMiniCart}
                 aria-label={aBag}
               >
@@ -259,7 +266,7 @@ export function Header() {
                     // No class here contains "badge", so the specs'
                     // `[class*="badge"]` locator never matched the counter.
                     data-testid="header-cart-count"
-                    className="absolute -top-1 -right-1 text-white w-4 h-4 flex items-center justify-center text-[10px] bg-accent"
+                    className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-accent text-[10px] text-white"
                   >
                     {totalItems}
                   </span>
@@ -269,13 +276,8 @@ export function Header() {
           </div>
 
           {searchOpen && (
-            <div className="md:hidden pb-4">
-              <HeaderSearch
-                placeholder={lSearchMobile}
-                ariaLabel={aSearchMob}
-                autoFocus
-                variant="mobile"
-              />
+            <div className="pb-4 md:hidden">
+              <HeaderSearch placeholder={lSearchMobile} ariaLabel={aSearchMob} autoFocus variant="mobile" />
             </div>
           )}
         </div>

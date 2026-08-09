@@ -1,12 +1,13 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
+
+import { cartApi } from './api/cartApi';
+import { wishlistApi } from './api/wishlistApi';
 import cartReducer from './cartSlice';
-import wishlistReducer from './wishlistSlice';
-import recentlyViewedReducer from './recentlyViewedSlice';
 import catalogReducer, { type CatalogsState } from './catalogSlice';
+import recentlyViewedReducer from './recentlyViewedSlice';
 import uiReducer from './uiSlice';
 import userReducer from './userSlice';
-import { wishlistApi } from './api/wishlistApi';
-import { cartApi } from './api/cartApi';
+import wishlistReducer from './wishlistSlice';
 
 const STORAGE_KEY = 'oe_store';
 /**
@@ -119,18 +120,17 @@ function saveToStorage(state: RootState) {
     // can't leak across navigations and cause a hydration mismatch on the next
     // page load. Same rationale for `unavailableRemoved`: it's a one-shot
     // notice, not a preference to persist.
-    const {
-      miniCartOpen: _miniCartOpen,
-      unavailableRemoved: _unavailableRemoved,
-      ...persistedCart
-    } = state.cart;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      __version: STORAGE_VERSION,
-      cart: persistedCart,
-      wishlist: state.wishlist,
-      recentlyViewed: state.recentlyViewed,
-      catalog: state.catalog,
-    }));
+    const { miniCartOpen: _miniCartOpen, unavailableRemoved: _unavailableRemoved, ...persistedCart } = state.cart;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        __version: STORAGE_VERSION,
+        cart: persistedCart,
+        wishlist: state.wishlist,
+        recentlyViewed: state.recentlyViewed,
+        catalog: state.catalog,
+      }),
+    );
   } catch {
     // ignore quota errors
   }
@@ -151,11 +151,7 @@ export function makeStore() {
   const preloadedState = loadFromStorage();
   const store = configureStore({
     reducer,
-    middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(
-        wishlistApi.middleware,
-        cartApi.middleware,
-      ),
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(wishlistApi.middleware, cartApi.middleware),
     preloadedState,
   });
 

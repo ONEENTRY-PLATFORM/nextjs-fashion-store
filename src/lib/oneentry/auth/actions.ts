@@ -14,13 +14,21 @@
  * server (the Google `client_secret` exchange, ISR revalidation) live in
  * `./oauth-actions.ts` and `./revalidate-action.ts`.
  */
-import { getApiSafe, isOneEntryEnabled, isError, hasStoredSession, storeSession, clearTokens, getAuthProviderMarker } from '../index';
 import { getProductPreviewsAction } from '../catalog/product-previews-action';
+import {
+  clearTokens,
+  getApiSafe,
+  getAuthProviderMarker,
+  hasStoredSession,
+  isError,
+  isOneEntryEnabled,
+  storeSession,
+} from '../index';
 import { DEFAULT_LOCALE } from '../locale';
 import { se } from '../server-errors';
+import { readRefreshToken, readUserIdentifier, writeUserIdentifier } from './browser-session';
 import { pickImage, type RawPicture } from './pick-image';
 import { revalidateAfterOrderAction } from './revalidate-action';
-import { readUserIdentifier, writeUserIdentifier, readRefreshToken } from './browser-session';
 
 const SIGNUP_FORM_IDENTIFIER = 'signin';
 
@@ -29,7 +37,6 @@ const AUTH_MARKER = 'email';
 
 /** Auth-provider marker for Google sign-in on this tenant. */
 const GOOGLE_AUTH_MARKER = 'google';
-
 
 export interface AuthSuccess {
   ok: true;
@@ -100,9 +107,11 @@ export interface OeOrder {
   id: number;
   storage: string;
   statusIdentifier: string;
-  /** Human-readable status title from OE `statusLocalizeInfos.title`
+  /**
+   * Human-readable status title from OE `statusLocalizeInfos.title`
    *  (admin-panel display name — e.g. "In Progress", "Shipped"). Prefer
-   *  this over `statusIdentifier` when rendering. */
+   *  this over `statusIdentifier` when rendering.
+   */
   statusTitle: string;
   totalSum: string;
   currency: string;
@@ -112,9 +121,11 @@ export interface OeOrder {
 }
 
 export interface OeUserState {
-  /** Recently viewed product IDs with timestamps — order: index 0 is most
+  /**
+   * Recently viewed product IDs with timestamps — order: index 0 is most
    *  recent. Stored on the user record so the trail follows the account
-   *  across devices. Bounded to ~100 entries on write. */
+   *  across devices. Bounded to ~100 entries on write.
+   */
   recentlyViewed?: Array<{ productId: number; viewedAt: string }>;
 }
 
@@ -152,39 +163,51 @@ export interface OeUser {
   recentlyViewed: OeRecentlyViewedItem[];
   /** orders from all user storages */
   orders: OeOrder[];
-  /** loyalty state resolved from OE `Discounts` on `/me` bootstrap. `null`
+  /**
+   * loyalty state resolved from OE `Discounts` on `/me` bootstrap. `null`
    *  when nothing is configured for this tenant (or the user isn't in any
-   *  discount user-group yet). */
+   *  discount user-group yet).
+   */
   loyalty: OeLoyalty | null;
 }
 
-/** One rung of the OE loyalty ladder — `getDiscountByMarker(marker)` returns
+/**
+ * One rung of the OE loyalty ladder — `getDiscountByMarker(marker)` returns
  *  the config regardless of the user's group membership, so we pass the raw
  *  set to the client and let it pick the highest tier the shopper actually
- *  qualifies for (based on LTV). */
+ *  qualifies for (based on LTV).
+ */
 export interface OeLoyaltyTier {
   tier: string;
   tierTitle: string;
   discountPct: number;
   discountMaxAmount: number | null;
   applicability: string;
-  /** LTV threshold to qualify (from `conditions[type=USER_LTV].value.amount`).
-   *  `null` when the tier isn't gated by LTV — treat as always-available. */
+  /**
+   * LTV threshold to qualify (from `conditions[type=USER_LTV].value.amount`).
+   *  `null` when the tier isn't gated by LTV — treat as always-available.
+   */
   ltvThreshold: number | null;
-  /** Cart-total threshold from `conditions[type=MIN_CART_AMOUNT].value.amount`.
+  /**
+   * Cart-total threshold from `conditions[type=MIN_CART_AMOUNT].value.amount`.
    *  Some tenants ladder personal-discount rungs by cart size (silver at $500,
    *  gold at $1000, …) instead of user lifetime value. `null` when the tier
    *  has no such gate. Consumed by `previewOrderAction`'s fallback so the
-   *  shopper actually gets the discount at cart time. */
+   *  shopper actually gets the discount at cart time.
+   */
   minCartAmount: number | null;
-  /** OE user-group ids the tier belongs to (`userGroups[].id`). Reserved for
-   *  a future group-based selector; today we still pick by LTV. */
+  /**
+   * OE user-group ids the tier belongs to (`userGroups[].id`). Reserved for
+   *  a future group-based selector; today we still pick by LTV.
+   */
   userGroupIds: number[];
 }
 
 export interface OeLoyalty {
-  /** All tier configs OE knows about (sorted ascending by LTV threshold).
-   *  Client mergeOeUser picks the highest tier where `user.LTV ≥ ltvThreshold`. */
+  /**
+   * All tier configs OE knows about (sorted ascending by LTV threshold).
+   *  Client mergeOeUser picks the highest tier where `user.LTV ≥ ltvThreshold`.
+   */
   tiers: OeLoyaltyTier[];
   /** Aggregate bonus balance across all bonus types. */
   bonusBalance: number;
@@ -222,9 +245,11 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
   type RawOrder = {
     id?: number;
     statusIdentifier?: string;
-    /** OE ships the status display name per-locale here. Payload shape can
+    /**
+     * OE ships the status display name per-locale here. Payload shape can
      *  be either a flat `{ title }` (already-localised) or the wrapped
-     *  `{ en_US: { title } }` variant — the extractor below handles both. */
+     *  `{ en_US: { title } }` variant — the extractor below handles both.
+     */
     statusLocalizeInfos?: { title?: string } | Record<string, { title?: string }>;
     totalSum?: string;
     currency?: string;
@@ -252,14 +277,17 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
           //   flat: `{ title: "In Progress" }`
           //   wrapped: `{ en_US: { title: "In Progress" } }`
           const sli = o.statusLocalizeInfos;
-          const flatTitle = sli && typeof (sli as { title?: unknown }).title === 'string'
-            ? (sli as { title: string }).title
-            : '';
-          const wrappedTitle = sli && !flatTitle
-            ? String(((sli as Record<string, { title?: unknown }>)[DEFAULT_LOCALE]?.title
-                ?? Object.values(sli as Record<string, { title?: unknown }>)[0]?.title
-                ?? '') || '')
-            : '';
+          const flatTitle =
+            sli && typeof (sli as { title?: unknown }).title === 'string' ? (sli as { title: string }).title : '';
+          const wrappedTitle =
+            sli && !flatTitle
+              ? String(
+                  ((sli as Record<string, { title?: unknown }>)[DEFAULT_LOCALE]?.title ??
+                    Object.values(sli as Record<string, { title?: unknown }>)[0]?.title ??
+                    '') ||
+                    '',
+                )
+              : '';
           all.push({
             id: o.id ?? 0,
             storage: marker,
@@ -318,25 +346,27 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
   return all;
 }
 
-
-/** Resolve the current tier + bonus balance for the authenticated user.
+/**
+ * Resolve the current tier + bonus balance for the authenticated user.
  *  Tier is a marker guess (`bronze` → `silver` → …) — walked in order and
  *  the first non-404 hit wins. Returns `null` when none of the markers
- *  resolve or the tenant has no discounts configured. */
-/** Loyalty tier markers configured on this OE tenant, in ascending order
+ *  resolve or the tenant has no discounts configured.
+ */
+/**
+ * Loyalty tier markers configured on this OE tenant, in ascending order
  *  of "prestige". Shared by `fetchLoyalty` (to fan-out the tier fetch), and
  *  by `previewOrderAction` / `createOrderAction` (as
  *  `additionalDiscountsMarkers` so OE has a chance to apply the shopper's
  *  personal discount at cart time). Change this in ONE place if the
  *  merchant renames a rung.
  *  Not exported — Next.js 16 `use server` files must only export async
- *  functions. Module-scoped is enough for the three intra-file callers. */
+ *  functions. Module-scoped is enough for the three intra-file callers.
+ */
 const TIER_MARKERS = ['bronze', 'silver', 'gold', 'platinum'] as const;
 
 async function fetchLoyalty(): Promise<OeLoyalty | null> {
   const api = getApiSafe();
   if (!api) return null;
-
 
   // Fetch every tier in parallel via SDK `Discounts.getDiscountByMarker` and
   // the bonus balance via `Discounts.getBonusBalance`. The SDK normalises
@@ -363,8 +393,8 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
     .filter((r) => !!r.identifier)
     .map((r): OeLoyaltyTier => {
       const dv = r.discountValue ?? {};
-      const isPercent = (dv.discountType ?? '').toUpperCase() === 'PERCENTAGE'
-        || (dv.discountType ?? '').toUpperCase() === 'PERCENT';
+      const isPercent =
+        (dv.discountType ?? '').toUpperCase() === 'PERCENTAGE' || (dv.discountType ?? '').toUpperCase() === 'PERCENT';
       const readAmount = (cond: { value?: unknown } | undefined): number | null => {
         if (!cond) return null;
         if (typeof cond.value === 'object' && cond.value !== null) {
@@ -377,9 +407,7 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
         }
         return null;
       };
-      const ltvCond = (r.conditions ?? []).find(
-        (c) => c.conditionType === 'USER_LTV' || c.type === 'USER_LTV',
-      );
+      const ltvCond = (r.conditions ?? []).find((c) => c.conditionType === 'USER_LTV' || c.type === 'USER_LTV');
       const minCartCond = (r.conditions ?? []).find(
         (c) => c.conditionType === 'MIN_CART_AMOUNT' || c.type === 'MIN_CART_AMOUNT',
       );
@@ -411,7 +439,7 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
   let balance = 0;
   if (!isError(bonusResult)) {
     const raw = bonusResult as unknown as { balance?: number | string } | Array<{ balance?: number | string }>;
-    const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
     balance = list.reduce((sum, b) => sum + Number(b?.balance ?? 0), 0);
   }
 
@@ -429,7 +457,8 @@ async function fetchMe(): Promise<OeUser | null> {
   type RawMe = {
     id?: number;
     identifier?: string;
-    formData?: Array<{ marker?: string; value?: unknown }> | Record<string, Array<{ marker?: string; value?: unknown }>>;
+    formData?:
+      Array<{ marker?: string; value?: unknown }> | Record<string, Array<{ marker?: string; value?: unknown }>>;
     state?: OeUserState;
   };
   type RawCart = { items?: OeCartItem[]; total?: number };
@@ -458,9 +487,7 @@ async function fetchMe(): Promise<OeUser | null> {
   const wishlist = isError(wishlistResult) ? null : (wishlistResult as unknown as RawWishlist);
 
   // formData may be flat array or { lang: array }
-  const arr = Array.isArray(data.formData)
-    ? data.formData
-    : data.formData?.en_US ?? [];
+  const arr = Array.isArray(data.formData) ? data.formData : (data.formData?.en_US ?? []);
   const formDataMap: Record<string, unknown> = {};
   for (const item of arr) {
     if (item?.marker) formDataMap[item.marker] = item.value;
@@ -532,9 +559,11 @@ async function readStateFromMe(): Promise<OeUserState> {
 
 // ── Form-data helpers (SDK-backed under user accessToken) ────────────────────
 
-/** SDK-backed GET-list for a form marker. Uses `FormData.getFormsDataByMarker`
+/**
+ * SDK-backed GET-list for a form marker. Uses `FormData.getFormsDataByMarker`
  *  which the SDK exposes; body carries the extra filter (`userIdentifier`,
- *  `entityIdentifier`, ...) OE expects. */
+ *  `entityIdentifier`, ...) OE expects.
+ */
 async function formDataGetByMarker(
   marker: string,
   formModuleConfigId: number,
@@ -562,20 +591,27 @@ async function formDataGetByMarker(
   }
 }
 
-interface FdSuccess<T> { ok: true; data: T }
-interface FdError { ok: false; status: number; message: string }
+interface FdSuccess<T> {
+  ok: true;
+  data: T;
+}
+interface FdError {
+  ok: false;
+  status: number;
+  message: string;
+}
 
-/** SDK-backed POST of a new form-data record. */
-async function formDataPost<T>(
-  body: {
-    formIdentifier: string;
-    formModuleConfigId: number;
-    moduleEntityIdentifier: string;
-    replayTo: string | null;
-    status: string;
-    formData: unknown;
-  },
-): Promise<FdSuccess<T> | FdError> {
+/**
+ * SDK-backed POST of a new form-data record.
+ */
+async function formDataPost<T>(body: {
+  formIdentifier: string;
+  formModuleConfigId: number;
+  moduleEntityIdentifier: string;
+  replayTo: string | null;
+  status: string;
+  formData: unknown;
+}): Promise<FdSuccess<T> | FdError> {
   const api = getApiSafe();
   if (!api) return { ok: false, status: 0, message: await se('sdkNotInitialised') };
   try {
@@ -584,18 +620,17 @@ async function formDataPost<T>(
     // shape `{ en_US: [...] }`. Unwrap in that case so the SDK does the wrap
     // correctly.
     const raw = body.formData;
-    const flat = (
-      raw
-      && !Array.isArray(raw)
-      && typeof raw === 'object'
-      && DEFAULT_LOCALE in (raw as Record<string, unknown>)
-    )
-      ? (raw as Record<string, unknown>)[DEFAULT_LOCALE]
-      : raw;
-    const result = await api.FormData.postFormsData({
-      ...body,
-      formData: flat as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
-    }, DEFAULT_LOCALE);
+    const flat =
+      raw && !Array.isArray(raw) && typeof raw === 'object' && DEFAULT_LOCALE in (raw as Record<string, unknown>)
+        ? (raw as Record<string, unknown>)[DEFAULT_LOCALE]
+        : raw;
+    const result = await api.FormData.postFormsData(
+      {
+        ...body,
+        formData: flat as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
+      },
+      DEFAULT_LOCALE,
+    );
     if (isError(result)) {
       return { ok: false, status: 0, message: result.message ?? 'postFormsData failed' };
     }
@@ -605,11 +640,10 @@ async function formDataPost<T>(
   }
 }
 
-/** SDK-backed PUT of an existing form-data record by id. */
-async function formDataPut<T>(
-  id: number,
-  body: object,
-): Promise<T | null> {
+/**
+ * SDK-backed PUT of an existing form-data record by id.
+ */
+async function formDataPut<T>(id: number, body: object): Promise<T | null> {
   const api = getApiSafe();
   if (!api) return null;
   try {
@@ -621,7 +655,9 @@ async function formDataPut<T>(
   }
 }
 
-/** SDK-backed DELETE of a form-data record by id. */
+/**
+ * SDK-backed DELETE of a form-data record by id.
+ */
 async function formDataDelete(id: number): Promise<boolean> {
   const api = getApiSafe();
   if (!api) return false;
@@ -691,12 +727,7 @@ function addressToFormData(address: OeAddress): Array<{ marker: string; type: st
 }
 
 async function fetchUserAddresses(): Promise<OeAddress[]> {
-  const result = await formDataGetByMarker(
-    'user_addresses',
-    USER_ADDRESSES_MODULE_CONFIG_ID,
-    {},
-    100,
-  );
+  const result = await formDataGetByMarker('user_addresses', USER_ADDRESSES_MODULE_CONFIG_ID, {}, 100);
   return (result?.items ?? []).map(recordToAddress);
 }
 
@@ -717,16 +748,14 @@ async function postUserAddress(
   // POST may respond either as a flat record `{id, formData[], ...}` or wrapped
   // as `{formData: {id, formData[], ...}, actionMessage}` depending on the form.
   const flat = res.data;
-  const wrapped = flat.formData && typeof flat.formData === 'object' && !Array.isArray(flat.formData)
-    ? (flat.formData as RawFormRecord)
-    : flat;
+  const wrapped =
+    flat.formData && typeof flat.formData === 'object' && !Array.isArray(flat.formData)
+      ? (flat.formData as RawFormRecord)
+      : flat;
   return { ok: true, record: wrapped };
 }
 
-async function putUserAddress(
-  recordId: number,
-  address: OeAddress,
-): Promise<boolean> {
+async function putUserAddress(recordId: number, address: OeAddress): Promise<boolean> {
   const result = await formDataPut<unknown>(recordId, {
     langCode: DEFAULT_LOCALE,
     formData: addressToFormData(address),
@@ -750,12 +779,7 @@ interface UserDataExtras {
 }
 
 async function fetchUserDataRecord(): Promise<{ recordId: number | null; extras: UserDataExtras }> {
-  const result = await formDataGetByMarker(
-    'user_data',
-    USER_DATA_MODULE_CONFIG_ID,
-    {},
-    10,
-  );
+  const result = await formDataGetByMarker('user_data', USER_DATA_MODULE_CONFIG_ID, {}, 10);
   const rec = result?.items?.[0];
   if (!rec) return { recordId: null, extras: {} };
   return {
@@ -779,29 +803,32 @@ function userDataToFormData(extras: UserDataExtras): Array<{ marker: string; typ
     const n = parseFloat(extras.shoeSize);
     if (Number.isFinite(n)) out.push({ marker: 'user_shoes_size', type: 'float', value: n });
   }
-  if (extras.clothingSize !== undefined) out.push({ marker: 'user_clothing_size', type: 'string', value: extras.clothingSize });
+  if (extras.clothingSize !== undefined)
+    out.push({ marker: 'user_clothing_size', type: 'string', value: extras.clothingSize });
   if (extras.consentDataProcessing !== undefined) {
-    out.push({ marker: 'user_consent_for_personal_data_processing', type: 'radioButton', value: extras.consentDataProcessing ? 'true' : 'false' });
+    out.push({
+      marker: 'user_consent_for_personal_data_processing',
+      type: 'radioButton',
+      value: extras.consentDataProcessing ? 'true' : 'false',
+    });
   }
   if (extras.consentCrossBorder !== undefined) {
-    out.push({ marker: 'user_consent_for_cross-border_data_transfer', type: 'radioButton', value: extras.consentCrossBorder ? 'true' : 'false' });
+    out.push({
+      marker: 'user_consent_for_cross-border_data_transfer',
+      type: 'radioButton',
+      value: extras.consentCrossBorder ? 'true' : 'false',
+    });
   }
   return out;
 }
 
-async function upsertUserDataRecord(
-  userIdentifier: string,
-  patch: UserDataExtras,
-): Promise<boolean> {
+async function upsertUserDataRecord(userIdentifier: string, patch: UserDataExtras): Promise<boolean> {
   const current = await fetchUserDataRecord();
   const merged: UserDataExtras = { ...current.extras, ...patch };
   const formData = userDataToFormData(merged);
 
   if (current.recordId) {
-    const result = await formDataPut<unknown>(
-      current.recordId,
-      { langCode: DEFAULT_LOCALE, formData },
-    );
+    const result = await formDataPut<unknown>(current.recordId, { langCode: DEFAULT_LOCALE, formData });
     return result !== null;
   }
 
@@ -823,15 +850,13 @@ async function upsertUserDataRecord(
   });
   if (!created.ok) return false;
   const rec = created.data;
-  const newId = (rec.formData && typeof rec.formData === 'object' && !Array.isArray(rec.formData)
-    ? (rec.formData as RawFormRecord).id
-    : rec.id);
+  const newId =
+    rec.formData && typeof rec.formData === 'object' && !Array.isArray(rec.formData)
+      ? (rec.formData as RawFormRecord).id
+      : rec.id;
   if (!newId) return true;
   if (merged.dob) {
-    const result = await formDataPut<unknown>(
-      newId,
-      { langCode: DEFAULT_LOCALE, formData },
-    );
+    const result = await formDataPut<unknown>(newId, { langCode: DEFAULT_LOCALE, formData });
     return result !== null;
   }
   return true;
@@ -851,12 +876,7 @@ interface SubsExtras {
 }
 
 async function fetchSubsRecord(): Promise<{ recordId: number | null; extras: SubsExtras }> {
-  const result = await formDataGetByMarker(
-    'subscription_management',
-    SUBSCRIPTION_MGMT_MODULE_CONFIG_ID,
-    {},
-    10,
-  );
+  const result = await formDataGetByMarker('subscription_management', SUBSCRIPTION_MGMT_MODULE_CONFIG_ID, {}, 10);
   const rec = result?.items?.[0];
   if (!rec) return { recordId: null, extras: {} };
   const b = (m: string) => fieldValue(rec, m) === 'true';
@@ -875,8 +895,16 @@ async function fetchSubsRecord(): Promise<{ recordId: number | null; extras: Sub
 }
 
 function subsToFormData(extras: SubsExtras): Array<{ marker: string; type: string; value: string }> {
-  const bool = (k: 'emailNewsletter' | 'smsNotifications' | 'pushNotifications' | 'orderUpdates' | 'newArrivals' | 'saleAlerts' | 'loyaltyUpdates'): string =>
-    (extras[k] ? 'true' : 'false');
+  const bool = (
+    k:
+      | 'emailNewsletter'
+      | 'smsNotifications'
+      | 'pushNotifications'
+      | 'orderUpdates'
+      | 'newArrivals'
+      | 'saleAlerts'
+      | 'loyaltyUpdates',
+  ): string => (extras[k] ? 'true' : 'false');
   return [
     { marker: 'u_s_m_email_newsletter', type: 'radioButton', value: bool('emailNewsletter') },
     { marker: 'u_s_m_sms_notifications', type: 'radioButton', value: bool('smsNotifications') },
@@ -888,10 +916,7 @@ function subsToFormData(extras: SubsExtras): Array<{ marker: string; type: strin
   ];
 }
 
-async function upsertSubsRecord(
-  userIdentifier: string,
-  subs: OeSubscriptions,
-): Promise<boolean> {
+async function upsertSubsRecord(userIdentifier: string, subs: OeSubscriptions): Promise<boolean> {
   const current = await fetchSubsRecord();
   const formData = subsToFormData({
     emailNewsletter: subs.emailNewsletter,
@@ -903,10 +928,7 @@ async function upsertSubsRecord(
     loyaltyUpdates: subs.loyaltyUpdates,
   });
   if (current.recordId) {
-    const result = await formDataPut<unknown>(
-      current.recordId,
-      { langCode: DEFAULT_LOCALE, formData },
-    );
+    const result = await formDataPut<unknown>(current.recordId, { langCode: DEFAULT_LOCALE, formData });
     return result !== null;
   }
   const result = await formDataPost<RawFormRecord>({
@@ -932,10 +954,10 @@ async function putUser(body: Record<string, unknown>): Promise<boolean> {
   // so we can hand a flat array to the SDK — updateUser writes the current
   // locale slot.
   if (
-    normalized.formData
-    && !Array.isArray(normalized.formData)
-    && typeof normalized.formData === 'object'
-    && DEFAULT_LOCALE in (normalized.formData as Record<string, unknown>)
+    normalized.formData &&
+    !Array.isArray(normalized.formData) &&
+    typeof normalized.formData === 'object' &&
+    DEFAULT_LOCALE in (normalized.formData as Record<string, unknown>)
   ) {
     normalized.formData = (normalized.formData as Record<string, unknown>)[DEFAULT_LOCALE];
   }
@@ -956,8 +978,10 @@ void DEFAULT_SUBSCRIPTIONS;
 export interface AuthProviderInfo {
   /** Provider marker — `'email'`, `'google'`, `'apple'`, `'facebook'`, … */
   identifier: string;
-  /** Provider kind — matches identifier for most social providers; useful
-   *  for distinguishing form-based (`email`, `phone`) from OAuth (`oauth`). */
+  /**
+   * Provider kind — matches identifier for most social providers; useful
+   *  for distinguishing form-based (`email`, `phone`) from OAuth (`oauth`).
+   */
   type: string;
   /** Human title from OE localizeInfos.en_US.title, falls back to identifier. */
   title: string;
@@ -989,15 +1013,16 @@ export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
     if (isError(result)) return [];
     const list = Array.isArray(result) ? (result as RawAuthProvider[]) : [];
     return list
-      .filter((p): p is RawAuthProvider & { identifier: string } =>
-        typeof p?.identifier === 'string' && p.identifier.length > 0)
+      .filter(
+        (p): p is RawAuthProvider & { identifier: string } =>
+          typeof p?.identifier === 'string' && p.identifier.length > 0,
+      )
       .map((p) => {
         const info = p.localizeInfos ?? {};
         // OE returns either { en_US: { title } } or a flat { title }.
         const localized = (info as Record<string, { title?: string } | undefined>).en_US;
-        const title = (typeof localized === 'object' && localized?.title)
-          || (info as { title?: string }).title
-          || p.identifier;
+        const title =
+          (typeof localized === 'object' && localized?.title) || (info as { title?: string }).title || p.identifier;
         return {
           identifier: p.identifier,
           type: typeof p.type === 'string' ? p.type : p.identifier,
@@ -1019,14 +1044,12 @@ export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
  * it, so a token minted on the server could never be refreshed from here.
  * `auth()` itself writes both tokens into SDK state and fires `saveFunction`,
  * so only the provider marker and the user identifier need persisting.
- * @param {string} login    - E-mail address (the `isLogin` field on this tenant).
- * @param {string} password - Plain-text password.
- * @returns {Promise<AuthResult>} Session result with the hydrated `/me` payload.
+ *
+ * @param login    - E-mail address (the `isLogin` field on this tenant).
+ * @param password - Plain-text password.
+ * @returns Session result with the hydrated `/me` payload.
  */
-export async function signInAction(
-  login: string,
-  password: string,
-): Promise<AuthResult> {
+export async function signInAction(login: string, password: string): Promise<AuthResult> {
   const api = getApiSafe();
   if (!api) {
     return { ok: false, error: await se('oneEntryNotConfigured') };
@@ -1039,7 +1062,7 @@ export async function signInAction(
       ],
     });
     if (isError(result)) {
-      return { ok: false, error: result.message ?? await se('signInFailed') };
+      return { ok: false, error: result.message ?? (await se('signInFailed')) };
     }
     storeSession(result, AUTH_MARKER);
     writeUserIdentifier(result.userIdentifier);
@@ -1065,8 +1088,9 @@ export interface SignUpInput {
  * Register a new shopper. Browser-only for the same fingerprint reason as
  * {@link signInAction}; on success it immediately signs in (this tenant's
  * provider has `isCheckCode: false`, so no activation step is required).
- * @param {SignUpInput} input - Credentials + profile fields from the form.
- * @returns {Promise<AuthResult>} Session result, or the OE error message.
+ *
+ * @param input - Credentials + profile fields from the form.
+ * @returns Session result, or the OE error message.
  */
 export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
   const api = getApiSafe();
@@ -1086,10 +1110,18 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
     formData.push({ marker: 'gender', type: 'list', value: [input.gender] });
   }
   if (input.subscribeEmail !== undefined) {
-    formData.push({ marker: 'users_subscribe_to_promotional_email', type: 'radioButton', value: input.subscribeEmail ? 'true' : 'false' });
+    formData.push({
+      marker: 'users_subscribe_to_promotional_email',
+      type: 'radioButton',
+      value: input.subscribeEmail ? 'true' : 'false',
+    });
   }
   if (input.subscribeSms !== undefined) {
-    formData.push({ marker: 'users_subscribe_to_promotional_sms', type: 'radioButton', value: input.subscribeSms ? 'true' : 'false' });
+    formData.push({
+      marker: 'users_subscribe_to_promotional_sms',
+      type: 'radioButton',
+      value: input.subscribeSms ? 'true' : 'false',
+    });
   }
   if (input.agreed) {
     formData.push({ marker: 'users_agree', type: 'radioButton', value: 'true' });
@@ -1109,7 +1141,7 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
       },
     });
     if (isError(signUpRes)) {
-      return { ok: false, error: signUpRes.message ?? await se('signUpFailed') };
+      return { ok: false, error: signUpRes.message ?? (await se('signUpFailed')) };
     }
     // No activation flow (isCheckCode=false) — log in right away.
     return await signInAction(email, input.password);
@@ -1127,11 +1159,12 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
  * it to the server action, then installs the returned tokens locally. Unlike
  * `auth()`, `oauth()` does not write tokens into SDK state — hence the
  * explicit `storeSession`.
- * @param {object} ctx        - Callback parameters read from the URL.
- * @param {string} ctx.code   - Google authorization code.
- * @param {string} ctx.state  - CSRF state echoed back by Google.
- * @param {string} ctx.origin - Browser origin (`window.location.origin`).
- * @returns {Promise<AuthResult & { returnTo?: string }>} Session + return path.
+ *
+ * @param ctx        - Callback parameters read from the URL.
+ * @param ctx.code   - Google authorization code.
+ * @param ctx.state  - CSRF state echoed back by Google.
+ * @param ctx.origin - Browser origin (`window.location.origin`).
+ * @returns Session + return path.
  */
 export async function completeGoogleSignIn(ctx: {
   code: string;
@@ -1163,7 +1196,8 @@ export async function completeGoogleSignIn(ctx: {
  * End the shopper's session. `logout` takes the refresh token explicitly, so
  * it must be read before {@link clearTokens} wipes storage. A failed call is
  * ignored — the local reset is what the UI reacts to.
- * @returns {Promise<{ ok: boolean }>} Always `{ ok: true }`.
+ *
+ * @returns Always `{ ok: true }`.
  */
 export async function signOutAction(): Promise<{ ok: boolean }> {
   const api = getApiSafe();
@@ -1277,8 +1311,10 @@ export async function cancelOrderAction(
  */
 export interface OeBonusTransaction {
   amount: number;
-  /** OE marker — `ACCRUAL` | `USAGE` | `REDUCE` | `REVERSAL_ACCRUAL` |
-   *  `REVERSAL_USAGE` | `EXPIRATION`. */
+  /**
+   * OE marker — `ACCRUAL` | `USAGE` | `REDUCE` | `REVERSAL_ACCRUAL` |
+   *  `REVERSAL_USAGE` | `EXPIRATION`.
+   */
   type: string;
   createdAt: string | null;
   comment: string | null;
@@ -1301,7 +1337,7 @@ export async function fetchBonusHistoryAction(): Promise<OeBonusTransaction[]> {
     const list: unknown[] = Array.isArray(result)
       ? (result as unknown[])
       : Array.isArray((result as { items?: unknown[] })?.items)
-        ? ((result as { items: unknown[] }).items)
+        ? (result as { items: unknown[] }).items
         : [];
     return list.map((raw): OeBonusTransaction => {
       const r = raw as {
@@ -1334,7 +1370,8 @@ export async function fetchBonusHistoryAction(): Promise<OeBonusTransaction[]> {
  * detected by the empty result and cleared, because the SDK's `saveFunction`
  * only fires on *successful* rotation and would otherwise leave the stale
  * token replaying `400`s on every page load.
- * @returns {Promise<OeUser | null>} The shopper, or `null` when signed out.
+ *
+ * @returns The shopper, or `null` when signed out.
  */
 export async function getCurrentUserAction(): Promise<OeUser | null> {
   if (!hasStoredSession()) return null;
@@ -1360,9 +1397,7 @@ export interface ProfileUpdate {
   clothingSize?: string;
 }
 
-export async function updateProfileAction(
-  patch: ProfileUpdate,
-): Promise<{ ok: boolean; error?: string }> {
+export async function updateProfileAction(patch: ProfileUpdate): Promise<{ ok: boolean; error?: string }> {
   if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
 
@@ -1408,8 +1443,9 @@ export async function updateAddressesAction(
   // Delete records that are no longer in the incoming list
   await Promise.all(
     existing
-      .filter((a): a is OeAddress & { recordId: number } =>
-        a.recordId !== undefined && !incomingRecordIds.has(a.recordId))
+      .filter(
+        (a): a is OeAddress & { recordId: number } => a.recordId !== undefined && !incomingRecordIds.has(a.recordId),
+      )
       .map((a) => deleteUserAddress(a.recordId)),
   );
 
@@ -1419,14 +1455,19 @@ export async function updateAddressesAction(
   for (const addr of addresses) {
     if (addr.recordId && existingById.has(addr.recordId)) {
       const ok = await putUserAddress(addr.recordId, addr);
-      if (!ok) errors.push(`Could not update address "${addr.name}" (PUT not allowed for users — admin must grant rights or use POST-only flow)`);
+      if (!ok)
+        errors.push(
+          `Could not update address "${addr.name}" (PUT not allowed for users — admin must grant rights or use POST-only flow)`,
+        );
       finalised.push({ ...addr, id: String(addr.recordId) });
     } else {
       const created = await postUserAddress(userIdentifier, addr);
       if (created.ok && created.record.id) {
         finalised.push({ ...addr, id: String(created.record.id), recordId: created.record.id });
       } else {
-        errors.push(created.ok ? `POST returned no record id for "${addr.name}"` : `Address "${addr.name}": ${created.message}`);
+        errors.push(
+          created.ok ? `POST returned no record id for "${addr.name}"` : `Address "${addr.name}": ${created.message}`,
+        );
         finalised.push(addr);
       }
     }
@@ -1438,9 +1479,7 @@ export async function updateAddressesAction(
   return { ok: true, addresses: finalised };
 }
 
-export async function updateSubscriptionsAction(
-  subs: OeSubscriptions,
-): Promise<{ ok: boolean; error?: string }> {
+export async function updateSubscriptionsAction(subs: OeSubscriptions): Promise<{ ok: boolean; error?: string }> {
   if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
 
@@ -1448,8 +1487,16 @@ export async function updateSubscriptionsAction(
   const signinOk = await putUser({
     formIdentifier: SIGNUP_FORM_IDENTIFIER,
     formData: [
-      { marker: 'users_subscribe_to_promotional_email', type: 'radioButton', value: subs.emailNewsletter ? 'true' : 'false' },
-      { marker: 'users_subscribe_to_promotional_sms', type: 'radioButton', value: subs.smsNotifications ? 'true' : 'false' },
+      {
+        marker: 'users_subscribe_to_promotional_email',
+        type: 'radioButton',
+        value: subs.emailNewsletter ? 'true' : 'false',
+      },
+      {
+        marker: 'users_subscribe_to_promotional_sms',
+        type: 'radioButton',
+        value: subs.smsNotifications ? 'true' : 'false',
+      },
     ],
   });
 
@@ -1459,9 +1506,7 @@ export async function updateSubscriptionsAction(
   return signinOk && formOk ? { ok: true } : { ok: false, error: await se('updateFailed') };
 }
 
-export async function updateConsentAction(
-  consent: OeConsent,
-): Promise<{ ok: boolean; error?: string }> {
+export async function updateConsentAction(consent: OeConsent): Promise<{ ok: boolean; error?: string }> {
   if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
   if (!userIdentifier) return { ok: false, error: await se('missingUserId') };
@@ -1479,9 +1524,7 @@ export async function updateConsentAction(
 
 // ── Cart / Wishlist ──────────────────────────────────────────────────────────
 
-export async function syncCartAction(
-  items: OeCartItem[],
-): Promise<{ ok: boolean; items: OeCartItem[] }> {
+export async function syncCartAction(items: OeCartItem[]): Promise<{ ok: boolean; items: OeCartItem[] }> {
   if (!hasStoredSession()) return { ok: false, items: [] };
   const api = getApiSafe();
   if (!api) return { ok: false, items: [] };
@@ -1499,9 +1542,7 @@ export async function getCartAction(): Promise<OeCartItem[]> {
   return result.items ?? [];
 }
 
-export async function syncWishlistAction(
-  items: OeWishlistItem[],
-): Promise<{ ok: boolean; items: OeWishlistItem[] }> {
+export async function syncWishlistAction(items: OeWishlistItem[]): Promise<{ ok: boolean; items: OeWishlistItem[] }> {
   if (!hasStoredSession()) return { ok: false, items: [] };
   const api = getApiSafe();
   if (!api) return { ok: false, items: [] };
@@ -1523,7 +1564,8 @@ export async function getWishlistAction(): Promise<OeWishlistItem[]> {
 
 const RECENTLY_VIEWED_MAX = 100;
 
-/** Append a product to the user's recently-viewed trail and persist it on
+/**
+ * Append a product to the user's recently-viewed trail and persist it on
  *  the OE user `state` blob. Dedupes against existing entries and bounds the
  *  list to `RECENTLY_VIEWED_MAX`. No-op for unauthenticated visitors (the
  *  client-side Redux slice still keeps an in-memory trail for guests).
@@ -1537,10 +1579,10 @@ export async function pushRecentlyViewedAction(
   const prev = Array.isArray(currentState.recentlyViewed) ? currentState.recentlyViewed : [];
   // Strip any existing entry for the same product so we can prepend a fresh one.
   const without = prev.filter((it) => Number(it.productId) !== productId);
-  const next: OeRecentlyViewedItem[] = [
-    { productId, viewedAt: new Date().toISOString() },
-    ...without,
-  ].slice(0, RECENTLY_VIEWED_MAX);
+  const next: OeRecentlyViewedItem[] = [{ productId, viewedAt: new Date().toISOString() }, ...without].slice(
+    0,
+    RECENTLY_VIEWED_MAX,
+  );
   const nextState: OeUserState = { ...currentState, recentlyViewed: next };
   const ok = await putUser({
     formIdentifier: SIGNUP_FORM_IDENTIFIER,
@@ -1556,9 +1598,11 @@ export async function getRecentlyViewedAction(): Promise<OeRecentlyViewedItem[]>
   return Array.isArray(state.recentlyViewed) ? state.recentlyViewed : [];
 }
 
-/** Bulk-merge a client-built trail into the OE state. Used after sign-in so
+/**
+ * Bulk-merge a client-built trail into the OE state. Used after sign-in so
  *  the guest's local list is preserved into the server record without losing
- *  the existing server entries. Latest-wins on duplicates. */
+ *  the existing server entries. Latest-wins on duplicates.
+ */
 export async function mergeRecentlyViewedAction(
   incoming: OeRecentlyViewedItem[],
 ): Promise<{ ok: boolean; items: OeRecentlyViewedItem[] }> {
@@ -1592,20 +1636,26 @@ export async function mergeRecentlyViewedAction(
 
 export type CheckoutMethod = 'home' | 'store_pickup' | 'locker';
 
-/** Preview-only order calculation. Server applies all active discounts
+/**
+ * Preview-only order calculation. Server applies all active discounts
  *  (personal PERSONAL_DISCOUNT gated by user-group + LTV, plus the optional
- *  coupon), and honours a `bonusAmount` deduction. Nothing is persisted. */
+ *  coupon), and honours a `bonusAmount` deduction. Nothing is persisted.
+ */
 export interface PreviewOrderInput {
   products: Array<{ productId: number; quantity: number }>;
   couponCode?: string;
-  /** How many bonus points the shopper wants to burn on this order. Server
-   *  clamps it to `min(balance, maxBonusPaymentPercent × total)`. */
+  /**
+   * How many bonus points the shopper wants to burn on this order. Server
+   *  clamps it to `min(balance, maxBonusPaymentPercent × total)`.
+   */
   bonusAmount?: number;
   currency?: string;
-  /** Anonymous session identifier for guest checkout. When present (and no
+  /**
+   * Anonymous session identifier for guest checkout. When present (and no
    *  shopper is signed in), it is installed on the SDK instance so guest
    *  coupons (`SUMMER2026`, …) still validate + apply. An active session
-   *  takes precedence — the SDK drops `x-guest-id` once a token is present. */
+   *  takes precedence — the SDK drops `x-guest-id` once a token is present.
+   */
   guestId?: string;
 }
 /**
@@ -1617,27 +1667,37 @@ export interface PreviewOrderInput {
 export interface PreviewBonusConfig {
   /** User's total bonus balance (across all bonus types). */
   availableBalance: number;
-  /** Maximum bonus deduction allowed on this specific order, computed by
+  /**
+   * Maximum bonus deduction allowed on this specific order, computed by
    *  OE from `maxBonusPaymentPercent × totalSum` and per-account rules.
-   *  `0` when bonuses can't reduce this order at all. */
+   *  `0` when bonuses can't reduce this order at all.
+   */
   maxAmount: number;
-  /** Minimum bonuses the shopper must redeem in one go (from admin panel).
-   *  `null` when unset — no lower bound. */
+  /**
+   * Minimum bonuses the shopper must redeem in one go (from admin panel).
+   *  `null` when unset — no lower bound.
+   */
   minAmount: number | null;
-  /** Minimum cart total required to unlock the bonus feature.
-   *  `null` when unset — no gate. */
+  /**
+   * Minimum cart total required to unlock the bonus feature.
+   *  `null` when unset — no gate.
+   */
   minOrderAmount: number | null;
 }
 
-/** Gift item OE appends to the order when a `gift`-type coupon (or gift-bearing
+/**
+ * Gift item OE appends to the order when a `gift`-type coupon (or gift-bearing
  *  discount) applies. Sourced from `orderPreview[]` entries with `isGift: true`.
  *  Rendered by the cart / checkout UI as a separate free line — never merged
- *  into the local cart because the shopper can't remove or requantify a gift. */
+ *  into the local cart because the shopper can't remove or requantify a gift.
+ */
 export interface PreviewGiftItem {
   productId: number;
   quantity: number;
-  /** Original catalogue price — displayed struck-through next to the "FREE"
-   *  badge so the shopper can see the value of what they're getting. */
+  /**
+   * Original catalogue price — displayed struck-through next to the "FREE"
+   *  badge so the shopper can see the value of what they're getting.
+   */
   price: number;
 }
 
@@ -1656,34 +1716,44 @@ export interface PreviewOrderResult {
   currency: string;
   /** Bonus constraints for this order — see `PreviewBonusConfig`. */
   bonus: PreviewBonusConfig;
-  /** `true` when a `couponCode` was passed AND OE actually applied it to the
+  /**
+   * `true` when a `couponCode` was passed AND OE actually applied it to the
    *  order (`discountConfig.coupon.applied === true`). Callers use this to
    *  tell "code applied" from "code valid but conditions not met" vs. the
-   *  tier-fallback we add server-side. */
+   *  tier-fallback we add server-side.
+   */
   couponApplied: boolean;
-  /** `true` when OE recognised the code (`coupon.valid`) but refused to apply
+  /**
+   * `true` when OE recognised the code (`coupon.valid`) but refused to apply
    *  it (`applied === false`) — usually because of unmet conditions
    *  (min cart, applicability, expiry). Callers use this for a specific
-   *  error message instead of the generic "invalid code" one. */
+   *  error message instead of the generic "invalid code" one.
+   */
   couponValidButNotApplied: boolean;
-  /** Human-readable reason the coupon was rejected. Filled by a follow-up
+  /**
+   * Human-readable reason the coupon was rejected. Filled by a follow-up
    *  `Discounts.getDiscountByMarker` fetch when OE returns `applied: false`
    *  with a known `discountIdentifier`. Examples:
    *   • `"Add $61.00 more to unlock SUMMER2026 (minimum $100.00)"` — MIN_CART_AMOUNT
    *   • `"SUMMER2026 unlocks after $100.00 in lifetime purchases"` — USER_LTV
    *   • `"SUMMER2026 doesn't apply to items in your cart"` — PRODUCT/CATEGORY
-   *  `null` when we can't infer a reason. */
+   *  `null` when we can't infer a reason.
+   */
   couponReason: string | null;
-  /** How much the coupon alone knocked off (before tier fallback). Zero when
+  /**
+   * How much the coupon alone knocked off (before tier fallback). Zero when
    *  no code was passed, OE didn't apply it, OR the coupon is gift-only
    *  (server-side `discountValue: null`) — in that case the coupon awards a
    *  gift instead of reducing price, and any `discountAmount > 0` belongs to
-   *  loyalty tiers, not the coupon. */
+   *  loyalty tiers, not the coupon.
+   */
   couponDiscountAmount: number;
-  /** Free products OE appends to the order because a gift-bearing coupon (or
+  /**
+   * Free products OE appends to the order because a gift-bearing coupon (or
    *  personal discount) applied. Empty when no gift is active. Rendered by
    *  the cart / checkout UI as separate "FREE GIFT" lines outside the local
-   *  cart — the shopper can't remove or requantify a gift. */
+   *  cart — the shopper can't remove or requantify a gift.
+   */
   giftItems: PreviewGiftItem[];
 }
 export type PreviewOrderResponse =
@@ -1691,11 +1761,13 @@ export type PreviewOrderResponse =
   | {
       ok: false;
       error: string;
-      /** OE-numeric productIds this preview failed on because the products no
+      /**
+       * OE-numeric productIds this preview failed on because the products no
        *  longer exist server-side. Extracted from the OE error message (which
        *  is shaped as `"Product <id> not found"`). Clients use this to prune
        *  their local cart so subsequent previews succeed. Empty for other
-       *  kinds of failures (network, coupon, etc.). */
+       *  kinds of failures (network, coupon, etc.).
+       */
       missingProductIds: number[];
     };
 
@@ -1714,11 +1786,19 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
   }
   if (!api) {
     return {
-      ok: true, totalSum: 0, totalSumWithDiscount: 0, bonusApplied: 0,
-      totalDue: 0, discountAmount: 0, currency: input.currency ?? 'USD',
+      ok: true,
+      totalSum: 0,
+      totalSumWithDiscount: 0,
+      bonusApplied: 0,
+      totalDue: 0,
+      discountAmount: 0,
+      currency: input.currency ?? 'USD',
       bonus: { availableBalance: 0, maxAmount: 0, minAmount: null, minOrderAmount: null },
-      couponApplied: false, couponValidButNotApplied: false,
-      couponReason: null, couponDiscountAmount: 0, giftItems: [],
+      couponApplied: false,
+      couponValidButNotApplied: false,
+      couponReason: null,
+      couponDiscountAmount: 0,
+      giftItems: [],
     };
   }
 
@@ -1738,8 +1818,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       // propagates here without a stale copy silently dropping tiers.
       ...(signedIn ? { additionalDiscountsMarkers: [...TIER_MARKERS] } : {}),
       ...(input.couponCode ? { couponCode: input.couponCode } : {}),
-      ...(typeof input.bonusAmount === 'number' && input.bonusAmount > 0
-        ? { bonusAmount: input.bonusAmount } : {}),
+      ...(typeof input.bonusAmount === 'number' && input.bonusAmount > 0 ? { bonusAmount: input.bonusAmount } : {}),
     } as unknown as Parameters<typeof api.Orders.previewOrder>[0];
     const result = await api.Orders.previewOrder(body, DEFAULT_LOCALE);
     if (isError(result)) {
@@ -1748,9 +1827,8 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       // message, but scanning globally future-proofs if the format changes to
       // list several). Callers use this to prune the local cart so the next
       // preview succeeds instead of getting stuck retrying the same dead id.
-      const missingProductIds = Array.from(
-        message.matchAll(/product\s+(\d+)\s+not\s+found/gi),
-        (m) => Number(m[1]),
+      const missingProductIds = Array.from(message.matchAll(/product\s+(\d+)\s+not\s+found/gi), (m) =>
+        Number(m[1]),
       ).filter((n) => Number.isFinite(n));
       return { ok: false, error: message, missingProductIds };
     }
@@ -1778,17 +1856,15 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
     const couponApplied = input.couponCode != null && rawCoupon?.applied === true;
     // OE tells us `valid` separately — `valid && !applied` = conditions
     // aren't met. Distinguish so we can surface the right error message.
-    const couponValidButNotApplied = input.couponCode != null
-      && rawCoupon?.valid === true && rawCoupon?.applied !== true;
+    const couponValidButNotApplied =
+      input.couponCode != null && rawCoupon?.valid === true && rawCoupon?.applied !== true;
 
     // Extract free-gift lines from `orderPreview[]` (each item with
     // `isGift: true`). OE appends them to the order server-side when a
     // gift-bearing discount/coupon applies — they are never present in the
     // local cart, so the UI needs this array to render them as separate
     // "FREE GIFT" rows.
-    const rawOrderPreview = Array.isArray(obj.orderPreview)
-      ? (obj.orderPreview as Array<Record<string, unknown>>)
-      : [];
+    const rawOrderPreview = Array.isArray(obj.orderPreview) ? (obj.orderPreview as Array<Record<string, unknown>>) : [];
     const giftItems: PreviewGiftItem[] = rawOrderPreview
       .filter((it) => it?.isGift === true)
       .map((it) => ({
@@ -1827,9 +1903,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
           // `discountValue` is `null` (or `{ value: null/0 }`) and `gifts[]`
           // holds the products OE will splice into the order.
           const dv = cfgObj.discountValue;
-          const hasMonetaryValue = dv != null
-            && typeof dv.value === 'number'
-            && dv.value > 0;
+          const hasMonetaryValue = dv != null && typeof dv.value === 'number' && dv.value > 0;
           const hasGifts = Array.isArray(cfgObj.gifts) && cfgObj.gifts.length > 0;
           couponIsGiftOnly = couponApplied && !hasMonetaryValue && hasGifts;
 
@@ -1841,24 +1915,31 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
               const type = String(c.conditionType ?? c.type ?? '').toUpperCase();
               const val = c.value;
               if (type === 'MIN_CART_AMOUNT') {
-                const min = typeof val === 'object' && val !== null
-                  ? Number((val as { amount?: number }).amount ?? 0)
-                  : Number(val ?? 0);
+                const min =
+                  typeof val === 'object' && val !== null
+                    ? Number((val as { amount?: number }).amount ?? 0)
+                    : Number(val ?? 0);
                 if (min > 0 && totalSum < min) {
                   const remaining = min - totalSum;
                   couponReason = `Add $${remaining.toFixed(2)} more to unlock ${codeLabel} (minimum $${min.toFixed(2)})`;
                   break;
                 }
               } else if (type === 'USER_LTV') {
-                const threshold = typeof val === 'object' && val !== null
-                  ? Number((val as { amount?: number }).amount ?? 0)
-                  : Number(val ?? 0);
+                const threshold =
+                  typeof val === 'object' && val !== null
+                    ? Number((val as { amount?: number }).amount ?? 0)
+                    : Number(val ?? 0);
                 if (threshold > 0) {
                   couponReason = `${codeLabel} unlocks after $${threshold.toFixed(2)} in lifetime purchases`;
                   break;
                 }
-              } else if (type === 'PRODUCT' || type === 'PRODUCT_IN_CART'
-                || type === 'CATEGORY' || type === 'CATEGORY_IN_CART' || type === 'ATTRIBUTE') {
+              } else if (
+                type === 'PRODUCT' ||
+                type === 'PRODUCT_IN_CART' ||
+                type === 'CATEGORY' ||
+                type === 'CATEGORY_IN_CART' ||
+                type === 'ATTRIBUTE'
+              ) {
                 couponReason = `${codeLabel} doesn't apply to items in your cart`;
                 break;
               }
@@ -1891,10 +1972,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
     // UI honest with what the account page advertises. Skips for guests —
     // tiers are LTV-gated so there's nothing to fall back to.
     if (discountAmount === 0 && totalSum > 0 && signedIn) {
-      const [me, loyalty] = await Promise.all([
-        fetchMe(),
-        fetchLoyalty(),
-      ]);
+      const [me, loyalty] = await Promise.all([fetchMe(), fetchLoyalty()]);
       const orders = me?.orders ?? [];
       const REVENUE = /paid|complete|deliver|done|closed|finish/i;
       const REVERSAL = /cancel|refund|reject|void|fail|declin|return/i;
@@ -1915,14 +1993,17 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       const tiersAll = (loyalty?.tiers ?? []).filter(
         (t) => typeof t.ltvThreshold === 'number' || typeof t.minCartAmount === 'number',
       );
-      const isEligible = (t: typeof tiersAll[number]): boolean => {
+      const isEligible = (t: (typeof tiersAll)[number]): boolean => {
         if (typeof t.ltvThreshold === 'number' && ltv < t.ltvThreshold) return false;
         if (typeof t.minCartAmount === 'number' && totalSum < t.minCartAmount) return false;
         return true;
       };
-      let activeTier: typeof tiersAll[number] | null = null;
+      let activeTier: (typeof tiersAll)[number] | null = null;
       for (let i = tiersAll.length - 1; i >= 0; i--) {
-        if (isEligible(tiersAll[i])) { activeTier = tiersAll[i]; break; }
+        if (isEligible(tiersAll[i])) {
+          activeTier = tiersAll[i];
+          break;
+        }
       }
       if (activeTier && activeTier.discountPct > 0) {
         let d = totalSum * (activeTier.discountPct / 100);
@@ -1957,16 +2038,26 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
     const bonus: PreviewBonusConfig = {
       availableBalance: Number(bonusCfg.availableBalance ?? 0),
       maxAmount: Number(bonusCfg.maxBonusDiscount ?? 0),
-      minAmount: (typeof bonusCfg.minBonusAmount === 'number' ? bonusCfg.minBonusAmount
-        : typeof bonusSettings.minBonusAmount === 'number' ? bonusSettings.minBonusAmount
-        : null),
-      minOrderAmount: (typeof bonusCfg.minOrderAmountForBonus === 'number' ? bonusCfg.minOrderAmountForBonus
-        : typeof bonusSettings.minOrderAmountForBonus === 'number' ? bonusSettings.minOrderAmountForBonus
-        : null),
+      minAmount:
+        typeof bonusCfg.minBonusAmount === 'number'
+          ? bonusCfg.minBonusAmount
+          : typeof bonusSettings.minBonusAmount === 'number'
+            ? bonusSettings.minBonusAmount
+            : null,
+      minOrderAmount:
+        typeof bonusCfg.minOrderAmountForBonus === 'number'
+          ? bonusCfg.minOrderAmountForBonus
+          : typeof bonusSettings.minOrderAmountForBonus === 'number'
+            ? bonusSettings.minOrderAmountForBonus
+            : null,
     };
 
     return {
-      ok: true, totalSum, totalSumWithDiscount, bonusApplied, totalDue,
+      ok: true,
+      totalSum,
+      totalSumWithDiscount,
+      bonusApplied,
+      totalDue,
       discountAmount,
       currency: String(obj.currency ?? input.currency ?? 'USD'),
       bonus,
@@ -1982,29 +2073,39 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
 }
 
 export interface CreateOrderInput {
-  /** Logical delivery method — actual storage marker is derived (suffixed
-   *  with `_guest` when no session cookie is present). */
+  /**
+   * Logical delivery method — actual storage marker is derived (suffixed
+   *  with `_guest` when no session cookie is present).
+   */
   storage: CheckoutMethod;
   paymentAccount: string;
-  /** Payment account type from OE (`stripe` vs `custom`). When `stripe`, we
+  /**
+   * Payment account type from OE (`stripe` vs `custom`). When `stripe`, we
    *  spin up a Stripe checkout session after the order lands so the buyer
-   *  gets a hosted paymentUrl to redirect to. */
+   *  gets a hosted paymentUrl to redirect to.
+   */
   paymentAccountType?: 'stripe' | 'custom';
   products: Array<{ productId: number; quantity: number }>;
   formData?: Array<{ marker: string; type: string; value: unknown }>;
   currency?: string;
-  /** Coupon code to apply. OE validates it server-side and folds the
-   *  discount into `totalSumWithDiscount`. */
+  /**
+   * Coupon code to apply. OE validates it server-side and folds the
+   *  discount into `totalSumWithDiscount`.
+   */
   couponCode?: string;
   /** Bonus points to burn — OE clamps to `min(balance, cap)`. */
   bonusAmount?: number;
-  /** Required for guest checkout — uniquely identifies the anonymous visitor
+  /**
+   * Required for guest checkout — uniquely identifies the anonymous visitor
    *  so OE attaches the order to a guest session. Generate once per browser
-   *  via localStorage and pass through unchanged. */
+   *  via localStorage and pass through unchanged.
+   */
   guestId?: string;
-  /** Browser origin (e.g. `http://localhost:3002`). Used to build Stripe's
+  /**
+   * Browser origin (e.g. `http://localhost:3002`). Used to build Stripe's
    *  success/cancel URLs so the buyer lands back on /checkout/confirmation
-   *  instead of the OE merchant's default URL. */
+   *  instead of the OE merchant's default URL.
+   */
   origin?: string;
 }
 
@@ -2017,17 +2118,14 @@ const FORM_IDENTIFIER_MAP: Record<CheckoutMethod, string> = {
 export async function createOrderAction(
   input: CreateOrderInput,
 ): Promise<
-  | { ok: true; orderId: number; paymentUrl: string | null; paymentSessionError?: string }
-  | { ok: false; error: string }
+  { ok: true; orderId: number; paymentUrl: string | null; paymentSessionError?: string } | { ok: false; error: string }
 > {
   if (!isOneEntryEnabled) return { ok: false, error: await se('oneEntryEnvNotConfigured') };
 
   const signedIn = hasStoredSession();
   const isGuest = !signedIn;
   const storageMarker = isGuest ? `${input.storage}_guest` : input.storage;
-  const formIdentifier = isGuest
-    ? `${FORM_IDENTIFIER_MAP[input.storage]}_guest`
-    : FORM_IDENTIFIER_MAP[input.storage];
+  const formIdentifier = isGuest ? `${FORM_IDENTIFIER_MAP[input.storage]}_guest` : FORM_IDENTIFIER_MAP[input.storage];
 
   // The singleton already carries the session for signed-in shoppers. Guests
   // need `x-guest-id` on the request so OE can attach the order to their
@@ -2085,7 +2183,9 @@ export async function createOrderAction(
     // discount may have been a single-use coupon or a usage-capped tier.
     try {
       await revalidateAfterOrderAction();
-    } catch { /* cache invalidation is best-effort — the order still landed */ }
+    } catch {
+      /* cache invalidation is best-effort — the order still landed */
+    }
 
     if (!paymentUrl && orderId && input.paymentAccountType === 'stripe') {
       // Stripe-backed accounts: mint a Checkout session via SDK. The SDK's

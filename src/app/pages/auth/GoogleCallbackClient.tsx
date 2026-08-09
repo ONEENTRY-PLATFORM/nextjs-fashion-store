@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+
+import { useRouter } from '../../../lib/i18n/navigation';
 import { completeGoogleSignIn } from '../../../lib/oneentry/auth/actions';
 import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { OAUTH_ERROR_LABELS as OAE } from '../../data/authLabels';
-import { useRouter } from '../../../lib/i18n/navigation';
 
 /**
  * Redeems Google's `?code=` for a OneEntry session and installs it in this
@@ -25,8 +26,8 @@ export function GoogleCallbackClient() {
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const lMissingCode = useT('sign_in_google_missing_code', OAE.missingCode);
-  const lGoogleFail  = useT('sign_in_google_failed',       OAE.generic);
-  const lSigningIn   = useT('sign_in_google_signing_in',   OAE.signingIn);
+  const lGoogleFail = useT('sign_in_google_failed', OAE.generic);
+  const lSigningIn = useT('sign_in_google_signing_in', OAE.signingIn);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -42,12 +43,22 @@ export function GoogleCallbackClient() {
       router.replace(`${url.pathname}${url.search}`);
     };
 
-    if (providerError) { fail(providerError); return; }
-    if (!code || !state) { fail(lMissingCode); return; }
+    if (providerError) {
+      fail(providerError);
+      return;
+    }
+    if (!code || !state) {
+      fail(lMissingCode);
+      return;
+    }
 
     void completeGoogleSignIn({ code, state, origin: window.location.origin })
       .then((result) => {
-        if (!result.ok) { setError(result.error); fail(result.error); return; }
+        if (!result.ok) {
+          setError(result.error);
+          fail(result.error);
+          return;
+        }
         const target = result.returnTo?.startsWith('/') ? result.returnTo : '/';
         // Let AuthContext (and anything else listening) re-read the session.
         window.dispatchEvent(new Event('auth-change'));
@@ -59,13 +70,8 @@ export function GoogleCallbackClient() {
   }, [params, router, lMissingCode, lGoogleFail]);
 
   return (
-    <div
-      className="flex min-h-[60vh] items-center justify-center px-6 text-center"
-      data-testid="google-callback"
-    >
-      <p className="text-sm tracking-[0.2em] uppercase text-gray-500">
-        {error ?? lSigningIn}
-      </p>
+    <div className="flex min-h-[60vh] items-center justify-center px-6 text-center" data-testid="google-callback">
+      <p className="text-sm tracking-[0.2em] text-gray-500 uppercase">{error ?? lSigningIn}</p>
     </div>
   );
 }

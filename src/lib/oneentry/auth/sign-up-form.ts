@@ -1,26 +1,22 @@
-import { currentCmsLocale } from '../current-locale';
 import { cache } from 'react';
+
+import { currentCmsLocale } from '../current-locale';
 import { getApiSafe, isError } from '../index';
 import type { Lang } from '../system-text';
+import type { SignUpFieldAgree, SignUpFieldPhone, SignUpFieldString, SignUpFormSchema } from './sign-up-form-schema';
 import { EMPTY_SIGN_UP_FORM_SCHEMA } from './sign-up-form-schema';
-import type {
-  SignUpFieldAgree,
-  SignUpFieldPhone,
-  SignUpFieldString,
-  SignUpFormSchema,
-} from './sign-up-form-schema';
 
 // Re-exported so existing importers keep their specifier; definitions live
 // in a client-safe module (see `sign-up-form-schema.ts`).
-export { EMPTY_SIGN_UP_FORM_SCHEMA } from './sign-up-form-schema';
 export type {
-  SignUpFieldString,
-  SignUpFieldPhone,
-  SignUpFieldList,
-  SignUpFieldRadio,
   SignUpFieldAgree,
+  SignUpFieldList,
+  SignUpFieldPhone,
+  SignUpFieldRadio,
+  SignUpFieldString,
   SignUpFormSchema,
 } from './sign-up-form-schema';
+export { EMPTY_SIGN_UP_FORM_SCHEMA } from './sign-up-form-schema';
 
 type RawAttribute = {
   type?: string;
@@ -95,37 +91,32 @@ const agreeField = (attr: RawAttribute | undefined, lang: Lang): SignUpFieldAgre
   };
 };
 
-export const loadSignUpFormSchema = cache(
-  async (langArg?: Lang): Promise<SignUpFormSchema> => {
-    const lang = langArg ?? (await currentCmsLocale());
-    const api = getApiSafe();
-    if (!api) return EMPTY_SIGN_UP_FORM_SCHEMA;
-    try {
-      const raw = await api.AttributesSets.getAttributeSetByMarker(
-        'users_sign_in_sign_up',
-        lang,
-      );
-      if (isError(raw)) return EMPTY_SIGN_UP_FORM_SCHEMA;
-      const set = raw as unknown as RawSet;
-      const schema = set?.schema ?? {};
-      return {
-        email: stringField(schema.email, lang),
-        password: stringField(schema.password, lang),
-        first_name: stringField(schema.first_name, lang),
-        phone: phoneField(schema.phone, lang),
-        gender: { title: titleOf(schema.gender ?? {}, lang), options: optionsOf(schema.gender) },
-        users_subscribe_to_promotional_email: {
-          title: titleOf(schema.users_subscribe_to_promotional_email ?? {}, lang),
-          options: optionsOf(schema.users_subscribe_to_promotional_email),
-        },
-        users_subscribe_to_promotional_sms: {
-          title: titleOf(schema.users_subscribe_to_promotional_sms ?? {}, lang),
-          options: optionsOf(schema.users_subscribe_to_promotional_sms),
-        },
-        users_agree: agreeField(schema.users_agree, lang),
-      };
-    } catch {
-      return EMPTY_SIGN_UP_FORM_SCHEMA;
-    }
-  },
-);
+export const loadSignUpFormSchema = cache(async (langArg?: Lang): Promise<SignUpFormSchema> => {
+  const lang = langArg ?? (await currentCmsLocale());
+  const api = getApiSafe();
+  if (!api) return EMPTY_SIGN_UP_FORM_SCHEMA;
+  try {
+    const raw = await api.AttributesSets.getAttributeSetByMarker('users_sign_in_sign_up', lang);
+    if (isError(raw)) return EMPTY_SIGN_UP_FORM_SCHEMA;
+    const set = raw as unknown as RawSet;
+    const schema = set?.schema ?? {};
+    return {
+      email: stringField(schema.email, lang),
+      password: stringField(schema.password, lang),
+      first_name: stringField(schema.first_name, lang),
+      phone: phoneField(schema.phone, lang),
+      gender: { title: titleOf(schema.gender ?? {}, lang), options: optionsOf(schema.gender) },
+      users_subscribe_to_promotional_email: {
+        title: titleOf(schema.users_subscribe_to_promotional_email ?? {}, lang),
+        options: optionsOf(schema.users_subscribe_to_promotional_email),
+      },
+      users_subscribe_to_promotional_sms: {
+        title: titleOf(schema.users_subscribe_to_promotional_sms ?? {}, lang),
+        options: optionsOf(schema.users_subscribe_to_promotional_sms),
+      },
+      users_agree: agreeField(schema.users_agree, lang),
+    };
+  } catch {
+    return EMPTY_SIGN_UP_FORM_SCHEMA;
+  }
+});

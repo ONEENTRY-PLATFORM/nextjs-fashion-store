@@ -10,8 +10,9 @@
  * their JSON unicode form — identical to any consumer, inert to the parser.
  * `&` gets the same treatment to keep entity tricks out, and U+2028 / U+2029
  * are escaped because they are legal in JSON but terminate a JavaScript line.
- * @param {unknown} data - Any JSON-serialisable schema.org payload.
- * @returns {string} A string safe to place inside a `<script>` element.
+ *
+ * @param data - Any JSON-serialisable schema.org payload.
+ * @returns A string safe to place inside a `<script>` element.
  */
 function serializeJsonLd(data: unknown): string {
   return JSON.stringify(data)
@@ -23,10 +24,5 @@ function serializeJsonLd(data: unknown): string {
 }
 
 export function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unknown>[] }) {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }}
-    />
-  );
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(data) }} />;
 }

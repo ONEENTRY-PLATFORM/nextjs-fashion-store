@@ -1,16 +1,18 @@
-import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
-import { getApi, isError } from '../index';
-import type { Lang } from '../system-text';
-import { REVALIDATE_STORES } from '../../isr';
+
+import { DELIVERY_PERKS, PICKUP_PERKS } from '../../../app/data/checkoutConfig';
 import {
   DELIVERY_METHOD_HOME_LABELS,
-  DELIVERY_METHOD_STORE_LABELS,
   DELIVERY_METHOD_LOCKER_LABELS,
+  DELIVERY_METHOD_STORE_LABELS,
 } from '../../../app/data/checkoutLabels';
-import { DELIVERY_PERKS, PICKUP_PERKS } from '../../../app/data/checkoutConfig';
+import { REVALIDATE_STORES } from '../../isr';
+import { currentCmsLocale } from '../current-locale';
+import { getApi, isError } from '../index';
+import type { Lang } from '../system-text';
 
-/** Per-method copy: what the delivery-picker radios render.
+/**
+ * Per-method copy: what the delivery-picker radios render.
  *
  *  Titles/subtitles come from OE `Forms.getFormByMarker('checkout_home_delivery')`
  *  → `delivery_method.listTitles[value=courier|pickup|locker]`, so the marketing
@@ -22,13 +24,15 @@ import { DELIVERY_PERKS, PICKUP_PERKS } from '../../../app/data/checkoutConfig';
  *   - locaer_text  ← typo preserved as-is in the OE admin panel
  */
 export interface DeliveryMethodInfo {
-  home:   { title: string; subtitle: string; perks: string[] };
-  store:  { title: string; subtitle: string; perks: string[] };
+  home: { title: string; subtitle: string; perks: string[] };
+  store: { title: string; subtitle: string; perks: string[] };
   locker: { title: string; subtitle: string; pinHint: string };
 }
 
-/** Fallback copy — used verbatim when OE is unavailable or the form was edited
- *  without one of the fields. Keeps the picker readable in every degraded state. */
+/**
+ * Fallback copy — used verbatim when OE is unavailable or the form was edited
+ *  without one of the fields. Keeps the picker readable in every degraded state.
+ */
 const FALLBACK: DeliveryMethodInfo = {
   home: {
     title: DELIVERY_METHOD_HOME_LABELS.title,
@@ -65,7 +69,9 @@ const pickListItem = (items: RawListItem[] | undefined, value: string) => {
 const readAddl = (fields: Record<string, RawAddlField> | undefined, key: string): string =>
   asString(fields?.[key]?.value);
 
-/** Compact one list item into `{ title, subtitle }` — subtitle lives in `extended.value`. */
+/**
+ * Compact one list item into `{ title, subtitle }` — subtitle lives in `extended.value`.
+ */
 const toTitleSub = (
   item: RawListItem | null,
   fallback: { title: string; subtitle: string },
@@ -77,7 +83,9 @@ const toTitleSub = (
   };
 };
 
-/** Compact a list of admin-provided perk strings, dropping empties. */
+/**
+ * Compact a list of admin-provided perk strings, dropping empties.
+ */
 const perks = (fields: Record<string, RawAddlField> | undefined, keys: string[]): string[] => {
   const out: string[] = [];
   for (const k of keys) {
@@ -87,13 +95,17 @@ const perks = (fields: Record<string, RawAddlField> | undefined, keys: string[])
   return out;
 };
 
-/** OE-authored post-order copy for the confirmation page. Reads
+/**
+ * OE-authored post-order copy for the confirmation page. Reads
  *  `checkout_home_delivery.localizeInfos.successMessage` — the one line the
  *  admin panel offers for "order placed" UX. Returns `null` when the field is
  *  empty, OE errors, or the SDK throws so the confirmation page can fall back
- *  to its literal heading. */
-/** `lang` is an explicit argument so it forms part of the `unstable_cache`
- *  key; root params are also unreadable inside a cached function. */
+ *  to its literal heading.
+ */
+/**
+ * `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function.
+ */
 const loadCheckoutSuccessMessageCached = unstable_cache(
   async (lang: Lang): Promise<string | null> => {
     try {
@@ -112,15 +124,18 @@ const loadCheckoutSuccessMessageCached = unstable_cache(
 
 /**
  * Checkout success message for the current route's locale.
- * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
- * @returns {Promise<string | null>} Message, or `null` when the tenant has none.
+ *
+ * @param [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns Message, or `null` when the tenant has none.
  */
 export async function loadCheckoutSuccessMessage(langArg?: Lang): Promise<string | null> {
   return loadCheckoutSuccessMessageCached(langArg ?? (await currentCmsLocale()));
 }
 
-/** Attribute markers a tenant may use for the parcel-locker list. Probed in
- *  order — OE admins name this attribute by hand and the spelling varies. */
+/**
+ * Attribute markers a tenant may use for the parcel-locker list. Probed in
+ *  order — OE admins name this attribute by hand and the spelling varies.
+ */
 const LOCKER_LIST_MARKERS = ['parcel_locker', 'locker_list', 'lockers', 'locker'];
 
 /**
@@ -130,8 +145,10 @@ const LOCKER_LIST_MARKERS = ['parcel_locker', 'locker_list', 'lockers', 'locker'
  * keeps the local `PARCEL_LOCKERS` fallback. Locker names are plain strings —
  * the picker submits the selected index, so ordering is the contract.
  */
-/** `lang` is an explicit argument so it forms part of the `unstable_cache`
- *  key; root params are also unreadable inside a cached function. */
+/**
+ * `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function.
+ */
 const loadParcelLockersCached = unstable_cache(
   async (lang: Lang): Promise<string[]> => {
     try {
@@ -160,15 +177,18 @@ const loadParcelLockersCached = unstable_cache(
 
 /**
  * Parcel-locker options for the current route's locale.
- * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
- * @returns {Promise<string[]>} Locker labels, possibly empty.
+ *
+ * @param [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns Locker labels, possibly empty.
  */
 export async function loadParcelLockers(langArg?: Lang): Promise<string[]> {
   return loadParcelLockersCached(langArg ?? (await currentCmsLocale()));
 }
 
-/** `lang` is an explicit argument so it forms part of the `unstable_cache`
- *  key; root params are also unreadable inside a cached function. */
+/**
+ * `lang` is an explicit argument so it forms part of the `unstable_cache`
+ *  key; root params are also unreadable inside a cached function.
+ */
 const loadDeliveryMethodInfoCached = unstable_cache(
   async (lang: Lang): Promise<DeliveryMethodInfo> => {
     try {
@@ -177,7 +197,8 @@ const loadDeliveryMethodInfoCached = unstable_cache(
       const attrs = (form as { attributes?: unknown[] }).attributes;
       if (!Array.isArray(attrs)) return FALLBACK;
       const deliveryAttr = attrs.find(
-        (a): a is RawDeliveryMethodAttr => typeof a === 'object' && a !== null && (a as { marker?: unknown }).marker === 'delivery_method',
+        (a): a is RawDeliveryMethodAttr =>
+          typeof a === 'object' && a !== null && (a as { marker?: unknown }).marker === 'delivery_method',
       );
       if (!deliveryAttr) return FALLBACK;
       const list = deliveryAttr.listTitles;
@@ -188,13 +209,17 @@ const loadDeliveryMethodInfoCached = unstable_cache(
       // Home perks: free / partial / fitting. Fall back on the whole set if
       // the admin left the fields blank so the card doesn't render bare.
       const homePerks = perks(addl, ['home_free_delivery', 'home_partial_purchase', 'home_in-home-fitting']);
-      const storePerks = perks(addl, ['store_pickup_free', 'store_pickup_partial_purchase', 'store_pickup_fitting_room']);
+      const storePerks = perks(addl, [
+        'store_pickup_free',
+        'store_pickup_partial_purchase',
+        'store_pickup_fitting_room',
+      ]);
       // OE misspells this key as `locaer_text` — kept verbatim, changing the
       // key on the admin side would be a coordinated content-team task.
       const lockerHint = readAddl(addl, 'locaer_text') || FALLBACK.locker.pinHint;
       return {
-        home:   { ...home,   perks: homePerks.length > 0 ? homePerks : FALLBACK.home.perks },
-        store:  { ...store,  perks: storePerks.length > 0 ? storePerks : FALLBACK.store.perks },
+        home: { ...home, perks: homePerks.length > 0 ? homePerks : FALLBACK.home.perks },
+        store: { ...store, perks: storePerks.length > 0 ? storePerks : FALLBACK.store.perks },
         locker: { ...locker, pinHint: lockerHint },
       };
     } catch {
@@ -208,8 +233,9 @@ const loadDeliveryMethodInfoCached = unstable_cache(
 
 /**
  * Delivery-method copy for the current route's locale.
- * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
- * @returns {Promise<DeliveryMethodInfo>} Delivery method info, with shipped fallbacks.
+ *
+ * @param [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns Delivery method info, with shipped fallbacks.
  */
 export async function loadDeliveryMethodInfo(langArg?: Lang): Promise<DeliveryMethodInfo> {
   return loadDeliveryMethodInfoCached(langArg ?? (await currentCmsLocale()));

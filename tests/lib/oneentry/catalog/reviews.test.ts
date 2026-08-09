@@ -6,16 +6,14 @@ const fakeApi = { FormData: { getFormsDataByMarker } };
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-  getApiSafe: () => (fakeApi),
+  getApiSafe: () => fakeApi,
   getApi: () => fakeApi,
   isOneEntryEnabled: true,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 // unstable_cache is transparent in tests — call the wrapped fn directly.
 vi.mock('next/cache', () => ({
-   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -100,9 +98,7 @@ function makeFlatRating(id: number, rating: number, user: string, time?: string)
     id,
     time: time ?? '2024-06-01T09:59:00.000Z',
     userIdentifier: user,
-    formData: [
-      { marker: 'rating', type: 'integer', value: rating },
-    ],
+    formData: [{ marker: 'rating', type: 'integer', value: rating }],
   };
 }
 
@@ -156,8 +152,16 @@ describe('loadProductReviews — 2 s timeout ceiling', () => {
     vi.useFakeTimers();
 
     // A promise that intentionally never settles — simulates a hung OE endpoint.
-    getFormsDataByMarker.mockReturnValue(new Promise(() => { /* never */ }));
-    loadProductById.mockReturnValue(new Promise(() => { /* never */ }));
+    getFormsDataByMarker.mockReturnValue(
+      new Promise(() => {
+        /* never */
+      }),
+    );
+    loadProductById.mockReturnValue(
+      new Promise(() => {
+        /* never */
+      }),
+    );
 
     const { loadProductReviews } = await importFresh();
     const reviewsP = loadProductReviews(7730);
@@ -207,10 +211,7 @@ describe('loadProductReviews — flat formData shape', () => {
     const user = 'user-2';
     getFormsDataByMarker
       .mockResolvedValueOnce({
-        items: [
-          makeEmptyBodyFeedback(10),
-          makeFlatFeedback(11, { user, body: 'Real review' }),
-        ],
+        items: [makeEmptyBodyFeedback(10), makeFlatFeedback(11, { user, body: 'Real review' })],
       })
       .mockResolvedValueOnce({ items: [makeFlatRating(20, 5, user)] });
     loadProductById.mockResolvedValue(fakeProduct);
@@ -273,9 +274,7 @@ describe('loadProductReviews — wrapped { en_US } formData shape', () => {
         ],
       },
     };
-    getFormsDataByMarker
-      .mockResolvedValueOnce({ items: [emptyWrapped] })
-      .mockResolvedValueOnce({ items: [] });
+    getFormsDataByMarker.mockResolvedValueOnce({ items: [emptyWrapped] }).mockResolvedValueOnce({ items: [] });
     loadProductById.mockResolvedValue(fakeProduct);
 
     const { loadProductReviews } = await importFresh();

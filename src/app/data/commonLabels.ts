@@ -1,5 +1,12 @@
 /**
  * Shared UI widget labels — used across multiple components.
+ *
+ * Every string here is the **offline fallback** for an OneEntry attribute; the
+ * live copy comes from the dictionary via `useT(marker, FALLBACK)`. Strings
+ * carrying a runtime value use `%token%` placeholders resolved by
+ * {@link ../utils/fillTokens.fillTokens} rather than template literals — an
+ * admin-authored string cannot interpolate, and `{}` breaks OneEntry's public
+ * read of the whole set.
  */
 export const PRICE_RANGE_LABELS = {
   minPrice: 'Min price',
@@ -58,7 +65,8 @@ export const COMMON_EMPTY_STATES = {
   noResultsFound: 'No results found',
   noFilterResultsBody: 'No items match your current filters. Try broadening your search or removing some filters.',
   clearAllFilters: 'Clear all filters',
-  searchInGroupTpl: (groupLabel: string) => `Search ${groupLabel.toLowerCase()}…`,
+  /** `%group%` — the filter group's label, lower-cased by the caller. */
+  searchInGroup: 'Search %group%…',
 } as const;
 
 export const CATALOG_TREND_BLOCKS_LABELS = {
@@ -96,7 +104,8 @@ export const A11Y_LABELS = {
 } as const;
 
 export const CATALOG_PAGINATION_LABELS = {
-  pageOfTpl: (current: number, total: number) => `Page ${current} of ${total}`,
+  /** `%current%` / `%total%` — the 1-based page number and page count. */
+  pageOf: 'Page %current% of %total%',
 } as const;
 
 export const CART_LINE_LABELS = {
@@ -138,7 +147,8 @@ export const CATALOG_VIEW_LABELS = {
   youveViewedPrefix: "You've viewed ",
   youveViewedMid: ' of ',
   youveViewedSuffix: ' products',
-  colorSwatchTpl: (idx: number) => `Color ${idx}`,
+  /** `%index%` — 1-based swatch position. */
+  colorSwatch: 'Color %index%',
   colorSwatchOutOfStockSuffix: ' (out of stock)',
 } as const;
 
@@ -167,13 +177,6 @@ export const REVIEW_CARD_LABELS = {
 export const CATALOG_MOBILE_SORT_LABELS = {
   heading: 'SORT BY',
   closeSort: 'Close sort',
-  options: [
-    { label: 'Featured',           value: 'featured' },
-    { label: 'Price: Low to High', value: 'price_asc' },
-    { label: 'Price: High to Low', value: 'price_desc' },
-    { label: 'Popularity',         value: 'popularity' },
-    { label: 'New Arrivals',       value: 'new' },
-  ] as const,
 } as const;
 
 export const HEADER_ARIA = {
@@ -195,21 +198,25 @@ export const PERSONAL_INFO_SECTION_ARIA = {
 } as const;
 
 export const MINI_CART_DYNAMIC_ARIA = {
-  removeFromCart: (name: string) => `Remove ${name} from cart`,
+  /** `%name%` — the line item's product name. */
+  removeFromCart: 'Remove %name% from cart',
 } as const;
 
 export const FOOTER_DYNAMIC_ARIA = {
-  followOn: (network: string) => `Follow us on ${network}`,
+  /** `%network%` — the social network's display name. */
+  followOn: 'Follow us on %network%',
 } as const;
 
+/** Appended to a step's own label, so each value is a standalone word group. */
 export const CHECKOUT_STEPPER_DYNAMIC_ARIA = {
-  stepSuffixCompleted: ' (completed)',
-  stepSuffixCurrent: ' (current step)',
-  stepSuffixUpcoming: ' (upcoming)',
+  stepSuffixCompleted: '(completed)',
+  stepSuffixCurrent: '(current step)',
+  stepSuffixUpcoming: '(upcoming)',
 } as const;
 
 export const HERO_SLIDER_DYNAMIC_ARIA = {
-  slideDescriptionTpl: (idx: number, total: number, headline: string) => `${idx} of ${total}: ${headline}`,
+  /** `%index%` / `%total%` / `%headline%` — slide position and its headline. */
+  slideDescription: '%index% of %total%: %headline%',
   slidePrefix: 'Slide',
 } as const;
 
@@ -222,7 +229,8 @@ export const WISHLIST_DYNAMIC_ARIA = {
 } as const;
 
 export const MY_ORDERS_DYNAMIC_ARIA = {
-  viewDetailsTpl: (orderId: string) => `View details for order ${orderId}`,
+  /** `%id%` — the order's shopper-facing identifier. */
+  viewDetails: 'View details for order %id%',
 } as const;
 
 /** Header quick-search dropdown states. */

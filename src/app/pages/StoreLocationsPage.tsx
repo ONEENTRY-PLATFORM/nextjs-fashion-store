@@ -1,20 +1,19 @@
-'use client'
+'use client';
+import { ChevronRight, ExternalLink, MapPin, Search } from 'lucide-react';
 import { useState } from 'react';
 
-import { Header } from '../components/header/Header';
-import { Footer } from '../components/footer/Footer';
-import { MapPin, ExternalLink, Search, ChevronRight } from 'lucide-react';
-import type { Store } from '../data/stores';
-import { StoreCard } from './stores/StoreCard';
-import { STORE_LOCATIONS_LABELS as L } from '../data/storesLabels';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import type { StoreLocationsPageFromCms } from '../../lib/oneentry/catalog/store-locations-page';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-
-import { ACCENT_WOMEN as ACCENT, ACCENT_MEN, BANNER_BG } from '../constants/colors';
 import { useRouter } from '../../lib/i18n/navigation';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import type { StoreLocationsPageFromCms } from '../../lib/oneentry/catalog/store-locations-page';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
+import { Footer } from '../components/footer/Footer';
+import { Header } from '../components/header/Header';
 import CmsImage from '../components/ui/CmsImage';
+import { ACCENT_MEN, ACCENT_WOMEN as ACCENT, BANNER_BG } from '../constants/colors';
+import type { Store } from '../data/stores';
+import { STORE_LOCATIONS_LABELS } from '../data/storesLabels';
+import { StoreCard } from './stores/StoreCard';
 
 type StoreLocationsPageProps = {
   initialStores?: Store[];
@@ -24,10 +23,13 @@ type StoreLocationsPageProps = {
 };
 
 export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: StoreLocationsPageProps = {}) {
+  const L = useDict('store_pages_', STORE_LOCATIONS_LABELS);
   const router = useRouter();
   const stores = initialStores ?? [];
-  const flagshipStore: Store | undefined = stores.find(s => s.isflagship) ?? stores[0];
-  const heroImage = cmsPage?.hero.image || 'https://images.unsplash.com/photo-1582461420964-9e1ecbbbd138?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1920&q=80';
+  const flagshipStore: Store | undefined = stores.find((s) => s.isflagship) ?? stores[0];
+  const heroImage =
+    cmsPage?.hero.image ||
+    'https://images.unsplash.com/photo-1582461420964-9e1ecbbbd138?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1920&q=80';
   // Only the CMS picture has an LQIP; the Unsplash fallback above has none.
   const heroBlur = cmsPage?.hero.image ? cmsPage.hero.imageBlur : undefined;
   const heroEyebrow = cmsPage?.hero.eyebrow || L.heroEyebrow;
@@ -37,36 +39,42 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
   const flagshipTitle = cmsPage?.flagshipCallout.title || L.flagshipName;
   const flagshipText = cmsPage?.flagshipCallout.text || L.flagshipBody;
   const flagshipMapUrl = cmsPage?.flagshipCallout.directionsHref || flagshipStore?.mapUrl || '#';
-  const allCities = [L.cityAll, ...Array.from(new Set(stores.map(s => s.city)))];
+  const allCities = [L.cityAll, ...Array.from(new Set(stores.map((s) => s.city)))];
   const [selectedCity, setSelectedCity] = useState<string>(L.cityAll);
   const [searchQuery, setSearchQuery] = useState('');
-  const lSearch       = useT('store_location_search',             L.searchPlaceholder);
-  const lFound        = useT('store_location_found',              L.storesFoundPlural);
-  const lAllOffer     = useT('store_location_all_stores_offer',   L.allStoresOffer);
-  const lFooterText   = useT('store_location_footer_text',        L.shopOnlineCopy);
-  const lFooterLink   = useT('store_location_footer_link',        L.shopOnlineCta);
-  const lBookStyling  = useT('store_location_footer_banner_cta',  L.flagshipBookStyling);
+  const lSearch = useT('store_location_search', L.searchPlaceholder);
+  const lFound = useT('store_location_found', L.storesFoundPlural);
+  const lAllOffer = useT('store_location_all_stores_offer', L.allStoresOffer);
+  const lFooterText = useT('store_location_footer_text', L.shopOnlineCopy);
+  const lFooterLink = useT('store_location_footer_link', L.shopOnlineCta);
+  const lBookStyling = useT('store_location_footer_banner_cta', L.flagshipBookStyling);
 
-  const filtered = stores.filter(s => {
+  const filtered = stores.filter((s) => {
     const matchCity = selectedCity === L.cityAll || s.city === selectedCity;
     const q = searchQuery.toLowerCase();
-    const matchSearch = !q || s.name.toLowerCase().includes(q) || s.city.toLowerCase().includes(q) || s.postcode.toLowerCase().includes(q);
+    const matchSearch =
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      s.city.toLowerCase().includes(q) ||
+      s.postcode.toLowerCase().includes(q);
     return matchCity && matchSearch;
   });
 
   return (
     <div
       className="min-h-screen bg-white font-[Inter,sans-serif]"
-      style={{
-        '--accent': ACCENT,
-        '--accent-men': ACCENT_MEN,
-        '--banner-bg': BANNER_BG,
-      } as React.CSSProperties}
+      style={
+        {
+          '--accent': ACCENT,
+          '--accent-men': ACCENT_MEN,
+          '--banner-bg': BANNER_BG,
+        } as React.CSSProperties
+      }
     >
       <Header />
 
       {/* Hero */}
-      <div className="relative flex flex-col items-center justify-center text-center overflow-hidden h-80 bg-(--banner-bg)">
+      <div className="relative flex h-80 flex-col items-center justify-center overflow-hidden bg-(--banner-bg) text-center">
         {/* Background photo */}
         <CmsImage
           src={heroImage}
@@ -81,55 +89,49 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         <div className="absolute inset-0 bg-black/[0.52]" />
 
         <div className="relative z-10 px-4">
-          <p className="text-xs tracking-[0.3em] uppercase mb-3 text-accent font-semibold">
-            {heroEyebrow}
-          </p>
-          <h1 className="hero-h1 uppercase tracking-[0.15em] mb-4 text-white">
-            {heroTitle}
-          </h1>
-          <p className="text-sm tracking-wide max-w-md mx-auto text-white/75">
-            {heroText}
-          </p>
+          <p className="mb-3 text-xs font-semibold tracking-[0.3em] text-accent uppercase">{heroEyebrow}</p>
+          <h1 className="hero-h1 mb-4 tracking-[0.15em] text-white uppercase">{heroTitle}</h1>
+          <p className="mx-auto max-w-md text-sm tracking-wide text-white/75">{heroText}</p>
         </div>
         {/* Decorative lines */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-black" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-black" />
       </div>
 
       <main id="main-content" className="w-full py-10 pb-20">
-
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-gray-400 mb-8 tracking-wide px-4 lg:px-8">
-          <button onClick={() => router.push('/')} className="hover:text-black transition-colors focus-visible:outline-none">
+        <nav className="mb-8 flex items-center gap-2 px-4 text-xs tracking-wide text-gray-400 lg:px-8">
+          <button
+            onClick={() => router.push('/')}
+            className="transition-colors hover:text-black focus-visible:outline-none"
+          >
             {L.breadcrumbHome}
           </button>
           <ChevronRight size={12} />
-          <span className="text-black font-semibold">{L.breadcrumbCurrent}</span>
+          <span className="font-semibold text-black">{L.breadcrumbCurrent}</span>
         </nav>
 
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-8 px-4 lg:px-8">
+        <div className="mb-8 flex flex-col gap-3 px-4 sm:flex-row lg:px-8">
           {/* Search */}
-          <div className="flex items-center gap-2 px-3 py-2.5 flex-1 max-w-xs border border-black">
-            <Search size={14} className="text-gray-400 shrink-0" />
+          <div className="flex max-w-xs flex-1 items-center gap-2 border border-black px-3 py-2.5">
+            <Search size={14} className="shrink-0 text-gray-400" />
             <input
               type="text"
               placeholder={lSearch}
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 text-sm bg-transparent focus-visible:outline-none placeholder-gray-400"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent text-sm placeholder-gray-400 focus-visible:outline-none"
             />
           </div>
 
           {/* City filter pills */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {allCities.map(city => (
+          <div className="flex flex-wrap items-center gap-2">
+            {allCities.map((city) => (
               <button
                 key={city}
                 onClick={() => setSelectedCity(city)}
-                className={`px-4 py-2 text-xs tracking-widest uppercase transition-all duration-200 focus-visible:outline-none border border-black ${
-                  selectedCity === city
-                    ? 'bg-black text-white font-bold'
-                    : 'bg-transparent text-black font-medium'
+                className={`border border-black px-4 py-2 text-xs tracking-widest uppercase transition-all duration-200 focus-visible:outline-none ${
+                  selectedCity === city ? 'bg-black font-bold text-white' : 'bg-transparent font-medium text-black'
                 }`}
               >
                 {city}
@@ -139,27 +141,30 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         </div>
 
         {/* Results count */}
-        <p className="text-xs tracking-widest uppercase text-gray-400 mb-6 px-4 lg:px-8 font-medium">
+        <p className="mb-6 px-4 text-xs font-medium tracking-widest text-gray-400 uppercase lg:px-8">
           {filtered.length} {filtered.length === 1 ? L.storesFoundSingular : lFound}
         </p>
 
         {/* Grid */}
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white mb-16">
-            {filtered.map(store => (
+          <div className="mb-16 grid grid-cols-1 gap-px bg-white sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((store) => (
               <div key={store.id} className="bg-white">
                 <StoreCard store={store} />
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-            <MapPin size={40} strokeWidth={1} className="text-accent mb-4" />
-            <h3 className="text-base uppercase tracking-wider mb-2 font-bold">{L.emptyHeading}</h3>
+          <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
+            <MapPin size={40} strokeWidth={1} className="mb-4 text-accent" />
+            <h3 className="mb-2 text-base font-bold tracking-wider uppercase">{L.emptyHeading}</h3>
             <p className="text-sm text-gray-400">{L.emptyHint}</p>
             <button
-              onClick={() => { setSearchQuery(''); setSelectedCity(L.cityAll); }}
-              className="mt-6 px-6 py-2.5 text-xs tracking-widest uppercase text-white focus-visible:outline-none hover:opacity-80 transition-opacity bg-black font-bold"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCity(L.cityAll);
+              }}
+              className="mt-6 bg-black px-6 py-2.5 text-xs font-bold tracking-widest text-white uppercase transition-opacity hover:opacity-80 focus-visible:outline-none"
             >
               {L.clearFilters}
             </button>
@@ -167,20 +172,16 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         )}
 
         {/* In-store services strip */}
-        <div className="px-8 py-8 mb-12 bg-(--banner-bg)">
-          <p className="text-xs tracking-[0.3em] uppercase text-center mb-6 font-bold">
-            {lAllOffer}
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white">
-            {L.services.map(item => (
+        <div className="mb-12 bg-(--banner-bg) p-8">
+          <p className="mb-6 text-center text-xs font-bold tracking-[0.3em] uppercase">{lAllOffer}</p>
+          <div className="grid grid-cols-2 gap-px bg-white sm:grid-cols-4">
+            {L.services.map((item) => (
               <div
                 key={item.label}
-                className="bg-white flex flex-col items-center justify-center py-8 gap-3 text-center px-4"
+                className="flex flex-col items-center justify-center gap-3 bg-white px-4 py-8 text-center"
               >
                 <span className="text-2xl">{item.icon}</span>
-                <span className="text-xs tracking-wider uppercase font-semibold">
-                  {item.label}
-                </span>
+                <span className="text-xs font-semibold tracking-wider uppercase">{item.label}</span>
               </div>
             ))}
           </div>
@@ -188,57 +189,47 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
 
         {/* Flagship callout */}
         {flagshipStore && (
-        <div className="flex flex-col md:flex-row overflow-hidden mb-12 outline-1 outline-black">
-          <div className="md:w-1/2 relative overflow-hidden min-h-70 bg-gray-100">
-            {flagshipStore.image && (
-              <CmsImage
-                src={flagshipStore.image}
-                blur={flagshipStore.imageBlur}
-                alt={L.flagshipImageAlt}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
-              />
-            )}
-          </div>
-          <div className="md:w-1/2 flex flex-col justify-center px-8 py-10 bg-(--banner-bg)">
-            <p className="text-xs tracking-[0.3em] uppercase mb-2 text-accent font-semibold">
-              {flagshipSubtitle}
-            </p>
-            <h2 className="text-2xl uppercase tracking-wider mb-4 font-bold">
-              {flagshipTitle}
-            </h2>
-            <p className="text-sm text-gray-600 leading-relaxed mb-6 max-w-sm">
-              {flagshipText}
-            </p>
-            <div className="flex gap-3">
-              <a
-                href={flagshipMapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-3 text-white text-xs tracking-widest uppercase focus-visible:outline-none hover:opacity-80 transition-opacity bg-black font-bold"
-              >
-                <ExternalLink size={12} />
-                {L.flagshipDirections}
-              </a>
-              <button
-                className="flex items-center gap-2 px-5 py-3 text-xs tracking-widest uppercase focus-visible:outline-none hover:bg-white transition-colors border border-black font-semibold"
-              >
-                {lBookStyling}
-              </button>
+          <div className="mb-12 flex flex-col overflow-hidden outline-1 outline-black md:flex-row">
+            <div className="relative min-h-70 overflow-hidden bg-gray-100 md:w-1/2">
+              {flagshipStore.image && (
+                <CmsImage
+                  src={flagshipStore.image}
+                  blur={flagshipStore.imageBlur}
+                  alt={L.flagshipImageAlt}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover"
+                />
+              )}
+            </div>
+            <div className="flex flex-col justify-center bg-(--banner-bg) px-8 py-10 md:w-1/2">
+              <p className="mb-2 text-xs font-semibold tracking-[0.3em] text-accent uppercase">{flagshipSubtitle}</p>
+              <h2 className="mb-4 text-2xl font-bold tracking-wider uppercase">{flagshipTitle}</h2>
+              <p className="mb-6 max-w-sm text-sm leading-relaxed text-gray-600">{flagshipText}</p>
+              <div className="flex gap-3">
+                <a
+                  href={flagshipMapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-black px-5 py-3 text-xs font-bold tracking-widest text-white uppercase transition-opacity hover:opacity-80 focus-visible:outline-none"
+                >
+                  <ExternalLink size={12} />
+                  {L.flagshipDirections}
+                </a>
+                <button className="flex items-center gap-2 border border-black px-5 py-3 text-xs font-semibold tracking-widest uppercase transition-colors hover:bg-white focus-visible:outline-none">
+                  {lBookStyling}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* CTA */}
-        <div className="text-center px-4">
-          <p className="text-sm text-gray-400 mb-4 tracking-wide">
-            {lFooterText}
-          </p>
+        <div className="px-4 text-center">
+          <p className="mb-4 text-sm tracking-wide text-gray-400">{lFooterText}</p>
           <button
             onClick={() => router.push(L.shopOnlineHref)}
-            className="inline-flex items-center gap-2 text-sm tracking-widest uppercase focus-visible:outline-none hover:gap-3 transition-all font-bold"
+            className="inline-flex items-center gap-2 text-sm font-bold tracking-widest uppercase transition-all hover:gap-3 focus-visible:outline-none"
           >
             {lFooterLink} <ChevronRight size={15} />
           </button>
@@ -247,9 +238,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
 
       {/* OE-attached blocks for the `stores` page — rendered at the
           bottom below the store list. Empty → nothing renders. */}
-      {pageBlocks && pageBlocks.length > 0 && (
-        <PageBlocksRenderer blocks={pageBlocks} />
-      )}
+      {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
 
       <Footer />
     </div>

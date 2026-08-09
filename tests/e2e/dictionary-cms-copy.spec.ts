@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 /**
  * The storefront reads all UI copy from one flat CMS dictionary loaded once in
@@ -29,19 +29,17 @@ async function fetchSet(marker: string): Promise<Record<string, string>> {
   const body = (await res.json()) as { schema?: Record<string, { initialValue?: unknown }> };
   const out: Record<string, string> = {};
   for (const [key, attr] of Object.entries(body?.schema ?? {})) {
-    const raw = attr?.initialValue as
-      | { value?: unknown }
-      | Record<string, { value?: unknown }>
-      | undefined;
+    const raw = attr?.initialValue as { value?: unknown } | Record<string, { value?: unknown }> | undefined;
     if (!raw || typeof raw !== 'object') continue;
     // OE returns `initialValue` either flat or language-keyed depending on
     // which endpoint surfaced it; accept both.
     const langKeyed = (raw as Record<string, { value?: unknown }>)[LANG];
-    const value = typeof langKeyed?.value === 'string'
-      ? langKeyed.value
-      : typeof (raw as { value?: unknown }).value === 'string'
-        ? ((raw as { value: string }).value)
-        : '';
+    const value =
+      typeof langKeyed?.value === 'string'
+        ? langKeyed.value
+        : typeof (raw as { value?: unknown }).value === 'string'
+          ? (raw as { value: string }).value
+          : '';
     if (value) out[key] = value;
   }
   return out;
@@ -66,10 +64,7 @@ test.describe('CMS dictionary reaches every screen', () => {
     ].filter(Boolean);
     const deliveryTitle = deliveryReturns['p_c_d_r_standart_delivery_title'];
 
-    test.skip(
-      snippets.length === 0 && !deliveryTitle,
-      'tenant has no copy published for these markers',
-    );
+    test.skip(snippets.length === 0 && !deliveryTitle, 'tenant has no copy published for these markers');
 
     // Land on a real product via the catalogue so the test does not depend on
     // any one product id surviving in the CMS.

@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+
 import { GoogleCallbackClient } from '../../../../../src/app/pages/auth/GoogleCallbackClient';
 
 /**

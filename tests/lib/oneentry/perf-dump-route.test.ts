@@ -8,6 +8,7 @@
  *  - Call the exported GET / DELETE handlers with a plain `Request` object.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { TimingAggregate, TimingRecord } from '@/lib/oneentry/profiling';
 
 // ---------------------------------------------------------------------------
@@ -203,9 +204,7 @@ describe('perf-dump route — GET ?raw=1', () => {
     mockReadTimings.mockReturnValue(fakeRecords);
 
     const { GET } = await importRoute();
-    const res = await GET(
-      makeRequest('GET', 'http://localhost/api/perf-dump?raw=1', TOKEN),
-    );
+    const res = await GET(makeRequest('GET', 'http://localhost/api/perf-dump?raw=1', TOKEN));
     expect(res.status).toBe(200);
 
     const body = await parseJson(res);

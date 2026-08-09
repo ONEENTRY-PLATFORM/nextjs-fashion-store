@@ -1,12 +1,25 @@
 'use client';
-import React, { useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import React, { useEffect } from 'react';
+
 import { QuickViewModal } from '../app/components/product/QuickViewModal';
 import { useAppDispatch } from '../app/store/hooks';
 import { openQuickView } from '../app/store/uiSlice';
-import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_SINGLE_SIZE_PRODUCT, MOCK_COMING_SOON_PRODUCT, MOCK_PREORDER_PRODUCT } from './mockData';
+import {
+  MOCK_COMING_SOON_PRODUCT,
+  MOCK_PREORDER_PRODUCT,
+  MOCK_PRODUCT,
+  MOCK_SALE_PRODUCT,
+  MOCK_SINGLE_SIZE_PRODUCT,
+} from './mockData';
 
-function OpenQuickView({ product, initialColorIndex = null }: { product: typeof MOCK_PRODUCT; initialColorIndex?: number | null }) {
+function OpenQuickView({
+  product,
+  initialColorIndex = null,
+}: {
+  product: typeof MOCK_PRODUCT;
+  initialColorIndex?: number | null;
+}) {
   const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(openQuickView({ product, initialColorIndex: initialColorIndex ?? null }));

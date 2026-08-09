@@ -1,9 +1,10 @@
-'use client'
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+'use client';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useDragScroll } from '../../hooks/useDragScroll';
-import { HORIZONTAL_SCROLLER_LABELS as L } from '../../data/commonLabels';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
 import { useT } from '../../../lib/oneentry/labels/DictContext';
+import { HORIZONTAL_SCROLLER_LABELS as L } from '../../data/commonLabels';
+import { useDragScroll } from '../../hooks/useDragScroll';
 
 interface HorizontalScrollerProps {
   children: React.ReactNode;
@@ -17,14 +18,11 @@ interface HorizontalScrollerProps {
  *   • drag-to-scroll on desktop
  *   • left / right arrow buttons that hide at the ends
  * Used by WomenCollection / MenCollection / NewArrivals carousels.
- * @param {HorizontalScrollerProps} props - Children and scroll-step config.
- * @returns {React.ReactElement} The scroller with its arrow controls.
+ *
+ * @param props - Children and scroll-step config.
+ * @returns The scroller with its arrow controls.
  */
-export function HorizontalScroller({
-  children,
-  scrollFraction = 0.75,
-  className = '',
-}: HorizontalScrollerProps) {
+export function HorizontalScroller({ children, scrollFraction = 0.75, className = '' }: HorizontalScrollerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const drag = useDragScroll(scrollerRef);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -41,10 +39,13 @@ export function HorizontalScroller({
   // the commit phase. Doing it in an effect instead would be a synchronous
   // `setState` inside `useEffect` — the cascading-render pattern React flags
   // (MCP `common-mistakes`).
-  const attachScroller = useCallback((el: HTMLDivElement | null) => {
-    scrollerRef.current = el;
-    measure(el);
-  }, [measure]);
+  const attachScroller = useCallback(
+    (el: HTMLDivElement | null) => {
+      scrollerRef.current = el;
+      measure(el);
+    },
+    [measure],
+  );
 
   // Viewport changes can reveal or hide the overflow without any scrolling,
   // so re-measure on resize. Registering a listener is not a state write, so
@@ -55,7 +56,7 @@ export function HorizontalScroller({
     return () => window.removeEventListener('resize', onResize);
   }, [measure]);
 
-  const lScrollLeft  = useT('interface_controls_scroll_left',  L.scrollLeft);
+  const lScrollLeft = useT('interface_controls_scroll_left', L.scrollLeft);
   const lScrollRight = useT('interface_controls_scroll_right', L.scrollRight);
 
   const scrollBy = (direction: 1 | -1) => {
@@ -71,25 +72,17 @@ export function HorizontalScroller({
 
   return (
     <div className="relative">
-      <button
-        onClick={() => scrollBy(-1)}
-        aria-label={lScrollLeft}
-        className={`left-2 ${arrowClass(canScrollLeft)}`}
-      >
+      <button onClick={() => scrollBy(-1)} aria-label={lScrollLeft} className={`left-2 ${arrowClass(canScrollLeft)}`}>
         <ChevronLeft size={18} />
       </button>
 
-      <button
-        onClick={() => scrollBy(1)}
-        aria-label={lScrollRight}
-        className={`right-2 ${arrowClass(canScrollRight)}`}
-      >
+      <button onClick={() => scrollBy(1)} aria-label={lScrollRight} className={`right-2 ${arrowClass(canScrollRight)}`}>
         <ChevronRight size={18} />
       </button>
 
       <div
         ref={attachScroller}
-        className={`flex overflow-x-auto scrollbar-hide border-t border-white select-none cursor-grab ${className}`}
+        className={`scrollbar-hide flex cursor-grab overflow-x-auto border-t border-white select-none ${className}`}
         onScroll={(e) => measure(e.currentTarget)}
         onMouseDown={drag.onMouseDown}
         onMouseMove={drag.onMouseMove}

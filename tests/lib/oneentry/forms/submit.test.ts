@@ -38,9 +38,7 @@ describe('submitForm', () => {
         formIdentifier: 'subscribe_new_drops',
         formModuleConfigId: 0,
         moduleEntityIdentifier: '',
-        formData: [
-          { marker: 'subscribe_new_drops_email', value: 'jane@example.com', type: 'string' },
-        ],
+        formData: [{ marker: 'subscribe_new_drops_email', value: 'jane@example.com', type: 'string' }],
       }),
       'en_US',
     );
@@ -49,11 +47,10 @@ describe('submitForm', () => {
   it('forwards binding.moduleConfigId and moduleEntityIdentifier when provided', async () => {
     postFormsData.mockResolvedValue({});
     const { submitForm } = await importFresh();
-    await submitForm(
-      'subscribe_new_drops',
-      [{ marker: 'subscribe_new_drops_email', value: 'jane@example.com' }],
-      { moduleConfigId: 52, moduleEntityIdentifier: 'subscribe' },
-    );
+    await submitForm('subscribe_new_drops', [{ marker: 'subscribe_new_drops_email', value: 'jane@example.com' }], {
+      moduleConfigId: 52,
+      moduleEntityIdentifier: 'subscribe',
+    });
     expect(postFormsData).toHaveBeenCalledWith(
       expect.objectContaining({
         formIdentifier: 'subscribe_new_drops',
@@ -67,9 +64,7 @@ describe('submitForm', () => {
   it('returns ok:false when SDK throws', async () => {
     postFormsData.mockRejectedValue(new Error('network'));
     const { submitForm } = await importFresh();
-    const result = await submitForm('subscribe_new_drops', [
-      { marker: 'subscribe_new_drops_email', value: 'x@y.z' },
-    ]);
+    const result = await submitForm('subscribe_new_drops', [{ marker: 'subscribe_new_drops_email', value: 'x@y.z' }]);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe('network');
   });
@@ -86,7 +81,11 @@ describe('submitForm — disabled', () => {
   it('returns ok:false when SDK is disabled', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false, isError: () => false }));
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => null,
+      isOneEntryEnabled: false,
+      isError: () => false,
+    }));
     const { submitForm } = await import('@/lib/oneentry/forms/submit');
     const result = await submitForm('subscribe_new_drops', []);
     expect(result.ok).toBe(false);

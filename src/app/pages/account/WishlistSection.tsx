@@ -1,42 +1,43 @@
-'use client'
-import React, { useState, useRef, useEffect } from 'react';
-import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
+'use client';
+import { Eye, Heart, ShoppingBag } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
+import { useRouter } from '../../../lib/i18n/navigation';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
 import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { Heart, ShoppingBag, Eye } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
-import { SectionTitle, ACCENT } from './shared';
 import { SALE_COLOR } from '../../constants/colors';
 import { TIMINGS } from '../../constants/timings';
-import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
-import { PRODUCT_CARD_ARIA_LABELS, WISHLIST_DYNAMIC_ARIA, PRODUCT_CARD_LABELS, CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
-import { WISHLIST_LABELS as WL } from '../../data/accountLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useRouter } from '../../../lib/i18n/navigation';
+import { useCart } from '../../context/CartContext';
+import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
+import { WISHLIST_LABELS } from '../../data/accountLabels';
+import {
+  CATALOG_VIEW_LABELS,
+  PRODUCT_CARD_ARIA_LABELS,
+  PRODUCT_CARD_LABELS,
+  WISHLIST_DYNAMIC_ARIA,
+} from '../../data/commonLabels';
+import { fillTokens } from '../../utils/fillTokens';
+import { ACCENT, SectionTitle } from './shared';
 
 export function WishlistSection() {
+  const WL = useDict('user_account_wishlist_', WISHLIST_LABELS);
   const { items, removeItem } = useWishlist();
-  const inStockItems = items.filter(i => i.inStock);
+  const inStockItems = items.filter((i) => i.inStock);
   const title = useT('user_account_wishlist_title', WL.title);
 
   return (
-    <div
-      style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
-    >
+    <div style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}>
       <SectionTitle title={title} />
       {inStockItems.length === 0 ? (
-        <div className="text-center py-16">
-          <Heart size={48} strokeWidth={1} className="text-gray-300 mx-auto mb-3" />
+        <div className="py-16 text-center">
+          <Heart size={48} strokeWidth={1} className="mx-auto mb-3 text-gray-300" />
           <p className="text-sm text-gray-400">{WL.emptyText}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-white">
-          {inStockItems.map(item => (
-            <WishlistCard
-              key={item.id}
-              item={item}
-              onRemove={() => removeItem(item.id)}
-            />
+        <div className="grid grid-cols-2 gap-px bg-white sm:grid-cols-3">
+          {inStockItems.map((item) => (
+            <WishlistCard key={item.id} item={item} onRemove={() => removeItem(item.id)} />
           ))}
         </div>
       )}
@@ -44,19 +45,13 @@ export function WishlistSection() {
   );
 }
 
-export function WishlistCard({
-  item,
-  onRemove,
-}: {
-  item: WishlistItem;
-  onRemove: () => void;
-}) {
+export function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove: () => void }) {
+  const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);
+  const WL = useDict('user_account_wishlist_', WISHLIST_LABELS);
   const router = useRouter();
   const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
   const { addItem: addToCart } = useCart();
-  const initColorIdx = item.selectedColor
-    ? Math.max(0, item.colors.indexOf(item.selectedColor))
-    : 0;
+  const initColorIdx = item.selectedColor ? Math.max(0, item.colors.indexOf(item.selectedColor)) : 0;
   const [isHovered, setIsHovered] = useState(false);
   const [selectedColor, setSelectedColor] = useState(initColorIdx);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -111,22 +106,26 @@ export function WishlistCard({
   };
 
   const lSaleBadge = useT('user_account_wishlist_sale_badge', WL.saleBadge);
+  const lAdded = useT('product-card-added', PRODUCT_CARD_LABELS.added);
+  const aRemove = useT('product-card-aria_remove_from_wishlist', PRODUCT_CARD_ARIA_LABELS.removeFromWishlist);
+  const aQuickView = useT('user_account_wishlist_quick_view_prefix', WISHLIST_DYNAMIC_ARIA.quickViewPrefix);
+  const lQuickView = useT('interface_controls_view_quick_view', CVL.quickView);
 
   return (
     <div
-      className="relative flex flex-col bg-white group cursor-pointer font-[Inter,sans-serif] outline-1 outline-black"
+      className="group relative flex cursor-pointer flex-col bg-white font-[Inter,sans-serif] outline-1 outline-black"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
     >
       {/* Image */}
-      <div className="relative overflow-hidden aspect-3/4">
+      <div className="relative aspect-3/4 overflow-hidden">
         <ImageWithFallback
           src={item.image}
           alt={item.name}
           fill
           sizes="(max-width: 640px) 50vw, 25vw"
-          className={`object-cover transition-transform duration-500 object-[center_top] ${
+          className={`object-cover object-[center_top] transition-transform duration-500 ${
             isHovered ? 'scale-105' : 'scale-100'
           }`}
         />
@@ -134,7 +133,7 @@ export function WishlistCard({
         {/* Sale badge */}
         {item.salePrice && (
           <div className="absolute top-3 left-3">
-            <span className="px-2 py-1 text-white text-xs tracking-wider uppercase font-medium bg-(--sale) rounded-none">
+            <span className="rounded-none bg-(--sale) px-2 py-1 text-xs font-medium tracking-wider text-white uppercase">
               {lSaleBadge}
             </span>
           </div>
@@ -142,9 +141,13 @@ export function WishlistCard({
 
         {/* Remove from wishlist button — filled heart, matches ProductCard wishlist btn position */}
         <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
-          className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white transition-all duration-200 focus-visible:outline-none rounded-none"
-          aria-label={PRODUCT_CARD_ARIA_LABELS.removeFromWishlist}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-none bg-white/90 transition-all duration-200 hover:bg-white focus-visible:outline-none"
+          aria-label={aRemove}
         >
           <Heart size={16} fill={ACCENT} stroke={ACCENT} className="transition-colors duration-200" />
         </button>
@@ -159,31 +162,33 @@ export function WishlistCard({
             onMouseEnter={() => setCartHovered(true)}
             onMouseLeave={() => setCartHovered(false)}
             onClick={handleAddToCart}
-            className={`w-full py-2.5 text-xs tracking-widest uppercase font-medium text-white flex items-center justify-center gap-2 focus-visible:outline-none rounded-none transition-colors duration-200 ${
+            className={`flex w-full items-center justify-center gap-2 rounded-none py-2.5 text-xs font-medium tracking-widest text-white uppercase transition-colors duration-200 focus-visible:outline-none ${
               addedToCart ? 'bg-(--sale)' : cartHovered ? 'bg-accent' : 'bg-black'
             }`}
           >
             <ShoppingBag size={14} />
-            {addedToCart ? PRODUCT_CARD_LABELS.added : lAddToCart}
+            {addedToCart ? lAdded : lAddToCart}
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
-            className="w-full py-2.5 text-xs tracking-widest uppercase font-medium bg-white/95 text-black flex items-center justify-center gap-2 hover:bg-white transition-all duration-200 rounded-none"
-            aria-label={`${WISHLIST_DYNAMIC_ARIA.quickViewPrefix} ${item.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCardClick();
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-none bg-white/95 py-2.5 text-xs font-medium tracking-widest text-black uppercase transition-all duration-200 hover:bg-white"
+            aria-label={`${aQuickView} ${item.name}`}
           >
             <Eye size={14} />
-            {CVL.quickView}
+            {lQuickView}
           </button>
         </div>
       </div>
 
       {/* Info panel */}
-      <div className="flex flex-col px-4 pt-3 pb-4 min-h-24">
-
+      <div className="flex min-h-24 flex-col px-4 pt-3 pb-4">
         {/* Title with tooltip */}
         <div className="relative mb-1">
           <h3
-            className="text-sm text-black font-normal truncate"
+            className="truncate text-sm font-normal text-black"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
             onTouchStart={handleTouchStart}
@@ -193,28 +198,28 @@ export function WishlistCard({
             {item.name}
           </h3>
           {showTooltip && (
-            <div className="absolute left-0 bottom-full mb-2 px-3 py-2 text-white text-xs tracking-wide pointer-events-none bg-black whitespace-normal z-9999 max-w-65 leading-[1.4] shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
+            <div className="leading-1.4 pointer-events-none absolute bottom-full left-0 z-9999 mb-2 max-w-65 bg-black px-3 py-2 text-xs tracking-wide whitespace-normal text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)]">
               {item.name}
-              <span className="absolute left-3 top-full w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-black" />
+              <span className="absolute top-full left-3 size-0 border-x-[5px] border-t-[5px] border-x-transparent border-t-black" />
             </div>
           )}
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-2 mb-2.5">
+        <div className="mb-2.5 flex items-center gap-2">
           {item.salePrice ? (
             <>
               <span className="text-sm font-medium text-(--sale)">{item.salePrice}</span>
               <span className="text-xs text-gray-400 line-through">{item.price}</span>
             </>
           ) : (
-            <span className="text-sm text-black font-medium">{item.price}</span>
+            <span className="text-sm font-medium text-black">{item.price}</span>
           )}
         </div>
 
         {/* Color swatches */}
         {item.colors.length > 0 && (
-          <div className="flex items-center gap-2 mt-auto">
+          <div className="mt-auto flex items-center gap-2">
             {item.colors.slice(0, 4).map((color, idx) => {
               const isActive = selectedColor === idx;
               const isOOS = !item.inStock || (item.colorStock ? item.colorStock[idx] === false : false);
@@ -224,21 +229,23 @@ export function WishlistCard({
                   color={color}
                   active={isActive}
                   outOfStock={isOOS}
-                  label={`${CVL.colorSwatchTpl(idx + 1)}${isOOS ? CVL.colorSwatchOutOfStockSuffix : ''}`}
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!isOOS) setSelectedColor(idx); }}
+                  label={`${fillTokens(CVL.colorSwatch, { index: idx + 1 })}${isOOS ? CVL.colorSwatchOutOfStockSuffix : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isOOS) setSelectedColor(idx);
+                  }}
                 />
               );
             })}
-            {item.colors.length > 4 && (
-              <span className="text-xs text-gray-500 ml-1">+{item.colors.length - 4}</span>
-            )}
+            {item.colors.length > 4 && <span className="ml-1 text-xs text-gray-500">+{item.colors.length - 4}</span>}
           </div>
         )}
 
         {/* Selected size */}
         {item.selectedSize && (
           <div className="mt-1.5">
-            <span className="text-xs text-gray-500 tracking-wide">
+            <span className="text-xs tracking-wide text-gray-500">
               Size: <span className="font-medium text-black">{item.selectedSize}</span>
             </span>
           </div>

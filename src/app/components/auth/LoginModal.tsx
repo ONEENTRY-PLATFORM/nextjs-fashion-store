@@ -1,20 +1,19 @@
-'use client'
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+import { Eye, EyeOff, Mail, X } from 'lucide-react';
 import Image from 'next/image';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { TIMINGS } from '../../constants/timings';
-import { X, Eye, EyeOff, Mail } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { usePathname } from 'next/navigation';
-import { useSchemas } from '../../utils/useFormMessages';
-import { LOGIN_MODAL_LABELS as L } from '../../data/authLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
-import { useAuthProviders } from '../../hooks/useAuthProviders';
-import { SOCIAL_PROVIDER_REGISTRY, isFormBasedProvider } from '../../data/socialProviderRegistry';
-import { useRouter } from '../../../lib/i18n/navigation';
+import React, { useEffect, useRef, useState } from 'react';
 
-const SOCIAL_LOGO_CLASS = 'w-4.5 h-4.5';
+import { useRouter } from '../../../lib/i18n/navigation';
+import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { TIMINGS } from '../../constants/timings';
+import { useAuth } from '../../context/AuthContext';
+import { LOGIN_MODAL_LABELS } from '../../data/authLabels';
+import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '../../data/socialProviderRegistry';
+import { useAuthProviders } from '../../hooks/useAuthProviders';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useSchemas } from '../../utils/useFormMessages';
 
 function SocialBtn({
   iconPath,
@@ -31,38 +30,38 @@ function SocialBtn({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center justify-center gap-2 w-full py-3 text-sm border border-gray-300 font-medium hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+      className="flex w-full items-center justify-center gap-2 border border-gray-300 py-3 text-sm font-medium transition-colors duration-200 hover:bg-gray-50 focus-visible:outline-none active:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
     >
-      {iconPath && (
-        <Image src={iconPath} alt="" width={18} height={18} className={SOCIAL_LOGO_CLASS} unoptimized />
-      )}
+      {iconPath && <Image src={iconPath} alt="" width={18} height={18} className="size-4.5" unoptimized />}
       <span>{label}</span>
     </button>
   );
 }
 
 export function LoginModal() {
+  const L = useDict('sign_in_modal_', LOGIN_MODAL_LABELS);
   const schemas = useSchemas();
-  const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth, authError, setAuthError } = useAuth();
-  const lTitle      = useT('sign_in_title',          L.title);
-  const lOr         = useT('sign_in_or',             L.dividerOr);
-  const lForgot     = useT('sign_in_forgot_password', L.forgotPassword);
-  const lBottomText = useT('sign_in_bottom_text',    L.switchPrompt);
-  const lCreateOne  = useT('sign_in_create_one',     L.switchCta);
-  const lGoogleFail = useT('sign_in_google_failed',  L.errorGoogleFailed);
-  const lClose      = useT('sign_in_close',          L.closeLabel);
+  const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth, authError, setAuthError } =
+    useAuth();
+  const lTitle = useT('sign_in_title', L.title);
+  const lOr = useT('sign_in_or', L.dividerOr);
+  const lForgot = useT('sign_in_forgot_password', L.forgotPassword);
+  const lBottomText = useT('sign_in_bottom_text', L.switchPrompt);
+  const lCreateOne = useT('sign_in_create_one', L.switchCta);
+  const lGoogleFail = useT('sign_in_google_failed', L.errorGoogleFailed);
+  const lClose = useT('sign_in_close', L.closeLabel);
   const lLoadingOpt = useT('sign_in_loading_options', L.loadingOptions);
-  const lDismissErr = useT('sign_in_dismiss_error',  L.dismissError);
+  const lDismissErr = useT('sign_in_dismiss_error', L.dismissError);
   const schema = useSignUpFormSchema();
-  const emailLabel       = schema.email.title       || L.identifierLabel;
+  const emailLabel = schema.email.title || L.identifierLabel;
   const emailPlaceholder = schema.email.placeholder || L.identifierPlaceholder;
-  const emailHelper      = schema.email.helperText;
-  const emailInputType   = schema.email.inputType   || 'text';
-  const emailAutoComp    = schema.email.autoComplete || 'username';
-  const passwordLabel       = schema.password.title       || L.passwordLabel;
+  const emailHelper = schema.email.helperText;
+  const emailInputType = schema.email.inputType || 'text';
+  const emailAutoComp = schema.email.autoComplete || 'username';
+  const passwordLabel = schema.password.title || L.passwordLabel;
   const passwordPlaceholder = schema.password.placeholder || L.passwordPlaceholder;
-  const passwordHelper      = schema.password.helperText;
-  const passwordAutoComp    = schema.password.autoComplete || 'current-password';
+  const passwordHelper = schema.password.helperText;
+  const passwordAutoComp = schema.password.autoComplete || 'current-password';
   const router = useRouter();
   const pathname = usePathname();
   const isCheckout = pathname?.startsWith('/checkout');
@@ -103,12 +102,18 @@ export function LoginModal() {
     setLoading(true);
     await new Promise<void>((resolve) => {
       const t = setTimeout(resolve, TIMINGS.LOGIN_MOCK_DELAY);
-      controller.signal.addEventListener('abort', () => { clearTimeout(t); resolve(); });
+      controller.signal.addEventListener('abort', () => {
+        clearTimeout(t);
+        resolve();
+      });
     });
     if (controller.signal.aborted) return;
     const ok = await login(input, password);
     setLoading(false);
-    if (!ok) { setError(L.errorInvalidCredentials); return; }
+    if (!ok) {
+      setError(L.errorInvalidCredentials);
+      return;
+    }
     if (!isCheckout) router.push('/account');
   };
 
@@ -142,32 +147,33 @@ export function LoginModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"
-        className="relative bg-white w-full max-w-md flex flex-col max-h-[90vh] overflow-y-auto"
+        className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-y-auto bg-white"
       >
-
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200">
-          <h2 id="login-modal-title" className="text-lg tracking-[0.12em] uppercase font-bold">{lTitle}</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 px-8 py-6">
+          <h2 id="login-modal-title" className="text-lg font-bold tracking-[0.12em] uppercase">
+            {lTitle}
+          </h2>
           {/* Close button — guest checkout is enabled, so a visible X
               mirrors the backdrop-click behaviour and matches shopper
               expectations for a dismissable modal. */}
           <button
             aria-label={lClose}
             onClick={closeLoginModal}
-            className="hover:opacity-60 transition-opacity focus-visible:outline-none"
+            className="transition-opacity hover:opacity-60 focus-visible:outline-none"
           >
             <X size={20} strokeWidth={1.5} />
           </button>
         </div>
 
-        <div className="px-8 py-6 space-y-5">
+        <div className="space-y-5 px-8 py-6">
           {/* Social — list is pulled from OE via `getAuthProviders()`. Buttons for
               providers we don't have client wiring for (only google today) render
               disabled with a "Coming soon" hint. */}
           {authProvidersLoading ? (
             <div className="space-y-2.5" aria-busy="true" aria-label={lLoadingOpt}>
               {[0, 1, 2].map((i) => (
-                <div key={i} className="w-full py-3 h-11.5 border border-gray-200 bg-gray-100 animate-pulse" />
+                <div key={i} className="h-11.5 w-full animate-pulse border border-gray-200 bg-gray-100 py-3" />
               ))}
             </div>
           ) : socialProviders.length > 0 ? (
@@ -186,7 +192,7 @@ export function LoginModal() {
                 );
               })}
               {socialError && (
-                <p className="text-xs text-primary-men whitespace-normal break-words">{socialError}</p>
+                <p className="text-xs wrap-break-word whitespace-normal text-primary-men">{socialError}</p>
               )}
             </div>
           ) : null}
@@ -196,7 +202,7 @@ export function LoginModal() {
           {(authProvidersLoading || socialProviders.length > 0) && (
             <div className="flex items-center gap-3">
               <div className="flex-1 border-t border-gray-200" />
-              <span className="text-xs text-gray-400 tracking-widest uppercase">{lOr}</span>
+              <span className="text-xs tracking-widest text-gray-400 uppercase">{lOr}</span>
               <div className="flex-1 border-t border-gray-200" />
             </div>
           )}
@@ -204,31 +210,32 @@ export function LoginModal() {
           {/* Fields */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs uppercase tracking-wide mb-1.5 font-semibold text-gray-600">
+              <label className="mb-1.5 block text-xs font-semibold tracking-wide text-gray-600 uppercase">
                 {emailLabel}
               </label>
               <div className="relative">
                 <input
                   type={emailInputType}
                   value={input}
-                  onChange={e => { setInput(e.target.value); setError(''); }}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setError('');
+                  }}
                   placeholder={emailPlaceholder}
                   autoComplete={emailAutoComp}
-                  className="w-full px-4 py-3 text-sm outline-none pr-10 border border-gray-300 focus:border-black transition-colors duration-200"
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  className="w-full border border-gray-300 px-4 py-3 pr-10 text-sm transition-colors duration-200 outline-none focus:border-black"
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
-                <Mail size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Mail size={14} className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400" />
               </div>
-              {emailHelper && <p className="text-xs text-gray-400 mt-1">{emailHelper}</p>}
+              {emailHelper && <p className="mt-1 text-xs text-gray-400">{emailHelper}</p>}
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs uppercase tracking-wide font-semibold text-gray-600">
-                  {passwordLabel}
-                </label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-xs font-semibold tracking-wide text-gray-600 uppercase">{passwordLabel}</label>
                 <button
-                  className="text-xs hover:underline focus-visible:outline-none text-primary-women"
+                  className="text-xs text-primary-women hover:underline focus-visible:outline-none"
                   onClick={() => alert(L.forgotConfirm)}
                   tabIndex={-1}
                   type="button"
@@ -240,20 +247,23 @@ export function LoginModal() {
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
-                  onChange={e => { setPassword(e.target.value); setError(''); }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError('');
+                  }}
                   placeholder={passwordPlaceholder}
                   autoComplete={passwordAutoComp}
-                  className="w-full px-4 py-3 text-sm outline-none pr-10 border border-gray-300 focus:border-black transition-colors duration-200"
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  className="w-full border border-gray-300 px-4 py-3 pr-10 text-sm transition-colors duration-200 outline-none focus:border-black"
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
                 <button
-                  onClick={() => setShowPw(p => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 focus-visible:outline-none"
+                  onClick={() => setShowPw((p) => !p)}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 focus-visible:outline-none"
                 >
                   {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
-              {passwordHelper && <p className="text-xs text-gray-400 mt-1">{passwordHelper}</p>}
+              {passwordHelper && <p className="mt-1 text-xs text-gray-400">{passwordHelper}</p>}
             </div>
           </div>
 
@@ -262,13 +272,13 @@ export function LoginModal() {
               the only path that populates `authError`, and typing in
               either input clears the local `error` state anyway. */}
           {authError ? (
-            <div className="text-xs text-primary-men bg-red-50 border border-red-100 px-3 py-2 rounded-none flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-2 rounded-none border border-red-100 bg-red-50 px-3 py-2 text-xs text-primary-men">
               <span>{authError}</span>
               <button
                 type="button"
                 onClick={() => setAuthError(null)}
                 aria-label={lDismissErr}
-                className="text-gray-500 hover:text-black transition-colors focus-visible:outline-none"
+                className="text-gray-500 transition-colors hover:text-black focus-visible:outline-none"
               >
                 <X size={12} strokeWidth={1.5} />
               </button>
@@ -281,13 +291,13 @@ export function LoginModal() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full py-4 text-white text-sm tracking-[0.2em] uppercase bg-black hover:bg-primary-women active:bg-primary-men font-semibold transition-colors duration-200 focus-visible:outline-none disabled:opacity-60 disabled:pointer-events-none"
+            className="w-full bg-black py-4 text-sm font-semibold tracking-[0.2em] text-white uppercase transition-colors duration-200 hover:bg-primary-women focus-visible:outline-none active:bg-primary-men disabled:pointer-events-none disabled:opacity-60"
           >
             {loading ? L.ctaLoading : L.ctaSubmit}
           </button>
 
           {/* Switch */}
-          <p className="text-xs text-center text-gray-500">
+          <p className="text-center text-xs text-gray-500">
             {lBottomText}{' '}
             <button
               onClick={openRegisterModal}

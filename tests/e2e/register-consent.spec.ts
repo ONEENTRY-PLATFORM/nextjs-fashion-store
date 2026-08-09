@@ -7,28 +7,31 @@
  * terms box is required. The assertions below are the behaviours that were
  * missing — they fail against the old markup.
  */
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { clickAccountIcon } from './helpers';
 
 /** Open the sign-up modal from a clean session. */
 async function openRegisterModal(page: import('@playwright/test').Page) {
   await page.goto('/');
-  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
   await page.reload();
   await page.waitForLoadState('networkidle');
   await clickAccountIcon(page);
   const dialog = page.locator('[role="dialog"]');
   await dialog.waitFor({ state: 'visible', timeout: 10_000 });
-  await page.getByRole('button', { name: /create one|sign up|register/i }).first().click();
+  await page
+    .getByRole('button', { name: /create one|sign up|register/i })
+    .first()
+    .click();
   await expect(page.getByTestId('register-agree-terms')).toBeAttached({ timeout: 10_000 });
   return dialog;
 }
 
-const BOXES = [
-  'register-agree-terms',
-  'register-subscribe-email',
-  'register-subscribe-sms',
-] as const;
+const BOXES = ['register-agree-terms', 'register-subscribe-email', 'register-subscribe-sms'] as const;
 
 test.describe('Sign-up consent checkboxes — accessibility', () => {
   test('each control is a real checkbox, unchecked by default', async ({ page }) => {

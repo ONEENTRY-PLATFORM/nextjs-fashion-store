@@ -1,11 +1,15 @@
-'use client'
-import { Store, MapPin, Clock, CheckCircle, ChevronDown } from 'lucide-react';
+'use client';
+import { CheckCircle, ChevronDown, Clock, MapPin, Store } from 'lucide-react';
+
+import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { RadioCard } from '../../components/ui/RadioCard';
 import { PICKUP_PERKS, type PickupStore } from '../../data/checkoutConfig';
-import { DELIVERY_METHOD_STORE_LABELS as L_FALLBACK, DELIVERY_METHOD_SHARED_LABELS as SH } from '../../data/checkoutLabels';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import {
+  DELIVERY_METHOD_SHARED_LABELS as SH,
+  DELIVERY_METHOD_STORE_LABELS as L_FALLBACK,
+} from '../../data/checkoutLabels';
 import { type GuestContactFormState } from './GuestContactForm';
-import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 interface DeliveryMethodStoreProps {
   checked: boolean;
@@ -22,10 +26,13 @@ interface DeliveryMethodStoreProps {
 }
 
 export function DeliveryMethodStore({
-  checked, onChange,
+  checked,
+  onChange,
   stores,
-  selectedStore, setSelectedStore,
-  storeDropOpen, setStoreDropOpen,
+  selectedStore,
+  setSelectedStore,
+  storeDropOpen,
+  setStoreDropOpen,
   // Guest-contact props stay in the signature for the disabled form below.
   isLoggedIn: _isLoggedIn,
   guestContact: _guestContact,
@@ -34,9 +41,9 @@ export function DeliveryMethodStore({
 }: DeliveryMethodStoreProps) {
   const L = useDict('checkout_delivery_store_', L_FALLBACK);
   const info = useDeliveryMethodInfo();
-  const title    = info?.store.title    ?? L.title;
+  const title = info?.store.title ?? L.title;
   const subtitle = info?.store.subtitle ?? L.subtitle;
-  const perks    = info?.store.perks    ?? PICKUP_PERKS.map((p) => p.text);
+  const perks = info?.store.perks ?? PICKUP_PERKS.map((p) => p.text);
   const lFreeBadge = useT('checkout_delivery_free_badge', SH.freeBadge);
   return (
     <RadioCard
@@ -49,13 +56,13 @@ export function DeliveryMethodStore({
       badge={lFreeBadge}
     >
       <div className="pt-4">
-        <label className="block text-xs tracking-wide uppercase mb-1.5 font-semibold text-[#555]">
+        <label className="mb-1.5 block text-xs font-semibold tracking-wide text-[#555] uppercase">
           {L.selectStore}
         </label>
         <div className="relative">
           <button
-            onClick={() => setStoreDropOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm text-left focus-visible:outline-none border border-[#d1d5db] rounded-none"
+            onClick={() => setStoreDropOpen((o) => !o)}
+            className="flex w-full items-center justify-between rounded-none border border-[#d1d5db] px-4 py-3 text-left text-sm focus-visible:outline-none"
             aria-expanded={storeDropOpen}
             aria-haspopup="listbox"
           >
@@ -66,12 +73,15 @@ export function DeliveryMethodStore({
             />
           </button>
           {storeDropOpen && (
-            <div className="absolute top-full left-0 right-0 bg-white z-20 border border-[#d1d5db] border-t-0">
-              {stores.map(s => (
+            <div className="absolute inset-x-0 top-full z-20 border border-t-0 border-[#d1d5db] bg-white">
+              {stores.map((s) => (
                 <button
                   key={s.id}
-                  onClick={() => { setSelectedStore(s); setStoreDropOpen(() => false); }}
-                  className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors focus-visible:outline-none border-b border-[#f0f0f0] ${
+                  onClick={() => {
+                    setSelectedStore(s);
+                    setStoreDropOpen(() => false);
+                  }}
+                  className={`w-full border-b border-[#f0f0f0] px-4 py-3 text-left text-sm transition-colors hover:bg-gray-50 focus-visible:outline-none ${
                     selectedStore.id === s.id ? 'font-semibold' : 'font-normal'
                   }`}
                 >
@@ -82,8 +92,8 @@ export function DeliveryMethodStore({
           )}
         </div>
 
-        <div className="mt-4 p-4 bg-[#fafafa] border border-[#e5e7eb]">
-          <div className="flex items-start gap-2 mb-2">
+        <div className="mt-4 border border-[#e5e7eb] bg-[#fafafa] p-4">
+          <div className="mb-2 flex items-start gap-2">
             <MapPin size={14} className="mt-0.5 shrink-0 text-accent" />
             <p className="text-xs text-gray-600">{selectedStore.address}</p>
           </div>
@@ -93,8 +103,8 @@ export function DeliveryMethodStore({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 mt-4">
-          {perks.map(text => (
+        <div className="mt-4 flex flex-wrap gap-4">
+          {perks.map((text) => (
             <div key={text} className="flex items-center gap-1.5 text-xs text-gray-500">
               <CheckCircle size={12} className="text-green-600" />
               {text}

@@ -1,11 +1,11 @@
-'use client'
+'use client';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
+import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
+import { useT } from '../../lib/oneentry/labels/DictContext';
 import { CatalogTemplate, type FilterGroup } from '../components/catalog/CatalogTemplate';
 import type { Product } from '../components/product/ProductCard';
 import { ACCENT_MEN as ACCENT } from '../constants/colors';
 import { CATALOG_PAGE_LABELS as CL } from '../data/catalogPageLabels';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 
 const PRODUCTS_PER_PAGE = 16;
 
@@ -32,11 +32,11 @@ export function MenBagsPage({
 } = {}) {
   // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
   // offline fallback.
-  const lTitle     = useT('catalog_page_bags',             CL.bags);
-  const lGender    = useT('catalog_page_men',              CL.men);
-  const lCrumbHome = useT('catalog_page_breadcrumb_home',  CL.breadcrumbHome);
-  const lCrumbMen  = useT('catalog_page_breadcrumb_men',   CL.breadcrumbMen);
-  const lCrumbCat  = useT('catalog_page_breadcrumb_bags',  CL.breadcrumbBags);
+  const lTitle = useT('catalog_page_bags', CL.bags);
+  const lGender = useT('catalog_page_men', CL.men);
+  const lCrumbHome = useT('catalog_page_breadcrumb_home', CL.breadcrumbHome);
+  const lCrumbMen = useT('catalog_page_breadcrumb_men', CL.breadcrumbMen);
+  const lCrumbCat = useT('catalog_page_breadcrumb_bags', CL.breadcrumbBags);
   return (
     <CatalogTemplate
       pageBlocks={pageBlocks}
@@ -56,11 +56,7 @@ export function MenBagsPage({
       priceMax={500}
       priceDefault={[0, 500]}
       scrollbarClass="scrollbar-red"
-      breadcrumbs={[
-        { label: lCrumbHome, href: '/' },
-        { label: lCrumbMen, href: '/men' },
-        { label: lCrumbCat },
-      ]}
+      breadcrumbs={[{ label: lCrumbHome, href: '/' }, { label: lCrumbMen, href: '/men' }, { label: lCrumbCat }]}
     />
   );
 }

@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
 import { clearState, clickAccountIcon, login, readSession, SESSION_KEYS, VALID_CREDS } from './helpers';
 
 /**
@@ -12,9 +13,7 @@ import { clearState, clickAccountIcon, login, readSession, SESSION_KEYS, VALID_C
  *     survive without any cookie;
  *   • sign-out has to wipe the storage even when the OE `logout` call fails.
  */
-const OE_CONFIGURED = Boolean(
-  process.env.NEXT_PUBLIC_ONEENTRY_URL && process.env.NEXT_PUBLIC_ONEENTRY_TOKEN,
-);
+const OE_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_ONEENTRY_URL && process.env.NEXT_PUBLIC_ONEENTRY_TOKEN);
 
 test.describe('Shopper session (client-side tokens)', () => {
   // Signing in needs a live tenant — there is no local auth to fall back on.
@@ -76,9 +75,7 @@ test.describe('Shopper session (client-side tokens)', () => {
     await signOut.waitFor({ state: 'visible', timeout: 15_000 });
     await signOut.click();
 
-    await expect
-      .poll(async () => (await readSession(page)).refreshToken, { timeout: 10_000 })
-      .toBeNull();
+    await expect.poll(async () => (await readSession(page)).refreshToken, { timeout: 10_000 }).toBeNull();
 
     const session = await readSession(page);
     expect(session.providerMarker).toBeNull();
@@ -128,9 +125,7 @@ test.describe('Sign-in runs in the browser', () => {
     await page.locator('button:has-text("Log In")').click();
 
     // OneEntry answered — the SDK is configured and reachable from the page.
-    await expect
-      .poll(() => authCalls.length, { timeout: 20_000 })
-      .toBeGreaterThan(0);
+    await expect.poll(() => authCalls.length, { timeout: 20_000 }).toBeGreaterThan(0);
     expect(authCalls[0]).toContain('/marker/email/users/auth');
 
     // The rejection reaches the UI rather than being swallowed…

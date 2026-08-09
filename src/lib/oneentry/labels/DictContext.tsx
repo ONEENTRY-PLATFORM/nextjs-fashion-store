@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, type ReactNode, useContext, useMemo } from 'react';
+
 import type { Dictionary } from '../dictionary';
 import { mergeDict } from './dict';
 
@@ -22,27 +23,23 @@ const Ctx = createContext<Dictionary | null>(null);
 
 /**
  * Publish the dictionary loaded server-side by `getDictionary()`.
- * @param   {object}       props          - Provider props.
- * @param   {Dictionary}   props.data     - Flat `marker → value` map.
- * @param   {ReactNode}    props.children - Subtree that reads the dictionary.
- * @returns {ReactNode}                   The provided subtree.
+ *
+ * @param       props          - Provider props.
+ * @param   props.data     - Flat `marker → value` map.
+ * @param    props.children - Subtree that reads the dictionary.
+ * @returns                   The provided subtree.
  */
-export function DictProvider({
-  data,
-  children,
-}: {
-  data: Dictionary;
-  children: ReactNode;
-}) {
+export function DictProvider({ data, children }: { data: Dictionary; children: ReactNode }) {
   return <Ctx.Provider value={data}>{children}</Ctx.Provider>;
 }
 
 /**
  * Read one label, falling back to the shipped English copy when the CMS has no
  * value for the marker (or no provider is mounted).
- * @param   {string} key      - Attribute marker, e.g. `header_search_label`.
- * @param   {string} fallback - Inline copy used when the CMS has nothing.
- * @returns {string}          The resolved label.
+ *
+ * @param key      - Attribute marker, e.g. `header_search_label`.
+ * @param fallback - Inline copy used when the CMS has nothing.
+ * @returns          The resolved label.
  */
 export function useT(key: string, fallback: string): string {
   const dict = useContext(Ctx);
@@ -57,19 +54,14 @@ export function useT(key: string, fallback: string): string {
  * `checkout_delivery_<snake_case_key>` for every string in `LABELS`. Non-string
  * entries pass through untouched — they are structure, not copy. See `dict.ts`
  * for the naming convention.
- * @param   {string} prefix    - Marker prefix, usually `${setMarker}_`.
- * @param   {object} fallbacks - Local dictionary; also the shape of the result.
- * @returns {object}           `fallbacks` with CMS values overlaid.
+ *
+ * @param prefix    - Marker prefix, usually `${setMarker}_`.
+ * @param fallbacks - Local dictionary; also the shape of the result.
+ * @returns           `fallbacks` with CMS values overlaid.
  */
-export function useDict<T extends Record<string, unknown>>(
-  prefix: string,
-  fallbacks: T,
-): T {
+export function useDict<T extends Record<string, unknown>>(prefix: string, fallbacks: T): T {
   const dict = useContext(Ctx);
-  return useMemo(
-    () => mergeDict(dict ?? undefined, prefix, fallbacks),
-    [dict, prefix, fallbacks],
-  );
+  return useMemo(() => mergeDict(dict ?? undefined, prefix, fallbacks), [dict, prefix, fallbacks]);
 }
 
 /**
@@ -77,14 +69,18 @@ export function useDict<T extends Record<string, unknown>>(
  *
  * Falls back to the local array when the key is missing, empty, or contains
  * only separators.
- * @param   {string}            key      - Attribute marker holding the CSV.
- * @param   {readonly string[]} fallback - Inline list used when the CMS has none.
- * @returns {string[]}                   Trimmed, non-empty entries.
+ *
+ * @param            key      - Attribute marker holding the CSV.
+ * @param fallback - Inline list used when the CMS has none.
+ * @returns                   Trimmed, non-empty entries.
  */
 export function useList(key: string, fallback: readonly string[]): string[] {
   const dict = useContext(Ctx);
   const raw = dict?.[key];
   if (typeof raw !== 'string' || raw.trim().length === 0) return [...fallback];
-  const parts = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const parts = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return parts.length > 0 ? parts : [...fallback];
 }

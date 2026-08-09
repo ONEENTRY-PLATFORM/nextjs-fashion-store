@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useId } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 
 interface Props {
   chart: string;
@@ -55,7 +55,7 @@ export function MermaidDiagram({ chart }: Props) {
 
       // Expand clipPath rectangles so text isn't clipped
       // (80px margin in width, 40px in height)
-      svgEl.querySelectorAll('clipPath rect').forEach(el => {
+      svgEl.querySelectorAll('clipPath rect').forEach((el) => {
         const w = parseFloat(el.getAttribute('width') || '0');
         const h = parseFloat(el.getAttribute('height') || '0');
         const x = parseFloat(el.getAttribute('x') || '0');
@@ -71,7 +71,7 @@ export function MermaidDiagram({ chart }: Props) {
       });
 
       // Expand foreignObject for htmlLabels mode
-      svgEl.querySelectorAll('foreignObject').forEach(fo => {
+      svgEl.querySelectorAll('foreignObject').forEach((fo) => {
         const w = parseFloat(fo.getAttribute('width') || '0');
         const h = parseFloat(fo.getAttribute('height') || '0');
         if (w > 0) fo.setAttribute('width', String(w + 80));
@@ -91,7 +91,9 @@ export function MermaidDiagram({ chart }: Props) {
       }
     })().catch(console.error);
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [chart, id]);
 
   return (

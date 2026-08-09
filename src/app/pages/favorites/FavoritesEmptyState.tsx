@@ -1,47 +1,49 @@
-'use client'
+'use client';
+import { Heart } from 'lucide-react';
 import Image from 'next/image';
 
-import { Heart } from 'lucide-react';
-import { FAVORITES_EMPTY_LABELS as L } from '../../data/favoritesLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useRouter } from '../../../lib/i18n/navigation';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { FAVORITES_EMPTY_LABELS } from '../../data/favoritesLabels';
 
 export function FavoritesEmptyState() {
+  const L = useDict('favorites_page_empty_', FAVORITES_EMPTY_LABELS);
   const router = useRouter();
   // Same OE set as the rest of the page; local constants are the fallback.
   const lImageAlt = useT('favorites_empty_image_alt', L.imageAlt);
-  const lHeading  = useT('favorites_empty_heading',   L.heading);
-  const lBody     = useT('favorites_empty_body',      L.body);
+  const lHeading = useT('favorites_empty_heading', L.heading);
+  const lBody = useT('favorites_empty_body', L.body);
   const lCtaWomen = useT('favorites_empty_cta_women', L.ctaWomen);
-  const lCtaHome  = useT('favorites_empty_cta_home',  L.ctaHome);
+  const lCtaHome = useT('favorites_empty_cta_home', L.ctaHome);
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center" data-testid="favorites-empty-state">
+    <div
+      className="flex flex-col items-center justify-center px-4 py-20 text-center"
+      data-testid="favorites-empty-state"
+    >
       <div className="relative mb-8">
         <Image
           src="https://images.unsplash.com/photo-1601136610007-1ecf5706c908?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=320&q=80"
           alt={lImageAlt}
           width={192}
           height={240}
-          className="object-cover mx-auto grayscale-30"
+          className="mx-auto object-cover grayscale-30"
         />
-        <div className="absolute inset-0 flex items-end justify-center pb-6 bg-linear-to-t from-white/95 from-30% to-transparent">
+        <div className="absolute inset-0 flex items-end justify-center bg-linear-to-t from-white/95 from-30% to-transparent pb-6">
           <Heart size={40} strokeWidth={1} className="text-accent" />
         </div>
       </div>
-      <h2 className="text-xl tracking-[0.15em] uppercase mb-3 font-bold">{lHeading}</h2>
-      <p className="text-sm text-gray-400 mb-8 max-w-xs leading-relaxed">
-        {lBody}
-      </p>
-      <div className="flex flex-col sm:flex-row gap-3">
+      <h2 className="mb-3 text-xl font-bold tracking-[0.15em] uppercase">{lHeading}</h2>
+      <p className="mb-8 max-w-xs text-sm leading-relaxed text-gray-400">{lBody}</p>
+      <div className="flex flex-col gap-3 sm:flex-row">
         <button
           onClick={() => router.push(L.ctaWomenHref)}
-          className="px-8 py-4 text-white text-xs tracking-[0.2em] uppercase focus-visible:outline-none hover:opacity-90 transition-opacity bg-black rounded-none font-bold"
+          className="rounded-none bg-black px-8 py-4 text-xs font-bold tracking-[0.2em] text-white uppercase transition-opacity hover:opacity-90 focus-visible:outline-none"
         >
           {lCtaWomen}
         </button>
         <button
           onClick={() => router.push(L.ctaHomeHref)}
-          className="px-8 py-4 text-xs tracking-[0.2em] uppercase focus-visible:outline-none hover:bg-gray-50 transition-colors border border-black rounded-none font-semibold"
+          className="rounded-none border border-black px-8 py-4 text-xs font-semibold tracking-[0.2em] uppercase transition-colors hover:bg-gray-50 focus-visible:outline-none"
         >
           {lCtaHome}
         </button>

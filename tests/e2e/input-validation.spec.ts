@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+
 import { gotoProduct, login, selectFirstAvailableSize } from './helpers';
 
 /**
@@ -18,13 +19,15 @@ async function openRegisterModal(page: Page) {
   await openLoginModal(page);
   // Switch CTA text comes from OE (sign_in_create_one) with fallback "Create one".
   // Match by role + regex so OE label variants ("Sign up", "Register") still work.
-  await page.getByRole('button', { name: /create one|sign up|register/i }).first().click();
+  await page
+    .getByRole('button', { name: /create one|sign up|register/i })
+    .first()
+    .click();
   await page.waitForTimeout(500);
 }
 
 // ─── Login Schema ───────────────────────────────────────────────────────────
 test.describe('Input Validation — Login Form', () => {
-
   test('rejects invalid email format', async ({ page }) => {
     await openLoginModal(page);
     await page.locator('input[placeholder*="example.com"]').fill('not-an-email');
@@ -86,13 +89,12 @@ test.describe('Input Validation — Login Form', () => {
 
 // ─── Register Schema ────────────────────────────────────────────────────────
 test.describe('Input Validation — Register Form', () => {
-
   test('rejects empty first name', async ({ page }) => {
     await openRegisterModal(page);
     // Leave first name empty, fill rest
     await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
-    if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
+    if ((await pwInputs.count()) > 0) await pwInputs.first().fill('Password123!');
     const submitBtn = page.locator('button:has-text("Register")').first();
     if (await submitBtn.isVisible()) await submitBtn.click();
     await expect(page.locator('text=/required|name/i').first()).toBeVisible({ timeout: 3000 });
@@ -103,7 +105,7 @@ test.describe('Input Validation — Register Form', () => {
     await page.locator('input[autocomplete="given-name"]').first().fill('A'.repeat(61));
     await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
-    if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
+    if ((await pwInputs.count()) > 0) await pwInputs.first().fill('Password123!');
     const submitBtn = page.locator('button:has-text("Register")').first();
     if (await submitBtn.isVisible()) await submitBtn.click();
     // Should show error or silently truncate
@@ -115,7 +117,7 @@ test.describe('Input Validation — Register Form', () => {
     await page.locator('input[autocomplete="given-name"]').first().fill('Test');
     await page.locator('input[placeholder*="example.com"]').first().fill('not-an-email');
     const pwInputs = page.locator('input[type="password"]');
-    if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
+    if ((await pwInputs.count()) > 0) await pwInputs.first().fill('Password123!');
     const submitBtn = page.locator('button:has-text("Register")').first();
     if (await submitBtn.isVisible()) await submitBtn.click();
     await expect(page.locator('text=/valid email|email/i').first()).toBeVisible({ timeout: 3000 });
@@ -126,7 +128,7 @@ test.describe('Input Validation — Register Form', () => {
     await page.locator('input[autocomplete="given-name"]').first().fill('Test');
     await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
-    if (await pwInputs.count() > 0) await pwInputs.first().fill('123');
+    if ((await pwInputs.count()) > 0) await pwInputs.first().fill('123');
     const phoneInput = page.getByPlaceholder(/\+44/i).first();
     if (await phoneInput.isVisible()) await phoneInput.fill('+44 123 456 7890');
     const submitBtn = page.locator('button:has-text("Register")').first();
@@ -139,14 +141,14 @@ test.describe('Input Validation — Register Form', () => {
     await page.locator('input[autocomplete="given-name"]').first().fill('Test');
     await page.locator('input[placeholder*="example.com"]').first().fill('test@test.com');
     const pwInputs = page.locator('input[type="password"]');
-    if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
+    if ((await pwInputs.count()) > 0) await pwInputs.first().fill('Password123!');
     const phoneInput = page.getByPlaceholder(/\+44/i).first();
     if (await phoneInput.isVisible()) await phoneInput.fill('not-a-phone!!!');
     const submitBtn = page.locator('button:has-text("Register")').first();
     if (await submitBtn.isVisible()) await submitBtn.click();
     await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(200);
-      await expect(page.locator('[role="alert"]').first()).toBeVisible({ timeout: 3000 });
+    await page.waitForTimeout(200);
+    await expect(page.locator('[role="alert"]').first()).toBeVisible({ timeout: 3000 });
   });
 });
 
@@ -155,7 +157,19 @@ async function goToDeliveryAsGuest(page: Page) {
   await page.addInitScript(() => {
     const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
     store.cart = {
-      items: [{ id: 'wc-3-test', name: 'Test Dress', brand: 'OE', sku: 'wc-3', color: '#000', size: 'M', quantity: 1, price: 49.99, image: '/icons/icon-192.png' }],
+      items: [
+        {
+          id: 'wc-3-test',
+          name: 'Test Dress',
+          brand: 'OE',
+          sku: 'wc-3',
+          color: '#000',
+          size: 'M',
+          quantity: 1,
+          price: 49.99,
+          image: '/icons/icon-192.png',
+        },
+      ],
       miniCartOpen: false,
     };
     store.__version = 3;
@@ -172,7 +186,6 @@ async function goToDeliveryAsGuest(page: Page) {
 
 // ─── Address Schema (Checkout Delivery) ────────────────────────────────────
 test.describe('Input Validation — Address Form', () => {
-
   test('rejects empty address fields', async ({ page }) => {
     await goToDeliveryAsGuest(page);
     // Click Continue to Payment — should trigger validation
@@ -279,7 +292,6 @@ test.describe('Input Validation — Address Form', () => {
 
 // ─── Payment Schema ─────────────────────────────────────────────────────────
 test.describe('Input Validation — Payment Form', () => {
-
   test('rejects letters in card number', async ({ page }) => {
     await page.goto('/checkout/payment');
     await page.waitForLoadState('networkidle');
@@ -395,7 +407,6 @@ test.describe('Input Validation — Payment Form', () => {
 
 // ─── Promo Code Schema ──────────────────────────────────────────────────────
 test.describe('Input Validation — Promo Code', () => {
-
   async function addItemAndGoToCart(page: Page) {
     await gotoProduct(page);
     await page.waitForLoadState('networkidle');
@@ -495,13 +506,12 @@ test.describe('Input Validation — Promo Code', () => {
 
 // ─── Register — Terms checkbox ──────────────────────────────────────────────
 test.describe('Input Validation — Register Terms', () => {
-
   test('register without accepting terms shows error', async ({ page }) => {
     await openRegisterModal(page);
     await page.locator('input[autocomplete="given-name"]').first().fill('Test');
     await page.locator('input[placeholder*="example.com"]').first().fill('new@test.com');
     const pwInputs = page.locator('input[type="password"]');
-    if (await pwInputs.count() > 0) await pwInputs.first().fill('Password123!');
+    if ((await pwInputs.count()) > 0) await pwInputs.first().fill('Password123!');
     const phoneInput = page.getByPlaceholder(/\+44/i).first();
     if (await phoneInput.isVisible()) await phoneInput.fill('+44 123 456 7890');
     // Do NOT check "I agree" checkbox
@@ -513,7 +523,6 @@ test.describe('Input Validation — Register Terms', () => {
 
 // ─── Address — city and instructions ────────────────────────────────────────
 test.describe('Input Validation — Address extras', () => {
-
   test('rejects empty city', async ({ page }) => {
     await goToDeliveryAsGuest(page);
     // Fill all fields except city
@@ -572,7 +581,6 @@ test.describe('Input Validation — Address extras', () => {
 
 // ─── Payment — name on card ─────────────────────────────────────────────────
 test.describe('Input Validation — Payment name on card', () => {
-
   test('rejects empty name on card', async ({ page }) => {
     await page.goto('/checkout/payment');
     await page.waitForLoadState('networkidle');
@@ -610,7 +618,6 @@ test.describe('Input Validation — Payment name on card', () => {
 
 // ─── Write Review Modal ─────────────────────────────────────────────────────
 test.describe('Input Validation — Write Review', () => {
-
   test('submit empty review shows validation errors', async ({ page }) => {
     await gotoProduct(page);
     await page.waitForLoadState('networkidle');
@@ -706,7 +713,6 @@ test.describe('Input Validation — Write Review', () => {
 
 // ─── Profile Edit (Account) ─────────────────────────────────────────────────
 test.describe('Input Validation — Profile Edit', () => {
-
   test('profile rejects invalid email format', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -745,8 +751,8 @@ test.describe('Input Validation — Profile Edit', () => {
         const saveBtn = page.getByRole('button', { name: /save/i }).first();
         if (await saveBtn.isVisible()) await saveBtn.click();
         await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(200);
-      await expect(page.locator('[role="alert"]').first()).toBeVisible({ timeout: 3000 });
+        await page.waitForTimeout(200);
+        await expect(page.locator('[role="alert"]').first()).toBeVisible({ timeout: 3000 });
       }
     }
   });

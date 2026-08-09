@@ -1,19 +1,13 @@
-'use client'
-import { useState, useEffect } from 'react';
-
-import {
-  GlobeAltIcon, ChevronDownIcon, PhoneIcon, MapPinIcon,
-} from '@heroicons/react/24/outline';
-import {
-  HEADER_REGIONS, SUPPORT_PHONE,
-  FALLBACK_LANGUAGE_LABEL, STORE_LOCATIONS_HREF,
-} from '../../data/headerConfig';
-import { useList, useT } from '../../../lib/oneentry/labels/DictContext';
-import { useCmsLocales } from '../../../lib/oneentry/LocalesContext';
-import { useRouter, useLocale, usePathnameWithoutLocale } from '../../../lib/i18n/navigation';
-import { SHORT_LOCALES, toShortCode } from '../../../lib/oneentry/locale';
+'use client';
+import { ChevronDownIcon, GlobeAltIcon, MapPinIcon, PhoneIcon } from '@heroicons/react/24/outline';
 import { useRouter as useNextRouter } from 'next/navigation';
-import { localizeHref } from '../../../lib/oneentry/locale';
+import { useEffect, useState } from 'react';
+
+import { useLocale, usePathnameWithoutLocale, useRouter } from '../../../lib/i18n/navigation';
+import { useList, useT } from '../../../lib/oneentry/labels/DictContext';
+import { localizeHref, SHORT_LOCALES, toShortCode } from '../../../lib/oneentry/locale';
+import { useCmsLocales } from '../../../lib/oneentry/LocalesContext';
+import { FALLBACK_LANGUAGE_LABEL, HEADER_REGIONS, STORE_LOCATIONS_HREF, SUPPORT_PHONE } from '../../data/headerConfig';
 
 export function HeaderTopBar() {
   const router = useRouter();
@@ -39,41 +33,49 @@ export function HeaderTopBar() {
   // URL for would render a switcher entry that leads nowhere, which is worse
   // than not offering it.
   const cmsLocales = useCmsLocales();
-  const locales = cmsLocales.filter((l) =>
-    SHORT_LOCALES.includes(toShortCode(l.code)),
-  );
+  const locales = cmsLocales.filter((l) => SHORT_LOCALES.includes(toShortCode(l.code)));
   const activeLanguage =
-    locales.find((l) => toShortCode(l.code) === activeLocale)?.shortCode.toUpperCase()
-    ?? activeLocale.toUpperCase()
-    ?? FALLBACK_LANGUAGE_LABEL;
+    locales.find((l) => toShortCode(l.code) === activeLocale)?.shortCode.toUpperCase() ??
+    activeLocale.toUpperCase() ??
+    FALLBACK_LANGUAGE_LABEL;
 
   useEffect(() => {
     if (!cityOpen && !langOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setCityOpen(false); setLangOpen(false); }
+      if (e.key === 'Escape') {
+        setCityOpen(false);
+        setLangOpen(false);
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [cityOpen, langOpen]);
 
   return (
-    <div className="bg-black text-white hidden md:block" data-testid="header-top-bar">
-      <div className="max-w-384 mx-auto px-8 lg:px-12 h-10 flex items-center justify-between text-xs">
+    <div className="hidden bg-black text-white md:block" data-testid="header-top-bar">
+      <div className="mx-auto flex h-10 max-w-384 items-center justify-between px-8 text-xs lg:px-12">
         <div className="flex items-center gap-6">
           <div className="relative">
             <button
-              onClick={() => { setCityOpen(!cityOpen); setLangOpen(false); }}
-              className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+              onClick={() => {
+                setCityOpen(!cityOpen);
+                setLangOpen(false);
+              }}
+              className="flex items-center gap-1 transition-opacity hover:opacity-80"
               data-testid="header-region-toggle"
             >
-              <GlobeAltIcon className="w-5 h-5" />
+              <GlobeAltIcon className="size-5" />
               <span>{lRegion}</span>
-              <ChevronDownIcon className="w-4 h-4" />
+              <ChevronDownIcon className="size-4" />
             </button>
             {cityOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white text-black shadow-lg z-50 min-w-35 border border-gray-200">
+              <div className="absolute top-full left-0 z-50 mt-1 min-w-35 border border-gray-200 bg-white text-black shadow-lg">
                 {regions.map((c) => (
-                  <button key={c} onClick={() => setCityOpen(false)} className="block w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors">
+                  <button
+                    key={c}
+                    onClick={() => setCityOpen(false)}
+                    className="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-gray-100"
+                  >
                     {c}
                   </button>
                 ))}
@@ -84,60 +86,63 @@ export function HeaderTopBar() {
               locale has nothing to switch to, and a control that is present but
               inert reads as broken — worse than absent. */}
           {locales.length > 1 && (
-          <div className="relative">
-            <button
-              onClick={() => { setLangOpen(!langOpen); setCityOpen(false); }}
-              className="flex items-center gap-1 hover:opacity-80 transition-opacity"
-              data-testid="header-language-toggle"
-            >
-              <span>{activeLanguage}</span>
-              <ChevronDownIcon className="w-4 h-4" />
-            </button>
-            {langOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white text-black shadow-lg z-50 min-w-25 border border-gray-200">
-                {locales.map((l) => {
-                  const short = toShortCode(l.code);
-                  const isActive = short === activeLocale;
-                  return (
-                    <button
-                      key={l.code}
-                      onClick={() => {
-                        setLangOpen(false);
-                        if (isActive) return;
-                        // Same page, other language: keep the shopper where
-                        // they are instead of dumping them on the homepage.
-                        // Built from the *bare* path and pushed on the raw
-                        // router, because `localizeHref` has already applied
-                        // the target prefix here.
-                        rawRouter.push(localizeHref(barePath, short));
-                      }}
-                      title={l.nativeName || l.name}
-                      aria-current={isActive ? 'true' : undefined}
-                      data-testid="header-language-option"
-                      className={`block w-full text-left px-3 py-2 text-xs transition-colors ${
-                        isActive ? 'bg-gray-100 font-semibold' : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      {l.shortCode.toUpperCase()}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setLangOpen(!langOpen);
+                  setCityOpen(false);
+                }}
+                className="flex items-center gap-1 transition-opacity hover:opacity-80"
+                data-testid="header-language-toggle"
+              >
+                <span>{activeLanguage}</span>
+                <ChevronDownIcon className="size-4" />
+              </button>
+              {langOpen && (
+                <div className="absolute top-full left-0 z-50 mt-1 min-w-25 border border-gray-200 bg-white text-black shadow-lg">
+                  {locales.map((l) => {
+                    const short = toShortCode(l.code);
+                    const isActive = short === activeLocale;
+                    return (
+                      <button
+                        key={l.code}
+                        onClick={() => {
+                          setLangOpen(false);
+                          if (isActive) return;
+                          // Same page, other language: keep the shopper where
+                          // they are instead of dumping them on the homepage.
+                          // Built from the *bare* path and pushed on the raw
+                          // router, because `localizeHref` has already applied
+                          // the target prefix here.
+                          rawRouter.push(localizeHref(barePath, short));
+                        }}
+                        title={l.nativeName || l.name}
+                        aria-current={isActive ? 'true' : undefined}
+                        data-testid="header-language-option"
+                        className={`block w-full px-3 py-2 text-left text-xs transition-colors ${
+                          isActive ? 'bg-gray-100 font-semibold' : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {l.shortCode.toUpperCase()}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-1.5">
-            <PhoneIcon className="w-4 h-4" />
+            <PhoneIcon className="size-4" />
             <span>{lPhone}</span>
           </div>
           <button
-            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity focus-visible:outline-none"
+            className="flex items-center gap-1.5 transition-opacity hover:opacity-80 focus-visible:outline-none"
             onClick={() => router.push(STORE_LOCATIONS_HREF)}
             data-testid="header-store-locations"
           >
-            <MapPinIcon className="w-4 h-4" />
+            <MapPinIcon className="size-4" />
             <span>{lStores}</span>
           </button>
         </div>

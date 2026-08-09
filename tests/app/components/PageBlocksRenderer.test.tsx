@@ -21,9 +21,9 @@
  * `pageshow`. Both are shimmed in the test setup below.
  */
 
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
-import { render, screen, cleanup, act } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import React from 'react';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // IntersectionObserver shim (jsdom doesn't implement it)
@@ -49,8 +49,7 @@ beforeAll(() => {
 let mockRecentlyViewedItems: unknown[] = [];
 
 vi.mock('react-redux', () => ({
-  useSelector: (selector: (s: unknown) => unknown) =>
-    selector({ recentlyViewed: { items: mockRecentlyViewedItems } }),
+  useSelector: (selector: (s: unknown) => unknown) => selector({ recentlyViewed: { items: mockRecentlyViewedItems } }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -58,11 +57,17 @@ vi.mock('react-redux', () => ({
 // not the rendering internals of each section.
 // ---------------------------------------------------------------------------
 vi.mock('@/app/components/home/HeroSlider', () => ({ HeroSlider: () => <div data-testid="hero-slider" /> }));
-vi.mock('@/app/components/home/CategorySection', () => ({ CategorySection: () => <div data-testid="category-section" /> }));
+vi.mock('@/app/components/home/CategorySection', () => ({
+  CategorySection: () => <div data-testid="category-section" />,
+}));
 vi.mock('@/app/components/home/PromoBlock', () => ({ PromoBlock: () => <div data-testid="promo-block" /> }));
-vi.mock('@/app/components/home/DiscountBanner', () => ({ DiscountBanner: () => <div data-testid="discount-banner" /> }));
+vi.mock('@/app/components/home/DiscountBanner', () => ({
+  DiscountBanner: () => <div data-testid="discount-banner" />,
+}));
 vi.mock('@/app/components/home/MenCollection', () => ({ MenCollection: () => <div data-testid="men-collection" /> }));
-vi.mock('@/app/components/home/WomenCollection', () => ({ WomenCollection: () => <div data-testid="women-collection" /> }));
+vi.mock('@/app/components/home/WomenCollection', () => ({
+  WomenCollection: () => <div data-testid="women-collection" />,
+}));
 vi.mock('@/app/components/home/NewArrivals', () => ({ NewArrivals: () => <div data-testid="new-arrivals" /> }));
 
 // `cart_complement_block` renders through CartComplementBlockSlot, which calls
@@ -79,7 +84,9 @@ vi.mock('@/app/pages/product/RecentlyViewedSection', () => ({
   RecentlyViewedSection: ({ products }: { products: Array<{ name?: string }> }) => (
     <div data-testid="recently-viewed-section">
       {products.map((p, i) => (
-        <span key={i} data-testid="rv-product-name">{p.name}</span>
+        <span key={i} data-testid="rv-product-name">
+          {p.name}
+        </span>
       ))}
     </div>
   ),
@@ -88,13 +95,15 @@ vi.mock('@/app/pages/product/RecentlyViewedSection', () => ({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function makeBlock(overrides: Partial<{
-  marker: string;
-  type: string;
-  title: string;
-  position: number;
-  products: unknown[];
-}> = {}) {
+function makeBlock(
+  overrides: Partial<{
+    marker: string;
+    type: string;
+    title: string;
+    position: number;
+    products: unknown[];
+  }> = {},
+) {
   return {
     marker: 'unknown_block',
     type: 'generic',

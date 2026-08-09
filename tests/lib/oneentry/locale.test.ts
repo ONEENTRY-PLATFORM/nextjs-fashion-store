@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * The as-needed URL scheme is the load-bearing promise of this migration:
@@ -18,8 +18,12 @@ const importWith = async (locales?: string, def?: string) => {
 };
 
 const ORIGINAL = { ...process.env };
-beforeEach(() => { vi.resetModules(); });
-afterEach(() => { process.env = { ...ORIGINAL }; });
+beforeEach(() => {
+  vi.resetModules();
+});
+afterEach(() => {
+  process.env = { ...ORIGINAL };
+});
 
 describe('single-locale deployment', () => {
   it('routes only the default and never prefixes anything', async () => {

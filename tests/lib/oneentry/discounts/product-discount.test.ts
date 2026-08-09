@@ -7,7 +7,8 @@
  * which is tested exhaustively below.
  */
 import { describe, expect, it } from 'vitest';
-import { applyProductDiscount, RawProductDiscount } from '@/lib/oneentry/discounts/product-discount';
+
+import { applyProductDiscount, type RawProductDiscount } from '@/lib/oneentry/discounts/product-discount';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,10 +48,7 @@ const productCond = (value: unknown) => ({ type: 'PRODUCT', value });
 const categoryCond = (value: unknown) => ({ type: 'CATEGORY', value });
 /** Build an ATTRIBUTE condition. `entityIds` carries the OE attribute marker;
  *  `value` is the expected-value payload (object or scalar). */
-const attrCond = (
-  marker: string | null,
-  value: unknown,
-) => ({
+const attrCond = (marker: string | null, value: unknown) => ({
   type: 'ATTRIBUTE',
   entityIds: marker != null ? [{ id: marker, isNested: false }] : [],
   value,
@@ -303,20 +301,20 @@ describe('applyProductDiscount — discount math', () => {
 
 describe('applyProductDiscount — best-of-multiple rules', () => {
   it('picks the lower resulting price (10% vs $30 off on $100 → $70 wins)', () => {
-    const r1 = percentRule(10, { conditions: [productCond(1)] });    // → $90
-    const r2 = fixedRule(30, { conditions: [productCond(1)] });      // → $70
+    const r1 = percentRule(10, { conditions: [productCond(1)] }); // → $90
+    const r2 = fixedRule(30, { conditions: [productCond(1)] }); // → $70
     expect(applyProductDiscount(p({ id: 1, price: 100 }), [r1, r2])).toBe(70);
   });
 
   it('picks best even when first rule is better', () => {
-    const r1 = fixedRule(50, { conditions: [productCond(1)] });      // → $50
-    const r2 = percentRule(10, { conditions: [productCond(1)] });    // → $90
+    const r1 = fixedRule(50, { conditions: [productCond(1)] }); // → $50
+    const r2 = percentRule(10, { conditions: [productCond(1)] }); // → $90
     expect(applyProductDiscount(p({ id: 1, price: 100 }), [r1, r2])).toBe(50);
   });
 
   it('ignores non-matching rules and returns the matching one', () => {
-    const rMiss = fixedRule(30, { conditions: [productCond(99)] });  // different product
-    const rHit = percentRule(20, { conditions: [productCond(1)] });  // → $80
+    const rMiss = fixedRule(30, { conditions: [productCond(99)] }); // different product
+    const rHit = percentRule(20, { conditions: [productCond(1)] }); // → $80
     expect(applyProductDiscount(p({ id: 1, price: 100 }), [rMiss, rHit])).toBe(80);
   });
 
@@ -668,13 +666,11 @@ describe('applyProductDiscount — mixed ATTRIBUTE + CATEGORY conditions with co
   // Product satisfies BOTH conditions
   const prodBoth = p({ categories: ['outerwear'], discountAttributes: { discount_12: '10' } });
 
-  const mixedRule = (logic: string) => rule({
-    conditionLogic: logic,
-    conditions: [
-      categoryCond('outerwear'),
-      attrCond('discount_12', { value: '10', condition: 'eq' }),
-    ],
-  });
+  const mixedRule = (logic: string) =>
+    rule({
+      conditionLogic: logic,
+      conditions: [categoryCond('outerwear'), attrCond('discount_12', { value: '10', condition: 'eq' })],
+    });
 
   it('OR: CATEGORY matches but ATTRIBUTE does not → still applies', () => {
     expect(applyProductDiscount(prodCatOnly, [mixedRule('OR')])).toBe(90);
@@ -704,10 +700,7 @@ describe('applyProductDiscount — mixed ATTRIBUTE + CATEGORY conditions with co
   it('absent conditionLogic defaults to OR semantics for mixed conditions', () => {
     const r: RawProductDiscount = {
       type: 'DISCOUNT',
-      conditions: [
-        categoryCond('outerwear'),
-        attrCond('discount_12', { value: '10', condition: 'eq' }),
-      ],
+      conditions: [categoryCond('outerwear'), attrCond('discount_12', { value: '10', condition: 'eq' })],
       discountValue: { discountType: 'PERCENT', value: 10 },
     };
     // Only category matches — OR default → should still apply

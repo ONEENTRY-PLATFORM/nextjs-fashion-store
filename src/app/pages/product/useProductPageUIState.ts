@@ -1,5 +1,5 @@
-'use client'
-import { useState, useRef, useEffect } from 'react';
+'use client';
+import { useEffect, useRef, useState } from 'react';
 
 export function useProductPageUIState() {
   const [addedToCart, setAddedToCart] = useState(false);
@@ -50,13 +50,20 @@ export function useProductPageUIState() {
 
   return {
     addedToCart,
-    cartHovered, setCartHovered,
-    showSizeGuide, setShowSizeGuide,
-    showAllReviews, setShowAllReviews,
-    showReviewModal, setShowReviewModal,
-    showReserveModal, setShowReserveModal,
-    storeCity, setStoreCity,
-    showShare, setShowShare,
+    cartHovered,
+    setCartHovered,
+    showSizeGuide,
+    setShowSizeGuide,
+    showAllReviews,
+    setShowAllReviews,
+    showReviewModal,
+    setShowReviewModal,
+    showReserveModal,
+    setShowReserveModal,
+    storeCity,
+    setStoreCity,
+    showShare,
+    setShowShare,
     copied,
     shareRef,
     handleCopyLink,

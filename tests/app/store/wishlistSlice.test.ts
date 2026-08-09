@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import wishlistReducer, { wishlistActions } from '@/app/store/wishlistSlice';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import type { WishlistItem } from '@/app/context/WishlistContext';
-import type { WishlistItem as DataWishlistItem, WaitingItem } from '@/app/data/userData';
+import type { WaitingItem, WishlistItem as DataWishlistItem } from '@/app/data/userData';
+import wishlistReducer, { wishlistActions } from '@/app/store/wishlistSlice';
 
 const makeItem = (overrides: Partial<WishlistItem> = {}): WishlistItem => ({
   id: 'item-1',
@@ -143,7 +144,10 @@ describe('wishlistSlice', () => {
       let state = wishlistReducer(emptyState, wishlistActions.addItem(guestItem));
       state = wishlistReducer(
         state,
-        wishlistActions.mergeUserWishlist({ wishlist: [makeDataItem({ id: 'data-1', name: 'Server Version' })], waitingList: [] }),
+        wishlistActions.mergeUserWishlist({
+          wishlist: [makeDataItem({ id: 'data-1', name: 'Server Version' })],
+          waitingList: [],
+        }),
       );
       expect(state.items).toHaveLength(1);
       expect(state.items[0].name).toBe('Server Version');
@@ -157,7 +161,7 @@ describe('wishlistSlice', () => {
         wishlistActions.mergeUserWishlist({ wishlist: [makeDataItem()], waitingList: [] }),
       );
       expect(state.items).toHaveLength(2);
-      expect(state.items.find(i => i.id === 'guest-exclusive')).toBeDefined();
+      expect(state.items.find((i) => i.id === 'guest-exclusive')).toBeDefined();
     });
 
     it('maps originalPrice correctly: item.originalPrice becomes the crossed-out price', () => {

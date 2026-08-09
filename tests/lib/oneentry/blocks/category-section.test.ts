@@ -11,8 +11,7 @@ vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => ({ Blocks: { getSlides } }),
   isOneEntryEnabled: true,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -20,7 +19,9 @@ const importFresh = async () => {
   return import('@/lib/oneentry/blocks/category-section');
 };
 
-beforeEach(() => { getSlides.mockReset(); });
+beforeEach(() => {
+  getSlides.mockReset();
+});
 
 describe('loadCategorySection', () => {
   it('groups child slides under parent chips and normalizes them', async () => {
@@ -96,7 +97,10 @@ describe('loadCategorySection — disabled', () => {
   it('returns empty result when SDK is disabled', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()), getApiSafe: () => (null), isOneEntryEnabled: false }));
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => null,
+      isOneEntryEnabled: false,
+    }));
     const { loadCategorySection } = await import('@/lib/oneentry/blocks/category-section');
     expect(await loadCategorySection()).toEqual({ chips: [], categories: [] });
     vi.doUnmock('@/lib/oneentry/index');

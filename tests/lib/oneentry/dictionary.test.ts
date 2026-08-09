@@ -8,8 +8,7 @@ vi.mock('@/lib/oneentry/index', async (importActual) => ({
     AttributesSets: { getAttributeSetByMarker },
   }),
   isOneEntryEnabled: true,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 const importFresh = async () => {
@@ -49,9 +48,7 @@ describe('getDictionary', () => {
 
   it('reads the already-flattened SDK shape as well as the language-keyed one', async () => {
     getAttributeSetByMarker.mockImplementation(async (marker: string) =>
-      marker === 'header'
-        ? { schema: { header_search: { initialValue: { value: 'Search' } } } }
-        : null,
+      marker === 'header' ? { schema: { header_search: { initialValue: { value: 'Search' } } } } : null,
     );
 
     const { getDictionary } = await importFresh();

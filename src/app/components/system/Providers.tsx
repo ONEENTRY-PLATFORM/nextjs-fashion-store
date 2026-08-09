@@ -1,29 +1,29 @@
-'use client'
+'use client';
 
-import React, { useEffect, useMemo, useState, Suspense } from 'react';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Provider } from 'react-redux';
-import { AuthProvider } from '../../context/AuthContext'
-import { makeStore, loadCatalogFromStorage, type AppStore } from '../../store'
-import { hydrateCatalogs, type CatalogsState } from '../../store/catalogSlice'
-import { useAuth } from '../../context/AuthContext'
-import { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar'
-import { ErrorBoundary } from '../ui/ErrorBoundary'
-import { PageViewTracker } from './PageViewTracker'
-import { CartUnavailableNotice } from '../cart/CartUnavailableNotice'
-import { DictProvider, useT } from '../../../lib/oneentry/labels/DictContext'
-import type { Dictionary } from '../../../lib/oneentry/dictionary'
-import { LocalesProvider } from '../../../lib/oneentry/LocalesContext'
-import { FooterMenuProvider } from '../../../lib/oneentry/menus/FooterMenuContext'
-import { OAUTH_ERROR_LABELS } from '../../data/authLabels';
-import { HeaderMenuProvider } from '../../../lib/oneentry/menus/HeaderMenuContext'
-import type { MenuPageNode } from '../../../lib/oneentry/menus/menus'
-import { SignUpFormSchemaProvider } from '../../../lib/oneentry/auth/SignUpFormSchemaContext'
-import type { SignUpFormSchema } from '../../../lib/oneentry/auth/sign-up-form'
-import { FormPlaceholdersProvider } from '../../../lib/oneentry/forms/FormPlaceholdersContext'
-import type { FormContent } from '../../../lib/oneentry/forms/placeholders'
-import type { CmsLocale } from '../../../lib/oneentry/locales'
+
 import { useRouter } from '../../../lib/i18n/navigation';
+import type { SignUpFormSchema } from '../../../lib/oneentry/auth/sign-up-form';
+import { SignUpFormSchemaProvider } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
+import type { Dictionary } from '../../../lib/oneentry/dictionary';
+import { FormPlaceholdersProvider } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
+import type { FormContent } from '../../../lib/oneentry/forms/placeholders';
+import { DictProvider, useT } from '../../../lib/oneentry/labels/DictContext';
+import type { CmsLocale } from '../../../lib/oneentry/locales';
+import { LocalesProvider } from '../../../lib/oneentry/LocalesContext';
+import { FooterMenuProvider } from '../../../lib/oneentry/menus/FooterMenuContext';
+import { HeaderMenuProvider } from '../../../lib/oneentry/menus/HeaderMenuContext';
+import type { MenuPageNode } from '../../../lib/oneentry/menus/menus';
+import { AuthProvider, useAuth } from '../../context/AuthContext';
+import { OAUTH_ERROR_LABELS } from '../../data/authLabels';
+import { type AppStore, loadCatalogFromStorage, makeStore } from '../../store';
+import { type CatalogsState, hydrateCatalogs } from '../../store/catalogSlice';
+import { CartUnavailableNotice } from '../cart/CartUnavailableNotice';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { PageViewTracker } from './PageViewTracker';
+import { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar';
 
 /**
  * No-op placeholder kept for backwards compatibility. Real wishlist
@@ -37,16 +37,20 @@ function WishlistSyncEffect() {
   return null;
 }
 
-/** Surface the `?googleAuthError=…` param the OAuth callback route sets on
+/**
+ * Surface the `?googleAuthError=…` param the OAuth callback route sets on
  *  failure (see `app/auth/callback/google/route.ts:22-38`). Without this
  *  the shopper lands back on `/` with the login modal already closed and
  *  no explanation for why sign-in didn't take. We re-open the modal so
  *  they can retry, and strip the query param so a hard refresh doesn't
- *  loop the modal open. */
-/** Map the `?googleAuthError=…` query into a friendly banner shown on
+ *  loop the modal open.
+ */
+/**
+ * Map the `?googleAuthError=…` query into a friendly banner shown on
  *  the LoginModal. OE's callback route surfaces codes like
  *  `access_denied` / `token_exchange_failed` — translate the common ones
- *  and default to the raw code when we don't have a matching phrase. */
+ *  and default to the raw code when we don't have a matching phrase.
+ */
 function humaniseGoogleAuthError(
   code: string,
   copy: { accessDenied: string; token: string; state: string; generic: string },
@@ -63,10 +67,10 @@ function GoogleAuthErrorSurface() {
   const router = useRouter();
   const pathname = usePathname();
   const { openLoginModal, setAuthError } = useAuth();
-  const lCancelled = useT('sign_in_google_cancelled',     OAUTH_ERROR_LABELS.accessDenied);
-  const lToken     = useT('sign_in_google_token_failed',  OAUTH_ERROR_LABELS.token);
-  const lState     = useT('sign_in_google_state_expired', OAUTH_ERROR_LABELS.state);
-  const lGeneric   = useT('sign_in_google_generic_error', OAUTH_ERROR_LABELS.generic);
+  const lCancelled = useT('sign_in_google_cancelled', OAUTH_ERROR_LABELS.accessDenied);
+  const lToken = useT('sign_in_google_token_failed', OAUTH_ERROR_LABELS.token);
+  const lState = useT('sign_in_google_state_expired', OAUTH_ERROR_LABELS.state);
+  const lGeneric = useT('sign_in_google_generic_error', OAUTH_ERROR_LABELS.generic);
   // Stable identity so the effect below doesn't re-run on every render.
   const oauthCopy = useMemo(
     () => ({ accessDenied: lCancelled, token: lToken, state: lState, generic: lGeneric }),
@@ -99,15 +103,21 @@ export function Providers({
   cmsLocales = [],
 }: {
   children: React.ReactNode;
-  /** The whole CMS dictionary, flat `marker → value`. Loaded once in the root
-   *  layout; every screen reads it through `useT` / `useDict` / `useList`. */
+  /**
+   * The whole CMS dictionary, flat `marker → value`. Loaded once in the root
+   *  layout; every screen reads it through `useT` / `useDict` / `useList`.
+   */
   dict?: Dictionary;
   footerMenu?: MenuPageNode[];
   headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
-  /** OE form content keyed by marker — layout-wide forms only (the footer
-   *  newsletter renders on every route). Route-scoped forms mount their own
-   *  `FormPlaceholdersProvider` closer to the page. */
+  /**
+   * OE form content keyed by marker — layout-wide forms only: the footer
+   *  newsletter, plus the two review forms (`WriteReviewModal` opens from the
+   *  header's `QuickViewModal`, so it can surface on any route). Route-scoped
+   *  forms mount their own `FormPlaceholdersProvider` closer to the page, which
+   *  merges with this map rather than replacing it.
+   */
   forms?: Record<string, FormContent>;
   /** Active project locales — drives the header language switcher. */
   cmsLocales?: CmsLocale[];
@@ -129,18 +139,8 @@ export function Providers({
     <Provider store={store}>
       <ServiceWorkerRegistrar />
       {/* Global ARIA live regions for screen reader announcements */}
-      <div
-        id="aria-live-polite"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      />
-      <div
-        id="aria-live-assertive"
-        aria-live="assertive"
-        aria-atomic="true"
-        className="sr-only"
-      />
+      <div id="aria-live-polite" aria-live="polite" aria-atomic="true" className="sr-only" />
+      <div id="aria-live-assertive" aria-live="assertive" aria-atomic="true" className="sr-only" />
       <AuthProvider>
         <WishlistSyncEffect />
         <PageViewTracker />
@@ -172,5 +172,5 @@ export function Providers({
         </DictProvider>
       </AuthProvider>
     </Provider>
-  )
+  );
 }

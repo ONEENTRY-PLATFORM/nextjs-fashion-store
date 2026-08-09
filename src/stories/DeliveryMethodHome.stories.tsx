@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
+
 import { DeliveryMethodHome } from '../app/pages/checkout/DeliveryMethodHome';
-import { FormPlaceholdersProvider } from '../lib/oneentry/forms/FormPlaceholdersContext';
 import { DeliveryMethodInfoProvider } from '../lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { FormPlaceholdersProvider } from '../lib/oneentry/forms/FormPlaceholdersContext';
 
 const EMPTY_ADDR_FORM = {
   fullName: '',
@@ -100,9 +101,11 @@ export const LoggedInNewAddress: Story = {
   },
 };
 
-/** OE-driven copy: title, subtitle and perks replaced by the CMS via
+/**
+ * OE-driven copy: title, subtitle and perks replaced by the CMS via
  *  `DeliveryMethodInfoProvider`. No public prop changes needed — context
- *  replaces literals transparently. */
+ *  replaces literals transparently.
+ */
 export const WithOECopy: Story = {
   name: 'Guest — OE-driven copy',
   decorators: [
@@ -131,9 +134,11 @@ export const Unchecked: Story = {
   args: { ...sharedArgs, checked: false },
 };
 
-/** OE-driven time slots and a shortened 3-date strip supplied from the server
+/**
+ * OE-driven time slots and a shortened 3-date strip supplied from the server
  *  layer — demonstrates the `timeSlots` and `deliveryDates` props that the
- *  OE `checkout_home_delivery` schedule config now feeds into the component. */
+ *  OE `checkout_home_delivery` schedule config now feeds into the component.
+ */
 export const OEDrivenConfig: Story = {
   name: 'OE-driven slots & date strip',
   args: {
@@ -143,11 +148,14 @@ export const OEDrivenConfig: Story = {
       d.setDate(d.getDate() + i);
       return d;
     }),
-    selectedDate: (() => { const d = new Date('2026-07-15'); return d; })(),
+    selectedDate: (() => {
+      const d = new Date('2026-07-15');
+      return d;
+    })(),
     timeSlots: [
       { id: 'morning-express', label: '07:00 – 10:00', sub: 'Morning Express' },
-      { id: 'afternoon',       label: '12:00 – 16:00', sub: 'Afternoon' },
-      { id: 'late-evening',    label: '19:00 – 22:00', sub: 'Late Evening' },
+      { id: 'afternoon', label: '12:00 – 16:00', sub: 'Afternoon' },
+      { id: 'late-evening', label: '19:00 – 22:00', sub: 'Late Evening' },
     ],
     selectedSlot: 'morning-express',
   },

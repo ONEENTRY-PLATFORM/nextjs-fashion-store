@@ -1,5 +1,5 @@
-import { getApiSafe, hasStoredSession, isError } from '../index';
 import { readUserIdentifier } from '../auth/browser-session';
+import { getApiSafe, hasStoredSession, isError } from '../index';
 import { DEFAULT_LOCALE } from '../locale';
 import { se } from '../server-errors';
 
@@ -13,9 +13,7 @@ export interface SubmitServiceRequestInput {
   orderId?: number;
 }
 
-export type SubmitServiceRequestResult =
-  | { ok: true; id: number }
-  | { ok: false; error: string };
+export type SubmitServiceRequestResult = { ok: true; id: number } | { ok: false; error: string };
 
 /**
  * Submit a new entry to the OE `service_request` form. Encodes each field with
@@ -37,9 +35,7 @@ export async function submitServiceRequestAction(
   const userIdentifier = readUserIdentifier();
 
   // OE date type wants a full date envelope, not a bare ISO string.
-  const isoDate = input.date
-    ? new Date(input.date).toISOString()
-    : new Date().toISOString();
+  const isoDate = input.date ? new Date(input.date).toISOString() : new Date().toISOString();
   const yyyy = isoDate.slice(0, 4);
   const mm = isoDate.slice(5, 7);
   const dd = isoDate.slice(8, 10);
@@ -48,14 +44,18 @@ export async function submitServiceRequestAction(
     { marker: 'item', type: 'string', value: input.item },
     { marker: 'category', type: 'list', value: [input.category] },
     ...(input.description.trim().length >= 5
-      ? [{
-          marker: 'description',
-          type: 'text',
-          value: [{
-            htmlValue: `<p>${input.description.replace(/</g, '&lt;')}</p>`,
-            params: { isEditorDisabled: false, isImageCompressed: true },
-          }],
-        }]
+      ? [
+          {
+            marker: 'description',
+            type: 'text',
+            value: [
+              {
+                htmlValue: `<p>${input.description.replace(/</g, '&lt;')}</p>`,
+                params: { isEditorDisabled: false, isImageCompressed: true },
+              },
+            ],
+          },
+        ]
       : []),
     {
       marker: 'date',
@@ -74,16 +74,19 @@ export async function submitServiceRequestAction(
     // and typedefines `formData` as `FormDataType[]`. Our mixed shape is
     // structurally compatible but stricter typings would fight us — cast at
     // the boundary.
-    const result = await api.FormData.postFormsData({
-      formIdentifier: 'service_request',
-      formModuleConfigId: SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
-      moduleEntityIdentifier: userIdentifier,
-      replayTo: null,
-      status: 'sent',
-      formData: formDataArray as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
-    }, DEFAULT_LOCALE);
+    const result = await api.FormData.postFormsData(
+      {
+        formIdentifier: 'service_request',
+        formModuleConfigId: SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
+        moduleEntityIdentifier: userIdentifier,
+        replayTo: null,
+        status: 'sent',
+        formData: formDataArray as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
+      },
+      DEFAULT_LOCALE,
+    );
     if (isError(result)) {
-      return { ok: false, error: result.message ?? await se('formSubmitFailed') };
+      return { ok: false, error: result.message ?? (await se('formSubmitFailed')) };
     }
     // Response shape: `{ formData: { id, ... } }` per SDK types, but real API
     // sometimes returns the record flat too. Handle both.

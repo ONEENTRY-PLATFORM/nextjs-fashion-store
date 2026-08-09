@@ -1,6 +1,7 @@
 'use client';
-import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+
 import { trackActivity } from '../../utils/track-activity';
 
 // Fires a `page_view` on every client-side route change. Product and catalog

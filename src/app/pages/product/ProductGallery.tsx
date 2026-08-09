@@ -1,16 +1,23 @@
-import { useState, useRef, useCallback } from 'react';
-import Image from 'next/image';
-import CmsImage from '../../components/ui/CmsImage';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
-import { FullscreenViewer } from './FullscreenViewer';
-import { PRODUCT_GALLERY_LABELS } from '../../data/productPageLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
+import Image from 'next/image';
+import { useCallback, useRef, useState } from 'react';
 
-export function ProductGallery({ images, productName, imageBlurs }: {
+import { useT } from '../../../lib/oneentry/labels/DictContext';
+import CmsImage from '../../components/ui/CmsImage';
+import { PRODUCT_GALLERY_LABELS } from '../../data/productPageLabels';
+import { FullscreenViewer } from './FullscreenViewer';
+
+export function ProductGallery({
+  images,
+  productName,
+  imageBlurs,
+}: {
   images: string[];
   productName: string;
-  /** Blur data URI per image URL. Keyed by URL so the thumbnail strip and the
-   *  main frame can each look up their own without tracking indices. */
+  /**
+   * Blur data URI per image URL. Keyed by URL so the thumbnail strip and the
+   *  main frame can each look up their own without tracking indices.
+   */
   imageBlurs?: Record<string, string>;
 }) {
   // OE products occasionally come back with empty image URLs (placeholder
@@ -40,9 +47,9 @@ export function ProductGallery({ images, productName, imageBlurs }: {
   // because there's nothing to switch between.
   if (safeImages.length === 0) {
     return (
-      <div className="flex flex-col lg:flex-row gap-3 w-full">
-        <div className="flex-1 relative">
-          <div className="relative overflow-hidden aspect-3/4 bg-[#f2f1ef] flex items-center justify-center">
+      <div className="flex w-full flex-col gap-3 lg:flex-row">
+        <div className="relative flex-1">
+          <div className="relative flex aspect-3/4 items-center justify-center overflow-hidden bg-[#f2f1ef]">
             <Image
               src="/icons/ui/bag-placeholder.svg"
               alt={productName}
@@ -60,16 +67,16 @@ export function ProductGallery({ images, productName, imageBlurs }: {
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-3 w-full">
-        <div className="flex lg:flex-col gap-2 order-2 lg:order-1 overflow-x-auto lg:overflow-x-visible scrollbar-hide min-w-18">
+      <div className="flex w-full flex-col gap-3 lg:flex-row">
+        <div className="scrollbar-hide order-2 flex min-w-18 gap-2 overflow-x-auto lg:order-1 lg:flex-col lg:overflow-x-visible">
           {safeImages.map((img, i) => (
             <button
               key={i}
               onClick={() => setSelected(i)}
-              className={`relative shrink-0 overflow-hidden transition-all duration-150 w-18 aspect-3/4 ${
+              className={`relative aspect-3/4 w-18 shrink-0 overflow-hidden transition-all duration-150 ${
                 safeSelected === i
-                  ? 'outline-2 outline-black outline-offset-1'
-                  : 'outline-[1.5px] outline-[#e5e5e5] outline-offset-0'
+                  ? 'outline-2 outline-offset-1 outline-black'
+                  : 'outline-[1.5px] outline-offset-0 outline-[#e5e5e5]'
               }`}
             >
               <CmsImage
@@ -84,10 +91,10 @@ export function ProductGallery({ images, productName, imageBlurs }: {
           ))}
         </div>
 
-        <div className="flex-1 order-1 lg:order-2 relative">
+        <div className="relative order-1 flex-1 lg:order-2">
           <div
             ref={mainRef}
-            className="relative overflow-hidden group aspect-3/4 cursor-zoom-in"
+            className="group relative aspect-3/4 cursor-zoom-in overflow-hidden"
             onMouseEnter={() => setZooming(true)}
             onMouseLeave={() => setZooming(false)}
             onMouseMove={handleMouseMove}
@@ -103,8 +110,8 @@ export function ProductGallery({ images, productName, imageBlurs }: {
               data-testid="pdp-gallery-main-image"
               fill
               sizes="(max-width: 1024px) 100vw, 58vw"
-              className={`object-cover transition-transform duration-100 select-none object-[center_top] ${
-                zooming ? 'scale-[1.8]' : 'scale-100'
+              className={`object-cover object-[center_top] transition-transform duration-100 select-none ${
+                zooming ? 'scale-1.8' : 'scale-100'
               }`}
               style={{ transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }}
               draggable={false}
@@ -112,30 +119,36 @@ export function ProductGallery({ images, productName, imageBlurs }: {
 
             {safeSelected > 0 && (
               <button
-                onClick={e => { e.stopPropagation(); setSelected(s => s - 1); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white rounded-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelected((s) => s - 1);
+                }}
+                className="absolute top-1/2 left-3 flex size-9 -translate-y-1/2 items-center justify-center rounded-none bg-white/90 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white"
               >
                 <ChevronLeft size={18} />
               </button>
             )}
             {safeSelected < safeImages.length - 1 && (
               <button
-                onClick={e => { e.stopPropagation(); setSelected(s => s + 1); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white rounded-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelected((s) => s + 1);
+                }}
+                className="absolute top-1/2 right-3 flex size-9 -translate-y-1/2 items-center justify-center rounded-none bg-white/90 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white"
               >
                 <ChevronRight size={18} />
               </button>
             )}
 
-            <div className="absolute bottom-3 right-3 w-8 h-8 bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute right-3 bottom-3 flex size-8 items-center justify-center bg-white/80 opacity-0 transition-opacity group-hover:opacity-100">
               <ZoomIn size={14} />
             </div>
 
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 lg:hidden">
+            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 lg:hidden">
               {safeImages.map((_img, i) => (
                 <span
                   key={i}
-                  className={`block w-1.5 h-1.5 rounded-full transition-colors ${
+                  className={`block size-1.5 rounded-full transition-colors ${
                     safeSelected === i ? 'bg-black' : 'bg-black/30'
                   }`}
                 />
@@ -143,14 +156,18 @@ export function ProductGallery({ images, productName, imageBlurs }: {
             </div>
           </div>
 
-          <p className="hidden lg:block text-xs text-gray-400 text-center mt-1.5 tracking-wider">
-            {lZoomHint}
-          </p>
+          <p className="mt-1.5 hidden text-center text-xs tracking-wider text-gray-400 lg:block">{lZoomHint}</p>
         </div>
       </div>
 
       {fullscreen && (
-        <FullscreenViewer images={safeImages} startIndex={safeSelected} onClose={() => setFullscreen(false)} productName={productName} imageBlurs={imageBlurs} />
+        <FullscreenViewer
+          images={safeImages}
+          startIndex={safeSelected}
+          onClose={() => setFullscreen(false)}
+          productName={productName}
+          imageBlurs={imageBlurs}
+        />
       )}
     </>
   );

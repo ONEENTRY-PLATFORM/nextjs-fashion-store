@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { createContext, useContext } from 'react';
 
 /** Accent color for the current catalog section (women/men/sale/etc.). */

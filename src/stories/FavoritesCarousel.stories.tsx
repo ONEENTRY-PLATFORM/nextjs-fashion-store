@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { FavoritesCarousel } from '../app/pages/favorites/FavoritesCarousel';
 
 const meta = {
@@ -76,8 +77,10 @@ export const WithSaleItems: Story = {
   },
 };
 
-/** Products without optional `sizes` / `stock` fields — Quick Add still works
- *  but sends an empty size and no stockLimit. */
+/**
+ * Products without optional `sizes` / `stock` fields — Quick Add still works
+ *  but sends an empty size and no stockLimit.
+ */
 export const NoSizesOrStock: Story = {
   name: 'Without sizes / stock (optional fields omitted)',
   args: {

@@ -1,16 +1,19 @@
 import { unstable_cache } from 'next/cache';
+
+import { REVALIDATE_HOME } from '../../isr';
 import { getApiSafe, getImage, isError } from '../index';
-import { withTiming } from '../profiling';
-import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
-import { REVALIDATE_HOME } from '../../isr';
+import { withTiming } from '../profiling';
+import type { Lang } from '../system-text';
 
 export interface HomepageCollectionItem {
   id: number;
   image: string;
-  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one. */
+  /**
+   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one.
+   */
   imageBlur?: string;
   title: string;
   subtitle: string;
@@ -43,21 +46,24 @@ const normalize = (raw: RawSlide): HomepageCollectionItem => {
   };
 };
 
-export const loadHomepageCollections = withTiming('loadHomepageCollections', unstable_cache(
-  async (_lang: Lang = DEFAULT_LOCALE): Promise<HomepageCollectionItem[]> => {
-    const api = getApiSafe();
-    if (!api) return [];
-    try {
-      const raw = await api.Blocks.getSlides('homepage_collections');
-      if (isError(raw)) return [];
-      const result = raw as RawSlidesResponse;
-      const items = Array.isArray(result) ? result : result?.items ?? [];
-      return items.map(normalize).filter((s) => s.image.length > 0);
-    } catch (err) {
-      logCaught('homepage-collections.loadHomepageCollections', err);
-      return [];
-    }
-  },
-  ['oe-homepage-collections'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
-));
+export const loadHomepageCollections = withTiming(
+  'loadHomepageCollections',
+  unstable_cache(
+    async (_lang: Lang = DEFAULT_LOCALE): Promise<HomepageCollectionItem[]> => {
+      const api = getApiSafe();
+      if (!api) return [];
+      try {
+        const raw = await api.Blocks.getSlides('homepage_collections');
+        if (isError(raw)) return [];
+        const result = raw as RawSlidesResponse;
+        const items = Array.isArray(result) ? result : (result?.items ?? []);
+        return items.map(normalize).filter((s) => s.image.length > 0);
+      } catch (err) {
+        logCaught('homepage-collections.loadHomepageCollections', err);
+        return [];
+      }
+    },
+    ['oe-homepage-collections'],
+    { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+  ),
+);

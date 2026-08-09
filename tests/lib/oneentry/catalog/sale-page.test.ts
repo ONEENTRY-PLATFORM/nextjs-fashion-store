@@ -6,16 +6,14 @@ const fakeApi = { Pages: { getPageByUrl } };
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-  getApiSafe: () => (fakeApi),
+  getApiSafe: () => fakeApi,
   isOneEntryEnabled: true,
   getApi: () => fakeApi,
-  isError: (v: unknown) =>
-    !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
+  isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
 // Strip the ISR cache wrapper so the underlying fetchSalePage runs directly.
 vi.mock('next/cache', () => ({
-   
   unstable_cache: (fn: any) => fn,
 }));
 
@@ -38,19 +36,19 @@ const TIMER_VALUE = { fullDate: '2026-12-31T23:59:59.000Z' };
 /** Minimal wrapped (per-locale) attributeValues shape. */
 const wrappedAttrs = {
   en_US: {
-    page_sale_top_banner_lable:        { value: 'SALE' },
-    page_sale_top_banner_text:         { value: TEXT_VALUE },
-    page_sale_top_banner_cta:          { value: 'Shop Now' },
-    page_sale_top_banner_timer_lable:  { value: 'Sale ends in' },
-    page_sale_top_banner_timer_text:   { value: 'Hurry up!' },
-    page_sale_top_banner_picture:      { value: IMAGE_VALUE },
-    page_sale_top_banner_timer:        { value: TIMER_VALUE },
-    page_sale_footer_banner_lable:     { value: 'Promo' },
-    page_sale_footer_banner_title:     { value: 'Winter Collection' },
+    page_sale_top_banner_lable: { value: 'SALE' },
+    page_sale_top_banner_text: { value: TEXT_VALUE },
+    page_sale_top_banner_cta: { value: 'Shop Now' },
+    page_sale_top_banner_timer_lable: { value: 'Sale ends in' },
+    page_sale_top_banner_timer_text: { value: 'Hurry up!' },
+    page_sale_top_banner_picture: { value: IMAGE_VALUE },
+    page_sale_top_banner_timer: { value: TIMER_VALUE },
+    page_sale_footer_banner_lable: { value: 'Promo' },
+    page_sale_footer_banner_title: { value: 'Winter Collection' },
     page_sale_footer_banner_sub_title: { value: 'Up to 70% off' },
-    page_sale_footer_banner_cta:       { value: 'Explore' },
-    page_sale_footer_banner_cta_link:  { value: '/winter' },
-    page_sale_footer_banner_picture:   { value: [{ downloadLink: 'https://cdn.example.com/footer.jpg' }] },
+    page_sale_footer_banner_cta: { value: 'Explore' },
+    page_sale_footer_banner_cta_link: { value: '/winter' },
+    page_sale_footer_banner_picture: { value: [{ downloadLink: 'https://cdn.example.com/footer.jpg' }] },
   },
 };
 
@@ -295,14 +293,15 @@ describe('loadSalePage — disabled', () => {
   it('returns null when OE is not enabled', async () => {
     vi.resetModules();
     vi.doMock('@/lib/oneentry/index', async (importActual) => ({
-  ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-      getApiSafe: () => (null),
+      ...(await importActual<typeof import('@/lib/oneentry/index')>()),
+      getApiSafe: () => null,
       isOneEntryEnabled: false,
-      getApi: () => { throw new Error('SDK not configured'); },
+      getApi: () => {
+        throw new Error('SDK not configured');
+      },
       isError: () => false,
     }));
     vi.doMock('next/cache', () => ({
-       
       unstable_cache: (fn: any) => fn,
     }));
     const { loadSalePage } = await import('@/lib/oneentry/catalog/sale-page');

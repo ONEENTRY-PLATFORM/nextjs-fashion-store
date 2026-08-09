@@ -7,7 +7,7 @@
  * This guards against accidental value drift (the old values were 500/1500/5000
  * and the progress bar was broken because it only looked at ltvThreshold).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // ── mirror of FALLBACK_TIER_LTV from AuthContext.tsx ──────────────────────────
 
@@ -78,9 +78,7 @@ describe('nextTierThreshold — OE ltvThreshold wins', () => {
   });
 
   it('falls back to FALLBACK_TIER_LTV.Gold when no Gold tier exists in OE', () => {
-    const tiers: Tier[] = [
-      { tier: 'silver', ltvThreshold: 500, minCartAmount: null },
-    ];
+    const tiers: Tier[] = [{ tier: 'silver', ltvThreshold: 500, minCartAmount: null }];
     expect(nextTierThreshold(tiers, 'Silver')).toBe(FALLBACK_TIER_LTV.Gold);
   });
 });

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+
 import { clearState, gotoProduct, selectFirstAvailableSize } from './helpers';
 
 test.describe('Cart', () => {
@@ -6,7 +7,7 @@ test.describe('Cart', () => {
     await page.goto('/women/clothing');
     await clearState(page);
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState('networkidle');
   });
 
   test.describe('Empty state', () => {
@@ -19,9 +20,10 @@ test.describe('Cart', () => {
     test('empty cart "Continue Shopping" navigates to catalog', async ({ page }) => {
       await page.goto('/cart');
       await page.waitForLoadState('networkidle');
-      const btn = page.getByRole('button', { name: /start shopping|continue shopping/i }).or(
-        page.getByRole('link', { name: /start shopping|continue shopping/i })
-      ).first();
+      const btn = page
+        .getByRole('button', { name: /start shopping|continue shopping/i })
+        .or(page.getByRole('link', { name: /start shopping|continue shopping/i }))
+        .first();
       if (await btn.isVisible()) {
         await btn.click();
         await expect(page).not.toHaveURL('/cart');
@@ -101,9 +103,10 @@ test.describe('Cart', () => {
 
     test('proceed to checkout button navigates', async ({ page }) => {
       await addItemAndGoToCart(page);
-      const checkoutBtn = page.getByRole('button', { name: /proceed|checkout/i }).or(
-        page.getByRole('link', { name: /proceed|checkout/i })
-      ).first();
+      const checkoutBtn = page
+        .getByRole('button', { name: /proceed|checkout/i })
+        .or(page.getByRole('link', { name: /proceed|checkout/i }))
+        .first();
       if (await checkoutBtn.isVisible()) {
         await checkoutBtn.click();
         await expect(page).toHaveURL(/checkout/);
@@ -261,9 +264,10 @@ test.describe('Cart', () => {
 
     test('promo checkbox toggles coupon input', async ({ page }) => {
       await addAndGoToCart(page);
-      const promoToggle = page.locator('text=/promo|coupon/i').first().or(
-        page.locator('input[type="checkbox"]').last()
-      );
+      const promoToggle = page
+        .locator('text=/promo|coupon/i')
+        .first()
+        .or(page.locator('input[type="checkbox"]').last());
       if (await promoToggle.isVisible()) {
         await promoToggle.click();
         await page.waitForTimeout(300);
@@ -344,9 +348,10 @@ test.describe('Cart', () => {
       if (await addBtn.isVisible()) {
         await addBtn.click();
         await page.waitForTimeout(500);
-        const viewCartBtn = page.getByRole('button', { name: /view cart/i }).or(
-          page.getByRole('link', { name: /view cart/i })
-        ).first();
+        const viewCartBtn = page
+          .getByRole('button', { name: /view cart/i })
+          .or(page.getByRole('link', { name: /view cart/i }))
+          .first();
         if (await viewCartBtn.isVisible()) {
           await viewCartBtn.click();
           await expect(page).toHaveURL('/cart');
@@ -362,9 +367,10 @@ test.describe('Cart', () => {
       if (await addBtn.isVisible()) {
         await addBtn.click();
         await page.waitForTimeout(500);
-        const checkoutBtn = page.getByRole('button', { name: /checkout/i }).or(
-          page.getByRole('link', { name: /checkout/i })
-        ).first();
+        const checkoutBtn = page
+          .getByRole('button', { name: /checkout/i })
+          .or(page.getByRole('link', { name: /checkout/i }))
+          .first();
         if (await checkoutBtn.isVisible()) {
           await checkoutBtn.click();
           await expect(page).toHaveURL(/checkout/);

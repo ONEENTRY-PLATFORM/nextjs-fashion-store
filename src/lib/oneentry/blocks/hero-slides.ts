@@ -1,16 +1,19 @@
 import { unstable_cache } from 'next/cache';
+
+import { REVALIDATE_HOME } from '../../isr';
 import { getApiSafe, getImage, isError } from '../index';
-import { withTiming } from '../profiling';
-import type { Lang } from '../system-text';
 import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
-import { REVALIDATE_HOME } from '../../isr';
+import { withTiming } from '../profiling';
+import type { Lang } from '../system-text';
 
 export interface HeroSlideFromCms {
   id: number;
   image: string;
-  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one. */
+  /**
+   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
+   *  through an OE preview template have one.
+   */
   imageBlur?: string;
   eyebrow: string;
   headline: string;
@@ -52,21 +55,24 @@ const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
   };
 };
 
-export const loadHeroSlides = withTiming('loadHeroSlides', unstable_cache(
-  async (_lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
-    const api = getApiSafe();
-    if (!api) return [];
-    try {
-      const raw = await api.Blocks.getSlides('hero_slider');
-      if (isError(raw)) return [];
-      const result = raw as RawSlidesResponse;
-      const items = Array.isArray(result) ? result : result?.items ?? [];
-      return items.map((s, i) => normalize(s, i)).filter((s) => s.image.length > 0);
-    } catch (err) {
-      logCaught('hero-slides.loadHeroSlides', err);
-      return [];
-    }
-  },
-  ['oe-hero-slides'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
-));
+export const loadHeroSlides = withTiming(
+  'loadHeroSlides',
+  unstable_cache(
+    async (_lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
+      const api = getApiSafe();
+      if (!api) return [];
+      try {
+        const raw = await api.Blocks.getSlides('hero_slider');
+        if (isError(raw)) return [];
+        const result = raw as RawSlidesResponse;
+        const items = Array.isArray(result) ? result : (result?.items ?? []);
+        return items.map((s, i) => normalize(s, i)).filter((s) => s.image.length > 0);
+      } catch (err) {
+        logCaught('hero-slides.loadHeroSlides', err);
+        return [];
+      }
+    },
+    ['oe-hero-slides'],
+    { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+  ),
+);

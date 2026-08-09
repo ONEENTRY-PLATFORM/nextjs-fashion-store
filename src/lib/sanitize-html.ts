@@ -19,12 +19,48 @@
 
 /** Tags kept in the output. Anything else loses its markup but keeps its text. */
 const ALLOWED_TAGS = new Set([
-  'p', 'br', 'hr', 'span', 'div',
-  'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'ins', 'mark', 'small', 'sub', 'sup',
-  'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'a', 'img', 'figure', 'figcaption',
-  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption',
+  'p',
+  'br',
+  'hr',
+  'span',
+  'div',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'u',
+  's',
+  'strike',
+  'del',
+  'ins',
+  'mark',
+  'small',
+  'sub',
+  'sup',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'pre',
+  'code',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'a',
+  'img',
+  'figure',
+  'figcaption',
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'tr',
+  'th',
+  'td',
+  'caption',
 ]);
 
 /**
@@ -34,10 +70,35 @@ const ALLOWED_TAGS = new Set([
  * markup past a naive filter.
  */
 const DROP_WITH_CONTENT = new Set([
-  'script', 'style', 'iframe', 'object', 'embed', 'applet', 'noscript', 'template',
-  'svg', 'math', 'form', 'input', 'button', 'select', 'option', 'textarea',
-  'link', 'meta', 'base', 'title', 'head', 'frame', 'frameset', 'audio', 'video',
-  'source', 'track', 'canvas', 'portal',
+  'script',
+  'style',
+  'iframe',
+  'object',
+  'embed',
+  'applet',
+  'noscript',
+  'template',
+  'svg',
+  'math',
+  'form',
+  'input',
+  'button',
+  'select',
+  'option',
+  'textarea',
+  'link',
+  'meta',
+  'base',
+  'title',
+  'head',
+  'frame',
+  'frameset',
+  'audio',
+  'video',
+  'source',
+  'track',
+  'canvas',
+  'portal',
 ]);
 
 /** Attributes accepted on every allowed tag. */
@@ -77,8 +138,9 @@ const ATTR_RE = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([
  * Escape the characters that could re-open markup once the result is handed
  * back to `innerHTML`. Only `<` and `"` are touched — re-encoding `&` would
  * double-escape the entities the editor already produced.
- * @param {string} value - Raw text or attribute value.
- * @returns {string} Text that cannot break out of its context.
+ *
+ * @param value - Raw text or attribute value.
+ * @returns Text that cannot break out of its context.
  */
 function escapeText(value: string): string {
   return value.replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -90,15 +152,15 @@ function escapeText(value: string): string {
  * Browsers ignore control characters and resolve HTML entities *before*
  * dispatching a URL scheme, so `java&#09;script:` and `&#106;avascript:` both
  * execute. Both are normalised away before the scheme is checked.
- * @param {string} value - Raw attribute value.
- * @returns {boolean} `true` when the scheme is safe to render.
+ *
+ * @param value - Raw attribute value.
+ * @returns `true` when the scheme is safe to render.
  */
 function isSafeUrl(value: string): boolean {
   const decoded = value
     .replace(/&#x([0-9a-f]+);?/gi, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&#(\d+);?/g, (_m, dec: string) => String.fromCharCode(Number(dec)))
-    .replace(/&(tab|newline|colon|NewLine|Tab);/gi, (_m, name: string) =>
-      (name.toLowerCase() === 'colon' ? ':' : ''));
+    .replace(/&(tab|newline|colon|NewLine|Tab);/gi, (_m, name: string) => (name.toLowerCase() === 'colon' ? ':' : ''));
   // Strip everything the URL parser treats as insignificant noise (NUL,
   // tab, newline, form feed, spaces) — `java\tscript:` is a working payload.
   const cleaned = decoded.replace(/[\u0000-\u0020]+/g, '').toLowerCase();
@@ -110,9 +172,10 @@ function isSafeUrl(value: string): boolean {
  * allow-list permits. `on*` handlers can never match — they are not on any
  * list — but they are rejected explicitly so the intent survives a future
  * edit to the tables above.
- * @param {string} tag     - Lower-cased tag name.
- * @param {string} rawAttrs - Everything between the tag name and `>`.
- * @returns {string} A serialised attribute string, empty or leading-space-prefixed.
+ *
+ * @param tag     - Lower-cased tag name.
+ * @param rawAttrs - Everything between the tag name and `>`.
+ * @returns A serialised attribute string, empty or leading-space-prefixed.
  */
 function sanitizeAttributes(tag: string, rawAttrs: string): string {
   const permitted = TAG_ATTRS[tag];
@@ -147,8 +210,9 @@ function sanitizeAttributes(tag: string, rawAttrs: string): string {
 
 /**
  * Sanitize CMS-authored HTML for `dangerouslySetInnerHTML`.
- * @param {string | null | undefined} html - Raw HTML from OneEntry.
- * @returns {string} Markup limited to the allow-list above; `''` when empty.
+ *
+ * @param html - Raw HTML from OneEntry.
+ * @returns Markup limited to the allow-list above; `''` when empty.
  */
 export function sanitizeHtml(html: string | null | undefined): string {
   if (!html || typeof html !== 'string') return '';

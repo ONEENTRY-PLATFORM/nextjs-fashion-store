@@ -1,4 +1,4 @@
-import { type Page, expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /**
  * Credentials of the permanent E2E user. Overridable from `.env.local` so a
@@ -27,11 +27,14 @@ export const SESSION_KEYS = {
 
 /** Read the persisted session as the browser sees it. */
 export async function readSession(page: Page) {
-  return page.evaluate((keys) => ({
-    refreshToken: localStorage.getItem(keys.refreshToken),
-    providerMarker: localStorage.getItem(keys.providerMarker),
-    userIdentifier: localStorage.getItem(keys.userIdentifier),
-  }), SESSION_KEYS);
+  return page.evaluate(
+    (keys) => ({
+      refreshToken: localStorage.getItem(keys.refreshToken),
+      providerMarker: localStorage.getItem(keys.providerMarker),
+      userIdentifier: localStorage.getItem(keys.userIdentifier),
+    }),
+    SESSION_KEYS,
+  );
 }
 
 /** Click the account/user icon in the Header to open login modal */
@@ -139,7 +142,7 @@ export async function gotoProduct(page: Page, query = '', index = 0): Promise<st
  */
 export async function selectFirstAvailableSize(page: Page): Promise<boolean> {
   const chips = page.locator('[data-testid="pdp-size-chip"]:not([disabled])');
-  if (await chips.count() === 0) return false;
+  if ((await chips.count()) === 0) return false;
   await chips.first().click();
   return true;
 }
@@ -163,7 +166,19 @@ export async function seedCart(page: Page) {
   await page.addInitScript(() => {
     const store = JSON.parse(localStorage.getItem('oe_store') || '{}');
     store.cart = {
-      items: [{ id: 'wc-3-seed', name: 'Seed Dress', brand: 'OE', sku: 'wc-3', color: '#000', size: 'M', quantity: 1, price: 49.99, image: '/icons/icon-192.png' }],
+      items: [
+        {
+          id: 'wc-3-seed',
+          name: 'Seed Dress',
+          brand: 'OE',
+          sku: 'wc-3',
+          color: '#000',
+          size: 'M',
+          quantity: 1,
+          price: 49.99,
+          image: '/icons/icon-192.png',
+        },
+      ],
       miniCartOpen: false,
     };
     store.__version = 3;

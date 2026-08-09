@@ -7,6 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { clearGuestId, getOrCreateGuestId, readGuestId } from '@/app/utils/guest-id';
 
 const KEY = 'oe_guest_id';

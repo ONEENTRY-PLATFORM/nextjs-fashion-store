@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { CatalogCrossSell } from '../app/components/catalog/CatalogCrossSell';
 import type { CrossSellCategory } from '../app/components/catalog/CatalogTemplate';
 

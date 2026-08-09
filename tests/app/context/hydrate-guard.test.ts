@@ -6,7 +6,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { shouldHydrateForUser, pickLocalIdsToPrune, diffCartForHydrate } from '@/app/context/hydrate-guard';
+
+import { diffCartForHydrate, pickLocalIdsToPrune, shouldHydrateForUser } from '@/app/context/hydrate-guard';
 
 describe('shouldHydrateForUser', () => {
   it('returns false when userIdentifier is null', () => {
@@ -50,8 +51,7 @@ describe('shouldHydrateForUser', () => {
 // ---------------------------------------------------------------------------
 
 /** Identity toCms: numeric string → number, non-numeric → null. */
-const numericToCms = (id: string): number | null =>
-  /^\d+$/.test(id) ? Number(id) : null;
+const numericToCms = (id: string): number | null => (/^\d+$/.test(id) ? Number(id) : null);
 
 describe('pickLocalIdsToPrune', () => {
   it('(a) all local items present in OE → returns empty array', () => {
@@ -109,8 +109,7 @@ describe('pickLocalIdsToPrune', () => {
 const noPlayground = (_cmsId: number): string | null => null;
 
 /** Simulates a playground mapping: cmsId 7 → 'pg-7', everything else → null. */
-const withPlayground = (cmsId: number): string | null =>
-  cmsId === 7 ? 'pg-7' : null;
+const withPlayground = (cmsId: number): string | null => (cmsId === 7 ? 'pg-7' : null);
 
 describe('diffCartForHydrate', () => {
   it('(1) all items match in id and qty — both output arrays are empty', () => {

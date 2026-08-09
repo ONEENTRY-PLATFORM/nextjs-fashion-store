@@ -20,8 +20,7 @@ beforeEach(() => {
 
 // Helper: build a minimal ProductReview-like object with only the `rating`
 // field that getProductReviewSummary actually reads.
-const fakeReviews = (ratings: number[]) =>
-  ratings.map((rating, i) => ({ id: i + 1, rating } as any));
+const fakeReviews = (ratings: number[]) => ratings.map((rating, i) => ({ id: i + 1, rating }) as any);
 
 describe('getProductReviewSummary', () => {
   it('returns count=0 and avg=null when there are no reviews', async () => {

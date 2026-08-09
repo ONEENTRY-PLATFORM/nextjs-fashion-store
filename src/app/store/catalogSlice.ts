@@ -40,11 +40,10 @@ const catalogSlice = createSlice({
   name: 'catalog',
   initialState: {} as CatalogsState,
   reducers: {
-    /** Toggle a single filter value on/off */
-    toggleFilter(
-      state,
-      action: PayloadAction<{ catalogKey: string; filterKey: string; value: string }>
-    ) {
+    /**
+     * Toggle a single filter value on/off
+     */
+    toggleFilter(state, action: PayloadAction<{ catalogKey: string; filterKey: string; value: string }>) {
       const { catalogKey, filterKey, value } = action.payload;
       const catalog = getCatalog(state, catalogKey);
       const current = catalog.selectedFilters[filterKey] ?? [];
@@ -54,18 +53,19 @@ const catalogSlice = createSlice({
       catalog.currentPage = 1;
     },
 
-    /** Set all filters at once (e.g. from URL params) */
-    setFilters(
-      state,
-      action: PayloadAction<{ catalogKey: string; filters: Record<string, string[]> }>
-    ) {
+    /**
+     * Set all filters at once (e.g. from URL params)
+     */
+    setFilters(state, action: PayloadAction<{ catalogKey: string; filters: Record<string, string[]> }>) {
       const { catalogKey, filters } = action.payload;
       const catalog = getCatalog(state, catalogKey);
       catalog.selectedFilters = filters;
       catalog.currentPage = 1;
     },
 
-    /** Clear all filters for a catalog */
+    /**
+     * Clear all filters for a catalog
+     */
     clearFilters(state, action: PayloadAction<string>) {
       const catalog = getCatalog(state, action.payload);
       catalog.selectedFilters = {};
@@ -97,7 +97,9 @@ const catalogSlice = createSlice({
       catalog.currentPage = 1;
     },
 
-    /** Load persisted catalog state from localStorage after client mount */
+    /**
+     * Load persisted catalog state from localStorage after client mount
+     */
     hydrateCatalogs(_state, action: PayloadAction<CatalogsState>) {
       return action.payload;
     },

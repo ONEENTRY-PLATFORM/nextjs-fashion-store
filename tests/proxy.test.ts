@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * The proxy is what makes the as-needed scheme real: bare paths render as the
@@ -25,8 +25,12 @@ function makeRequest(pathname: string, search = '') {
   return { nextUrl, url: url.toString() } as never;
 }
 
-beforeEach(() => { vi.resetModules(); });
-afterEach(() => { process.env = { ...ORIGINAL }; });
+beforeEach(() => {
+  vi.resetModules();
+});
+afterEach(() => {
+  process.env = { ...ORIGINAL };
+});
 
 describe('proxy — single locale', () => {
   it('rewrites bare paths to the default locale without changing the URL', async () => {

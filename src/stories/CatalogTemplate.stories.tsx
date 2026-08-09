@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { CatalogTemplate } from '../app/components/catalog/CatalogTemplate';
+
 import type { FilterGroup } from '../app/components/catalog/CatalogTemplate';
-import { MOCK_PRODUCT, MOCK_SALE_PRODUCT, MOCK_OOS_PRODUCT } from './mockData';
-import { ACCENT_WOMEN, ACCENT_MEN } from '../app/constants/colors';
+import { CatalogTemplate } from '../app/components/catalog/CatalogTemplate';
+import { ACCENT_MEN, ACCENT_WOMEN } from '../app/constants/colors';
+import { MOCK_OOS_PRODUCT, MOCK_PRODUCT, MOCK_SALE_PRODUCT } from './mockData';
 
 const SAMPLE_FILTER_GROUPS: FilterGroup[] = [
   {
@@ -61,10 +62,7 @@ export const WomenClothing: Story = {
     genderLabel: 'WOMEN',
     totalStyles: 3,
     productsPerPage: 12,
-    breadcrumbs: [
-      { label: 'WOMEN', href: '/women/clothing' },
-      { label: 'Clothing' },
-    ],
+    breadcrumbs: [{ label: 'WOMEN', href: '/women/clothing' }, { label: 'Clothing' }],
   },
 };
 
@@ -80,9 +78,6 @@ export const MenClothing: Story = {
     genderLabel: 'MEN',
     totalStyles: 3,
     productsPerPage: 12,
-    breadcrumbs: [
-      { label: 'MEN', href: '/men/clothing' },
-      { label: 'Clothing' },
-    ],
+    breadcrumbs: [{ label: 'MEN', href: '/men/clothing' }, { label: 'Clothing' }],
   },
 };

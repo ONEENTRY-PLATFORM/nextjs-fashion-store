@@ -1,69 +1,81 @@
-'use client'
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-
-import { sanitizeHtml } from '../../lib/sanitize-html';
-import { useParams, useSearchParams, notFound } from 'next/navigation';
+'use client';
 import {
-  hexToColorName,
-  type CatalogProduct,
-} from '../data/productCatalog';
-import { type SpecialOffer } from '../data/specialOffers';
-import { Header } from '../components/header/Header';
-import { Footer } from '../components/footer/Footer';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { useSelector, useDispatch } from 'react-redux';
-import type { RootState, AppDispatch } from '../store';
-import { recentlyViewedActions } from '../store/recentlyViewedSlice';
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  MapPin,
+  RotateCcw,
+  Ruler,
+  Shield,
+  ShoppingBag,
+  Store,
+  Truck,
+} from 'lucide-react';
+import { notFound, useParams, useSearchParams } from 'next/navigation';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+
+import { Link, useRouter } from '../../lib/i18n/navigation';
 import { pushRecentlyViewedAction } from '../../lib/oneentry/auth/actions';
+import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
 import { getProductReviewSummary } from '../../lib/oneentry/catalog/reviews-actions';
-import { trackActivity } from '../utils/track-activity';
-import { useAuth } from '../context/AuthContext';
-import { useWishlist } from '../context/WishlistContext';
-import { useCart } from '../context/CartContext';
-import {
-  ChevronLeft, ChevronRight,
-  Heart, ShoppingBag, Store, Truck, RotateCcw, Shield,
-  Ruler, MapPin, Check,
-} from 'lucide-react';
-
-import { StarRating } from './product/StarRating';
-import { AccordionSection } from './product/AccordionSection';
-import { SizeGuideModal } from './product/SizeGuideModal';
-import { ProductGallery } from './product/ProductGallery';
-import { ReserveInStoreModal, type ReserveStore } from './product/ReserveInStoreModal';
-import { ProductSpecialOffers } from './product/ProductSpecialOffers';
-import { RecentlyViewedSection } from './product/RecentlyViewedSection';
-import { ProductShareDropdown } from './product/ProductShareDropdown';
-import { useProductPageUIState } from './product/useProductPageUIState';
-
-import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
-import { strikeColor } from '../utils/colorUtils';
-import { useAnnounce } from '../hooks/useAnnounce';
-import { PRODUCT_PRICE_NOTE, PRODUCT_ACTION_LABELS, PRODUCT_ACCORDION_LABELS as PA, PRODUCT_BREADCRUMB_LABELS as PB, PRODUCT_DEFAULTS as PD } from '../data/productPageLabels';
 // PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks
 // (`saveToWishlist`, `savedToWishlist`) — anything referring to product data
 // (name/brand/price/size/colour) comes from `catalogProduct` / OneEntry.
-import { useT } from '../../lib/oneentry/labels/DictContext';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
+import { sanitizeHtml } from '../../lib/sanitize-html';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
+import { Footer } from '../components/footer/Footer';
+import { Header } from '../components/header/Header';
+import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { CURRENCY } from '../data/currencyConfig';
-import { useRouter, Link } from '../../lib/i18n/navigation';
+import { type CatalogProduct, hexToColorName } from '../data/productCatalog';
+import {
+  PRODUCT_ACCORDION_LABELS as PA,
+  PRODUCT_ACTION_LABELS,
+  PRODUCT_BREADCRUMB_LABELS,
+  PRODUCT_DEFAULTS as PD,
+  PRODUCT_PRICE_NOTE,
+} from '../data/productPageLabels';
+import { type SpecialOffer } from '../data/specialOffers';
+import { useAnnounce } from '../hooks/useAnnounce';
+import type { AppDispatch, RootState } from '../store';
+import { recentlyViewedActions } from '../store/recentlyViewedSlice';
+import { strikeColor } from '../utils/colorUtils';
+import { fillTokens } from '../utils/fillTokens';
+import { trackActivity } from '../utils/track-activity';
+import { AccordionSection } from './product/AccordionSection';
+import { ProductGallery } from './product/ProductGallery';
+import { ProductShareDropdown } from './product/ProductShareDropdown';
+import { ProductSpecialOffers } from './product/ProductSpecialOffers';
+import { RecentlyViewedSection } from './product/RecentlyViewedSection';
+import { ReserveInStoreModal, type ReserveStore } from './product/ReserveInStoreModal';
+import { SizeGuideModal } from './product/SizeGuideModal';
+import { StarRating } from './product/StarRating';
+import { useProductPageUIState } from './product/useProductPageUIState';
 
 const DELIVERY_ICONS = {
-  truck:  <Truck size={14} />,
+  truck: <Truck size={14} />,
   return: <RotateCcw size={14} />,
   shield: <Shield size={14} />,
 } as const;
 
-/** Map common OE care-instruction phrases to their emoji symbol. Unknown
- *  phrases get a generic tag icon so the row still renders. */
+/**
+ * Map common OE care-instruction phrases to their emoji symbol. Unknown
+ *  phrases get a generic tag icon so the row still renders.
+ */
 const CARE_SYMBOL_MAP: Array<[RegExp, string]> = [
-  [/hand\s*wash/i,    '\u{1F9BA}'],
+  [/hand\s*wash/i, '\u{1F9BA}'],
   [/machine\s*wash/i, '\u{1F9FA}'],
   [/no\s*tumble|do\s*not\s*tumble/i, '\u{1F6AB}'],
-  [/iron/i,           '♨'],
-  [/bleach/i,         '\u{1F9F4}'],
-  [/dry\s*clean/i,    '\u{1F9F9}'],
+  [/iron/i, '♨'],
+  [/bleach/i, '\u{1F9F4}'],
+  [/dry\s*clean/i, '\u{1F9F9}'],
 ];
 function careSymbolFor(text: string): string {
   const t = text.trim();
@@ -83,75 +95,96 @@ export function ProductDetailPage({
   reserveStores = [],
 }: {
   initialProduct?: CatalogProduct;
-  /** Breadcrumb labels derived from the product's OE category path
-   *  (e.g. `['Women', 'Clothing', 'Costumes']`). */
+  /**
+   * Breadcrumb labels derived from the product's OE category path
+   *  (e.g. `['Women', 'Clothing', 'Costumes']`).
+   */
   categoryBreadcrumbs?: string[];
-  /** Streamed customer-reviews block — a `<Suspense>`-wrapped async server
+  /**
+   * Streamed customer-reviews block — a `<Suspense>`-wrapped async server
    *  component that fetches `review_feedback`/`review_rating` form-data. The
-   *  page-level component just slots whatever the parent passes in. */
+   *  page-level component just slots whatever the parent passes in.
+   */
   reviewsSlot?: React.ReactNode;
   /** Streamed "You May Also Like" carousel (OE `frequently_ordered_block`). */
   recommendationsSlot?: React.ReactNode;
-  /** Gender taxonomy of the current product — used to filter the
+  /**
+   * Gender taxonomy of the current product — used to filter the
    *  client-side "Recently Viewed" carousel so men only see men's items and
-   *  women only see women's (unisex always passes through). */
+   *  women only see women's (unisex always passes through).
+   */
   currentGender?: 'W' | 'M' | 'U' | '';
-  /** Bonus points earned when purchasing this product, resolved server-side
+  /**
+   * Bonus points earned when purchasing this product, resolved server-side
    *  from the OE `purchase-of-goods` discount rule. `undefined` (or `0`) hides
-   *  the "Earn X bonus points" block entirely. */
+   *  the "Earn X bonus points" block entirely.
+   */
   bonusPoints?: number;
-  /** Href for the "View all in this category" link — derived from the product's
+  /**
+   * Href for the "View all in this category" link — derived from the product's
    *  OE `categories` path server-side. When absent (or `'/'`), used as a
-   *  passthrough to the recommendations carousel. */
+   *  passthrough to the recommendations carousel.
+   */
   categoryViewAllHref?: string;
-  /** OE-attached product blocks (`Products.getProductBlockById`). Rendered
+  /**
+   * OE-attached product blocks (`Products.getProductBlockById`). Rendered
    *  via `<PageBlocksRenderer>` right after the streaming recommendations
-   *  slot, in admin-defined `position` order. */
+   *  slot, in admin-defined `position` order.
+   */
   productBlocks?: PageBlock[];
-  /** Real store list for the reserve-in-store modal, mapped from the OE store
+  /**
+   * Real store list for the reserve-in-store modal, mapped from the OE store
    *  pages by the route. Empty hides the reserve CTA — offering a reservation
-   *  with no branch to reserve at is worse than not offering one. */
+   *  with no branch to reserve at is worse than not offering one.
+   */
   reserveStores?: ReserveStore[];
 } = {}) {
+  const PB = useDict('product_card_breadcrumb_', PRODUCT_BREADCRUMB_LABELS);
   const router = useRouter();
-  const lReviewsSuffix  = useT('product-card-reviews',                  PRODUCT_ACTION_LABELS.reviewsSuffix);
-  const lSizeGuide      = useT('product-card-size-guide',               PRODUCT_ACTION_LABELS.sizeGuide);
-  const lAddToCart      = useT('product-card_add_to_cart_cta',          PRODUCT_ACTION_LABELS.addToCart);
-  const lReserveInStore = useT('product-card_reserve_in_store_cta',     PRODUCT_ACTION_LABELS.reserveInStore);
-  const lSaveToWishlist = useT('product-card-save_to_wishlist_cta',     PD.saveToWishlist);
-  const lPriceNote      = useT('product-card-vat',                      PRODUCT_PRICE_NOTE);
+  const lReviewsSuffix = useT('product-card-reviews', PRODUCT_ACTION_LABELS.reviewsSuffix);
+  const lSizeGuide = useT('product-card-size-guide', PRODUCT_ACTION_LABELS.sizeGuide);
+  const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_ACTION_LABELS.addToCart);
+  const lReserveInStore = useT('product-card_reserve_in_store_cta', PRODUCT_ACTION_LABELS.reserveInStore);
+  const lSaveToWishlist = useT('product-card-save_to_wishlist_cta', PD.saveToWishlist);
+  const lSavedToWishlist = useT('product-card-saved_to_wishlist_cta', PD.savedToWishlist);
+  const lPriceNote = useT('product-card-vat', PRODUCT_PRICE_NOTE);
   // Static UI strings — wired through OE so admins can override copy without
   // a code change. Each key falls back to the legacy hardcoded English when
   // the system-text set doesn't contain it.
-  const lBonusHeading       = useT('earn_360_bonus_points_title', PRODUCT_ACTION_LABELS.bonusHeading);
-  const lBonusBody          = useT('earn_360_bonus_points_text',  PRODUCT_ACTION_LABELS.bonusBody);
-  const lColorLabel         = useT('product-card-color_label',          PRODUCT_ACTION_LABELS.colorLabel);
-  const lSizeLabel          = useT('product-card-size_label',           PRODUCT_ACTION_LABELS.sizeLabel);
-  const lSizeError          = useT('product-card-size_error',           PRODUCT_ACTION_LABELS.sizeError);
-  const lStoreAvailableIn   = useT('product-card-available_in_store',   PRODUCT_ACTION_LABELS.storeAvailableIn);
-  const lStoreStockSuffix   = useT('product-card-in_stock_today',       PRODUCT_ACTION_LABELS.storeStockSuffix);
-  const lStoreCitiesRaw     = useT('product-card-store_cities',         PRODUCT_ACTION_LABELS.defaultCities.join(','));
-  const lOutOfStock         = useT('product-card-out_of_stock',         PRODUCT_ACTION_LABELS.outOfStock);
-  const lOutOfStockTitle    = useT('product-card-color_oos_title',      PRODUCT_ACTION_LABELS.outOfStockTitle);
-  const lInStock            = useT('product-card-in_stock',             PRODUCT_ACTION_LABELS.inStock);
-  const lPreOrder           = useT('product-card-pre_order',            PRODUCT_ACTION_LABELS.preOrder);
-  const lPreOrderButton     = useT('product-card-pre_order_button',     PRODUCT_ACTION_LABELS.preOrderButton);
-  const lComingSoon         = useT('product-card-coming_soon',          PRODUCT_ACTION_LABELS.comingSoon);
-  const lSkuPrefix          = useT('product-card-sku_label',            PRODUCT_ACTION_LABELS.skuLabel);
-  const lArticlePrefix      = useT('product-card-article_label',        PRODUCT_ACTION_LABELS.articleLabel);
-  const lSpecsTitle         = useT('product-card-accordion_specs',      PA.specificationsTitle);
-  const lDescriptionTitle   = useT('product-card-accordion_description', PA.descriptionTitle);
-  const lDeliveryTitle      = useT('product-card-accordion_delivery',   PA.deliveryTitle);
-  const lCareTitle          = useT('product-card-accordion_care',       PA.careTitle);
-  const lFreeDelivery       = useT('product-card_free_delivery',        '');
-  const lFreeReturns        = useT('product-card_free_returns',         '');
-  const lSecureCheckout     = useT('product-card_secure_checkout',      '');
+  const lBonusHeading = useT('earn_360_bonus_points_title', PRODUCT_ACTION_LABELS.bonusHeading);
+  const lBonusBody = useT('earn_360_bonus_points_text', PRODUCT_ACTION_LABELS.bonusBody);
+  const lColorLabel = useT('product-card-color_label', PRODUCT_ACTION_LABELS.colorLabel);
+  const lSizeLabel = useT('product-card-size_label', PRODUCT_ACTION_LABELS.sizeLabel);
+  const lSizeError = useT('product-card-size_error', PRODUCT_ACTION_LABELS.sizeError);
+  const lStoreAvailableIn = useT('product-card-available_in_store', PRODUCT_ACTION_LABELS.storeAvailableIn);
+  const lStoreStockSuffix = useT('product-card-in_stock_today', PRODUCT_ACTION_LABELS.storeStockSuffix);
+  const lStoreCitiesRaw = useT('product-card-store_cities', PRODUCT_ACTION_LABELS.defaultCities.join(','));
+  const lOutOfStock = useT('product-card-out_of_stock', PRODUCT_ACTION_LABELS.outOfStock);
+  const lOutOfStockTitle = useT('product-card-color_oos_title', PRODUCT_ACTION_LABELS.outOfStockTitle);
+  const lInStock = useT('product-card-in_stock', PRODUCT_ACTION_LABELS.inStock);
+  const lPreOrder = useT('product-card-pre_order', PRODUCT_ACTION_LABELS.preOrder);
+  const lPreOrderButton = useT('product-card-pre_order_button', PRODUCT_ACTION_LABELS.preOrderButton);
+  const lAddedToCart = useT('product-card-added_to_cart', PRODUCT_ACTION_LABELS.addedToCart);
+  const aAnnounceAdded = useT('product-card-announce_added_to_cart', PRODUCT_ACTION_LABELS.announceAddedToCart);
+  const lComingSoon = useT('product-card-coming_soon', PRODUCT_ACTION_LABELS.comingSoon);
+  const lSkuPrefix = useT('product-card-sku_label', PRODUCT_ACTION_LABELS.skuLabel);
+  const lArticlePrefix = useT('product-card-article_label', PRODUCT_ACTION_LABELS.articleLabel);
+  const lSpecsTitle = useT('product-card-accordion_specs', PA.specificationsTitle);
+  const lDescriptionTitle = useT('product-card-accordion_description', PA.descriptionTitle);
+  const lDeliveryTitle = useT('product-card-accordion_delivery', PA.deliveryTitle);
+  const lCareTitle = useT('product-card-accordion_care', PA.careTitle);
+  const lFreeDelivery = useT('product-card_free_delivery', '');
+  const lFreeReturns = useT('product-card_free_returns', '');
+  const lSecureCheckout = useT('product-card_secure_checkout', '');
   const deliverySnippets = [
-    { iconKey: 'truck'  as const, text: lFreeDelivery },
+    { iconKey: 'truck' as const, text: lFreeDelivery },
     { iconKey: 'return' as const, text: lFreeReturns },
     { iconKey: 'shield' as const, text: lSecureCheckout },
   ].filter((row) => row.text.length > 0);
-  const storeCities         = lStoreCitiesRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const storeCities = lStoreCitiesRaw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   // Delivery accordion rows — backed by OE's `product_card_delivery_returns`
   // system-text set. Each row is title + description; if the key is missing,
@@ -160,22 +193,22 @@ export function ProductDetailPage({
     {
       iconKey: 'truck' as const,
       title: useT('p_c_d_r_standart_delivery_title', ''),
-      desc:  useT('p_c_d_r_standart_delivery_text',  ''),
+      desc: useT('p_c_d_r_standart_delivery_text', ''),
     },
     {
       iconKey: 'truck' as const,
       title: useT('p_c_d_r_express_delivery_title', ''),
-      desc:  useT('p_c_d_r_express_delivery_text',  ''),
+      desc: useT('p_c_d_r_express_delivery_text', ''),
     },
     {
       iconKey: 'store' as const,
       title: useT('p_c_d_r_click_collect_title', ''),
-      desc:  useT('p_c_d_r_click_collect_text',  ''),
+      desc: useT('p_c_d_r_click_collect_text', ''),
     },
     {
       iconKey: 'returns' as const,
       title: useT('p_c_d_r_returns_title', ''),
-      desc:  useT('p_c_d_r_returns_text',  ''),
+      desc: useT('p_c_d_r_returns_text', ''),
     },
   ].filter((row) => row.title.length > 0);
   const params = useParams();
@@ -192,13 +225,15 @@ export function ProductDetailPage({
   const dynamicName = catalogProduct?.name ?? '';
   const dynamicBrand = catalogProduct?.brand ?? '';
   const dynamicImage = catalogProduct?.image ?? '';
-  const dynamicColors = useMemo(() => (
-    (catalogProduct?.colors ?? []).map((hex, idx) => ({
-      name: hexToColorName(hex),
-      hex,
-      available: productIsOOS ? false : (catalogProduct?.colorStock ? catalogProduct.colorStock[idx] !== false : true),
-    }))
-  ), [catalogProduct, productIsOOS]);
+  const dynamicColors = useMemo(
+    () =>
+      (catalogProduct?.colors ?? []).map((hex, idx) => ({
+        name: hexToColorName(hex),
+        hex,
+        available: productIsOOS ? false : catalogProduct?.colorStock ? catalogProduct.colorStock[idx] !== false : true,
+      })),
+    [catalogProduct, productIsOOS],
+  );
 
   // Memoised: the fallback `[]` would otherwise be a new array each render and
   // invalidate the size-availability memo below on every pass.
@@ -218,17 +253,14 @@ export function ProductDetailPage({
 
   const searchParams = useSearchParams();
   const rawColor = searchParams?.get('color');
-  const initSize = searchParams?.get('size')
-    ?? (productSizeOptions.length === 1 ? productSizeOptions[0].label : null);
+  const initSize = searchParams?.get('size') ?? (productSizeOptions.length === 1 ? productSizeOptions[0].label : null);
   // Accept either hex (`#FFC0CB`) or OE colour name (`Pink`) so links coming
   // from either the PDP (writes hex) or ProductCard/QuickView (writes OE name)
   // both resolve to the intended swatch.
   const initColorIdx = (() => {
     if (!rawColor) return 0;
     const norm = rawColor.toLowerCase().trim();
-    const idx = dynamicColors.findIndex(
-      (c) => c.hex.toLowerCase() === norm || c.name.toLowerCase() === norm,
-    );
+    const idx = dynamicColors.findIndex((c) => c.hex.toLowerCase() === norm || c.name.toLowerCase() === norm);
     return idx >= 0 ? idx : 0;
   })();
 
@@ -269,9 +301,7 @@ export function ProductDetailPage({
     return variants.find((v) => v.colors.includes(hex)) ?? null;
   }, [catalogProduct?.variants, dynamicColors, selectedColor, selectedSize]);
 
-  const activeColorImage = activeVariant?.image
-    || catalogProduct?.colorImages?.[selectedColor]
-    || dynamicImage;
+  const activeColorImage = activeVariant?.image || catalogProduct?.colorImages?.[selectedColor] || dynamicImage;
 
   // Price / gallery / SKU follow the active variant when the linked product
   // carries its own copy; otherwise we fall back to the parent product
@@ -294,16 +324,20 @@ export function ProductDetailPage({
     Math.round((1 - effectiveSale / effectiveFull) * 100) >= 1;
   const dynamicPrice = hasVisibleDiscount ? (effectiveSale ?? effectiveFull) : effectiveFull;
   const dynamicOriginalPrice = hasVisibleDiscount ? effectiveFull : null;
-  const dynamicGallery = (activeVariant?.images && activeVariant.images.length > 0)
-    ? activeVariant.images
-    : catalogProduct?.galleryImages
-      ?? (catalogProduct ? Array(5).fill(catalogProduct.image) : []);
+  const dynamicGallery =
+    activeVariant?.images && activeVariant.images.length > 0
+      ? activeVariant.images
+      : (catalogProduct?.galleryImages ?? (catalogProduct ? Array(5).fill(catalogProduct.image) : []));
   // Match on the stable `key`, not the label — spec labels are editable in the
   // admin panel, so a renamed "SKU" row would otherwise silently stop matching.
-  const variantSku = activeVariant?.sku ?? catalogProduct?.specs?.find(s => s.key === 'sku')?.value ?? PRODUCT_ACTION_LABELS.defaultSku;
-  const activeDescriptionHtml = (activeVariant?.descriptionHtml && activeVariant.descriptionHtml.trim())
-    ? activeVariant.descriptionHtml
-    : catalogProduct?.descriptionHtml;
+  const variantSku =
+    activeVariant?.sku ??
+    catalogProduct?.specs?.find((s) => s.key === 'sku')?.value ??
+    PRODUCT_ACTION_LABELS.defaultSku;
+  const activeDescriptionHtml =
+    activeVariant?.descriptionHtml && activeVariant.descriptionHtml.trim()
+      ? activeVariant.descriptionHtml
+      : catalogProduct?.descriptionHtml;
 
   // OE distinguishes four availability signals:
   //   - `in_stock`     — regular purchase
@@ -331,13 +365,12 @@ export function ProductDetailPage({
   }
 
   useEffect(() => {
-    if (isFirstMount.current) { isFirstMount.current = false; return; }
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
     if (!productId || !isWishlisted(productId)) return;
-    updateSelection(
-      productId,
-      dynamicColors[selectedColor]?.hex,
-      selectedSize ?? undefined,
-    );
+    updateSelection(productId, dynamicColors[selectedColor]?.hex, selectedSize ?? undefined);
   }, [selectedColor, selectedSize, productId, isWishlisted, updateSelection, dynamicColors]);
 
   // Reflect the current colour+size choice in the URL so a full-page reload
@@ -385,8 +418,10 @@ export function ProductDetailPage({
   // entry per unique product.
   const allRecentlyViewed = (() => {
     const filtered = recentlyViewed
-      .filter(p => p.id !== productId)
-      .filter(p => !currentGender || currentGender === 'U' || !p.gender || p.gender === currentGender || p.gender === 'U');
+      .filter((p) => p.id !== productId)
+      .filter(
+        (p) => !currentGender || currentGender === 'U' || !p.gender || p.gender === currentGender || p.gender === 'U',
+      );
     const seen = new Set<string>();
     const out: typeof filtered = [];
     for (const p of filtered) {
@@ -405,19 +440,22 @@ export function ProductDetailPage({
   //    block on the round-trip.
   useEffect(() => {
     if (!catalogProduct) return;
-    dispatch(recentlyViewedActions.addProduct({
-      id: catalogProduct.id,
-      name: catalogProduct.name,
-      brand: catalogProduct.brand,
-      price: CURRENCY.format(catalogProduct.price),
-      ...(catalogProduct.salePrice !== undefined && { salePrice: CURRENCY.format(catalogProduct.salePrice) }),
-      image: catalogProduct.image,
-      colors: catalogProduct.colors,
-      ...(catalogProduct.badge && { label: catalogProduct.badge }),
-      ...(catalogProduct.gender && (catalogProduct.gender === 'W' || catalogProduct.gender === 'M' || catalogProduct.gender === 'U')
-        ? { gender: catalogProduct.gender }
-        : {}),
-    }));
+    dispatch(
+      recentlyViewedActions.addProduct({
+        id: catalogProduct.id,
+        name: catalogProduct.name,
+        brand: catalogProduct.brand,
+        price: CURRENCY.format(catalogProduct.price),
+        ...(catalogProduct.salePrice !== undefined && { salePrice: CURRENCY.format(catalogProduct.salePrice) }),
+        image: catalogProduct.image,
+        colors: catalogProduct.colors,
+        ...(catalogProduct.badge && { label: catalogProduct.badge }),
+        ...(catalogProduct.gender &&
+        (catalogProduct.gender === 'W' || catalogProduct.gender === 'M' || catalogProduct.gender === 'U')
+          ? { gender: catalogProduct.gender }
+          : {}),
+      }),
+    );
     const numeric = Number(catalogProduct.id);
     if (Number.isFinite(numeric) && numeric > 0) {
       trackActivity({ type: 'product_view', productId: numeric });
@@ -433,13 +471,11 @@ export function ProductDetailPage({
     if (!isLoggedIn || !user?.recentlyViewedItems || hydratedRef.current) return;
     if (user.recentlyViewedItems.length === 0) return;
     hydratedRef.current = true;
-    const ids = user.recentlyViewedItems
-      .map(it => Number(it.productId))
-      .filter(n => Number.isFinite(n));
-    void getProductsByIdsAction(ids).then(enriched => {
-      const byId = new Map(enriched.map(p => [p.id, p]));
+    const ids = user.recentlyViewedItems.map((it) => Number(it.productId)).filter((n) => Number.isFinite(n));
+    void getProductsByIdsAction(ids).then((enriched) => {
+      const byId = new Map(enriched.map((p) => [p.id, p]));
       const items = user.recentlyViewedItems
-        .map(it => {
+        .map((it) => {
           const ui = byId.get(String(it.productId));
           if (!ui) return null;
           const priceNumber = parseFloat(String(ui.price).replace(/[^\d.]/g, '')) || 0;
@@ -463,31 +499,39 @@ export function ProductDetailPage({
   }, [isLoggedIn]);
 
   const handleAddBundle = (offerId: string) => {
-    const offer = specialOffers.find(o => o.id === offerId);
+    const offer = specialOffers.find((o) => o.id === offerId);
     if (!offer) return;
-    cart.addBundle(offer.products.map((p, idx) => ({
-      id: `${offerId}-item-${idx}`,
-      name: p.name,
-      brand: dynamicBrand,
-      color: idx === 0 ? dynamicColors[selectedColor].name : '',
-      sku: `BUNDLE-${offerId.toUpperCase()}-${idx + 1}`,
-      size: idx === 0 && selectedSize ? selectedSize : '',
-      quantity: 1,
-      price: parseFloat(p.salePrice.match(/[\d.]+/)?.[0] ?? '0') || 0,
-      originalPrice: parseFloat(p.originalPrice.match(/[\d.]+/)?.[0] ?? '0') || 0,
-      image: p.image,
-    })));
+    cart.addBundle(
+      offer.products.map((p, idx) => ({
+        id: `${offerId}-item-${idx}`,
+        name: p.name,
+        brand: dynamicBrand,
+        color: idx === 0 ? dynamicColors[selectedColor].name : '',
+        sku: `BUNDLE-${offerId.toUpperCase()}-${idx + 1}`,
+        size: idx === 0 && selectedSize ? selectedSize : '',
+        quantity: 1,
+        price: parseFloat(p.salePrice.match(/[\d.]+/)?.[0] ?? '0') || 0,
+        originalPrice: parseFloat(p.originalPrice.match(/[\d.]+/)?.[0] ?? '0') || 0,
+        image: p.image,
+      })),
+    );
     cart.openMiniCart();
   };
 
   const wishlisted = isWishlisted(productId || 'pdp-ribbed-cashmere-knit');
   const announce = useAnnounce();
   const {
-    addedToCart, cartHovered, setCartHovered,
-    showSizeGuide, setShowSizeGuide,
-    showReserveModal, setShowReserveModal,
-    storeCity, setStoreCity,
-    showShare, setShowShare,
+    addedToCart,
+    cartHovered,
+    setCartHovered,
+    showSizeGuide,
+    setShowSizeGuide,
+    showReserveModal,
+    setShowReserveModal,
+    storeCity,
+    setStoreCity,
+    showShare,
+    setShowShare,
     copied,
     shareRef,
     handleCopyLink,
@@ -524,7 +568,9 @@ export function ProductDetailPage({
       if (tries < 40) setTimeout(attempt, 100);
     };
     attempt();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleAddToCart = () => {
@@ -542,15 +588,18 @@ export function ProductDetailPage({
     // still applies server-side at `previewOrder` / `createOrder`).
     const variantStock = activeVariant?.stock;
     const familyStock = catalogProduct?.stock;
-    const stockLimit = Number.isFinite(variantStock) && (variantStock as number) > 0
-      ? (variantStock as number)
-      : (Number.isFinite(familyStock) && (familyStock as number) > 0 ? (familyStock as number) : undefined);
+    const stockLimit =
+      Number.isFinite(variantStock) && (variantStock as number) > 0
+        ? (variantStock as number)
+        : Number.isFinite(familyStock) && (familyStock as number) > 0
+          ? (familyStock as number)
+          : undefined;
     cart.addItem({
       id: productId || 'pdp-ribbed-cashmere-knit',
       name: dynamicName,
       brand: dynamicBrand,
       color: dynamicColors[selectedColor].name,
-      sku: catalogProduct?.specs?.find(s => s.key === 'sku')?.value ?? productId,
+      sku: catalogProduct?.specs?.find((s) => s.key === 'sku')?.value ?? productId,
       size: selectedSize,
       quantity: 1,
       price: dynamicPrice,
@@ -560,7 +609,7 @@ export function ProductDetailPage({
     });
     cart.openMiniCart();
     markAddedToCart();
-    announce(PRODUCT_ACTION_LABELS.announceAddedToCart(dynamicName));
+    announce(fillTokens(aAnnounceAdded, { name: dynamicName }));
   };
 
   // Small star-rating summary next to the title. The full reviews block
@@ -578,14 +627,16 @@ export function ProductDetailPage({
       if (cancelled) return;
       setReviewSummary(s);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [catalogProduct?.id]);
   // Prefer the freshly-fetched summary; fall back to whatever the initial OE
   // catalog product carries (usually empty since reviews aren't pre-seeded).
   const displayReviewCount = reviewSummary?.count ?? productReviews.length;
-  const avgRating = reviewSummary?.avg ?? (productReviews.length > 0
-    ? productReviews.reduce((s, r) => s + r.rating, 0) / productReviews.length
-    : 0);
+  const avgRating =
+    reviewSummary?.avg ??
+    (productReviews.length > 0 ? productReviews.reduce((s, r) => s + r.rating, 0) / productReviews.length : 0);
 
   return (
     <div
@@ -596,10 +647,10 @@ export function ProductDetailPage({
 
       <main id="main-content">
         {/* Back button */}
-        <div className="px-4 lg:px-8 pt-4">
+        <div className="px-4 pt-4 lg:px-8">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-black transition-colors"
+            className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-black"
           >
             <ChevronLeft size={16} />
             {PB.back}
@@ -609,9 +660,11 @@ export function ProductDetailPage({
         {/* Breadcrumb — labels derived from the OE category path so each
             product gets its real taxonomy chain. The leading "Home" anchor
             links back to the storefront root. */}
-        <div className="px-4 lg:px-8 py-3 border-b border-gray-200">
-          <nav className="flex items-center gap-1.5 text-xs text-gray-400 flex-wrap">
-            <Link href="/" className="hover:text-black transition-colors">{PB.home}</Link>
+        <div className="border-b border-gray-200 px-4 py-3 lg:px-8">
+          <nav className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
+            <Link href="/" className="transition-colors hover:text-black">
+              {PB.home}
+            </Link>
             {categoryBreadcrumbs.map((crumb, i) => (
               <React.Fragment key={`${crumb}-${i}`}>
                 <ChevronRight size={11} className="shrink-0" />
@@ -619,16 +672,15 @@ export function ProductDetailPage({
               </React.Fragment>
             ))}
             <ChevronRight size={11} className="shrink-0" />
-            <span className="text-black truncate max-w-50">{dynamicName}</span>
+            <span className="max-w-50 truncate text-black">{dynamicName}</span>
           </nav>
         </div>
 
         {/* Main Product Section */}
-        <div className="px-4 lg:px-8 py-6 lg:py-10">
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 max-w-7xl mx-auto">
-
+        <div className="px-4 py-6 lg:px-8 lg:py-10">
+          <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Gallery */}
-            <div className="w-full lg:w-[55%] xl:w-[58%] lg:sticky lg:top-33 lg:self-start">
+            <div className="w-full lg:sticky lg:top-33 lg:w-[55%] lg:self-start xl:w-[58%]">
               <ProductGallery
                 images={dynamicGallery}
                 productName={dynamicName}
@@ -640,10 +692,12 @@ export function ProductDetailPage({
 
             {/* Product Info */}
             <div className="w-full lg:w-[45%] xl:w-[42%]">
-
               {/* Brand + Share */}
-              <div className="flex items-center justify-between mb-2">
-                <Link href={categoryViewAllHref} className="text-xs tracking-[0.2em] uppercase text-gray-500 hover:text-black transition-colors">
+              <div className="mb-2 flex items-center justify-between">
+                <Link
+                  href={categoryViewAllHref}
+                  className="text-xs tracking-[0.2em] text-gray-500 uppercase transition-colors hover:text-black"
+                >
                   {dynamicBrand}
                 </Link>
                 <ProductShareDropdown
@@ -656,12 +710,10 @@ export function ProductDetailPage({
               </div>
 
               {/* Product Name */}
-              <h1 className="mb-2 text-[1.35rem] font-semibold leading-[1.3]">
-                {dynamicName}
-              </h1>
+              <h1 className="leading-1.3 mb-2 text-[1.35rem] font-semibold">{dynamicName}</h1>
 
               {/* Rating Row */}
-              <div className="flex items-center gap-3 mb-3">
+              <div className="mb-3 flex items-center gap-3">
                 <StarRating rating={avgRating} size={15} />
                 <button
                   onClick={() => {
@@ -674,49 +726,59 @@ export function ProductDetailPage({
                     const top = reviewsRef.current.getBoundingClientRect().top + window.scrollY - 120;
                     window.scrollTo({ top, behavior: 'smooth' });
                   }}
-                  className="text-xs text-gray-500 hover:text-black underline transition-colors"
+                  className="text-xs text-gray-500 underline transition-colors hover:text-black"
                 >
                   {displayReviewCount} {lReviewsSuffix}
                 </button>
                 <span className="text-xs text-gray-300">|</span>
-                <span className={`text-xs font-medium ${isComingSoon ? 'text-[#8B8B8B]' : isPreOrder ? 'text-[#B8860B]' : 'text-[#2E8B57]'}`}>
+                <span
+                  className={`text-xs font-medium ${isComingSoon ? 'text-[#8B8B8B]' : isPreOrder ? 'text-[#B8860B]' : 'text-[#2E8B57]'}`}
+                >
                   {isComingSoon ? lComingSoon : isPreOrder ? lPreOrder : lInStock}
                 </span>
               </div>
 
               {/* SKU */}
-              <p className="text-xs text-gray-400 mb-4">
+              <p className="mb-4 text-xs text-gray-400">
                 {lSkuPrefix} <span className="text-gray-600">{variantSku}</span>
-                &nbsp;·&nbsp; {lArticlePrefix} <span className="text-gray-600">{catalogProduct?.specs?.find(s => s.label === 'Article')?.value ?? PRODUCT_ACTION_LABELS.defaultArticle}</span>
+                &nbsp;·&nbsp; {lArticlePrefix}{' '}
+                <span className="text-gray-600">
+                  {catalogProduct?.specs?.find((s) => s.label === 'Article')?.value ??
+                    PRODUCT_ACTION_LABELS.defaultArticle}
+                </span>
               </p>
 
               {/* Price Block */}
-              <div className="flex items-baseline gap-3 mb-1">
+              <div className="mb-1 flex items-baseline gap-3">
                 <span className={`text-2xl font-bold ${dynamicOriginalPrice ? 'text-(--sale)' : 'text-black'}`}>
                   {CURRENCY.format(dynamicPrice)}
                 </span>
                 {dynamicOriginalPrice && (
                   <>
-                    <span className="text-base text-gray-400 line-through font-normal">{CURRENCY.format(dynamicOriginalPrice)}</span>
-                    <span className="px-2 py-0.5 text-white text-xs tracking-widest uppercase bg-(--sale) rounded-none font-semibold">
+                    <span className="text-base font-normal text-gray-400 line-through">
+                      {CURRENCY.format(dynamicOriginalPrice)}
+                    </span>
+                    <span className="rounded-none bg-(--sale) px-2 py-0.5 text-xs font-semibold tracking-widest text-white uppercase">
                       −{Math.round((1 - dynamicPrice / dynamicOriginalPrice) * 100)}%
                     </span>
                   </>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mb-4">{lPriceNote}</p>
+              <p className="mb-4 text-xs text-gray-400">{lPriceNote}</p>
 
               {/* Purchase Bonus — rendered only when the OE `purchase-of-goods`
                   rule applies to this product. `{count}` in the OE-managed
                   heading is substituted with the resolved point value. */}
               {typeof bonusPoints === 'number' && bonusPoints > 0 && (
-                <div className="flex items-center gap-2.5 px-4 py-3 mb-6 bg-[#fff8f0] border border-[#ffe0b2]">
+                <div className="mb-6 flex items-center gap-2.5 border border-[#ffe0b2] bg-[#fff8f0] px-4 py-3">
                   <span className="text-base">🎁</span>
                   <div>
                     {/* Accept both placeholder dialects: `%count%` is what OE
                         holds (braces there would break the set's public read),
                         `{count}` covers any value still authored the old way. */}
-                    <p className="text-xs font-semibold text-[#b45309]">{lBonusHeading.replace(/%count%|\{count\}/g, String(bonusPoints))}</p>
+                    <p className="text-xs font-semibold text-[#b45309]">
+                      {lBonusHeading.replace(/%count%|\{count\}/g, String(bonusPoints))}
+                    </p>
                     <p className="text-xs text-gray-500">{lBonusBody}</p>
                   </div>
                 </div>
@@ -724,20 +786,22 @@ export function ProductDetailPage({
 
               {/* Color Selection */}
               <div className="mb-5">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-xs tracking-[0.12em] uppercase font-semibold">
+                <div className="mb-2.5 flex items-center justify-between">
+                  <span className="text-xs font-semibold tracking-[0.12em] uppercase">
                     {lColorLabel} <span className="font-normal">{dynamicColors[selectedColor]?.name}</span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-2">
                   {dynamicColors.map((c, i) => (
                     <button
                       key={`${c.hex}-${i}`}
                       onClick={() => setSelectedColor(i)}
                       disabled={!c.available}
-                      className={`relative group w-8 h-8 rounded-none outline-offset-2 ${
-                        selectedColor === i ? 'border-2 border-black outline-1 outline-black' : 'border-[1.5px] border-[#e0e0e0]'
-                      } ${c.available ? 'opacity-100 cursor-pointer' : 'opacity-35 cursor-not-allowed'} ${
+                      className={`group relative size-8 rounded-none outline-offset-2 ${
+                        selectedColor === i
+                          ? 'border-2 border-black outline-1 outline-black'
+                          : 'border-[1.5px] border-[#e0e0e0]'
+                      } ${c.available ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-35'} ${
                         c.hex === '#FFFFFF' ? 'shadow-[inset_0_0_0_1px_#ddd]' : ''
                       }`}
                       title={c.name + (!c.available ? lOutOfStockTitle : '')}
@@ -752,8 +816,11 @@ export function ProductDetailPage({
                       style={{ backgroundColor: c.hex }}
                     >
                       {!c.available && (
-                        <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="block w-full h-px rotate-45" style={{ backgroundColor: strikeColor(c.hex) }} />
+                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <span
+                            className="block h-px w-full rotate-45"
+                            style={{ backgroundColor: strikeColor(c.hex) }}
+                          />
                         </span>
                       )}
                     </button>
@@ -763,23 +830,24 @@ export function ProductDetailPage({
 
               {/* Size Selection */}
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-xs tracking-[0.12em] uppercase font-semibold">
-                    {lSizeLabel}{selectedSize ? `: ${selectedSize}` : ''}
+                <div className="mb-2.5 flex items-center justify-between">
+                  <span className="text-xs font-semibold tracking-[0.12em] uppercase">
+                    {lSizeLabel}
+                    {selectedSize ? `: ${selectedSize}` : ''}
                     {sizeError && (
-                      <span className="ml-2 text-xs font-normal normal-case tracking-normal text-(--sale)">
+                      <span className="ml-2 text-xs font-normal tracking-normal text-(--sale) normal-case">
                         {lSizeError}
                       </span>
                     )}
                   </span>
                   <button
                     onClick={() => setShowSizeGuide(true)}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-black transition-colors underline"
+                    className="flex items-center gap-1 text-xs text-gray-500 underline transition-colors hover:text-black"
                   >
                     <Ruler size={11} /> {lSizeGuide}
                   </button>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-2">
                   {dynamicSizeOptions.map((s, i) => (
                     <button
                       key={`${s.label}-${i}`}
@@ -791,11 +859,11 @@ export function ProductDetailPage({
                       // buttons page-wide, the first of them in the header.
                       data-testid="pdp-size-chip"
                       aria-pressed={selectedSize === s.label}
-                      className={`transition-all duration-150 text-xs w-13 h-11 rounded-md ${
+                      className={`h-11 w-13 rounded-md text-xs transition-all duration-150 ${
                         s.available ? 'cursor-pointer' : 'cursor-not-allowed line-through'
                       } ${
                         selectedSize === s.label
-                          ? 'border-2 border-black bg-black text-white font-semibold'
+                          ? 'border-2 border-black bg-black font-semibold text-white'
                           : sizeError && !selectedSize
                             ? `border border-(--sale) bg-white font-normal ${!s.available ? 'text-[#ccc]' : 'text-black'}`
                             : `border border-[#d1d5db] bg-white font-normal ${!s.available ? 'text-[#ccc]' : 'text-black'}`
@@ -806,32 +874,34 @@ export function ProductDetailPage({
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 mt-3">
-                  <MapPin size={12} className="text-gray-400 shrink-0" />
+                <div className="mt-3 flex items-center gap-2">
+                  <MapPin size={12} className="shrink-0 text-gray-400" />
                   <p className="text-xs text-gray-500">
                     {lStoreAvailableIn}{' '}
                     <select
                       value={storeCity}
-                      onChange={e => setStoreCity(e.target.value)}
-                      className="text-xs underline bg-transparent border-none outline-none cursor-pointer text-black font-[inherit]"
+                      onChange={(e) => setStoreCity(e.target.value)}
+                      className="cursor-pointer border-none bg-transparent font-[inherit] text-xs text-black underline outline-none"
                     >
-                      {storeCities.map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      {storeCities.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
                       ))}
-                    </select>
-                    {' '}{lStoreStockSuffix}
+                    </select>{' '}
+                    {lStoreStockSuffix}
                   </p>
                 </div>
               </div>
 
               {/* Purchase Actions */}
-              <div className="flex flex-col gap-3 mb-6">
+              <div className="mb-6 flex flex-col gap-3">
                 {productIsOOS ? (
-                  <div className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-white cursor-not-allowed select-none bg-[#999] rounded-lg">
+                  <div className="flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-lg bg-[#999] py-4 text-xs tracking-[0.2em] text-white uppercase select-none">
                     {lOutOfStock}
                   </div>
                 ) : isComingSoon ? (
-                  <div className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-white cursor-not-allowed select-none bg-[#999] rounded-lg">
+                  <div className="flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-lg bg-[#999] py-4 text-xs tracking-[0.2em] text-white uppercase select-none">
                     {lComingSoon}
                   </div>
                 ) : (
@@ -839,13 +909,19 @@ export function ProductDetailPage({
                     onMouseEnter={() => setCartHovered(true)}
                     onMouseLeave={() => setCartHovered(false)}
                     onClick={handleAddToCart}
-                    className={`w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-white focus-visible:outline-none transition-colors duration-200 rounded-lg ${
+                    className={`flex w-full items-center justify-center gap-2.5 rounded-lg py-4 text-xs tracking-[0.2em] text-white uppercase transition-colors duration-200 focus-visible:outline-none ${
                       addedToCart ? 'bg-(--sale)' : cartHovered ? 'bg-accent' : 'bg-black'
                     }`}
                   >
-                    {addedToCart
-                      ? <><Check size={15} /> {PRODUCT_ACTION_LABELS.addedToCart}</>
-                      : <><ShoppingBag size={15} /> {isPreOrder ? lPreOrderButton : lAddToCart}</>}
+                    {addedToCart ? (
+                      <>
+                        <Check size={15} /> {lAddedToCart}
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag size={15} /> {isPreOrder ? lPreOrderButton : lAddToCart}
+                      </>
+                    )}
                   </button>
                 )}
 
@@ -867,37 +943,40 @@ export function ProductDetailPage({
                       }
                       setShowReserveModal(true);
                     }}
-                    className="w-full py-4 flex items-center justify-center gap-2.5 text-xs tracking-[0.2em] uppercase text-black border border-black hover:bg-black hover:text-white focus-visible:outline-none transition-colors duration-200 rounded-lg"
+                    className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-black py-4 text-xs tracking-[0.2em] text-black uppercase transition-colors duration-200 hover:bg-black hover:text-white focus-visible:outline-none"
                   >
                     <Store size={15} /> {lReserveInStore}
                   </button>
                 )}
 
                 <button
-                  onClick={() => toggleItem({
-                    id: productId || 'pdp-ribbed-cashmere-knit',
-                    name: dynamicName,
-                    brand: 'Kekimoro',
-                    price: CURRENCY.format(dynamicPrice),
-                    image: activeColorImage,
-                    colors: dynamicColors.map(c => c.hex),
-                    // First variant that carries each colour is the thumbnail
-                    // for that swatch on the favourites card.
-                    colorImages: dynamicColors.map(c =>
-                      catalogProduct?.variants?.find(v => v.colors.includes(c.hex))?.image
-                      || catalogProduct?.colorImages?.[dynamicColors.indexOf(c)]
-                      || dynamicImage,
-                    ),
-                    colorStock: dynamicColors.map(c => c.available),
-                    sizes: dynamicSizeOptions.map(s => s.label),
-                    inStock: !productIsOOS,
-                    selectedColor: dynamicColors[selectedColor]?.hex,
-                    selectedSize: selectedSize ?? undefined,
-                  })}
-                  className="w-full py-3 flex items-center justify-center gap-2 text-xs tracking-widest uppercase border border-gray-200 hover:border-black transition-colors rounded-lg"
+                  onClick={() =>
+                    toggleItem({
+                      id: productId || 'pdp-ribbed-cashmere-knit',
+                      name: dynamicName,
+                      brand: 'Kekimoro',
+                      price: CURRENCY.format(dynamicPrice),
+                      image: activeColorImage,
+                      colors: dynamicColors.map((c) => c.hex),
+                      // First variant that carries each colour is the thumbnail
+                      // for that swatch on the favourites card.
+                      colorImages: dynamicColors.map(
+                        (c) =>
+                          catalogProduct?.variants?.find((v) => v.colors.includes(c.hex))?.image ||
+                          catalogProduct?.colorImages?.[dynamicColors.indexOf(c)] ||
+                          dynamicImage,
+                      ),
+                      colorStock: dynamicColors.map((c) => c.available),
+                      sizes: dynamicSizeOptions.map((s) => s.label),
+                      inStock: !productIsOOS,
+                      selectedColor: dynamicColors[selectedColor]?.hex,
+                      selectedSize: selectedSize ?? undefined,
+                    })
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 py-3 text-xs tracking-widest uppercase transition-colors hover:border-black"
                 >
                   <Heart size={14} fill={wishlisted ? ACCENT : 'none'} stroke={wishlisted ? ACCENT : '#000'} />
-                  {wishlisted ? PD.savedToWishlist : lSaveToWishlist}
+                  {wishlisted ? lSavedToWishlist : lSaveToWishlist}
                 </button>
               </div>
 
@@ -907,8 +986,8 @@ export function ProductDetailPage({
               {/* Quick Delivery Snippets — all three copy strings come from the
                   `product-card` system-text set. Any row with an empty OE
                   value drops out so the section never shows a blank line. */}
-              <div className="flex flex-col gap-2.5 pt-5 border-t border-gray-200">
-                {deliverySnippets.map(item => (
+              <div className="flex flex-col gap-2.5 border-t border-gray-200 pt-5">
+                {deliverySnippets.map((item) => (
                   <div
                     key={item.text}
                     data-testid="pdp-delivery-snippet"
@@ -924,15 +1003,17 @@ export function ProductDetailPage({
               <div className="mt-8">
                 <AccordionSection title={lSpecsTitle} defaultOpen>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-0">
-                    {productSpecs.map(spec => (
+                    {productSpecs.map((spec) => (
                       <React.Fragment key={spec.key ?? spec.label}>
                         <div
-                          className="py-2.5 border-b border-gray-100"
+                          className="border-b border-gray-100 py-2.5"
                           data-testid="product-spec-row"
                           data-spec-key={spec.key}
                         >
-                          <p className="text-xs text-gray-400" data-testid="product-spec-label">{spec.label}</p>
-                          <p className="text-xs text-black mt-0.5 font-medium">{spec.value}</p>
+                          <p className="text-xs text-gray-400" data-testid="product-spec-label">
+                            {spec.label}
+                          </p>
+                          <p className="mt-0.5 text-xs font-medium text-black">{spec.value}</p>
                         </div>
                       </React.Fragment>
                     ))}
@@ -941,7 +1022,7 @@ export function ProductDetailPage({
 
                 {(activeDescriptionHtml || (catalogProduct?.productDetails?.length ?? 0) > 0) && (
                   <AccordionSection title={lDescriptionTitle}>
-                    <div className="text-sm text-gray-700 leading-relaxed space-y-3">
+                    <div className="space-y-3 text-sm leading-relaxed text-gray-700">
                       {activeDescriptionHtml && (
                         <div
                           className="oe-rich-text"
@@ -949,10 +1030,10 @@ export function ProductDetailPage({
                         />
                       )}
                       {(catalogProduct?.productDetails?.length ?? 0) > 0 && (
-                        <ul className="space-y-1.5 text-xs text-gray-600 pt-2">
+                        <ul className="space-y-1.5 pt-2 text-xs text-gray-600">
                           {catalogProduct?.productDetails?.map((d) => (
                             <li key={d} className="flex items-center gap-2">
-                              <span className="w-1 h-1 bg-black rounded-full shrink-0" />
+                              <span className="size-1 shrink-0 rounded-full bg-black" />
                               {d}
                             </li>
                           ))}
@@ -965,26 +1046,31 @@ export function ProductDetailPage({
                 {deliveryRows.length > 0 && (
                   <AccordionSection title={lDeliveryTitle} defaultOpen>
                     <div className="space-y-4 text-sm text-gray-700">
-                    {/* Delivery rows from OE attribute set
+                      {/* Delivery rows from OE attribute set
                         `product_card_delivery_returns`. The accordion hides
                         when none of the title keys are populated. */}
-                    {deliveryRows.map(d => {
-                      const icon = d.iconKey === 'returns'
-                        ? <RotateCcw size={15} />
-                        : d.iconKey === 'store'
-                          ? <Store size={15} />
-                          : <Truck size={15} />;
-                      return (
-                        <div key={d.title} data-testid="pdp-delivery-row" className="flex gap-3">
-                          <span className="shrink-0 mt-0.5 text-gray-400">{icon}</span>
-                          <div>
-                            <p data-testid="pdp-delivery-row-title" className="text-xs font-semibold">{d.title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{d.desc}</p>
+                      {deliveryRows.map((d) => {
+                        const icon =
+                          d.iconKey === 'returns' ? (
+                            <RotateCcw size={15} />
+                          ) : d.iconKey === 'store' ? (
+                            <Store size={15} />
+                          ) : (
+                            <Truck size={15} />
+                          );
+                        return (
+                          <div key={d.title} data-testid="pdp-delivery-row" className="flex gap-3">
+                            <span className="mt-0.5 shrink-0 text-gray-400">{icon}</span>
+                            <div>
+                              <p data-testid="pdp-delivery-row-title" className="text-xs font-semibold">
+                                {d.title}
+                              </p>
+                              <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{d.desc}</p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
                   </AccordionSection>
                 )}
 
@@ -996,7 +1082,7 @@ export function ProductDetailPage({
                           so common phrases like "Do not bleach" still render
                           their icon. The section hides entirely when OE has no
                           care values for this product. */}
-                      {catalogProduct?.careInstructions?.map(text => (
+                      {catalogProduct?.careInstructions?.map((text) => (
                         <div key={text} className="flex items-center gap-1.5">
                           <span>{careSymbolFor(text)}</span>
                           <span>{text}</span>
@@ -1026,9 +1112,7 @@ export function ProductDetailPage({
             "you'll also love" / "matching accessories" blocks attached
             to this product in OE surface without displacing the streamed
             frequently-ordered section. */}
-        {productBlocks && productBlocks.length > 0 && (
-          <PageBlocksRenderer blocks={productBlocks} />
-        )}
+        {productBlocks && productBlocks.length > 0 && <PageBlocksRenderer blocks={productBlocks} />}
 
         <RecentlyViewedSection products={allRecentlyViewed} accentColor={ACCENT} />
       </main>

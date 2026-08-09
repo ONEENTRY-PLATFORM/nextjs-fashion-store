@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { type UserDataset, type UserAddress } from '../data/userData';
+
+import { type UserAddress, type UserDataset } from '../data/userData';
 
 interface UserState {
   data: UserDataset;
@@ -82,11 +83,15 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    /** Patch a subset of user dataset fields (e.g. after a profile save). */
+    /**
+     * Patch a subset of user dataset fields (e.g. after a profile save).
+     */
     patchUserData(state, action: PayloadAction<Partial<UserDataset>>) {
       Object.assign(state.data, action.payload);
     },
-    /** Add a new address to the user's saved addresses. */
+    /**
+     * Add a new address to the user's saved addresses.
+     */
     addAddress(state, action: PayloadAction<UserAddress>) {
       state.data.addresses.push(action.payload);
     },
@@ -100,7 +105,9 @@ const userSlice = createSlice({
       state.data.refreshToken = action.payload.refreshToken;
       state.data.userIdentifier = action.payload.userIdentifier;
     },
-    /** Reset auth fields on logout. */
+    /**
+     * Reset auth fields on logout.
+     */
     clearAuth(state) {
       state.data.authToken = null;
       state.data.refreshToken = null;

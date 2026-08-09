@@ -1,6 +1,7 @@
-'use client'
+'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import { OFFLINE_PAGE_LABELS as L_FALLBACK } from '../../../src/app/data/offlinePageLabels';
 import { useDict, useT } from '../../../src/lib/oneentry/labels/DictContext';
 
@@ -11,12 +12,12 @@ export default function OfflinePage() {
   const [countdown, setCountdown] = useState(CHECK_INTERVAL);
   const [checking, setChecking] = useState(false);
   const [dots, setDots] = useState('');
-  const lBrand     = useT('offline_title_store', L.brand);
-  const lHeading   = useT('offline_title',       L.heading);
-  const lSubtitle  = useT('offline_text',        L.subtitle);
-  const lNextCheck = useT('offline_next_check',  L.nextCheckIn);
-  const lRetry     = useT('offline_cta',         L.retry);
-  const lFooter    = useT('offline_text_below',  L.footerNote);
+  const lBrand = useT('offline_title_store', L.brand);
+  const lHeading = useT('offline_title', L.heading);
+  const lSubtitle = useT('offline_text', L.subtitle);
+  const lNextCheck = useT('offline_next_check', L.nextCheckIn);
+  const lRetry = useT('offline_cta', L.retry);
+  const lFooter = useT('offline_text_below', L.footerNote);
 
   const checkConnectivity = useCallback(async () => {
     setChecking(true);
@@ -43,7 +44,7 @@ export default function OfflinePage() {
   // Countdown timer
   useEffect(() => {
     const tick = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           checkConnectivity();
           return CHECK_INTERVAL;
@@ -57,7 +58,7 @@ export default function OfflinePage() {
   // Animated dots
   useEffect(() => {
     const id = setInterval(() => {
-      setDots(d => (d.length >= 3 ? '' : d + '.'));
+      setDots((d) => (d.length >= 3 ? '' : d + '.'));
     }, 500);
     return () => clearInterval(id);
   }, []);
@@ -98,13 +99,7 @@ export default function OfflinePage() {
 
       {/* Icon */}
       <div style={{ marginBottom: '2rem', color: '#ccc' }}>
-        <svg
-          width="64"
-          height="64"
-          viewBox="0 0 64 64"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="32" cy="32" r="31" stroke="currentColor" strokeWidth="1.5" />
           {/* Wifi arc 1 */}
           <path
@@ -115,13 +110,7 @@ export default function OfflinePage() {
             opacity="0.3"
           />
           {/* Wifi arc 2 */}
-          <path
-            d="M20 34a17 17 0 0 1 24 0"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            opacity="0.3"
-          />
+          <path d="M20 34a17 17 0 0 1 24 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
           {/* Wifi arc 3 */}
           <path
             d="M26 40a8.5 8.5 0 0 1 12 0"
@@ -133,15 +122,7 @@ export default function OfflinePage() {
           {/* Dot */}
           <circle cx="32" cy="46" r="2.5" fill="currentColor" opacity="0.3" />
           {/* Slash */}
-          <line
-            x1="16"
-            y1="16"
-            x2="48"
-            y2="48"
-            stroke="#111"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
+          <line x1="16" y1="16" x2="48" y2="48" stroke="#111" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </div>
 
@@ -184,7 +165,8 @@ export default function OfflinePage() {
       >
         {checking ? (
           <p style={{ fontSize: '0.8rem', color: '#999', letterSpacing: '0.05em' }}>
-            {L.checking}{dots}
+            {L.checking}
+            {dots}
           </p>
         ) : (
           <p style={{ fontSize: '0.8rem', color: '#bbb', letterSpacing: '0.05em' }}>

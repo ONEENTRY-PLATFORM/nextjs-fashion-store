@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+
 import { DiscountBanner } from '../app/components/home/DiscountBanner';
 
 const meta = {

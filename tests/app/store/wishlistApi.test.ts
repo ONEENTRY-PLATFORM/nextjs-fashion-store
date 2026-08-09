@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import userReducer, { setAuth } from '@/app/store/userSlice';
 
 /**
@@ -105,9 +106,7 @@ describe('wishlistApi', () => {
   it('POST add wishlist item sends productId in body', async () => {
     const store = makeTestStore();
     store.dispatch(setAuth({ accessToken: 'tkn', refreshToken: 'r', userIdentifier: 'u' }));
-    await store.dispatch(
-      wishlistApi.endpoints.addWishlistItem.initiate({ productId: 42 }),
-    );
+    await store.dispatch(wishlistApi.endpoints.addWishlistItem.initiate({ productId: 42 }));
     const captured = await captureFetchCall(fetchSpy.mock.calls[0] as Parameters<typeof fetch>);
     expect(captured.method).toBe('POST');
     expect(captured.body).toBe(JSON.stringify({ productId: 42 }));
@@ -116,9 +115,7 @@ describe('wishlistApi', () => {
   it('DELETE remove wishlist item encodes productId in URL', async () => {
     const store = makeTestStore();
     store.dispatch(setAuth({ accessToken: 'tkn', refreshToken: 'r', userIdentifier: 'u' }));
-    await store.dispatch(
-      wishlistApi.endpoints.removeWishlistItem.initiate({ productId: 7 }),
-    );
+    await store.dispatch(wishlistApi.endpoints.removeWishlistItem.initiate({ productId: 7 }));
     const captured = await captureFetchCall(fetchSpy.mock.calls[0] as Parameters<typeof fetch>);
     expect(captured.url).toMatch(/\/users\/me\/wishlist\/items\/7$/);
     expect(captured.method).toBe('DELETE');

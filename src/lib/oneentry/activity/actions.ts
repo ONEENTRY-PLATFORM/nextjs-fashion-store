@@ -38,9 +38,10 @@ export interface TrackActivityInput {
  * When the shopper is signed in the SDK sends the bearer token and OE drops
  * `x-guest-id` entirely; otherwise the anonymous id is installed on the
  * instance so the guest trail keeps aggregating under one record.
- * @param {TrackActivityInput} input     - Event type and its subject.
- * @param {string}             [guestId] - Anonymous visitor id for guests.
- * @returns {Promise<{ ok: true } | { ok: false; error: string }>} Outcome.
+ *
+ * @param input     - Event type and its subject.
+ * @param             [guestId] - Anonymous visitor id for guests.
+ * @returns Outcome.
  */
 export async function trackActivityAction(
   input: TrackActivityInput,
@@ -58,7 +59,7 @@ export async function trackActivityAction(
   try {
     const result = await api.UserActivity.trackUserActivity(input);
     if (isError(result)) {
-      return { ok: false, error: result.message ?? await se('trackFailed') };
+      return { ok: false, error: result.message ?? (await se('trackFailed')) };
     }
     return { ok: true };
   } catch (err) {

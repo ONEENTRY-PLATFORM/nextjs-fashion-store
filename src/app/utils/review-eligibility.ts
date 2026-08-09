@@ -14,14 +14,10 @@ const DELIVERED_STATUS = /deliver|complete|done|closed|finish|received|arrived/i
  * accept feedback from users who never actually received the item.
  * Guests (no `orders` list) always return `false`.
  */
-export function canReviewProduct(
-  orders: OeOrder[] | undefined | null,
-  productId: number,
-): boolean {
+export function canReviewProduct(orders: OeOrder[] | undefined | null, productId: number): boolean {
   if (!orders || orders.length === 0) return false;
   if (!Number.isFinite(productId) || productId <= 0) return false;
-  return orders.some((o) =>
-    DELIVERED_STATUS.test(o.statusIdentifier ?? '')
-    && (o.products ?? []).some((p) => p.id === productId),
+  return orders.some(
+    (o) => DELIVERED_STATUS.test(o.statusIdentifier ?? '') && (o.products ?? []).some((p) => p.id === productId),
   );
 }

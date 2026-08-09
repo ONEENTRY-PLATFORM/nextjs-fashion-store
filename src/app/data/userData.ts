@@ -5,9 +5,11 @@
 // one inline in the test file (the fields below are all straight strings /
 // numbers / arrays; no helper is warranted).
 
-/** Loyalty tier label. `Member` is the entry-level bucket assigned to every
+/**
+ * Loyalty tier label. `Member` is the entry-level bucket assigned to every
  *  signed-in shopper who hasn't yet cleared the LTV bar of any paid tier —
- *  no discount, no bonuses, just the standard account experience. */
+ *  no discount, no bonuses, just the standard account experience.
+ */
 export type LoyaltyStatus = 'Member' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
 export type Gender = 'female' | 'male';
 
@@ -62,12 +64,13 @@ interface BonusTransaction {
   sign: 1 | -1;
 }
 
-
-/** Order status label. `Delivered`/`Processing`/`Cancelled` are the three
+/**
+ * Order status label. `Delivered`/`Processing`/`Cancelled` are the three
  *  canonical buckets kept as a UI shorthand. OE tenants can define their own
  *  markers (`shipped`, `in_progress`, `paid`, …) — those flow through as raw
  *  strings so we render the real status instead of forcing everything into
- *  "Processing". */
+ *  "Processing".
+ */
 type OrderStatus = 'Delivered' | 'Processing' | 'Cancelled' | string;
 
 interface UserOrderItem {
@@ -77,8 +80,10 @@ interface UserOrderItem {
   qty: number;
   price: number;
   img: string;
-  /** OE productId — populated for orders sourced from OneEntry. Enables
-   *  Reorder → cart. */
+  /**
+   * OE productId — populated for orders sourced from OneEntry. Enables
+   *  Reorder → cart.
+   */
   productId?: number;
 }
 
@@ -95,8 +100,10 @@ export interface UserOrder {
   estimatedDelivery?: string;
   /** OE numeric order id — needed for cancel / update calls. */
   oeId?: number;
-  /** OE storage marker (`home`, `store_pickup`, `locker`, …). Used to route
-   *  the update call and to derive the cancelled-status marker. */
+  /**
+   * OE storage marker (`home`, `store_pickup`, `locker`, …). Used to route
+   *  the update call and to derive the cancelled-status marker.
+   */
   oeStorage?: string;
 }
 
@@ -128,9 +135,11 @@ export interface HistoryOrder {
   orderNo: string;
   date: string;
   status: HistoryOrderStatus;
-  /** Optional admin-panel display name from OE `statusLocalizeInfos.title`
+  /**
+   * Optional admin-panel display name from OE `statusLocalizeInfos.title`
    *  (e.g. "Home Paid", "Home Shipped"). When present, the badge shows this
-   *  verbatim instead of the coarse UI-bucket label. */
+   *  verbatim instead of the coarse UI-bucket label.
+   */
   statusTitle?: string;
   total: number;
   itemCount: number;

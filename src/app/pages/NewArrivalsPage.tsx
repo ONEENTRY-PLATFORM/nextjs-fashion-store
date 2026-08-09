@@ -1,47 +1,51 @@
-'use client'
-import { useState, useEffect, useMemo, useRef } from 'react';
-
-import { useSearchParams } from 'next/navigation';
-import { Header } from '../components/header/Header';
-import { Footer } from '../components/footer/Footer';
-import { ProductCard, type Product } from '../components/product/ProductCard';
-import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
-import { ColsIcon, SortOptionBtn as SortOption } from '../components/catalog/CatalogTemplate.parts';
+'use client';
 import { ChevronDown } from 'lucide-react';
-import { NEW_ARRIVALS_SORT_OPTIONS, NEW_ARRIVALS_CATEGORIES, type NewArrivalCategory } from '../data/newArrivalsConfig';
-import { NEW_ARRIVALS_SORT_LABELS } from '../data/newArrivalsLabels';
-import { NewArrivalsHero } from './new/NewArrivalsHero';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import {
-  setFilters,
-  setSort,
-  setViewCols as dispatchSetViewCols,
-} from '../store/catalogSlice';
-import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
-import { NEW_ARRIVALS_PAGE_LABELS as L, NEW_ARRIVALS_CATEGORY_LABELS as NACL_FALLBACK } from '../data/newArrivalsLabels';
-import { CURRENCY } from '../data/currencyConfig';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+import { Link } from '../../lib/i18n/navigation';
 import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
 import type { NewArrivalsPageFromCms } from '../../lib/oneentry/catalog/new-arrivals-page';
-import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
+import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
+import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
+import { ColsIcon, SortOptionBtn as SortOption } from '../components/catalog/CatalogTemplate.parts';
+import { Footer } from '../components/footer/Footer';
+import { Header } from '../components/header/Header';
+import { type Product, ProductCard } from '../components/product/ProductCard';
+import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
+import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
+import { CURRENCY } from '../data/currencyConfig';
+import { NEW_ARRIVALS_CATEGORIES, NEW_ARRIVALS_SORT_OPTIONS, type NewArrivalCategory } from '../data/newArrivalsConfig';
+import {
+  NEW_ARRIVALS_CATEGORY_LABELS as NACL_FALLBACK,
+  NEW_ARRIVALS_PAGE_LABELS,
+  NEW_ARRIVALS_SORT_LABELS,
+} from '../data/newArrivalsLabels';
 import { useMounted } from '../hooks/useMounted';
-import { Link } from '../../lib/i18n/navigation';
+import { setFilters, setSort, setViewCols as dispatchSetViewCols } from '../store/catalogSlice';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
+import { NewArrivalsHero } from './new/NewArrivalsHero';
 
 const NEW_KEY = 'new-arrivals';
 type NewProduct = Product & { category: Exclude<NewArrivalCategory, 'All'> };
 
-export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { initialProducts?: NewProduct[]; pageBlocks?: PageBlock[]; cmsPage?: NewArrivalsPageFromCms | null } = {}) {
+export function NewArrivalsPage({
+  initialProducts,
+  pageBlocks,
+  cmsPage,
+}: { initialProducts?: NewProduct[]; pageBlocks?: PageBlock[]; cmsPage?: NewArrivalsPageFromCms | null } = {}) {
+  const L = useDict('new_arrivals_page_', NEW_ARRIVALS_PAGE_LABELS);
   // UI-only state
   const [sortOpen, setSortOpen] = useState(false);
   const mounted = useMounted();
-  const lStyles  = useT('new_arrivals_page_styles',  L.stylesSuffix);
-  const lView    = useT('new_arrivals_page_view',    L.viewLabel);
+  const lStyles = useT('new_arrivals_page_styles', L.stylesSuffix);
+  const lView = useT('new_arrivals_page_view', L.viewLabel);
   const lResults = useT('new_arrivals_page_results', L.resultPlural);
 
   // Redux state
   const dispatch = useAppDispatch();
-  const catalogState = useAppSelector(s => s.catalog[NEW_KEY]);
+  const catalogState = useAppSelector((s) => s.catalog[NEW_KEY]);
   const selectedFilters = catalogState?.selectedFilters ?? {};
   const sortBy = catalogState?.sortBy ?? 'newest';
   const viewCols = (catalogState?.viewCols ?? 4) as 3 | 4;
@@ -51,7 +55,9 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
   const NACL = useDict('new_arrivals_page_category_', NACL_FALLBACK);
   const activeCategory = (selectedFilters['category']?.[0] ?? 'all') as NewArrivalCategory;
   const setActiveCategory = (cat: NewArrivalCategory) => {
-    dispatch(setFilters({ catalogKey: NEW_KEY, filters: { ...selectedFilters, category: cat === 'all' ? [] : [cat] } }));
+    dispatch(
+      setFilters({ catalogKey: NEW_KEY, filters: { ...selectedFilters, category: cat === 'all' ? [] : [cat] } }),
+    );
   };
 
   // Gender scope comes from `?gender=` (set by the header switch). Reading it
@@ -84,10 +90,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
   }, []);
 
   /* Filtered + sorted products */
-  const filtered =
-    activeCategory === 'all'
-      ? ALL_PRODUCTS
-      : ALL_PRODUCTS.filter((p) => p.category === activeCategory);
+  const filtered = activeCategory === 'all' ? ALL_PRODUCTS : ALL_PRODUCTS.filter((p) => p.category === activeCategory);
 
   const sorted = [...filtered].sort((a, b) => {
     const aPrice = parseFloat((a.salePrice ?? a.price).replace(CURRENCY.symbol, ''));
@@ -119,41 +122,45 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
         <NewArrivalsHero cms={cmsPage} />
 
         {/* ── Breadcrumb ── */}
-        <div className="px-4 lg:px-8 py-3 flex items-center justify-between border-b border-gray-100">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 lg:px-8">
           <nav className="flex items-center gap-1 text-xs text-gray-400">
-            <Link href="/" className="hover:text-black transition-colors">
+            <Link href="/" className="transition-colors hover:text-black">
               {L.breadcrumbHome}
             </Link>
             <span className="mx-0.5">/</span>
             <span className="text-black">{L.breadcrumbCurrent}</span>
           </nav>
-          <span className="text-xs text-gray-400">{sorted.length} {lStyles}</span>
+          <span className="text-xs text-gray-400">
+            {sorted.length} {lStyles}
+          </span>
         </div>
 
         {/* ── Sticky filter / sort bar ── */}
         <div
           ref={filterBarRef}
-          className="sticky top-16 md:top-24 lg:top-33 z-40 bg-white border-b border-gray-200 pt-2"
-          onMouseLeave={() => { setSortOpen(false); }}
+          className="sticky top-16 z-40 border-b border-gray-200 bg-white pt-2 md:top-24 lg:top-33"
+          onMouseLeave={() => {
+            setSortOpen(false);
+          }}
         >
-          <div className="max-w-384 mx-auto px-4 lg:px-8">
+          <div className="mx-auto max-w-384 px-4 lg:px-8">
             <div className="flex items-center justify-between gap-4 py-0">
               {/* Category tabs — horizontal scroll on mobile */}
-              <div className="flex items-center overflow-x-auto scrollbar-hide gap-0 flex-1 min-w-0">
+              <div className="scrollbar-hide flex min-w-0 flex-1 items-center gap-0 overflow-x-auto">
                 {NEW_ARRIVALS_CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
                     className={[
-                      'shrink-0 px-5 py-3.5 text-xs tracking-widest uppercase whitespace-nowrap transition-all duration-150 focus-visible:outline-none',
+                      'shrink-0 px-5 py-3.5 text-xs tracking-widest whitespace-nowrap uppercase transition-all duration-150 focus-visible:outline-none',
                       activeCategory === cat
-                        ? 'text-black border-b-2 border-black'
-                        : 'text-gray-500 border-b-2 border-transparent hover:text-black',
+                        ? 'border-b-2 border-black text-black'
+                        : 'border-b-2 border-transparent text-gray-500 hover:text-black',
                     ].join(' ')}
                   >
                     {NACL[cat]}
                     {cat !== 'all' && (
-                      <span className="ml-1.5 text-gray-400 text-[10px]">
+                      <span className="ml-1.5 text-[10px] text-gray-400">
                         ({ALL_PRODUCTS.filter((p) => p.category === cat).length})
                       </span>
                     )}
@@ -162,13 +169,13 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
               </div>
 
               {/* Sort + view controls */}
-              <div className="hidden md:flex items-center gap-4 shrink-0 py-2">
+              <div className="hidden shrink-0 items-center gap-4 py-2 md:flex">
                 {/* Column toggles */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 mr-1">{lView}</span>
+                  <span className="mr-1 text-xs text-gray-500">{lView}</span>
                   <button
                     onClick={() => dispatch(dispatchSetViewCols({ catalogKey: NEW_KEY, cols: 3 }))}
-                    className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
+                    className={`p-1 transition-opacity duration-150 focus-visible:outline-none ${
                       viewCols === 3 ? 'opacity-100' : 'opacity-35'
                     }`}
                     aria-label={L.view3ColAria}
@@ -177,7 +184,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                   </button>
                   <button
                     onClick={() => dispatch(dispatchSetViewCols({ catalogKey: NEW_KEY, cols: 4 }))}
-                    className={`p-1 focus-visible:outline-none transition-opacity duration-150 ${
+                    className={`p-1 transition-opacity duration-150 focus-visible:outline-none ${
                       viewCols === 4 ? 'opacity-100' : 'opacity-35'
                     }`}
                     aria-label={L.view4ColAria}
@@ -190,7 +197,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                 <div ref={sortRef} className="relative">
                   <button
                     onClick={() => setSortOpen((o) => !o)}
-                    className="flex items-center gap-2 px-4 py-1.5 text-xs tracking-wider uppercase border border-gray-300 hover:border-black transition-colors focus-visible:outline-none rounded-none"
+                    className="flex items-center gap-2 rounded-none border border-gray-300 px-4 py-1.5 text-xs tracking-wider uppercase transition-colors hover:border-black focus-visible:outline-none"
                   >
                     <span>{activeSortLabel}</span>
                     <ChevronDown
@@ -199,7 +206,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
                     />
                   </button>
                   {sortOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-45 rounded-none">
+                    <div className="absolute top-full right-0 z-50 mt-1 min-w-45 rounded-none border border-gray-200 bg-white shadow-lg">
                       {sortOptions.map((opt) => (
                         <SortOption
                           key={opt.value}
@@ -217,17 +224,17 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
               </div>
 
               {/* Mobile: sort pill */}
-              <div className="md:hidden shrink-0">
+              <div className="shrink-0 md:hidden">
                 <div ref={sortRef} className="relative">
                   <button
                     onClick={() => setSortOpen((o) => !o)}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs tracking-wider uppercase border border-gray-300 focus-visible:outline-none rounded-none"
+                    className="flex items-center gap-1.5 rounded-none border border-gray-300 px-3 py-2 text-xs tracking-wider uppercase focus-visible:outline-none"
                   >
                     {L.sortMobileCta}
                     <ChevronDown size={11} />
                   </button>
                   {sortOpen && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 shadow-lg z-50 min-w-42.5 rounded-none">
+                    <div className="absolute top-full right-0 z-50 mt-1 min-w-42.5 rounded-none border border-gray-200 bg-white shadow-lg">
                       {NEW_ARRIVALS_SORT_OPTIONS.map((opt) => (
                         <SortOption
                           key={opt.value}
@@ -248,26 +255,20 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
         </div>
 
         {/* ── Product count row ── */}
-        <div className="max-w-384 mx-auto px-4 lg:px-8 py-4 flex items-center justify-between">
-          <p className="text-xs text-gray-500 tracking-wider uppercase">
+        <div className="mx-auto flex max-w-384 items-center justify-between p-4 lg:px-8">
+          <p className="text-xs tracking-wider text-gray-500 uppercase">
             {sorted.length} {sorted.length === 1 ? L.resultSingular : lResults}
-            {activeCategory !== 'all' && (
-              <span className="ml-2 text-gray-400">— {NACL[activeCategory]}</span>
-            )}
+            {activeCategory !== 'all' && <span className="ml-2 text-gray-400">— {NACL[activeCategory]}</span>}
           </p>
           {/* Mobile sort label */}
-          <p className="md:hidden text-xs text-gray-400 uppercase tracking-wider">
-            {activeSortLabel}
-          </p>
+          <p className="text-xs tracking-wider text-gray-400 uppercase md:hidden">{activeSortLabel}</p>
         </div>
 
         {/* ── Product grid ── */}
         <div className="pb-16">
           {sorted.length === 0 ? (
             <div className="py-24 text-center">
-              <p className="text-sm text-gray-400 tracking-wider uppercase">
-                {L.emptyMessage}
-              </p>
+              <p className="text-sm tracking-wider text-gray-400 uppercase">{L.emptyMessage}</p>
             </div>
           ) : !mounted ? (
             <div className={`grid ${gridCols} gap-px bg-white`}>
@@ -291,23 +292,23 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
         {/* ── Editorial strip — copy pulled from OE `new` page
              `page_new_arrivals_footer_banner_*` attributes; `L.editorial*`
              are the fallbacks when the admin hasn't filled a field. */}
-        <div className="border-t border-gray-100 py-12 px-4 lg:px-8 text-center bg-[#e4e8ee]">
-          <p className="text-xs tracking-[0.3em] uppercase text-gray-400 mb-3">
+        <div className="border-t border-gray-100 bg-[#e4e8ee] px-4 py-12 text-center lg:px-8">
+          <p className="mb-3 text-xs tracking-[0.3em] text-gray-400 uppercase">
             {cmsPage?.footer.eyebrow || L.editorialEyebrow}
           </p>
-          <h2 className="tracking-widest uppercase text-black text-[clamp(1.1rem,2.5vw,1.5rem)] font-semibold">
+          <h2 className="text-[clamp(1.1rem,2.5vw,1.5rem)] font-semibold tracking-widest text-black uppercase">
             {cmsPage?.footer.heading || L.editorialHeading}
           </h2>
-          <p className="mt-3 text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
+          <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed text-gray-500">
             {cmsPage?.footer.body || L.editorialBody}
           </p>
-          <div className="mt-6 flex items-center justify-center gap-0 max-w-sm mx-auto">
+          <div className="mx-auto mt-6 flex max-w-sm items-center justify-center gap-0">
             <input
               type="email"
               placeholder={L.newsletterPlaceholder}
-              className="flex-1 border border-gray-300 px-4 py-2.5 text-xs focus-visible:outline-none focus:border-black transition-colors rounded-none"
+              className="flex-1 rounded-none border border-gray-300 px-4 py-2.5 text-xs transition-colors focus:border-black focus-visible:outline-none"
             />
-            <button className="px-5 py-2.5 text-xs tracking-widest uppercase text-white bg-black hover:bg-gray-800 transition-colors focus-visible:outline-none whitespace-nowrap rounded-none">
+            <button className="rounded-none bg-black px-5 py-2.5 text-xs tracking-widest whitespace-nowrap text-white uppercase transition-colors hover:bg-gray-800 focus-visible:outline-none">
               {L.newsletterCta}
             </button>
           </div>
@@ -315,9 +316,7 @@ export function NewArrivalsPage({ initialProducts, pageBlocks, cmsPage }: { init
 
         {/* OE-attached blocks for the `new` page — rendered at the bottom
             below the main new-arrivals grid. Empty → nothing renders. */}
-        {pageBlocks && pageBlocks.length > 0 && (
-          <PageBlocksRenderer blocks={pageBlocks} />
-        )}
+        {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
       </main>
 
       <Footer />

@@ -26,7 +26,8 @@ export function readGuestId(): string | undefined {
   }
 }
 
-/** Drop the persisted guest id so the next guest-side call mints a fresh one.
+/**
+ * Drop the persisted guest id so the next guest-side call mints a fresh one.
  *  Called from `AuthContext.logout` — without this, the anonymous fingerprint
  *  of the user who just signed out sticks to any subsequent guest activity on
  *  the same browser (still not a cross-user data leak, but the guest events

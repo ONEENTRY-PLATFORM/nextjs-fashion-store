@@ -7,5 +7,7 @@ import { getOrCreateGuestId } from './guest-id';
 // same guest record across the whole session.
 export function trackActivity(input: TrackActivityInput): void {
   const guestId = getOrCreateGuestId();
-  void trackActivityAction(input, guestId).catch(() => { /* swallow */ });
+  void trackActivityAction(input, guestId).catch(() => {
+    /* swallow */
+  });
 }

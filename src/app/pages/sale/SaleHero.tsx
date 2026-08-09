@@ -1,23 +1,29 @@
-'use client'
-import { Tag, ChevronRight } from 'lucide-react';
-import { CountdownUnit } from './SaleCountdown';
-import { SALE_PAGE_LABELS as L } from '../../data/salePageLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
+'use client';
+import { ChevronRight, Tag } from 'lucide-react';
+
 import type { SalePageFromCms } from '../../../lib/oneentry/catalog/sale-page';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { sanitizeHtml } from '../../../lib/sanitize-html';
 import CmsImage from '../../components/ui/CmsImage';
+import { SALE_PAGE_LABELS as L } from '../../data/salePageLabels';
+import { CountdownUnit } from './SaleCountdown';
 
 interface SaleHeroProps {
   countdown: { days: number; hours: number; minutes: number; seconds: number };
-  /** Countdown target as an epoch ms — used to build the "Ends …" caption
-   *  under the numbers when OE doesn't provide `timerEndsText`. */
+  /**
+   * Countdown target as an epoch ms — used to build the "Ends …" caption
+   *  under the numbers when OE doesn't provide `timerEndsText`.
+   */
   endsAt?: number;
-  /** OE `sale` page attributes. When present, drives all banner copy /
-   *  image / CTA. Missing fields degrade to the static `L.*` fallbacks. */
+  /**
+   * OE `sale` page attributes. When present, drives all banner copy /
+   *  image / CTA. Missing fields degrade to the static `L.*` fallbacks.
+   */
   cms?: SalePageFromCms | null;
 }
 
-const FALLBACK_HERO_IMAGE = 'https://images.unsplash.com/photo-1609017604163-e4ca9c619b9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwc2FsZSUyMGRpc2NvdW50JTIwc2hvcHBpbmclMjB3b21lbiUyMGNsb3RoaW5nfGVufDF8fHx8MTc3MjAzMDY1MHww&ixlib=rb-4.1.0&q=80&w=1080';
+const FALLBACK_HERO_IMAGE =
+  'https://images.unsplash.com/photo-1609017604163-e4ca9c619b9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwc2FsZSUyMGRpc2NvdW50JTIwc2hvcHBpbmclMjB3b21lbiUyMGNsb3RoaW5nfGVufDF8fHx8MTc3MjAzMDY1MHww&ixlib=rb-4.1.0&q=80&w=1080';
 
 const ENDS_AT_FORMATTER = new Intl.DateTimeFormat('en-US', {
   month: 'long',
@@ -28,7 +34,8 @@ const ENDS_AT_FORMATTER = new Intl.DateTimeFormat('en-US', {
   hour12: false,
 });
 
-/** Parse the OE `text.plainValue` into the four visual slots of the
+/**
+ * Parse the OE `text.plainValue` into the four visual slots of the
  *  original hero markup. Convention (documented for the admin panel):
  *    line 1 → giant title line 1
  *    line 2 → giant title line 2
@@ -38,9 +45,13 @@ const ENDS_AT_FORMATTER = new Intl.DateTimeFormat('en-US', {
  *    line 4+ (joined by space) → subtitle
  *
  *  Missing lines fall through to the static `L.*` labels so the banner
- *  keeps its shape even when the admin gives us less content. */
+ *  keeps its shape even when the admin gives us less content.
+ */
 export function parseHeroPlain(plain: string) {
-  const lines = plain.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  const lines = plain
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   const titleLine1 = lines[0] || L.heroTitleLine1;
   const titleLine2 = lines[1] || L.heroTitleLine2;
   const discountLine = lines[2] || '';
@@ -55,20 +66,27 @@ export function parseHeroPlain(plain: string) {
 }
 
 export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
-  const lDays    = useT('sale_page_top_banner_days',  L.countdownDays);
-  const lHours   = useT('sale_page_top_banner_hours', L.countdownHours);
-  const lMinutes = useT('sale_page_top_banner_min',   L.countdownMinutes);
-  const lSeconds = useT('sale_page_top_banner_sec',   L.countdownSeconds);
+  // Whole-object overlay: every string in `SALE_PAGE_LABELS` is editable as
+  // `sale_page_<snake_case_key>`. `parseHeroPlain` keeps reading the static
+  // object because it runs outside React (and only as a fallback for copy the
+  // admin already authors on the OE `sale` page).
+  const SP = useDict('sale_page_', L);
+  const lEndsPrefix = useT('sale_page_countdown_ends_prefix', 'Ends');
+  const lDays = useT('sale_page_top_banner_days', SP.countdownDays);
+  const lHours = useT('sale_page_top_banner_hours', SP.countdownHours);
+  const lMinutes = useT('sale_page_top_banner_min', SP.countdownMinutes);
+  const lSeconds = useT('sale_page_top_banner_sec', SP.countdownSeconds);
 
-  const heroImage    = cms?.hero.image || FALLBACK_HERO_IMAGE;
+  const heroImage = cms?.hero.image || FALLBACK_HERO_IMAGE;
   // Only the CMS picture has an LQIP; the bundled fallback has none.
-  const heroBlur     = cms?.hero.image ? cms.hero.imageBlur : undefined;
-  const eyebrow      = cms?.hero.eyebrow || L.heroEyebrow;
-  const contentHtml  = cms?.hero.contentHtml || '';
-  const ctaLabel     = cms?.hero.ctaLabel || L.heroShopSale;
-  const timerLabel   = cms?.hero.timerLabel || L.countdownLabel;
-  const endsCaption  = cms?.hero.timerEndsText
-    || (endsAt ? `Ends ${ENDS_AT_FORMATTER.format(new Date(endsAt))}` : L.countdownEndsAt);
+  const heroBlur = cms?.hero.image ? cms.hero.imageBlur : undefined;
+  const eyebrow = cms?.hero.eyebrow || SP.heroEyebrow;
+  const contentHtml = cms?.hero.contentHtml || '';
+  const ctaLabel = cms?.hero.ctaLabel || SP.heroShopSale;
+  const timerLabel = cms?.hero.timerLabel || SP.countdownLabel;
+  const endsCaption =
+    cms?.hero.timerEndsText ||
+    (endsAt ? `${lEndsPrefix} ${ENDS_AT_FORMATTER.format(new Date(endsAt))}` : SP.countdownEndsAt);
   const parsed = parseHeroPlain(cms?.hero.contentPlain || '');
 
   return (
@@ -76,7 +94,7 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
       <CmsImage
         src={heroImage}
         blur={heroBlur}
-        alt={L.heroImageAlt}
+        alt={SP.heroImageAlt}
         fill
         sizes="100vw"
         priority
@@ -84,12 +102,12 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
       />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.55)_0%,rgba(0,0,0,0.1)_60%,transparent_100%)]" />
 
-      <div className="relative z-10 px-4 lg:px-8 py-12 md:py-16 flex flex-col md:flex-row items-center justify-between gap-10">
+      <div className="relative z-10 flex flex-col items-center justify-between gap-10 px-4 py-12 md:flex-row md:py-16 lg:px-8">
         {/* Left */}
         <div className="flex flex-col justify-center">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="mb-4 flex items-center gap-2">
             <Tag size={13} className="text-white opacity-80" />
-            <span className="text-white text-xs tracking-[0.3em] uppercase opacity-80">{eyebrow}</span>
+            <span className="text-xs tracking-[0.3em] text-white uppercase opacity-80">{eyebrow}</span>
           </div>
           {contentHtml ? (
             // Admin filled the OE rich-text editor with actual HTML. It is
@@ -97,7 +115,7 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
             // account would otherwise own every shopper session, so it goes
             // through the allow-list sanitizer first.
             <div
-              className="oe-rich-text text-white mb-6"
+              className="oe-rich-text mb-6 text-white"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentHtml) }}
             />
           ) : (
@@ -106,30 +124,34 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
             // visual weight. Falls all the way through to static `L.*`
             // labels when the plain field is also blank.
             <>
-              <h1 className="hero-h1 text-white uppercase mb-2">
-                {parsed.titleLine1}<br />{parsed.titleLine2}
+              <h1 className="hero-h1 mb-2 text-white uppercase">
+                {parsed.titleLine1}
+                <br />
+                {parsed.titleLine2}
               </h1>
-              <div className="flex items-baseline gap-2 mb-5">
+              <div className="mb-5 flex items-baseline gap-2">
                 {parsed.discount.prefix && (
-                  <span className="text-white tracking-widest text-[clamp(1.25rem,3vw,1.75rem)] font-normal">{parsed.discount.prefix}</span>
+                  <span className="text-[clamp(1.25rem,3vw,1.75rem)] font-normal tracking-widest text-white">
+                    {parsed.discount.prefix}
+                  </span>
                 )}
                 {parsed.discount.percent && (
-                  <span className="text-white text-[clamp(3rem,8vw,6rem)] font-semibold tracking-[-0.03em]">{parsed.discount.percent}</span>
+                  <span className="text-[clamp(3rem,8vw,6rem)] font-semibold tracking-[-0.03em] text-white">
+                    {parsed.discount.percent}
+                  </span>
                 )}
                 {parsed.discount.suffix && (
-                  <span className="text-white tracking-widest text-[clamp(1.25rem,3vw,1.75rem)] font-normal">{parsed.discount.suffix}</span>
+                  <span className="text-[clamp(1.25rem,3vw,1.75rem)] font-normal tracking-widest text-white">
+                    {parsed.discount.suffix}
+                  </span>
                 )}
               </div>
-              {parsed.subtitle && (
-                <p className="text-white mb-6 text-[13px] opacity-70 max-w-80">
-                  {parsed.subtitle}
-                </p>
-              )}
+              {parsed.subtitle && <p className="mb-6 max-w-80 text-[13px] text-white opacity-70">{parsed.subtitle}</p>}
             </>
           )}
           <a
             href={L.heroShopSaleHref}
-            className="self-start flex items-center gap-2 px-6 py-3 text-xs tracking-widest uppercase text-white focus-visible:outline-none hover:gap-3 transition-all bg-(--sale) rounded-lg font-semibold"
+            className="flex items-center gap-2 self-start rounded-lg bg-(--sale) px-6 py-3 text-xs font-semibold tracking-widest text-white uppercase transition-all hover:gap-3 focus-visible:outline-none"
           >
             {ctaLabel} <ChevronRight size={13} />
           </a>
@@ -137,25 +159,23 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
 
         {/* Right: countdown */}
         <div className="flex flex-col items-center">
-          <p className="text-white text-xs tracking-[0.25em] uppercase mb-4 opacity-65">
-            {timerLabel}
-          </p>
+          <p className="mb-4 text-xs tracking-[0.25em] text-white uppercase opacity-65">{timerLabel}</p>
           <div className="flex items-end gap-2.5">
             <CountdownUnit value={countdown.days} label={lDays} />
-            <span className="text-white mb-3.5 text-xl font-bold opacity-40">:</span>
+            <span className="mb-3.5 text-xl font-bold text-white opacity-40">:</span>
             <CountdownUnit value={countdown.hours} label={lHours} />
-            <span className="text-white mb-3.5 text-xl font-bold opacity-40">:</span>
+            <span className="mb-3.5 text-xl font-bold text-white opacity-40">:</span>
             <CountdownUnit value={countdown.minutes} label={lMinutes} />
-            <span className="text-white mb-3.5 text-xl font-bold opacity-40">:</span>
+            <span className="mb-3.5 text-xl font-bold text-white opacity-40">:</span>
             <CountdownUnit value={countdown.seconds} label={lSeconds} />
           </div>
-          <p className="text-white text-xs mt-3 opacity-45" suppressHydrationWarning>
+          <p className="mt-3 text-xs text-white opacity-45" suppressHydrationWarning>
             {endsCaption}
           </p>
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-(--sale)" />
+      <div className="absolute inset-x-0 bottom-0 h-1 bg-(--sale)" />
     </div>
   );
 }

@@ -1,12 +1,15 @@
-'use client'
-import { Package, ChevronDown } from 'lucide-react';
+'use client';
+import { ChevronDown, Package } from 'lucide-react';
+
+import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
 import { RadioCard } from '../../components/ui/RadioCard';
 import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
-
-import { DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK, DELIVERY_METHOD_SHARED_LABELS as SH } from '../../data/checkoutLabels';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import {
+  DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK,
+  DELIVERY_METHOD_SHARED_LABELS as SH,
+} from '../../data/checkoutLabels';
 import { type GuestContactFormState } from './GuestContactForm';
-import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 interface DeliveryMethodLockerProps {
   checked: boolean;
@@ -15,8 +18,10 @@ interface DeliveryMethodLockerProps {
   setSelectedLocker: (l: string) => void;
   lockerDropOpen: boolean;
   setLockerDropOpen: (fn: (o: boolean) => boolean) => void;
-  /** Locker names from OE; omitted (Storybook / bare tests) falls back to the
-   *  local `PARCEL_LOCKERS` list. */
+  /**
+   * Locker names from OE; omitted (Storybook / bare tests) falls back to the
+   *  local `PARCEL_LOCKERS` list.
+   */
   lockers?: string[];
   isLoggedIn: boolean;
   guestContact: GuestContactFormState;
@@ -25,9 +30,12 @@ interface DeliveryMethodLockerProps {
 }
 
 export function DeliveryMethodLocker({
-  checked, onChange,
-  selectedLocker, setSelectedLocker,
-  lockerDropOpen, setLockerDropOpen,
+  checked,
+  onChange,
+  selectedLocker,
+  setSelectedLocker,
+  lockerDropOpen,
+  setLockerDropOpen,
   lockers,
   // Guest-contact props stay in the signature for the disabled form below.
   isLoggedIn: _isLoggedIn,
@@ -38,9 +46,9 @@ export function DeliveryMethodLocker({
   const L = useDict('checkout_delivery_locker_', L_FALLBACK);
   const info = useDeliveryMethodInfo();
   const lockerList = lockers && lockers.length > 0 ? lockers : PARCEL_LOCKERS;
-  const title    = info?.locker.title    ?? L.title;
+  const title = info?.locker.title ?? L.title;
   const subtitle = info?.locker.subtitle ?? L.subtitle;
-  const pinHint  = info?.locker.pinHint  ?? L.pinHint;
+  const pinHint = info?.locker.pinHint ?? L.pinHint;
   const lFreeBadge = useT('checkout_delivery_free_badge', SH.freeBadge);
   return (
     <RadioCard
@@ -53,13 +61,13 @@ export function DeliveryMethodLocker({
       badge={lFreeBadge}
     >
       <div className="pt-4">
-        <label className="block text-xs tracking-wide uppercase mb-1.5 font-semibold text-[#555]">
+        <label className="mb-1.5 block text-xs font-semibold tracking-wide text-[#555] uppercase">
           {L.selectPoint}
         </label>
         <div className="relative">
           <button
-            onClick={() => setLockerDropOpen(o => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm text-left focus-visible:outline-none border border-[#d1d5db] rounded-none"
+            onClick={() => setLockerDropOpen((o) => !o)}
+            className="flex w-full items-center justify-between rounded-none border border-[#d1d5db] px-4 py-3 text-left text-sm focus-visible:outline-none"
             aria-expanded={lockerDropOpen}
             aria-haspopup="listbox"
           >
@@ -70,12 +78,15 @@ export function DeliveryMethodLocker({
             />
           </button>
           {lockerDropOpen && (
-            <div className="absolute top-full left-0 right-0 bg-white z-20 border border-[#d1d5db] border-t-0">
-              {lockerList.map(l => (
+            <div className="absolute inset-x-0 top-full z-20 border border-t-0 border-[#d1d5db] bg-white">
+              {lockerList.map((l) => (
                 <button
                   key={l}
-                  onClick={() => { setSelectedLocker(l); setLockerDropOpen(() => false); }}
-                  className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors focus-visible:outline-none border-b border-[#f0f0f0] ${
+                  onClick={() => {
+                    setSelectedLocker(l);
+                    setLockerDropOpen(() => false);
+                  }}
+                  className={`w-full border-b border-[#f0f0f0] px-4 py-3 text-left text-sm transition-colors hover:bg-gray-50 focus-visible:outline-none ${
                     selectedLocker === l ? 'font-semibold' : 'font-normal'
                   }`}
                 >
@@ -85,7 +96,7 @@ export function DeliveryMethodLocker({
             </div>
           )}
         </div>
-        <p className="text-xs text-gray-400 mt-2">{pinHint}</p>
+        <p className="mt-2 text-xs text-gray-400">{pinHint}</p>
 
         {/* Guest contact form temporarily disabled — checkout is sign-in-only.
         To restore: re-import `GuestContactForm` and `GUEST_CONTACT_LABELS as GC`,

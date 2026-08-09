@@ -13,7 +13,8 @@ import { revalidateTag } from 'next/cache';
  * Drop the cached surfaces an order placement can invalidate: product
  * listings (stock / status moved) and discount rules (single-use coupons and
  * usage-capped tiers may have just consumed a slot).
- * @returns {Promise<void>} Resolves once both tags are invalidated.
+ *
+ * @returns Resolves once both tags are invalidated.
  */
 export async function revalidateAfterOrderAction(): Promise<void> {
   try {

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 /**
  * PDP Specifications rows read their labels from the OneEntry `product_specs`
@@ -57,8 +57,7 @@ test.describe('PDP specifications — CMS-sourced labels', () => {
     const rows = page.locator('[data-testid="product-spec-row"]');
     await expect(rows.first()).toBeVisible({ timeout: 60_000 });
 
-    const keys = await rows.evaluateAll(els =>
-      els.map(el => el.getAttribute('data-spec-key')).filter(Boolean));
+    const keys = await rows.evaluateAll((els) => els.map((el) => el.getAttribute('data-spec-key')).filter(Boolean));
     expect(keys.length).toBeGreaterThan(0);
     // Keys are code-owned identifiers, never the rendered copy — a label that
     // leaked into this attribute would mean the admin can break the lookup.

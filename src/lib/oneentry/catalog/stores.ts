@@ -1,11 +1,12 @@
-import { currentCmsLocale } from '../current-locale';
 import { unstable_cache } from 'next/cache';
-import { getApiSafe, getImage, isError } from '../index';
-import { withTiming } from '../profiling';
-import { t, type Lang } from '../system-text';
+
 import type { Store } from '../../../app/data/stores';
 import { STORES as MOCK_STORES } from '../../../app/data/stores';
 import { REVALIDATE_STORES } from '../../isr';
+import { currentCmsLocale } from '../current-locale';
+import { getApiSafe, getImage, isError } from '../index';
+import { withTiming } from '../profiling';
+import { type Lang, t } from '../system-text';
 
 type RawAttrValue = { value?: unknown };
 type RawPage = {
@@ -45,9 +46,7 @@ const splitAddressPostcode = (full: string): { address: string; postcode: string
 
 const extractServices = (rawValue: unknown): string[] => {
   if (!Array.isArray(rawValue)) return [];
-  return rawValue
-    .map((it) => asString((it as { title?: unknown })?.title))
-    .filter((s) => s.length > 0);
+  return rawValue.map((it) => asString((it as { title?: unknown })?.title)).filter((s) => s.length > 0);
 };
 
 const padHM = (n: number): string => String(n).padStart(2, '0');
@@ -79,9 +78,11 @@ const formatHours = (rawValue: unknown, dayLabel: string): { day: string; time: 
   return out;
 };
 
-/** OE stores the store tag/label as a single-value list attribute.
+/**
+ * OE stores the store tag/label as a single-value list attribute.
  *  - `value` is the machine id (e.g. `flagship`, `new`) — used to detect the flagship store.
- *  - `title` is the human-readable badge shown on the card (e.g. `FLAGSHIP`, `New`). */
+ *  - `title` is the human-readable badge shown on the card (e.g. `FLAGSHIP`, `New`).
+ */
 const extractLabel = (rawValue: unknown): { title: string; value: string } => {
   if (!Array.isArray(rawValue) || rawValue.length === 0) return { title: '', value: '' };
   const first = rawValue[0] as { title?: unknown; value?: unknown };
@@ -123,37 +124,45 @@ const normalize = (raw: RawPage, lang: Lang, dayLabel: string, mockFallback?: St
   };
 };
 
-/** `lang` is an explicit argument so it lands in the `unstable_cache` key —
+/**
+ * `lang` is an explicit argument so it lands in the `unstable_cache` key —
  *  otherwise every locale would read whichever one warmed the entry first.
  *  `dayLabel` is passed in for the same reason *and* so that editing it in the
  *  admin panel changes the cache key, surfacing the new wording immediately
- *  instead of waiting out `REVALIDATE_STORES`. */
-const loadStoresCached = withTiming('loadStores', unstable_cache(
-  async (lang: Lang, dayLabel: string): Promise<Store[]> => {
-    // Mock fallback so all stores render even while a few OE store pages
-    // remain partially filled. When every store page has full attributes
-    // the MOCK_STORES fallback can be dropped.
-    const api = getApiSafe();
-    if (!api) return MOCK_STORES;
-    try {
-      const result = await api.Pages.getChildPagesByParentUrl('stores', lang);
-      if (isError(result)) return MOCK_STORES;
-      const items = (Array.isArray(result) ? result : (result as { items?: RawPage[] } | null)?.items ?? []) as RawPage[];
-      const sorted = items.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-      if (sorted.length === 0) return MOCK_STORES;
-      return sorted.map((raw, idx) => normalize(raw, lang, dayLabel, MOCK_STORES[idx]));
-    } catch {
-      return MOCK_STORES;
-    }
-  },
-  ['oe-stores'],
-  { revalidate: REVALIDATE_STORES, tags: ['oe-stores'] },
-));
+ *  instead of waiting out `REVALIDATE_STORES`.
+ */
+const loadStoresCached = withTiming(
+  'loadStores',
+  unstable_cache(
+    async (lang: Lang, dayLabel: string): Promise<Store[]> => {
+      // Mock fallback so all stores render even while a few OE store pages
+      // remain partially filled. When every store page has full attributes
+      // the MOCK_STORES fallback can be dropped.
+      const api = getApiSafe();
+      if (!api) return MOCK_STORES;
+      try {
+        const result = await api.Pages.getChildPagesByParentUrl('stores', lang);
+        if (isError(result)) return MOCK_STORES;
+        const items = (
+          Array.isArray(result) ? result : ((result as { items?: RawPage[] } | null)?.items ?? [])
+        ) as RawPage[];
+        const sorted = items.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        if (sorted.length === 0) return MOCK_STORES;
+        return sorted.map((raw, idx) => normalize(raw, lang, dayLabel, MOCK_STORES[idx]));
+      } catch {
+        return MOCK_STORES;
+      }
+    },
+    ['oe-stores'],
+    { revalidate: REVALIDATE_STORES, tags: ['oe-stores'] },
+  ),
+);
 
 /**
  * Store list for the current route's locale.
- * @param   {Lang} [langArg] - Explicit OE locale; defaults to the route's.
- * @returns {Promise<Store[]>} Stores, falling back to the mock list.
+ *
+ * @param [langArg] - Explicit OE locale; defaults to the route's.
+ * @returns Stores, falling back to the mock list.
  */
 export async function loadStores(langArg?: Lang): Promise<Store[]> {
   const lang = langArg ?? (await currentCmsLocale());

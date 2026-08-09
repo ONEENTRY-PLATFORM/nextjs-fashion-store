@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---- Mock the data loader ---------------------------------------------------
 const loadFrequentlyOrderedBlock = vi.fn();
@@ -14,10 +14,7 @@ vi.mock('@/app/pages/product/FrequentlyOrderedClient', () => ({
 }));
 
 // Helper: build a minimal Product fixture
-const makeProduct = (
-  id: string,
-  gender?: 'W' | 'M' | 'U' | '',
-) => ({
+const makeProduct = (id: string, gender?: 'W' | 'M' | 'U' | '') => ({
   id,
   name: `Product ${id}`,
   price: '10.00',

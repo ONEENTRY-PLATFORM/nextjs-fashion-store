@@ -27,12 +27,8 @@ const withProviders: Decorator = (Story) => {
     React.createElement(
       AuthProvider,
       null,
-      React.createElement(
-        CatalogAccentContext.Provider,
-        { value: '#F88A8A' },
-        React.createElement(Story)
-      )
-    )
+      React.createElement(CatalogAccentContext.Provider, { value: '#F88A8A' }, React.createElement(Story)),
+    ),
   );
 };
 

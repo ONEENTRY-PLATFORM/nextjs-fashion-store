@@ -34,8 +34,7 @@ export type ShortLocaleCode = string;
  *
  * Overridable via `NEXT_PUBLIC_DEFAULT_LOCALE` at build time.
  */
-export const DEFAULT_LOCALE: CmsLocaleCode =
-  process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US';
+export const DEFAULT_LOCALE: CmsLocaleCode = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US';
 
 /**
  * Every locale the storefront routes for, in display order, as CMS codes.
@@ -55,15 +54,16 @@ export const CMS_LOCALES: readonly CmsLocaleCode[] = (() => {
   return [DEFAULT_LOCALE, ...list.filter((l) => l !== DEFAULT_LOCALE)];
 })();
 
-/** `en_US` → `en`. Anything without an underscore passes through unchanged. */
+/**
+ * `en_US` → `en`. Anything without an underscore passes through unchanged.
+ */
 export function toShortCode(cms: CmsLocaleCode): ShortLocaleCode {
   const [head] = cms.split('_');
   return (head ?? cms).toLowerCase();
 }
 
 /** Every routable locale as a URL short code, default first. */
-export const SHORT_LOCALES: readonly ShortLocaleCode[] =
-  CMS_LOCALES.map(toShortCode);
+export const SHORT_LOCALES: readonly ShortLocaleCode[] = CMS_LOCALES.map(toShortCode);
 
 /** The short code that renders without a prefix. */
 export const DEFAULT_SHORT_LOCALE: ShortLocaleCode = toShortCode(DEFAULT_LOCALE);
@@ -74,8 +74,9 @@ export const IS_MULTI_LOCALE = CMS_LOCALES.length > 1;
 /**
  * `en` → `en_US`. Unknown codes resolve to the default rather than throwing —
  * a stray URL segment must not take the whole page down.
- * @param   {string} short - URL-facing locale code.
- * @returns {string}       Matching OE locale code.
+ *
+ * @param short - URL-facing locale code.
+ * @returns       Matching OE locale code.
  */
 export function toCmsLocale(short: string | undefined): CmsLocaleCode {
   if (!short) return DEFAULT_LOCALE;
@@ -85,8 +86,9 @@ export function toCmsLocale(short: string | undefined): CmsLocaleCode {
 
 /**
  * Type guard for a routable short code.
- * @param   {string}  short - Candidate segment from the URL.
- * @returns {boolean}       `true` when the storefront routes this locale.
+ *
+ * @param  short - Candidate segment from the URL.
+ * @returns       `true` when the storefront routes this locale.
  */
 export function hasLocale(short: string | undefined): short is ShortLocaleCode {
   return typeof short === 'string' && SHORT_LOCALES.includes(short.toLowerCase());
@@ -98,9 +100,10 @@ export function hasLocale(short: string | undefined): short is ShortLocaleCode {
  *
  * External URLs, anchors, `mailto:`/`tel:` and already-prefixed paths are
  * returned as-is so this is safe to apply blanket-wise in the `Link` wrapper.
- * @param   {string} href  - App-relative path, e.g. `/cart`.
- * @param   {string} short - Target locale short code.
- * @returns {string}       Localized path.
+ *
+ * @param href  - App-relative path, e.g. `/cart`.
+ * @param short - Target locale short code.
+ * @returns       Localized path.
  */
 export function localizeHref(href: string, short: ShortLocaleCode): string {
   if (!href.startsWith('/') || href.startsWith('//')) return href;
@@ -115,8 +118,9 @@ export function localizeHref(href: string, short: ShortLocaleCode): string {
 /**
  * Drop a leading locale segment, if present. `/fr/cart` → `/cart`,
  * `/cart` → `/cart`, `/fr` → `/`.
- * @param   {string} pathname - Path that may carry a locale prefix.
- * @returns {string}          Path without the locale segment.
+ *
+ * @param pathname - Path that may carry a locale prefix.
+ * @returns          Path without the locale segment.
  */
 export function stripLocale(pathname: string): string {
   const match = /^\/([^/]+)(\/.*)?$/.exec(pathname);
@@ -128,8 +132,9 @@ export function stripLocale(pathname: string): string {
 /**
  * The locale segment of a path, or the default when there is none — which is
  * exactly the as-needed case.
- * @param   {string} pathname - Current path.
- * @returns {string}          Short locale code.
+ *
+ * @param pathname - Current path.
+ * @returns          Short locale code.
  */
 export function localeFromPath(pathname: string): ShortLocaleCode {
   const first = /^\/([^/]+)/.exec(pathname)?.[1];
@@ -140,8 +145,9 @@ export function localeFromPath(pathname: string): ShortLocaleCode {
  * BCP-47 tag for the `<html lang>` attribute and hreflang, derived from the CMS
  * code: `en_US` → `en-US`. Search engines and screen readers expect the hyphen
  * form; OneEntry uses the underscore one.
- * @param   {string} short - Short locale code from the URL.
- * @returns {string}       BCP-47 language tag.
+ *
+ * @param short - Short locale code from the URL.
+ * @returns       BCP-47 language tag.
  */
 export function htmlLang(short: ShortLocaleCode): string {
   return toCmsLocale(short).replace('_', '-');
@@ -153,14 +159,12 @@ export function htmlLang(short: ShortLocaleCode): string {
  *
  * Under the as-needed scheme the default locale's alternate is the bare URL,
  * which is also what `x-default` points at.
- * @param   {string} baseUrl - Absolute site origin, no trailing slash.
- * @param   {string} [path]  - App-relative path, defaults to the site root.
- * @returns {Record<string, string>} hreflang map.
+ *
+ * @param baseUrl - Absolute site origin, no trailing slash.
+ * @param [path]  - App-relative path, defaults to the site root.
+ * @returns hreflang map.
  */
-export function buildLanguageAlternates(
-  baseUrl: string,
-  path: string = '/',
-): Record<string, string> {
+export function buildLanguageAlternates(baseUrl: string, path: string = '/'): Record<string, string> {
   const origin = baseUrl.replace(/\/$/, '');
   const bare = stripLocale(path) || '/';
   const out: Record<string, string> = {};

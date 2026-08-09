@@ -1,17 +1,18 @@
-'use client'
-import { useState, useEffect, useRef } from 'react';
+'use client';
 import Image from 'next/image';
-import { type Product } from '../product/ProductCard';
+import { useEffect, useRef, useState } from 'react';
+
+import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { SALE_COLOR } from '../../constants/colors';
 import { TIMINGS } from '../../constants/timings';
-import { PRODUCT_CARD_LABELS } from '../../data/commonLabels';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
-import { hexToColorName } from '../../utils/colorNames';
-import { stripTrailingZeros } from '../../utils/formatPrice';
+import { PRODUCT_CARD_LABELS } from '../../data/commonLabels';
 import { QUICK_VIEW_LABELS } from '../../data/productPageLabels';
 import { useMounted } from '../../hooks/useMounted';
+import { hexToColorName } from '../../utils/colorNames';
+import { stripTrailingZeros } from '../../utils/formatPrice';
+import { type Product } from '../product/ProductCard';
 import CmsImage from '../ui/CmsImage';
 
 /* ─── List-view card (only when showListMode=true) ─── */
@@ -21,6 +22,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
   const mounted = useMounted();
   const addedToCartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
+  const lAdded = useT('product-card-added', PRODUCT_CARD_LABELS.added);
   const { addItem } = useCart();
   const { toggleItem, isWishlisted } = useWishlist();
   // `isWishlisted` returns Redux state that only lives on the client;
@@ -29,7 +31,9 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
   const wishlisted = mounted && isWishlisted(product.id);
 
   useEffect(() => {
-    return () => { if (addedToCartTimerRef.current) clearTimeout(addedToCartTimerRef.current); };
+    return () => {
+      if (addedToCartTimerRef.current) clearTimeout(addedToCartTimerRef.current);
+    };
   }, []);
 
   const handleAddToCart = () => {
@@ -56,21 +60,21 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
 
   return (
     <div
-      className="flex group border-b border-white"
+      className="group flex border-b border-white"
       style={{ '--sale': SALE_COLOR, '--accent': accent } as React.CSSProperties}
     >
-      <div className="relative shrink-0 overflow-hidden w-45 aspect-3/4 border-r border-white">
+      <div className="relative aspect-3/4 w-45 shrink-0 overflow-hidden border-r border-white">
         <CmsImage
           src={product.image}
           blur={product.imageBlurs?.[product.image]}
           alt={product.name}
           fill
           sizes="180px"
-          className="object-cover transition-transform duration-500 group-hover:scale-105 object-[center_top]"
+          className="object-cover object-[center_top] transition-transform duration-500 group-hover:scale-105"
         />
         {(product.label || product.badge) && (
           <span
-            className={`absolute top-3 left-3 px-2 py-0.5 text-white text-xs tracking-wider uppercase rounded-none ${
+            className={`absolute top-3 left-3 rounded-none px-2 py-0.5 text-xs tracking-wider text-white uppercase ${
               product.label === 'SALE' ? 'bg-(--sale)' : 'bg-black'
             }`}
           >
@@ -78,10 +82,10 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
           </span>
         )}
       </div>
-      <div className="flex-1 p-5 md:p-6 flex flex-col justify-between font-[Inter,sans-serif]">
+      <div className="flex flex-1 flex-col justify-between p-5 font-[Inter,sans-serif] md:p-6">
         <div>
-          <h3 className="text-sm mb-1.5 font-medium">{product.name}</h3>
-          <div className="flex items-center gap-2 mb-3">
+          <h3 className="mb-1.5 text-sm font-medium">{product.name}</h3>
+          <div className="mb-3 flex items-center gap-2">
             {product.salePrice ? (
               <>
                 <span className="text-sm font-medium text-(--sale)">{stripTrailingZeros(product.salePrice)}</span>
@@ -95,33 +99,34 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
             {product.colors.map((color) => (
               <div
                 key={color}
-                className="w-3.5 h-3.5 border-[1.5px] border-[#e0e0e0] rounded-none"
+                className="size-3.5 rounded-none border-[1.5px] border-[#e0e0e0]"
                 style={{ backgroundColor: color }}
               />
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-3 mt-4">
+        <div className="mt-4 flex items-center gap-3">
           <button
             onMouseEnter={() => setCartHovered(true)}
             onMouseLeave={() => setCartHovered(false)}
             onClick={handleAddToCart}
-            className={`flex items-center gap-2 px-6 py-2.5 text-xs tracking-widest uppercase text-white focus-visible:outline-none rounded-none transition-colors duration-200 ${
+            className={`flex items-center gap-2 rounded-none px-6 py-2.5 text-xs tracking-widest text-white uppercase transition-colors duration-200 focus-visible:outline-none ${
               addedToCart ? 'bg-(--sale)' : cartHovered ? 'bg-accent' : 'bg-black'
             }`}
           >
             <Image src="/icons/ui/bag.svg" alt="" width={13} height={13} unoptimized />
-            {addedToCart ? PRODUCT_CARD_LABELS.added : lAddToCart}
+            {addedToCart ? lAdded : lAddToCart}
           </button>
           <button
             onClick={() => {
               // Real wishlist persistence — mirrors `ProductCard.handleWishlist`.
               // Per-colour thumbnail: pick the linked variant's image, then
               // parallel `colorImages`, then the primary product image.
-              const colorImages = product.colors.map((c, i) =>
-                product.variants?.find((v) => v.colors.includes(c))?.image
-                || product.colorImages?.[i]
-                || product.image,
+              const colorImages = product.colors.map(
+                (c, i) =>
+                  product.variants?.find((v) => v.colors.includes(c))?.image ||
+                  product.colorImages?.[i] ||
+                  product.image,
               );
               toggleItem({
                 id: product.id,
@@ -139,7 +144,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
                 selectedColor: product.colors[0],
               });
             }}
-            className="p-2 border border-gray-200 hover:border-black transition-colors rounded-none"
+            className="rounded-none border border-gray-200 p-2 transition-colors hover:border-black"
           >
             <Image
               src={wishlisted ? '/icons/ui/heart-filled.svg' : '/icons/ui/heart-outline.svg'}

@@ -3,35 +3,74 @@ import { DEFAULT_LOCALE } from '../locale';
 import { logCaught } from '../log';
 import type { CatalogFilters } from './filters';
 
-/** `CatalogFilters` keys that hold multi-value lists — SEASONAL TRENDS
+/**
+ * `CatalogFilters` keys that hold multi-value lists — SEASONAL TRENDS
  *  redirects narrow the grid via one of these when `st_type-of-trends`
- *  names an attribute rather than the literal `"category"`. */
+ *  names an attribute rather than the literal `"category"`.
+ */
 type CatalogListField =
-  | 'colors' | 'sizes' | 'brands' | 'styles' | 'materials'
-  | 'seasons' | 'fits' | 'liningMaterials' | 'brandCountries' | 'labels'
-  | 'productDetails' | 'careInstructions' | 'insulations';
+  | 'colors'
+  | 'sizes'
+  | 'brands'
+  | 'styles'
+  | 'materials'
+  | 'seasons'
+  | 'fits'
+  | 'liningMaterials'
+  | 'brandCountries'
+  | 'labels'
+  | 'productDetails'
+  | 'careInstructions'
+  | 'insulations';
 
-/** Map an OE attribute marker (or its human-friendly synonym) to the
+/**
+ * Map an OE attribute marker (or its human-friendly synonym) to the
  *  `CatalogFilters` key that drives storefront filtering. The suffix numbers
  *  (`color_9`, `material_15`, …) come straight from the tenant's clothing
  *  attribute set — copies of the constants in `filters.ts::LIST_FIELD_TO_OE_MARKER`
  *  so this module works standalone without depending on filter-body plumbing.
  *  Both the short name (`material`) and the OE marker (`material_15`) are
- *  accepted so merchants can put either into the `st_type-of-trends` field. */
+ *  accepted so merchants can put either into the `st_type-of-trends` field.
+ */
 const ATTR_ALIAS_TO_FILTER: Record<string, CatalogListField> = {
-  color: 'colors',        color_9: 'colors',        colors: 'colors',
-  size: 'sizes',          size_10: 'sizes',         sizes: 'sizes',
-  brand: 'brands',        brand_7: 'brands',        brands: 'brands',
-  style: 'styles',        style_3: 'styles',        styles: 'styles',
-  material: 'materials',  material_15: 'materials', materials: 'materials',
-  season: 'seasons',      season_19: 'seasons',     seasons: 'seasons',
-  fit: 'fits',            fitrise_4: 'fits',        fits: 'fits',
-  lining: 'liningMaterials', lining_16: 'liningMaterials', liningmaterial: 'liningMaterials',
-  country: 'brandCountries', country_20: 'brandCountries', brandcountry: 'brandCountries',
-  label: 'labels',        lable_23: 'labels',       labels: 'labels',
-  details: 'productDetails', details_5: 'productDetails', productdetails: 'productDetails',
-  careinstructions: 'careInstructions', careinstructions_18: 'careInstructions',
-  insulation: 'insulations', insulation_17: 'insulations', insulations: 'insulations',
+  color: 'colors',
+  color_9: 'colors',
+  colors: 'colors',
+  size: 'sizes',
+  size_10: 'sizes',
+  sizes: 'sizes',
+  brand: 'brands',
+  brand_7: 'brands',
+  brands: 'brands',
+  style: 'styles',
+  style_3: 'styles',
+  styles: 'styles',
+  material: 'materials',
+  material_15: 'materials',
+  materials: 'materials',
+  season: 'seasons',
+  season_19: 'seasons',
+  seasons: 'seasons',
+  fit: 'fits',
+  fitrise_4: 'fits',
+  fits: 'fits',
+  lining: 'liningMaterials',
+  lining_16: 'liningMaterials',
+  liningmaterial: 'liningMaterials',
+  country: 'brandCountries',
+  country_20: 'brandCountries',
+  brandcountry: 'brandCountries',
+  label: 'labels',
+  lable_23: 'labels',
+  labels: 'labels',
+  details: 'productDetails',
+  details_5: 'productDetails',
+  productdetails: 'productDetails',
+  careinstructions: 'careInstructions',
+  careinstructions_18: 'careInstructions',
+  insulation: 'insulations',
+  insulation_17: 'insulations',
+  insulations: 'insulations',
 };
 
 /**
@@ -61,8 +100,7 @@ function readAttr(attrs: Record<string, unknown>, markers: string[]): string {
 }
 
 export type SeasonalTrend =
-  | { kind: 'category'; value: string }
-  | { kind: 'attribute'; field: CatalogListField; value: string };
+  { kind: 'category'; value: string } | { kind: 'attribute'; field: CatalogListField; value: string };
 
 /**
  * Resolve a SEASONAL TRENDS page into the filter it should apply to the
@@ -99,16 +137,16 @@ export async function resolveSeasonalTrend(pageUrl: string): Promise<SeasonalTre
   // `_normalizeData` in the SDK usually unwraps the per-locale wrapper, but
   // some tenants still return `{ en_US: { attr: {...} } }`. Support both.
   const localeSlice = rawAttrs[DEFAULT_LOCALE];
-  const attrs: Record<string, unknown> = (localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice))
-    ? (localeSlice as Record<string, unknown>)
-    : rawAttrs;
+  const attrs: Record<string, unknown> =
+    localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice)
+      ? (localeSlice as Record<string, unknown>)
+      : rawAttrs;
   const rawType = readAttr(attrs, ['st_type-of-trends', 'st_type_of_trends']).trim();
   const value = readAttr(attrs, ['st_trends']).trim();
   if (!rawType || !value) return null;
   const type = rawType.toLowerCase();
   if (type === 'category') return { kind: 'category', value };
-  const field = ATTR_ALIAS_TO_FILTER[type]
-    ?? ATTR_ALIAS_TO_FILTER[type.replace(/_\d+$/, '')];
+  const field = ATTR_ALIAS_TO_FILTER[type] ?? ATTR_ALIAS_TO_FILTER[type.replace(/_\d+$/, '')];
   if (!field) return null;
   return { kind: 'attribute', field, value };
 }

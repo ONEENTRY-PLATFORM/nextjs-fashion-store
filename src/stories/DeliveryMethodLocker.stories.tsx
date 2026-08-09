@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
+
+import { PARCEL_LOCKERS } from '../app/data/checkoutConfig';
 import { DeliveryMethodLocker } from '../app/pages/checkout/DeliveryMethodLocker';
 import { DeliveryMethodInfoProvider } from '../lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { PARCEL_LOCKERS } from '../app/data/checkoutConfig';
 
 const GUEST_CONTACT_EMPTY = { fullName: '', phone: '', email: '' };
 
@@ -53,8 +54,10 @@ export const Unchecked: Story = {
   args: { ...sharedArgs, checked: false },
 };
 
-/** OE-driven copy: title, subtitle and pinHint replaced by the CMS via
- *  `DeliveryMethodInfoProvider`. No public prop changes needed. */
+/**
+ * OE-driven copy: title, subtitle and pinHint replaced by the CMS via
+ *  `DeliveryMethodInfoProvider`. No public prop changes needed.
+ */
 export const WithOECopy: Story = {
   name: 'OE-driven copy',
   decorators: [

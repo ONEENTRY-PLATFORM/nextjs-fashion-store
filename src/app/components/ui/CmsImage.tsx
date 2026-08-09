@@ -9,8 +9,10 @@ import type { Ref } from 'react';
 export type CmsImageProps = Omit<ImageProps, 'placeholder' | 'blurDataURL'> & {
   /** Base64 data URI from the OE preview template, via `getImage().blur`. */
   blur?: string;
-  /** Forwarded to the underlying `<img>`; callers use it to read `complete`
-   *  for images the browser served straight from cache. */
+  /**
+   * Forwarded to the underlying `<img>`; callers use it to read `complete`
+   *  for images the browser served straight from cache.
+   */
   ref?: Ref<HTMLImageElement>;
 };
 
@@ -27,9 +29,10 @@ export type CmsImageProps = Omit<ImageProps, 'placeholder' | 'blurDataURL'> & {
  *
  * `data-blur` is emitted so E2E can assert the placeholder is actually live
  * without reaching into Next's internals.
- * @param {CmsImageProps} props - `next/image` props plus the optional `blur`.
- * @param {string} [props.blur] - Base64 data URI for the placeholder.
- * @returns {import('react').JSX.Element} The image element.
+ *
+ * @param props - `next/image` props plus the optional `blur`.
+ * @param [props.blur] - Base64 data URI for the placeholder.
+ * @returns The image element.
  */
 export default function CmsImage({ blur, ...rest }: CmsImageProps) {
   return (
