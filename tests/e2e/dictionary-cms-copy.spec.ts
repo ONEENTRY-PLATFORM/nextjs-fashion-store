@@ -102,4 +102,22 @@ test.describe('CMS dictionary reaches every screen', () => {
     // dictionary reached this route.
     await expect(page.getByText(moreInfo, { exact: true }).first()).toBeVisible({ timeout: 90_000 });
   });
+
+  test('the in-store services strip is CMS-driven, not hardcoded', async ({ page }) => {
+    // These four labels used to be an array of `{icon, label}` in
+    // `storesLabels.ts`, which `useDict` passes through untouched — so they
+    // were un-editable and untranslatable. They now travel as one
+    // comma-separated marker read with `useList`.
+    const storePages = await fetchSet('store_pages');
+    const csv = storePages['store_pages_services'];
+    test.skip(!csv, 'tenant has no `store_pages_services` published');
+
+    await page.goto('/stores', { waitUntil: 'domcontentloaded' });
+    const strip = page.locator('[data-testid="stores-services-strip"]');
+    await expect(strip).toBeVisible({ timeout: 90_000 });
+
+    for (const label of csv.split(',').map((s) => s.trim())) {
+      await expect(strip.getByText(label, { exact: true })).toBeVisible();
+    }
+  });
 });

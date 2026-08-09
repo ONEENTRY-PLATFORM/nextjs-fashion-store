@@ -12,7 +12,7 @@ import { STORE_LOCATIONS_LABELS } from '@/app/data/storesLabels';
 import { useRouter } from '@/lib/i18n/navigation';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import type { StoreLocationsPageFromCms } from '@/lib/oneentry/catalog/store-locations-page';
-import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { StoreCard } from './stores/StoreCard';
 
@@ -49,6 +49,19 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
   const lFooterText = useT('store_location_footer_text', L.shopOnlineCopy);
   const lFooterLink = useT('store_location_footer_link', L.shopOnlineCta);
   const lBookStyling = useT('store_location_footer_banner_cta', L.flagshipBookStyling);
+  // The services strip is a `{icon, label}` array, and `useDict` passes
+  // non-string entries through untouched — they are structure, not copy. So the
+  // labels travel as a comma-separated marker of their own (the same shape
+  // `header_regions` uses) while the emoji stay in code: they are decoration
+  // keyed by position, not wording an editor should have to retype.
+  const serviceLabels = useList(
+    'store_pages_services',
+    STORE_LOCATIONS_LABELS.services.map((s) => s.label),
+  );
+  const services = serviceLabels.map((label, i) => ({
+    label,
+    icon: STORE_LOCATIONS_LABELS.services[i]?.icon ?? '',
+  }));
 
   const filtered = stores.filter((s) => {
     const matchCity = selectedCity === L.cityAll || s.city === selectedCity;
@@ -173,10 +186,10 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         )}
 
         {/* In-store services strip */}
-        <div className="mb-12 bg-(--banner-bg) p-8">
+        <div className="mb-12 bg-(--banner-bg) p-8" data-testid="stores-services-strip">
           <p className="mb-6 text-center text-xs font-bold tracking-[0.3em] uppercase">{lAllOffer}</p>
           <div className="grid grid-cols-2 gap-px bg-white sm:grid-cols-4">
-            {L.services.map((item) => (
+            {services.map((item) => (
               <div
                 key={item.label}
                 className="flex flex-col items-center justify-center gap-3 bg-white px-4 py-8 text-center"

@@ -51,10 +51,19 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'npx next dev -p 3001',
-    url: 'http://localhost:3001',
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  // Skipped when `E2E_BASE_URL` names a server that is already running. Next 16
+  // refuses to start a second `next dev` in the same directory ("Another next
+  // dev server is already running"), so with a dev server up on :3000 the
+  // spawn below fails and takes the whole run with it — even though the suite
+  // was pointed somewhere else entirely.
+  ...(process.env.E2E_BASE_URL
+    ? {}
+    : {
+        webServer: {
+          command: 'npx next dev -p 3001',
+          url: 'http://localhost:3001',
+          reuseExistingServer: true,
+          timeout: 120_000,
+        },
+      }),
 });

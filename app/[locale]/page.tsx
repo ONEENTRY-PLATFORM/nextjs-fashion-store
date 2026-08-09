@@ -23,6 +23,7 @@ import { loadHomepageCollections } from '@/lib/oneentry/blocks/homepage-collecti
 import { HOME_PAGE_ID, loadPageBlocksById } from '@/lib/oneentry/blocks/page-blocks';
 import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadStores } from '@/lib/oneentry/catalog/stores';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 
 /**
  * Title/description/keywords/canonical come from the OE `home` page when an
@@ -110,11 +111,15 @@ const websiteSchema = {
 };
 
 export default async function Page() {
+  // The slider loaders wrap their body in `unstable_cache`, where root params
+  // are unreadable — so they cannot resolve the route locale themselves and it
+  // has to be passed in. It also keys their cache entry per language.
+  const lang = await currentCmsLocale();
   const [heroSlides, promoItems, discountBanner, categorySection, pageBlocks, stores] = await Promise.all([
-    loadHeroSlides(),
-    loadHomepageCollections(),
-    loadDiscountBanner(),
-    loadCategorySection(),
+    loadHeroSlides(lang),
+    loadHomepageCollections(lang),
+    loadDiscountBanner(lang),
+    loadCategorySection(lang),
     // Drive the homepage's middle sections from whatever blocks the admin has
     // attached to the OE Home page (id=1). Each marker is resolved to a block
     // detail + product list, ordered by `position`. Adding/removing blocks in

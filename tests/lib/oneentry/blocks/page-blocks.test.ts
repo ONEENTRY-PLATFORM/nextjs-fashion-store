@@ -18,6 +18,8 @@ vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApiSafe: () => fakeApi,
   getApi: () => fakeApi,
+  // Slides come from a locale-pinned instance — `getSlides` takes no langCode.
+  getApiForLang: () => fakeApi,
   isOneEntryEnabled: true,
   isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));

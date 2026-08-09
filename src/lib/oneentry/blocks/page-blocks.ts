@@ -6,7 +6,7 @@ import { REVALIDATE_HOME } from '@/lib/isr';
 import { adaptCatalogProductToUiProduct } from '@/lib/oneentry/catalog/adapt';
 import { loadProducts, type LoadProductsOptions } from '@/lib/oneentry/catalog/products';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
-import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
+import { getApi, getApiForLang, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { withTiming } from '@/lib/oneentry/profiling';
 
@@ -108,8 +108,12 @@ const getCachedBlock = unstable_cache(
 // inline on the block itself. `Blocks.getSlides` returns each slide with
 // its own `attributeValues` — the generic renderer walks those.
 const getCachedSlides = unstable_cache(
-  async (marker: string) => {
-    const result = await getApi().Blocks.getSlides(marker);
+  async (marker: string, lang: string) => {
+    // `getSlides` takes no locale argument — the answer comes back in the
+    // language the instance was built with, so the locale picks the instance.
+    // It is still a parameter here because that is what keys the cache entry.
+    const result = await getApiForLang(lang)?.Blocks.getSlides(marker);
+    if (!result) return [] as Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
     if (isError(result)) return [] as Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
     const arr = Array.isArray(result)
       ? result
@@ -271,7 +275,7 @@ async function _loadBlockWithProducts(
   // Slider blocks carry their content as a separate tree — fetch alongside
   // the block metadata so `<GenericSliderBlock>` doesn't need a follow-up
   // round-trip on the client.
-  const slides = type === 'slider_block' ? await getCachedSlides(marker) : undefined;
+  const slides = type === 'slider_block' ? await getCachedSlides(marker, lang) : undefined;
 
   return { marker, type, title, position, products, attributeValues: block.attributeValues, slides };
 }

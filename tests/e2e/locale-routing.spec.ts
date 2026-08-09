@@ -141,6 +141,13 @@ test.describe('second locale', () => {
     await page.goto('/stores', { waitUntil: 'domcontentloaded' });
     await page.locator('[data-testid="header-top-bar"]').waitFor({ state: 'attached', timeout: 60_000 });
 
+    // The top bar is `hidden md:block`, so on a phone viewport the switcher is
+    // in the DOM but unreachable — there is no switch to perform, not a failure.
+    if (!(await page.locator('[data-testid="header-top-bar"]').isVisible())) {
+      test.info().annotations.push({ type: 'note', description: 'top bar hidden at this width' });
+      return;
+    }
+
     const alternate = await firstAlternateLocale(page);
     if (!alternate) {
       test.info().annotations.push({ type: 'note', description: 'single locale — nothing to switch to' });
