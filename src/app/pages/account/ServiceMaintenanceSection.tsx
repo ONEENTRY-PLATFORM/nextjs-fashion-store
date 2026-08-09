@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { SERVICE_LABELS } from '@/app/data/accountLabels';
-import { type ServiceCategory, type ServiceRequest, type ServiceStatus } from '@/app/data/serviceData';
+import { type ServiceRequest, type ServiceStatus } from '@/app/data/serviceData';
 import { getServiceRequestsAction } from '@/lib/oneentry/catalog/service-requests-action';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 

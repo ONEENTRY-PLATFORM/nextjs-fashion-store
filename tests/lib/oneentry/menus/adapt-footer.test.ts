@@ -107,4 +107,11 @@ describe('footerBottomLinksFromMenu', () => {
   it('drops nodes with no label', () => {
     expect(footerBottomLinksFromMenu([node({ id: 1, pageUrl: 'orphan' })])).toEqual([]);
   });
+
+  it('drops a column header whose links are not filled in yet', () => {
+    // Grouping custom items carry `-` as their address. One with no children is
+    // an empty column, not a legal link — without this it would render in the
+    // bottom bar pointing at `/-`.
+    expect(footerBottomLinksFromMenu([node({ id: 1, menuTitle: 'Customer Support', pageUrl: '-' })])).toEqual([]);
+  });
 });

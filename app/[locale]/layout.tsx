@@ -18,7 +18,14 @@ import { getDictionary } from '@/lib/oneentry/dictionary';
 // forms mount their own `FormPlaceholdersProvider` next to the page that needs
 // them (see `app/[locale]/product/[id]/page.tsx`, `account`, `checkout`).
 import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
-import { buildLanguageAlternates, DEFAULT_SHORT_LOCALE, htmlLang, SHORT_LOCALES } from '@/lib/oneentry/locale';
+import {
+  buildLanguageAlternates,
+  DEFAULT_SHORT_LOCALE,
+  htmlLang,
+  localizeHref,
+  SHORT_LOCALES,
+  toCmsLocale,
+} from '@/lib/oneentry/locale';
 import { loadLocales } from '@/lib/oneentry/locales';
 import { loadMenu } from '@/lib/oneentry/menus/menus';
 
@@ -28,57 +35,71 @@ export const viewport: Viewport = {
   themeColor: '#111111',
 };
 
-export const metadata: Metadata = {
-  title: {
-    default: SITE_NAME,
-    template: `%s | ${SITE_NAME}`,
-  },
-  description: SITE_DESCRIPTION,
-  metadataBase: new URL(SITE_URL),
-  openGraph: {
-    siteName: SITE_NAME,
-    locale: 'en_GB',
-    type: 'website',
-    images: [OG_IMAGE],
-  },
-  twitter: {
-    site: TWITTER_HANDLE,
-    creator: TWITTER_HANDLE,
-    card: 'summary_large_image',
-    images: [OG_IMAGE.url],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+/**
+ * Root metadata. A function rather than a constant so `og:locale` can name the
+ * locale actually being served — a German page advertising `en_GB` is worse
+ * than no tag, because crawlers trust it over the visible copy.
+ *
+ * @returns Site-wide metadata for the rendering locale.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const shortLocale = (await locale()) ?? DEFAULT_SHORT_LOCALE;
+  return {
+    title: {
+      default: SITE_NAME,
+      template: `%s | ${SITE_NAME}`,
+    },
+    description: SITE_DESCRIPTION,
+    metadataBase: new URL(SITE_URL),
+    openGraph: {
+      siteName: SITE_NAME,
+      // OE code (`en_US`, `de_DE`) is already the underscore form Open Graph
+      // wants — the hyphenated `htmlLang` spelling belongs to `<html lang>`.
+      locale: toCmsLocale(shortLocale),
+      type: 'website',
+      images: [OG_IMAGE],
+    },
+    twitter: {
+      site: TWITTER_HANDLE,
+      creator: TWITTER_HANDLE,
+      card: 'summary_large_image',
+      images: [OG_IMAGE.url],
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-snippet': -1,
-      'max-image-preview': 'large',
-      'max-video-preview': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-snippet': -1,
+        'max-image-preview': 'large',
+        'max-video-preview': -1,
+      },
     },
-  },
-  alternates: {
-    canonical: SITE_URL,
-    // One entry per routed locale, plus `x-default` pointing at the unprefixed
-    // default. Built from the locale list so enabling a locale cannot leave a
-    // stale hreflang behind.
-    languages: buildLanguageAlternates(SITE_URL),
-  },
-  icons: {
-    icon: [
-      { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-    ],
-    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
-    shortcut: '/favicon.ico',
-  },
-};
+    alternates: {
+      // Self-referencing per locale: the German homepage must not declare the
+      // English one as its canonical, or the translation drops out of the index.
+      canonical: `${SITE_URL}${localizeHref('/', shortLocale) === '/' ? '' : localizeHref('/', shortLocale)}`,
+      // One entry per routed locale, plus `x-default` pointing at the unprefixed
+      // default. Built from the locale list so enabling a locale cannot leave a
+      // stale hreflang behind.
+      languages: buildLanguageAlternates(SITE_URL),
+    },
+    icons: {
+      icon: [
+        { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
+        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      ],
+      apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+      shortcut: '/favicon.ico',
+    },
+  };
+}
 
 /**
  * One static branch per routed locale. Reads the same list as `proxy.ts`, so a
- * locale enabled in `NEXT_PUBLIC_LOCALES` gets its pages generated on the next
- * build with no code change.
+ * locale switched on in the OneEntry project settings gets its pages generated
+ * on the next build with no code change.
  *
  * @returns Locale params to prerender.
  */
@@ -93,6 +114,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [
     dict,
     footerMenu,
+    bottomMenu,
     headerMenu,
     signUpFormSchema,
     subscribeForm,
@@ -102,6 +124,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   ] = await Promise.all([
     getDictionary(),
     loadMenu('footer'),
+    // The footer's link columns live in `bottom_menu` (grouping custom items
+    // with the info pages under them); `footer` holds the flat legal row. They
+    // stay separate all the way to the component — a column whose links an
+    // editor has not filled in yet is childless, and merging the two would let
+    // it fall through into the legal row.
+    loadMenu('bottom_menu'),
     loadMenu('header'),
     loadSignUpFormSchema(),
     // Footer newsletter — rendered on every route.
@@ -118,19 +146,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={htmlLang(shortLocale)}>
       <head>
-        {process.env.NODE_ENV !== 'production' && (
-          // Swallows a React 19 dev-build regression where the Components
-          // performance track calls performance.measure() with a negative
-          // start timestamp during first hydration of App Router pages,
-          // producing an uncaught TypeError. Production builds are unaffected
-          // because react-dom-client.production.js does not emit these marks.
-          <script
-            dangerouslySetInnerHTML={{
-              __html:
-                "(function(){if(typeof performance==='undefined'||!performance.measure)return;var o=performance.measure.bind(performance);performance.measure=function(n,a,b){try{return o(n,a,b);}catch(e){if(e&&e.name==='TypeError'&&/negative time stamp/i.test(e.message))return;throw e;}};})();",
-            }}
-          />
-        )}
+        {/* The dev-only performance.measure guard that used to sit here now
+            lives in `instrumentation-client.ts`: a locale switch re-renders
+            this layout on the client, and React never executes a `<script>`
+            it renders there — it only warns about it. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://images.unsplash.com" />
@@ -149,6 +168,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Providers
           dict={dict}
           footerMenu={footerMenu?.pages ?? []}
+          footerColumnsMenu={bottomMenu?.pages ?? []}
           headerMenu={headerMenu?.pages ?? []}
           signUpFormSchema={signUpFormSchema}
           forms={{

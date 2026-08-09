@@ -28,10 +28,10 @@ export function HeaderTopBar() {
   // Languages are the project's active locales, not a curated list — adding a
   // locale in the admin panel surfaces it here with no code change.
   //
-  // Narrowed to the locales the storefront actually *routes*
-  // (`NEXT_PUBLIC_LOCALES`): a language the CMS publishes but the app has no
-  // URL for would render a switcher entry that leads nowhere, which is worse
-  // than not offering it.
+  // Narrowed to the locales the storefront actually *routes* (the build-time
+  // snapshot in `locales.generated.ts`): a language activated in the CMS after
+  // the last build has no URL yet, and a switcher entry that leads nowhere is
+  // worse than not offering it.
   const cmsLocales = useCmsLocales();
   const locales = cmsLocales.filter((l) => SHORT_LOCALES.includes(toShortCode(l.code)));
   const activeLanguage =

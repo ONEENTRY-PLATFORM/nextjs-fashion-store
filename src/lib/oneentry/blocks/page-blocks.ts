@@ -5,9 +5,30 @@ import type { Product } from '@/app/components/product/ProductCard';
 import { REVALIDATE_HOME } from '@/lib/isr';
 import { adaptCatalogProductToUiProduct } from '@/lib/oneentry/catalog/adapt';
 import { loadProducts, type LoadProductsOptions } from '@/lib/oneentry/catalog/products';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { withTiming } from '@/lib/oneentry/profiling';
+
+/**
+ * Block heading in the rendering locale.
+ *
+ * OE returns `localizeInfos` keyed by locale code, with a flattened `title` on
+ * some payload shapes. Falling back through the default locale rather than
+ * straight to `''` keeps a block that an editor has not translated yet showing
+ * its English heading instead of an untitled section.
+ *
+ * @param   info   - `localizeInfos` as returned by OE.
+ * @param   lang   - OE locale code being rendered.
+ * @returns          Trimmed heading, or `''`.
+ */
+function blockTitle(
+  info: ({ title?: string } & Record<string, { title?: string } | undefined>) | undefined,
+  lang: string,
+): string {
+  const raw = info?.[lang]?.title ?? info?.[DEFAULT_LOCALE]?.title ?? info?.title ?? '';
+  return raw.toString().trim();
+}
 
 /**
  * Block descriptor returned by `loadPageBlocks`. Generic enough that the
@@ -203,7 +224,7 @@ async function _loadBlockWithProducts(
   const block = await getCachedBlock(marker, lang, 12);
   if (!block) return null;
 
-  const title = (block.localizeInfos?.en_US?.title ?? block.localizeInfos?.title ?? '').toString().trim();
+  const title = blockTitle(block.localizeInfos, lang);
   const type = block.type ?? '';
   const position = Number(block.position ?? 0);
   const limit = Number(block.quantity ?? 12) || 12;
@@ -219,7 +240,7 @@ async function _loadBlockWithProducts(
         : (block.similarProducts?.items ?? block.products ?? []);
     const ids = inlineItems.map((it) => Number(it?.id)).filter((n) => Number.isFinite(n) && n > 0);
     if (ids.length > 0) {
-      const { items } = await loadProducts({ ids, limit: ids.length });
+      const { items } = await loadProducts({ ids, limit: ids.length, lang });
       products = items.map(adaptCatalogProductToUiProduct);
     }
     // For blocks with a bigger admin-configured quantity than the default
@@ -229,7 +250,7 @@ async function _loadBlockWithProducts(
       const items = bigger?.similarProducts?.items ?? bigger?.products ?? [];
       const ids2 = items.map((it) => Number(it?.id)).filter((n) => Number.isFinite(n) && n > 0);
       if (ids2.length > 0) {
-        const { items: catalogItems } = await loadProducts({ ids: ids2, limit: ids2.length });
+        const { items: catalogItems } = await loadProducts({ ids: ids2, limit: ids2.length, lang });
         products = catalogItems.map(adaptCatalogProductToUiProduct);
       }
     }
@@ -286,8 +307,9 @@ async function loadHomepageBlockFallback(marker: string, limit: number, lang: st
  */
 export const loadPageBlocksById = withTiming(
   'loadPageBlocksById',
-  cache(async (pageId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+  cache(async (pageId: number, langArg?: string): Promise<PageBlock[]> => {
     if (!isOneEntryEnabled) return [];
+    const lang = langArg ?? (await currentCmsLocale());
     const page = await getCachedPageById(pageId, lang);
     if (!page) return [];
     // OE has historically shipped `page.blocks` as `string[]` (marker names)
@@ -336,9 +358,10 @@ const getCachedBlocksByPageUrl = unstable_cache(
 
 export const loadPageBlocksByUrl = withTiming(
   'loadPageBlocksByUrl',
-  cache(async (pageUrl: string, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+  cache(async (pageUrl: string, langArg?: string): Promise<PageBlock[]> => {
     if (!isOneEntryEnabled) return [];
     if (!pageUrl || typeof pageUrl !== 'string') return [];
+    const lang = langArg ?? (await currentCmsLocale());
     const raw = await getCachedBlocksByPageUrl(pageUrl, lang);
     if (raw.length === 0) return [];
     const markers = raw
@@ -370,9 +393,10 @@ const getCachedProductBlocks = unstable_cache(
 
 export const loadProductBlocks = withTiming(
   'loadProductBlocks',
-  cache(async (productId: number, lang: string = DEFAULT_LOCALE): Promise<PageBlock[]> => {
+  cache(async (productId: number, langArg?: string): Promise<PageBlock[]> => {
     if (!isOneEntryEnabled) return [];
     if (!Number.isFinite(productId) || productId <= 0) return [];
+    const lang = langArg ?? (await currentCmsLocale());
     const raw = await getCachedProductBlocks(productId);
     if (raw.length === 0) return [];
     const markers = raw
@@ -403,7 +427,7 @@ async function _loadFrequentlyOrderedBlock(
   if (!Number.isFinite(productId) || productId <= 0) return null;
 
   const block = await getCachedBlock(marker, lang, 12);
-  const title = (block?.localizeInfos?.en_US?.title ?? block?.localizeInfos?.title ?? '').toString().trim();
+  const title = blockTitle(block?.localizeInfos, lang);
   const type = block?.type ?? 'frequently_ordered_block';
   const position = Number(block?.position ?? 0);
 
@@ -425,7 +449,7 @@ async function _loadFrequentlyOrderedBlock(
 
   let products: Product[] = [];
   if (ids.length > 0) {
-    const { items } = await loadProducts({ ids, limit: ids.length });
+    const { items } = await loadProducts({ ids, limit: ids.length, lang });
     products = items.map(adaptCatalogProductToUiProduct);
   }
   return { marker, type, title, position, products, attributeValues: block?.attributeValues };

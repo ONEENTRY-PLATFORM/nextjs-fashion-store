@@ -4,8 +4,8 @@
 // `tests/e2e/tsconfig.json` covers the specs themselves; only this root-level
 // file falls outside its directory-based lookup.
 /// <reference types="node" />
-import { defineConfig, devices } from '@playwright/test';
 import { loadEnvConfig } from '@next/env';
+import { defineConfig, devices } from '@playwright/test';
 
 // The Playwright runner does not read `.env.local` on its own — only the
 // Next.js dev server it spawns does. Without this every `process.env.E2E_*`

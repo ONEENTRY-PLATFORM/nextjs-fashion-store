@@ -566,7 +566,12 @@ export function useCart(): CartContextType {
         /* quota */
       }
     },
-    [productsKey],
+    // `productsForPreview` is a fresh array on every render — `productsKey` is
+    // its stable stringification and stands in for it here. `couponCode` and
+    // `isLoggedIn` are listed: both are read inside, and a stale copy would
+    // restore the wrong coupon / pick the wrong guest-id branch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [productsKey, couponCode, isLoggedIn],
   );
 
   const dismissUnavailableNotice = useCallback(() => {

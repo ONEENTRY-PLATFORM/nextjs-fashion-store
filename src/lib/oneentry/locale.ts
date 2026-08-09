@@ -15,12 +15,19 @@
  * today's English URLs — and their search rankings — untouched when a second
  * locale is switched on.
  *
- * The active list comes from `NEXT_PUBLIC_LOCALES` rather than from OneEntry,
- * because `proxy.ts` runs on every request at the edge and cannot call the CMS.
- * Enabling a locale is therefore: turn it on in the admin panel, add its code
- * to that variable, redeploy. `generateStaticParams` reads the same list, so
- * the routes appear on the next build with no code change.
+ * The active list comes from `./locales.generated.ts`, a build-time snapshot of
+ * the project's own settings (OE → Settings → Localization) written by
+ * `.claude/temp/gen-locales.mjs`. `proxy.ts` runs on every request at the edge
+ * and `generateStaticParams` runs at build time — neither can call the CMS, so the
+ * admin panel is copied into the repo rather than queried. Enabling a locale is
+ * therefore: turn it on in the admin panel, rebuild.
+ *
+ * The default locale is the one thing that does NOT come from there. It decides
+ * which language owns the un-prefixed URLs, so reordering languages in the
+ * admin panel must not be able to move every indexed URL on the site.
  */
+
+import { GENERATED_CMS_LOCALES } from './locales.generated';
 
 /** OE locale code, e.g. `en_US`. */
 export type CmsLocaleCode = string;
@@ -32,27 +39,25 @@ export type ShortLocaleCode = string;
  * Single source of truth for the default OneEntry locale used across all
  * fetchers, and the one locale that renders without a URL prefix.
  *
- * Overridable via `NEXT_PUBLIC_DEFAULT_LOCALE` at build time.
+ * A constant on purpose: this is the storefront's canonical-URL contract, not
+ * a content setting. Changing it moves every indexed page at once, so it should
+ * take a code review — not a drag in the admin panel's language list.
  */
-export const DEFAULT_LOCALE: CmsLocaleCode = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US';
+export const DEFAULT_LOCALE: CmsLocaleCode = 'en_US';
 
 /**
  * Every locale the storefront routes for, in display order, as CMS codes.
  *
- * Defaults to just the default locale, which reproduces the single-locale
- * behaviour exactly: no prefixes anywhere, nothing to switch.
+ * Sourced from the project's active locales ({@link GENERATED_CMS_LOCALES}); the
+ * default is forced to the front so it wins any "pick the first" fallback and
+ * stays routable even if it were ever deactivated in the admin panel. A project
+ * with one locale reproduces single-locale behaviour exactly: no prefixes
+ * anywhere, nothing to switch.
  */
-export const CMS_LOCALES: readonly CmsLocaleCode[] = (() => {
-  const raw = process.env.NEXT_PUBLIC_LOCALES ?? '';
-  const parsed = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const list = parsed.length > 0 ? parsed : [DEFAULT_LOCALE];
-  // The default must always be routable, and must come first so it wins any
-  // "pick the first" fallback.
-  return [DEFAULT_LOCALE, ...list.filter((l) => l !== DEFAULT_LOCALE)];
-})();
+export const CMS_LOCALES: readonly CmsLocaleCode[] = [
+  DEFAULT_LOCALE,
+  ...GENERATED_CMS_LOCALES.filter((l) => l !== DEFAULT_LOCALE),
+];
 
 /**
  * `en_US` → `en`. Anything without an underscore passes through unchanged.

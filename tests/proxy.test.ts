@@ -8,13 +8,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * `NextRequest` is heavier than these tests need, so the proxy is exercised
  * with a minimal stand-in carrying just `nextUrl`.
  */
-const ORIGINAL = { ...process.env };
-
-const importProxy = async (locales?: string) => {
+const importProxy = async (codes?: string[]) => {
   vi.resetModules();
-  if (locales === undefined) delete process.env.NEXT_PUBLIC_LOCALES;
-  else process.env.NEXT_PUBLIC_LOCALES = locales;
-  process.env.NEXT_PUBLIC_DEFAULT_LOCALE = 'en_US';
+  // The routed list is a build-time snapshot of the OE project settings; mock
+  // it rather than the environment, which no longer configures locales.
+  vi.doMock('@/lib/oneentry/locales.generated', () => ({
+    GENERATED_CMS_LOCALES: codes ?? ['en_US'],
+  }));
   return import('../proxy');
 };
 
@@ -41,7 +41,8 @@ beforeEach(() => {
   vi.resetModules();
 });
 afterEach(() => {
-  process.env = { ...ORIGINAL };
+  vi.doUnmock('@/lib/oneentry/locales.generated');
+  vi.resetModules();
 });
 
 describe('proxy — single locale', () => {
@@ -77,7 +78,7 @@ describe('proxy — single locale', () => {
 
 describe('proxy — multiple locales', () => {
   it('passes a non-default locale through untouched', async () => {
-    const { proxy } = await importProxy('en_US,fr_FR');
+    const { proxy } = await importProxy(['en_US', 'fr_FR']);
     const res = proxy(makeRequest('/fr/cart'));
 
     expect(res.headers.get('x-middleware-rewrite')).toBeNull();
@@ -85,7 +86,7 @@ describe('proxy — multiple locales', () => {
   });
 
   it('redirects the redundant default prefix to the bare URL', async () => {
-    const { proxy } = await importProxy('en_US,fr_FR');
+    const { proxy } = await importProxy(['en_US', 'fr_FR']);
     const res = proxy(makeRequest('/en/cart'));
 
     expect(res.status).toBe(308);
@@ -94,20 +95,20 @@ describe('proxy — multiple locales', () => {
   });
 
   it('redirects /en to the site root', async () => {
-    const { proxy } = await importProxy('en_US,fr_FR');
+    const { proxy } = await importProxy(['en_US', 'fr_FR']);
     const res = proxy(makeRequest('/en'));
     expect(res.status).toBe(308);
     expect(new URL(res.headers.get('location') ?? '').pathname).toBe('/');
   });
 
   it('still rewrites bare paths to the default', async () => {
-    const { proxy } = await importProxy('en_US,fr_FR');
+    const { proxy } = await importProxy(['en_US', 'fr_FR']);
     const res = proxy(makeRequest('/cart'));
     expect(res.headers.get('x-middleware-rewrite')).toContain('/en/cart');
   });
 
   it('does not mistake a normal first segment for a locale', async () => {
-    const { proxy } = await importProxy('en_US,fr_FR');
+    const { proxy } = await importProxy(['en_US', 'fr_FR']);
     const res = proxy(makeRequest('/product/42'));
     expect(res.headers.get('x-middleware-rewrite')).toContain('/en/product/42');
   });

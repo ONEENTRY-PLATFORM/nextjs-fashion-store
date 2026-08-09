@@ -9,7 +9,9 @@ const getSlides = vi.fn();
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
-  getApiSafe: () => ({ Blocks: { getSlides } }),
+  // `getSlides` carries no locale argument, so the loaders pick the language
+  // by instance via `getApiForLang` rather than by call.
+  getApiForLang: () => ({ Blocks: { getSlides } }),
   isOneEntryEnabled: true,
   isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));

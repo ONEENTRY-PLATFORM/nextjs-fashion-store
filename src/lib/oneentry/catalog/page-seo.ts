@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 import { SITE_URL } from '@/app/data/seoData';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
-import { buildLanguageAlternates } from '@/lib/oneentry/locale';
+import { buildLanguageAlternates, localizeHref, toShortCode } from '@/lib/oneentry/locale';
 import type { Lang } from '@/lib/oneentry/system-text';
 
 import { loadPageByUrl } from './pages';
@@ -51,21 +51,46 @@ function languagesFor(canonical: NonNullable<Metadata['alternates']>['canonical'
  */
 export async function withCmsSeo(pageUrl: string, fallback: Metadata, langArg?: Lang): Promise<Metadata> {
   const lang = langArg ?? (await currentCmsLocale());
+  const short = toShortCode(lang);
   const page = await loadPageByUrl(pageUrl, lang);
 
   /**
-   * Attach hreflang to whatever canonical ends up winning.
+   * Move a canonical URL onto the locale being rendered.
+   *
+   * Both sources of a canonical are locale-blind: the coded fallbacks in
+   * `seoData.ts` are written unprefixed, and the OE `canonical` attribute is one
+   * value shared by every translation of the page. Left alone, `/de/cart` would
+   * name `/cart` as its canonical — which asks Google to drop the German page
+   * from the index entirely. External URLs are left untouched.
+   */
+  const localizeCanonical = (raw: string): string => {
+    const path = raw.startsWith(SITE_URL) ? raw.slice(SITE_URL.length) || '/' : raw;
+    if (!path.startsWith('/')) return raw;
+    const localized = localizeHref(path, short);
+    return `${SITE_URL}${localized === '/' ? '' : localized}`;
+  };
+
+  /**
+   * Attach hreflang to whatever canonical ends up winning, and pin both the
+   * canonical and `og:url` to the current locale.
    */
   const withLanguages = (meta: Metadata, canonical?: string): Metadata => {
     const target = canonical ?? meta.alternates?.canonical;
     const languages = languagesFor(target);
-    if (!languages) return meta;
+    const raw = typeof target === 'string' ? target : undefined;
+    const localized = raw ? localizeCanonical(raw) : undefined;
     return {
       ...meta,
+      // The root layout also sets `og:locale`, but Next replaces `openGraph`
+      // wholesale when a page declares its own — so a page-level object has to
+      // carry the locale itself or the tag disappears from every route.
+      ...(meta.openGraph
+        ? { openGraph: { ...meta.openGraph, locale: lang, ...(localized ? { url: localized } : {}) } }
+        : {}),
       alternates: {
         ...meta.alternates,
-        ...(canonical ? { canonical } : {}),
-        languages,
+        ...(localized ? { canonical: localized } : {}),
+        ...(languages ? { languages } : {}),
       },
     };
   };

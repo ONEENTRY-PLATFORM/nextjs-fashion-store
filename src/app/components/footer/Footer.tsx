@@ -24,7 +24,7 @@ import logoImage from '@/assets/kekimoro-logo-white.png';
 import { Link } from '@/lib/i18n/navigation';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 import { footerBottomLinksFromMenu, type FooterColumn, footerColumnsFromMenu } from '@/lib/oneentry/menus/adapt-footer';
-import { useFooterMenu } from '@/lib/oneentry/menus/FooterMenuContext';
+import { useFooterColumnsMenu, useFooterMenu } from '@/lib/oneentry/menus/FooterMenuContext';
 
 import { NewsletterForm } from './NewsletterForm';
 
@@ -51,7 +51,8 @@ export function Footer() {
   const lLogoAlt = useT('header_logo_alt', LOGO_ALT);
   const aLegalLinks = useT('footer_aria_legal_links', FOOTER_ARIA.legalLinks);
   const aFollowOn = useT('footer_aria_follow_on', FOOTER_DYNAMIC_ARIA.followOn);
-  const cmsFooterMenu = useFooterMenu();
+  const cmsColumnsMenu = useFooterColumnsMenu();
+  const cmsLegalMenu = useFooterMenu();
 
   // Branding copy from the OE `footer` set — the fields marketing changes
   // without a release. `COMPANY_INFO` / `SUPPORT_ITEMS` remain the fallback.
@@ -93,11 +94,11 @@ export function Footer() {
     href: [tiktokHref, facebookHref, instagramHref, youtubeHref, pinterestHref][i] ?? s.href,
   })).filter((s) => s.href.length > 0);
 
-  // Both halves of the footer navigation come from the single OE `footer`
-  // menu: nested root nodes are the link columns, flat ones are the legal
-  // bottom bar. Each half falls back to its local dataset independently, so a
-  // tenant with a flat menu keeps CMS-driven legal links and coded columns.
-  const cmsColumns = footerColumnsFromMenu(cmsFooterMenu);
+  // The two halves of the footer navigation come from two different OE menus:
+  // `bottom_menu` carries the link columns, `footer` the legal bottom bar. Each
+  // half falls back to its local dataset independently, so a tenant that has
+  // only one of them keeps the coded copy for the other.
+  const cmsColumns = footerColumnsFromMenu(cmsColumnsMenu);
   const columns: FooterColumn[] =
     cmsColumns.length > 0
       ? cmsColumns
@@ -107,7 +108,7 @@ export function Footer() {
           links: links.map((l: FooterLink) => ({ key: l.href + l.label, label: l.label, href: l.href })),
         }));
 
-  const cmsBottomLinks = footerBottomLinksFromMenu(cmsFooterMenu);
+  const cmsBottomLinks = footerBottomLinksFromMenu(cmsLegalMenu);
   const bottomLinks =
     cmsBottomLinks.length > 0
       ? cmsBottomLinks

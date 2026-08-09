@@ -84,7 +84,6 @@ npx playwright show-trace test-results/<test-name>/trace.zip
 ```bash
 ONEENTRY_URL=http://localhost:3013
 ONEENTRY_TOKEN=<app token>
-NEXT_PUBLIC_DEFAULT_LOCALE=en_US
 ```
 
 Without them, tests that depend on real OneEntry data (`wishlist-cms-integration.spec.ts`, checkout with real order creation) will fail. Use `tests/e2e/helpers.ts` to short-circuit auth / cart / wishlist state for tests that only care about UI transitions.

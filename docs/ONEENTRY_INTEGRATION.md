@@ -51,7 +51,7 @@ The integration reads three env vars.
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_ONEENTRY_URL` | server + client | `src/lib/oneentry/index.ts` | Platform base URL, e.g. `http://localhost:3013`. **Do not** append `/api/content` — the SDK adds it. Legacy server-only `ONEENTRY_URL` is still read as a fallback. |
 | `ONEENTRY_TOKEN` | server | `src/lib/oneentry/index.ts:5` | App token issued in OneEntry admin (`Marketplace → Applications`). Sent to the SDK as `token`. |
-| `NEXT_PUBLIC_DEFAULT_LOCALE` | build-time | `src/lib/oneentry/locale.ts:11` | Default `langCode` for every SDK call (default `en_US`). |
+| — | — | `src/lib/oneentry/locale.ts` | The default `langCode` is **not** an env var: `DEFAULT_LOCALE = 'en_US'` is a constant, and the routed locales come from the OE project settings via `locales.generated.ts`. |
 
 Optional:
 

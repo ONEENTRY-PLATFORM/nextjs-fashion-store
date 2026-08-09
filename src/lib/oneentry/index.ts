@@ -21,10 +21,12 @@ const PROJECT_URL = process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY
 const APP_TOKEN = process.env.NEXT_PUBLIC_ONEENTRY_TOKEN ?? process.env.ONEENTRY_TOKEN ?? '';
 
 /**
- * Default OE locale. Mirrors `./locale`, duplicated here to keep this module
- *  dependency-free (it is imported by literally every OE consumer).
+ * Default OE locale. Mirrors `DEFAULT_LOCALE` in `./locale`, duplicated here to
+ *  keep this module dependency-free (it is imported by literally every OE
+ *  consumer, including `proxy.ts` transitively). Both are constants, so the two
+ *  cannot drift apart at runtime the way two env reads could.
  */
-const DEFAULT_LANG = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US';
+const DEFAULT_LANG = 'en_US';
 
 /**
  * `true` when both the project URL and the app token are configured. Every
@@ -136,6 +138,40 @@ export function getApiSafe(): OneEntryClient | null {
 }
 
 /**
+ * Read-only instances pinned to one locale, one per language, created lazily.
+ *
+ * A few SDK endpoints take no `langCode` argument and answer in whatever
+ * language their instance was built with — `Blocks.getSlides` is the one the
+ * storefront depends on. The singleton is built with {@link DEFAULT_LANG} and
+ * must not be re-pointed on the server (it is shared by every visitor, and on
+ * the browser it also carries the shopper's session), so a second locale needs
+ * its own handle rather than a mutation.
+ *
+ * These carry the app token only — never a refresh token — so they are safe to
+ * share across requests the same way the app-token singleton is.
+ */
+const localeInstances = new Map<string, OneEntryClient>();
+
+/**
+ * SDK instance that answers in `lang`, for endpoints that cannot take a locale
+ * argument. Returns the singleton for the default locale and for callers that
+ * pass nothing, so nothing changes on a single-locale deployment.
+ *
+ * @param   [lang] - OE locale code, e.g. `de_DE`.
+ * @returns          An instance pinned to that locale, or `null` when
+ *                   unconfigured.
+ */
+export function getApiForLang(lang?: string): OneEntryClient | null {
+  if (!isOneEntryEnabled) return null;
+  if (!lang || lang === DEFAULT_LANG) return apiInstance;
+  const existing = localeInstances.get(lang);
+  if (existing) return existing;
+  const created = createInstance({ langCode: lang });
+  localeInstances.set(lang, created);
+  return created;
+}
+
+/**
  * Re-create the singleton with the shopper's refresh token — the session
  * bootstrap step, called once from `AuthContext` on mount.
  *
@@ -211,7 +247,6 @@ export function hasActiveSession(): boolean {
  *
  * @param accessToken  - Bearer token for user-auth requests.
  * @param refreshToken - Rotating refresh token.
- * @returns
  */
 export function syncTokens(accessToken: string, refreshToken: string): void {
   if (!apiInstance) return;
@@ -223,8 +258,6 @@ export function syncTokens(accessToken: string, refreshToken: string): void {
  * Drop the persisted session. The SDK never clears storage on a failed
  * refresh, so without this a dead token replays `POST /refresh 400` on every
  * page load. Also resets the singleton back to app-token-only.
- *
- * @returns
  */
 export function clearTokens(): void {
   if (typeof window === 'undefined') return;
@@ -268,7 +301,6 @@ export function hasStoredSession(): boolean {
  * @param entity.accessToken    - Bearer token.
  * @param entity.refreshToken   - Rotating refresh token.
  * @param providerMarker        - Marker that minted the session.
- * @returns
  */
 export function storeSession(entity: { accessToken?: string; refreshToken?: string }, providerMarker: string): void {
   if (typeof window === 'undefined') return;

@@ -31,6 +31,16 @@ export function footerHref(pageUrl: string): string {
 
 const nodeLabel = (node: MenuPageNode): string => (node.menuTitle || node.title || '').trim();
 
+/**
+ * Whether a node points somewhere. Custom menu items that exist only to group
+ * their children carry `-` as their value, which the public read surfaces as
+ * the node's `pageUrl`.
+ */
+const isAddressable = (pageUrl: string): boolean => {
+  const url = (pageUrl ?? '').trim();
+  return url.length > 0 && url !== '-';
+};
+
 const toLink = (node: MenuPageNode): FooterLinkItem => ({
   key: String(node.id),
   label: nodeLabel(node),
@@ -67,9 +77,15 @@ export function footerColumnsFromMenu(nodes: MenuPageNode[]): FooterColumn[] {
  * Legal links for the bottom bar: the childless root nodes of the menu.
  */
 export function footerBottomLinksFromMenu(nodes: MenuPageNode[]): FooterLinkItem[] {
-  return [...nodes]
-    .filter((n) => n.children.length === 0)
-    .sort(byPosition)
-    .map(toLink)
-    .filter((l) => l.label.length > 0);
+  return (
+    [...nodes]
+      .filter((n) => n.children.length === 0)
+      // A column header is a custom menu item carrying `-` as its address; one
+      // whose links an editor has not added yet is childless and would otherwise
+      // arrive here as a legal link pointing at `/-`.
+      .filter((n) => isAddressable(n.pageUrl))
+      .sort(byPosition)
+      .map(toLink)
+      .filter((l) => l.label.length > 0)
+  );
 }

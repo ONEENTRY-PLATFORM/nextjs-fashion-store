@@ -18,7 +18,8 @@ import { expect, test } from '@playwright/test';
 
 const OE_URL = (process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY_URL ?? '').replace(/\/$/, '');
 const OE_TOKEN = process.env.NEXT_PUBLIC_ONEENTRY_TOKEN ?? process.env.ONEENTRY_TOKEN ?? '';
-const LANG = process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US';
+// Mirrors `DEFAULT_LOCALE` in src/lib/oneentry/locale.ts.
+const LANG = 'en_US';
 
 /** Read one attribute set straight from OE, flattened to `marker → value`. */
 async function fetchSet(marker: string): Promise<Record<string, string>> {

@@ -44,7 +44,7 @@ The auth path relies on the same three env vars as the rest of the OneEntry inte
 | --- | --- |
 | `NEXT_PUBLIC_ONEENTRY_URL` | Platform base URL |
 | `NEXT_PUBLIC_ONEENTRY_TOKEN` | App token |
-| `NEXT_PUBLIC_DEFAULT_LOCALE` | `langCode` for `/me` bootstrap |
+| — | `langCode` for `/me` bootstrap is the `DEFAULT_LOCALE` constant, not an env var |
 
 The legacy server-only `ONEENTRY_URL` / `ONEENTRY_TOKEN` are still read as a fallback so an existing deployment keeps rendering while its env is migrated — but the browser cannot see them, so sign-in, cart and orders stay broken until the `NEXT_PUBLIC_` pair is set.
 

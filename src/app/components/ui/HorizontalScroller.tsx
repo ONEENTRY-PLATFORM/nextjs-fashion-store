@@ -19,7 +19,6 @@ interface HorizontalScrollerProps {
  *   • left / right arrow buttons that hide at the ends
  * Used by WomenCollection / MenCollection / NewArrivals carousels.
  *
- * @param props - Children and scroll-step config.
  * @returns The scroller with its arrow controls.
  */
 export function HorizontalScroller({ children, scrollFraction = 0.75, className = '' }: HorizontalScrollerProps) {

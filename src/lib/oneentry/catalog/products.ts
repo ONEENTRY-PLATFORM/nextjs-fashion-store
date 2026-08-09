@@ -612,7 +612,11 @@ export const loadProducts = withTiming(
   cache(async (opts: LoadProductsOptions = {}): Promise<LoadProductsResult> => {
     const api = getApiSafe();
     if (!api) return { total: 0, items: [], fromCms: false };
-    const lang = opts.lang ?? DEFAULT_LOCALE;
+    // Route locale by default so a page that lists products does not have to
+    // thread `lang` through every call; the inner catalog reads are
+    // `unstable_cache`d per language, and this wrapper is a plain React
+    // `cache()` where root params are still readable.
+    const lang = opts.lang ?? (await currentCmsLocale());
     const limit = opts.limit ?? 30;
     const offset = opts.offset ?? 0;
     const unique = opts.unique ?? true;

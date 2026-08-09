@@ -10,7 +10,9 @@ import { expect, test } from '@playwright/test';
  * whatever the tenant publishes and however many locales are switched on.
  */
 
-const DEFAULT_SHORT = ((process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? 'en_US').split('_')[0] ?? 'en').toLowerCase();
+// Mirrors `DEFAULT_LOCALE` in src/lib/oneentry/locale.ts — a constant there, so
+// a constant here; the e2e project does not share the app's path aliases.
+const DEFAULT_SHORT = 'en';
 
 test.describe('as-needed locale routing', () => {
   test('bare URLs serve the default locale and stay bare', async ({ page }) => {
@@ -83,5 +85,98 @@ test.describe('as-needed locale routing', () => {
     await toggle.click();
     const options = page.locator('[data-testid="header-language-option"]');
     expect(await options.count()).toBeGreaterThan(1);
+  });
+});
+
+/**
+ * These only run on a multi-locale deployment; on a single-locale one they skip
+ * rather than fail, so the same suite covers both shapes.
+ */
+test.describe('second locale', () => {
+  /**
+   * The short code of the first non-default locale the storefront routes, read
+   * off the switcher rather than hardcoded — the routed set comes from the OE
+   * project settings and this suite must not pin a particular language.
+   *
+   * @param page - Page already on a storefront route.
+   * @returns      Lower-case short code, or `null` when only one locale routes.
+   */
+  async function firstAlternateLocale(page: import('@playwright/test').Page): Promise<string | null> {
+    const toggle = page.locator('[data-testid="header-language-toggle"]');
+    if ((await toggle.count()) === 0) return null;
+    await toggle.click();
+    const labels = await page.locator('[data-testid="header-language-option"]').allInnerTexts();
+    const alternate = labels.map((l) => l.trim().toLowerCase()).find((l) => l && l !== DEFAULT_SHORT);
+    return alternate ?? null;
+  }
+
+  test('switching language keeps the shopper on the same page, prefixed', async ({ page }) => {
+    await page.goto('/stores', { waitUntil: 'domcontentloaded' });
+    await page.locator('[data-testid="header-top-bar"]').waitFor({ state: 'attached', timeout: 60_000 });
+
+    const alternate = await firstAlternateLocale(page);
+    if (!alternate) {
+      test.info().annotations.push({ type: 'note', description: 'single locale — nothing to switch to' });
+      return;
+    }
+
+    await page
+      .locator('[data-testid="header-language-option"]', { hasText: new RegExp(`^${alternate}$`, 'i') })
+      .click();
+    await page.waitForURL(`**/${alternate}/stores`, { timeout: 90_000 });
+
+    // Same route, other language — not a bounce to the homepage.
+    expect(new URL(page.url()).pathname).toBe(`/${alternate}/stores`);
+    expect(await page.locator('html').getAttribute('lang')).toMatch(new RegExp(`^${alternate}(-[A-Z]{2})?$`));
+  });
+
+  test('switching language renders the root layout without console noise', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    const pageErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+
+    await page.goto('/stores', { waitUntil: 'domcontentloaded' });
+    await page.locator('[data-testid="header-top-bar"]').waitFor({ state: 'attached', timeout: 60_000 });
+
+    const alternate = await firstAlternateLocale(page);
+    if (!alternate) {
+      test.info().annotations.push({ type: 'note', description: 'single locale — nothing to switch to' });
+      return;
+    }
+
+    await page
+      .locator('[data-testid="header-language-option"]', { hasText: new RegExp(`^${alternate}$`, 'i') })
+      .click();
+    await page.waitForURL(`**/${alternate}/stores`, { timeout: 90_000 });
+
+    // A locale switch crosses the root param, so the client re-renders the root
+    // layout. Anything React cannot render there — a `<script>` element being
+    // the one that bit us — surfaces as this warning and nothing else.
+    expect(consoleErrors.filter((t) => /script tag while rendering React component/i.test(t))).toEqual([]);
+
+    // The dev-only performance.measure guard moved out of that layout into
+    // `instrumentation-client.ts`, which must still run before hydration. If it
+    // stops doing so, the React 19 dev regression it swallows resurfaces here.
+    expect(pageErrors.filter((m) => /negative time stamp/i.test(m))).toEqual([]);
+  });
+
+  test('the alternate locale advertises its own canonical', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('[data-testid="header-top-bar"]').waitFor({ state: 'attached', timeout: 60_000 });
+    const alternate = await firstAlternateLocale(page);
+    if (!alternate) {
+      test.info().annotations.push({ type: 'note', description: 'single locale — nothing to switch to' });
+      return;
+    }
+
+    await page.goto(`/${alternate}`, { waitUntil: 'domcontentloaded' });
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute('href');
+    // A translated page that names the default-locale URL as its canonical asks
+    // search engines to drop it from the index — the regression worth pinning.
+    expect(canonical).toBeTruthy();
+    expect(new URL(canonical ?? '').pathname.replace(/\/$/, '')).toBe(`/${alternate}`);
   });
 });

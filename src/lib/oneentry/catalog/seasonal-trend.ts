@@ -1,3 +1,4 @@
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApiSafe, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
@@ -117,9 +118,10 @@ export type SeasonalTrend =
  * Returns `null` when the page has no SEASONAL TRENDS metadata — callers
  * fall back to the default `?category=` behaviour (match by pageUrl segment).
  */
-export async function resolveSeasonalTrend(pageUrl: string): Promise<SeasonalTrend | null> {
+export async function resolveSeasonalTrend(pageUrl: string, langArg?: string): Promise<SeasonalTrend | null> {
   const api = getApiSafe();
   if (!api) return null;
+  const lang = langArg ?? (await currentCmsLocale());
   // Fetch OE directly instead of going through the request-cached
   // `loadPageByUrl` — in Next.js dev, HMR of the cached wrapper can retain
   // stale results (empty `attributeValues` from before the merchant filled
@@ -127,7 +129,7 @@ export async function resolveSeasonalTrend(pageUrl: string): Promise<SeasonalTre
   // adapter honest at the cost of one extra fetch per page load.
   let result: unknown;
   try {
-    result = await api.Pages.getPageByUrl(pageUrl, DEFAULT_LOCALE);
+    result = await api.Pages.getPageByUrl(pageUrl, lang);
   } catch (err) {
     logCaught(`seasonal-trend.resolveSeasonalTrend(${pageUrl})`, err);
     return null;
@@ -137,7 +139,7 @@ export async function resolveSeasonalTrend(pageUrl: string): Promise<SeasonalTre
   const rawAttrs = (raw.attributeValues ?? {}) as Record<string, unknown>;
   // `_normalizeData` in the SDK usually unwraps the per-locale wrapper, but
   // some tenants still return `{ en_US: { attr: {...} } }`. Support both.
-  const localeSlice = rawAttrs[DEFAULT_LOCALE];
+  const localeSlice = rawAttrs[lang] ?? rawAttrs[DEFAULT_LOCALE];
   const attrs: Record<string, unknown> =
     localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice)
       ? (localeSlice as Record<string, unknown>)

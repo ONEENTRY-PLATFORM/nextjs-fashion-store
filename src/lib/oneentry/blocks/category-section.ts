@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache';
 
 import { REVALIDATE_HOME } from '@/lib/isr';
-import { getApiSafe, getImage, isError } from '@/lib/oneentry/index';
+import { getApiForLang, getImage, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
 import { withTiming } from '@/lib/oneentry/profiling';
@@ -49,8 +49,9 @@ const slugify = (s: string): string =>
 export const loadCategorySection = withTiming(
   'loadCategorySection',
   unstable_cache(
-    async (_lang: Lang = DEFAULT_LOCALE): Promise<CategorySectionFromCms> => {
-      const api = getApiSafe();
+    async (lang: Lang = DEFAULT_LOCALE): Promise<CategorySectionFromCms> => {
+      // `getSlides` takes no locale argument — see `hero-slides.ts`.
+      const api = getApiForLang(lang);
       if (!api) return { chips: [], categories: [] };
       try {
         const raw = await api.Blocks.getSlides('category_section');

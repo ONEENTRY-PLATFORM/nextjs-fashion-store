@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache';
 
 import { REVALIDATE_HOME } from '@/lib/isr';
-import { getApiSafe, getImage, isError } from '@/lib/oneentry/index';
+import { getApiForLang, getImage, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
 import { withTiming } from '@/lib/oneentry/profiling';
@@ -58,8 +58,11 @@ const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
 export const loadHeroSlides = withTiming(
   'loadHeroSlides',
   unstable_cache(
-    async (_lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
-      const api = getApiSafe();
+    async (lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
+      // `getSlides` takes no locale argument — the answer comes back in the
+      // language its instance was built with, so the locale has to be selected
+      // by picking the instance. `lang` also keys this `unstable_cache` entry.
+      const api = getApiForLang(lang);
       if (!api) return [];
       try {
         const raw = await api.Blocks.getSlides('hero_slider');

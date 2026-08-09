@@ -32,12 +32,9 @@ storybook-static
 # Environment
 .env.local
 .env
-# Утекали в старую историю GitLab-репозитория — держим под запретом явно.
 client_secret*.json
 *credentials*.json
 
-# Настройка remotes и раскладки push по origin/upstream/gitlab. Содержит адреса
-# приватных репозиториев, поэтому живёт только локально и никуда не коммитится.
 git-setup.sh
 
 # Logs

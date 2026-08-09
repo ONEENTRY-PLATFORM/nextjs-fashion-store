@@ -98,6 +98,7 @@ export function Providers({
   children,
   dict = {},
   footerMenu = [],
+  footerColumnsMenu = [],
   headerMenu = [],
   signUpFormSchema,
   forms = {},
@@ -109,7 +110,10 @@ export function Providers({
    *  layout; every screen reads it through `useT` / `useDict` / `useList`.
    */
   dict?: Dictionary;
+  /** `footer` menu — the legal row under the copyright line. */
   footerMenu?: MenuPageNode[];
+  /** `bottom_menu` — the footer's link columns. */
+  footerColumnsMenu?: MenuPageNode[];
   headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
   /**
@@ -147,7 +151,7 @@ export function Providers({
         <PageViewTracker />
         <DictProvider data={dict}>
           <LocalesProvider data={cmsLocales}>
-            <FooterMenuProvider data={footerMenu}>
+            <FooterMenuProvider columns={footerColumnsMenu} legal={footerMenu}>
               <HeaderMenuProvider data={headerMenu}>
                 <SignUpFormSchemaProvider data={signUpFormSchema}>
                   <FormPlaceholdersProvider forms={forms}>

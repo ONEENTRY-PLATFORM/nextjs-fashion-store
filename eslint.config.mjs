@@ -1,12 +1,11 @@
 // Flat config, ESLint 9. See https://eslint.org/docs/latest/use/configure/configuration-files
-import { createRequire } from 'module';
-
 import prettierConfig from 'eslint-config-prettier/flat';
 import importPlugin from 'eslint-plugin-import';
 import jsdoc from 'eslint-plugin-jsdoc';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import storybook from 'eslint-plugin-storybook';
 import tailwindcss from 'eslint-plugin-tailwindcss';
+import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
@@ -16,7 +15,7 @@ const nextTypescript = require('eslint-config-next/typescript');
 const base = Array.isArray(nextCoreWebVitals) ? nextCoreWebVitals : [nextCoreWebVitals];
 const ts = Array.isArray(nextTypescript) ? nextTypescript : [nextTypescript];
 
-export default [
+const config = [
   // ── Ignored paths ──
   {
     ignores: ['node_modules/**', '.next/**', 'out/**', 'public/**', 'storybook-static/**', 'coverage/**'],
@@ -156,3 +155,5 @@ export default [
   //    than reporting each diff hunk as a lint warning. ──
   prettierConfig,
 ];
+
+export default config;

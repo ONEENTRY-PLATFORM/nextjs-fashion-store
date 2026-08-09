@@ -3,8 +3,12 @@
   "private": true,
   "version": "0.1.1",
   "scripts": {
+    "gen:locales": "node .claude/temp/gen-locales.mjs",
+    "predev": "npm run gen:locales:optional",
     "dev": "next dev",
+    "prebuild": "npm run gen:locales:optional",
     "build": "next build",
+    "gen:locales:optional": "node -e \"const f='.claude/temp/gen-locales.mjs';require('fs').existsSync(f)?require('child_process').execFileSync(process.execPath,[f],{stdio:'inherit'}):console.log('[gen-locales] script not present - using the committed snapshot')\"",
     "start": "next start",
     "lint": "eslint src app tests",
     "lint:fix": "eslint src app tests --fix",

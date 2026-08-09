@@ -297,7 +297,7 @@ export function SalePage({
       ...selColor.map((v) => ({ key: `color-${v}`, label: v, remove: () => toggleColor(v) })),
       ...selBrand.map((v) => ({ key: `brand-${v}`, label: v, remove: () => toggleBrand(v) })),
     ],
-    [selDiscount, selSize, selColor, selBrand, toggleDiscount, toggleSize, toggleColor, toggleBrand],
+    [DISC, selDiscount, selSize, selColor, selBrand, toggleDiscount, toggleSize, toggleColor, toggleBrand],
   );
 
   /* ── Mobile filter groups wired to MobileFilterPanel ── */

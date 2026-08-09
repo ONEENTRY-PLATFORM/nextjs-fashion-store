@@ -1,9 +1,10 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest,NextResponse } from 'next/server';
+
 import {
   DEFAULT_SHORT_LOCALE,
+  hasLocale,
   IS_MULTI_LOCALE,
   SHORT_LOCALES,
-  hasLocale,
 } from './src/lib/oneentry/locale';
 
 /**
@@ -27,8 +28,10 @@ import {
  * to rule 1 alone, which is a pure rewrite — behaviour identical to having no
  * locale routing at all.
  *
- * The locale list comes from `NEXT_PUBLIC_LOCALES` rather than OneEntry: this
- * runs at the edge on every request and cannot call the CMS. See
+ * The locale list is a build-time snapshot of the OneEntry project settings
+ * (`src/lib/oneentry/locales.generated.ts`, written by
+ * `.claude/temp/gen-locales.mjs`) rather than a live CMS read: this runs at the
+ * edge on every request and cannot call the CMS. See
  * `src/lib/oneentry/locale.ts`.
  * @param   {NextRequest}  request - Incoming request.
  * @returns {NextResponse}         Rewrite, redirect, or pass-through.

@@ -31,7 +31,6 @@ export function readUserIdentifier(): string {
  * Persist (or clear, when given `''`) the shopper's OE identifier.
  *
  * @param identifier - OE `userIdentifier` from the auth response.
- * @returns
  */
 export function writeUserIdentifier(identifier: string): void {
   if (typeof window === 'undefined') return;

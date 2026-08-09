@@ -286,6 +286,7 @@ export const PRODUCT_SPEC_FALLBACK_LABELS: Record<ProductSpecKey, string> = {
  * Build a per-product Specifications list from OE attributes. Skips empty or
  *  whitespace-only values so empty fields don't leak into the PDP.
  *
+ * @param p      The adapted catalog product to read attribute values from.
  * @param labels Admin-panel overrides from the `product_specs` set, loaded by
  *               {@link loadProductSpecLabels}. Omit to render the defaults —
  *               the adapter stays synchronous so callers that have no OE

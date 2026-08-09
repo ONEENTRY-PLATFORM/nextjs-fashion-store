@@ -1,5 +1,6 @@
 import { cache } from 'react';
 
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
@@ -87,7 +88,7 @@ type CountableProduct = {
 // OE now sometimes returns `localizeInfos: { title }` (flat) instead of
 // `{ en_US: { title } }` when the SDK unwraps for the requested lang. Accept
 // both shapes so future/past schema variations don't zero out the filter row.
-type RawLocalize = { en_US?: { title?: string }; title?: string };
+type RawLocalize = { title?: string } & Record<string, { title?: string } | undefined>;
 
 type RawChild = {
   type: string;
@@ -240,20 +241,25 @@ const FILTER_COLUMNS_BY_KEY: Record<string, number> = {
 // the SDK unwraps it for the requested `langCode`. Support both — a schema
 // change in either direction would otherwise silently zero out every filter
 // group, since a missing title is treated as "skip this row".
-function pickTitle(info: RawLocalize | undefined): string {
+function pickTitle(info: RawLocalize | undefined, lang: string): string {
   if (!info) return '';
-  const nested = (info as { en_US?: { title?: string } }).en_US;
-  if (nested && typeof nested.title === 'string' && nested.title.trim()) {
-    return nested.title.trim();
+  // Per-locale first, in the language actually asked for; the default locale is
+  // the second try so an untranslated group keeps its English heading rather
+  // than disappearing — a missing title is treated as "skip this row".
+  for (const key of [lang, DEFAULT_LOCALE]) {
+    const nested = (info as Record<string, { title?: string } | undefined>)[key];
+    if (nested && typeof nested.title === 'string' && nested.title.trim()) {
+      return nested.title.trim();
+    }
   }
   const flat = (info as { title?: string }).title;
   return typeof flat === 'string' ? flat.trim() : '';
 }
 
-function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[]): ClothingFilterGroup[] {
+function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[], lang: string): ClothingFilterGroup[] {
   const groups: ClothingFilterGroup[] = [];
   for (const g of raw.items ?? []) {
-    const groupTitle = pickTitle(g.localizeInfos);
+    const groupTitle = pickTitle(g.localizeInfos, lang);
     if (!groupTitle) continue;
     const key = FILTER_GROUP_KEY[groupTitle];
     if (!key) continue;
@@ -272,7 +278,7 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[]): Clot
 
     const options: ClothingFilterOption[] = [];
     for (const c of g.children ?? []) {
-      const rawLabel = pickTitle(c.localizeInfos) || (c.value ?? '');
+      const rawLabel = pickTitle(c.localizeInfos, lang) || (c.value ?? '');
       const label = rawLabel.trim();
       if (!label) continue;
       const count = countMatches(products, key, label);
@@ -304,19 +310,16 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[]): Clot
  * definition or an empty row.
  */
 export const loadCatalogFilter = cache(
-  async (
-    products: CountableProduct[],
-    marker: string,
-    lang: string = DEFAULT_LOCALE,
-  ): Promise<ClothingFilterGroup[] | null> => {
+  async (products: CountableProduct[], marker: string, langArg?: string): Promise<ClothingFilterGroup[] | null> => {
     if (!isOneEntryEnabled) return null;
+    const lang = langArg ?? (await currentCmsLocale());
     try {
       const result = await getApi().Filters.getFilterByMarker(marker, lang);
       if (isError(result)) return null;
       // SDK's `IContentFilter` types the response with a rich `items[].children`
       // tree, but for adaptFilterToGroups we only need a subset — cast to the
       // local `RawFilter` shape rather than pull in the full interface.
-      return adaptFilterToGroups(result as unknown as RawFilter, products);
+      return adaptFilterToGroups(result as unknown as RawFilter, products, lang);
     } catch (err) {
       logCaught(`clothing-filter.loadCatalogFilter(${marker}, ${lang})`, err);
       return null;

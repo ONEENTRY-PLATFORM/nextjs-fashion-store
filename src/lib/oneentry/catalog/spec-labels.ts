@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getSystemSet, type Lang, readSystemValue } from '@/lib/oneentry/system-text';
 
 import { PRODUCT_SPEC_FALLBACK_LABELS, type ProductSpecKey } from './adapt';
@@ -25,7 +25,8 @@ const SPEC_LABEL_KEYS: Record<ProductSpecKey, string> = {
  * left empty fall back to {@link PRODUCT_SPEC_FALLBACK_LABELS}, and an OE
  * outage yields the fallbacks wholesale rather than blank rows.
  */
-export async function loadProductSpecLabels(lang: Lang = DEFAULT_LOCALE): Promise<Record<ProductSpecKey, string>> {
+export async function loadProductSpecLabels(langArg?: Lang): Promise<Record<ProductSpecKey, string>> {
+  const lang = langArg ?? (await currentCmsLocale());
   const schema = await getSystemSet(SPEC_LABELS_MARKER, lang);
   const out = { ...PRODUCT_SPEC_FALLBACK_LABELS };
   for (const [key, marker] of Object.entries(SPEC_LABEL_KEYS) as [ProductSpecKey, string][]) {
