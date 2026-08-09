@@ -2,10 +2,10 @@
 import { ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 
-import { Link } from '../../../lib/i18n/navigation';
-import type { DiscountBannerFromCms } from '../../../lib/oneentry/blocks/discount-banner';
-import { useMounted } from '../../hooks/useMounted';
-import CmsImage from '../ui/CmsImage';
+import CmsImage from '@/app/components/ui/CmsImage';
+import { useMounted } from '@/app/hooks/useMounted';
+import { Link } from '@/lib/i18n/navigation';
+import type { DiscountBannerFromCms } from '@/lib/oneentry/blocks/discount-banner';
 
 export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBannerFromCms | null } = {}) {
   const [hovered, setHovered] = useState(false);

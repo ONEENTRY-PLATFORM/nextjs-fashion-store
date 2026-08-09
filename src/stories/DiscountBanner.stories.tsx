@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { DiscountBanner } from '../app/components/home/DiscountBanner';
+import { DiscountBanner } from '@/app/components/home/DiscountBanner';
 
 const meta = {
   title: 'Sections / DiscountBanner',

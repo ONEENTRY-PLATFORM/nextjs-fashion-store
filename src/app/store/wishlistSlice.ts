@@ -1,8 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import type { WishlistItem } from '../context/WishlistContext';
-import { CURRENCY } from '../data/currencyConfig';
-import type { WaitingItem, WishlistItem as DataWishlistItem } from '../data/userData';
+import type { WishlistItem } from '@/app/context/WishlistContext';
+import { CURRENCY } from '@/app/data/currencyConfig';
+import type { WaitingItem, WishlistItem as DataWishlistItem } from '@/app/data/userData';
 
 /**
  * Convert userData.WishlistItem → WishlistContext.WishlistItem

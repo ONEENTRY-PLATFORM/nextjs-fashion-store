@@ -2,11 +2,12 @@
 import { Check, Mail } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { BANNER_BG, SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { REFER_LABELS as L_FALLBACK } from '../../data/accountLabels';
-import { CURRENCY } from '../../data/currencyConfig';
+import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { REFER_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
+import { CURRENCY } from '@/app/data/currencyConfig';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
+
 import { ACCENT, SectionTitle } from './shared';
 
 // OneEntry doesn't expose a referral programme for this tenant — config stays

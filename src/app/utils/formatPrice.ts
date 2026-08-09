@@ -1,4 +1,4 @@
-import { CURRENCY } from '../data/currencyConfig';
+import { CURRENCY } from '@/app/data/currencyConfig';
 
 export const fmt = (n: number) => CURRENCY.format(n);
 

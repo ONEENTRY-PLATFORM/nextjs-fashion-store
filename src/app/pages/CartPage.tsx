@@ -3,12 +3,13 @@ import { ShoppingBag, Tag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 
-import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
-import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { type CartItem, useCart } from '../context/CartContext';
-import { getCmsProductId } from '../data/cms-product-id-map';
+import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { type CartItem, useCart } from '@/app/context/CartContext';
+import { getCmsProductId } from '@/app/data/cms-product-id-map';
+import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
+
 import { CartBundleRow } from './cart/CartBundleRow';
 import { CartItemRow } from './cart/CartItemRow';
 
@@ -16,14 +17,14 @@ const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height
 
 type RenderRow = { kind: 'item'; item: CartItem } | { kind: 'bundle'; bundleId: string; items: CartItem[] };
 
-import { useRouter } from '../../lib/i18n/navigation';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
-import { CART_PAGE_LABELS } from '../data/cartLabels';
-import { useMounted } from '../hooks/useMounted';
-import { fmt } from '../utils/formatPrice';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
+import { CART_PAGE_LABELS } from '@/app/data/cartLabels';
+import { useMounted } from '@/app/hooks/useMounted';
+import { fmt } from '@/app/utils/formatPrice';
+import { useRouter } from '@/lib/i18n/navigation';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const L = useDict('checkout_cart_page_', CART_PAGE_LABELS);

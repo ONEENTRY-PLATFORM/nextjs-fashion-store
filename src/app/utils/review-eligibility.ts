@@ -1,4 +1,4 @@
-import type { OeOrder } from '../../lib/oneentry/auth/actions';
+import type { OeOrder } from '@/lib/oneentry/auth/actions';
 
 /**
  * "Terminal successful" order statuses — the shopper actually took delivery

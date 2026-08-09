@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
 
-import { PICKUP_STORES } from '../app/data/checkoutConfig';
-import { DeliveryMethodStore } from '../app/pages/checkout/DeliveryMethodStore';
-import { DeliveryMethodInfoProvider } from '../lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { PICKUP_STORES } from '@/app/data/checkoutConfig';
+import { DeliveryMethodStore } from '@/app/pages/checkout/DeliveryMethodStore';
+import { DeliveryMethodInfoProvider } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 const GUEST_CONTACT_EMPTY = { fullName: '', phone: '', email: '' };
 

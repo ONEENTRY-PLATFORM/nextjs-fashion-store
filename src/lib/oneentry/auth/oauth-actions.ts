@@ -16,8 +16,8 @@
  */
 import { cookies } from 'next/headers';
 
-import { createRequestApi, getApiSafe, isError } from '../index';
-import { se } from '../server-errors';
+import { createRequestApi, getApiSafe, isError } from '@/lib/oneentry/index';
+import { se } from '@/lib/oneentry/server-errors';
 
 const GOOGLE_AUTH_MARKER = 'google';
 const GOOGLE_OAUTH_STATE_COOKIE = 'oe_google_oauth_state';

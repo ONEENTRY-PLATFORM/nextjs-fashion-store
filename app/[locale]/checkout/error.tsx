@@ -2,7 +2,7 @@
 import { AlertTriangle } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { CHECKOUT_ERROR_LABELS as L } from '../../../src/app/data/errorPageLabels';
+import { CHECKOUT_ERROR_LABELS as L } from '@/app/data/errorPageLabels';
 
 interface ErrorProps {
   error: Error & { digest?: string };

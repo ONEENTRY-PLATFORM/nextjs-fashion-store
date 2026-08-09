@@ -1,8 +1,9 @@
 import { cache } from 'react';
 
-import { currentCmsLocale } from '../current-locale';
-import { getApiSafe, isError } from '../index';
-import type { Lang } from '../system-text';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getApiSafe, isError } from '@/lib/oneentry/index';
+import type { Lang } from '@/lib/oneentry/system-text';
+
 import type { SignUpFieldAgree, SignUpFieldPhone, SignUpFieldString, SignUpFormSchema } from './sign-up-form-schema';
 import { EMPTY_SIGN_UP_FORM_SCHEMA } from './sign-up-form-schema';
 

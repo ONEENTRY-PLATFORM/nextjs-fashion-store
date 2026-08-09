@@ -2,11 +2,11 @@
 import { Check } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 
-import { submitServiceRequestAction } from '../../../../lib/oneentry/catalog/service-request-submit-action';
-import { useFormLabel, useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { useDict } from '../../../../lib/oneentry/labels/DictContext';
-import { SERVICE_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import type { ServiceCategory } from '../../../data/serviceData';
+import { SERVICE_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
+import type { ServiceCategory } from '@/app/data/serviceData';
+import { submitServiceRequestAction } from '@/lib/oneentry/catalog/service-request-submit-action';
+import { useFormLabel, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 const BLANK_FORM = { item: '', category: 'repair' as ServiceCategory, description: '', date: '' };
 const inputClass = 'px-3 py-2 text-xs focus-visible:outline-none border border-[#e5e7eb] bg-white';

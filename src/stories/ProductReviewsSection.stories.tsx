@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import React, { useRef } from 'react';
 
-import type { ProductReview } from '../app/components/product/ProductCard';
-import { ProductReviewsSection } from '../app/pages/product/ProductReviewsSection';
+import type { ProductReview } from '@/app/components/product/ProductCard';
+import { ProductReviewsSection } from '@/app/pages/product/ProductReviewsSection';
 
 // ─── Mock reviews ────────────────────────────────────────────────────────────
 

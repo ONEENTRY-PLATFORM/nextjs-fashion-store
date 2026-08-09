@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { ColorSwatch } from '../app/components/ui/ColorSwatch';
+import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
 
 const meta = {
   title: 'UI / ColorSwatch',

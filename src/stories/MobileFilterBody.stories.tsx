@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
 
-import { FilterBody } from '../app/components/catalog/MobileFilterBody';
-import type { MobileFilterGroup } from '../app/components/catalog/MobileFilterPanel';
+import { FilterBody } from '@/app/components/catalog/MobileFilterBody';
+import type { MobileFilterGroup } from '@/app/components/catalog/MobileFilterPanel';
 
 const CHECKBOX_GROUP: MobileFilterGroup = {
   label: 'Type',

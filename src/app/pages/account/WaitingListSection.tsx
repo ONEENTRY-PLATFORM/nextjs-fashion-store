@@ -2,16 +2,17 @@
 import { Bell, Check, ShoppingBag, Trash2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { getWaitingListAction } from '../../../lib/oneentry/catalog/waiting-list-action';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { BANNER_BG, SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
-import { useWishlist } from '../../context/WishlistContext';
-import { WAITING_LIST_LABELS } from '../../data/accountLabels';
-import { type WaitingItem } from '../../data/userData';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { useWishlist } from '@/app/context/WishlistContext';
+import { WAITING_LIST_LABELS } from '@/app/data/accountLabels';
+import { type WaitingItem } from '@/app/data/userData';
+import { useRouter } from '@/lib/i18n/navigation';
+import { getWaitingListAction } from '@/lib/oneentry/catalog/waiting-list-action';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { ACCENT, fmt, SectionTitle } from './shared';
 
 export function WaitingListSection() {

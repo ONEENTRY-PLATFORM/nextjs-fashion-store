@@ -2,9 +2,10 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import React, { useEffect } from 'react';
 
-import { CartUnavailableNotice } from '../app/components/cart/CartUnavailableNotice';
-import { cartActions } from '../app/store/cartSlice';
-import { useAppDispatch } from '../app/store/hooks';
+import { CartUnavailableNotice } from '@/app/components/cart/CartUnavailableNotice';
+import { cartActions } from '@/app/store/cartSlice';
+import { useAppDispatch } from '@/app/store/hooks';
+
 import { MOCK_CART_ITEM, MOCK_CART_ITEM_SALE } from './mockData';
 
 /** Seeds `state.cart.unavailableRemoved` with one item and renders the notice. */

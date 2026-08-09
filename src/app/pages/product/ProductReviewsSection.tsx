@@ -2,9 +2,10 @@
 import { Star } from 'lucide-react';
 import React from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import type { ProductReview } from '../../components/product/ProductCard';
-import { PRODUCT_REVIEWS_LABELS } from '../../data/productPageLabels';
+import type { ProductReview } from '@/app/components/product/ProductCard';
+import { PRODUCT_REVIEWS_LABELS } from '@/app/data/productPageLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { ReviewCard } from './ReviewCard';
 import { StarRating } from './StarRating';
 

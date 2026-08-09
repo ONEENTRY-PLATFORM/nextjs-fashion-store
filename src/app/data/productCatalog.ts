@@ -133,4 +133,4 @@ export interface PdpProductVariant {
 // `src/lib/oneentry/catalog/products.ts` (`loadProducts`, `loadProductById`,
 // `loadFullCatalog`). This file intentionally exports only type contracts +
 // the `hexToColorName` utility. No static product datasets remain.
-export { hexToColorName } from '../utils/colorNames';
+export { hexToColorName } from '@/app/utils/colorNames';

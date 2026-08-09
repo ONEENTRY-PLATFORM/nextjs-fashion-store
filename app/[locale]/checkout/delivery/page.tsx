@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
 
-import type { PickupStore } from '../../../../src/app/data/checkoutConfig';
-import { SEO } from '../../../../src/app/data/seoData';
-import { DeliveryPage } from '../../../../src/app/pages/DeliveryPage';
-import { loadPageBlocksByUrl } from '../../../../src/lib/oneentry/blocks/page-blocks';
-import { withCmsSeo } from '../../../../src/lib/oneentry/catalog/page-seo';
-import { loadStores } from '../../../../src/lib/oneentry/catalog/stores';
-import { loadDeliveryMethodInfo, loadParcelLockers } from '../../../../src/lib/oneentry/checkout/delivery-methods';
-import { buildDeliveryDates, loadDeliverySchedule } from '../../../../src/lib/oneentry/checkout/delivery-schedule';
-import { DeliveryMethodInfoProvider } from '../../../../src/lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { FormPlaceholdersProvider } from '../../../../src/lib/oneentry/forms/FormPlaceholdersContext';
-import { loadFormContent } from '../../../../src/lib/oneentry/forms/placeholders';
+import type { PickupStore } from '@/app/data/checkoutConfig';
+import { SEO } from '@/app/data/seoData';
+import { DeliveryPage } from '@/app/pages/DeliveryPage';
+import { loadPageBlocksByUrl } from '@/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadStores } from '@/lib/oneentry/catalog/stores';
+import { loadDeliveryMethodInfo, loadParcelLockers } from '@/lib/oneentry/checkout/delivery-methods';
+import { buildDeliveryDates, loadDeliverySchedule } from '@/lib/oneentry/checkout/delivery-schedule';
+import { DeliveryMethodInfoProvider } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { FormPlaceholdersProvider } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
 
 /**
  * Title/description/keywords/canonical come from the OE `delivery_method` page when an

@@ -2,13 +2,13 @@
 
 import { ChevronRight } from 'lucide-react';
 
-import { Link } from '../../../lib/i18n/navigation';
-import type { SectionChrome } from '../../../lib/oneentry/blocks/section-chrome';
-import { ACCENT_MEN as MEN_COLOR } from '../../constants/colors';
-import { CATALOG_VIEW_LABELS as CVL } from '../../data/commonLabels';
-import { SECTION_TITLES } from '../../data/sectionTitles';
-import { type Product, ProductCard } from '../product/ProductCard';
-import { HorizontalScroller } from '../ui/HorizontalScroller';
+import { type Product, ProductCard } from '@/app/components/product/ProductCard';
+import { HorizontalScroller } from '@/app/components/ui/HorizontalScroller';
+import { ACCENT_MEN as MEN_COLOR } from '@/app/constants/colors';
+import { CATALOG_VIEW_LABELS as CVL } from '@/app/data/commonLabels';
+import { SECTION_TITLES } from '@/app/data/sectionTitles';
+import { Link } from '@/lib/i18n/navigation';
+import type { SectionChrome } from '@/lib/oneentry/blocks/section-chrome';
 
 /**
  * `chrome` carries the OE block's own eyebrow / view-all link; the

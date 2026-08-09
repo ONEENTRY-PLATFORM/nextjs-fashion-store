@@ -1,44 +1,40 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
-import type { Product } from '../../../src/app/components/product/ProductCard';
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { CATALOG_PAGE_LABELS } from '../../../src/app/data/catalogPageLabels';
-import { INFO_PAGE_META } from '../../../src/app/data/infoPages';
+import type { Product } from '@/app/components/product/ProductCard';
+import { JsonLd } from '@/app/components/system/JsonLd';
+import { CATALOG_PAGE_LABELS } from '@/app/data/catalogPageLabels';
+import { INFO_PAGE_META } from '@/app/data/infoPages';
 import {
   buildBreadcrumbSchema,
   buildPageMetadata,
   type CatalogPageEntry,
   PAGE_REGISTRY,
   type PageEntry,
-} from '../../../src/app/data/pageRegistry';
-import { SITE_NAME, SITE_URL } from '../../../src/app/data/seoData';
-import { InfoPage } from '../../../src/app/pages/InfoPage';
-import { MenAccessoriesPage } from '../../../src/app/pages/MenAccessoriesPage';
-import { MenBagsPage } from '../../../src/app/pages/MenBagsPage';
-import { MenCatalogPage } from '../../../src/app/pages/MenCatalogPage';
-import { MenShoesPage } from '../../../src/app/pages/MenShoesPage';
-import { WomenAccessoriesPage } from '../../../src/app/pages/WomenAccessoriesPage';
-import { WomenBagsPage } from '../../../src/app/pages/WomenBagsPage';
+} from '@/app/data/pageRegistry';
+import { SITE_NAME, SITE_URL } from '@/app/data/seoData';
+import { InfoPage } from '@/app/pages/InfoPage';
+import { MenAccessoriesPage } from '@/app/pages/MenAccessoriesPage';
+import { MenBagsPage } from '@/app/pages/MenBagsPage';
+import { MenCatalogPage } from '@/app/pages/MenCatalogPage';
+import { MenShoesPage } from '@/app/pages/MenShoesPage';
+import { WomenAccessoriesPage } from '@/app/pages/WomenAccessoriesPage';
+import { WomenBagsPage } from '@/app/pages/WomenBagsPage';
 /* ─── Catalog page components (dataset configs) ─── */
-import { WomenCatalogPage } from '../../../src/app/pages/WomenCatalogPage';
-import { WomenShoesPage } from '../../../src/app/pages/WomenShoesPage';
-import { type ClothingFilterGroup, loadCatalogFilter } from '../../../src/lib/oneentry/blocks/clothing-filter';
-import { chipToFilterPatch, loadFilterChips } from '../../../src/lib/oneentry/blocks/filter-chips';
-import { buildFaqSchema, faqItemsFromBlocks } from '../../../src/lib/oneentry/blocks/info-sections';
-import {
-  loadBlockWithProducts,
-  loadPageBlocksByUrl,
-  type PageBlock,
-} from '../../../src/lib/oneentry/blocks/page-blocks';
-import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '../../../src/lib/oneentry/catalog/adapt';
-import { type CatalogFilters, parseCatalogSearchParams } from '../../../src/lib/oneentry/catalog/filters';
-import { resolveInfoPageSlug } from '../../../src/lib/oneentry/catalog/info-pages';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { loadPageByUrl } from '../../../src/lib/oneentry/catalog/pages';
-import { loadFilteredProducts, loadProducts } from '../../../src/lib/oneentry/catalog/products';
-import { applySeasonalTrend, resolveSeasonalTrend } from '../../../src/lib/oneentry/catalog/seasonal-trend';
-import { getDictionary, translate } from '../../../src/lib/oneentry/dictionary';
+import { WomenCatalogPage } from '@/app/pages/WomenCatalogPage';
+import { WomenShoesPage } from '@/app/pages/WomenShoesPage';
+import { type ClothingFilterGroup, loadCatalogFilter } from '@/lib/oneentry/blocks/clothing-filter';
+import { chipToFilterPatch, loadFilterChips } from '@/lib/oneentry/blocks/filter-chips';
+import { buildFaqSchema, faqItemsFromBlocks } from '@/lib/oneentry/blocks/info-sections';
+import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '@/lib/oneentry/catalog/adapt';
+import { type CatalogFilters, parseCatalogSearchParams } from '@/lib/oneentry/catalog/filters';
+import { resolveInfoPageSlug } from '@/lib/oneentry/catalog/info-pages';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadPageByUrl } from '@/lib/oneentry/catalog/pages';
+import { loadFilteredProducts, loadProducts } from '@/lib/oneentry/catalog/products';
+import { applySeasonalTrend, resolveSeasonalTrend } from '@/lib/oneentry/catalog/seasonal-trend';
+import { getDictionary, translate } from '@/lib/oneentry/dictionary';
 
 /* ─── Map catalogKey → component ─── */
 type CatalogProps = {

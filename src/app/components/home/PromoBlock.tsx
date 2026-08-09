@@ -2,10 +2,10 @@
 import Image from 'next/image';
 import { useState } from 'react';
 
-import { Link } from '../../../lib/i18n/navigation';
-import type { HomepageCollectionItem } from '../../../lib/oneentry/blocks/homepage-collections';
-import type { PromoItem } from '../../data/promoBlocks';
-import { useMounted } from '../../hooks/useMounted';
+import type { PromoItem } from '@/app/data/promoBlocks';
+import { useMounted } from '@/app/hooks/useMounted';
+import { Link } from '@/lib/i18n/navigation';
+import type { HomepageCollectionItem } from '@/lib/oneentry/blocks/homepage-collections';
 
 function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boolean }) {
   const [hovered, setHovered] = useState(false);

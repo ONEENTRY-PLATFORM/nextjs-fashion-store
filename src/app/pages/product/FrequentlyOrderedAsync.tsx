@@ -1,5 +1,6 @@
-import { loadFrequentlyOrderedBlock } from '../../../lib/oneentry/blocks/page-blocks';
-import type { Product } from '../../components/product/ProductCard';
+import type { Product } from '@/app/components/product/ProductCard';
+import { loadFrequentlyOrderedBlock } from '@/lib/oneentry/blocks/page-blocks';
+
 import { FrequentlyOrderedClient } from './FrequentlyOrderedClient';
 
 /**

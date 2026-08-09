@@ -14,7 +14,7 @@
  * server (the Google `client_secret` exchange, ISR revalidation) live in
  * `./oauth-actions.ts` and `./revalidate-action.ts`.
  */
-import { getProductPreviewsAction } from '../catalog/product-previews-action';
+import { getProductPreviewsAction } from '@/lib/oneentry/catalog/product-previews-action';
 import {
   clearTokens,
   getApiSafe,
@@ -23,9 +23,10 @@ import {
   isError,
   isOneEntryEnabled,
   storeSession,
-} from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { se } from '../server-errors';
+} from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { se } from '@/lib/oneentry/server-errors';
+
 import { readRefreshToken, readUserIdentifier, writeUserIdentifier } from './browser-session';
 import { pickImage, type RawPicture } from './pick-image';
 import { revalidateAfterOrderAction } from './revalidate-action';

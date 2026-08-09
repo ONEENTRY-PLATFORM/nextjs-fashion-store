@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { JsonLd } from '../app/components/system/JsonLd';
+import { JsonLd } from '@/app/components/system/JsonLd';
 
 const meta = {
   title: 'UI / JsonLd',

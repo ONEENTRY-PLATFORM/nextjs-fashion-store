@@ -1,8 +1,8 @@
 'use client';
 import { LogIn, ShoppingBag, UserPlus, X } from 'lucide-react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { AUTH_LABELS } from '../../data/authLabels';
+import { AUTH_LABELS } from '@/app/data/authLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 interface GuestCheckoutModalProps {
   onClose: () => void;

@@ -10,7 +10,7 @@ import {
   localizeHref,
   type ShortLocaleCode,
   stripLocale,
-} from '../oneentry/locale';
+} from '@/lib/oneentry/locale';
 
 /**
  * Locale-aware navigation for Client Components.

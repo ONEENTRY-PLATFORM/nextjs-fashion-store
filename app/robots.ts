@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-import { SITE_URL } from '../src/app/data/seoData';
+import { SITE_URL } from '@/app/data/seoData';
 
 const PRIVATE_PATHS = ['/cart', '/favorites', '/account', '/checkout/', '/api/'];
 

@@ -1,8 +1,8 @@
 import { unstable_cache } from 'next/cache';
 
-import { currentCmsLocale } from '../current-locale';
-import { getApi, getImage, isError, isOneEntryEnabled } from '../index';
-import type { Lang } from '../system-text';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getApi, getImage, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
+import type { Lang } from '@/lib/oneentry/system-text';
 
 export interface SalePageFromCms {
   hero: {

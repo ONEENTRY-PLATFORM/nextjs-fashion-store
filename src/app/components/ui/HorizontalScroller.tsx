@@ -2,9 +2,9 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { HORIZONTAL_SCROLLER_LABELS as L } from '../../data/commonLabels';
-import { useDragScroll } from '../../hooks/useDragScroll';
+import { HORIZONTAL_SCROLLER_LABELS as L } from '@/app/data/commonLabels';
+import { useDragScroll } from '@/app/hooks/useDragScroll';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 interface HorizontalScrollerProps {
   children: React.ReactNode;

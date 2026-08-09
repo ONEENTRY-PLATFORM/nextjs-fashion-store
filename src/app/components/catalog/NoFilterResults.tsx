@@ -1,8 +1,8 @@
 'use client';
 import Image from 'next/image';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { COMMON_EMPTY_STATES as L } from '../../data/commonLabels';
+import { COMMON_EMPTY_STATES as L } from '@/app/data/commonLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 interface NoFilterResultsProps {
   onClearAll: () => void;

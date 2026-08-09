@@ -5,12 +5,13 @@
  * Computes genderLabel / breadcrumbs / scrollbarClass from the props.
  * All rendering logic lives in CatalogTemplate.
  */
-import type { PageBlock } from '../../../lib/oneentry/blocks/page-blocks';
-import type { CatalogFilters } from '../../../lib/oneentry/catalog/filters';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { ACCENT_MEN } from '../../constants/colors';
-import { CATALOG_PAGE_LABELS as CL } from '../../data/catalogPageLabels';
-import type { Product } from '../product/ProductCard';
+import type { Product } from '@/app/components/product/ProductCard';
+import { ACCENT_MEN } from '@/app/constants/colors';
+import { CATALOG_PAGE_LABELS as CL } from '@/app/data/catalogPageLabels';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+
 import { CatalogTemplate, type CatalogTemplateProps } from './CatalogTemplate';
 
 /* ── Re-export types used by page files and AccessoriesCatalog ── */

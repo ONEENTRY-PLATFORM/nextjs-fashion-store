@@ -2,18 +2,18 @@
 import { ArrowRight, CheckCircle, Mail, Package } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useRouter } from '../../lib/i18n/navigation';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { ImageWithFallback } from '../components/ui/ImageWithFallback';
-import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
-import { useCart } from '../context/CartContext';
-import { CART_LINE_LABELS } from '../data/commonLabels';
-import { CONFIRMATION_INFO_CARDS, CONFIRMATION_LABELS } from '../data/confirmationLabels';
-import { useMounted } from '../hooks/useMounted';
-import { fmt } from '../utils/formatPrice';
+import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import { useCart } from '@/app/context/CartContext';
+import { CART_LINE_LABELS } from '@/app/data/commonLabels';
+import { CONFIRMATION_INFO_CARDS, CONFIRMATION_LABELS } from '@/app/data/confirmationLabels';
+import { useMounted } from '@/app/hooks/useMounted';
+import { fmt } from '@/app/utils/formatPrice';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 const ICON_MAP = {
   mail: <Mail size={20} />,

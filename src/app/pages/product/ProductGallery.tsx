@@ -2,9 +2,10 @@ import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useRef, useState } from 'react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import CmsImage from '../../components/ui/CmsImage';
-import { PRODUCT_GALLERY_LABELS } from '../../data/productPageLabels';
+import CmsImage from '@/app/components/ui/CmsImage';
+import { PRODUCT_GALLERY_LABELS } from '@/app/data/productPageLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+
 import { FullscreenViewer } from './FullscreenViewer';
 
 export function ProductGallery({

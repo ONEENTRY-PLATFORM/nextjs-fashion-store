@@ -2,13 +2,13 @@
 import { Edit2 } from 'lucide-react';
 import React from 'react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { ACCOUNT_SHARED_LABELS } from '../../data/accountLabels';
+import { ACCOUNT_SHARED_LABELS } from '@/app/data/accountLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
-export { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
-import { SALE_COLOR } from '../../constants/colors';
+export { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import { SALE_COLOR } from '@/app/constants/colors';
 
-export { fmt } from '../../utils/formatPrice';
+export { fmt } from '@/app/utils/formatPrice';
 
 export function SectionTitle({ title, action }: { title: string; action?: React.ReactNode }) {
   return (

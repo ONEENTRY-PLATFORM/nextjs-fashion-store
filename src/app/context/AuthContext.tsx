@@ -2,7 +2,14 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
-import { getApiSafe, hasActiveSession, reDefine, REFRESH_TOKEN_KEY } from '../../lib/oneentry';
+import { type Gender, type LoyaltyStatus } from '@/app/data/userData';
+import type { AppDispatch } from '@/app/store';
+import { cartActions } from '@/app/store/cartSlice';
+import { recentlyViewedActions } from '@/app/store/recentlyViewedSlice';
+import { clearAuth, setAuth } from '@/app/store/userSlice';
+import { wishlistActions } from '@/app/store/wishlistSlice';
+import { clearGuestId, getOrCreateGuestId } from '@/app/utils/guest-id';
+import { getApiSafe, hasActiveSession, reDefine, REFRESH_TOKEN_KEY } from '@/lib/oneentry';
 import {
   getCurrentUserAction,
   type OeAddress,
@@ -25,14 +32,7 @@ import {
   updateConsentAction,
   updateProfileAction,
   updateSubscriptionsAction,
-} from '../../lib/oneentry/auth/actions';
-import { type Gender, type LoyaltyStatus } from '../data/userData';
-import type { AppDispatch } from '../store';
-import { cartActions } from '../store/cartSlice';
-import { recentlyViewedActions } from '../store/recentlyViewedSlice';
-import { clearAuth, setAuth } from '../store/userSlice';
-import { wishlistActions } from '../store/wishlistSlice';
-import { clearGuestId, getOrCreateGuestId } from '../utils/guest-id';
+} from '@/lib/oneentry/auth/actions';
 
 export interface User {
   firstName: string;
@@ -422,7 +422,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // route (/auth/callback/google) exchanges `?code=` server-side via
     // AuthProvider.oauth('google', { code, redirect_uri }) and sets session
     // cookies before bouncing to `returnTo`.
-    const { startGoogleOAuth: kickOff } = await import('../../lib/google-auth');
+    const { startGoogleOAuth: kickOff } = await import('@/lib/google-auth');
     await kickOff(returnTo);
   }, []);
 

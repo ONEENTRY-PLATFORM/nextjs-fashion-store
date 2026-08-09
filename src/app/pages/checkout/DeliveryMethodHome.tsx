@@ -1,18 +1,18 @@
 'use client';
 import { MapPin } from 'lucide-react';
 
-import type { DeliveryTimeSlot } from '../../../lib/oneentry/checkout/delivery-schedule';
-import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { FormField } from '../../components/ui/FormField';
-import { RadioCard } from '../../components/ui/RadioCard';
-import { DELIVERY_PERKS, DELIVERY_TIME_SLOTS } from '../../data/checkoutConfig';
+import { FormField } from '@/app/components/ui/FormField';
+import { RadioCard } from '@/app/components/ui/RadioCard';
+import { DELIVERY_PERKS, DELIVERY_TIME_SLOTS } from '@/app/data/checkoutConfig';
 import {
   DELIVERY_METHOD_HOME_LABELS as L_FALLBACK,
   DELIVERY_METHOD_SHARED_LABELS as SH,
-} from '../../data/checkoutLabels';
-import type { UserAddress } from '../../data/userData';
+} from '@/app/data/checkoutLabels';
+import type { UserAddress } from '@/app/data/userData';
+import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
+import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export interface NewAddressForm {
   fullName: string;

@@ -1,9 +1,9 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '../../data/productPageLabels';
-import { parseSizeGuide, serializeSizeGuide, SIZE_GUIDE_DATA } from '../../data/sizeGuide';
+import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '@/app/data/productPageLabels';
+import { parseSizeGuide, serializeSizeGuide, SIZE_GUIDE_DATA } from '@/app/data/sizeGuide';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export function SizeGuideModal({ onClose }: { onClose: () => void }) {
   const L = useDict('size_guide_', L_FALLBACK);

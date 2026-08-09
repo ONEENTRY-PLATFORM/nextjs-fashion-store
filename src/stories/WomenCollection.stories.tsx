@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { WomenCollection } from '../app/components/home/WomenCollection';
+import { WomenCollection } from '@/app/components/home/WomenCollection';
 
 const meta = {
   title: 'Sections / WomenCollection',

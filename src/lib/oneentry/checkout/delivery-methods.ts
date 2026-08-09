@@ -1,15 +1,15 @@
 import { unstable_cache } from 'next/cache';
 
-import { DELIVERY_PERKS, PICKUP_PERKS } from '../../../app/data/checkoutConfig';
+import { DELIVERY_PERKS, PICKUP_PERKS } from '@/app/data/checkoutConfig';
 import {
   DELIVERY_METHOD_HOME_LABELS,
   DELIVERY_METHOD_LOCKER_LABELS,
   DELIVERY_METHOD_STORE_LABELS,
-} from '../../../app/data/checkoutLabels';
-import { REVALIDATE_STORES } from '../../isr';
-import { currentCmsLocale } from '../current-locale';
-import { getApi, isError } from '../index';
-import type { Lang } from '../system-text';
+} from '@/app/data/checkoutLabels';
+import { REVALIDATE_STORES } from '@/lib/isr';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getApi, isError } from '@/lib/oneentry/index';
+import type { Lang } from '@/lib/oneentry/system-text';
 
 /**
  * Per-method copy: what the delivery-picker radios render.

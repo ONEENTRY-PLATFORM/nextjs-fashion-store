@@ -1,6 +1,6 @@
 'use client';
-import { useDict } from '../../../../lib/oneentry/labels/DictContext';
-import { SERVICE_LABELS as L_FALLBACK } from '../../../data/accountLabels';
+import { SERVICE_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export function ServiceHowItWorks() {
   const L = useDict('service_maintenance_', L_FALLBACK);

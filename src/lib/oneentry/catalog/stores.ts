@@ -1,12 +1,12 @@
 import { unstable_cache } from 'next/cache';
 
-import type { Store } from '../../../app/data/stores';
-import { STORES as MOCK_STORES } from '../../../app/data/stores';
-import { REVALIDATE_STORES } from '../../isr';
-import { currentCmsLocale } from '../current-locale';
-import { getApiSafe, getImage, isError } from '../index';
-import { withTiming } from '../profiling';
-import { type Lang, t } from '../system-text';
+import type { Store } from '@/app/data/stores';
+import { STORES as MOCK_STORES } from '@/app/data/stores';
+import { REVALIDATE_STORES } from '@/lib/isr';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getApiSafe, getImage, isError } from '@/lib/oneentry/index';
+import { withTiming } from '@/lib/oneentry/profiling';
+import { type Lang, t } from '@/lib/oneentry/system-text';
 
 type RawAttrValue = { value?: unknown };
 type RawPage = {

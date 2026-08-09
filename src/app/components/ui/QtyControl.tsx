@@ -1,8 +1,8 @@
 'use client';
 import { Minus, Plus } from 'lucide-react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { QTY_CONTROL_LABELS as L } from '../../data/commonLabels';
+import { QTY_CONTROL_LABELS as L } from '@/app/data/commonLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 interface QtyControlProps {
   value: number;

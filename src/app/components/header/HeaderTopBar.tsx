@@ -3,11 +3,11 @@ import { ChevronDownIcon, GlobeAltIcon, MapPinIcon, PhoneIcon } from '@heroicons
 import { useRouter as useNextRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { useLocale, usePathnameWithoutLocale, useRouter } from '../../../lib/i18n/navigation';
-import { useList, useT } from '../../../lib/oneentry/labels/DictContext';
-import { localizeHref, SHORT_LOCALES, toShortCode } from '../../../lib/oneentry/locale';
-import { useCmsLocales } from '../../../lib/oneentry/LocalesContext';
-import { FALLBACK_LANGUAGE_LABEL, HEADER_REGIONS, STORE_LOCATIONS_HREF, SUPPORT_PHONE } from '../../data/headerConfig';
+import { FALLBACK_LANGUAGE_LABEL, HEADER_REGIONS, STORE_LOCATIONS_HREF, SUPPORT_PHONE } from '@/app/data/headerConfig';
+import { useLocale, usePathnameWithoutLocale, useRouter } from '@/lib/i18n/navigation';
+import { useList, useT } from '@/lib/oneentry/labels/DictContext';
+import { localizeHref, SHORT_LOCALES, toShortCode } from '@/lib/oneentry/locale';
+import { useCmsLocales } from '@/lib/oneentry/LocalesContext';
 
 export function HeaderTopBar() {
   const router = useRouter();

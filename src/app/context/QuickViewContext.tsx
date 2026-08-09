@@ -1,13 +1,13 @@
 'use client';
 import { useCallback, useRef } from 'react';
 
-import { type Product } from '../components/product/ProductCard';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { type Product } from '@/app/components/product/ProductCard';
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import {
   clearQuickViewProduct,
   closeQuickView as closeQuickViewAction,
   openQuickView as openQuickViewAction,
-} from '../store/uiSlice';
+} from '@/app/store/uiSlice';
 
 interface QuickViewContextValue {
   isOpen: boolean;

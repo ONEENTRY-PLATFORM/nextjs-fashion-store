@@ -1,8 +1,8 @@
 import { cache } from 'react';
 
-import { getApi, isError, isOneEntryEnabled } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { logCaught } from '../log';
+import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { logCaught } from '@/lib/oneentry/log';
 
 // Local copy of the hex→name map. Importing the canonical map from
 // `src/app/utils/colorNames` indirectly pulls a client-tagged module into

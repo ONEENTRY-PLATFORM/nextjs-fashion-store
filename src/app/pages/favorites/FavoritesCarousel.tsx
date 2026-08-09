@@ -2,12 +2,12 @@
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useRef } from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { useCart } from '../../context/CartContext';
-import { extractCmsProductId } from '../../data/cms-product-id-map';
-import { CATALOG_VIEW_LABELS, HORIZONTAL_SCROLLER_LABELS } from '../../data/commonLabels';
-import { hexToColorName } from '../../utils/colorNames';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { useCart } from '@/app/context/CartContext';
+import { extractCmsProductId } from '@/app/data/cms-product-id-map';
+import { CATALOG_VIEW_LABELS, HORIZONTAL_SCROLLER_LABELS } from '@/app/data/commonLabels';
+import { hexToColorName } from '@/app/utils/colorNames';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export interface CarouselProduct {
   id: string;

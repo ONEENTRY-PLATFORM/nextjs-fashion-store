@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 
-import { SITE_URL } from '../../../app/data/seoData';
-import { currentCmsLocale } from '../current-locale';
-import { buildLanguageAlternates } from '../locale';
-import type { Lang } from '../system-text';
+import { SITE_URL } from '@/app/data/seoData';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { buildLanguageAlternates } from '@/lib/oneentry/locale';
+import type { Lang } from '@/lib/oneentry/system-text';
+
 import { loadPageByUrl } from './pages';
 
 /**

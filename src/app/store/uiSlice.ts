@@ -9,7 +9,7 @@
  */
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import type { Product } from '../components/product/ProductCard';
+import type { Product } from '@/app/components/product/ProductCard';
 
 interface UIState {
   quickView: {

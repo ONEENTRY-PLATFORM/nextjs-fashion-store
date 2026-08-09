@@ -1,10 +1,10 @@
 import { unstable_cache } from 'next/cache';
 
-import { DELIVERY_TIME_SLOTS } from '../../../app/data/checkoutConfig';
-import { REVALIDATE_STORES } from '../../isr';
-import { currentCmsLocale } from '../current-locale';
-import { getApi, isError } from '../index';
-import type { Lang } from '../system-text';
+import { DELIVERY_TIME_SLOTS } from '@/app/data/checkoutConfig';
+import { REVALIDATE_STORES } from '@/lib/isr';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getApi, isError } from '@/lib/oneentry/index';
+import type { Lang } from '@/lib/oneentry/system-text';
 
 export interface DeliveryTimeSlot {
   id: string;

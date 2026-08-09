@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { VALIDATION_MESSAGES, type ValidationMessages } from '../data/validationMessages';
+import { VALIDATION_MESSAGES, type ValidationMessages } from '@/app/data/validationMessages';
 
 /** Shape of the message table the schemas are built from. */
 export type FormMessages = ValidationMessages;

@@ -1,10 +1,10 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { type Product, ProductCard } from '../../components/product/ProductCard';
-import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
-import { CAROUSEL_LABELS } from '../../data/commonLabels';
+import { type Product, ProductCard } from '@/app/components/product/ProductCard';
+import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import { CAROUSEL_LABELS } from '@/app/data/commonLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 export function RecommendationsCarousel({ products }: { products: Product[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);

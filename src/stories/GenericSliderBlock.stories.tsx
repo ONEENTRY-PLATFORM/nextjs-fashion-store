@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { GenericSliderBlock } from '../app/components/blocks/GenericSliderBlock';
+import { GenericSliderBlock } from '@/app/components/blocks/GenericSliderBlock';
 
 const meta = {
   title: 'Components / GenericSliderBlock',

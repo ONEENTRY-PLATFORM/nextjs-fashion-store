@@ -2,8 +2,9 @@
 
 import { useMemo } from 'react';
 
-import { useDict } from '../../lib/oneentry/labels/DictContext';
-import { VALIDATION_MESSAGES, type ValidationMessages } from '../data/validationMessages';
+import { VALIDATION_MESSAGES, type ValidationMessages } from '@/app/data/validationMessages';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
+
 import { createSchemas } from './schemas';
 
 /** Marker prefix of the OE `form_messages` set. */

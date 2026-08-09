@@ -18,11 +18,23 @@ const importProxy = async (locales?: string) => {
   return import('../proxy');
 };
 
-/** Minimal `NextRequest` stand-in: only `nextUrl` and its `clone()` are used. */
-function makeRequest(pathname: string, search = '') {
+type StubUrl = URL & { clone: () => StubUrl };
+
+/** Minimal `NextRequest['nextUrl']` stand-in: only `clone()` is used. */
+function makeNextUrl(pathname: string, search = ''): StubUrl {
   const url = new URL(`https://shop.test${pathname}${search}`);
-  const nextUrl = Object.assign(url, { clone: () => makeRequest(pathname, search).nextUrl });
-  return { nextUrl, url: url.toString() } as never;
+  return Object.assign(url, { clone: () => makeNextUrl(pathname, search) });
+}
+
+/**
+ * Minimal `NextRequest` stand-in: only `nextUrl` and its `clone()` are used.
+ * `as never` keeps it assignable to the real parameter type without pulling in
+ * `NextRequest` — the return type is annotated on `makeNextUrl` instead, so the
+ * stub still type-checks internally.
+ */
+function makeRequest(pathname: string, search = '') {
+  const nextUrl = makeNextUrl(pathname, search);
+  return { nextUrl, url: nextUrl.toString() } as never;
 }
 
 beforeEach(() => {

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { OFFLINE_PAGE_LABELS as L_FALLBACK } from '../../../src/app/data/offlinePageLabels';
-import { useDict, useT } from '../../../src/lib/oneentry/labels/DictContext';
+import { OFFLINE_PAGE_LABELS as L_FALLBACK } from '@/app/data/offlinePageLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 const CHECK_INTERVAL = 10; // seconds
 

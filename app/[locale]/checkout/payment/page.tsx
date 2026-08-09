@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
-import { SEO } from '../../../../src/app/data/seoData';
-import { PaymentPage } from '../../../../src/app/pages/PaymentPage';
-import { loadPageBlocksByUrl } from '../../../../src/lib/oneentry/blocks/page-blocks';
-import { withCmsSeo } from '../../../../src/lib/oneentry/catalog/page-seo';
+import { SEO } from '@/app/data/seoData';
+import { PaymentPage } from '@/app/pages/PaymentPage';
+import { loadPageBlocksByUrl } from '@/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 
 /**
  * Title/description/keywords/canonical come from the OE `payment` page when an

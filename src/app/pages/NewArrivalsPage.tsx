@@ -3,28 +3,33 @@ import { ChevronDown } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Link } from '../../lib/i18n/navigation';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import type { NewArrivalsPageFromCms } from '../../lib/oneentry/catalog/new-arrivals-page';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { ColsIcon, SortOptionBtn as SortOption } from '../components/catalog/CatalogTemplate.parts';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { type Product, ProductCard } from '../components/product/ProductCard';
-import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
-import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
-import { CURRENCY } from '../data/currencyConfig';
-import { NEW_ARRIVALS_CATEGORIES, NEW_ARRIVALS_SORT_OPTIONS, type NewArrivalCategory } from '../data/newArrivalsConfig';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { ColsIcon, SortOptionBtn as SortOption } from '@/app/components/catalog/CatalogTemplate.parts';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { type Product, ProductCard } from '@/app/components/product/ProductCard';
+import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
+import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import { CURRENCY } from '@/app/data/currencyConfig';
+import {
+  NEW_ARRIVALS_CATEGORIES,
+  NEW_ARRIVALS_SORT_OPTIONS,
+  type NewArrivalCategory,
+} from '@/app/data/newArrivalsConfig';
 import {
   NEW_ARRIVALS_CATEGORY_LABELS as NACL_FALLBACK,
   NEW_ARRIVALS_PAGE_LABELS,
   NEW_ARRIVALS_SORT_LABELS,
-} from '../data/newArrivalsLabels';
-import { useMounted } from '../hooks/useMounted';
-import { setFilters, setSort, setViewCols as dispatchSetViewCols } from '../store/catalogSlice';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
+} from '@/app/data/newArrivalsLabels';
+import { useMounted } from '@/app/hooks/useMounted';
+import { setFilters, setSort, setViewCols as dispatchSetViewCols } from '@/app/store/catalogSlice';
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
+import { genderFilterFromQuery, matchesGender } from '@/app/utils/gender-filter';
+import { Link } from '@/lib/i18n/navigation';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import type { NewArrivalsPageFromCms } from '@/lib/oneentry/catalog/new-arrivals-page';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { NewArrivalsHero } from './new/NewArrivalsHero';
 
 const NEW_KEY = 'new-arrivals';

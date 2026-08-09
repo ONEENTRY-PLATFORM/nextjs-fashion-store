@@ -1,14 +1,15 @@
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
-import { REVALIDATE_PRODUCT } from '../../isr';
-import { currentCmsLocale } from '../current-locale';
-import { applyProductDiscount, loadProductDiscounts } from '../discounts/product-discount';
-import { blurByUrl, getApi, getApiSafe, getImages, isError, type OeImage } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { logCaught } from '../log';
-import { withTiming } from '../profiling';
-import type { Lang } from '../system-text';
+import { REVALIDATE_PRODUCT } from '@/lib/isr';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { applyProductDiscount, loadProductDiscounts } from '@/lib/oneentry/discounts/product-discount';
+import { blurByUrl, getApi, getApiSafe, getImages, isError, type OeImage } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { logCaught } from '@/lib/oneentry/log';
+import { withTiming } from '@/lib/oneentry/profiling';
+import type { Lang } from '@/lib/oneentry/system-text';
+
 import type { CatalogFilters } from './filters';
 
 /**

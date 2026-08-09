@@ -2,9 +2,9 @@
 import { Heart } from 'lucide-react';
 import Image from 'next/image';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { FAVORITES_EMPTY_LABELS } from '../../data/favoritesLabels';
+import { FAVORITES_EMPTY_LABELS } from '@/app/data/favoritesLabels';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export function FavoritesEmptyState() {
   const L = useDict('favorites_page_empty_', FAVORITES_EMPTY_LABELS);

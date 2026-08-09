@@ -1,13 +1,13 @@
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
-import type { Product } from '../../../app/components/product/ProductCard';
-import { REVALIDATE_HOME } from '../../isr';
-import { adaptCatalogProductToUiProduct } from '../catalog/adapt';
-import { loadProducts, type LoadProductsOptions } from '../catalog/products';
-import { getApi, isError, isOneEntryEnabled } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { withTiming } from '../profiling';
+import type { Product } from '@/app/components/product/ProductCard';
+import { REVALIDATE_HOME } from '@/lib/isr';
+import { adaptCatalogProductToUiProduct } from '@/lib/oneentry/catalog/adapt';
+import { loadProducts, type LoadProductsOptions } from '@/lib/oneentry/catalog/products';
+import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { withTiming } from '@/lib/oneentry/profiling';
 
 /**
  * Block descriptor returned by `loadPageBlocks`. Generic enough that the

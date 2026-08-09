@@ -2,9 +2,10 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import React, { useEffect } from 'react';
 
-import { MiniCart } from '../app/components/cart/MiniCart';
-import { cartActions } from '../app/store/cartSlice';
-import { useAppDispatch } from '../app/store/hooks';
+import { MiniCart } from '@/app/components/cart/MiniCart';
+import { cartActions } from '@/app/store/cartSlice';
+import { useAppDispatch } from '@/app/store/hooks';
+
 import { MOCK_CART_ITEM, MOCK_CART_ITEM_SALE } from './mockData';
 
 /**

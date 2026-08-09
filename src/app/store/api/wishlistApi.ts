@@ -13,7 +13,8 @@
  */
 import { createApi, fetchBaseQuery, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 
-import type { RootState } from '../index';
+import type { RootState } from '@/app/store/index';
+
 import type {
   WishlistAddItemArgs,
   WishlistApiResponse,

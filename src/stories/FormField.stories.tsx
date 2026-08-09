@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
 
-import { FormField } from '../app/components/ui/FormField';
+import { FormField } from '@/app/components/ui/FormField';
 
 const meta = {
   title: 'UI / FormField',

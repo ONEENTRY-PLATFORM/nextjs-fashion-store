@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 
-import { SEO } from '../../../src/app/data/seoData';
-import { FavoritesPage } from '../../../src/app/pages/FavoritesPage';
-import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
-import { adaptCatalogProductToUiProduct } from '../../../src/lib/oneentry/catalog/adapt';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
+import { SEO } from '@/app/data/seoData';
+import { FavoritesPage } from '@/app/pages/FavoritesPage';
+import { loadPageBlocksByUrl } from '@/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToUiProduct } from '@/lib/oneentry/catalog/adapt';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadProducts } from '@/lib/oneentry/catalog/products';
 
 /**
  * Title/description/keywords/canonical come from the OE `favorites` page when an

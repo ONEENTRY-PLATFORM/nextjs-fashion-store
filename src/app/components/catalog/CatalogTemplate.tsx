@@ -11,21 +11,22 @@ import { ChevronDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { NewArrivals } from '@/app/components/home/NewArrivals';
+import { ProductCard } from '@/app/components/product/ProductCard';
+import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
+import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
 import {
   CATALOG_PAGINATION_LABELS,
   CATALOG_SORT_LABELS,
   CATALOG_VIEW_LABELS as CVL_FALLBACK,
   COMMON_EMPTY_STATES,
-} from '../../data/commonLabels';
-import { fillTokens } from '../../utils/fillTokens';
-import { PageBlocksRenderer } from '../blocks/PageBlocksRenderer';
-import { Footer } from '../footer/Footer';
-import { Header } from '../header/Header';
-import { NewArrivals } from '../home/NewArrivals';
-import { ProductCard } from '../product/ProductCard';
-import { ProductCardSkeleton } from '../product/ProductCardSkeleton';
-import { ColorSwatch } from '../ui/ColorSwatch';
+} from '@/app/data/commonLabels';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { CatalogCrossSell } from './CatalogCrossSell';
 import { CatalogListProductCard } from './CatalogListProductCard';
 import { CatalogMobileSort } from './CatalogMobileSort';
@@ -43,7 +44,11 @@ export type {
   FilterGroup,
   FilterOption,
 } from './CatalogTemplate.types';
-import { Link, useRouter } from '../../../lib/i18n/navigation';
+import { CatalogAccentContext } from '@/app/context/CatalogAccentContext';
+import { setListMode as dispatchSetListMode, setViewCols as dispatchSetViewCols } from '@/app/store/catalogSlice';
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
+import { trackActivity } from '@/app/utils/track-activity';
+import { Link, useRouter } from '@/lib/i18n/navigation';
 import {
   type CatalogFilters,
   countActiveFilters,
@@ -51,11 +56,7 @@ import {
   isFilterGroupSupported,
   serializeCatalogSearchParams,
   toggleFilterOption,
-} from '../../../lib/oneentry/catalog/filters';
-import { CatalogAccentContext } from '../../context/CatalogAccentContext';
-import { setListMode as dispatchSetListMode, setViewCols as dispatchSetViewCols } from '../../store/catalogSlice';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { trackActivity } from '../../utils/track-activity';
+} from '@/lib/oneentry/catalog/filters';
 
 export function CatalogTemplate({
   catalogKey,

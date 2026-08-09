@@ -1,10 +1,10 @@
 import type { MetadataRoute } from 'next';
 
-import { PAGE_REGISTRY } from '../src/app/data/pageRegistry';
-import { SITE_URL } from '../src/app/data/seoData';
-import { loadInfoPageSlugs } from '../src/lib/oneentry/catalog/info-pages';
-import { loadProducts } from '../src/lib/oneentry/catalog/products';
-import { buildLanguageAlternates, localizeHref, SHORT_LOCALES } from '../src/lib/oneentry/locale';
+import { PAGE_REGISTRY } from '@/app/data/pageRegistry';
+import { SITE_URL } from '@/app/data/seoData';
+import { loadInfoPageSlugs } from '@/lib/oneentry/catalog/info-pages';
+import { loadProducts } from '@/lib/oneentry/catalog/products';
+import { buildLanguageAlternates, localizeHref, SHORT_LOCALES } from '@/lib/oneentry/locale';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();

@@ -1,5 +1,6 @@
-import { DEFAULT_LOCALE } from '../locale';
-import { getSystemSet, type Lang, readSystemValue } from '../system-text';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { getSystemSet, type Lang, readSystemValue } from '@/lib/oneentry/system-text';
+
 import { PRODUCT_SPEC_FALLBACK_LABELS, type ProductSpecKey } from './adapt';
 
 /** OE marker of the system-text set holding the PDP specification row labels. */

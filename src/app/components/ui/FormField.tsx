@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 
-import { SALE_COLOR } from '../../constants/colors';
+import { SALE_COLOR } from '@/app/constants/colors';
 
 interface FormFieldProps {
   label: string;

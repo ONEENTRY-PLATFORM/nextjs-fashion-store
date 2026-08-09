@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { JsonLd } from '../../../../src/app/components/system/JsonLd';
-import type { CatalogProduct as PdpCatalogProduct } from '../../../../src/app/data/productCatalog';
+import { JsonLd } from '@/app/components/system/JsonLd';
+import type { CatalogProduct as PdpCatalogProduct } from '@/app/data/productCatalog';
 import {
   CURRENCY,
   DELIVERY_COUNTRY,
@@ -14,25 +14,21 @@ import {
   SCHEMA_BREADCRUMBS as BC,
   SITE_NAME,
   SITE_URL,
-} from '../../../../src/app/data/seoData';
-import { FrequentlyOrderedAsync } from '../../../../src/app/pages/product/FrequentlyOrderedAsync';
-import { RecommendationsSkeleton } from '../../../../src/app/pages/product/RecommendationsSkeleton';
-import { ReviewsAsync } from '../../../../src/app/pages/product/ReviewsAsync';
-import { ReviewsSkeleton } from '../../../../src/app/pages/product/ReviewsSkeleton';
-import { ProductDetailPage } from '../../../../src/app/pages/ProductDetailPage';
-import { priceValidUntil } from '../../../../src/app/utils/price-valid-until';
-import { loadProductBlocks } from '../../../../src/lib/oneentry/blocks/page-blocks';
-import { adaptCatalogProductToPdpProduct } from '../../../../src/lib/oneentry/catalog/adapt';
-import {
-  categoryPathToBreadcrumbs,
-  categoryPathToViewAllHref,
-  loadProductById,
-} from '../../../../src/lib/oneentry/catalog/products';
-import { loadProductSpecLabels } from '../../../../src/lib/oneentry/catalog/spec-labels';
-import { loadStores } from '../../../../src/lib/oneentry/catalog/stores';
-import { loadPurchaseBonusForProduct } from '../../../../src/lib/oneentry/discounts/purchase-bonus';
-import { FormPlaceholdersProvider } from '../../../../src/lib/oneentry/forms/FormPlaceholdersContext';
-import { loadFormContent } from '../../../../src/lib/oneentry/forms/placeholders';
+} from '@/app/data/seoData';
+import { FrequentlyOrderedAsync } from '@/app/pages/product/FrequentlyOrderedAsync';
+import { RecommendationsSkeleton } from '@/app/pages/product/RecommendationsSkeleton';
+import { ReviewsAsync } from '@/app/pages/product/ReviewsAsync';
+import { ReviewsSkeleton } from '@/app/pages/product/ReviewsSkeleton';
+import { ProductDetailPage } from '@/app/pages/ProductDetailPage';
+import { priceValidUntil } from '@/app/utils/price-valid-until';
+import { loadProductBlocks } from '@/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToPdpProduct } from '@/lib/oneentry/catalog/adapt';
+import { categoryPathToBreadcrumbs, categoryPathToViewAllHref, loadProductById } from '@/lib/oneentry/catalog/products';
+import { loadProductSpecLabels } from '@/lib/oneentry/catalog/spec-labels';
+import { loadStores } from '@/lib/oneentry/catalog/stores';
+import { loadPurchaseBonusForProduct } from '@/lib/oneentry/discounts/purchase-bonus';
+import { FormPlaceholdersProvider } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
 
 interface Props {
   params: Promise<{ id: string }>;

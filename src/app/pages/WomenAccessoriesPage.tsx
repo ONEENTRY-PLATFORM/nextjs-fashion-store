@@ -1,9 +1,9 @@
 'use client';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import type { CatalogFilters } from '../../lib/oneentry/catalog/filters';
-import { AccessoriesCatalog, type FilterGroup } from '../components/catalog/AccessoriesCatalog';
-import type { Product } from '../components/product/ProductCard';
-import { ACCENT_WOMEN as ACCENT } from '../constants/colors';
+import { AccessoriesCatalog, type FilterGroup } from '@/app/components/catalog/AccessoriesCatalog';
+import type { Product } from '@/app/components/product/ProductCard';
+import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
 
 export function WomenAccessoriesPage({
   initialProducts,

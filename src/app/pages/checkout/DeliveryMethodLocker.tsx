@@ -1,14 +1,15 @@
 'use client';
 import { ChevronDown, Package } from 'lucide-react';
 
-import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { RadioCard } from '../../components/ui/RadioCard';
-import { PARCEL_LOCKERS } from '../../data/checkoutConfig';
+import { RadioCard } from '@/app/components/ui/RadioCard';
+import { PARCEL_LOCKERS } from '@/app/data/checkoutConfig';
 import {
   DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK,
   DELIVERY_METHOD_SHARED_LABELS as SH,
-} from '../../data/checkoutLabels';
+} from '@/app/data/checkoutLabels';
+import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { type GuestContactFormState } from './GuestContactForm';
 
 interface DeliveryMethodLockerProps {

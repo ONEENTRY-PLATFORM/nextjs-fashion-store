@@ -2,17 +2,18 @@
 import { ChevronRight, ExternalLink, MapPin, Search } from 'lucide-react';
 import { useState } from 'react';
 
-import { useRouter } from '../../lib/i18n/navigation';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import type { StoreLocationsPageFromCms } from '../../lib/oneentry/catalog/store-locations-page';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import CmsImage from '../components/ui/CmsImage';
-import { ACCENT_MEN, ACCENT_WOMEN as ACCENT, BANNER_BG } from '../constants/colors';
-import type { Store } from '../data/stores';
-import { STORE_LOCATIONS_LABELS } from '../data/storesLabels';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import CmsImage from '@/app/components/ui/CmsImage';
+import { ACCENT_MEN, ACCENT_WOMEN as ACCENT, BANNER_BG } from '@/app/constants/colors';
+import type { Store } from '@/app/data/stores';
+import { STORE_LOCATIONS_LABELS } from '@/app/data/storesLabels';
+import { useRouter } from '@/lib/i18n/navigation';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import type { StoreLocationsPageFromCms } from '@/lib/oneentry/catalog/store-locations-page';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { StoreCard } from './stores/StoreCard';
 
 type StoreLocationsPageProps = {

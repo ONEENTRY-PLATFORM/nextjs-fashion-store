@@ -8,7 +8,7 @@
  * extras, subscription prefs, service requests), and there is no way back to it
  * from the token alone without an extra `/me` round-trip.
  */
-import { REFRESH_TOKEN_KEY } from '../index';
+import { REFRESH_TOKEN_KEY } from '@/lib/oneentry/index';
 
 /** localStorage key holding the signed-in shopper's OE user identifier. */
 export const IDENTIFIER_KEY = 'oe_user_identifier';

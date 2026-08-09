@@ -2,13 +2,13 @@
 import { Check, Star, X } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 
-import { useFormLabel, useFormMessage, useFormOptions } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { submitForm } from '../../../lib/oneentry/forms/submit';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { SALE_COLOR } from '../../constants/colors';
-import { WRITE_REVIEW_DYNAMIC_ARIA } from '../../data/commonLabels';
-import { WRITE_REVIEW_LABELS } from '../../data/productPageLabels';
-import { trackActivity } from '../../utils/track-activity';
+import { SALE_COLOR } from '@/app/constants/colors';
+import { WRITE_REVIEW_DYNAMIC_ARIA } from '@/app/data/commonLabels';
+import { WRITE_REVIEW_LABELS } from '@/app/data/productPageLabels';
+import { trackActivity } from '@/app/utils/track-activity';
+import { useFormLabel, useFormMessage, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { submitForm } from '@/lib/oneentry/forms/submit';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 /** Fallback option list — values must match the OE `listTitles` markers. */
 const OCCASIONS_FALLBACK = WRITE_REVIEW_LABELS.occasions.map((o) => ({ title: o.label, value: o.value }));

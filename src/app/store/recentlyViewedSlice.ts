@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import type { Product } from '../components/product/ProductCard';
-import { LIMITS } from '../constants/timings';
+import type { Product } from '@/app/components/product/ProductCard';
+import { LIMITS } from '@/app/constants/timings';
 
 /** Items older than this are evicted on next hydration (30 days in ms) */
 const TTL_MS = 30 * 24 * 60 * 60 * 1000;

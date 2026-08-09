@@ -2,22 +2,23 @@
 import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { SALE_COLOR } from '../../constants/colors';
-import { TIMINGS } from '../../constants/timings';
-import { useCart } from '../../context/CartContext';
-import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
-import { WISHLIST_LABELS } from '../../data/accountLabels';
+import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { SALE_COLOR } from '@/app/constants/colors';
+import { TIMINGS } from '@/app/constants/timings';
+import { useCart } from '@/app/context/CartContext';
+import { useWishlist, type WishlistItem } from '@/app/context/WishlistContext';
+import { WISHLIST_LABELS } from '@/app/data/accountLabels';
 import {
   CATALOG_VIEW_LABELS,
   PRODUCT_CARD_ARIA_LABELS,
   PRODUCT_CARD_LABELS,
   WISHLIST_DYNAMIC_ARIA,
-} from '../../data/commonLabels';
-import { fillTokens } from '../../utils/fillTokens';
+} from '@/app/data/commonLabels';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { ACCENT, SectionTitle } from './shared';
 
 export function WishlistSection() {

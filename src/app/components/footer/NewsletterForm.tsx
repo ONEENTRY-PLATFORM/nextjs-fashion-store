@@ -1,10 +1,10 @@
 'use client';
 import { useState, useTransition } from 'react';
 
-import { useFormLabel, useFormMessage, useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { submitForm } from '../../../lib/oneentry/forms/submit';
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { NEWSLETTER_FORM_LABELS } from '../../data/commonLabels';
+import { NEWSLETTER_FORM_LABELS } from '@/app/data/commonLabels';
+import { useFormLabel, useFormMessage, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { submitForm } from '@/lib/oneentry/forms/submit';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 /** OE form marker — the form lives on the `subscribe` page in the admin panel. */
 const FORM = 'subscribe_new_drops';

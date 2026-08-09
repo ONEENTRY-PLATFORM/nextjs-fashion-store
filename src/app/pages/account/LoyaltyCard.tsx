@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { type useAuth } from '../../context/AuthContext';
-import { LOYALTY_CARD_LABELS } from '../../data/accountLabels';
+import { type useAuth } from '@/app/context/AuthContext';
+import { LOYALTY_CARD_LABELS } from '@/app/data/accountLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { ACCENT, fmt } from './shared';
 
 // Backward-compat re-exports for any code still importing them from this module.

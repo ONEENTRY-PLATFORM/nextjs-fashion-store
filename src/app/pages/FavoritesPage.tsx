@@ -3,21 +3,22 @@ import { AlertTriangle, ArrowRight, ChevronRight, ShoppingBag, Trash2 } from 'lu
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 
-import { useRouter } from '../../lib/i18n/navigation';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import type { Product } from '../components/product/ProductCard';
-import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
-import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
-import { extractCmsProductId } from '../data/cms-product-id-map';
-import { FAVORITES_PAGE_LABELS } from '../data/favoritesLabels';
-import { useMounted } from '../hooks/useMounted';
-import type { RootState } from '../store';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import type { Product } from '@/app/components/product/ProductCard';
+import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { useWishlist } from '@/app/context/WishlistContext';
+import { extractCmsProductId } from '@/app/data/cms-product-id-map';
+import { FAVORITES_PAGE_LABELS } from '@/app/data/favoritesLabels';
+import { useMounted } from '@/app/hooks/useMounted';
+import type { RootState } from '@/app/store';
+import { useRouter } from '@/lib/i18n/navigation';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { FavoriteCard } from './favorites/FavoriteCard';
 import { FavoritesCarousel } from './favorites/FavoritesCarousel';
 import { FavoritesEmptyState } from './favorites/FavoritesEmptyState';

@@ -9,10 +9,11 @@
  * be cached. Only the follow-up catalogue read is cached — that part is public
  * and stays on the server behind `getProductsByIdsAction`.
  */
-import type { Product } from '../../../app/components/product/ProductCard';
+import type { Product } from '@/app/components/product/ProductCard';
+import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+
 import { getApiSafe, hasStoredSession, isError } from '..';
-import { getProductsByIdsAction } from '../catalog/products-action';
-import { DEFAULT_LOCALE } from '../locale';
 
 /**
  * Load the cross-sell products OE recommends for the current visitor.

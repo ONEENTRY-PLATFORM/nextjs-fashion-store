@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { useAuth } from '../../context/AuthContext';
-import { SUBSCRIPTIONS_LABELS } from '../../data/accountLabels';
+import { useAuth } from '@/app/context/AuthContext';
+import { SUBSCRIPTIONS_LABELS } from '@/app/data/accountLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { SectionTitle } from './shared';
 
 const EMPTY_SUBS = {

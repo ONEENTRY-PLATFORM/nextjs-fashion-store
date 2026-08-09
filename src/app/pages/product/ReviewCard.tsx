@@ -1,10 +1,11 @@
 import { Check, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { REVIEW_CARD_LABELS as RC } from '../../data/commonLabels';
-import type { ProductReview } from '../../data/productCatalog';
-import { PRODUCT_REVIEWS_LABELS } from '../../data/productPageLabels';
+import { REVIEW_CARD_LABELS as RC } from '@/app/data/commonLabels';
+import type { ProductReview } from '@/app/data/productCatalog';
+import { PRODUCT_REVIEWS_LABELS } from '@/app/data/productPageLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { StarRating } from './StarRating';
 
 export function ReviewCard({ review }: { review: ProductReview }) {

@@ -2,11 +2,11 @@
 import { CheckCircle, ChevronDown, Tag, X } from 'lucide-react';
 import Image from 'next/image';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { SALE_COLOR } from '../../constants/colors';
-import { type GiftCartItem, useCart } from '../../context/CartContext';
-import { DELIVERY_SUMMARY_LABELS } from '../../data/checkoutLabels';
-import { fmt } from '../../utils/formatPrice';
+import { SALE_COLOR } from '@/app/constants/colors';
+import { type GiftCartItem, useCart } from '@/app/context/CartContext';
+import { DELIVERY_SUMMARY_LABELS } from '@/app/data/checkoutLabels';
+import { fmt } from '@/app/utils/formatPrice';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 interface Props {
   summaryOpen: boolean;

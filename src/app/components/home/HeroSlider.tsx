@@ -2,15 +2,15 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
-import type { HeroSlideFromCms } from '../../../lib/oneentry/blocks/hero-slides';
+import type { HeroSlideFromCms } from '@/lib/oneentry/blocks/hero-slides';
 
 type HeroSlide = HeroSlideFromCms;
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { ACCENT_MEN, ACCENT_WOMEN } from '../../constants/colors';
-import { TIMINGS } from '../../constants/timings';
-import { CAROUSEL_LABELS, HERO_SLIDER_DYNAMIC_ARIA } from '../../data/commonLabels';
-import { fillTokens } from '../../utils/fillTokens';
-import CmsImage from '../ui/CmsImage';
+import CmsImage from '@/app/components/ui/CmsImage';
+import { ACCENT_MEN, ACCENT_WOMEN } from '@/app/constants/colors';
+import { TIMINGS } from '@/app/constants/timings';
+import { CAROUSEL_LABELS, HERO_SLIDER_DYNAMIC_ARIA } from '@/app/data/commonLabels';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 // ─── Gradient per alignment direction ────────────────────────────────────────
 const GRADIENTS = {

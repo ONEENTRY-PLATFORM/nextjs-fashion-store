@@ -2,9 +2,10 @@
 import { ChevronDown, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { useCatalogAccent } from '../../context/CatalogAccentContext';
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK, MOBILE_FILTER_ARIA } from '../../data/commonLabels';
+import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
+import { CATALOG_VIEW_LABELS as CVL_FALLBACK, MOBILE_FILTER_ARIA } from '@/app/data/commonLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { FilterBody } from './MobileFilterBody';
 
 /* ─── Types ──────────────────────────────────────────────── */

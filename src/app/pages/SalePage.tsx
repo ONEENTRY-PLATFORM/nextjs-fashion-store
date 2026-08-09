@@ -3,34 +3,30 @@ import { ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lu
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Link } from '../../lib/i18n/navigation';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import type { SalePageFromCms } from '../../lib/oneentry/catalog/sale-page';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { ColsIcon, SortOptionBtn as SortOption } from '../components/catalog/CatalogTemplate.parts';
-import { MobileFilterPanel } from '../components/catalog/MobileFilterPanel';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { type Product, ProductCard } from '../components/product/ProductCard';
-import { ProductCardSkeleton } from '../components/product/ProductCardSkeleton';
-import CmsImage from '../components/ui/CmsImage';
-import { SALE_COLOR as SALE_RED } from '../constants/colors';
-import { CatalogAccentContext } from '../context/CatalogAccentContext';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { ColsIcon, SortOptionBtn as SortOption } from '@/app/components/catalog/CatalogTemplate.parts';
+import { MobileFilterPanel } from '@/app/components/catalog/MobileFilterPanel';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { type Product, ProductCard } from '@/app/components/product/ProductCard';
+import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
+import CmsImage from '@/app/components/ui/CmsImage';
+import { SALE_COLOR as SALE_RED } from '@/app/constants/colors';
+import { CatalogAccentContext } from '@/app/context/CatalogAccentContext';
 import {
   SALE_CATEGORIES,
   SALE_COLOR_OPTIONS,
   SALE_END_DATE,
   SALE_SORT_OPTIONS,
   type SaleCategory,
-} from '../data/saleConfig';
+} from '@/app/data/saleConfig';
 import {
   SALE_CATEGORY_LABELS as CAT_FALLBACK,
   SALE_DISCOUNT_LABELS as DL,
   SALE_PAGE_LABELS,
   SALE_SORT_LABELS,
-} from '../data/salePageLabels';
-import { useMounted } from '../hooks/useMounted';
+} from '@/app/data/salePageLabels';
+import { useMounted } from '@/app/hooks/useMounted';
 import {
   clearFilters,
   setFilters,
@@ -38,9 +34,14 @@ import {
   setSort,
   setViewCols as dispatchSetViewCols,
   toggleFilter as dispatchToggleFilter,
-} from '../store/catalogSlice';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { genderFilterFromQuery, matchesGender } from '../utils/gender-filter';
+} from '@/app/store/catalogSlice';
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
+import { genderFilterFromQuery, matchesGender } from '@/app/utils/gender-filter';
+import { Link } from '@/lib/i18n/navigation';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import type { SalePageFromCms } from '@/lib/oneentry/catalog/sale-page';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { useCountdown } from './sale/SaleCountdown';
 import { ColorPillDropdown, PillDropdown } from './sale/SaleFilterDropdowns';
 import { SaleHero } from './sale/SaleHero';

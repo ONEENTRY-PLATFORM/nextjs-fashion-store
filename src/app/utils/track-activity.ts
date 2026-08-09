@@ -1,5 +1,6 @@
 'use client';
-import { trackActivityAction, type TrackActivityInput } from '../../lib/oneentry/activity/actions';
+import { trackActivityAction, type TrackActivityInput } from '@/lib/oneentry/activity/actions';
+
 import { getOrCreateGuestId } from './guest-id';
 
 // Fire-and-forget telemetry. Never throws — analytics must not break UX.

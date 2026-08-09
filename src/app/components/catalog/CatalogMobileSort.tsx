@@ -1,9 +1,10 @@
 'use client';
 import { X } from 'lucide-react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { useCatalogAccent } from '../../context/CatalogAccentContext';
-import { CATALOG_MOBILE_SORT_LABELS, CATALOG_SORT_LABELS } from '../../data/commonLabels';
+import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
+import { CATALOG_MOBILE_SORT_LABELS, CATALOG_SORT_LABELS } from '@/app/data/commonLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { SORT_OPTIONS } from './CatalogTemplate.types';
 
 interface CatalogMobileSortProps {

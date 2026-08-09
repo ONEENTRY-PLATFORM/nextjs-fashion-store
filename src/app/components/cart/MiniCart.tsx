@@ -2,16 +2,16 @@
 import { Link as LinkIcon, ShoppingBag, X } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { type CartItem, useCart } from '../../context/CartContext';
-import { MINI_CART_LABELS } from '../../data/cartLabels';
-import { MINI_CART_ARIA_LABELS, MINI_CART_DYNAMIC_ARIA } from '../../data/commonLabels';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { fillTokens } from '../../utils/fillTokens';
-import { fmt } from '../../utils/formatPrice';
-import { ImageWithFallback } from '../ui/ImageWithFallback';
-import { QtyControl } from '../ui/QtyControl';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { QtyControl } from '@/app/components/ui/QtyControl';
+import { type CartItem, useCart } from '@/app/context/CartContext';
+import { MINI_CART_LABELS } from '@/app/data/cartLabels';
+import { MINI_CART_ARIA_LABELS, MINI_CART_DYNAMIC_ARIA } from '@/app/data/commonLabels';
+import { useFocusTrap } from '@/app/hooks/useFocusTrap';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { fmt } from '@/app/utils/formatPrice';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 type RenderRow = { kind: 'item'; item: CartItem } | { kind: 'bundle'; bundleId: string; items: CartItem[] };
 

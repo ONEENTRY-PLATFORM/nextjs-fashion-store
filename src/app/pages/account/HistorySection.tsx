@@ -2,15 +2,16 @@
 import { Check, ChevronDown, Package, RotateCcw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-import type { OeOrder } from '../../../lib/oneentry/auth/actions';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { BANNER_BG, SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
-import { HISTORY_LABELS } from '../../data/accountLabels';
-import { type HistoryOrder, type HistoryOrderStatus } from '../../data/userData';
-import { useAppSelector } from '../../store/hooks';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { HISTORY_LABELS } from '@/app/data/accountLabels';
+import { type HistoryOrder, type HistoryOrderStatus } from '@/app/data/userData';
+import { useAppSelector } from '@/app/store/hooks';
+import type { OeOrder } from '@/lib/oneentry/auth/actions';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { TrackingModal } from './history/TrackingModal';
 import { ACCENT, fmt, SectionTitle } from './shared';
 

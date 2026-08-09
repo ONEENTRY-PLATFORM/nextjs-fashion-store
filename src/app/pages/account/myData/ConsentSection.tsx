@@ -1,8 +1,8 @@
 'use client';
-import { useDict, useT } from '../../../../lib/oneentry/labels/DictContext';
-import { useAuth } from '../../../context/AuthContext';
-import { CONSENT_LABELS } from '../../../data/accountLabels';
-import { SectionTitle } from '../shared';
+import { useAuth } from '@/app/context/AuthContext';
+import { CONSENT_LABELS } from '@/app/data/accountLabels';
+import { SectionTitle } from '@/app/pages/account/shared';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export function ConsentSection() {
   const L = useDict('user_account_personal_data_consent_', CONSENT_LABELS);

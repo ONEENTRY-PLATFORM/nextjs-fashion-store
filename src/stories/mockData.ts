@@ -2,8 +2,8 @@
  * Shared mock data for Storybook stories.
  * Uses real product shapes matching the app's type definitions.
  */
-import type { Product } from '../app/components/product/ProductCard';
-import type { CartItem, GiftCartItem } from '../app/context/CartContext';
+import type { Product } from '@/app/components/product/ProductCard';
+import type { CartItem, GiftCartItem } from '@/app/context/CartContext';
 
 // ─── Products ───────────────────────────────────────────────────────────────
 
@@ -131,7 +131,7 @@ export const MOCK_SINGLE_SIZE_PRODUCT: Product = {
 
 // ─── Wishlist items ──────────────────────────────────────────────────────────
 
-import type { WishlistItem } from '../app/context/WishlistContext';
+import type { WishlistItem } from '@/app/context/WishlistContext';
 
 export const MOCK_WISHLIST_ITEM: WishlistItem = {
   id: 'wc-1',

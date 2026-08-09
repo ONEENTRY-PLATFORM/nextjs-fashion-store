@@ -2,10 +2,10 @@
 import { AtSign, ChevronRight, Clock, Mail, MapPin, Navigation, Phone } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import CmsImage from '../../components/ui/CmsImage';
-import type { Store } from '../../data/stores';
-import { STORE_CARD_LABELS as L_FALLBACK } from '../../data/storesLabels';
+import CmsImage from '@/app/components/ui/CmsImage';
+import type { Store } from '@/app/data/stores';
+import { STORE_CARD_LABELS as L_FALLBACK } from '@/app/data/storesLabels';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export function StoreCard({ store }: { store: Store }) {
   const L = useDict('store_location_card_', L_FALLBACK);

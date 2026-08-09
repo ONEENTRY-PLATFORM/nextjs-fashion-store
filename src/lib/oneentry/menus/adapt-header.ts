@@ -1,4 +1,5 @@
-import type { Gender, SubCat } from '../../../app/data/categories';
+import type { Gender, SubCat } from '@/app/data/categories';
+
 import type { MenuPageNode } from './menus';
 
 /**

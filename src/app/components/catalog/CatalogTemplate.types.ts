@@ -1,4 +1,4 @@
-import type { Product } from '../product/ProductCard';
+import type { Product } from '@/app/components/product/ProductCard';
 
 export interface FilterOption {
   label: string;
@@ -63,19 +63,19 @@ export interface CatalogTemplateProps {
    * Parsed filters object (from URL `searchParams`) — drives all client UI
    *  state. Optional so storybook can render with an empty filter set.
    */
-  currentFilters?: import('../../../lib/oneentry/catalog/filters').CatalogFilters;
+  currentFilters?: import('@/lib/oneentry/catalog/filters').CatalogFilters;
   productsPerPage?: number;
   /**
    * OE-managed trending block (server-fetched). Rendered as a product
    *  carousel under the grid when products are present.
    */
-  trendingBlock?: import('../../../lib/oneentry/blocks/page-blocks').PageBlock | null;
+  trendingBlock?: import('@/lib/oneentry/blocks/page-blocks').PageBlock | null;
   /**
    * All OE-attached page blocks for this catalog (`Pages.getBlocksByPageUrl`).
    *  Rendered at the top of the main content area via `<PageBlocksRenderer>`
    *  in admin-defined `position` order. Empty when no blocks are attached.
    */
-  pageBlocks?: import('../../../lib/oneentry/blocks/page-blocks').PageBlock[];
+  pageBlocks?: import('@/lib/oneentry/blocks/page-blocks').PageBlock[];
   breadcrumbs?: BreadcrumbItem[];
   priceMax?: number;
   priceDefault?: [number, number];
@@ -91,7 +91,7 @@ export interface CatalogTemplateProps {
   };
 }
 
-import { type CATALOG_SORT_LABELS } from '../../data/commonLabels';
+import { type CATALOG_SORT_LABELS } from '@/app/data/commonLabels';
 
 /**
  * Sort values paired with the `CATALOG_SORT_LABELS` key that words them.

@@ -2,11 +2,11 @@
 import { ArrowRight } from 'lucide-react';
 import React, { Suspense, useEffect } from 'react';
 
-import { useRouter } from '../../lib/i18n/navigation';
-import { useDict } from '../../lib/oneentry/labels/DictContext';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { NOT_FOUND_LABELS as L_FALLBACK } from '../data/notFoundLabels';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { NOT_FOUND_LABELS as L_FALLBACK } from '@/app/data/notFoundLabels';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export function NotFoundPage() {
   const L = useDict('not_found_', L_FALLBACK);

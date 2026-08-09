@@ -1,10 +1,10 @@
 'use server';
 import { revalidateTag } from 'next/cache';
 
-import { getApiSafe, isError } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { se } from '../server-errors';
-import type { Lang } from '../system-text';
+import { getApiSafe, isError } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { se } from '@/lib/oneentry/server-errors';
+import type { Lang } from '@/lib/oneentry/system-text';
 
 export interface FormField {
   marker: string;

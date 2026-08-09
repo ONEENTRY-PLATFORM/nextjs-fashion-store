@@ -2,9 +2,9 @@
 import { CreditCard, Lock } from 'lucide-react';
 import React, { forwardRef, useImperativeHandle, useState } from 'react';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { PAYMENT_PARTS_LABELS } from '../../data/checkoutLabels';
-import { useSchemas } from '../../utils/useFormMessages';
+import { PAYMENT_PARTS_LABELS } from '@/app/data/checkoutLabels';
+import { useSchemas } from '@/app/utils/useFormMessages';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export type PayMethod = 'cash' | 'card-delivery' | 'qr' | 'apple-pay' | 'google-pay' | 'card-online' | 'installment';
 

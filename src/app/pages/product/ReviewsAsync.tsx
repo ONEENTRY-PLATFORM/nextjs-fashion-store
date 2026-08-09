@@ -1,4 +1,5 @@
-import { loadProductReviews } from '../../../lib/oneentry/catalog/reviews';
+import { loadProductReviews } from '@/lib/oneentry/catalog/reviews';
+
 import { ReviewsClient } from './ReviewsClient';
 
 /**

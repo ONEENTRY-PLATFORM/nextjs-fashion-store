@@ -2,9 +2,9 @@
 import Image from 'next/image';
 import React from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { SPECIAL_OFFERS_LABELS } from '../../data/productPageLabels';
-import type { SpecialOffer } from '../../data/specialOffers';
+import { SPECIAL_OFFERS_LABELS } from '@/app/data/productPageLabels';
+import type { SpecialOffer } from '@/app/data/specialOffers';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 interface ProductSpecialOffersProps {
   offers: SpecialOffer[];

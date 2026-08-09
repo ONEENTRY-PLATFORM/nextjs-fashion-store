@@ -1,7 +1,8 @@
 'use client';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import type { Product } from '../../components/product/ProductCard';
-import { PRODUCT_BREADCRUMB_LABELS as PB } from '../../data/productPageLabels';
+import type { Product } from '@/app/components/product/ProductCard';
+import { PRODUCT_BREADCRUMB_LABELS as PB } from '@/app/data/productPageLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+
 import { RecommendationsCarousel } from './RecommendationsCarousel';
 
 /**

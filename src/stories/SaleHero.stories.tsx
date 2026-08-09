@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { SaleHero } from '../app/pages/sale/SaleHero';
-import type { SalePageFromCms } from '../lib/oneentry/catalog/sale-page';
+import { SaleHero } from '@/app/pages/sale/SaleHero';
+import type { SalePageFromCms } from '@/lib/oneentry/catalog/sale-page';
 
 const MOCK_COUNTDOWN = { days: 3, hours: 14, minutes: 27, seconds: 9 };
 

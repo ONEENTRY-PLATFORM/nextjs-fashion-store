@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
 
-import { DeliveryMethodHome } from '../app/pages/checkout/DeliveryMethodHome';
-import { DeliveryMethodInfoProvider } from '../lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { FormPlaceholdersProvider } from '../lib/oneentry/forms/FormPlaceholdersContext';
+import { DeliveryMethodHome } from '@/app/pages/checkout/DeliveryMethodHome';
+import { DeliveryMethodInfoProvider } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { FormPlaceholdersProvider } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 
 const EMPTY_ADDR_FORM = {
   fullName: '',

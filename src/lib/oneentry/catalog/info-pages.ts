@@ -1,10 +1,11 @@
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
-import { REVALIDATE_CATALOG } from '../../isr';
-import { currentCmsLocale } from '../current-locale';
-import { getApiSafe, isError } from '../index';
-import type { Lang } from '../system-text';
+import { REVALIDATE_CATALOG } from '@/lib/isr';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getApiSafe, isError } from '@/lib/oneentry/index';
+import type { Lang } from '@/lib/oneentry/system-text';
+
 import { loadPageByUrl } from './pages';
 
 /** OE page tree node under the `info` parent. */

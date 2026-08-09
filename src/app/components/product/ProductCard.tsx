@@ -4,26 +4,26 @@ import Image from 'next/image';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Link } from '../../../lib/i18n/navigation';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ACCENT_WOMEN } from '../../constants/colors';
-import { TIMINGS } from '../../constants/timings';
-import { useCart } from '../../context/CartContext';
-import { useCatalogAccent } from '../../context/CatalogAccentContext';
-import { useQuickView } from '../../context/QuickViewContext';
-import { useWishlist } from '../../context/WishlistContext';
+import CmsImage from '@/app/components/ui/CmsImage';
+import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
+import { ACCENT_WOMEN } from '@/app/constants/colors';
+import { TIMINGS } from '@/app/constants/timings';
+import { useCart } from '@/app/context/CartContext';
+import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
+import { useQuickView } from '@/app/context/QuickViewContext';
+import { useWishlist } from '@/app/context/WishlistContext';
 import {
   CATALOG_VIEW_LABELS,
   PRODUCT_CARD_ARIA_LABELS,
   PRODUCT_CARD_LABELS,
   SIZE_DROPDOWN_LABELS,
-} from '../../data/commonLabels';
-import { QUICK_VIEW_LABELS } from '../../data/productPageLabels';
-import { useMounted } from '../../hooks/useMounted';
-import { hexToColorName as colorName } from '../../utils/colorNames';
-import { stripTrailingZeros } from '../../utils/formatPrice';
-import CmsImage from '../ui/CmsImage';
-import { ColorSwatchButton } from '../ui/ColorSwatchButton';
+} from '@/app/data/commonLabels';
+import { QUICK_VIEW_LABELS } from '@/app/data/productPageLabels';
+import { useMounted } from '@/app/hooks/useMounted';
+import { hexToColorName as colorName } from '@/app/utils/colorNames';
+import { stripTrailingZeros } from '@/app/utils/formatPrice';
+import { Link } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export interface ProductSpec {
   /** Stable row identifier — match on this, never on the editable `label`. */

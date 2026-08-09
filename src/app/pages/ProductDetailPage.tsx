@@ -16,39 +16,40 @@ import { notFound, useParams, useSearchParams } from 'next/navigation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { Link, useRouter } from '../../lib/i18n/navigation';
-import { pushRecentlyViewedAction } from '../../lib/oneentry/auth/actions';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
-import { getProductReviewSummary } from '../../lib/oneentry/catalog/reviews-actions';
-// PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks
-// (`saveToWishlist`, `savedToWishlist`) — anything referring to product data
-// (name/brand/price/size/colour) comes from `catalogProduct` / OneEntry.
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { sanitizeHtml } from '../../lib/sanitize-html';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
-import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
-import { CURRENCY } from '../data/currencyConfig';
-import { type CatalogProduct, hexToColorName } from '../data/productCatalog';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { useWishlist } from '@/app/context/WishlistContext';
+import { CURRENCY } from '@/app/data/currencyConfig';
+import { type CatalogProduct, hexToColorName } from '@/app/data/productCatalog';
 import {
   PRODUCT_ACCORDION_LABELS as PA,
   PRODUCT_ACTION_LABELS,
   PRODUCT_BREADCRUMB_LABELS,
   PRODUCT_DEFAULTS as PD,
   PRODUCT_PRICE_NOTE,
-} from '../data/productPageLabels';
-import { type SpecialOffer } from '../data/specialOffers';
-import { useAnnounce } from '../hooks/useAnnounce';
-import type { AppDispatch, RootState } from '../store';
-import { recentlyViewedActions } from '../store/recentlyViewedSlice';
-import { strikeColor } from '../utils/colorUtils';
-import { fillTokens } from '../utils/fillTokens';
-import { trackActivity } from '../utils/track-activity';
+} from '@/app/data/productPageLabels';
+import { type SpecialOffer } from '@/app/data/specialOffers';
+import { useAnnounce } from '@/app/hooks/useAnnounce';
+import type { AppDispatch, RootState } from '@/app/store';
+import { recentlyViewedActions } from '@/app/store/recentlyViewedSlice';
+import { strikeColor } from '@/app/utils/colorUtils';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { trackActivity } from '@/app/utils/track-activity';
+import { Link, useRouter } from '@/lib/i18n/navigation';
+import { pushRecentlyViewedAction } from '@/lib/oneentry/auth/actions';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
+import { getProductReviewSummary } from '@/lib/oneentry/catalog/reviews-actions';
+// PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks
+// (`saveToWishlist`, `savedToWishlist`) — anything referring to product data
+// (name/brand/price/size/colour) comes from `catalogProduct` / OneEntry.
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { sanitizeHtml } from '@/lib/sanitize-html';
+
 import { AccordionSection } from './product/AccordionSection';
 import { ProductGallery } from './product/ProductGallery';
 import { ProductShareDropdown } from './product/ProductShareDropdown';

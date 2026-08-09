@@ -2,11 +2,11 @@
 import { AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 
-import { useRouter } from '../../../../lib/i18n/navigation';
-import { useDict } from '../../../../lib/oneentry/labels/DictContext';
-import { useAuth } from '../../../context/AuthContext';
-import { ACCOUNT_DELETION_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import { SectionTitle } from '../shared';
+import { useAuth } from '@/app/context/AuthContext';
+import { ACCOUNT_DELETION_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
+import { SectionTitle } from '@/app/pages/account/shared';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export function AccountDeletionSection() {
   const L = useDict('user_account_deletion_', L_FALLBACK);

@@ -7,7 +7,8 @@
  * browser code that needs product details (order thumbnails, wishlist stock,
  * cross-sell) hops through these actions instead of re-fetching per visitor.
  */
-import type { Product } from '../../../app/components/product/ProductCard';
+import type { Product } from '@/app/components/product/ProductCard';
+
 import { adaptCatalogProductToUiProduct } from './adapt';
 import type { CatalogProduct } from './products';
 import { loadProductsByIds } from './products';

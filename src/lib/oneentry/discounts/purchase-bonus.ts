@@ -1,10 +1,10 @@
 import { unstable_cache } from 'next/cache';
 
-import { REVALIDATE_CATALOG } from '../../isr';
-import type { CatalogProduct } from '../catalog/products';
-import { getApi, isError, isOneEntryEnabled } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { withTiming } from '../profiling';
+import { REVALIDATE_CATALOG } from '@/lib/isr';
+import type { CatalogProduct } from '@/lib/oneentry/catalog/products';
+import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { withTiming } from '@/lib/oneentry/profiling';
 
 /**
  * OE `Discounts.getDiscountByMarker` marker for the "bonus per purchase" rule

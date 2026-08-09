@@ -2,13 +2,13 @@
 import { Edit2, MapPin, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-import { useFormLabel, useFormPlaceholder } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { useDict, useT } from '../../../../lib/oneentry/labels/DictContext';
-import { useAuth } from '../../../context/AuthContext';
-import { ADDRESSES_LABELS } from '../../../data/accountLabels';
-import { ADDRESSES_SECTION_ARIA } from '../../../data/commonLabels';
-import { useFormMessages } from '../../../utils/useFormMessages';
-import { FormInput, SectionTitle } from '../shared';
+import { useAuth } from '@/app/context/AuthContext';
+import { ADDRESSES_LABELS } from '@/app/data/accountLabels';
+import { ADDRESSES_SECTION_ARIA } from '@/app/data/commonLabels';
+import { FormInput, SectionTitle } from '@/app/pages/account/shared';
+import { useFormMessages } from '@/app/utils/useFormMessages';
+import { useFormLabel, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 type AddrForm = {
   name: string;

@@ -2,9 +2,10 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import React, { useEffect } from 'react';
 
-import { QuickViewModal } from '../app/components/product/QuickViewModal';
-import { useAppDispatch } from '../app/store/hooks';
-import { openQuickView } from '../app/store/uiSlice';
+import { QuickViewModal } from '@/app/components/product/QuickViewModal';
+import { useAppDispatch } from '@/app/store/hooks';
+import { openQuickView } from '@/app/store/uiSlice';
+
 import {
   MOCK_COMING_SOON_PRODUCT,
   MOCK_PREORDER_PRODUCT,

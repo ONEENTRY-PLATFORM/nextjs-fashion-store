@@ -2,27 +2,28 @@
 import { Lock, Shield } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import { useRouter } from '../../lib/i18n/navigation';
-import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { getPaymentAccountsAction, type PaymentAccount } from '../../lib/oneentry/payments/accounts';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { ImageWithFallback } from '../components/ui/ImageWithFallback';
-import { SALE_COLOR } from '../constants/colors';
-import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
-import { ORDER_SUMMARY_LABELS } from '../data/checkoutLabels';
-import { extractCmsProductId } from '../data/cms-product-id-map';
-import { CART_LINE_LABELS } from '../data/commonLabels';
-import { PAYMENT_PAGE_LABELS } from '../data/paymentMethodsConfig';
-import { useMounted } from '../hooks/useMounted';
-import { fmt } from '../utils/formatPrice';
-import { getOrCreateGuestId } from '../utils/guest-id';
-import { trackActivity } from '../utils/track-activity';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { ORDER_SUMMARY_LABELS } from '@/app/data/checkoutLabels';
+import { extractCmsProductId } from '@/app/data/cms-product-id-map';
+import { CART_LINE_LABELS } from '@/app/data/commonLabels';
+import { PAYMENT_PAGE_LABELS } from '@/app/data/paymentMethodsConfig';
+import { useMounted } from '@/app/hooks/useMounted';
+import { fmt } from '@/app/utils/formatPrice';
+import { getOrCreateGuestId } from '@/app/utils/guest-id';
+import { trackActivity } from '@/app/utils/track-activity';
+import { useRouter } from '@/lib/i18n/navigation';
+import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '@/lib/oneentry/auth/actions';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
+
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
 
 export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {

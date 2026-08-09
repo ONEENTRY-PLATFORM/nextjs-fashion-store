@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { HeroSlider } from '../app/components/home/HeroSlider';
+import { HeroSlider } from '@/app/components/home/HeroSlider';
 
 const meta = {
   title: 'Sections / HeroSlider',

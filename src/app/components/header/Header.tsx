@@ -5,26 +5,27 @@ import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import logoImage from '../../../assets/kekimoro-logo-black.png';
-import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
-import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { useWishlist } from '@/app/context/WishlistContext';
+import logoImage from '@/assets/kekimoro-logo-black.png';
+
 import { HeaderMegaMenu } from './HeaderMegaMenu';
 import { HeaderMobileDrawer } from './HeaderMobileDrawer';
 import { HeaderSearch } from './HeaderSearch';
 import { HeaderTopBar } from './HeaderTopBar';
 
-const MiniCart = dynamic(() => import('../cart/MiniCart').then((m) => ({ default: m.MiniCart })));
-const LoginModal = dynamic(() => import('../auth/LoginModal').then((m) => ({ default: m.LoginModal })));
-const RegisterModal = dynamic(() => import('../auth/RegisterModal').then((m) => ({ default: m.RegisterModal })));
-const QuickViewModal = dynamic(() => import('../product/QuickViewModal').then((m) => ({ default: m.QuickViewModal })));
+const MiniCart = dynamic(() => import('@/app/components/cart/MiniCart').then((m) => ({ default: m.MiniCart })));
+const LoginModal = dynamic(() => import('@/app/components/auth/LoginModal').then((m) => ({ default: m.LoginModal })));
+const RegisterModal = dynamic(() =>
+  import('@/app/components/auth/RegisterModal').then((m) => ({ default: m.RegisterModal })),
+);
+const QuickViewModal = dynamic(() =>
+  import('@/app/components/product/QuickViewModal').then((m) => ({ default: m.QuickViewModal })),
+);
 
-import { Link, useRouter } from '../../../lib/i18n/navigation';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { adaptHeaderMenuToMega } from '../../../lib/oneentry/menus/adapt-header';
-import { useHeaderMenu } from '../../../lib/oneentry/menus/HeaderMenuContext';
-import { type Gender, type SubCat } from '../../data/categories';
-import { HEADER_ARIA } from '../../data/commonLabels';
+import { type Gender, type SubCat } from '@/app/data/categories';
+import { HEADER_ARIA } from '@/app/data/commonLabels';
 import {
   ACCOUNT_HREF,
   GENDER_NAV_HREFS,
@@ -33,8 +34,12 @@ import {
   SEARCH_PLACEHOLDER,
   WISHLIST_HREF,
   WOMEN_COLOR,
-} from '../../data/headerConfig';
-import { useMounted } from '../../hooks/useMounted';
+} from '@/app/data/headerConfig';
+import { useMounted } from '@/app/hooks/useMounted';
+import { Link, useRouter } from '@/lib/i18n/navigation';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+import { adaptHeaderMenuToMega } from '@/lib/oneentry/menus/adapt-header';
+import { useHeaderMenu } from '@/lib/oneentry/menus/HeaderMenuContext';
 
 export function Header() {
   const lSearch = useT('search', SEARCH_PLACEHOLDER);

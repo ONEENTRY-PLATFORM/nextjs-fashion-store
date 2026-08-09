@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-import { OG_IMAGE, OG_IMAGE_COPY } from '../src/app/data/seoData';
+import { OG_IMAGE, OG_IMAGE_COPY } from '@/app/data/seoData';
 
 export const alt = OG_IMAGE.alt;
 export const size = { width: OG_IMAGE.width, height: OG_IMAGE.height };

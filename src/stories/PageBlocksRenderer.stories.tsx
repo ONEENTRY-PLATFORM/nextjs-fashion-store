@@ -2,10 +2,11 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import React, { useEffect } from 'react';
 
-import { PageBlocksRenderer } from '../app/components/blocks/PageBlocksRenderer';
-import { useAppDispatch } from '../app/store/hooks';
-import { recentlyViewedActions } from '../app/store/recentlyViewedSlice';
-import type { PageBlock } from '../lib/oneentry/blocks/page-blocks';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { useAppDispatch } from '@/app/store/hooks';
+import { recentlyViewedActions } from '@/app/store/recentlyViewedSlice';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+
 import { MOCK_OOS_PRODUCT, MOCK_PRODUCT, MOCK_SALE_PRODUCT } from './mockData';
 
 const meta = {

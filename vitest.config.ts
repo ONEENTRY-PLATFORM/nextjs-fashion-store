@@ -1,10 +1,12 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import path from 'node:path';
 import { cpus } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
+import { defineConfig } from 'vitest/config';
+
 const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
@@ -30,7 +32,13 @@ export default defineConfig({
         // include glob above matches `spec` as well. Without this the jsdom
         // runner would collect 21 Playwright specs and fail them all on the
         // missing `@playwright/test` runner context.
-        exclude: ['node_modules', 'tests/e2e/**', '.next', 'playwright-report', 'storybook-static'],
+        exclude: [
+          'node_modules',
+          'tests/e2e/**',
+          '.next',
+          'playwright-report',
+          'storybook-static'
+        ],
         // Capped deliberately. Vitest's default (~cores-1 forks) starves the
         // pool on this suite: each fork boots its own jsdom + transform
         // pipeline, and forks start failing with "Timeout waiting for worker

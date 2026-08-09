@@ -1,7 +1,7 @@
-import { readUserIdentifier } from '../auth/browser-session';
-import { getApiSafe, hasStoredSession, isError } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { se } from '../server-errors';
+import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
+import { getApiSafe, hasStoredSession, isError } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { se } from '@/lib/oneentry/server-errors';
 
 const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
 

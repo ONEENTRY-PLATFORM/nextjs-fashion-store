@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-import { PWA_MANIFEST_COPY, SITE_DESCRIPTION, SITE_NAME } from '../src/app/data/seoData';
+import { PWA_MANIFEST_COPY, SITE_DESCRIPTION, SITE_NAME } from '@/app/data/seoData';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {

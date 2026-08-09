@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { SCHEMA_BREADCRUMBS as BC, SEO, SITE_URL } from '../../../src/app/data/seoData';
-import { SalePage } from '../../../src/app/pages/SalePage';
-import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
-import { adaptCatalogProductToUiProduct, saleCategoryFor } from '../../../src/lib/oneentry/catalog/adapt';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
-import { loadSalePage } from '../../../src/lib/oneentry/catalog/sale-page';
+import { JsonLd } from '@/app/components/system/JsonLd';
+import { SCHEMA_BREADCRUMBS as BC, SEO, SITE_URL } from '@/app/data/seoData';
+import { SalePage } from '@/app/pages/SalePage';
+import { loadPageBlocksByUrl } from '@/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToUiProduct, saleCategoryFor } from '@/lib/oneentry/catalog/adapt';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadProducts } from '@/lib/oneentry/catalog/products';
+import { loadSalePage } from '@/lib/oneentry/catalog/sale-page';
 
 /**
  * Title/description/keywords/canonical come from the OE `sale` page when an

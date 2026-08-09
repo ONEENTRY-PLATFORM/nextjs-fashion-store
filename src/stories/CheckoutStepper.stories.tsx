@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { CheckoutStepper } from '../app/components/checkout/CheckoutStepper';
+import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
 
 const meta = {
   title: 'UI / CheckoutStepper',

@@ -2,11 +2,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
-import { getCmsProductId, getPlaygroundProductId } from '../data/cms-product-id-map';
-import type { AppDispatch, RootState } from '../store';
-import { wishlistActions } from '../store/wishlistSlice';
-import { trackActivity } from '../utils/track-activity';
+import { getCmsProductId, getPlaygroundProductId } from '@/app/data/cms-product-id-map';
+import type { AppDispatch, RootState } from '@/app/store';
+import { wishlistActions } from '@/app/store/wishlistSlice';
+import { trackActivity } from '@/app/utils/track-activity';
+import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
+
 import { useAuth } from './AuthContext';
 
 export interface WishlistItem {

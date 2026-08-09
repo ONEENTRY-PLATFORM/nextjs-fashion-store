@@ -2,10 +2,10 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { completeGoogleSignIn } from '../../../lib/oneentry/auth/actions';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { OAUTH_ERROR_LABELS as OAE } from '../../data/authLabels';
+import { OAUTH_ERROR_LABELS as OAE } from '@/app/data/authLabels';
+import { useRouter } from '@/lib/i18n/navigation';
+import { completeGoogleSignIn } from '@/lib/oneentry/auth/actions';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 /**
  * Redeems Google's `?code=` for a OneEntry session and installs it in this

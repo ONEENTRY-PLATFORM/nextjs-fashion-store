@@ -4,8 +4,11 @@
 // so `next build` / `tsc --noEmit` never typecheck test code. The side effect
 // is that an open test file belongs to no configured project, so VS Code falls
 // back to an inferred project — which has no `paths`, and every `@/…` import
-// reports "Cannot find module". This config gives those files a home with the
-// same alias Vitest already resolves (`vitest.config.ts` → `resolve.alias`).
+// reports "Cannot find module". This config gives those files a home.
+//
+// `paths` is inherited rather than redeclared: the root `tsconfig.json`, this
+// project and `vitest.config.ts` (`resolve.alias`) now all agree that `@/*`
+// means `src/*`. Restating the mapping per project is what let them drift.
 //
 // `exclude` MUST be redeclared: the inherited one lists `**/*.test.ts`, which
 // would filter out exactly the files this project exists to cover. `e2e/` is
@@ -14,11 +17,6 @@
 // `test` / `expect` globals collide with Playwright's.
 {
   "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["../src/*"]
-    }
-  },
   "include": ["**/*.ts", "**/*.tsx", "../vitest.shims.d.ts", "../next-env.d.ts"],
   "exclude": ["node_modules", "e2e"]
 }

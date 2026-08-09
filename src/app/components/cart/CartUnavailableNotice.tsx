@@ -2,9 +2,9 @@
 import { AlertTriangle, X } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { useCart } from '../../context/CartContext';
-import { CART_UNAVAILABLE_LABELS as L } from '../../data/cartLabels';
+import { useCart } from '@/app/context/CartContext';
+import { CART_UNAVAILABLE_LABELS as L } from '@/app/data/cartLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 /**
  * How long the notice stays on screen before self-dismissing. Matches the

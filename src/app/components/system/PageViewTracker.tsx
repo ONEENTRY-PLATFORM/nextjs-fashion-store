@@ -2,7 +2,7 @@
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
-import { trackActivity } from '../../utils/track-activity';
+import { trackActivity } from '@/app/utils/track-activity';
 
 // Fires a `page_view` on every client-side route change. Product and catalog
 // pages already emit dedicated `product_view` / `category_view` events, so we

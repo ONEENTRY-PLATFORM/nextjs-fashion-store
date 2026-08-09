@@ -1,5 +1,5 @@
-import { INFO_PAGE_META } from '../../src/app/data/infoPages';
-import { LLMS_TXT_COPY, LLMS_TXT_PREFIX } from '../../src/app/data/llmsTextLabels';
+import { INFO_PAGE_META } from '@/app/data/infoPages';
+import { LLMS_TXT_COPY, LLMS_TXT_PREFIX } from '@/app/data/llmsTextLabels';
 import {
   CURRENCY,
   DELIVERY_MAX_DAYS,
@@ -11,13 +11,13 @@ import {
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_URL,
-} from '../../src/app/data/seoData';
-import { fillTokens } from '../../src/app/utils/fillTokens';
-import { loadProducts } from '../../src/lib/oneentry/catalog/products';
-import { loadStores } from '../../src/lib/oneentry/catalog/stores';
-import { getDictionary } from '../../src/lib/oneentry/dictionary';
-import { mergeDict } from '../../src/lib/oneentry/labels/dict';
-import { DEFAULT_LOCALE } from '../../src/lib/oneentry/locale';
+} from '@/app/data/seoData';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { loadProducts } from '@/lib/oneentry/catalog/products';
+import { loadStores } from '@/lib/oneentry/catalog/stores';
+import { getDictionary } from '@/lib/oneentry/dictionary';
+import { mergeDict } from '@/lib/oneentry/labels/dict';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 
 export const dynamic = 'force-static';
 

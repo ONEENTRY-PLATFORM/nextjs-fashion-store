@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
-import { SEO } from '../../../../src/app/data/seoData';
-import { ConfirmationPage } from '../../../../src/app/pages/ConfirmationPage';
-import { withCmsSeo } from '../../../../src/lib/oneentry/catalog/page-seo';
-import { loadCheckoutSuccessMessage } from '../../../../src/lib/oneentry/checkout/delivery-methods';
+import { SEO } from '@/app/data/seoData';
+import { ConfirmationPage } from '@/app/pages/ConfirmationPage';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadCheckoutSuccessMessage } from '@/lib/oneentry/checkout/delivery-methods';
 
 /**
  * Title/description/keywords/canonical come from the OE `confirmation` page when an

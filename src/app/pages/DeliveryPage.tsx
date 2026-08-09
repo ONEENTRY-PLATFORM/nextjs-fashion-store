@@ -2,11 +2,11 @@
 import dynamic from 'next/dynamic';
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { CheckoutStepper } from '../components/checkout/CheckoutStepper';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { useCart } from '../context/CartContext';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { useCart } from '@/app/context/CartContext';
 
 // Render Order Summary client-only — its content reads from the Redux cart
 // slice which hydrates from localStorage after mount. SSR rendering it
@@ -16,16 +16,17 @@ const DeliveryOrderSummary = dynamic(
   () => import('./checkout/DeliveryOrderSummary').then((m) => m.DeliveryOrderSummary),
   { ssr: false },
 );
-import { useRouter } from '../../lib/i18n/navigation';
-import type { OeAddress } from '../../lib/oneentry/auth/actions';
-import type { DeliveryTimeSlot } from '../../lib/oneentry/checkout/delivery-schedule';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '../constants/colors';
-import { useAuth } from '../context/AuthContext';
-import { DELIVERY_TIME_SLOTS, PARCEL_LOCKERS, PICKUP_STORES, type PickupStore } from '../data/checkoutConfig';
-import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_PAGE_LABELS } from '../data/checkoutLabels';
-import { useMounted } from '../hooks/useMounted';
-import { useSchemas } from '../utils/useFormMessages';
+import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { DELIVERY_TIME_SLOTS, PARCEL_LOCKERS, PICKUP_STORES, type PickupStore } from '@/app/data/checkoutConfig';
+import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_PAGE_LABELS } from '@/app/data/checkoutLabels';
+import { useMounted } from '@/app/hooks/useMounted';
+import { useSchemas } from '@/app/utils/useFormMessages';
+import { useRouter } from '@/lib/i18n/navigation';
+import type { OeAddress } from '@/lib/oneentry/auth/actions';
+import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { DeliveryMethodHome } from './checkout/DeliveryMethodHome';
 import { DeliveryMethodLocker } from './checkout/DeliveryMethodLocker';
 import { DeliveryMethodStore } from './checkout/DeliveryMethodStore';
@@ -87,7 +88,7 @@ interface DeliveryPageProps {
   /** Slots from `checkout_home_delivery_guest.delivery_slot_guest`. */
   deliverySlotsGuest?: DeliveryTimeSlot[];
   /** OE-attached blocks for the `delivery_method` page. */
-  pageBlocks?: import('../../lib/oneentry/blocks/page-blocks').PageBlock[];
+  pageBlocks?: import('@/lib/oneentry/blocks/page-blocks').PageBlock[];
 }
 
 export function DeliveryPage({

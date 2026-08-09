@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import { SCHEMA_BREADCRUMBS as BC, SEO, SITE_URL } from '../../../src/app/data/seoData';
-import { NewArrivalsPage } from '../../../src/app/pages/NewArrivalsPage';
-import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
-import { adaptCatalogProductToUiProduct, newArrivalCategoryFor } from '../../../src/lib/oneentry/catalog/adapt';
-import { loadNewArrivalsPage } from '../../../src/lib/oneentry/catalog/new-arrivals-page';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { loadProducts } from '../../../src/lib/oneentry/catalog/products';
+import { JsonLd } from '@/app/components/system/JsonLd';
+import { SCHEMA_BREADCRUMBS as BC, SEO, SITE_URL } from '@/app/data/seoData';
+import { NewArrivalsPage } from '@/app/pages/NewArrivalsPage';
+import { loadPageBlocksByUrl } from '@/lib/oneentry/blocks/page-blocks';
+import { adaptCatalogProductToUiProduct, newArrivalCategoryFor } from '@/lib/oneentry/catalog/adapt';
+import { loadNewArrivalsPage } from '@/lib/oneentry/catalog/new-arrivals-page';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadProducts } from '@/lib/oneentry/catalog/products';
 
 /**
  * Title/description/keywords/canonical come from the OE `new` page when an

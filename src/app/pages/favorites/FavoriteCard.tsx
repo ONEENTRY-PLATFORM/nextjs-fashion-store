@@ -2,19 +2,19 @@
 import { AlertTriangle, Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ColorSwatchButton } from '../../components/ui/ColorSwatchButton';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
-import { TIMINGS } from '../../constants/timings';
-import { useCart } from '../../context/CartContext';
-import { useQuickView } from '../../context/QuickViewContext';
-import { useWishlist, type WishlistItem } from '../../context/WishlistContext';
-import { extractCmsProductId } from '../../data/cms-product-id-map';
-import { CATALOG_VIEW_LABELS, PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS } from '../../data/commonLabels';
-import { FAVORITE_CARD_LABELS as FCL } from '../../data/favoritesLabels';
-import { fillTokens } from '../../utils/fillTokens';
+import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import { TIMINGS } from '@/app/constants/timings';
+import { useCart } from '@/app/context/CartContext';
+import { useQuickView } from '@/app/context/QuickViewContext';
+import { useWishlist, type WishlistItem } from '@/app/context/WishlistContext';
+import { extractCmsProductId } from '@/app/data/cms-product-id-map';
+import { CATALOG_VIEW_LABELS, PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS } from '@/app/data/commonLabels';
+import { FAVORITE_CARD_LABELS as FCL } from '@/app/data/favoritesLabels';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);

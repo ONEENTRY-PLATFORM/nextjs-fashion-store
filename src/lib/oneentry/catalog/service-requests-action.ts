@@ -1,8 +1,8 @@
-import type { ServiceCategory, ServiceRequest, ServiceStatus } from '../../../app/data/serviceData';
-import { readUserIdentifier } from '../auth/browser-session';
-import { getApiSafe, isError } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { logCaught } from '../log';
+import type { ServiceCategory, ServiceRequest, ServiceStatus } from '@/app/data/serviceData';
+import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
+import { getApiSafe, isError } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { logCaught } from '@/lib/oneentry/log';
 
 const STATUS_MAP: Record<string, ServiceStatus> = {
   new: 'open',

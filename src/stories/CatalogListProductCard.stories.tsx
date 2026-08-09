@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { CatalogListProductCard } from '../app/components/catalog/CatalogListProductCard';
-import { ACCENT_MEN, ACCENT_WOMEN } from '../app/constants/colors';
+import { CatalogListProductCard } from '@/app/components/catalog/CatalogListProductCard';
+import { ACCENT_MEN, ACCENT_WOMEN } from '@/app/constants/colors';
+
 import { MOCK_OOS_PRODUCT, MOCK_PRODUCT, MOCK_SALE_PRODUCT } from './mockData';
 
 const meta = {

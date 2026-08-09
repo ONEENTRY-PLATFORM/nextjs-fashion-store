@@ -5,8 +5,9 @@
  * All rendering logic lives in ShoesCatalog; this file only overrides the
  * catalog title and breadcrumb label.
  */
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { CATALOG_PAGE_LABELS as CL } from '../../data/catalogPageLabels';
+import { CATALOG_PAGE_LABELS as CL } from '@/app/data/catalogPageLabels';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+
 import {
   type CrossSellCategory,
   type FilterGroup,

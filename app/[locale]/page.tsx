@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { JsonLd } from '../../src/app/components/system/JsonLd';
+import { JsonLd } from '@/app/components/system/JsonLd';
 import {
   CURRENCY,
   DELIVERY_COUNTRY,
@@ -13,16 +13,16 @@ import {
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_URL,
-} from '../../src/app/data/seoData';
-import type { Store } from '../../src/app/data/stores';
-import { HomePage } from '../../src/app/pages/HomePage';
-import { loadCategorySection } from '../../src/lib/oneentry/blocks/category-section';
-import { loadDiscountBanner } from '../../src/lib/oneentry/blocks/discount-banner';
-import { loadHeroSlides } from '../../src/lib/oneentry/blocks/hero-slides';
-import { loadHomepageCollections } from '../../src/lib/oneentry/blocks/homepage-collections';
-import { HOME_PAGE_ID, loadPageBlocksById } from '../../src/lib/oneentry/blocks/page-blocks';
-import { withCmsSeo } from '../../src/lib/oneentry/catalog/page-seo';
-import { loadStores } from '../../src/lib/oneentry/catalog/stores';
+} from '@/app/data/seoData';
+import type { Store } from '@/app/data/stores';
+import { HomePage } from '@/app/pages/HomePage';
+import { loadCategorySection } from '@/lib/oneentry/blocks/category-section';
+import { loadDiscountBanner } from '@/lib/oneentry/blocks/discount-banner';
+import { loadHeroSlides } from '@/lib/oneentry/blocks/hero-slides';
+import { loadHomepageCollections } from '@/lib/oneentry/blocks/homepage-collections';
+import { HOME_PAGE_ID, loadPageBlocksById } from '@/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadStores } from '@/lib/oneentry/catalog/stores';
 
 /**
  * Title/description/keywords/canonical come from the OE `home` page when an

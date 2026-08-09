@@ -1,9 +1,9 @@
 'use client';
 import { X } from 'lucide-react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { SIZE_GUIDE_LABELS } from '../../data/productPageLabels';
-import { parseSizeTable, serializeSizeTable } from '../../data/sizeGuide';
+import { SIZE_GUIDE_LABELS } from '@/app/data/productPageLabels';
+import { parseSizeTable, serializeSizeTable } from '@/app/data/sizeGuide';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 /** Quick View shows the metric chart: `size|chest|waist|hips`. */
 const QUICK_VIEW_COLUMNS = ['size', 'chest', 'waist', 'hips'] as const;

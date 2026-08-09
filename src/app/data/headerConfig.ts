@@ -26,7 +26,7 @@ export const GENDER_NAV_HREFS: Record<string, string> = {
 };
 
 // ── Gender accent colours (code-owned) ───────────────────────────────────────
-export { ACCENT_MEN as MEN_COLOR, ACCENT_WOMEN as WOMEN_COLOR } from '../constants/colors';
+export { ACCENT_MEN as MEN_COLOR, ACCENT_WOMEN as WOMEN_COLOR } from '@/app/constants/colors';
 
 // ── Shared fallbacks (used by more than one component) ───────────────────────
 /** `header_logo_alt` — Header, Footer and the mobile drawer all render it. */

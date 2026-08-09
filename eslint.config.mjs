@@ -46,11 +46,10 @@ export default [
       'import/no-duplicates': 'warn',
       'import/newline-after-import': 'warn',
       'import/no-self-import': 'error',
-      // Off on purpose: its autofix rewrites relative paths to the `@/…` alias, and the
-      // alias means two different things here — tsconfig maps `@/*` to the repo root,
-      // vitest.config maps `@` to `src/`. A rewritten path type-checks and then dies at
-      // test collection with "Failed to resolve import".
-      'import/no-useless-path-segments': 'off',
+      // Safe now that `@/*` means `src/*` everywhere (root tsconfig, tests/tsconfig,
+      // vitest.config). While those disagreed, this rule's autofix produced paths that
+      // type-checked and then died at test collection with "Failed to resolve import".
+      'import/no-useless-path-segments': 'warn',
     },
   },
 

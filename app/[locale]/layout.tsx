@@ -4,23 +4,23 @@ import type { Metadata, Viewport } from 'next';
 import { locale } from 'next/root-params';
 import { Suspense } from 'react';
 
-import { Providers } from '../../src/app/components/system/Providers';
-import { ScrollToTop } from '../../src/app/components/system/ScrollToTop';
-import { A11Y_LABELS } from '../../src/app/data/commonLabels';
-import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL, TWITTER_HANDLE } from '../../src/app/data/seoData';
-import { loadSignUpFormSchema } from '../../src/lib/oneentry/auth/sign-up-form';
+import { Providers } from '@/app/components/system/Providers';
+import { ScrollToTop } from '@/app/components/system/ScrollToTop';
+import { A11Y_LABELS } from '@/app/data/commonLabels';
+import { OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL, TWITTER_HANDLE } from '@/app/data/seoData';
+import { loadSignUpFormSchema } from '@/lib/oneentry/auth/sign-up-form';
 // One dictionary for the whole storefront: every attribute marker the CMS
 // knows, flattened to `marker → value`. Screens no longer carry their own
 // label set — see `src/lib/oneentry/dictionary.ts`.
-import { getDictionary } from '../../src/lib/oneentry/dictionary';
+import { getDictionary } from '@/lib/oneentry/dictionary';
 // Site-wide OE forms only. Everything here renders on every route, so the copy
 // travels with the root layout rather than a per-page provider; route-scoped
 // forms mount their own `FormPlaceholdersProvider` next to the page that needs
 // them (see `app/[locale]/product/[id]/page.tsx`, `account`, `checkout`).
-import { loadFormContent } from '../../src/lib/oneentry/forms/placeholders';
-import { buildLanguageAlternates, DEFAULT_SHORT_LOCALE, htmlLang, SHORT_LOCALES } from '../../src/lib/oneentry/locale';
-import { loadLocales } from '../../src/lib/oneentry/locales';
-import { loadMenu } from '../../src/lib/oneentry/menus/menus';
+import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
+import { buildLanguageAlternates, DEFAULT_SHORT_LOCALE, htmlLang, SHORT_LOCALES } from '@/lib/oneentry/locale';
+import { loadLocales } from '@/lib/oneentry/locales';
+import { loadMenu } from '@/lib/oneentry/menus/menus';
 
 export const viewport: Viewport = {
   width: 'device-width',

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
 
-import { SizeDropdown } from '../app/components/ui/SizeDropdown';
+import { SizeDropdown } from '@/app/components/ui/SizeDropdown';
 
 const meta = {
   title: 'UI / SizeDropdown',

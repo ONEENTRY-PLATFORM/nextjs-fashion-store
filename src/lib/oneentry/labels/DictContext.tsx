@@ -2,7 +2,8 @@
 
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
-import type { Dictionary } from '../dictionary';
+import type { Dictionary } from '@/lib/oneentry/dictionary';
+
 import { mergeDict } from './dict';
 
 /**

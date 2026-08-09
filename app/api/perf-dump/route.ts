@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { aggregateTimings, clearTimings, OE_PROFILE_ENABLED, readTimings } from '../../../src/lib/oneentry/profiling';
-import { se } from '../../../src/lib/oneentry/server-errors';
+import { aggregateTimings, clearTimings, OE_PROFILE_ENABLED, readTimings } from '@/lib/oneentry/profiling';
+import { se } from '@/lib/oneentry/server-errors';
 
 /**
  * Ops endpoint to snapshot the in-memory OE loader-timing ring buffer

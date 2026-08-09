@@ -2,8 +2,8 @@
 import { AlertTriangle } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { ERROR_PAGE_LABELS as L_FALLBACK } from '../../src/app/data/errorPageLabels';
-import { useDict } from '../../src/lib/oneentry/labels/DictContext';
+import { ERROR_PAGE_LABELS as L_FALLBACK } from '@/app/data/errorPageLabels';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 interface ErrorProps {
   error: Error & { digest?: string };

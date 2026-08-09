@@ -1,8 +1,8 @@
 'use client';
 import React from 'react';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { ERROR_BOUNDARY_LABELS } from '../../data/commonLabels';
+import { ERROR_BOUNDARY_LABELS } from '@/app/data/commonLabels';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 /**
  * The default fallback UI.

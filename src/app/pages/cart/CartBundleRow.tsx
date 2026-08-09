@@ -1,14 +1,14 @@
 'use client';
 import { Link as LinkIcon, Trash2 } from 'lucide-react';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { QtyControl } from '../../components/ui/QtyControl';
-import type { CartItem } from '../../context/CartContext';
-import { CART_ROW_LABELS } from '../../data/cartLabels';
-import { CART_LINE_LABELS } from '../../data/commonLabels';
-import { hexToColorName } from '../../utils/colorNames';
-import { fmt } from '../../utils/formatPrice';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { QtyControl } from '@/app/components/ui/QtyControl';
+import type { CartItem } from '@/app/context/CartContext';
+import { CART_ROW_LABELS } from '@/app/data/cartLabels';
+import { CART_LINE_LABELS } from '@/app/data/commonLabels';
+import { hexToColorName } from '@/app/utils/colorNames';
+import { fmt } from '@/app/utils/formatPrice';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 interface CartBundleRowProps {
   bundleId: string;

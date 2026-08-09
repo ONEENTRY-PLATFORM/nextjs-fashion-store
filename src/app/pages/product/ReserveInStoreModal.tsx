@@ -2,12 +2,12 @@
 import { Check, Store, X } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 
-import { useFormLabel, useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { submitForm } from '../../../lib/oneentry/forms/submit';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { SALE_COLOR } from '../../constants/colors';
-import type { SizeOption } from '../../data/productCatalog';
-import { RESERVE_MODAL_LABELS } from '../../data/productPageLabels';
+import { SALE_COLOR } from '@/app/constants/colors';
+import type { SizeOption } from '@/app/data/productCatalog';
+import { RESERVE_MODAL_LABELS } from '@/app/data/productPageLabels';
+import { useFormLabel, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { submitForm } from '@/lib/oneentry/forms/submit';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 /**
  * Slim store descriptor for the picker — mapped from the OE store pages by

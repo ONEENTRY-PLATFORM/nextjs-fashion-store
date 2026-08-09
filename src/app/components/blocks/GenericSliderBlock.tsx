@@ -3,10 +3,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
-import { Link } from '../../../lib/i18n/navigation';
-import { getImageUrl } from '../../../lib/oneentry';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { CAROUSEL_LABELS } from '../../data/commonLabels';
+import { CAROUSEL_LABELS } from '@/app/data/commonLabels';
+import { Link } from '@/lib/i18n/navigation';
+import { getImageUrl } from '@/lib/oneentry';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 /**
  * Generic renderer for OE `slider_block` type. Reads each slide's

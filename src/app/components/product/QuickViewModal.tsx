@@ -3,20 +3,21 @@ import { ChevronDown, Heart, X } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { getProductReviewSummary } from '../../../lib/oneentry/catalog/reviews-actions';
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { ACCENT_WOMEN, BUY_GREEN, BUY_GREEN_HOVER, SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
-import { useQuickView } from '../../context/QuickViewContext';
-import { useWishlist } from '../../context/WishlistContext';
-import { SIZE_DROPDOWN_LABELS } from '../../data/commonLabels';
-import { PRODUCT_ACTION_LABELS, PRODUCT_REVIEWS_LABELS, QUICK_VIEW_LABELS } from '../../data/productPageLabels';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { StarRating } from '../../pages/product/StarRating';
-import { WriteReviewModal } from '../../pages/product/WriteReviewModal';
-import { canReviewProduct } from '../../utils/review-eligibility';
+import { ACCENT_WOMEN, BUY_GREEN, BUY_GREEN_HOVER, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { useQuickView } from '@/app/context/QuickViewContext';
+import { useWishlist } from '@/app/context/WishlistContext';
+import { SIZE_DROPDOWN_LABELS } from '@/app/data/commonLabels';
+import { PRODUCT_ACTION_LABELS, PRODUCT_REVIEWS_LABELS, QUICK_VIEW_LABELS } from '@/app/data/productPageLabels';
+import { useFocusTrap } from '@/app/hooks/useFocusTrap';
+import { StarRating } from '@/app/pages/product/StarRating';
+import { WriteReviewModal } from '@/app/pages/product/WriteReviewModal';
+import { canReviewProduct } from '@/app/utils/review-eligibility';
+import { useRouter } from '@/lib/i18n/navigation';
+import { getProductReviewSummary } from '@/lib/oneentry/catalog/reviews-actions';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
+
 import { QuickViewSizeGuide } from './QuickViewSizeGuide';
 
 export function QuickViewModal() {

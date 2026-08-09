@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
 
-import { useFormLabel } from '../../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { useDict } from '../../../../lib/oneentry/labels/DictContext';
-import { useAuth } from '../../../context/AuthContext';
-import { PERSONAL_INFO_LABELS as L_FALLBACK } from '../../../data/accountLabels';
-import { PERSONAL_INFO_SECTION_ARIA } from '../../../data/commonLabels';
-import { useFormMessages, useSchemas } from '../../../utils/useFormMessages';
-import { EditBtn, Field, FormInput, SectionTitle } from '../shared';
+import { useAuth } from '@/app/context/AuthContext';
+import { PERSONAL_INFO_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
+import { PERSONAL_INFO_SECTION_ARIA } from '@/app/data/commonLabels';
+import { EditBtn, Field, FormInput, SectionTitle } from '@/app/pages/account/shared';
+import { useFormMessages, useSchemas } from '@/app/utils/useFormMessages';
+import { useFormLabel } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 const primaryBtn =
   'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';

@@ -2,26 +2,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
-import { loadCartComplementProductsAction } from '../../../lib/oneentry/blocks/cart-complement-action';
-import type { CategorySectionFromCms } from '../../../lib/oneentry/blocks/category-section';
-import type { DiscountBannerFromCms } from '../../../lib/oneentry/blocks/discount-banner';
-import type { HeroSlideFromCms } from '../../../lib/oneentry/blocks/hero-slides';
-import type { HomepageCollectionItem } from '../../../lib/oneentry/blocks/homepage-collections';
-import type { PageBlock } from '../../../lib/oneentry/blocks/page-blocks';
-import { sectionChromeFromBlock } from '../../../lib/oneentry/blocks/section-chrome';
-import { ACCENT_WOMEN } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { RecentlyViewedSection } from '../../pages/product/RecentlyViewedSection';
-import type { RootState } from '../../store';
-import { getOrCreateGuestId } from '../../utils/guest-id';
-import { CategorySection } from '../home/CategorySection';
-import { DiscountBanner } from '../home/DiscountBanner';
-import { HeroSlider } from '../home/HeroSlider';
-import { MenCollection } from '../home/MenCollection';
-import { NewArrivals } from '../home/NewArrivals';
-import { PromoBlock } from '../home/PromoBlock';
-import { WomenCollection } from '../home/WomenCollection';
-import type { Product } from '../product/ProductCard';
+import { CategorySection } from '@/app/components/home/CategorySection';
+import { DiscountBanner } from '@/app/components/home/DiscountBanner';
+import { HeroSlider } from '@/app/components/home/HeroSlider';
+import { MenCollection } from '@/app/components/home/MenCollection';
+import { NewArrivals } from '@/app/components/home/NewArrivals';
+import { PromoBlock } from '@/app/components/home/PromoBlock';
+import { WomenCollection } from '@/app/components/home/WomenCollection';
+import type { Product } from '@/app/components/product/ProductCard';
+import { ACCENT_WOMEN } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { RecentlyViewedSection } from '@/app/pages/product/RecentlyViewedSection';
+import type { RootState } from '@/app/store';
+import { getOrCreateGuestId } from '@/app/utils/guest-id';
+import { loadCartComplementProductsAction } from '@/lib/oneentry/blocks/cart-complement-action';
+import type { CategorySectionFromCms } from '@/lib/oneentry/blocks/category-section';
+import type { DiscountBannerFromCms } from '@/lib/oneentry/blocks/discount-banner';
+import type { HeroSlideFromCms } from '@/lib/oneentry/blocks/hero-slides';
+import type { HomepageCollectionItem } from '@/lib/oneentry/blocks/homepage-collections';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { sectionChromeFromBlock } from '@/lib/oneentry/blocks/section-chrome';
+
 import { GenericCommonBlock } from './GenericCommonBlock';
 import { GenericSliderBlock } from './GenericSliderBlock';
 

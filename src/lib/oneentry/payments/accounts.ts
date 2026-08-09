@@ -1,6 +1,6 @@
 'use server';
-import { getApiSafe, isError } from '../index';
-import { logCaught } from '../log';
+import { getApiSafe, isError } from '@/lib/oneentry/index';
+import { logCaught } from '@/lib/oneentry/log';
 
 export interface PaymentAccount {
   id: number;

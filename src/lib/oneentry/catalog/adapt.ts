@@ -1,6 +1,7 @@
-import type { Product } from '../../../app/components/product/ProductCard';
-import { CURRENCY } from '../../../app/data/currencyConfig';
-import type { CatalogProduct as PdpCatalogProduct } from '../../../app/data/productCatalog';
+import type { Product } from '@/app/components/product/ProductCard';
+import { CURRENCY } from '@/app/data/currencyConfig';
+import type { CatalogProduct as PdpCatalogProduct } from '@/app/data/productCatalog';
+
 import type { CatalogProduct } from './products';
 
 const COLOR_NAME_TO_HEX: Record<string, string> = {

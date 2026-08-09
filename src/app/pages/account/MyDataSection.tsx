@@ -1,8 +1,9 @@
 'use client';
 import React from 'react';
 
-import { SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
+import { SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+
 import { LoyaltyCard } from './LoyaltyCard';
 import { AccountDeletionSection } from './myData/AccountDeletionSection';
 import { AddressesSection } from './myData/AddressesSection';

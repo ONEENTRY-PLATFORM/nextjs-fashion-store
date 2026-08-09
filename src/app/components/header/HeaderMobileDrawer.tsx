@@ -2,13 +2,13 @@
 import { ChevronDown, MapPin, Phone, User, X } from 'lucide-react';
 import Image from 'next/image';
 
-import logoImage from '../../../assets/kekimoro-logo-black.png';
-import { Link, useRouter } from '../../../lib/i18n/navigation';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { adaptHeaderMenuToMega } from '../../../lib/oneentry/menus/adapt-header';
-import { useHeaderMenu } from '../../../lib/oneentry/menus/HeaderMenuContext';
-import { type Gender, SUB_CATEGORIES } from '../../data/categories';
-import { GENDER_NAV_HREFS, LOGO_ALT, MOBILE_FOOTER_LINKS, SUPPORT_PHONE } from '../../data/headerConfig';
+import { type Gender, SUB_CATEGORIES } from '@/app/data/categories';
+import { GENDER_NAV_HREFS, LOGO_ALT, MOBILE_FOOTER_LINKS, SUPPORT_PHONE } from '@/app/data/headerConfig';
+import logoImage from '@/assets/kekimoro-logo-black.png';
+import { Link, useRouter } from '@/lib/i18n/navigation';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+import { adaptHeaderMenuToMega } from '@/lib/oneentry/menus/adapt-header';
+import { useHeaderMenu } from '@/lib/oneentry/menus/HeaderMenuContext';
 
 interface HeaderMobileDrawerProps {
   isOpen: boolean;

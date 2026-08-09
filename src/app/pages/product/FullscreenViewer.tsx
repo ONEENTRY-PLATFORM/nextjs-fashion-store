@@ -2,9 +2,9 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import CmsImage from '../../components/ui/CmsImage';
-import { FULLSCREEN_VIEWER_LABELS as L_FALLBACK } from '../../data/productPageLabels';
+import CmsImage from '@/app/components/ui/CmsImage';
+import { FULLSCREEN_VIEWER_LABELS as L_FALLBACK } from '@/app/data/productPageLabels';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 interface FullscreenViewerProps {
   images: string[];

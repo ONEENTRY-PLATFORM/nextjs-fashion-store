@@ -2,9 +2,9 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { useDict, useT } from '../../../../lib/oneentry/labels/DictContext';
-import { PASSWORD_LABELS } from '../../../data/accountLabels';
-import { EditBtn, FormInput, SectionTitle } from '../shared';
+import { PASSWORD_LABELS } from '@/app/data/accountLabels';
+import { EditBtn, FormInput, SectionTitle } from '@/app/pages/account/shared';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 const primaryBtn =
   'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';

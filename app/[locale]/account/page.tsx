@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
-import { SEO } from '../../../src/app/data/seoData';
-import { AccountPage } from '../../../src/app/pages/AccountPage';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { FormPlaceholdersProvider } from '../../../src/lib/oneentry/forms/FormPlaceholdersContext';
-import { loadFormContent } from '../../../src/lib/oneentry/forms/placeholders';
+import { SEO } from '@/app/data/seoData';
+import { AccountPage } from '@/app/pages/AccountPage';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { FormPlaceholdersProvider } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
 
 /**
  * Title/description/keywords/canonical come from the OE `account` page when an

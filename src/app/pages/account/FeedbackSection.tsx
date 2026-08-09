@@ -3,10 +3,11 @@ import { Check, ChevronDown, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import React, { useMemo, useState } from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { BANNER_BG, SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { FEEDBACK_LABELS } from '../../data/accountLabels';
+import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { FEEDBACK_LABELS } from '@/app/data/accountLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { ACCENT, fmt, SectionTitle } from './shared';
 
 export function FeedbackSection() {

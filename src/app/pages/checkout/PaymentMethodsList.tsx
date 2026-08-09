@@ -1,7 +1,8 @@
 'use client';
 import { Banknote, CreditCard, Lock, QrCode, Smartphone, Wallet } from 'lucide-react';
 
-import type { PaymentAccount } from '../../../lib/oneentry/payments/accounts';
+import type { PaymentAccount } from '@/lib/oneentry/payments/accounts';
+
 import { OptionCard } from './PaymentPage.parts';
 
 // Pick an icon based on OE `identifier` — hand-picked substrings so cash /

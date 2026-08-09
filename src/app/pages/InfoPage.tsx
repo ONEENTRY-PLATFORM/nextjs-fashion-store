@@ -3,14 +3,14 @@ import { ChevronRight, Edit3, Globe, LayoutTemplate, Zap } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
-import { useRouter } from '../../lib/i18n/navigation';
-import { INFO_SECTION_BLOCK_PREFIX, infoSectionsFromBlocks } from '../../lib/oneentry/blocks/info-sections';
-import type { PageBlock } from '../../lib/oneentry/blocks/page-blocks';
-import { useT } from '../../lib/oneentry/labels/DictContext';
-import { PageBlocksRenderer } from '../components/blocks/PageBlocksRenderer';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { INFO_PAGE_FEATURE_CARDS, INFO_PAGE_SECTIONS, INFO_PAGE_STATS } from '../data/infoPageLabels';
+import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { INFO_PAGE_FEATURE_CARDS, INFO_PAGE_SECTIONS, INFO_PAGE_STATS } from '@/app/data/infoPageLabels';
+import { useRouter } from '@/lib/i18n/navigation';
+import { INFO_SECTION_BLOCK_PREFIX, infoSectionsFromBlocks } from '@/lib/oneentry/blocks/info-sections';
+import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { useT } from '@/lib/oneentry/labels/DictContext';
 
 /* Offline fallbacks for the two long-form paragraphs. Short one-off strings are
    passed inline at the `useInfoPageT` call site — a separate dictionary file for

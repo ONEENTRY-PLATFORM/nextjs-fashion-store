@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { GenericCommonBlock } from '../app/components/blocks/GenericCommonBlock';
+import { GenericCommonBlock } from '@/app/components/blocks/GenericCommonBlock';
 
 const meta = {
   title: 'Components / GenericCommonBlock',

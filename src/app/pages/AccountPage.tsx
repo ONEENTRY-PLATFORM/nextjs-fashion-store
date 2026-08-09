@@ -16,12 +16,13 @@ import {
 import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
-import { useRouter } from '../../lib/i18n/navigation';
-import { useDict, useT } from '../../lib/oneentry/labels/DictContext';
-import { Footer } from '../components/footer/Footer';
-import { Header } from '../components/header/Header';
-import { useAuth } from '../context/AuthContext';
-import { ACCOUNT_PAGE_LABELS as APL, ACCOUNT_SECTION_TITLES } from '../data/accountLabels';
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { useAuth } from '@/app/context/AuthContext';
+import { ACCOUNT_PAGE_LABELS as APL, ACCOUNT_SECTION_TITLES } from '@/app/data/accountLabels';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { BonusesSection } from './account/BonusesSection';
 import { FeedbackSection } from './account/FeedbackSection';
 import { HistorySection } from './account/HistorySection';

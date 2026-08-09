@@ -1,11 +1,12 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { fetchBonusHistoryAction, type OeBonusTransaction } from '../../../lib/oneentry/auth/actions';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { BONUSES_LABELS as L } from '../../data/accountLabels';
+import { SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { BONUSES_LABELS as L } from '@/app/data/accountLabels';
+import { fetchBonusHistoryAction, type OeBonusTransaction } from '@/lib/oneentry/auth/actions';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+
 import { ACCENT, SectionTitle } from './shared';
 
 /**

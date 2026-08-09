@@ -1,11 +1,11 @@
 import { unstable_cache } from 'next/cache';
 
-import { REVALIDATE_HOME } from '../../isr';
-import { getApiSafe, getImage, isError } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { logCaught } from '../log';
-import { withTiming } from '../profiling';
-import type { Lang } from '../system-text';
+import { REVALIDATE_HOME } from '@/lib/isr';
+import { getApiSafe, getImage, isError } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { logCaught } from '@/lib/oneentry/log';
+import { withTiming } from '@/lib/oneentry/profiling';
+import type { Lang } from '@/lib/oneentry/system-text';
 
 export interface HeroSlideFromCms {
   id: number;

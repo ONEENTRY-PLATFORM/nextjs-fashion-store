@@ -2,11 +2,11 @@
 
 import { Check } from 'lucide-react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
-import { CHECKOUT_STEPPER_LABELS } from '../../data/checkoutLabels';
-import { CHECKOUT_STEPPER_ARIA, CHECKOUT_STEPPER_DYNAMIC_ARIA } from '../../data/commonLabels';
+import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import { CHECKOUT_STEPPER_LABELS } from '@/app/data/checkoutLabels';
+import { CHECKOUT_STEPPER_ARIA, CHECKOUT_STEPPER_DYNAMIC_ARIA } from '@/app/data/commonLabels';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 /**
  * Path per step, keyed by the dictionary key — the copy is editable, the

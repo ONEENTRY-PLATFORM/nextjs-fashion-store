@@ -2,18 +2,19 @@
 import { ChevronDown, Clock, Package, RotateCcw, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { cancelOrderAction, type OeOrder } from '../../../lib/oneentry/auth/actions';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { BANNER_BG, SALE_COLOR } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
-import { MY_ORDERS_LABELS } from '../../data/accountLabels';
-import { MY_ORDERS_DYNAMIC_ARIA } from '../../data/commonLabels';
-import type { UserOrder } from '../../data/userData';
-import { useAppSelector } from '../../store/hooks';
-import { fillTokens } from '../../utils/fillTokens';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
+import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
+import { MY_ORDERS_LABELS } from '@/app/data/accountLabels';
+import { MY_ORDERS_DYNAMIC_ARIA } from '@/app/data/commonLabels';
+import type { UserOrder } from '@/app/data/userData';
+import { useAppSelector } from '@/app/store/hooks';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { useRouter } from '@/lib/i18n/navigation';
+import { cancelOrderAction, type OeOrder } from '@/lib/oneentry/auth/actions';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { ACCENT, fmt, SectionTitle } from './shared';
 
 /**

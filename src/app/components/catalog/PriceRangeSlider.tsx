@@ -1,7 +1,7 @@
 'use client';
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { PRICE_RANGE_LABELS as L_FALLBACK } from '../../data/commonLabels';
-import { CURRENCY } from '../../data/currencyConfig';
+import { PRICE_RANGE_LABELS as L_FALLBACK } from '@/app/data/commonLabels';
+import { CURRENCY } from '@/app/data/currencyConfig';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 interface PriceRangeSliderProps {
   minBound: number;

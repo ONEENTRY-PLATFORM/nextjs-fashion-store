@@ -2,16 +2,16 @@
 import { Heart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { ImageWithFallback } from '../../components/ui/ImageWithFallback';
-import { QtyControl } from '../../components/ui/QtyControl';
-import { SizeDropdown } from '../../components/ui/SizeDropdown';
-import { ACCENT_WOMEN as ACCENT } from '../../constants/colors';
-import type { CartItem } from '../../context/CartContext';
-import { CART_ROW_LABELS } from '../../data/cartLabels';
-import { CART_LINE_LABELS } from '../../data/commonLabels';
-import { hexToColorName } from '../../utils/colorNames';
-import { fmt } from '../../utils/formatPrice';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
+import { QtyControl } from '@/app/components/ui/QtyControl';
+import { SizeDropdown } from '@/app/components/ui/SizeDropdown';
+import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
+import type { CartItem } from '@/app/context/CartContext';
+import { CART_ROW_LABELS } from '@/app/data/cartLabels';
+import { CART_LINE_LABELS } from '@/app/data/commonLabels';
+import { hexToColorName } from '@/app/utils/colorNames';
+import { fmt } from '@/app/utils/formatPrice';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 

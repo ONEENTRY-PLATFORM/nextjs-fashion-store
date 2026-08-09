@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { fn } from 'storybook/test';
 
-import { PARCEL_LOCKERS } from '../app/data/checkoutConfig';
-import { DeliveryMethodLocker } from '../app/pages/checkout/DeliveryMethodLocker';
-import { DeliveryMethodInfoProvider } from '../lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { PARCEL_LOCKERS } from '@/app/data/checkoutConfig';
+import { DeliveryMethodLocker } from '@/app/pages/checkout/DeliveryMethodLocker';
+import { DeliveryMethodInfoProvider } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 
 const GUEST_CONTACT_EMPTY = { fullName: '', phone: '', email: '' };
 

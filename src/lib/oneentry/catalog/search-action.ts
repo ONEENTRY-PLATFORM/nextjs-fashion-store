@@ -1,5 +1,6 @@
 'use server';
-import type { Product } from '../../../app/components/product/ProductCard';
+import type { Product } from '@/app/components/product/ProductCard';
+
 import { adaptCatalogProductToUiProduct } from './adapt';
 import { searchProducts } from './products';
 

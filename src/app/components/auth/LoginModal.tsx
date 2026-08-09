@@ -4,16 +4,16 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { useRouter } from '../../../lib/i18n/navigation';
-import { useSignUpFormSchema } from '../../../lib/oneentry/auth/SignUpFormSchemaContext';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { TIMINGS } from '../../constants/timings';
-import { useAuth } from '../../context/AuthContext';
-import { LOGIN_MODAL_LABELS } from '../../data/authLabels';
-import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '../../data/socialProviderRegistry';
-import { useAuthProviders } from '../../hooks/useAuthProviders';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { useSchemas } from '../../utils/useFormMessages';
+import { TIMINGS } from '@/app/constants/timings';
+import { useAuth } from '@/app/context/AuthContext';
+import { LOGIN_MODAL_LABELS } from '@/app/data/authLabels';
+import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '@/app/data/socialProviderRegistry';
+import { useAuthProviders } from '@/app/hooks/useAuthProviders';
+import { useFocusTrap } from '@/app/hooks/useFocusTrap';
+import { useSchemas } from '@/app/utils/useFormMessages';
+import { useRouter } from '@/lib/i18n/navigation';
+import { useSignUpFormSchema } from '@/lib/oneentry/auth/SignUpFormSchemaContext';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 function SocialBtn({
   iconPath,

@@ -8,16 +8,7 @@ import {
 import Image from 'next/image';
 import React from 'react';
 
-import logoImage from '../../../assets/kekimoro-logo-white.png';
-import { Link } from '../../../lib/i18n/navigation';
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import {
-  footerBottomLinksFromMenu,
-  type FooterColumn,
-  footerColumnsFromMenu,
-} from '../../../lib/oneentry/menus/adapt-footer';
-import { useFooterMenu } from '../../../lib/oneentry/menus/FooterMenuContext';
-import { FOOTER_ARIA, FOOTER_DYNAMIC_ARIA, FOOTER_LABELS as FL } from '../../data/commonLabels';
+import { FOOTER_ARIA, FOOTER_DYNAMIC_ARIA, FOOTER_LABELS as FL } from '@/app/data/commonLabels';
 import {
   BOTTOM_LINKS,
   COMPANY_INFO,
@@ -26,9 +17,15 @@ import {
   PAYMENT_METHOD_NAMES,
   SOCIAL_LINKS,
   SUPPORT_ITEMS,
-} from '../../data/footerConfig';
-import { LOGO_ALT } from '../../data/headerConfig';
-import { fillTokens } from '../../utils/fillTokens';
+} from '@/app/data/footerConfig';
+import { LOGO_ALT } from '@/app/data/headerConfig';
+import { fillTokens } from '@/app/utils/fillTokens';
+import logoImage from '@/assets/kekimoro-logo-white.png';
+import { Link } from '@/lib/i18n/navigation';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+import { footerBottomLinksFromMenu, type FooterColumn, footerColumnsFromMenu } from '@/lib/oneentry/menus/adapt-footer';
+import { useFooterMenu } from '@/lib/oneentry/menus/FooterMenuContext';
+
 import { NewsletterForm } from './NewsletterForm';
 
 const PAYMENT_ICON_SRC: Record<string, string> = {

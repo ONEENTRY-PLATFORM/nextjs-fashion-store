@@ -1,8 +1,8 @@
 'use client';
-import { useFormPlaceholder } from '../../../lib/oneentry/forms/FormPlaceholdersContext';
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { FormField } from '../../components/ui/FormField';
-import { GUEST_CONTACT_LABELS as L_FALLBACK } from '../../data/checkoutLabels';
+import { FormField } from '@/app/components/ui/FormField';
+import { GUEST_CONTACT_LABELS as L_FALLBACK } from '@/app/data/checkoutLabels';
+import { useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export interface GuestContactFormState {
   fullName: string;

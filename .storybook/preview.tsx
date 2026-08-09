@@ -1,18 +1,24 @@
-import React from 'react';
-import type { Preview, Decorator } from '@storybook/nextjs-vite';
-import { Provider } from 'react-redux';
-import { makeStore } from '../src/app/store';
-import { CatalogAccentContext } from '../src/app/context/CatalogAccentContext';
-import { AuthProvider } from '../src/app/context/AuthContext';
 import '../app/globals.css';
 
+import type { Decorator, Preview } from '@storybook/nextjs-vite';
+import React from 'react';
+import { Provider } from 'react-redux';
+
+import { AuthProvider } from '@/app/context/AuthContext';
+import { CatalogAccentContext } from '@/app/context/CatalogAccentContext';
+import { makeStore } from '@/app/store';
+
 /**
- * Global decorator: wraps every story with Redux store + AuthProvider + CatalogAccentContext.
+ * Provider stack shared by every story: Redux store + AuthProvider + CatalogAccentContext.
  *
  * Uses useState so the store is created ONCE per story mount (stable across re-renders),
  * and the localStorage key is wiped before each new store to prevent state bleed between stories.
+ *
+ * @param props - Component props.
+ * @param props.children - Story tree rendered inside the providers.
+ * @returns The story wrapped in the global provider stack.
  */
-const withProviders: Decorator = (Story) => {
+const StoryProviders = ({ children }: { children: React.ReactNode }) => {
   const [store] = React.useState(() => {
     // Clear persisted state so each story starts from a clean slate.
     if (typeof localStorage !== 'undefined') {
@@ -21,16 +27,23 @@ const withProviders: Decorator = (Story) => {
     return makeStore();
   });
 
-  return React.createElement(
-    Provider,
-    { store },
-    React.createElement(
-      AuthProvider,
-      null,
-      React.createElement(CatalogAccentContext.Provider, { value: '#F88A8A' }, React.createElement(Story)),
-    ),
+  return (
+    <Provider store={store}>
+      <AuthProvider>
+        <CatalogAccentContext.Provider value="#F88A8A">{children}</CatalogAccentContext.Provider>
+      </AuthProvider>
+    </Provider>
   );
 };
+
+/**
+ * Global decorator: renders each story inside {@link StoryProviders}.
+ */
+const withProviders: Decorator = (Story) => (
+  <StoryProviders>
+    <Story />
+  </StoryProviders>
+);
 
 const preview: Preview = {
   decorators: [withProviders],

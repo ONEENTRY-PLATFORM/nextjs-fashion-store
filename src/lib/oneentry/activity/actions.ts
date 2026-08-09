@@ -7,8 +7,8 @@
  * already carries whichever context applies, and a Server Action would have to
  * smuggle the session across the wire on every page view.
  */
-import { getApiSafe, hasStoredSession, isError } from '../index';
-import { se } from '../server-errors';
+import { getApiSafe, hasStoredSession, isError } from '@/lib/oneentry/index';
+import { se } from '@/lib/oneentry/server-errors';
 
 export type TUserActivityType =
   | 'product_view'

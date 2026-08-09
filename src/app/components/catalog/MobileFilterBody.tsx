@@ -3,10 +3,11 @@ import { Search, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
 
-import { useT } from '../../../lib/oneentry/labels/DictContext';
-import { COMMON_EMPTY_STATES } from '../../data/commonLabels';
-import { fillTokens } from '../../utils/fillTokens';
-import { ColorSwatch } from '../ui/ColorSwatch';
+import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
+import { COMMON_EMPTY_STATES } from '@/app/data/commonLabels';
+import { fillTokens } from '@/app/utils/fillTokens';
+import { useT } from '@/lib/oneentry/labels/DictContext';
+
 import type { MobileFilterGroup } from './MobileFilterPanel';
 
 /* ─── 18 × 18 px touch checkbox ─────────────────────────── */

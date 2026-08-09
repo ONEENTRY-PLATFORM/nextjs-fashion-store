@@ -2,12 +2,12 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-import { startGoogleOAuth } from '../../../../lib/google-auth';
-import { useDict, useT } from '../../../../lib/oneentry/labels/DictContext';
-import { SOCIAL_NETWORKS_LABELS } from '../../../data/accountLabels';
-import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '../../../data/socialProviderRegistry';
-import { useAuthProviders } from '../../../hooks/useAuthProviders';
-import { SectionTitle } from '../shared';
+import { SOCIAL_NETWORKS_LABELS } from '@/app/data/accountLabels';
+import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '@/app/data/socialProviderRegistry';
+import { useAuthProviders } from '@/app/hooks/useAuthProviders';
+import { SectionTitle } from '@/app/pages/account/shared';
+import { startGoogleOAuth } from '@/lib/google-auth';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 // Local persistence key for the "connected" badge. OE doesn't expose a
 // per-user `linkedProviders` field on this tenant, so we remember the link

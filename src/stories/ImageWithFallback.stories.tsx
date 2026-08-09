@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { ImageWithFallback } from '../app/components/ui/ImageWithFallback';
+import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 
 const meta = {
   title: 'UI / ImageWithFallback',

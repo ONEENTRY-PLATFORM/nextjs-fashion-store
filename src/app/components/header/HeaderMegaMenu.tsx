@@ -2,9 +2,9 @@
 import { ChevronDown } from 'lucide-react';
 import { type RefObject } from 'react';
 
-import { Link, useRouter } from '../../../lib/i18n/navigation';
-import { SALE_YELLOW } from '../../constants/colors';
-import { type Gender, type MegaSection, SUB_CATEGORIES, type SubCat } from '../../data/categories';
+import { SALE_YELLOW } from '@/app/constants/colors';
+import { type Gender, type MegaSection, SUB_CATEGORIES, type SubCat } from '@/app/data/categories';
+import { Link, useRouter } from '@/lib/i18n/navigation';
 
 interface HeaderMegaMenuProps {
   activeGender: Gender;

@@ -5,8 +5,9 @@
  * browser off the session the SDK singleton already carries; the catalogue
  * enrichment stays on the server behind a cached Server Action.
  */
-import type { WaitingItem, WaitingStockStatus } from '../../../app/data/userData';
-import { getWishlistAction } from '../auth/actions';
+import type { WaitingItem, WaitingStockStatus } from '@/app/data/userData';
+import { getWishlistAction } from '@/lib/oneentry/auth/actions';
+
 import type { CatalogProduct } from './products';
 import { getCatalogProductsByIdsAction } from './products-action';
 

@@ -2,13 +2,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
-import { previewOrderAction, type PreviewOrderResult } from '../../lib/oneentry/auth/actions';
-import { getProductsByIdsAction } from '../../lib/oneentry/catalog/products-action';
-import { extractCmsProductId, getCmsProductId, getPlaygroundProductId } from '../data/cms-product-id-map';
-import type { AppDispatch, RootState } from '../store';
-import { cartActions } from '../store/cartSlice';
-import { getOrCreateGuestId } from '../utils/guest-id';
-import { trackActivity } from '../utils/track-activity';
+import { extractCmsProductId, getCmsProductId, getPlaygroundProductId } from '@/app/data/cms-product-id-map';
+import type { AppDispatch, RootState } from '@/app/store';
+import { cartActions } from '@/app/store/cartSlice';
+import { getOrCreateGuestId } from '@/app/utils/guest-id';
+import { trackActivity } from '@/app/utils/track-activity';
+import { previewOrderAction, type PreviewOrderResult } from '@/lib/oneentry/auth/actions';
+import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
+
 import { useAuth } from './AuthContext';
 
 /**

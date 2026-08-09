@@ -1,14 +1,15 @@
 'use client';
 import { CheckCircle, ChevronDown, Clock, MapPin, Store } from 'lucide-react';
 
-import { useDeliveryMethodInfo } from '../../../lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { RadioCard } from '../../components/ui/RadioCard';
-import { PICKUP_PERKS, type PickupStore } from '../../data/checkoutConfig';
+import { RadioCard } from '@/app/components/ui/RadioCard';
+import { PICKUP_PERKS, type PickupStore } from '@/app/data/checkoutConfig';
 import {
   DELIVERY_METHOD_SHARED_LABELS as SH,
   DELIVERY_METHOD_STORE_LABELS as L_FALLBACK,
-} from '../../data/checkoutLabels';
+} from '@/app/data/checkoutLabels';
+import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
 import { type GuestContactFormState } from './GuestContactForm';
 
 interface DeliveryMethodStoreProps {

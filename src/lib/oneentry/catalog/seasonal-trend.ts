@@ -1,6 +1,7 @@
-import { getApiSafe, isError } from '../index';
-import { DEFAULT_LOCALE } from '../locale';
-import { logCaught } from '../log';
+import { getApiSafe, isError } from '@/lib/oneentry/index';
+import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { logCaught } from '@/lib/oneentry/log';
+
 import type { CatalogFilters } from './filters';
 
 /**

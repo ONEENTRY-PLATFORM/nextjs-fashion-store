@@ -1,9 +1,9 @@
 'use client';
 import React from 'react';
 
-import { useDict } from '../../../lib/oneentry/labels/DictContext';
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '../../data/commonLabels';
-import { strikeColor } from '../../utils/colorUtils';
+import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/data/commonLabels';
+import { strikeColor } from '@/app/utils/colorUtils';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 interface ColorSwatchButtonProps {
   color: string;

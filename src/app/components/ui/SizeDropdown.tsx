@@ -2,8 +2,8 @@
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 
-import { useDict, useT } from '../../../lib/oneentry/labels/DictContext';
-import { SIZE_DROPDOWN_LABELS } from '../../data/commonLabels';
+import { SIZE_DROPDOWN_LABELS } from '@/app/data/commonLabels';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 interface SizeDropdownProps {
   value: string;

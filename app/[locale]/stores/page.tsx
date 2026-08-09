@@ -1,19 +1,13 @@
 import type { Metadata } from 'next';
 
-import { JsonLd } from '../../../src/app/components/system/JsonLd';
-import {
-  ORG_SCHEMA_COPY,
-  SCHEMA_DAYS as D,
-  SEO,
-  SITE_URL,
-  STORE_SCHEMA_NAME as N,
-} from '../../../src/app/data/seoData';
-import { type Store, STORE_SCHEMA_DEFAULTS } from '../../../src/app/data/stores';
-import { StoreLocationsPage } from '../../../src/app/pages/StoreLocationsPage';
-import { loadPageBlocksByUrl } from '../../../src/lib/oneentry/blocks/page-blocks';
-import { withCmsSeo } from '../../../src/lib/oneentry/catalog/page-seo';
-import { loadStoreLocationsPage } from '../../../src/lib/oneentry/catalog/store-locations-page';
-import { loadStores } from '../../../src/lib/oneentry/catalog/stores';
+import { JsonLd } from '@/app/components/system/JsonLd';
+import { ORG_SCHEMA_COPY, SCHEMA_DAYS as D, SEO, SITE_URL, STORE_SCHEMA_NAME as N } from '@/app/data/seoData';
+import { type Store, STORE_SCHEMA_DEFAULTS } from '@/app/data/stores';
+import { StoreLocationsPage } from '@/app/pages/StoreLocationsPage';
+import { loadPageBlocksByUrl } from '@/lib/oneentry/blocks/page-blocks';
+import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
+import { loadStoreLocationsPage } from '@/lib/oneentry/catalog/store-locations-page';
+import { loadStores } from '@/lib/oneentry/catalog/stores';
 
 /**
  * Title/description/keywords/canonical come from the OE `stores` page when an

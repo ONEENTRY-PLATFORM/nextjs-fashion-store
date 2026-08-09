@@ -1,9 +1,10 @@
 import { cache } from 'react';
 
-import { currentCmsLocale } from '../current-locale';
-import { getApiSafe, isError } from '../index';
-import { logCaught } from '../log';
-import type { Lang } from '../system-text';
+import { currentCmsLocale } from '@/lib/oneentry/current-locale';
+import { getApiSafe, isError } from '@/lib/oneentry/index';
+import { logCaught } from '@/lib/oneentry/log';
+import type { Lang } from '@/lib/oneentry/system-text';
+
 import type { FormContent, FormPlaceholders } from './form-content';
 import { EMPTY_FORM_CONTENT } from './form-content';
 

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { FavoritesCarousel } from '../app/pages/favorites/FavoritesCarousel';
+import { FavoritesCarousel } from '@/app/pages/favorites/FavoritesCarousel';
 
 const meta = {
   title: 'Components / FavoritesCarousel',
