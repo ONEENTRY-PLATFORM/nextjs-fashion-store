@@ -363,6 +363,28 @@ export function getLang(): string {
 }
 
 /**
+ * Point the browser's shopper-scoped calls at a locale.
+ *
+ * Every user-auth call (`Users.getUser`, `Orders.*`, `Discounts.*`) takes
+ * `langCode` as an argument, so the storefront does not need — and must not
+ * pay for — a rebuilt SDK instance when the shopper switches language:
+ * {@link reDefine} would discard the in-memory access token and buy a fresh
+ * `/refresh` round-trip for a copy change. This records the locale those call
+ * sites read through {@link getLang} instead.
+ *
+ * Browser-only by design. On the server one instance serves every visitor
+ * concurrently, so a module-level "current locale" would be one request
+ * overwriting another's; server code resolves its locale from root params
+ * (`currentCmsLocale`) and passes it down explicitly.
+ *
+ * @param lang - OE locale code, e.g. `de_DE`.
+ */
+export function setLang(lang: string): void {
+  if (typeof window === 'undefined' || !lang) return;
+  currentLang = lang;
+}
+
+/**
  * One entry of an OE `image` / `file` / `groupOfImages` attribute value.
  *
  * `previewLink` has two shapes on the wire, and which one you get depends on

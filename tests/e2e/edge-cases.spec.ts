@@ -354,7 +354,7 @@ test.describe('Edge Cases & Adversarial', () => {
 
     test('focus trap in login modal', async ({ page }) => {
       await page.goto('/');
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await expect(page.getByRole('dialog')).toBeVisible();
       // Tab should cycle within modal
       for (let i = 0; i < 10; i++) {

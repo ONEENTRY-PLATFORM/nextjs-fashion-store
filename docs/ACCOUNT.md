@@ -143,7 +143,7 @@ Status mapping (`ServiceStatus`):
 
 - `open`, `in-progress`, `ready`, `completed`, `cancelled`
 
-**Submit:** `submitServiceRequestAction({item, category, description, date, order_id?})` (`src/lib/oneentry/catalog/service-request-submit-action.ts`) POSTs form-data with the same marker/moduleConfigId. Categories: `alteration`, `repair`, `cleaning`, `restoration`, `other`. On success, the UI flashes a check-mark and collapses the form after 2.5 s.
+**Submit:** `submitServiceRequestAction({item, category, description, date, order_id?})` (`src/lib/oneentry/catalog/service-request-submit-action.ts`) POSTs form-data with the same marker/moduleConfigId. Categories are **not** a code constant — they come from the OE form's `category` attribute (`listTitles`) via `useFormOptions`, currently `repair`, `cleaning`, `alteration`, `sole-replacement`, `other`; `SERVICE_LABELS.categoryLabels` mirrors them offline and must stay value-identical (see `MISMATCH-LOG.md` D.1). On success, the UI flashes a check-mark and collapses the form after 2.5 s.
 
 Sub-components:
 

@@ -222,6 +222,7 @@ export function LoginModal() {
                     setError('');
                   }}
                   placeholder={emailPlaceholder}
+                  data-testid="login-email"
                   autoComplete={emailAutoComp}
                   className="w-full border border-gray-300 px-4 py-3 pr-10 text-sm transition-colors duration-200 outline-none focus:border-black"
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
@@ -252,6 +253,7 @@ export function LoginModal() {
                     setError('');
                   }}
                   placeholder={passwordPlaceholder}
+                  data-testid="login-password"
                   autoComplete={passwordAutoComp}
                   className="w-full border border-gray-300 px-4 py-3 pr-10 text-sm transition-colors duration-200 outline-none focus:border-black"
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
@@ -291,6 +293,7 @@ export function LoginModal() {
           <button
             onClick={handleLogin}
             disabled={loading}
+            data-testid="login-submit"
             className="w-full bg-black py-4 text-sm font-semibold tracking-[0.2em] text-white uppercase transition-colors duration-200 hover:bg-primary-women focus-visible:outline-none active:bg-primary-men disabled:pointer-events-none disabled:opacity-60"
           >
             {loading ? L.ctaLoading : L.ctaSubmit}

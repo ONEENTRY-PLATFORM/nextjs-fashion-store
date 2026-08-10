@@ -16,6 +16,11 @@ loadEnvConfig(process.cwd());
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // Compiles `/` and the other heavy routes before the first test runs, so the
+  // cold Turbopack build is not billed to whichever spec happens to navigate
+  // first. Without it the suite failed-then-passed-on-retry and reported
+  // `flaky` — a status that hides a genuinely broken first attempt.
+  globalSetup: './tests/e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   // Was declared twice before — the second literal silently won, so CI ran

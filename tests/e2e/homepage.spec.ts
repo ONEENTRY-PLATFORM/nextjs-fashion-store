@@ -13,19 +13,36 @@ test.describe('Homepage', () => {
   });
 
   test('hero slider auto-rotates', async ({ page }) => {
-    const dots = page.locator(
-      '[class*="hero"] button, [class*="Hero"] button, [class*="slider"] button, [class*="Slider"] button',
-    );
-    if ((await dots.count()) > 1) {
-      // Wait for auto-rotation (slides change roughly every 5s)
-      await page.waitForTimeout(6000);
-      // At least one dot should have active state
-      await expect(dots.first()).toBeVisible();
-    }
+    // Was `[class*="hero"] button, [class*="slider"] button, …` — a selector
+    // that matched nothing, because the markup is styled with Tailwind
+    // utilities and no element carries a "hero"/"slider" class name. Combined
+    // with the `if (count > 1)` guard the whole body was skipped, so this test
+    // reported green for its entire life without ever looking at a slider.
+    const dots = page.getByTestId('hero-slider-dot');
+    await expect(dots.first()).toBeVisible({ timeout: 15_000 });
+
+    // A single-slide tenant has nothing to rotate — a real outcome, not a
+    // failure, but say so rather than passing silently.
+    const count = await dots.count();
+    test.skip(count < 2, 'tenant publishes a single hero slide; nothing to rotate');
+
+    // The active dot is the wide one (`aria-selected`), so rotation is
+    // observable as the selection moving off the slide it started on.
+    const initial = await dots.evaluateAll((els) => els.findIndex((e) => e.getAttribute('aria-selected') === 'true'));
+    await expect
+      .poll(async () => dots.evaluateAll((els) => els.findIndex((e) => e.getAttribute('aria-selected') === 'true')), {
+        timeout: 15_000,
+        message: 'hero slider did not advance',
+      })
+      .not.toBe(initial);
   });
 
   test('category section renders and links work', async ({ page }) => {
     const categoryLinks = page.getByRole('link').filter({ hasText: /clothing|shoes|bags|accessories/i });
+    // Same race as the footer test below: a bare `count()` is a snapshot with
+    // no retry, and the category section is CMS-driven, so on a cold homepage
+    // it read 0 before the section had mounted.
+    await expect(categoryLinks.first()).toBeAttached({ timeout: 15_000 });
     const count = await categoryLinks.count();
     expect(count).toBeGreaterThan(0);
 
@@ -69,6 +86,13 @@ test.describe('Homepage', () => {
     const socialLinks = footer.locator(
       'a[href*="facebook"], a[href*="instagram"], a[href*="twitter"], a[href*="pinterest"], a[href*="youtube"]',
     );
+    // `count()` is a synchronous snapshot with no retry, so this asserted on
+    // whatever happened to be in the DOM at that instant — it read 0 while the
+    // footer was still rendering and reported "no social links" for what was
+    // really a timing race (failing outright in one run and passing on retry
+    // in the next). Waiting for the first link makes the assertion about the
+    // footer's content rather than about when it mounted.
+    await expect(socialLinks.first()).toBeAttached({ timeout: 15_000 });
     expect(await socialLinks.count()).toBeGreaterThan(0);
   });
 

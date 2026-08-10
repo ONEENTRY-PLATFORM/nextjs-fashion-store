@@ -354,7 +354,15 @@ const getCachedBlocksByPageUrl = unstable_cache(
   async (pageUrl: string, lang: string) => {
     const result = await getApi().Pages.getBlocksByPageUrl(pageUrl, lang);
     if (isError(result)) return [];
-    return (result as unknown as Array<{ identifier?: string; position?: number }>).slice();
+    // Same array-or-`{items}` tolerance the product paths above already apply.
+    // This one assumed a bare array and called `.slice()` on it, which is a
+    // `TypeError: c.slice is not a function` the moment OE answers with the
+    // wrapped shape — caught prerendering `/de/cart` on a cold build, where it
+    // killed the page outright rather than degrading to "no blocks". `isError`
+    // does not cover it: the wrapped body is a success response, not an
+    // `IError`.
+    const items = Array.isArray(result) ? result : ((result as unknown as { items?: unknown })?.items ?? []);
+    return (Array.isArray(items) ? items : []) as Array<{ identifier?: string; position?: number }>;
   },
   ['oe-page-blocks-by-url'],
   { revalidate: REVALIDATE_HOME, tags: ['oe-page', 'oe-block'] },

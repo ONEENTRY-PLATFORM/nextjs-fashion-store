@@ -14,13 +14,17 @@ const STATUS_MAP: Record<string, ServiceStatus> = {
   cancelled: 'cancelled',
 };
 
+// Keys are the OE `category` listTitles values; the map exists to absorb
+// historical spellings rather than to translate — every current option maps to
+// itself. `restoration` is a retired UI-only category that never existed in the
+// form, kept so records written before the two lists were reconciled still
+// render instead of falling through to a blank label.
 const CATEGORY_MAP: Record<string, ServiceCategory> = {
-  alteration: 'alteration',
   repair: 'repair',
   cleaning: 'cleaning',
-  // OE form has 'sole-replacement' which the UI model doesn't — closest match is repair
-  'sole-replacement': 'repair',
-  restoration: 'restoration',
+  alteration: 'alteration',
+  'sole-replacement': 'sole-replacement',
+  restoration: 'other',
   other: 'other',
 };
 

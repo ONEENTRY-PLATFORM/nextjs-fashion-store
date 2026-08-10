@@ -10,13 +10,16 @@
 //   'cancelled'   — request cancelled (by customer or store)
 export type ServiceStatus = 'open' | 'in-progress' | 'ready' | 'completed' | 'cancelled';
 
-// Service category:
-//   'alteration'  — fit adjustments (take in, shorten, let out)
-//   'repair'      — repair (replacing zips, buttons, seams)
-//   'cleaning'    — dry-cleaning or specialist washing
-//   'restoration' — restoration (lining, wear marks, reshaping)
-//   'other'       — other services
-export type ServiceCategory = 'alteration' | 'repair' | 'cleaning' | 'restoration' | 'other';
+// Service category. The union mirrors the `listTitles` values of the OE
+// `service_request` form's `category` attribute — the select posts these
+// verbatim as a `list` value, so an entry that OE does not know is rejected on
+// submit. Keep it in sync with the panel (`/inspect-api forms`):
+//   'repair'           — repair (replacing zips, buttons, seams)
+//   'cleaning'         — dry-cleaning or specialist washing
+//   'alteration'       — fit adjustments (take in, shorten, let out)
+//   'sole-replacement' — resoling footwear
+//   'other'            — other services
+export type ServiceCategory = 'repair' | 'cleaning' | 'alteration' | 'sole-replacement' | 'other';
 
 export interface ServiceRequest {
   /** Unique request identifier (internal, used as React key) */

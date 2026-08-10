@@ -19,6 +19,7 @@ import {
   clearTokens,
   getApiSafe,
   getAuthProviderMarker,
+  getLang,
   hasStoredSession,
   isError,
   isOneEntryEnabled,
@@ -262,7 +263,7 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
   await Promise.all(
     USER_ORDER_STORAGE_MARKERS.map(async (marker) => {
       try {
-        const result = await api.Orders.getAllOrdersByMarker(marker, DEFAULT_LOCALE, 0, 100);
+        const result = await api.Orders.getAllOrdersByMarker(marker, getLang(), 0, 100);
         if (isError(result)) return;
         // SDK's `IOrderByMarkerEntity` types are stricter than what actually
         // ships (e.g. `previewImage` may be a bare `{ downloadLink }` object
@@ -283,7 +284,7 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
           const wrappedTitle =
             sli && !flatTitle
               ? String(
-                  ((sli as Record<string, { title?: unknown }>)[DEFAULT_LOCALE]?.title ??
+                  ((sli as Record<string, { title?: unknown }>)[getLang()]?.title ??
                     Object.values(sli as Record<string, { title?: unknown }>)[0]?.title ??
                     '') ||
                     '',
@@ -373,7 +374,7 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
   // the bonus balance via `Discounts.getBonusBalance`. The SDK normalises
   // localizeInfos + fields for us, so downstream code sees a clean shape.
   const [rawTiers, bonusResult] = await Promise.all([
-    Promise.all(TIER_MARKERS.map((m) => api.Discounts.getDiscountByMarker(m, DEFAULT_LOCALE))),
+    Promise.all(TIER_MARKERS.map((m) => api.Discounts.getDiscountByMarker(m, getLang()))),
     api.Discounts.getBonusBalance(),
   ]);
 
@@ -469,7 +470,7 @@ async function fetchMe(): Promise<OeUser | null> {
   if (!api) return null;
 
   const [meResult, cartResult, wishlistResult, addrRecords, userDataRec, subsRec, orders, loyalty] = await Promise.all([
-    api.Users.getUser(DEFAULT_LOCALE),
+    api.Users.getUser(getLang()),
     api.Users.getCart(),
     api.Users.getWishlist(),
     fetchUserAddresses(),
@@ -550,7 +551,7 @@ async function fetchMe(): Promise<OeUser | null> {
 async function readStateFromMe(): Promise<OeUserState> {
   const api = getApiSafe();
   if (!api) return {};
-  const result = await api.Users.getUser(DEFAULT_LOCALE);
+  const result = await api.Users.getUser(getLang());
   if (isError(result)) return {};
   // SDK `IUserEntity.state` is `Record<string, unknown>`; our narrower
   // OeUserState is structurally compatible for the read path.
@@ -574,6 +575,13 @@ async function formDataGetByMarker(
   const api = getApiSafe();
   if (!api) return null;
   try {
+    // Form-data records — addresses, profile extras, subscription prefs — are
+    // stored in a locale-keyed bag, and every read/write in this file pins the
+    // same canonical slot. This is deliberate and must stay that way: the
+    // shopper's address is their data, not copy to be translated, so writing
+    // it under `de_DE` because they were browsing in German would make it
+    // vanish the moment they switched back to English. The display reads
+    // (orders, profile, discounts) follow `getLang()`; storage does not.
     const result = await api.FormData.getFormsDataByMarker(
       marker,
       formModuleConfigId,
@@ -1010,7 +1018,11 @@ export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
   const api = getApiSafe();
   if (!api) return [];
   try {
-    const result = await api.AuthProvider.getAuthProviders();
+    // Locale from the live SDK instance, not a literal: the shopper may be on
+    // `de_DE`, and a hardcoded key would silently serve English button copy
+    // (or, once a tenant drops `en_US`, no copy at all).
+    const lang = getLang();
+    const result = await api.AuthProvider.getAuthProviders(lang);
     if (isError(result)) return [];
     const list = Array.isArray(result) ? (result as RawAuthProvider[]) : [];
     return list
@@ -1020,8 +1032,9 @@ export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
       )
       .map((p) => {
         const info = p.localizeInfos ?? {};
-        // OE returns either { en_US: { title } } or a flat { title }.
-        const localized = (info as Record<string, { title?: string } | undefined>).en_US;
+        // OE returns either language-keyed ({ de_DE: { title } }) or already
+        // flattened against the requested locale ({ title }) — accept both.
+        const localized = (info as Record<string, { title?: string } | undefined>)[lang];
         const title =
           (typeof localized === 'object' && localized?.title) || (info as { title?: string }).title || p.identifier;
         return {
@@ -1238,6 +1251,11 @@ export async function cancelOrderAction(
     //    formData + products), NOT a partial patch. Sending only
     //    `{ statusIdentifier }` triggers OE's "Order must have a payment"
     //    (and similar) validators.
+    // Pinned to the canonical locale on purpose, unlike the display reads
+    // above: this is the read half of a read-modify-write. Whatever locale it
+    // is fetched in is the slot the PUT below writes back into, so following
+    // the shopper's language would file a German copy of the order over the
+    // English one — a data change dressed up as a translation.
     const existing = await api.Orders.getOrderByMarkerAndId(storage, orderId, DEFAULT_LOCALE);
     if (isError(existing)) return { ok: false, error: existing.message ?? `HTTP ${existing.statusCode}` };
     const cur = existing as unknown as {
@@ -1266,6 +1284,9 @@ export async function cancelOrderAction(
     // 2. Discover the cancellation status marker — regex match on the
     //    tenant's status list, fall back to `${storage}_cancelled`.
     let cancelledMarker = '';
+    // Also pinned: this list is matched against, not shown. The match runs a
+    // `/cancel/i` regex over identifier *and* title, and a localized title
+    // ("storniert") would only ever weaken it.
     const statuses = await api.Orders.getAllStatusesByStorageMarker(storage, DEFAULT_LOCALE, 0, 100);
     if (!isError(statuses) && Array.isArray(statuses)) {
       const match = statuses.find((s) => {
@@ -1821,7 +1842,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       ...(input.couponCode ? { couponCode: input.couponCode } : {}),
       ...(typeof input.bonusAmount === 'number' && input.bonusAmount > 0 ? { bonusAmount: input.bonusAmount } : {}),
     } as unknown as Parameters<typeof api.Orders.previewOrder>[0];
-    const result = await api.Orders.previewOrder(body, DEFAULT_LOCALE);
+    const result = await api.Orders.previewOrder(body, getLang());
     if (isError(result)) {
       const message = result.message ?? 'previewOrder failed';
       // OE surfaces missing products as `"Product 9171 not found"` (one id per
@@ -1889,7 +1910,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
         // the user-scoped call returns 403 "Permission data not found"
         // because there's no user session, but the app-token client can
         // read the public discount config just fine.
-        const cfg = await api.Discounts.getDiscountByMarker(rawCoupon.discountIdentifier, DEFAULT_LOCALE);
+        const cfg = await api.Discounts.getDiscountByMarker(rawCoupon.discountIdentifier, getLang());
         if (!isError(cfg)) {
           const cfgObj = cfg as unknown as {
             // OE returns `conditionType` on the wire but the SDK typing
@@ -2160,6 +2181,10 @@ export async function createOrderAction(
     // still validates conditions server-side; markers the shopper doesn't
     // qualify for are ignored.
     body.additionalDiscountsMarkers = [...TIER_MARKERS];
+    // Pinned like the other writes: `langCode` decides which locale slot the
+    // order's form data lands in, and an order filed under `de_DE` would be
+    // invisible to every read in this file (all of which pin the canonical
+    // slot) — including the shopper's own order history.
     const result = await api.Orders.createOrder(
       storageMarker,
       body as unknown as Parameters<typeof api.Orders.createOrder>[1],

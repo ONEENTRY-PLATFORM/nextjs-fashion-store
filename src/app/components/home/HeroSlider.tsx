@@ -241,6 +241,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
             key={idx}
             role="tab"
             onClick={() => goTo(idx)}
+            data-testid="hero-slider-dot"
             className={`h-1 transition-all duration-300 ${idx === current ? 'w-6 bg-white' : 'w-2 bg-white/50'}`}
             aria-selected={idx === current}
             aria-controls={`${regionId}-slide-${idx}`}

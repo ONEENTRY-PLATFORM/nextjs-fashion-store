@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import { SEO } from '@/app/data/seoData';
 import { AccountPage } from '@/app/pages/AccountPage';
@@ -26,7 +27,15 @@ export default async function Page() {
     <FormPlaceholdersProvider
       forms={{ user_addresses: userAddresses, service_request: serviceRequest, user_data: userData }}
     >
-      <AccountPage />
+      {/* `AccountPage` reads `?tab=` through `useSearchParams`, which opts the
+          enclosing tree into per-request rendering. Without a boundary of its
+          own that opt-in escapes upward and takes the whole route's static
+          shell with it (Next's "missing-suspense-with-csr-bailout"); the
+          account screen is shopper-scoped and renders nothing meaningful
+          server-side anyway, so the fallback is deliberately empty. */}
+      <Suspense fallback={null}>
+        <AccountPage />
+      </Suspense>
     </FormPlaceholdersProvider>
   );
 }

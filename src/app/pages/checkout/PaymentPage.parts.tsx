@@ -6,7 +6,14 @@ import { PAYMENT_PARTS_LABELS } from '@/app/data/checkoutLabels';
 import { useSchemas } from '@/app/utils/useFormMessages';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-export type PayMethod = 'cash' | 'card-delivery' | 'qr' | 'apple-pay' | 'google-pay' | 'card-online' | 'installment';
+// `PayMethod` used to live here — a hardcoded union of `'card-delivery' |
+// 'apple-pay' | 'google-pay' | 'installment' | …`. Nothing imported it, and
+// none of those identifiers exist on this tenant, whose payment accounts are
+// `bank_card_on_delivery`, `cash` and `stripe`. Payment is driven entirely by
+// `getPaymentAccountsAction` (see `PaymentPage`), so the type was a leftover
+// from the mock era that only invited someone to treat methods as a code
+// constant. Removed rather than corrected: the correct list is whatever OE
+// returns, which is not expressible as a literal union.
 
 interface OptionCardProps {
   id: string;

@@ -98,12 +98,19 @@ type Props = {
  */
 const PRODUCTS_PER_PAGE = 16;
 
-// ISR + dynamic auto: catalog pages hit by a clean URL (`/women/shoes`
-// with no query params) are served from cache for 60 s, then refreshed
-// in the background. URLs carrying filters / sort / pagination fall
-// through to per-request SSR because `searchParams` mark the render
-// dynamic. Loader-level TTLs (`loadProducts` / `loadFilteredProducts`)
-// are separately env-tunable via `ISR_CATALOG_TTL_SEC` in `src/lib/isr.ts`.
+// NOTE: this route is `ƒ Dynamic` in the build output, not ISR — the segment
+// config below currently buys nothing. `Page` awaits `searchParams`
+// unconditionally on the catalog branch (it needs the filters to issue the
+// filtered OE query server-side), and reading `searchParams` opts the whole
+// segment out of static generation, clean URL or not. The export is kept
+// because it becomes live the moment the filter read is deferred behind its
+// own Suspense boundary, which is the real fix — until then, do not read this
+// line as "clean catalog URLs are cached for 60 s". They are not.
+//
+// What actually caches today is one level down: the loaders wrap their OE
+// calls in `unstable_cache`, so repeat requests reuse OE responses for
+// `ISR_CATALOG_TTL_SEC` (default 60 s, see `src/lib/isr.ts`) even though the
+// HTML is rebuilt per request.
 //
 // This value MUST be a literal — Next.js statically analyses route
 // segment config at build time and rejects imported / re-exported /

@@ -374,6 +374,35 @@ describe('loadPageBlocksByUrl', () => {
     expect(getBlocksByPageUrl).not.toHaveBeenCalled();
   });
 
+  it('accepts the wrapped `{ items }` shape as well as a bare array', async () => {
+    // OE answers this endpoint either way. The loader used to call `.slice()`
+    // on the response unconditionally, so the wrapped shape threw
+    // `TypeError: c.slice is not a function` — which is a prerender failure,
+    // not a degraded page: it killed `/de/cart` on a cold build.
+    getBlocksByPageUrl.mockResolvedValue({
+      items: [{ identifier: 'block_a', position: 1 }],
+    });
+    getBlockByMarker.mockResolvedValue(makeBlockDescriptor(1));
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('cart', 'de_DE');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].marker).toBe('block_a');
+  });
+
+  it('returns [] for a success response that is neither an array nor `{ items }`', async () => {
+    // `isError` does not catch this — there is no `statusCode`. Without the
+    // shape guard it is the same TypeError as above.
+    getBlocksByPageUrl.mockResolvedValue({ someOtherShape: true });
+
+    const { loadPageBlocksByUrl } = await importFresh();
+    const result = await loadPageBlocksByUrl('cart', 'de_DE');
+
+    expect(result).toEqual([]);
+    expect(getBlockByMarker).not.toHaveBeenCalled();
+  });
+
   it('returns [] when SDK returns an IError (statusCode present)', async () => {
     getBlocksByPageUrl.mockResolvedValue({ statusCode: 404, message: 'Not Found' });
 

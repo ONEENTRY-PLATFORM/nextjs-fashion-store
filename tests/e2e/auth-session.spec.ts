@@ -62,7 +62,7 @@ test.describe('Shopper session (client-side tokens)', () => {
     expect(after.userIdentifier).toBe(before.userIdentifier);
 
     // The account icon must not fall back to the signed-out login modal.
-    await page.locator('button[aria-label="My account"]').click();
+    await page.getByTestId('header-account').first().click();
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 8000 });
   });
 

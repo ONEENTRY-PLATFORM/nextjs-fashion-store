@@ -234,7 +234,7 @@ test.describe('Account Page', () => {
         await logoutBtn.click();
         await page.waitForTimeout(500);
         // After logout, account icon should open login modal, not navigate to account
-        await page.locator('button[aria-label="My account"]').click();
+        await page.getByTestId('header-account').first().click();
         await page.waitForTimeout(500);
         const dialog = page.getByRole('dialog');
         const loginPrompt = page.locator('text=/sign in|email or phone/i').first();

@@ -37,10 +37,28 @@ export async function readSession(page: Page) {
   );
 }
 
-/** Click the account/user icon in the Header to open login modal */
+/**
+ * Click the account/user icon in the Header to open login modal.
+ *
+ * The wait is generous on purpose. The header only becomes clickable once the
+ * client bundle has hydrated, and on a route the dev server is compiling for
+ * the first time that lands well past ten seconds — which showed up as
+ * `locator.waitFor: Timeout 10000ms exceeded` in specs whose actual subject
+ * was something else entirely. `global-setup.ts` pre-compiles the common
+ * routes; this covers the ones it cannot know about.
+ */
 export async function clickAccountIcon(page: Page) {
-  const btn = page.locator('button[aria-label="My account"]');
-  await btn.waitFor({ state: 'visible', timeout: 10_000 });
+  // By testid, not by `aria-label="My account"`. That label is CMS copy
+  // (`useT('header_aria_account', …)`), so it is German on `/de` — the locator
+  // matched nothing there and no auth spec could ever have run outside the
+  // default locale. It was also one panel edit away from breaking every
+  // logged-in spec at once.
+  //
+  // `.first()` because the header is briefly present twice in the DOM during
+  // hydration, which trips Playwright's strict mode ("resolved to 2
+  // elements"). Both copies are the same button; the transient resolves.
+  const btn = page.getByTestId('header-account').first();
+  await btn.waitFor({ state: 'visible', timeout: 30_000 });
   await btn.click();
 }
 
@@ -48,10 +66,21 @@ export async function clickAccountIcon(page: Page) {
 export async function login(page: Page) {
   await clickAccountIcon(page);
   const dialog = page.locator('[role="dialog"]');
-  await dialog.waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('input[placeholder*="example.com"]').fill(VALID_CREDS.email);
-  await page.locator('input[placeholder="••••••••"]').fill(VALID_CREDS.password);
-  await page.locator('button:has-text("Log In")').click();
+  // Same budget as the header button above, for the same reason: the modal is
+  // a lazily-loaded chunk, so its first open on a route the dev server has not
+  // built yet includes a compile. Observed overrunning 15 s on a cold `/de`.
+  // This is a dev-server cost — a CI run against a production build never
+  // pays it — so the ceiling is sized for the worst local case rather than
+  // tuned down until it flakes again.
+  await dialog.waitFor({ state: 'visible', timeout: 30_000 });
+  // Testids throughout, for the same reason as the header button: the
+  // placeholders come from the OE sign-in form schema and the CTA caption from
+  // the dictionary, so every one of these locators was English-only — the
+  // helper could not log in on `/de` at all, and a copy edit in the panel
+  // would have broken every authenticated spec at once.
+  await page.getByTestId('login-email').fill(VALID_CREDS.email);
+  await page.getByTestId('login-password').fill(VALID_CREDS.password);
+  await page.getByTestId('login-submit').click();
   // Wait for modal to close (login takes ~500ms server action)
   await expect(dialog).toBeHidden({ timeout: 8000 });
   // Wait for post-login state to settle

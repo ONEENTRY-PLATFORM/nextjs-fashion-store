@@ -11,13 +11,15 @@ import { OAUTH_ERROR_LABELS } from '@/app/data/authLabels';
 import { configureCurrency } from '@/app/data/currencyConfig';
 import { type AppStore, loadCatalogFromStorage, makeStore } from '@/app/store';
 import { type CatalogsState, hydrateCatalogs } from '@/app/store/catalogSlice';
-import { useRouter } from '@/lib/i18n/navigation';
+import { useLocale, useRouter } from '@/lib/i18n/navigation';
+import { setLang } from '@/lib/oneentry';
 import type { SignUpFormSchema } from '@/lib/oneentry/auth/sign-up-form';
 import { SignUpFormSchemaProvider } from '@/lib/oneentry/auth/SignUpFormSchemaContext';
 import type { Dictionary } from '@/lib/oneentry/dictionary';
 import { FormPlaceholdersProvider } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import type { FormContent } from '@/lib/oneentry/forms/placeholders';
 import { DictProvider, useT } from '@/lib/oneentry/labels/DictContext';
+import { toCmsLocale } from '@/lib/oneentry/locale';
 import type { CmsLocale } from '@/lib/oneentry/locales';
 import { LocalesProvider } from '@/lib/oneentry/LocalesContext';
 import { FooterMenuProvider } from '@/lib/oneentry/menus/FooterMenuContext';
@@ -148,6 +150,18 @@ export function Providers({
     configureCurrency(parsed.currency);
     return parsed;
   }, [dict]);
+
+  // Tell the browser SDK which locale the shopper is on. Without this the
+  // instance stays on its constructor default and every user-scoped call
+  // (orders, profile, discounts) answers in English on `/de` — the URL was the
+  // only thing that knew the locale, and the SDK never saw it.
+  //
+  // Called during render for the same reason `configureCurrency` above is: the
+  // value is read by code that runs below this component, and an effect fires
+  // after that. Idempotent and derived purely from the URL, so re-rendering
+  // re-runs it harmlessly.
+  const shortLocale = useLocale();
+  useMemo(() => setLang(toCmsLocale(shortLocale)), [shortLocale]);
 
   useEffect(() => {
     const catalog = loadCatalogFromStorage();

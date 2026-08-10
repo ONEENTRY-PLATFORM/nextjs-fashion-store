@@ -11,7 +11,7 @@ import { gotoProduct, login, selectFirstAvailableSize } from './helpers';
 async function openLoginModal(page: Page) {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
-  await page.locator('button[aria-label="My account"]').click();
+  await page.getByTestId('header-account').first().click();
   await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 }
 

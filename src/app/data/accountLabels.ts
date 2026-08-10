@@ -300,7 +300,7 @@ export const SERVICE_LABELS = {
   // nested step would stay frozen in code. The `NN` is the rendered badge and
   // stays here — it is a number, not copy.
   howStep1Title: 'Submit Request',
-  howStep1Body: 'Tell us what your item needs — alteration, repair, cleaning or restoration.',
+  howStep1Body: 'Tell us what your item needs — repair, cleaning, alteration or resoling.',
   howStep2Title: 'Drop Off',
   howStep2Body: 'Bring your item to any Kekimoro store with your confirmation reference.',
   howStep3Title: 'We Get to Work',
@@ -314,11 +314,16 @@ export const SERVICE_LABELS = {
     completed: 'Completed',
     cancelled: 'Cancelled',
   } as const,
+  // Offline mirror of the OE `service_request` form's `category` listTitles —
+  // keys are the option *values* OE stores, in its authored `position` order.
+  // The live list wins at runtime (`useFormOptions`); this only covers the
+  // first paint and the CMS-unreachable path, so a key that OE does not have
+  // would put an unsubmittable option in the select.
   categoryLabels: {
-    alteration: 'Alteration',
     repair: 'Repair',
     cleaning: 'Cleaning',
-    restoration: 'Restoration',
+    alteration: 'Alteration',
+    'sole-replacement': 'Sole replacement',
     other: 'Other',
   } as const,
   loadingAria: 'Loading service requests',

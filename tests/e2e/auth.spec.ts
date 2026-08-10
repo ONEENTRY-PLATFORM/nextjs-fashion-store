@@ -12,13 +12,13 @@ test.describe('Authentication', () => {
 
   test.describe('Login', () => {
     test('opens login modal from header user icon', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await expect(page.locator('input[placeholder*="example.com"]')).toBeVisible();
     });
 
     test('login with valid credentials', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.locator('input[placeholder*="example.com"]').fill(VALID_CREDS.email);
       await page.locator('input[placeholder="••••••••"]').fill(VALID_CREDS.password);
       await page.locator('button:has-text("Log In")').click();
@@ -28,7 +28,7 @@ test.describe('Authentication', () => {
     });
 
     test('login with invalid credentials shows error', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.locator('input[placeholder*="example.com"]').fill('wrong@email.com');
       await page.locator('input[placeholder="••••••••"]').fill('wrongpass');
       await page.locator('button:has-text("Log In")').click();
@@ -38,7 +38,7 @@ test.describe('Authentication', () => {
     });
 
     test('login with empty fields shows validation error', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.locator('button:has-text("Log In")').click();
 
       // Validation errors should appear
@@ -46,14 +46,14 @@ test.describe('Authentication', () => {
     });
 
     test('login modal closes on Escape', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toBeHidden({ timeout: 2000 });
     });
 
     test('login modal closes on backdrop click', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await expect(page.getByRole('dialog')).toBeVisible();
       // Click far right of the viewport, outside the modal
       await page.mouse.click(1200, 400);
@@ -61,7 +61,7 @@ test.describe('Authentication', () => {
     });
 
     test('login with phone number shows error (phone auth not implemented)', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.locator('input[placeholder*="example.com"]').fill('+44 20 7946 0958');
       await page.locator('input[placeholder="••••••••"]').fill(VALID_CREDS.password);
       await page.locator('button:has-text("Log In")').click();
@@ -72,7 +72,7 @@ test.describe('Authentication', () => {
 
   test.describe('Register', () => {
     test('switch to register form', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.locator('button:has-text("Create one")').click();
       // Register form has placeholder "Jane" for first name (exact match — the
@@ -81,7 +81,7 @@ test.describe('Authentication', () => {
     });
 
     test('register form validates required fields', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.locator('button:has-text("Create one")').click();
       await page.waitForTimeout(500);
@@ -99,14 +99,14 @@ test.describe('Authentication', () => {
   test.describe('Logout', () => {
     test('user can log out after logging in', async ({ page }) => {
       // Login first
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.locator('input[placeholder*="example.com"]').fill(VALID_CREDS.email);
       await page.locator('input[placeholder="••••••••"]').fill(VALID_CREDS.password);
       await page.locator('button:has-text("Log In")').click();
       await expect(page.getByRole('dialog')).toBeHidden({ timeout: 5000 });
 
       // Navigate to account
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.waitForTimeout(500);
 
       // Look for logout button
@@ -119,7 +119,7 @@ test.describe('Authentication', () => {
 
   test.describe('Adversarial — Auth', () => {
     test('XSS in login email field', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.locator('input[placeholder*="example.com"]').fill('<script>alert("xss")</script>');
       await page.locator('input[placeholder="••••••••"]').fill('test');
       await page.locator('button:has-text("Log In")').click();
@@ -134,7 +134,7 @@ test.describe('Authentication', () => {
     });
 
     test('SQL injection in login fields', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await page.locator('input[placeholder*="example.com"]').fill("'; DROP TABLE users; --");
       await page.locator('input[placeholder="••••••••"]').fill("' OR '1'='1");
       await page.locator('button:has-text("Log In")').click();
@@ -144,7 +144,7 @@ test.describe('Authentication', () => {
     });
 
     test('extremely long input in login fields', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       const longString = 'a'.repeat(10000);
       await page.locator('input[placeholder*="example.com"]').fill(longString);
       await page.locator('input[placeholder="••••••••"]').fill(longString);
@@ -155,7 +155,7 @@ test.describe('Authentication', () => {
 
   test.describe('Social login buttons', () => {
     test('Google, Apple, Facebook buttons are visible', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       await expect(page.getByRole('dialog')).toBeVisible();
       const socialBtns = page.locator(
         'button:has-text("Google"), button:has-text("Apple"), button:has-text("Facebook")',
@@ -171,7 +171,7 @@ test.describe('Authentication', () => {
 
   test.describe('Password field', () => {
     test('password visibility toggle (if exists)', async ({ page }) => {
-      await page.locator('button[aria-label="My account"]').click();
+      await page.getByTestId('header-account').first().click();
       const toggleBtn = page.locator(
         'button[aria-label*="password"], button[aria-label*="show"], button[aria-label*="eye"]',
       );

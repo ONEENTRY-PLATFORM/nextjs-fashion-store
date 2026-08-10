@@ -65,6 +65,17 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  // Per-page ceiling for static generation, in seconds. The 60 s default was
+  // written for pages that read a database; these read OneEntry over the
+  // network, and on a cold Data Cache the heavy ones (`/`, `/new`, `/sale`,
+  // `/favorites`) legitimately need longer — the homepage alone awaits seven
+  // loaders. Hitting the ceiling is not a hung render, it is a slow one, and
+  // treating it as a failure made a green build depend on whether an earlier
+  // run had warmed the cache.
+  //
+  // Deliberately not "infinity": a page that cannot finish in three minutes is
+  // a real problem and should still fail the build rather than hang CI.
+  staticPageGenerationTimeout: 180,
   // Tree-shake the bulky icon / UI packages so route bundles only ship the
   // icons they actually import. Trimmed ~200 KB from first-load JS on the
   // homepage in earlier profiling.
@@ -74,6 +85,16 @@ const nextConfig: NextConfig = {
       '@heroicons/react/24/outline',
       '@heroicons/react/24/solid',
     ],
+    // Give a page more than one more go before the build dies. Measured on a
+    // cold Data Cache (`rm -rf .next`): `/en`, `/de`, `/sale`, `/new` and
+    // `/favorites` each blow the per-page ceiling on their first attempt, and
+    // the retry is also what warms the shared cache for their peers — with the
+    // stock single retry the build failed outright, with three it survives.
+    //
+    // This is the safety net, not the fix; `staticPageGenerationTimeout` below
+    // is what stops the ceiling being hit in the first place. Both are kept:
+    // OneEntry's latency is not something this repo controls.
+    staticGenerationRetryCount: 3,
   },
   async headers() {
     return [

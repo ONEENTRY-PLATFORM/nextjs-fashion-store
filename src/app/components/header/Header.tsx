@@ -279,6 +279,7 @@ export function Header() {
                   className="hidden min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70 md:flex"
                   onClick={() => (isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal())}
                   aria-label={aAccount}
+                  data-testid="header-account"
                 >
                   <User size={20} />
                 </button>

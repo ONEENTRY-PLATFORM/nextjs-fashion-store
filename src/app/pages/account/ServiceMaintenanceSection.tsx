@@ -1,13 +1,20 @@
 'use client';
 import { AlertTriangle, Check, ChevronDown, Plus, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { SERVICE_LABELS } from '@/app/data/accountLabels';
-import { type ServiceRequest, type ServiceStatus } from '@/app/data/serviceData';
+import { type ServiceCategory, type ServiceRequest, type ServiceStatus } from '@/app/data/serviceData';
 import { getServiceRequestsAction } from '@/lib/oneentry/catalog/service-requests-action';
+import { useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+/** Offline mirror of the OE `category` listTitles — see `ServiceRequestForm`. */
+const CATEGORY_FALLBACK = (Object.keys(SERVICE_LABELS.categoryLabels) as ServiceCategory[]).map((value) => ({
+  value,
+  title: SERVICE_LABELS.categoryLabels[value],
+}));
 
 import { ServiceHowItWorks } from './service/ServiceHowItWorks';
 import { ServiceRequestForm } from './service/ServiceRequestForm';
@@ -17,9 +24,17 @@ const SERVICE_FILTER_KEYS: ServiceStatus[] = ['open', 'in-progress', 'ready', 'c
 
 export function ServiceMaintenanceSection() {
   const L = useDict('service_maintenance_', SERVICE_LABELS);
-  // Nested objects are structure to `mergeDict`, so the category names get
-  // their own overlay rather than staying frozen in code.
+  // Category names come from the same place the submit form reads its options —
+  // the OE form's `listTitles` — so a service the panel renames or adds shows
+  // its authored title here too, instead of needing a parallel dictionary key.
+  // The dictionary stays as the fallback layer for stored records whose option
+  // has since been retired from the form.
+  const CATEGORY_OPTIONS = useFormOptions('service_request', 'category', CATEGORY_FALLBACK);
   const CATEGORIES = useDict('service_maintenance_category_', SERVICE_LABELS.categoryLabels);
+  const categoryTitle = useMemo(() => {
+    const byValue = new Map(CATEGORY_OPTIONS.map((o) => [o.value, o.title]));
+    return (value: ServiceCategory): string => byValue.get(value) ?? CATEGORIES[value] ?? value;
+  }, [CATEGORY_OPTIONS, CATEGORIES]);
   // `null` means "still loading" — one piece of state instead of a pair kept
   // in sync from inside the effect (a synchronous `setState` in `useEffect`).
   const [services, setServices] = useState<ServiceRequest[] | null>(null);
@@ -126,6 +141,7 @@ export function ServiceMaintenanceSection() {
             className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold tracking-[0.15em] text-white uppercase transition-colors focus-visible:outline-none ${
               showForm ? 'bg-(--sale)' : hoveredBtn === 'new' ? 'bg-accent' : 'bg-black'
             }`}
+            data-testid="service-new-request"
           >
             {showForm ? (
               <>
@@ -230,7 +246,9 @@ export function ServiceMaintenanceSection() {
                     </div>
                     <div>
                       <p className="text-[10px] tracking-widest text-gray-400 uppercase">{lFieldType}</p>
-                      <p className="text-xs font-semibold">{CATEGORIES[req.category]}</p>
+                      <p className="text-xs font-semibold" data-testid="service-request-category">
+                        {categoryTitle(req.category)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-[10px] tracking-widest text-gray-400 uppercase">{lFieldCost}</p>
@@ -305,7 +323,7 @@ export function ServiceMaintenanceSection() {
                       {[
                         { label: lDroppedOff, value: req.droppedOff },
                         { label: lEstReady, value: req.estimatedReady ?? L.costTbc },
-                        { label: lServiceType, value: CATEGORIES[req.category] },
+                        { label: lServiceType, value: categoryTitle(req.category) },
                         { label: lFieldCost, value: req.cost !== null ? fmt(req.cost) : L.costTbc },
                       ].map((cell) => (
                         <div key={cell.label} className="bg-white px-4 py-3">

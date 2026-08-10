@@ -20,7 +20,7 @@ const PASSWORD = 'demo123';
 async function loginAsSeedUser(page: Page): Promise<void> {
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
-  const accountBtn = page.locator('button[aria-label="My account"]');
+  const accountBtn = page.getByTestId('header-account').first();
   await accountBtn.waitFor({ state: 'visible', timeout: 15_000 });
   await accountBtn.click();
   const dialog = page.locator('[role="dialog"]').first();
