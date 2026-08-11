@@ -227,7 +227,7 @@ export function Header() {
                 >
                   <Menu size={22} />
                 </button>
-                <Link href="/" className="shrink-0">
+                <Link href="/" className="shrink-0" data-testid="header-logo">
                   <Image src={logoImage} alt={lLogoAlt} width={146} height={32} className="object-contain" priority />
                 </Link>
               </div>

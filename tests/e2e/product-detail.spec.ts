@@ -234,14 +234,42 @@ test.describe('Product Detail Page', () => {
 
   test.describe('Breadcrumbs', () => {
     test('breadcrumb Home link navigates to homepage', async ({ page }) => {
-      const breadcrumb = page.locator('nav[aria-label*="breadcrumb"], [class*="breadcrumb"]').first();
+      const breadcrumb = page.getByTestId('pdp-breadcrumb');
       if (await breadcrumb.isVisible()) {
-        const homeLink = breadcrumb.getByRole('link', { name: /home/i });
+        const homeLink = breadcrumb.getByTestId('pdp-breadcrumb-link').first();
         if (await homeLink.isVisible()) {
           await homeLink.click();
-          await expect(page).toHaveURL('/');
+          await expect(page).toHaveURL(/\/(en)?\/?$/);
         }
       }
+    });
+
+    test('every category crumb except the current product is a link', async ({ page }) => {
+      const breadcrumb = page.getByTestId('pdp-breadcrumb');
+      await expect(breadcrumb).toBeVisible();
+      // Home + the category chain: a product filed under a category must
+      // offer more than the single "Home" anchor it used to.
+      const links = breadcrumb.getByTestId('pdp-breadcrumb-link');
+      expect(await links.count()).toBeGreaterThan(1);
+      for (const link of await links.all()) {
+        const href = await link.getAttribute('href');
+        assertPresent(href, 'breadcrumb link href');
+        expect(href.startsWith('/')).toBe(true);
+      }
+    });
+
+    test('category crumb navigates to a catalog page that renders', async ({ page }) => {
+      const links = page.getByTestId('pdp-breadcrumb').getByTestId('pdp-breadcrumb-link');
+      if ((await links.count()) < 2) test.skip();
+      // The last crumb link is the deepest category — the leaf filter when the
+      // product is nested, the section page otherwise.
+      const target = links.last();
+      const href = await target.getAttribute('href');
+      assertPresent(href, 'category breadcrumb href');
+      await target.click();
+      await page.waitForLoadState('networkidle');
+      await expect(page).toHaveURL(new RegExp(href.split('?')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+      await expect(page.locator('h1').first()).toBeVisible();
     });
   });
 

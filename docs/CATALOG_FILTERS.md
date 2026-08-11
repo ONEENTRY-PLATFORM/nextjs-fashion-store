@@ -370,13 +370,14 @@ Sale / New / Favorites don't map through these — they compose category buckets
 
 ## 15b. `categoryPathToBreadcrumbs`
 
-`src/lib/oneentry/catalog/products.ts`. Turns an OE category path like `/women/women_clothing/costumes` into a capitalised label chain `['Women', 'Clothing', 'Costumes']`:
+`src/lib/oneentry/catalog/products.ts`. Turns an OE category path like `/women/women_shoes/rubber_boots` into a navigable chain of `{ name, href? }` crumbs:
 
 - Splits on `/`, drops empty segments.
 - Trims the redundant gender prefix (`women_`, `men_`) so `women_clothing` collapses to `Clothing`.
 - Replaces `_` / `-` with spaces, title-cases every word.
+- Links each crumb: the gender segment has no route of its own, so it uses the `genderHref` the caller resolved from `loadCatalogRoutes()` (the first category under that gender, e.g. `/women/clothing`) and stays unlinked when OE is unreachable; the second segment is the catalog page (`/women/shoes`); deeper leaves narrow that page through `?category=<segment>`, which `matchesCatalogFilters` resolves against every path segment.
 
-Used by `ProductDetailPage.tsx` so each PDP renders the exact category chain the product actually lives in, rather than a hard-coded chain per catalogKey. Empty input returns `[]`.
+Used by `ProductDetailPage.tsx` so each PDP renders the exact category chain the product actually lives in — and so every crumb is clickable — rather than a hard-coded chain per catalogKey. `app/[locale]/product/[id]/page.tsx` feeds the same crumbs into the `BreadcrumbList` JSON-LD so structured data and the visible trail agree. Empty input returns `[]`.
 
 ## 15c. Product attribute normalisation — full field list
 

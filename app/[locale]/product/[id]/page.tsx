@@ -12,6 +12,7 @@ import { ProductDetailPage } from '@/app/pages/ProductDetailPage';
 import { priceValidUntil } from '@/app/utils/price-valid-until';
 import { loadProductBlocks } from '@/lib/oneentry/blocks/page-blocks';
 import { adaptCatalogProductToPdpProduct } from '@/lib/oneentry/catalog/adapt';
+import { loadCatalogRoutes } from '@/lib/oneentry/catalog/catalog-routes';
 import { categoryPathToBreadcrumbs, categoryPathToViewAllHref, loadProductById } from '@/lib/oneentry/catalog/products';
 import { loadProductSpecLabels } from '@/lib/oneentry/catalog/spec-labels';
 import { loadStores } from '@/lib/oneentry/catalog/stores';
@@ -151,9 +152,24 @@ export default async function Page({ params }: Props) {
     ? adaptCatalogProductToPdpProduct(oeProductRaw, specLabels ?? undefined)
     : null;
   const product = oeProduct;
-  // Build breadcrumb labels from the product's OE category path so each
-  // product lands on its actual taxonomy chain rather than a hardcoded one.
-  const categoryBreadcrumbs = oeProductRaw ? categoryPathToBreadcrumbs(oeProductRaw.categories?.[0]) : [];
+  // Build the breadcrumb chain from the product's OE category path so each
+  // product lands on its actual taxonomy rather than a hardcoded one. The
+  // gender segment (`women`) has no route of its own — the storefront enters
+  // that taxonomy through its first category (`/women/clothing`), so resolve
+  // it from the CMS catalog tree and let the crumb link there. When OE is
+  // unreachable the crumb simply stays unlinked.
+  const productCategory = oeProductRaw?.categories?.[0];
+  const genderSegment = (productCategory ?? '').split('/').filter(Boolean)[0];
+  const genderHref = await (async () => {
+    if (!genderSegment) return undefined;
+    const routes = (await loadCatalogRoutes()).filter((r) => r.gender === genderSegment);
+    // `clothing` is the landing every other gender link in the storefront uses
+    // (`PAGE_REGISTRY`, the empty-cart CTA, the store locator …). Fall back to
+    // whichever category the CMS lists first when the tenant has no such leaf.
+    const landing = routes.find((r) => r.path === `${genderSegment}/clothing`) ?? routes[0];
+    return landing ? `/${landing.path}` : undefined;
+  })();
+  const categoryBreadcrumbs = categoryPathToBreadcrumbs(productCategory, genderHref);
 
   // Aggregate rating computed from OE product reviews. Empty cohort defaults
   // to 0 — schema.org consumers handle a 0-count rating gracefully.
@@ -253,14 +269,28 @@ export default async function Page({ params }: Props) {
       }
     : null;
 
+  // Structured data mirrors the visible breadcrumb: the same category chain,
+  // with each crumb's own url where the storefront has one. It used to list
+  // the brand pointing at the site root, which described a trail no visitor
+  // could follow.
   const breadcrumbSchema = product
     ? {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: BC.home, item: SITE_URL },
-          { '@type': 'ListItem', position: 2, name: product.brand ?? BC.productsFallback, item: SITE_URL },
-          { '@type': 'ListItem', position: 3, name: product.name, item: `${SITE_URL}/product/${id}` },
+          ...categoryBreadcrumbs.map((crumb, i) => ({
+            '@type': 'ListItem',
+            position: i + 2,
+            name: crumb.name,
+            ...(crumb.href ? { item: `${SITE_URL}${crumb.href}` } : {}),
+          })),
+          {
+            '@type': 'ListItem',
+            position: categoryBreadcrumbs.length + 2,
+            name: product.name,
+            item: `${SITE_URL}/product/${id}`,
+          },
         ],
       }
     : null;
@@ -273,11 +303,11 @@ export default async function Page({ params }: Props) {
   // taxonomy path (e.g. `/women/women_clothing/costumes` → `/women/clothing`).
   // Falls back to home when the product has no categories — no gender/type
   // is guessed from the id prefix (that legacy heuristic has been removed).
-  const categoryViewAllHref = categoryPathToViewAllHref(oeProductRaw?.categories?.[0]);
+  const categoryViewAllHref = categoryPathToViewAllHref(productCategory);
   // Full OE category path (e.g. `/women/women_clothing/outerwear`) — used by
   // the recommendations carousel to backfill from the same shelf when the
   // stats-driven `frequently_ordered_block` has too few products.
-  const productCategoryPath = oeProductRaw?.categories?.[0];
+  const productCategoryPath = productCategory;
   // Effective gender for the recommendations filter. OE's `gender` attribute
   // is left blank on many products, but the category path (`/women/...` vs
   // `/men/...`) is authoritative — use it as a fallback so a women's product

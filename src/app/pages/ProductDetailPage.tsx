@@ -40,6 +40,7 @@ import { trackActivity } from '@/app/utils/track-activity';
 import { Link, useRouter } from '@/lib/i18n/navigation';
 import { pushRecentlyViewedAction } from '@/lib/oneentry/auth/actions';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import type { CategoryBreadcrumb } from '@/lib/oneentry/catalog/products';
 import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
 import { getProductReviewSummary } from '@/lib/oneentry/catalog/reviews-actions';
 // PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks
@@ -95,10 +96,11 @@ export function ProductDetailPage({
 }: {
   initialProduct?: CatalogProduct;
   /**
-   * Breadcrumb labels derived from the product's OE category path
-   *  (e.g. `['Women', 'Clothing', 'Costumes']`).
+   * Breadcrumbs derived from the product's OE category path (e.g. `Women` →
+   *  `Clothing` → `Costumes`). Each carries the storefront href the route
+   *  resolved for it; a crumb without one renders as plain text.
    */
-  categoryBreadcrumbs?: string[];
+  categoryBreadcrumbs?: CategoryBreadcrumb[];
   /**
    * Streamed customer-reviews block — a `<Suspense>`-wrapped async server
    *  component that fetches `review_feedback`/`review_rating` form-data. The
@@ -655,17 +657,29 @@ export function ProductDetailPage({
         </div>
 
         {/* Breadcrumb — labels derived from the OE category path so each
-            product gets its real taxonomy chain. The leading "Home" anchor
-            links back to the storefront root. */}
+            product gets its real taxonomy chain. Every crumb the route could
+            resolve a destination for is a link (the leading "Home" anchor, the
+            gender landing, the catalog page and its leaf filter); one without
+            a reachable page stays plain text rather than pointing at a 404. */}
         <div className="border-b border-gray-200 px-4 py-3 lg:px-8">
-          <nav className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
-            <Link href="/" className="transition-colors hover:text-black">
+          <nav data-testid="pdp-breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
+            <Link href="/" data-testid="pdp-breadcrumb-link" className="transition-colors hover:text-black">
               {PB.home}
             </Link>
             {categoryBreadcrumbs.map((crumb, i) => (
-              <React.Fragment key={`${crumb}-${i}`}>
+              <React.Fragment key={`${crumb.name}-${i}`}>
                 <ChevronRight size={11} className="shrink-0" />
-                <span className="text-gray-400">{crumb}</span>
+                {crumb.href ? (
+                  <Link
+                    href={crumb.href}
+                    data-testid="pdp-breadcrumb-link"
+                    className="text-gray-400 transition-colors hover:text-black"
+                  >
+                    {crumb.name}
+                  </Link>
+                ) : (
+                  <span className="text-gray-400">{crumb.name}</span>
+                )}
               </React.Fragment>
             ))}
             <ChevronRight size={11} className="shrink-0" />

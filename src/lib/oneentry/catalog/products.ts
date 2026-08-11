@@ -130,30 +130,71 @@ export interface CatalogProductVariant {
   descriptionHtml: string;
 }
 
+/** One breadcrumb derived from an OE category path. */
+export interface CategoryBreadcrumb {
+  /** Visible label, e.g. `Rubber Boots`. */
+  name: string;
+  /**
+   * Storefront destination, omitted when the segment has no page a shopper
+   *  can reach (see `categoryPathToBreadcrumbs` for which those are).
+   */
+  href?: string;
+}
+
+/** Capitalize an OE url segment: `rubber_boots` → `Rubber Boots`. */
+function segmentToLabel(segment: string): string {
+  // Drop the redundant gender prefix on subcategories (`women_clothing` →
+  // `Clothing`) so the visible label matches storefront navigation labels.
+  const trimmed = segment
+    .replace(/^(women|men)_/, '')
+    .replace(/[-_]/g, ' ')
+    .trim();
+  if (!trimmed) return '';
+  return trimmed
+    .split(/\s+/)
+    .map((w) => (w.length === 0 ? w : w[0].toUpperCase() + w.slice(1).toLowerCase()))
+    .join(' ');
+}
+
 /**
- * Convert an OE category path like `/women/women_clothing/costumes` to a
- *  capitalized breadcrumb-ready label list: `['Women', 'Clothing', 'Costumes']`.
- *  Used by the PDP breadcrumb so each product gets the path it really lives in
- *  rather than a single hardcoded chain.
+ * Convert an OE category path like `/women/women_shoes/rubber_boots` into
+ *  breadcrumbs the PDP can link: `Women` → `Shoes` → `Rubber Boots`. Each
+ *  product therefore gets the path it really lives in rather than a single
+ *  hardcoded chain, and every crumb is navigable:
+ *
+ *  - `seg[0]` (gender) has no storefront route of its own, so it links to
+ *    `genderHref` when the caller resolved one from the CMS catalog tree
+ *    (e.g. `/women/clothing`); without it — or when it is the very page the
+ *    next crumb links to — it stays plain text rather than a 404 or a
+ *    duplicate.
+ *  - `seg[1]` is a catalog page — `/women/shoes`.
+ *  - Deeper segments are leaves inside that page, reachable through the
+ *    `?category=` filter the catalog route already understands.
+ *
+ * @param   path       - OE category path, e.g. `/women/women_shoes/rubber_boots`.
+ * @param   genderHref - Destination for the leading gender crumb, if any.
+ * @returns              Labelled crumbs in path order; empty for no path.
  */
-export function categoryPathToBreadcrumbs(path: string | undefined): string[] {
+export function categoryPathToBreadcrumbs(path: string | undefined, genderHref?: string): CategoryBreadcrumb[] {
   if (!path) return [];
   const segments = path.split('/').filter(Boolean);
+  const gender = segments[0] ?? '';
+  const sectionHref = categoryPathToViewAllHref(path);
+  const hasSection = sectionHref !== '/';
+
   return segments
-    .map((segment) => {
-      // Drop the redundant gender prefix on subcategories (`women_clothing` →
-      // `Clothing`) so the visible label matches storefront navigation labels.
-      const trimmed = segment
-        .replace(/^(women|men)_/, '')
-        .replace(/[-_]/g, ' ')
-        .trim();
-      if (!trimmed) return '';
-      return trimmed
-        .split(/\s+/)
-        .map((w) => (w.length === 0 ? w : w[0].toUpperCase() + w.slice(1).toLowerCase()))
-        .join(' ');
+    .map((segment, i): CategoryBreadcrumb | null => {
+      const name = segmentToLabel(segment);
+      if (!name) return null;
+      // Two adjacent crumbs pointing at the same page read as a mistake, so the
+      // gender keeps its href only when it differs from the section's.
+      if (i === 0) return genderHref && gender && genderHref !== sectionHref ? { name, href: genderHref } : { name };
+      if (i === 1) return hasSection ? { name, href: sectionHref } : { name };
+      // A leaf category has no page of its own — narrow the section page with
+      // the filter the catalog route parses out of `?category=`.
+      return hasSection ? { name, href: `${sectionHref}?category=${encodeURIComponent(segment)}` } : { name };
     })
-    .filter(Boolean);
+    .filter((crumb): crumb is CategoryBreadcrumb => crumb !== null);
 }
 
 /**

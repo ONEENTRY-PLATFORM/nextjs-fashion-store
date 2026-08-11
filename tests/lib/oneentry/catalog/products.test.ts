@@ -219,6 +219,48 @@ describe('categoryPathToViewAllHref', () => {
   });
 });
 
+// ─── categoryPathToBreadcrumbs ──────────────────────────────────────────────
+// Pure function — imported directly, no mock needed.
+describe('categoryPathToBreadcrumbs', () => {
+  let categoryPathToBreadcrumbs: (
+    p: string | undefined,
+    genderHref?: string,
+  ) => Array<{ name: string; href?: string }>;
+  beforeEach(async () => {
+    ({ categoryPathToBreadcrumbs } = await import('@/lib/oneentry/catalog/products'));
+  });
+
+  it('links every crumb of a three-level path', () => {
+    expect(categoryPathToBreadcrumbs('/women/women_shoes/rubber_boots', '/women/clothing')).toEqual([
+      { name: 'Women', href: '/women/clothing' },
+      { name: 'Shoes', href: '/women/shoes' },
+      { name: 'Rubber Boots', href: '/women/shoes?category=rubber_boots' },
+    ]);
+  });
+
+  it('leaves the gender crumb unlinked when no gender href was resolved', () => {
+    const crumbs = categoryPathToBreadcrumbs('/men/men_bags/backpacks');
+    expect(crumbs[0]).toEqual({ name: 'Men' });
+    expect(crumbs[1]).toEqual({ name: 'Bags', href: '/men/bags' });
+  });
+
+  it('drops the gender href when it would duplicate the section link', () => {
+    const crumbs = categoryPathToBreadcrumbs('/women/women_clothing/outerwear', '/women/clothing');
+    expect(crumbs[0]).toEqual({ name: 'Women' });
+    expect(crumbs[1]).toEqual({ name: 'Clothing', href: '/women/clothing' });
+  });
+
+  it('returns an unlinked crumb when the path has no section to filter', () => {
+    expect(categoryPathToBreadcrumbs('/women', '/women/clothing')).toEqual([
+      { name: 'Women', href: '/women/clothing' },
+    ]);
+  });
+
+  it('returns nothing for a missing path', () => {
+    expect(categoryPathToBreadcrumbs(undefined)).toEqual([]);
+  });
+});
+
 describe('loadProducts — disabled', () => {
   it('returns fromCms:false when SDK is disabled', async () => {
     vi.resetModules();
