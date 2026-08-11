@@ -86,6 +86,28 @@ test.describe('CMS image blur placeholder', () => {
     expect((await blurState(page)).flaggedOn).toBeGreaterThan(1);
   });
 
+  test('the homepage hero and category tiles carry the LQIP', async ({ page }) => {
+    // The tiles are 2:3 and unoptimized, so the full-size photo is the slowest
+    // thing on the homepage — the placeholder is what stands in for it. Their
+    // slide images were uploaded without a preview template once, which left
+    // the whole grid flashing grey until every photo landed.
+    await page.goto('/en', { waitUntil: 'domcontentloaded' });
+
+    // The hero photo is the largest byte on the first screen; its slide images
+    // shared the same missing-template history as the tiles below.
+    await expect(page.getByTestId('hero-slide-image')).toHaveAttribute('data-blur', 'on', { timeout: 60_000 });
+
+    // The section is client-mounted — the grid holds skeletons until then, and
+    // on a cold dev compile that wait outlives the default expect timeout.
+    await expect(page.getByTestId('category-section-heading')).toBeVisible({ timeout: 60_000 });
+    const tiles = page.getByTestId('category-tile-image');
+    await expect(tiles.first()).toBeAttached({ timeout: 30_000 });
+
+    const count = await tiles.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) await expect(tiles.nth(i)).toHaveAttribute('data-blur', 'on');
+  });
+
   test('images without an LQIP degrade to no placeholder instead of throwing', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));

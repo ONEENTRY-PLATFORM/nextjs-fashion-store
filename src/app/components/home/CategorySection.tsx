@@ -107,6 +107,7 @@ export function CategorySection({
                     src={cat.image}
                     blur={cat.imageBlur}
                     alt={cat.label}
+                    data-testid="category-tile-image"
                     fill
                     sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 17vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
