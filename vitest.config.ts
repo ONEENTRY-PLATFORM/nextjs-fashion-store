@@ -20,6 +20,13 @@ export default defineConfig({
     alias: { '@': path.resolve(dirname, 'src') }
   },
   test: {
+    // `next-transition-router` ships ESM that imports `next/navigation` as a
+    // bare specifier, which Node's resolver (used for externalised deps)
+    // refuses — "Did you mean to import next/navigation.js?". Only
+    // `PageTransition` imports the library, so this matters just for tests
+    // that render it; inlined, Vite resolves the import the same way it does
+    // for the app's own code.
+    server: { deps: { inline: ['next-transition-router'] } },
     projects: [{
       extends: true,
       test: {

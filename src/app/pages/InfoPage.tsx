@@ -4,8 +4,6 @@ import Image from 'next/image';
 import React from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { INFO_PAGE_FEATURE_CARDS, INFO_PAGE_SECTIONS, INFO_PAGE_STATS } from '@/app/data/infoPageLabels';
 import { useRouter } from '@/lib/i18n/navigation';
 import { INFO_SECTION_BLOCK_PREFIX, infoSectionsFromBlocks } from '@/lib/oneentry/blocks/info-sections';
@@ -129,8 +127,6 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
   return (
     <>
-      <Header />
-
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative h-[clamp(320px,48vw,560px)] w-full overflow-hidden">
         <Image
@@ -291,8 +287,6 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
       {/* OE-attached page blocks — rendered at the bottom, below the CTA. */}
       {otherBlocks.length > 0 && <PageBlocksRenderer blocks={otherBlocks} />}
-
-      <Footer />
     </>
   );
 }

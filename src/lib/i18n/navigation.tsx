@@ -4,6 +4,7 @@ import NextLink from 'next/link';
 import { usePathname, useRouter as useNextRouter } from 'next/navigation';
 import { type ComponentProps, useCallback, useMemo } from 'react';
 
+import { useTransitionNavigate } from '@/app/components/system/TransitionNavigationContext';
 import {
   DEFAULT_SHORT_LOCALE,
   localeFromPath,
@@ -81,14 +82,32 @@ interface LocaleRouter {
 export function useRouter(): LocaleRouter {
   const router = useNextRouter();
   const locale = useLocale();
+  // Present whenever `<TransitionProvider>` is mounted (i.e. in the app), so a
+  // programmatic `push` fades the page out and in exactly like a link click.
+  // `null` in Storybook and unit tests — the plain router is used there.
+  const animatedNavigate = useTransitionNavigate();
 
   const push = useCallback(
-    (href: string, options?: { scroll?: boolean }) => router.push(localizeHref(href, locale), options),
-    [router, locale],
+    (href: string, options?: { scroll?: boolean }) => {
+      const target = localizeHref(href, locale);
+      if (animatedNavigate) {
+        animatedNavigate(target, options, 'push');
+        return;
+      }
+      router.push(target, options);
+    },
+    [animatedNavigate, router, locale],
   );
   const replace = useCallback(
-    (href: string, options?: { scroll?: boolean }) => router.replace(localizeHref(href, locale), options),
-    [router, locale],
+    (href: string, options?: { scroll?: boolean }) => {
+      const target = localizeHref(href, locale);
+      if (animatedNavigate) {
+        animatedNavigate(target, options, 'replace');
+        return;
+      }
+      router.replace(target, options);
+    },
+    [animatedNavigate, router, locale],
   );
   const prefetch = useCallback((href: string) => router.prefetch(localizeHref(href, locale)), [router, locale]);
 

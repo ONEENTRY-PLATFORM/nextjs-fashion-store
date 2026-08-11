@@ -1,8 +1,8 @@
 export default function ProductLoading() {
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="h-33 animate-pulse bg-gray-100" />
-
+    // Content column only — the header lives in the root layout and is not
+    // replaced during a navigation.
+    <div className="flex-1 bg-white" style={{ fontFamily: 'Inter, sans-serif' }} data-testid="route-loading">
       <div className="px-4 py-6 lg:px-8 lg:py-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:gap-14">
           {/* Gallery skeleton */}

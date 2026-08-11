@@ -44,7 +44,12 @@ const cspDirectives: Array<[string, string[]]> = [
   ['base-uri', ["'self'"]],
   ['form-action', ["'self'"]],
   ['frame-ancestors', ["'none'"]],
-  ['upgrade-insecure-requests', []],
+  // Production only. The dev server speaks plain http, and WebKit — unlike
+  // Chromium, which exempts localhost — honours the upgrade there too: every
+  // `/_next/static/*` request became `https://localhost:3001/…` and died with
+  // "SSL connect error", so nothing hydrated and the whole `mobile` Playwright
+  // project (iPhone 14 ⇒ WebKit) timed out on page load.
+  ...(isDev ? [] : ([['upgrade-insecure-requests', []]] as Array<[string, string[]]>)),
 ];
 
 const contentSecurityPolicy = cspDirectives

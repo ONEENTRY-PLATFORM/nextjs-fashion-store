@@ -16,8 +16,6 @@ import {
 import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { useAuth } from '@/app/context/AuthContext';
 import { ACCOUNT_PAGE_LABELS as APL, ACCOUNT_SECTION_TITLES } from '@/app/data/accountLabels';
 import { useRouter } from '@/lib/i18n/navigation';
@@ -152,8 +150,7 @@ export function AccountPage() {
       }
     })();
     return (
-      <div className="min-h-screen bg-white font-sans">
-        <Header />
+      <div className="flex-1 bg-white font-sans">
         <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 pb-20 lg:px-8">
           <div className="mb-8 flex items-center justify-between border-b border-[#e5e7eb] pb-5">
             <div>
@@ -180,7 +177,6 @@ export function AccountPage() {
             <div className="min-w-0 flex-1">{skeleton}</div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -188,8 +184,7 @@ export function AccountPage() {
   // Auth resolved, no user — show the sign-in prompt.
   if (!user) {
     return (
-      <div className="min-h-screen bg-white font-sans">
-        <Header />
+      <div className="flex-1 bg-white font-sans">
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6">
           <User size={56} strokeWidth={1} className="text-gray-300" />
           <p className="text-sm text-gray-400">{signInPrompt}</p>
@@ -200,7 +195,6 @@ export function AccountPage() {
             {signInCta}
           </button>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -255,9 +249,7 @@ export function AccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      <Header />
-
+    <div className="flex-1 bg-white font-sans">
       <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 pb-20 lg:px-8">
         {/* Page heading */}
         <div className="mb-8 flex items-center justify-between border-b border-[#e5e7eb] pb-5">
@@ -320,8 +312,6 @@ export function AccountPage() {
           <div className="min-w-0 flex-1">{renderSection()}</div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

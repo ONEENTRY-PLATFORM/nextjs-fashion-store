@@ -2,8 +2,6 @@
 import React from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import type { CategorySectionFromCms } from '@/lib/oneentry/blocks/category-section';
 import type { DiscountBannerFromCms } from '@/lib/oneentry/blocks/discount-banner';
 import type { HeroSlideFromCms } from '@/lib/oneentry/blocks/hero-slides';
@@ -24,9 +22,7 @@ export function HomePage({
   pageBlocks?: PageBlock[];
 }) {
   return (
-    <div className="min-h-screen bg-white font-sans">
-      <Header />
-
+    <div className="flex-1 bg-white font-sans">
       <main id="main-content">
         <PageBlocksRenderer
           blocks={pageBlocks}
@@ -36,8 +32,6 @@ export function HomePage({
           initialCategorySection={initialCategorySection}
         />
       </main>
-
-      <Footer />
     </div>
   );
 }

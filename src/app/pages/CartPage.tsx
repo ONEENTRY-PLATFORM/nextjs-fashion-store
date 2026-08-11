@@ -4,8 +4,6 @@ import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 
 import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { type CartItem, useCart } from '@/app/context/CartContext';
 import { getCmsProductId } from '@/app/data/cms-product-id-map';
 import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
@@ -199,11 +197,9 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
 
   return (
     <div
-      className="min-h-screen bg-white font-sans"
+      className="flex-1 bg-white font-sans"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
     >
-      <Header />
-
       <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
@@ -516,8 +512,6 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       {/* OE-attached blocks for the `cart` page — rendered at the bottom
           below the cart contents. Empty → nothing renders. */}
       {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
-
-      <Footer />
     </div>
   );
 }

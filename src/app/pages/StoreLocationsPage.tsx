@@ -3,8 +3,6 @@ import { ChevronRight, ExternalLink, MapPin, Search } from 'lucide-react';
 import { useState } from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { ACCENT_MEN, ACCENT_WOMEN as ACCENT, BANNER_BG } from '@/app/constants/colors';
 import type { Store } from '@/app/data/stores';
@@ -76,7 +74,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
 
   return (
     <div
-      className="min-h-screen bg-white font-sans"
+      className="flex-1 bg-white font-sans"
       style={
         {
           '--accent': ACCENT,
@@ -85,8 +83,6 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
         } as React.CSSProperties
       }
     >
-      <Header />
-
       {/* Hero */}
       <div className="relative flex h-80 flex-col items-center justify-center overflow-hidden bg-(--banner-bg) text-center">
         {/* Background photo */}
@@ -253,8 +249,6 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
       {/* OE-attached blocks for the `stores` page — rendered at the
           bottom below the store list. Empty → nothing renders. */}
       {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
-
-      <Footer />
     </div>
   );
 }

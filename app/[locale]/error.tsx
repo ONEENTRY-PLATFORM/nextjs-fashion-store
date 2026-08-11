@@ -18,7 +18,10 @@ export default function Error({ error, reset }: ErrorProps) {
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center bg-white px-4"
+      // `flex-1`, not `min-h-screen`: the header and footer are rendered by the
+      // root layout around this boundary, so a full-viewport minimum here would
+      // stack on top of them and push the error card off-screen.
+      className="flex flex-1 items-center justify-center bg-white px-4"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       <div className="max-w-md text-center">

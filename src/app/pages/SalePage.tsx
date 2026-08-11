@@ -6,8 +6,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import { ColsIcon, SortOptionBtn as SortOption } from '@/app/components/catalog/CatalogTemplate.parts';
 import { MobileFilterPanel } from '@/app/components/catalog/MobileFilterPanel';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
 import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
 import CmsImage from '@/app/components/ui/CmsImage';
@@ -380,11 +378,9 @@ export function SalePage({
 
   return (
     <div
-      className="min-h-screen bg-white font-sans"
+      className="flex-1 bg-white font-sans"
       style={{ '--sale': SALE_RED, '--accent': SALE_RED } as React.CSSProperties}
     >
-      <Header />
-
       <SaleHero countdown={countdown} endsAt={saleEndsAtDate} cms={cmsPage} />
 
       {/* ── Breadcrumb ── */}
@@ -739,8 +735,6 @@ export function SalePage({
         const remaining = (pageBlocks ?? []).filter((b) => b.type !== 'frequently_ordered_block');
         return remaining.length > 0 ? <PageBlocksRenderer blocks={remaining} /> : null;
       })()}
-
-      <Footer />
 
       {/* Mobile filter panel */}
       <CatalogAccentContext.Provider value={SALE_RED}>

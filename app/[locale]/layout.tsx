@@ -5,6 +5,9 @@ import { Inter } from 'next/font/google';
 import { locale } from 'next/root-params';
 import { Suspense } from 'react';
 
+import { Footer } from '@/app/components/footer/Footer';
+import { Header } from '@/app/components/header/Header';
+import { PageContent, TransitionProvider } from '@/app/components/system/PageTransition';
 import { Providers } from '@/app/components/system/Providers';
 import { ScrollToTop } from '@/app/components/system/ScrollToTop';
 import { A11Y_LABELS } from '@/app/data/commonLabels';
@@ -200,7 +203,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {CMS_MEDIA_ORIGIN ? <link rel="preconnect" href={CMS_MEDIA_ORIGIN} /> : null}
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
-      <body>
+      {/* Column layout so the persistent chrome (header, footer) frames a
+          content area that grows to fill the viewport — pages no longer carry
+          their own `min-h-screen`, which would now stack on top of the chrome
+          instead of containing it. */}
+      <body className="flex min-h-screen flex-col bg-white font-sans">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:bg-black focus:px-4 focus:py-2 focus:text-xs focus:tracking-widest focus:text-white focus:uppercase"
@@ -223,7 +230,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
           cmsLocales={cmsLocales}
         >
-          {children}
+          {/* Persistent chrome. It used to be rendered by every page component,
+              so each navigation unmounted and remounted it — the header blinked
+              out, the route skeleton painted a grey bar in its place, and the
+              layout jumped. Mounted here it survives navigations untouched, and
+              only the content between them animates (`PageContent`). The
+              provider sits above the chrome so header/footer links and
+              programmatic `router.push` calls run through the same
+              leave/enter sequence. */}
+          <TransitionProvider>
+            <Header />
+            <PageContent>{children}</PageContent>
+            <Footer />
+          </TransitionProvider>
         </Providers>
       </body>
     </html>

@@ -1,9 +1,7 @@
 'use client';
 import { ArrowRight } from 'lucide-react';
-import React, { Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { NOT_FOUND_LABELS as L_FALLBACK } from '@/app/data/notFoundLabels';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
@@ -16,16 +14,7 @@ export function NotFoundPage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      {/* `Header` reads `useSearchParams()` for its `?gender=` state. Without a
-          Suspense boundary here Next.js can't statically prerender `/_not-found`
-          and the production build fails with "missing-suspense-with-csr-bailout".
-          A `null` fallback keeps the layout jump minimal — the Header hydrates
-          quickly on the client anyway. */}
-      <Suspense fallback={null}>
-        <Header />
-      </Suspense>
-
+    <div className="flex flex-1 flex-col bg-white">
       <main id="main-content" className="flex flex-1 flex-col items-center justify-center px-6 py-24">
         {/* Large 404 */}
         <div className="relative mb-6 select-none">
@@ -89,8 +78,6 @@ export function NotFoundPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

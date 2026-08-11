@@ -4,8 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { useCart } from '@/app/context/CartContext';
 
 // Render Order Summary client-only — its content reads from the Redux cart
@@ -352,7 +350,7 @@ export function DeliveryPage({
 
   return (
     <div
-      className="min-h-screen bg-white font-sans"
+      className="flex-1 bg-white font-sans"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
     >
       {showGuestModal && (
@@ -369,8 +367,6 @@ export function DeliveryPage({
           onContinueAsGuest={() => setShowGuestModal(false)}
         />
       )}
-
-      <Header />
 
       <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
         {/* Stepper */}
@@ -477,8 +473,6 @@ export function DeliveryPage({
       {/* OE-attached blocks for the `delivery_method` page — rendered
           below the form, before the footer. */}
       {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
-
-      <Footer />
     </div>
   );
 }

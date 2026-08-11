@@ -3,8 +3,6 @@ import { ArrowRight, CheckCircle, Mail, Package } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
 import { useCart } from '@/app/context/CartContext';
@@ -111,9 +109,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
   }, [clearCart]);
 
   return (
-    <div className="min-h-screen bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
-      <Header />
-
+    <div className="flex-1 bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
       <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
@@ -210,8 +206,6 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

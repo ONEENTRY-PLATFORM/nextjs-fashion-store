@@ -12,8 +12,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { NewArrivals } from '@/app/components/home/NewArrivals';
 import { ProductCard } from '@/app/components/product/ProductCard';
 import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
@@ -398,9 +396,7 @@ export function CatalogTemplate({
 
   return (
     <CatalogAccentContext.Provider value={ACCENT}>
-      <div className="min-h-screen bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
-        <Header />
-
+      <div className="flex-1 bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
         <main id="main-content">
           {/* ══ Row 1: Title + Breadcrumbs ══ */}
           <div className="flex items-center justify-between border-b border-gray-200 p-4 lg:px-8">
@@ -914,8 +910,6 @@ export function CatalogTemplate({
             are attached, `<PageBlocksRenderer>` collapses to nothing. */}
           {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
         </main>
-
-        <Footer />
 
         {/* ── Mobile Filter Panel ── */}
         <MobileFilterPanel

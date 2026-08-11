@@ -17,8 +17,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
@@ -641,11 +639,9 @@ export function ProductDetailPage({
 
   return (
     <div
-      className="min-h-screen bg-white font-sans"
+      className="flex-1 bg-white font-sans"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
     >
-      <Header />
-
       <main id="main-content">
         {/* Back button */}
         <div className="px-4 pt-4 lg:px-8">
@@ -1120,8 +1116,6 @@ export function ProductDetailPage({
 
         <RecentlyViewedSection products={allRecentlyViewed} accentColor={ACCENT} />
       </main>
-
-      <Footer />
 
       {showSizeGuide && <SizeGuideModal onClose={() => setShowSizeGuide(false)} />}
       {showReserveModal && (

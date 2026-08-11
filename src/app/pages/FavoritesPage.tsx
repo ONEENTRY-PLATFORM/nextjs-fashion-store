@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import type { Product } from '@/app/components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
@@ -162,11 +160,9 @@ export function FavoritesPage({
 
   return (
     <div
-      className="min-h-screen bg-white font-sans"
+      className="flex-1 bg-white font-sans"
       style={{ '--sale': SALE_COLOR, '--accent': ACCENT } as React.CSSProperties}
     >
-      <Header />
-
       <main id="main-content" className="pb-20">
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 px-4 pt-6 text-xs tracking-wide text-gray-400 lg:px-8">
@@ -308,8 +304,6 @@ export function FavoritesPage({
             bottom below the wishlist / recommendations. Empty → nothing. */}
         {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
       </main>
-
-      <Footer />
     </div>
   );
 }

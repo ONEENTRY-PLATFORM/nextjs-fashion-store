@@ -4,8 +4,6 @@ import React, { useEffect, useState } from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
@@ -531,9 +529,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans" style={{ '--sale': SALE_COLOR } as React.CSSProperties}>
-      <Header />
-
+    <div className="flex-1 bg-white font-sans" style={{ '--sale': SALE_COLOR } as React.CSSProperties}>
       <main id="main-content" className="mx-auto max-w-7xl px-4 pb-20 lg:px-8">
         {/* Stepper */}
         <div className="border-b border-[#e5e7eb]">
@@ -777,8 +773,6 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       {/* OE-attached blocks for the `payment` page — rendered below the
           payment form. Empty → nothing renders. */}
       {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
-
-      <Footer />
     </div>
   );
 }

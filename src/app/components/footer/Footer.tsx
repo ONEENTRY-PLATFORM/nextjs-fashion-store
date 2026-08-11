@@ -114,7 +114,7 @@ export function Footer() {
       ? cmsBottomLinks
       : BOTTOM_LINKS.map((l) => ({ key: l.href, label: l.label, href: l.href }));
   return (
-    <footer className="bg-black text-white">
+    <footer className="bg-black text-white" data-testid="site-footer">
       {/* Support Bar */}
       <div className="border-b border-white/10">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-8 md:grid-cols-4 lg:px-8">

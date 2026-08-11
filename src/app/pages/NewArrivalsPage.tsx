@@ -5,8 +5,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import { ColsIcon, SortOptionBtn as SortOption } from '@/app/components/catalog/CatalogTemplate.parts';
-import { Footer } from '@/app/components/footer/Footer';
-import { Header } from '@/app/components/header/Header';
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
 import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
@@ -117,9 +115,7 @@ export function NewArrivalsPage({
   const gridCols = viewCols === 4 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3';
 
   return (
-    <div className="min-h-screen bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
-      <Header />
-
+    <div className="flex-1 bg-white font-sans" style={{ '--accent': ACCENT } as React.CSSProperties}>
       <main id="main-content">
         <NewArrivalsHero cms={cmsPage} />
 
@@ -320,8 +316,6 @@ export function NewArrivalsPage({
             below the main new-arrivals grid. Empty → nothing renders. */}
         {pageBlocks && pageBlocks.length > 0 && <PageBlocksRenderer blocks={pageBlocks} />}
       </main>
-
-      <Footer />
     </div>
   );
 }
