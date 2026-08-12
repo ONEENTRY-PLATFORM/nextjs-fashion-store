@@ -214,6 +214,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="flex min-h-screen flex-col bg-white font-sans">
         <a
           href="#main-content"
+          data-testid="skip-to-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:bg-black focus:px-4 focus:py-2 focus:text-xs focus:tracking-widest focus:text-white focus:uppercase"
         >
           {translate(dict, 'header_aria_skip_to_content', A11Y_LABELS.skipToContent)}

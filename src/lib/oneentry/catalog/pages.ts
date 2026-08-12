@@ -16,9 +16,21 @@ const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 const asNumber = (v: unknown): number => (typeof v === 'number' ? v : 0);
 
 const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
-  type Localize = Record<string, { title?: string }>;
+  type Localize = Record<string, unknown> & { title?: unknown };
   const localize = (raw.localizeInfos ?? {}) as Localize;
-  const langInfo = localize[lang] ?? Object.values(localize)[0] ?? {};
+  // Like `attributeValues` below, `localizeInfos` arrives either keyed by
+  // locale (`{ en_US: { title } }`) or already unwrapped (`{ title }`) — the
+  // SDK flattens it when `langCode` is passed. Only the keyed shape was
+  // handled, so `Object.values(localize)[0]` picked up the *title string*
+  // and read `.title` off it: every page's title came out empty.
+  const perLocale = localize[lang];
+  const langInfo = (
+    perLocale && typeof perLocale === 'object'
+      ? perLocale
+      : typeof localize.title === 'string'
+        ? localize
+        : (Object.values(localize).find((v) => v && typeof v === 'object') ?? {})
+  ) as { title?: unknown };
   // OE returns `attributeValues` either wrapped per-locale
   // (`{ en_US: { marker: {...} } }`) or flat (`{ marker: {...} }`) depending
   // on how the SDK unwrapped the response for `langCode`. Support both —

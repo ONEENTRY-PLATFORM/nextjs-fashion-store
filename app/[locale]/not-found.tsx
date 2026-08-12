@@ -1,24 +1,15 @@
-import type { Metadata } from 'next';
-
-import { SEO } from '@/app/data/seoData';
 import { NotFoundPage } from '@/app/pages/NotFoundPage';
-import { getDictionary, translate } from '@/lib/oneentry/dictionary';
 
 /**
- * The 404 has no OneEntry page of its own, so `withCmsSeo` has nothing to read.
- * Its title and description come from the `system_pages` set instead — the same
- * set that already holds the `not_found_*` copy this screen renders — with
- * `SEO.notFound` as the offline fallback.
+ * Rendered when a segment calls `notFound()`.
+ *
+ * Deliberately without metadata: Next does not read `metadata` /
+ * `generateMetadata` from `not-found.tsx` — the exported `SEO.notFound` that
+ * used to sit here never reached the document, which is why a missing URL kept
+ * the root layout's title. The 404 title and description are returned by
+ * `generateMetadata` in `[...slug]/page.tsx`, the route that actually resolves
+ * unknown paths, and they come from the OE `system_pages` set.
  */
-export async function generateMetadata(): Promise<Metadata> {
-  const dict = await getDictionary();
-  return {
-    ...SEO.notFound,
-    title: translate(dict, 'not_found_seo_title', SEO.notFound.title as string),
-    description: translate(dict, 'not_found_seo_description', SEO.notFound.description as string),
-  };
-}
-
 export default function NotFound() {
   return <NotFoundPage />;
 }

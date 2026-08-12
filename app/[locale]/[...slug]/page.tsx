@@ -12,7 +12,7 @@ import {
   PAGE_REGISTRY,
   type PageEntry,
 } from '@/app/data/pageRegistry';
-import { SITE_URL } from '@/app/data/seoData';
+import { SEO, SITE_URL } from '@/app/data/seoData';
 import { CmsCatalogPage } from '@/app/pages/CmsCatalogPage';
 import { InfoPage } from '@/app/pages/InfoPage';
 import { MenAccessoriesPage } from '@/app/pages/MenAccessoriesPage';
@@ -131,7 +131,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     PAGE_REGISTRY[path] ??
     (dynamicSlug ? { type: 'info' as const, slug: dynamicSlug } : undefined) ??
     (cmsCatalog ? catalogEntryFromCmsRoute(cmsCatalog) : undefined);
-  if (!entry) return {};
+  // Nothing matched: this request ends in `notFound()` below. Next does not
+  // read metadata from `not-found.tsx`, so returning `{}` here left the 404
+  // wearing the root layout's title — a soft 404 as far as a crawler is
+  // concerned. The copy comes from `system_pages`, next to the rest of the
+  // 404 wording, with `SEO.notFound` as the offline fallback.
+  if (!entry) {
+    const dict = await getDictionary();
+    return {
+      ...SEO.notFound,
+      // `absolute`, because both the CMS value and the coded fallback already
+      // carry the brand — the root layout's `%s | <brand>` template would
+      // otherwise append it a second time.
+      title: { absolute: translate(dict, 'not_found_seo_title', SEO.notFound.title as string) },
+      description: translate(dict, 'not_found_seo_description', SEO.notFound.description as string),
+    };
+  }
 
   // Info pages carry their SEO on the OE page itself (`meta_title`,
   // `meta_description`, `meta_keywords`, `canonical`), so an editor can tune it
@@ -491,7 +506,10 @@ export default async function Page({ params, searchParams }: Props) {
       ? label('info_hub_title', 'Content Hub')
       // CMS first: `INFO_PAGE_META` is the offline fallback, so letting it win
       // meant a title an editor changed in OneEntry never reached the page.
-      : (cmsPage?.title ?? INFO_PAGE_META[entry.slug]?.title ?? entry.slug);
+      // Emptiness has to be tested, not `??`'d: a page OE knows nothing about
+      // yields `''`, which is a perfectly good value as far as `??` is concerned
+      // and would render a blank breadcrumb.
+      : (cmsPage?.title?.trim() || INFO_PAGE_META[entry.slug]?.title || entry.slug);
     const crumbHome = label('info_breadcrumb_home', 'Home');
 
     const breadcrumbSchema = buildBreadcrumbSchema(

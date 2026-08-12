@@ -51,7 +51,10 @@ export function NotFoundPage() {
           </span>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <p className="text-xs font-medium tracking-[0.25em] text-gray-400 uppercase">{L.eyebrow}</p>
-            <h1 className="text-center text-3xl leading-tight font-light tracking-tight text-black sm:text-4xl">
+            <h1
+              data-testid="not-found-heading"
+              className="text-center text-3xl leading-tight font-light tracking-tight text-black sm:text-4xl"
+            >
               {L.heading}
             </h1>
           </div>
