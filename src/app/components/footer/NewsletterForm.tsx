@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 
 import { NEWSLETTER_FORM_LABELS } from '@/app/data/commonLabels';
-import { useFormLabel, useFormMessage, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormLabel, useFormMessage, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
@@ -20,7 +20,7 @@ export function NewsletterForm() {
   // placeholder on the `subscribe_new_drops_email` attribute, the CTA on the
   // `…_button` attribute, and both result messages on the form record. Local
   // constants are only the offline fallback.
-  const placeholder = useFormPlaceholder(FORM, 'subscribe_new_drops_email', 'placeholder_email', L.placeholder);
+  const placeholder = useFieldPlaceholder(FORM, 'subscribe_new_drops_email', L.placeholder);
   const submitLabel = useFormLabel(FORM, 'subscribe_new_drops_button', L.submit);
   const successMessage = useFormMessage(FORM, 'successMessage', L.success);
   const failureMessage = useFormMessage(FORM, 'unsuccessMessage', L.failure);

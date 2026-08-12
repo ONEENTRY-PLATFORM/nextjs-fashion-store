@@ -15,7 +15,23 @@
 import type { CheckoutBounds, FieldBounds } from '@/app/utils/schemas';
 import type { FormContent } from '@/lib/oneentry/forms/form-content';
 
-/** Attribute markers of the address fields, per OE form. */
+import { CHECKOUT_ORDER_FORMS, SAVED_ADDRESS_FORM } from './forms';
+
+/**
+ * Attribute markers of the address fields, per OE form.
+ *
+ * The last marker table left in checkout, and it is on borrowed time. Every
+ * other field is now found by what it is — the method picker is the order
+ * form's only `list` attribute, the store its only `entity` — but the address
+ * inputs are six interchangeable `string` attributes that nothing structural
+ * tells apart. Naming them here is a stopgap with a known failure mode: rename
+ * one in the admin panel and its bound silently disappears, leaving the shopper
+ * to discover the limit at "Place Order".
+ *
+ * It goes away when the address inputs are rendered from the form's own field
+ * list instead of from a fixed layout — at which point the marker never has to
+ * be spoken at all.
+ */
 const ADDRESS_MARKERS = {
   /** `checkout_home_delivery_guest` — the guest home-delivery order form. */
   guest: {
@@ -44,20 +60,12 @@ const CONTACT_MARKERS = {
   locker: { fullName: 'checkout_locker_guest_full_name', phone: 'checkout_locker_guest_phone' },
 } as const;
 
-/** Form markers the delivery route must load for the bounds to be present. */
-export const CHECKOUT_BOUND_FORMS = [
-  'user_addresses',
-  'checkout_home_delivery_guest',
-  'checkout_store_pickup_guest',
-  'checkout_locker_guest',
-] as const;
-
 /** Read one attribute's length bounds; `undefined` when the form isn't loaded. */
 function boundsOf(form: FormContent | undefined, marker: string): FieldBounds | undefined {
   const limits = form?.attributes?.[marker]?.limits;
   if (!limits) return undefined;
   if (limits.min == null && limits.max == null) return undefined;
-  return { min: limits.min, max: limits.max };
+  return { min: limits.min, max: limits.max, trim: limits.trim };
 }
 
 export interface BuildCheckoutBoundsInput {
@@ -84,9 +92,10 @@ export interface BuildCheckoutBoundsInput {
  * @returns Bounds to hand to `useSchemas`. Empty for anything OE didn't bound.
  */
 export function buildCheckoutBounds({ isLoggedIn, method, forms }: BuildCheckoutBoundsInput): CheckoutBounds {
-  const addressForm = isLoggedIn ? forms['user_addresses'] : forms['checkout_home_delivery_guest'];
+  const addressForm = isLoggedIn ? forms[SAVED_ADDRESS_FORM] : forms[CHECKOUT_ORDER_FORMS.home.guest];
   const addressMarkers = isLoggedIn ? ADDRESS_MARKERS.authed : ADDRESS_MARKERS.guest;
-  const contactForm = method === 'locker' ? forms['checkout_locker_guest'] : forms['checkout_store_pickup_guest'];
+  const contactForm =
+    method === 'locker' ? forms[CHECKOUT_ORDER_FORMS.locker.guest] : forms[CHECKOUT_ORDER_FORMS.store_pickup.guest];
   const contactMarkers = method === 'locker' ? CONTACT_MARKERS.locker : CONTACT_MARKERS.store;
 
   return {

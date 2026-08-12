@@ -9,6 +9,11 @@ export type FormMessages = ValidationMessages;
 export interface FieldBounds {
   min?: number | null;
   max?: number | null;
+  /**
+   * `trimValidator` — OE strips surrounding whitespace before measuring, so a
+   * padded value that looks long enough here would still be rejected there.
+   */
+  trim?: boolean;
 }
 
 /**
@@ -64,7 +69,11 @@ export function createSchemas(M: FormMessages, B: CheckoutBounds = {}) {
    */
   const bounded = (schema: z.ZodString, bounds: FieldBounds | undefined, normalize: (v: string) => string = (v) => v) =>
     schema.superRefine((val, ctx) => {
-      const len = normalize(val).length;
+      // Apply the field's own transform first, then OE's trim when the
+      // attribute declares one — the length that matters is the one the server
+      // will measure.
+      const normalized = normalize(val);
+      const len = (bounds?.trim ? normalized.trim() : normalized).length;
       // An empty optional field is the `required` validator's business, not
       // the length bound's — otherwise a blank "instructions" trips `min`.
       if (len === 0) return;

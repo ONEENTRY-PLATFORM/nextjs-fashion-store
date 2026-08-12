@@ -1,7 +1,7 @@
 'use client';
 import { FormField } from '@/app/components/ui/FormField';
 import { GUEST_CONTACT_LABELS as L_FALLBACK } from '@/app/data/checkoutLabels';
-import { useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export interface GuestContactFormState {
@@ -21,18 +21,8 @@ interface GuestContactFormProps {
 export function GuestContactForm({ form, errors, onChange, helperText }: GuestContactFormProps) {
   const L = useDict('checkout_delivery_guest_', L_FALLBACK);
   const patch = (partial: Partial<GuestContactFormState>) => onChange({ ...form, ...partial });
-  const phFullName = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_recipient_name',
-    'placeholder_name',
-    L.placeholderFullName,
-  );
-  const phPhone = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_recipient_phone',
-    'placeholder_phone',
-    L.placeholderPhone,
-  );
+  const phFullName = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_name', L.placeholderFullName);
+  const phPhone = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_phone', L.placeholderPhone);
   return (
     <div className="mt-4 border-t border-[#e5e7eb] pt-4">
       <p className="mb-1 text-xs font-semibold tracking-wide text-[#555] uppercase">{L.heading}</p>

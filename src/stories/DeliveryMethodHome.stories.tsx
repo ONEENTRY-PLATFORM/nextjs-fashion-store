@@ -115,10 +115,11 @@ export const WithOECopy: Story = {
           home: {
             title: 'Next-Day Home Delivery',
             subtitle: '1 business day · Premium courier',
+            value: 'courier',
             perks: ['Free delivery', 'Signature required', 'Live tracking'],
           },
-          store: { title: '', subtitle: '', perks: [] },
-          locker: { title: '', subtitle: '', pinHint: '' },
+          store: { title: '', subtitle: '', value: 'pickup', perks: [] },
+          locker: { title: '', subtitle: '', value: 'locker', pinHint: '' },
         }}
       >
         <Story />

@@ -34,18 +34,34 @@ export function useFormContent(formMarker: string): FormContent {
 }
 
 /**
- * Read a single placeholder from a form attribute's `additionalFields`.
- *  Returns the `fallback` when the form, attribute, or field is missing
- *  (so screens never render with a blank input).
+ * Every form the enclosing providers supplied, keyed by marker.
+ *
+ * For callers that work across forms rather than against one — collecting the
+ * attribute labels of all checkout forms, say — instead of naming each marker
+ * and re-reading the context per form.
  */
-export function useFormPlaceholder(
-  formMarker: string,
-  attrMarker: string,
-  fieldMarker: string,
-  fallback: string,
-): string {
+export function useAllFormContent(): Readonly<FormsMap> {
+  return useContext(FormPlaceholdersContext);
+}
+
+/**
+ * Read a form attribute's input placeholder.
+ *
+ * The placeholder's own marker is not part of the call: admins name it per
+ * attribute (`placeholder_city`, `placeholder_address_line_1`, or a bare
+ * `placeholder`) and the loader resolves it by prefix. Naming it here meant a
+ * one-character difference between two forms' spelling silently blanked the
+ * input — which is what `placeholder_address_line1` vs `..._line_1` did.
+ *
+ * @param formMarker - Form the field belongs to.
+ * @param attrMarker - Attribute whose placeholder to read.
+ * @param fallback   - Shown when the form, attribute, or placeholder is absent,
+ *                     so a screen never renders a bare input.
+ * @returns The authored placeholder, or `fallback`.
+ */
+export function useFieldPlaceholder(formMarker: string, attrMarker: string, fallback: string): string {
   const forms = useContext(FormPlaceholdersContext);
-  const value = forms[formMarker]?.attributes?.[attrMarker]?.fields?.[fieldMarker];
+  const value = forms[formMarker]?.attributes?.[attrMarker]?.placeholder;
   return typeof value === 'string' && value.length > 0 ? value : fallback;
 }
 

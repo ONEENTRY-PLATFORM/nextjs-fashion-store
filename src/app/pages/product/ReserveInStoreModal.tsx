@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { SALE_COLOR } from '@/app/constants/colors';
 import type { SizeOption } from '@/app/data/productCatalog';
 import { RESERVE_MODAL_LABELS } from '@/app/data/productPageLabels';
-import { useFormLabel, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormLabel, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
@@ -41,10 +41,10 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
   // offline fallback. Placeholders have no `additionalFields` on this form, so
   // they keep coming from the set.
   const lbFirstName = useFormLabel('reserve_in_store', 'first_name', L.labelFirstName);
-  const phFirstName = useFormPlaceholder('reserve_in_store', 'first_name', 'placeholder', L.placeholderFirstName);
-  const phLastName = useFormPlaceholder('reserve_in_store', 'last_name', 'placeholder', L.placeholderLastName);
-  const phPhone = useFormPlaceholder('reserve_in_store', 'phone', 'placeholder', L.placeholderPhone);
-  const phEmail = useFormPlaceholder('reserve_in_store', 'email', 'placeholder', L.placeholderEmail);
+  const phFirstName = useFieldPlaceholder('reserve_in_store', 'first_name', L.placeholderFirstName);
+  const phLastName = useFieldPlaceholder('reserve_in_store', 'last_name', L.placeholderLastName);
+  const phPhone = useFieldPlaceholder('reserve_in_store', 'phone', L.placeholderPhone);
+  const phEmail = useFieldPlaceholder('reserve_in_store', 'email', L.placeholderEmail);
   const lbLastName = useFormLabel('reserve_in_store', 'last_name', L.labelLastName);
   const lbPhone = useFormLabel('reserve_in_store', 'phone', L.labelPhone);
   const lbEmail = useFormLabel('reserve_in_store', 'email', L.labelEmail);

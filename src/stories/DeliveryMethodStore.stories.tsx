@@ -71,13 +71,14 @@ export const WithOECopy: Story = {
     (Story) => (
       <DeliveryMethodInfoProvider
         data={{
-          home: { title: '', subtitle: '', perks: [] },
+          home: { title: '', subtitle: '', value: 'courier', perks: [] },
           store: {
             title: 'Click & Collect',
             subtitle: 'Ready in 1 hour · Try before you buy',
+            value: 'pickup',
             perks: ['Free pickup', 'Fitting room available', 'Same-day collection'],
           },
-          locker: { title: '', subtitle: '', pinHint: '' },
+          locker: { title: '', subtitle: '', value: 'locker', pinHint: '' },
         }}
       >
         <Story />

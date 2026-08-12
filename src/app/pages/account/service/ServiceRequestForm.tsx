@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { SERVICE_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import type { ServiceCategory } from '@/app/data/serviceData';
 import { submitServiceRequestAction } from '@/lib/oneentry/catalog/service-request-submit-action';
-import { useFormLabel, useFormOptions, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormLabel, useFormOptions, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 /**
@@ -62,13 +62,8 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
   const lbDescription = useFormLabel('service_request', 'description', L.labelDescription);
   const lbSubmit = useFormLabel('service_request', 'service_request_submit', L.submitButton);
 
-  const phItem = useFormPlaceholder('service_request', 'item', 'placeholder_item', L.placeholderItem);
-  const phDescription = useFormPlaceholder(
-    'service_request',
-    'description',
-    'placeholder_description',
-    L.placeholderDescription,
-  );
+  const phItem = useFieldPlaceholder('service_request', 'item', L.placeholderItem);
+  const phDescription = useFieldPlaceholder('service_request', 'description', L.placeholderDescription);
 
   useEffect(() => {
     return () => {

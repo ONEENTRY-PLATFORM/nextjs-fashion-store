@@ -64,11 +64,12 @@ export const WithOECopy: Story = {
     (Story) => (
       <DeliveryMethodInfoProvider
         data={{
-          home: { title: '', subtitle: '', perks: [] },
-          store: { title: '', subtitle: '', perks: [] },
+          home: { title: '', subtitle: '', value: 'courier', perks: [] },
+          store: { title: '', subtitle: '', value: 'pickup', perks: [] },
           locker: {
             title: 'Parcel Locker Collection',
             subtitle: '2–4 business days · Collect any time 24/7',
+            value: 'locker',
             pinHint: 'A one-time PIN will be sent by SMS when your parcel is ready.',
           },
         }}

@@ -23,6 +23,7 @@ import { useSchemas } from '@/app/utils/useFormMessages';
 import { useRouter } from '@/lib/i18n/navigation';
 import type { OeAddress } from '@/lib/oneentry/auth/actions';
 import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
+import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { buildCheckoutBounds } from '@/lib/oneentry/checkout/field-bounds';
 import { useFormContent } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
@@ -103,6 +104,9 @@ export function DeliveryPage({
   const DH = useDict('checkout_delivery_', DELIVERY_METHOD_HOME_LABELS);
   const L = useDict('checkout_delivery_page_', DELIVERY_PAGE_LABELS);
   const router = useRouter();
+  // Same source the radio cards render from — it also carries each option's
+  // submitted value, which the order needs at the payment step.
+  const methodInfo = useDeliveryMethodInfo();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
   // Fall back to the literal list if the server layer didn't hand any down —
   // keeps Storybook and unit tests that render <DeliveryPage /> bare working.
@@ -352,6 +356,10 @@ export function DeliveryPage({
       lockerId: method === 'locker' ? lockers.indexOf(selectedLocker) : null,
       deliveryDate: selectedDate.toISOString(),
       deliverySlot: selectedSlot,
+      // The `delivery_method` option value as authored in OE. Resolved here,
+      // where the picker's copy is already loaded, so the payment step submits
+      // the editor's own value instead of a literal compiled into the bundle.
+      deliveryMethodValue: methodInfo ? methodInfo[method].value : '',
       couponCode: couponCode,
     };
     try {

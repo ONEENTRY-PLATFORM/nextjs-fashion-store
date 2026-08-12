@@ -5,25 +5,45 @@ import { getApiSafe, isError } from '@/lib/oneentry/index';
 import { logCaught } from '@/lib/oneentry/log';
 import type { Lang } from '@/lib/oneentry/system-text';
 
-import type { FieldLimits, FormContent, FormPlaceholders } from './form-content';
+import type { FieldLimits, FormContent, FormFieldOption, FormPlaceholders } from './form-content';
 import { EMPTY_FORM_CONTENT, NO_FIELD_LIMITS } from './form-content';
 
 // Re-exported so existing importers keep their current specifier; the
 // definitions live in a client-safe module (see `form-content.ts`), because
 // this file reaches for `next/root-params` and cannot enter a client bundle.
-export type { FieldLimits, FormAttributeContent, FormContent, FormPlaceholders } from './form-content';
+export type {
+  FieldLimits,
+  FormAttributeContent,
+  FormContent,
+  FormFieldOption,
+  FormFieldType,
+  FormPlaceholders,
+} from './form-content';
 export { EMPTY_FORM_CONTENT, NO_FIELD_LIMITS } from './form-content';
 
 type RawLocalize = { title?: unknown } & Record<string, unknown>;
 type RawAdditionalField = { value?: unknown } | null | undefined;
-type RawListTitle = { title?: unknown; value?: unknown; position?: unknown };
+/**
+ * `value` is a plain string on `list` attributes and an object referencing an
+ * OE page on `entity` ones (`{id, depth, parentId, position}`).
+ */
+type RawListTitle = {
+  title?: unknown;
+  value?: unknown;
+  position?: unknown;
+  extended?: { value?: unknown } | null;
+};
 type RawValidators = {
   requiredValidator?: { strict?: unknown } | boolean | null;
   emailInspectionValidator?: unknown;
+  trimValidator?: unknown;
   stringInspectionValidator?: { stringMin?: unknown; stringMax?: unknown } | null;
 } | null;
 type RawAttribute = {
   marker?: unknown;
+  type?: unknown;
+  position?: unknown;
+  isVisible?: unknown;
   localizeInfos?: RawLocalize | null;
   additionalFields?: Record<string, RawAdditionalField> | null;
   listTitles?: RawListTitle[] | null;
@@ -77,7 +97,49 @@ function readLimits(validators: RawValidators | undefined): FieldLimits {
     min: si && typeof si === 'object' ? asBound(si.stringMin) : null,
     max: si && typeof si === 'object' ? asBound(si.stringMax) : null,
     email: Boolean(validators.emailInspectionValidator),
+    trim: Boolean(validators.trimValidator),
   };
+}
+
+/** Numeric member of an `entity` option's `value` object, or `null`. */
+function refField(value: unknown, key: 'id' | 'depth' | 'parentId'): number | null {
+  if (!value || typeof value !== 'object') return null;
+  const n = (value as Record<string, unknown>)[key];
+  return typeof n === 'number' ? n : null;
+}
+
+/**
+ * Decode one `listTitles` entry.
+ *
+ * A `list` option's `value` is the string that gets submitted. An `entity`
+ * option's is an object pointing at an OE page, in which case the page id
+ * doubles as the submitted value.
+ */
+function readOption(raw: RawListTitle): FormFieldOption & { position: number } {
+  const entityId = refField(raw?.value, 'id');
+  return {
+    title: asString(raw?.title),
+    value: entityId != null ? String(entityId) : asString(raw?.value),
+    extended: asString(raw?.extended?.value),
+    entityId,
+    depth: refField(raw?.value, 'depth'),
+    parentId: refField(raw?.value, 'parentId'),
+    position: typeof raw?.position === 'number' ? raw.position : 0,
+  };
+}
+
+/**
+ * Pick the attribute's placeholder out of its `additionalFields`.
+ *
+ * Admins name the field per attribute — `placeholder_city`,
+ * `placeholder_address_line_1`, or a bare `placeholder` — so the prefix is the
+ * only stable part. Ties are broken by marker order to stay deterministic.
+ */
+function readPlaceholder(fields: Record<string, string>): string {
+  const marker = Object.keys(fields)
+    .filter((k) => k.toLowerCase().startsWith('placeholder'))
+    .sort()[0];
+  return marker ? fields[marker] : '';
 }
 
 /**
@@ -110,6 +172,7 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
       successMessage: asString(formInfo.successMessage),
       unsuccessMessage: asString(formInfo.unsuccessMessage),
       attributes: {},
+      fields: [],
     };
 
     for (const attr of Array.isArray(form.attributes) ? form.attributes : []) {
@@ -126,22 +189,27 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
       }
 
       const options = (Array.isArray(attr.listTitles) ? attr.listTitles : [])
-        .map((o) => ({
-          title: asString(o?.title),
-          value: asString(o?.value),
-          position: typeof o?.position === 'number' ? o.position : 0,
-        }))
+        .map(readOption)
         .filter((o) => o.value.length > 0)
         .sort((a, b) => a.position - b.position)
-        .map(({ title, value }) => ({ title, value }));
+        .map(({ position: _position, ...option }) => option);
 
       out.attributes[attrMarker] = {
+        marker: attrMarker,
+        type: asString(attr.type),
+        position: typeof attr.position === 'number' ? attr.position : 0,
+        // Absent means visible: OE only ever sends `false` to hide a field, and
+        // an older payload without the flag must not blank the whole form.
+        isVisible: attr.isVisible !== false,
         title: asString(localized(attr.localizeInfos, lang).title),
+        placeholder: readPlaceholder(fields),
         fields,
         options,
         limits: readLimits(attr.validators),
       };
     }
+
+    out.fields = Object.values(out.attributes).sort((a, b) => a.position - b.position);
 
     return out;
   } catch (err) {

@@ -10,38 +10,38 @@
  * The storefront mirrors OE's limits client-side (see `field-bounds.ts`), so
  * this path should now be rare; it still fires when an editor tightens a rule
  * the storefront doesn't model (a regex, a `list` value, a store entity id).
+ *
+ * The marker → label table is harvested from the checkout forms themselves —
+ * every attribute already carries its shopper-facing label in
+ * `localizeInfos.title`. A shipped table would go stale the moment an editor
+ * renamed a marker or reworded a label, and it would go stale silently: the
+ * message would fall back to naming the raw marker again.
  */
+import type { FormContent } from '@/lib/oneentry/forms/form-content';
 
 /** Attribute marker → the label the shopper saw above that input. */
-const FIELD_LABELS: Record<string, string> = {
-  // Home delivery — guest
-  checkout_home_guest_full_name: 'Full Name',
-  checkout_home_guest_phone: 'Phone',
-  checkout_home_guest_address_line1: 'Address Line 1',
-  checkout_home_guest_city: 'City',
-  checkout_home_guest_post_code: 'Postal Code',
-  checkout_home_guest_special_instrations: 'Special Instructions',
-  // Store pickup — guest
-  checkout_store_pickup_guest_store: 'Pickup store',
-  checkout_store_pickup_guest_full_name: 'Full Name',
-  checkout_store_pickup_guest_phone: 'Phone',
-  checkout_store_pickup_guest_email: 'Email',
-  // Parcel locker — guest
-  checkout_locker_guest_pickup_point: 'Pickup point',
-  checkout_locker_guest_full_name: 'Full Name',
-  checkout_locker_guest_phone: 'Phone',
-  checkout_locker_guest_email: 'Email',
-  // Authed
-  checkout_store_pickup_select_store: 'Pickup store',
-  checkout_locker_pickup_point: 'Pickup point',
-  delivery_method: 'Delivery method',
-  delivery_method_guest: 'Delivery method',
-  'delivery_date-time': 'Delivery date & time',
-  'delivery_date-time_guest': 'Delivery date & time',
-};
+export type OrderFieldLabels = Record<string, string>;
 
 /** Markers OE lists after the colon, comma-separated. */
 const MARKER = /[a-z][a-z0-9_-]{3,}/gi;
+
+/**
+ * Collect every loaded form's attribute labels into one marker → label table.
+ *
+ * @param forms - Loaded checkout forms; unloaded entries are skipped.
+ * @returns Labels keyed by attribute marker. Attributes the admin left
+ *          unlabelled are omitted, so their marker survives verbatim in the
+ *          message rather than being replaced by an empty quote.
+ */
+export function buildOrderFieldLabels(forms: Array<FormContent | undefined | null>): OrderFieldLabels {
+  const out: OrderFieldLabels = {};
+  for (const form of forms) {
+    for (const field of form?.fields ?? []) {
+      if (field.title) out[field.marker] = field.title;
+    }
+  }
+  return out;
+}
 
 /**
  * Rewrite an OE order error so it names the field the shopper filled in.
@@ -49,14 +49,17 @@ const MARKER = /[a-z][a-z0-9_-]{3,}/gi;
  * @param message  - Raw `error` string from `createOrderAction`.
  * @param hint     - Sentence appended when at least one marker was recognised,
  *                   pointing back at the step that owns the field.
+ * @param labels   - Marker → label table from {@link buildOrderFieldLabels}.
+ *                   Empty when no form was loaded, in which case the message is
+ *                   returned unchanged.
  * @returns The message with known markers replaced by their field labels, plus
  *          the hint. Unrecognised messages are returned unchanged.
  */
-export function explainOrderError(message: string, hint: string): string {
+export function explainOrderError(message: string, hint: string, labels: OrderFieldLabels = {}): string {
   if (!message) return message;
   let matched = false;
   const rewritten = message.replace(MARKER, (token) => {
-    const label = FIELD_LABELS[token];
+    const label = labels[token];
     if (!label) return token;
     matched = true;
     return `“${label}”`;

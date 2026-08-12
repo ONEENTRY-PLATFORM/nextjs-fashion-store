@@ -38,6 +38,10 @@ export const PAYMENT_PAGE_LABELS = {
   // Appended when OE rejects a delivery-form value: the field it names was
   // filled in on the previous step, so that's where the fix has to happen.
   errorFieldHint: 'Please go back to the delivery step and correct that field.',
+  // The order body is assembled from the CMS form's own field definitions. If
+  // that form did not load, submitting anyway would post a body OE is certain
+  // to reject with a raw marker name — so the shopper is told to retry instead.
+  errorFormUnavailable: 'Checkout is temporarily unavailable. Please refresh the page and try again.',
 } as const;
 
 // `PAYMENT_METHODS_COPY` was removed: `PaymentMethodsList` renders each

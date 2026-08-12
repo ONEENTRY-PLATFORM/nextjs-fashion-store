@@ -54,6 +54,7 @@ export function DeliveryMethodLocker({
   return (
     <RadioCard
       id="locker"
+      testId="delivery-method-locker"
       checked={checked}
       onChange={onChange}
       icon={<Package size={20} />}

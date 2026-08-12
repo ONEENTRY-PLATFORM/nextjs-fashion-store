@@ -11,7 +11,7 @@ import {
 import type { UserAddress } from '@/app/data/userData';
 import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
-import { useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 export interface NewAddressForm {
@@ -89,35 +89,14 @@ export function DeliveryMethodHome({
   const subtitle = info?.home.subtitle ?? L.subtitle;
   const perks = info?.home.perks ?? DELIVERY_PERKS.map((p) => p.text);
 
-  const phFullName = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_recipient_name',
-    'placeholder_name',
-    L.placeholderFullName,
-  );
-  const phPhone = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_recipient_phone',
-    'placeholder_phone',
-    L.placeholderPhone,
-  );
-  const phAddressLine1 = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_line_1',
-    'placeholder_address_line_1',
-    L.placeholderAddressLine1,
-  );
-  const phCity = useFormPlaceholder('user_addresses', 'user_addresses_city', 'placeholder_city', L.placeholderCity);
-  const phPostalCode = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_post_code',
-    'placeholder_postal_code',
-    L.placeholderPostalCode,
-  );
-  const phInstructions = useFormPlaceholder(
+  const phFullName = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_name', L.placeholderFullName);
+  const phPhone = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_phone', L.placeholderPhone);
+  const phAddressLine1 = useFieldPlaceholder('user_addresses', 'user_addresses_line_1', L.placeholderAddressLine1);
+  const phCity = useFieldPlaceholder('user_addresses', 'user_addresses_city', L.placeholderCity);
+  const phPostalCode = useFieldPlaceholder('user_addresses', 'user_addresses_post_code', L.placeholderPostalCode);
+  const phInstructions = useFieldPlaceholder(
     'user_addresses',
     'user_addresses_special_instructions',
-    'placeholder_special_instructions',
     L.placeholderInstructions,
   );
 
@@ -125,6 +104,7 @@ export function DeliveryMethodHome({
   return (
     <RadioCard
       id="home"
+      testId="delivery-method-home"
       checked={checked}
       onChange={onChange}
       icon={<MapPin size={20} />}

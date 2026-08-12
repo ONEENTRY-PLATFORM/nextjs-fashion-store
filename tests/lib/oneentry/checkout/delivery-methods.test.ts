@@ -7,9 +7,13 @@ vi.mock('next/cache', () => ({
 
 const getFormByMarker = vi.fn();
 
+// `loadFormContent` reaches for `getApiSafe`; the loaders under test reach it
+// through that helper rather than the SDK directly, so both entry points are
+// stubbed onto the same spy.
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
   getApi: () => ({ Forms: { getFormByMarker } }),
+  getApiSafe: () => ({ Forms: { getFormByMarker } }),
   isError: (v: unknown) => !!v && typeof v === 'object' && 'statusCode' in (v as Record<string, unknown>),
 }));
 
@@ -31,18 +35,28 @@ const FALLBACK_HOME_PERKS = DELIVERY_PERKS.map((p) => p.text);
 const FALLBACK_STORE_PERKS = PICKUP_PERKS.map((p) => p.text);
 
 // ── Helper: builds a minimal valid OE form response ──────────────────────────
+/**
+ * The method picker is found by attribute *type*, not by marker — the marker
+ * below is deliberately not the one production uses, to prove a rename in the
+ * admin panel does not break the lookup.
+ */
 function makeForm(overrides: {
   listTitles?: { value: string; title: string; extended?: { value: string } | null }[];
   additionalFields?: Record<string, { value: string }>;
   omitAttr?: boolean;
+  marker?: string;
 }) {
-  const { listTitles, additionalFields, omitAttr = false } = overrides;
+  const { listTitles, additionalFields, omitAttr = false, marker = 'renamed_by_an_editor' } = overrides;
   return {
     attributes: omitAttr
       ? []
       : [
           {
-            marker: 'delivery_method',
+            marker,
+            type: 'list',
+            position: 1,
+            isVisible: true,
+            localizeInfos: { title: 'Delivery method' },
             listTitles: listTitles ?? [],
             additionalFields: additionalFields ?? {},
           },
@@ -50,7 +64,8 @@ function makeForm(overrides: {
   };
 }
 
-// Full happy-path list items
+// Full happy-path list items, in the order the admin panel arranges them:
+// home, store, locker — which is the order the picker's cards follow.
 const FULL_LIST = [
   { value: 'courier', title: 'OE Home Title', extended: { value: 'OE home subtitle' } },
   { value: 'pickup', title: 'OE Store Title', extended: { value: 'OE store subtitle' } },
@@ -81,24 +96,42 @@ describe('loadDeliveryMethodInfo — happy path', () => {
     expect(info.home).toEqual({
       title: 'OE Home Title',
       subtitle: 'OE home subtitle',
-      perks: ['Free delivery', 'Partial purchase', 'In-home fitting'],
+      value: 'courier',
+      // Perks are grouped by marker prefix and ordered by marker, so
+      // `home_free_delivery` < `home_in-home-fitting` < `home_partial_purchase`.
+      perks: ['Free delivery', 'In-home fitting', 'Partial purchase'],
     });
     expect(info.store).toEqual({
       title: 'OE Store Title',
       subtitle: 'OE store subtitle',
-      perks: ['Free pickup', 'Partial purchase OE', 'Fitting room OE'],
+      value: 'pickup',
+      perks: ['Fitting room OE', 'Free pickup', 'Partial purchase OE'],
     });
     expect(info.locker).toEqual({
       title: 'OE Locker Title',
       subtitle: 'OE locker subtitle',
+      value: 'locker',
       pinHint: 'PIN hint from OE',
     });
+  });
+
+  it('picks up perks an editor added without a code change', async () => {
+    getFormByMarker.mockResolvedValue(
+      makeForm({
+        listTitles: FULL_LIST,
+        additionalFields: { ...FULL_ADDL, home_gift_wrapping: { value: 'Gift wrapping' } },
+      }),
+    );
+    const { loadDeliveryMethodInfo } = await importFresh();
+    const info = await loadDeliveryMethodInfo();
+
+    expect(info.home.perks).toContain('Gift wrapping');
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe('loadDeliveryMethodInfo — missing delivery_method attribute', () => {
-  it('returns full FALLBACK when the form has no delivery_method attribute', async () => {
+  it('returns full FALLBACK when the form has no list attribute', async () => {
     getFormByMarker.mockResolvedValue(makeForm({ omitAttr: true }));
     const { loadDeliveryMethodInfo } = await importFresh();
     const info = await loadDeliveryMethodInfo();
@@ -117,19 +150,20 @@ describe('loadDeliveryMethodInfo — missing delivery_method attribute', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('loadDeliveryMethodInfo — missing listTitles entry for one method', () => {
   it('falls back to local title/subtitle for the missing method only; others use OE data', async () => {
-    // listTitles has courier and pickup, but NOT locker
-    const partialList = FULL_LIST.filter((it) => it.value !== 'locker');
+    // The admin listed only two options, so the locker card has none.
+    const partialList = FULL_LIST.slice(0, 2);
     getFormByMarker.mockResolvedValue(makeForm({ listTitles: partialList, additionalFields: FULL_ADDL }));
     const { loadDeliveryMethodInfo } = await importFresh();
     const info = await loadDeliveryMethodInfo();
 
-    // courier and pickup should be from OE
+    // The first two cards should be from OE
     expect(info.home.title).toBe('OE Home Title');
     expect(info.store.title).toBe('OE Store Title');
 
-    // locker not present in listTitles → local fallback title/subtitle
+    // no third option → local fallback title/subtitle/value
     expect(info.locker.title).toBe(DELIVERY_METHOD_LOCKER_LABELS.title);
     expect(info.locker.subtitle).toBe(DELIVERY_METHOD_LOCKER_LABELS.subtitle);
+    expect(info.locker.value).toBe('locker');
     // pinHint still comes from additionalFields (locaer_text is present)
     expect(info.locker.pinHint).toBe('PIN hint from OE');
   });
@@ -144,7 +178,7 @@ describe('loadDeliveryMethodInfo — missing additionalFields perks', () => {
 
     expect(info.home.perks).toEqual(FALLBACK_HOME_PERKS);
     expect(info.store.perks).toEqual(FALLBACK_STORE_PERKS);
-    // pinHint: no locaer_text → local fallback
+    // pinHint: no locker line → local fallback
     expect(info.locker.pinHint).toBe(DELIVERY_METHOD_LOCKER_LABELS.pinHint);
   });
 
@@ -160,8 +194,8 @@ describe('loadDeliveryMethodInfo — missing additionalFields perks', () => {
     const { loadDeliveryMethodInfo } = await importFresh();
     const info = await loadDeliveryMethodInfo();
 
-    // home perks: OE populated → use OE
-    expect(info.home.perks).toEqual(['Free delivery', 'Partial purchase', 'In-home fitting']);
+    // home perks: OE populated → use OE, ordered by marker
+    expect(info.home.perks).toEqual(['Free delivery', 'In-home fitting', 'Partial purchase']);
     // store perks: OE absent → local fallback
     expect(info.store.perks).toEqual(FALLBACK_STORE_PERKS);
   });
@@ -190,6 +224,31 @@ describe('loadDeliveryMethodInfo — SDK throws', () => {
     expect(info.home.perks).toEqual(FALLBACK_HOME_PERKS);
     expect(info.store.perks).toEqual(FALLBACK_STORE_PERKS);
     expect(info.locker.pinHint).toBe(DELIVERY_METHOD_LOCKER_LABELS.pinHint);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('loadParcelLockers', () => {
+  it('reads the locker options off whichever attribute carries them', async () => {
+    getFormByMarker.mockResolvedValue(
+      makeForm({
+        marker: 'checkout_locker_pickup_point',
+        listTitles: [
+          { value: '1', title: 'Paddington Station' },
+          { value: '2', title: "King's Cross" },
+        ],
+      }),
+    );
+    const { loadParcelLockers } = await importFresh();
+
+    expect(await loadParcelLockers()).toEqual(['Paddington Station', "King's Cross"]);
+  });
+
+  it('returns an empty list when the tenant authored no options', async () => {
+    getFormByMarker.mockResolvedValue(makeForm({ listTitles: [] }));
+    const { loadParcelLockers } = await importFresh();
+
+    expect(await loadParcelLockers()).toEqual([]);
   });
 });
 

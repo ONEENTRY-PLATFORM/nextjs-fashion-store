@@ -49,6 +49,7 @@ export function DeliveryMethodStore({
   return (
     <RadioCard
       id="store"
+      testId="delivery-method-store"
       checked={checked}
       onChange={onChange}
       icon={<Store size={20} />}
@@ -63,6 +64,7 @@ export function DeliveryMethodStore({
         <div className="relative">
           <button
             onClick={() => setStoreDropOpen((o) => !o)}
+            data-testid="store-picker-toggle"
             className="flex w-full items-center justify-between rounded-none border border-[#d1d5db] px-4 py-3 text-left text-sm focus-visible:outline-none"
             aria-expanded={storeDropOpen}
             aria-haspopup="listbox"
@@ -78,6 +80,12 @@ export function DeliveryMethodStore({
               {stores.map((s) => (
                 <button
                   key={s.id}
+                  data-testid="store-option"
+                  // The OE page id the order's `entity` field will carry. Exposed
+                  // so a test can assert the picker offers exactly the stores an
+                  // editor ticked on the order form — the ids are the contract,
+                  // the names are CMS copy.
+                  data-store-id={s.oeId ?? ''}
                   onClick={() => {
                     setSelectedStore(s);
                     setStoreDropOpen(() => false);

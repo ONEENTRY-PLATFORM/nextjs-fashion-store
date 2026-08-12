@@ -43,10 +43,7 @@ export type Dictionary = Record<string, string>;
  * Client Component asks for.
  */
 export const DICTIONARY_SET_MARKERS = [
-  // Site-wide settings: brand, commerce terms, socials, theme palette. Not
-  // copy in the usual sense, but it travels the same way and several of the
-  // values (currency symbol, referral terms, accent colours) are needed inside
-  // Client Components — which is exactly what this dictionary is for.
+  // Site-wide settings.
   'site_settings',
   // Layout chrome and shared UI
   'header',

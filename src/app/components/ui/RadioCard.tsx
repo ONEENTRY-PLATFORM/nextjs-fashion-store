@@ -1,6 +1,7 @@
 import React from 'react';
 
 interface RadioCardProps {
+  /** DOM id of the radio control. */
   id?: string;
   checked: boolean;
   onChange: () => void;
@@ -12,10 +13,15 @@ interface RadioCardProps {
    *  the CMS-managed "FREE" copy. Omit to render no badge.
    */
   badge?: string;
+  /**
+   * Stable handle for tests. The card's own title and subtitle are CMS copy —
+   *  they differ per locale and per tenant, so they cannot be selected on.
+   */
+  testId?: string;
   children?: React.ReactNode;
 }
 
-export function RadioCard({ checked, onChange, icon, title, subtitle, badge, children }: RadioCardProps) {
+export function RadioCard({ id, checked, onChange, icon, title, subtitle, badge, testId, children }: RadioCardProps) {
   return (
     <div
       className={`mb-4 rounded-none border-2 transition-all duration-200 ${
@@ -23,8 +29,10 @@ export function RadioCard({ checked, onChange, icon, title, subtitle, badge, chi
       }`}
     >
       <button
+        id={id}
         role="radio"
         aria-checked={checked}
+        data-testid={testId}
         className="flex w-full items-center gap-4 px-5 py-4 text-left focus-visible:outline-none"
         onClick={onChange}
       >

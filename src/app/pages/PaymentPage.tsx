@@ -1,6 +1,6 @@
 'use client';
 import { Lock, Shield } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
@@ -19,8 +19,11 @@ import { trackActivity } from '@/app/utils/track-activity';
 import { useRouter } from '@/lib/i18n/navigation';
 import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '@/lib/oneentry/auth/actions';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
-import { explainOrderError } from '@/lib/oneentry/checkout/order-error';
+import { orderFormMarker } from '@/lib/oneentry/checkout/forms';
+import { buildOrderFieldLabels, explainOrderError } from '@/lib/oneentry/checkout/order-error';
 import { slotWindow } from '@/lib/oneentry/checkout/slot-window';
+import { soleFieldOfType } from '@/lib/oneentry/forms/field-lookup';
+import { useAllFormContent } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
@@ -66,9 +69,20 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lErrRevalidate = useT('checkout_payment_error_revalidate', PAYMENT_PAGE_LABELS.errorRevalidate);
   const lErrStripe = useT('checkout_payment_error_stripe', PAYMENT_PAGE_LABELS.errorStripeSession);
   const lErrFieldHint = useT('checkout_payment_error_field_hint', PAYMENT_PAGE_LABELS.errorFieldHint);
+  const lErrFormUnavailable = useT(
+    'checkout_payment_error_form_unavailable',
+    PAYMENT_PAGE_LABELS.errorFormUnavailable,
+  );
   const lErrNoAccounts = useT('checkout_payment_error_no_accounts', PAYMENT_PAGE_LABELS.errorNoAccounts);
   const lStripeRedirect = useT('checkout_payment_stripe_redirect_hint', PAYMENT_PAGE_LABELS.stripeRedirectHint);
   const securityBadges = [lSsl, lPci, l3d].filter(Boolean);
+
+  // OE rejects an order by naming the raw attribute marker of the offending
+  // field. Every checkout form is loaded by the route shell, so the label the
+  // shopper saw is available here — authored in the admin panel, not mirrored
+  // into a table that would silently stop matching after a rename.
+  const checkoutForms = useAllFormContent();
+  const orderFieldLabels = useMemo(() => buildOrderFieldLabels(Object.values(checkoutForms)), [checkoutForms]);
 
   const { isLoggedIn, user } = useAuth();
   const [submitError, setSubmitError] = useState('');
@@ -248,6 +262,12 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       lockerId?: string | number | null;
       deliveryDate?: string;
       deliverySlot?: string;
+      /**
+       * The `delivery_method` option the shopper picked, as authored in the
+       * admin panel. Carried from the delivery step so this page never has to
+       * guess what OE calls "courier".
+       */
+      deliveryMethodValue?: string;
     } | null = null;
     try {
       const raw = sessionStorage.getItem('oe_checkout_payload');
@@ -274,17 +294,31 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       return [{ productId: cmsId, quantity: it.quantity }];
     });
 
-    // Build formData per checkout form schema. Guest forms additionally
-    // require contact info (full_name / phone / email); the authed forms
-    // only need the delivery details.
+    // Build formData against the CMS form the order is filed into. Its markers
+    // are read from the form itself — the method picker is its only `list`
+    // attribute, the date window its only `timeInterval`, the store its only
+    // `entity`, the locker its only `integer` — so renaming any of them in the
+    // admin panel keeps working. Guest forms additionally require contact info
+    // (full_name / phone / email); the authed forms only need delivery details.
+    const orderForm = checkoutForms[orderFormMarker(payload.storage, payload.isGuest)];
+    const methodField = soleFieldOfType(orderForm, 'list');
+    const intervalField = soleFieldOfType(orderForm, 'timeInterval');
+    const storeField = soleFieldOfType(orderForm, 'entity');
+    const lockerField = soleFieldOfType(orderForm, 'integer');
     const formData: Array<{ marker: string; type: string; value: unknown }> = [];
-    const guestPrefix = payload.isGuest ? '_guest' : '';
     if (payload.storage === 'home') {
       // Authed: delivery_method + delivery_date-time; Guest: also address.
+      if (!methodField || !intervalField) {
+        setSubmitError(lErrFormUnavailable);
+        return;
+      }
       formData.push({
-        marker: `delivery_method${guestPrefix}`,
-        type: 'list',
-        value: ['courier'],
+        marker: methodField.marker,
+        type: methodField.type,
+        // The option the shopper picked on the delivery step, carried across in
+        // the handoff payload. Falls back to the form's first option, which is
+        // the home-delivery one by the same ordering the picker renders.
+        value: [payload.deliveryMethodValue || (methodField.options[0]?.value ?? '')],
       });
       // OE timeInterval expects array of [fromISO, toISO] tuples. Slots loaded
       // from OE carry an `HHMM-HHMM` id (see `delivery-schedule.ts`); the
@@ -295,8 +329,8 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       const dayIso = (payload.deliveryDate ?? new Date().toISOString()).slice(0, 10);
       const [fromIso, toIso] = slotWindow(payload.deliverySlot, dayIso);
       formData.push({
-        marker: `delivery_date-time${guestPrefix}`,
-        type: 'timeInterval',
+        marker: intervalField.marker,
+        type: intervalField.type,
         value: [[fromIso, toIso]],
       });
       if (payload.isGuest && payload.homeAddress) {
@@ -328,9 +362,13 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
         }
       }
     } else if (payload.storage === 'store_pickup') {
+      if (!storeField) {
+        setSubmitError(lErrFormUnavailable);
+        return;
+      }
       formData.push({
-        marker: payload.isGuest ? 'checkout_store_pickup_guest_store' : 'checkout_store_pickup_select_store',
-        type: 'entity',
+        marker: storeField.marker,
+        type: storeField.type,
         // OE entity type accepts an array of ids on form-data; wrap to keep it valid.
         value: [String(payload.storeId ?? '')],
       });
@@ -352,14 +390,18 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
         });
       }
     } else if (payload.storage === 'locker') {
+      if (!lockerField) {
+        setSubmitError(lErrFormUnavailable);
+        return;
+      }
       // OE rejects 0 as a missing integer value — shift by 1 so the first locker maps to 1.
       const lockerNum =
         typeof payload.lockerId === 'number'
           ? payload.lockerId + 1
           : (parseInt(String(payload.lockerId ?? '0'), 10) || 0) + 1;
       formData.push({
-        marker: payload.isGuest ? 'checkout_locker_guest_pickup_point' : 'checkout_locker_pickup_point',
-        type: 'integer',
+        marker: lockerField.marker,
+        type: lockerField.type,
         value: lockerNum,
       });
       if (payload.isGuest && payload.guestContact) {
@@ -463,7 +505,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     if (!res.ok) {
       // OE names the offending attribute by its raw marker; translate it to the
       // label the shopper saw so the message is actionable.
-      setSubmitError(explainOrderError(res.error, lErrFieldHint));
+      setSubmitError(explainOrderError(res.error, lErrFieldHint, orderFieldLabels));
       return;
     }
     // Record a purchase event per line item so each product's purchase

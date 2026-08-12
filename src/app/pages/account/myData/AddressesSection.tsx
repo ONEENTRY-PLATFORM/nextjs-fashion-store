@@ -7,7 +7,7 @@ import { ADDRESSES_LABELS } from '@/app/data/accountLabels';
 import { ADDRESSES_SECTION_ARIA } from '@/app/data/commonLabels';
 import { FormInput, SectionTitle } from '@/app/pages/account/shared';
 import { useFormMessages } from '@/app/utils/useFormMessages';
-import { useFormLabel, useFormPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFormLabel, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 type AddrForm = {
@@ -53,36 +53,15 @@ export function AddressesSection() {
   const lbPostalCode = useFormLabel('user_addresses', 'user_addresses_post_code', L.labelPostalCode);
   const lbInstructions = useFormLabel('user_addresses', 'user_addresses_special_instructions', L.labelInstructions);
 
-  const phLabel = useFormPlaceholder('user_addresses', 'user_addresses_lable', 'placeholder_label', L.placeholderLabel);
-  const phFullName = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_recipient_name',
-    'placeholder_name',
-    L.placeholderFullName,
-  );
-  const phPhone = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_recipient_phone',
-    'placeholder_phone',
-    L.placeholderPhone,
-  );
-  const phAddressLine1 = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_line_1',
-    'placeholder_address_line_1',
-    L.placeholderAddressLine1,
-  );
-  const phCity = useFormPlaceholder('user_addresses', 'user_addresses_city', 'placeholder_city', L.placeholderCity);
-  const phPostalCode = useFormPlaceholder(
-    'user_addresses',
-    'user_addresses_post_code',
-    'placeholder_postal_code',
-    L.placeholderPostalCode,
-  );
-  const phInstructions = useFormPlaceholder(
+  const phLabel = useFieldPlaceholder('user_addresses', 'user_addresses_lable', L.placeholderLabel);
+  const phFullName = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_name', L.placeholderFullName);
+  const phPhone = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_phone', L.placeholderPhone);
+  const phAddressLine1 = useFieldPlaceholder('user_addresses', 'user_addresses_line_1', L.placeholderAddressLine1);
+  const phCity = useFieldPlaceholder('user_addresses', 'user_addresses_city', L.placeholderCity);
+  const phPostalCode = useFieldPlaceholder('user_addresses', 'user_addresses_post_code', L.placeholderPostalCode);
+  const phInstructions = useFieldPlaceholder(
     'user_addresses',
     'user_addresses_special_instructions',
-    'placeholder_special_instructions',
     L.placeholderInstructions,
   );
 
