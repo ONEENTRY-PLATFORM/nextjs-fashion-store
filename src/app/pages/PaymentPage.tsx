@@ -9,7 +9,6 @@ import { SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { extractCmsProductId } from '@/app/data/cms-product-id-map';
-import { PAYMENT_PAGE_LABELS } from '@/app/data/paymentMethodsConfig';
 import { useMounted } from '@/app/hooks/useMounted';
 import { CART_LINE_LABELS } from '@/app/pages/cart/copy';
 import { fmt } from '@/app/utils/formatPrice';
@@ -22,7 +21,7 @@ import { orderFormMarker } from '@/lib/oneentry/checkout/forms';
 import { buildOrderFieldLabels, explainOrderError } from '@/lib/oneentry/checkout/order-error';
 import { buildOrderFormData, type CheckoutHandoffPayload } from '@/lib/oneentry/checkout/order-form-data';
 import { useAllFormContent } from '@/lib/oneentry/forms/FormPlaceholdersContext';
-import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
@@ -35,6 +34,45 @@ export const ORDER_SUMMARY_LABELS = {
   delivery: 'Delivery',
   deliveryFree: 'Free',
   total: 'Total',
+} as const;
+
+/**
+ * Payment screen copy, overlaid from the OE `checkout_payment` set.
+ *
+ * Keys are named so that `prefix + snake_case(key)` lands on the marker the
+ * admin panel already holds — `payOnDelivery` → `checkout_payment_pay_on_delivery`
+ * — which is what let this screen swap 26 hand-written `useT` calls for one
+ * `useDict` without touching a single value in the CMS.
+ */
+export const PAYMENT_PAGE_LABELS = {
+  title: 'Payment Method',
+  payOnDelivery: 'Pay on Delivery',
+  onlinePrepayment: 'Online Prepayment',
+  or: 'Or Online Prepayment',
+  orderSummary: 'Order Summary',
+  backToDelivery: '← Back to Delivery',
+  cta: 'Place Order',
+  ssl: 'SSL Encrypted',
+  pci: 'PCI DSS Compliant',
+  // `3d` on purpose: `snakeKey('3d')` is `3d`, so the marker stays
+  // `checkout_payment_3d`.
+  '3d': '3D Secure',
+  stripeRedirectHint: "You'll be redirected to the payment provider's secure checkout to complete the payment.",
+  freeGift: 'Free gift',
+  giftFree: 'Free',
+  loyaltyTier: 'Loyalty',
+  discountSuffix: 'discount',
+  promoPrefix: 'Promo',
+  bonusesUsed: 'Bonuses used',
+  useBonuses: 'Use bonuses',
+  bonusAvailable: 'available',
+  errorNoMethod: 'Please choose a payment method.',
+  errorNoDelivery: 'Delivery details missing — please go back to delivery step.',
+  errorRevalidate: 'Cart could not be re-validated. Please review your cart and try again.',
+  errorStripe: 'Stripe session could not be created. Please try again or pick another payment method.',
+  errorNoAccounts: 'Payment methods are unavailable right now. Please try again later.',
+  errorFieldHint: 'Please go back to the delivery step and correct that field.',
+  errorFormUnavailable: 'Checkout is temporarily unavailable. Please refresh the page and try again.',
 } as const;
 
 export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
@@ -54,33 +92,11 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [method, setMethod] = useState<string>('');
-  const lPayOnDelivery = useT('checkout_payment_pay_on_delivery', PAYMENT_PAGE_LABELS.payOnDeliverySection);
-  const lOr = useT('checkout_payment_or', PAYMENT_PAGE_LABELS.orOnlinePrepayment);
-  const lOnline = useT('checkout_payment_online_prepayment', PAYMENT_PAGE_LABELS.onlinePrepaymentSection);
-  const lPlaceOrder = useT('checkout_payment_cta', PAYMENT_PAGE_LABELS.placeOrderPrefix);
-  const lSsl = useT('checkout_payment_ssl', PAYMENT_PAGE_LABELS.securityBadges[0] ?? '');
-  const lPci = useT('checkout_payment_pci', PAYMENT_PAGE_LABELS.securityBadges[1] ?? '');
-  const l3d = useT('checkout_payment_3d', PAYMENT_PAGE_LABELS.securityBadges[2] ?? '');
-  const lPageTitle = useT('checkout_payment_title', PAYMENT_PAGE_LABELS.pageTitle);
-  const lBackToDeliv = useT('checkout_payment_back_to_delivery', PAYMENT_PAGE_LABELS.backToDelivery);
-  const lOrderSummary = useT('checkout_payment_order_summary', PAYMENT_PAGE_LABELS.orderSummary);
-  const lFreeGift = useT('checkout_payment_free_gift', PAYMENT_PAGE_LABELS.freeGift);
-  const lGiftFree = useT('checkout_payment_gift_free', PAYMENT_PAGE_LABELS.giftFree);
-  const lLoyaltyTier = useT('checkout_payment_loyalty_tier', PAYMENT_PAGE_LABELS.loyaltyFallbackTier);
-  const lDiscountWord = useT('checkout_payment_discount_suffix', PAYMENT_PAGE_LABELS.discountSuffix);
-  const lPromoPrefix = useT('checkout_payment_promo_prefix', PAYMENT_PAGE_LABELS.promoPrefix);
-  const lBonusesUsed = useT('checkout_payment_bonuses_used', PAYMENT_PAGE_LABELS.bonusesUsed);
-  const lUseBonuses = useT('checkout_payment_use_bonuses', PAYMENT_PAGE_LABELS.useBonuses);
-  const lBonusAvail = useT('checkout_payment_bonus_available', PAYMENT_PAGE_LABELS.bonusAvailableSuffix);
-  const lErrNoMethod = useT('checkout_payment_error_no_method', PAYMENT_PAGE_LABELS.errorNoMethod);
-  const lErrNoDelivery = useT('checkout_payment_error_no_delivery', PAYMENT_PAGE_LABELS.errorNoDelivery);
-  const lErrRevalidate = useT('checkout_payment_error_revalidate', PAYMENT_PAGE_LABELS.errorRevalidate);
-  const lErrStripe = useT('checkout_payment_error_stripe', PAYMENT_PAGE_LABELS.errorStripeSession);
-  const lErrFieldHint = useT('checkout_payment_error_field_hint', PAYMENT_PAGE_LABELS.errorFieldHint);
-  const lErrFormUnavailable = useT('checkout_payment_error_form_unavailable', PAYMENT_PAGE_LABELS.errorFormUnavailable);
-  const lErrNoAccounts = useT('checkout_payment_error_no_accounts', PAYMENT_PAGE_LABELS.errorNoAccounts);
-  const lStripeRedirect = useT('checkout_payment_stripe_redirect_hint', PAYMENT_PAGE_LABELS.stripeRedirectHint);
-  const securityBadges = [lSsl, lPci, l3d].filter(Boolean);
+  // One overlay instead of 26 `useT` calls: every key here resolves to the
+  // marker it already had (`payOnDelivery` → `checkout_payment_pay_on_delivery`),
+  // so the CMS side is untouched.
+  const L = useDict('checkout_payment_', PAYMENT_PAGE_LABELS);
+  const securityBadges = [L.ssl, L.pci, L['3d']].filter(Boolean);
 
   // OE rejects an order by naming the raw attribute marker of the offending
   // field. Every checkout form is loaded by the route shell, so the label the
@@ -243,7 +259,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       return;
     }
     if (!selectedAccount) {
-      setSubmitError(lErrNoMethod);
+      setSubmitError(L.errorNoMethod);
       return;
     }
     // Preview is still in flight — the totals on screen might not yet
@@ -259,7 +275,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       /* ignore */
     }
     if (!payload) {
-      setSubmitError(lErrNoDelivery);
+      setSubmitError(L.errorNoDelivery);
       return;
     }
 
@@ -284,7 +300,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     const orderForm = checkoutForms[orderFormMarker(payload.storage, payload.isGuest)];
     const built = buildOrderFormData(payload, orderForm);
     if (!built.ok) {
-      setSubmitError(lErrFormUnavailable);
+      setSubmitError(L.errorFormUnavailable);
       return;
     }
     const formData = built.formData;
@@ -313,7 +329,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     });
     if (!fresh.ok) {
       setPlacing(false);
-      setSubmitError(fresh.error || lErrRevalidate);
+      setSubmitError(fresh.error || L.errorRevalidate);
       return;
     }
     // Total shifted vs. what the shopper saw — update the on-screen summary
@@ -371,7 +387,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     if (!res.ok) {
       // OE names the offending attribute by its raw marker; translate it to the
       // label the shopper saw so the message is actionable.
-      setSubmitError(explainOrderError(res.error, lErrFieldHint, orderFieldLabels));
+      setSubmitError(explainOrderError(res.error, L.errorFieldHint, orderFieldLabels));
       return;
     }
     // Record a purchase event per line item so each product's purchase
@@ -426,7 +442,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     // stayed created on OE's side, but the buyer hasn't paid.
     if (selectedAccount.type === 'stripe') {
       setSubmitError(
-        res.paymentSessionError ? `Stripe session could not be created: ${res.paymentSessionError}` : lErrStripe,
+        res.paymentSessionError ? `Stripe session could not be created: ${res.paymentSessionError}` : L.errorStripe,
       );
       return;
     }
@@ -449,7 +465,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
         <div className="flex flex-col gap-8 pt-8 lg:flex-row">
           {/* ── Left: Payment Options ── */}
           <div className="min-w-0 flex-1">
-            <h1 className="mb-6 text-xl font-bold tracking-[0.15em] uppercase">{lPageTitle}</h1>
+            <h1 className="mb-6 text-xl font-bold tracking-[0.15em] uppercase">{L.title}</h1>
 
             {accountsLoading ? (
               <div className="space-y-3">
@@ -458,16 +474,16 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                 ))}
               </div>
             ) : accounts.length === 0 ? (
-              <p className="py-6 text-sm text-gray-500">{lErrNoAccounts}</p>
+              <p className="py-6 text-sm text-gray-500">{L.errorNoAccounts}</p>
             ) : (
               <PaymentMethodsList
                 accounts={accounts}
                 selected={method}
                 onSelect={setMethod}
-                offlineSectionTitle={lPayOnDelivery}
-                onlineSectionTitle={lOnline}
-                dividerLabel={lOr}
-                redirectHint={lStripeRedirect}
+                offlineSectionTitle={L.payOnDelivery}
+                onlineSectionTitle={L.onlinePrepayment}
+                dividerLabel={L.or}
+                redirectHint={L.stripeRedirectHint}
               />
             )}
 
@@ -491,7 +507,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                 onClick={() => router.push('/checkout/delivery')}
                 className="flex items-center gap-2 text-sm text-[#555] transition-opacity hover:opacity-70 focus-visible:outline-none"
               >
-                {lBackToDeliv}
+                {L.backToDelivery}
               </button>
               <div className="flex flex-col items-end gap-2">
                 {submitError && <p className="max-w-md text-right text-xs text-(--sale)">{submitError}</p>}
@@ -507,7 +523,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     />
                   )}
                   <span>
-                    {lPlaceOrder}
+                    {L.cta}
                     {mounted ? ` · ${fmt(finalTotal)}` : ''}
                   </span>
                 </button>
@@ -519,7 +535,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
           <div className="shrink-0 lg:w-80 xl:w-96">
             <div className="sticky top-32 border border-[#e5e7eb]">
               <div className="border-b border-[#e5e7eb] px-6 py-4">
-                <h2 className="text-sm font-bold tracking-[0.15em] uppercase">{lOrderSummary}</h2>
+                <h2 className="text-sm font-bold tracking-[0.15em] uppercase">{L.orderSummary}</h2>
               </div>
               <div className="space-y-3 px-6 py-5">
                 {mounted &&
@@ -566,7 +582,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                         <p className="text-xs leading-snug font-medium">{gift.name}</p>
                         <div className="mt-0.5 flex items-center gap-1.5">
                           <span className="border border-[#bbf7d0] bg-[#f0fdf4] px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-green-600 uppercase">
-                            {lFreeGift}
+                            {L.freeGift}
                           </span>
                           <span className="text-xs text-gray-400">
                             {CLL.qtyLabel} {gift.quantity}
@@ -574,7 +590,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <p className="text-xs font-semibold tracking-wide text-green-600 uppercase">{lGiftFree}</p>
+                        <p className="text-xs font-semibold tracking-wide text-green-600 uppercase">{L.giftFree}</p>
                         {gift.price > 0 && (
                           <p className="text-xs text-gray-400 line-through">{fmt(gift.price * gift.quantity)}</p>
                         )}
@@ -598,7 +614,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       {mounted && activePersonalDiscount > 0 && (
                         <div className="flex justify-between text-xs text-(--sale)">
                           <span>
-                            {user?.status ?? lLoyaltyTier} {lDiscountWord}
+                            {user?.status ?? L.loyaltyTier} {L.discountSuffix}
                           </span>
                           <span className="font-semibold">−{fmt(activePersonalDiscount)}</span>
                         </div>
@@ -606,7 +622,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                       {mounted && activeCouponDiscount > 0 && couponCode && (
                         <div className="flex justify-between text-xs text-(--sale)">
                           <span>
-                            {lPromoPrefix} ({couponCode})
+                            {L.promoPrefix} ({couponCode})
                           </span>
                           <span className="font-semibold">−{fmt(activeCouponDiscount)}</span>
                         </div>
@@ -615,7 +631,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                   )}
                   {mounted && activePreview && activePreview.bonusApplied > 0 && (
                     <div className="flex justify-between text-xs text-(--sale)">
-                      <span>{lBonusesUsed}</span>
+                      <span>{L.bonusesUsed}</span>
                       <span className="font-semibold">−{fmt(activePreview.bonusApplied)}</span>
                     </div>
                   )}
@@ -627,9 +643,9 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
                     <div className="border-t border-[#e5e7eb] pt-2">
                       <div className="flex items-center justify-between gap-2">
                         <label htmlFor="bonus-input" className="text-xs text-gray-600">
-                          {lUseBonuses}
+                          {L.useBonuses}
                           <span className="ml-1 text-gray-400">
-                            / {bonusBalance.toLocaleString()} {lBonusAvail}
+                            / {bonusBalance.toLocaleString()} {L.bonusAvailable}
                           </span>
                         </label>
                         <input
