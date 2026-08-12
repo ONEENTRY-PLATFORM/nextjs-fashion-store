@@ -41,8 +41,16 @@ function SocialBtn({
 export function LoginModal() {
   const L = useDict('sign_in_modal_', LOGIN_MODAL_LABELS);
   const schemas = useSchemas();
-  const { loginModalOpen, closeLoginModal, openRegisterModal, login, startGoogleOAuth, authError, setAuthError } =
-    useAuth();
+  const {
+    loginModalOpen,
+    closeLoginModal,
+    openRegisterModal,
+    openResetPasswordModal,
+    login,
+    startGoogleOAuth,
+    authError,
+    setAuthError,
+  } = useAuth();
   const lTitle = useT('sign_in_title', L.title);
   const lOr = useT('sign_in_or', L.dividerOr);
   const lForgot = useT('sign_in_forgot_password', L.forgotPassword);
@@ -235,10 +243,13 @@ export function LoginModal() {
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <label className="text-xs font-semibold tracking-wide text-gray-600 uppercase">{passwordLabel}</label>
+                {/* Opens OE's code-based recovery flow. It used to `alert()`
+                    that a reset link had been sent — there is no link, and
+                    nothing was sent. */}
                 <button
                   className="text-xs text-primary-women hover:underline focus-visible:outline-none"
-                  onClick={() => alert(L.forgotConfirm)}
-                  tabIndex={-1}
+                  onClick={() => openResetPasswordModal(input)}
+                  data-testid="login-forgot-password"
                   type="button"
                 >
                   {lForgot}

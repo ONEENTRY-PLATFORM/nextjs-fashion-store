@@ -1,5 +1,8 @@
+import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces';
+
 import type { ServiceCategory, ServiceRequest, ServiceStatus } from '@/app/data/serviceData';
 import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
+import { formDataValue } from '@/lib/oneentry/forms/form-data-entry';
 import { getApiSafe, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
@@ -28,14 +31,20 @@ const CATEGORY_MAP: Record<string, ServiceCategory> = {
   other: 'other',
 };
 
-type FormDataAttr = { marker: string; type: string; value: unknown };
+/**
+ * One `service_request` record.
+ *
+ * Only the envelope is declared here: `IFormByMarkerDataEntity` has no
+ * `createdDate` / `status` (OE returns both alongside the documented `time` /
+ * `statusIdentifier`), while `formData` is the SDK's own {@link FormDataType}.
+ */
 type FormDataRecord = {
   id: number;
   createdDate?: string;
   time?: string;
   statusIdentifier?: string;
   status?: string;
-  formData?: FormDataAttr[];
+  formData?: FormDataType[];
 };
 
 const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
@@ -71,14 +80,10 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
       30,
     );
     if (isError(result)) return [];
-    // SDK typing uses `IFormByMarkerDataEntity` with a stricter formData
-    // shape than what OE actually returns for a mixed form (list/date/text
-    // fields). Narrow to the local `FormDataRecord` we already parse.
     const items = (result.items ?? []) as unknown as FormDataRecord[];
 
     return items.map((r): ServiceRequest => {
-      const fd = Array.isArray(r.formData) ? r.formData : [];
-      const get = (m: string): unknown => fd.find((f) => f.marker === m)?.value;
+      const get = (m: string): unknown => formDataValue(r.formData, m);
       const item = String(get('item') ?? '');
       const categoryArr = get('category');
       const categoryRaw = Array.isArray(categoryArr) ? String(categoryArr[0] ?? '') : String(categoryArr ?? '');

@@ -20,6 +20,9 @@ const LoginModal = dynamic(() => import('@/app/components/auth/LoginModal').then
 const RegisterModal = dynamic(() =>
   import('@/app/components/auth/RegisterModal').then((m) => ({ default: m.RegisterModal })),
 );
+const ResetPasswordModal = dynamic(() =>
+  import('@/app/components/auth/ResetPasswordModal').then((m) => ({ default: m.ResetPasswordModal })),
+);
 const QuickViewModal = dynamic(() =>
   import('@/app/components/product/QuickViewModal').then((m) => ({ default: m.QuickViewModal })),
 );
@@ -132,6 +135,20 @@ export function Header() {
     setMobileGender(urlGender);
   }
 
+  // Any completed navigation takes every open menu down with it. The mega
+  // dropdown only ever closed on `mouseleave`, so a click that routed while
+  // the pointer sat on the tab left the panel covering the page underneath;
+  // the mobile drawer had the same gap on routes reached without a tap on one
+  // of its own links. Same render-time adjustment as the gender reset above.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setActiveDropdown(null);
+    setMobileOpen(false);
+    setMobileExpandedCat(null);
+    setSearchOpen(false);
+  }
+
   const { totalItems, openMiniCart } = useCart();
   const { isLoggedIn, openLoginModal } = useAuth();
   const { count: wishlistCount } = useWishlist();
@@ -237,6 +254,7 @@ export function Header() {
                   {(['women', 'men'] as Gender[]).map((g) => (
                     <button
                       key={g}
+                      data-testid={`gender-tab-${g}`}
                       onClick={() => {
                         setActiveGender(g);
                         // Stay on /new or /sale when the shopper swaps
@@ -359,6 +377,7 @@ export function Header() {
         <MiniCart />
         <LoginModal />
         <RegisterModal />
+        <ResetPasswordModal />
         <QuickViewModal />
       </header>
     </>

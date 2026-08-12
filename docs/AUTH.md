@@ -131,13 +131,25 @@ Currently stubbed. `AuthContext.login(_, 'social')` treats the sentinel password
 
 ### 4.4 Forgot password
 
-The "Forgot password?" link inside `LoginModal` currently fires `alert(L.forgotConfirm)` — a placeholder that tells the user to contact support. There is **no `requestPasswordResetAction`** yet. Wiring the real flow would need:
+OneEntry has **no reset link**: there is no tokenised URL to mail out and no endpoint that would consume one, so there is no `/reset-password/[token]` route to build. Recovery is a one-time **code**, and the flow is three calls on the shopper's auth provider — all in the browser, for the same fingerprint reason as sign-in:
 
-1. A new Server Action calling `getApi().AuthProvider.reset('email', {email})` (or the tenant-specific reset endpoint).
-2. A follow-up `resetPasswordAction(token, newPassword)` triggered by the email link.
-3. A `/reset-password/[token]` route to receive the deep link.
+| Step | Call | Notes |
+| --- | --- | --- |
+| 1. Request | `AuthProvider.generateCode(marker, email, 'send_code')` | OE mints a code and delivers it to the account's notification channel. A second request while the first code lives answers `User already has a code`. |
+| 2. Verify | `AuthProvider.checkCode(marker, email, 'send_code', code)` | A wrong code is **`201 false`**, not an error object. Verification does not spend the code. |
+| 3. Change | `AuthProvider.changePassword(marker, email, 'send_code', 2, code, pw, pw)` | `type: 2` is recovery; `1` would be an authenticated change. |
 
-None of the above is implemented today.
+`send_code` is OE's built-in service-code event — not a CMS marker. The provider marker is resolved by `type === 'email'`, never hardcoded, so renaming the provider in the panel does not break recovery.
+
+Implementation:
+
+- `src/lib/oneentry/auth/password-reset.ts` — the three actions plus `getPasswordResetPolicy()`, which reads `config.systemCodeLength` / `config.systemCodeTlsSec` off the provider. The code input sizes itself from the first and the resend countdown from the second, so neither is guessed.
+- `src/app/components/auth/ResetPasswordModal.tsx` — the three steps, opened from `LoginModal`'s "Forgot password?" via `openResetPasswordModal(email)` on `AuthContext`. On success it signs the shopper straight in with the new password.
+- Copy: `sign_in_reset_*` in the CMS `sign_in` set (`PASSWORD_RESET_LABELS` are the offline fallbacks). Placeholders are `%email%` / `%seconds%` — a `{` in an attribute value breaks OE's public read of the whole set.
+
+Notes for the tenant side: the flow works with `isCheckCode: false` (no account-activation feature needed — verified against this tenant, where `generate-code` answers `201`). What the panel *does* control is delivery: the mail an editor attaches to the `send_code` event is what actually carries the code to the shopper.
+
+OE's own answers are surfaced verbatim, including `User not found`. Account existence is therefore not hidden here — the same as the sign-in form, which already tells a visitor when credentials are wrong. Hiding it would mean stranding a genuine shopper on a code screen that can never accept anything.
 
 ---
 

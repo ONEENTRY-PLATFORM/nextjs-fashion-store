@@ -64,12 +64,13 @@ function makeForm(overrides: {
   };
 }
 
-// Full happy-path list items, in the order the admin panel arranges them:
-// home, store, locker — which is the order the picker's cards follow.
+// Full happy-path list items. Each option's `value` is the order-storage marker
+// of the method it belongs to, which is how a card finds its option —
+// deliberately listed out of card order here so a positional match would fail.
 const FULL_LIST = [
-  { value: 'courier', title: 'OE Home Title', extended: { value: 'OE home subtitle' } },
-  { value: 'pickup', title: 'OE Store Title', extended: { value: 'OE store subtitle' } },
   { value: 'locker', title: 'OE Locker Title', extended: { value: 'OE locker subtitle' } },
+  { value: 'home', title: 'OE Home Title', extended: { value: 'OE home subtitle' } },
+  { value: 'store_pickup', title: 'OE Store Title', extended: { value: 'OE store subtitle' } },
 ];
 
 const FULL_ADDL = {
@@ -96,7 +97,7 @@ describe('loadDeliveryMethodInfo — happy path', () => {
     expect(info.home).toEqual({
       title: 'OE Home Title',
       subtitle: 'OE home subtitle',
-      value: 'courier',
+      value: 'home',
       // Perks are grouped by marker prefix and ordered by marker, so
       // `home_free_delivery` < `home_in-home-fitting` < `home_partial_purchase`.
       perks: ['Free delivery', 'In-home fitting', 'Partial purchase'],
@@ -104,7 +105,7 @@ describe('loadDeliveryMethodInfo — happy path', () => {
     expect(info.store).toEqual({
       title: 'OE Store Title',
       subtitle: 'OE store subtitle',
-      value: 'pickup',
+      value: 'store_pickup',
       perks: ['Fitting room OE', 'Free pickup', 'Partial purchase OE'],
     });
     expect(info.locker).toEqual({
@@ -150,22 +151,35 @@ describe('loadDeliveryMethodInfo — missing delivery_method attribute', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('loadDeliveryMethodInfo — missing listTitles entry for one method', () => {
   it('falls back to local title/subtitle for the missing method only; others use OE data', async () => {
-    // The admin listed only two options, so the locker card has none.
-    const partialList = FULL_LIST.slice(0, 2);
+    // The admin removed the locker option; the other two are still authored.
+    const partialList = FULL_LIST.filter((o) => o.value !== 'locker');
     getFormByMarker.mockResolvedValue(makeForm({ listTitles: partialList, additionalFields: FULL_ADDL }));
     const { loadDeliveryMethodInfo } = await importFresh();
     const info = await loadDeliveryMethodInfo();
 
-    // The first two cards should be from OE
+    // The two authored methods should be from OE
     expect(info.home.title).toBe('OE Home Title');
     expect(info.store.title).toBe('OE Store Title');
 
-    // no third option → local fallback title/subtitle/value
+    // no locker option → local fallback title/subtitle/value
     expect(info.locker.title).toBe(DELIVERY_METHOD_LOCKER_LABELS.title);
     expect(info.locker.subtitle).toBe(DELIVERY_METHOD_LOCKER_LABELS.subtitle);
     expect(info.locker.value).toBe('locker');
     // pinHint still comes from additionalFields (locaer_text is present)
     expect(info.locker.pinHint).toBe('PIN hint from OE');
+  });
+
+  it('matches cards to options by storage marker, not by admin order', async () => {
+    // Same three options, reversed. A positional match would hand the home card
+    // the locker option; matching on `value` keeps every card on its own.
+    getFormByMarker.mockResolvedValue(makeForm({ listTitles: [...FULL_LIST].reverse(), additionalFields: FULL_ADDL }));
+    const { loadDeliveryMethodInfo } = await importFresh();
+    const info = await loadDeliveryMethodInfo();
+
+    expect(info.home.value).toBe('home');
+    expect(info.store.value).toBe('store_pickup');
+    expect(info.locker.value).toBe('locker');
+    expect(info.home.title).toBe('OE Home Title');
   });
 });
 
@@ -229,22 +243,44 @@ describe('loadDeliveryMethodInfo — SDK throws', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 describe('loadParcelLockers', () => {
-  it('reads the locker options off whichever attribute carries them', async () => {
-    getFormByMarker.mockResolvedValue(
-      makeForm({
+  /** An `entity` attribute's list: the section row first, then the pages. */
+  const LOCKER_ENTITY_FORM = {
+    attributes: [
+      {
         marker: 'checkout_locker_pickup_point',
+        type: 'entity',
+        position: 1,
+        isVisible: true,
+        localizeInfos: { title: 'Pickup Point' },
         listTitles: [
-          { value: '1', title: 'Paddington Station' },
-          { value: '2', title: "King's Cross" },
+          { title: 'Parcel Lockers', value: { id: 560, depth: 0, parentId: null }, position: 0 },
+          { title: 'Paddington Station', value: { id: 561, depth: 1, parentId: 560 }, position: 1 },
+          { title: "King's Cross", value: { id: 563, depth: 1, parentId: 560 }, position: 2 },
         ],
-      }),
-    );
+        validators: {},
+        additionalFields: {},
+      },
+    ],
+  };
+
+  it('returns each locker with the OE page id the order will reference', async () => {
+    getFormByMarker.mockResolvedValue(LOCKER_ENTITY_FORM);
     const { loadParcelLockers } = await importFresh();
 
-    expect(await loadParcelLockers()).toEqual(['Paddington Station', "King's Cross"]);
+    expect(await loadParcelLockers()).toEqual([
+      { oeId: 561, name: 'Paddington Station' },
+      { oeId: 563, name: "King's Cross" },
+    ]);
   });
 
-  it('returns an empty list when the tenant authored no options', async () => {
+  it('drops the containing section, which is a heading and not a pick-up point', async () => {
+    getFormByMarker.mockResolvedValue(LOCKER_ENTITY_FORM);
+    const { loadParcelLockers } = await importFresh();
+
+    expect((await loadParcelLockers()).map((l) => l.oeId)).not.toContain(560);
+  });
+
+  it('returns an empty list when the tenant selected no pages', async () => {
     getFormByMarker.mockResolvedValue(makeForm({ listTitles: [] }));
     const { loadParcelLockers } = await importFresh();
 

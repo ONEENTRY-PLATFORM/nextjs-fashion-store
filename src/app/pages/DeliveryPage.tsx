@@ -16,7 +16,13 @@ const DeliveryOrderSummary = dynamic(
 );
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
-import { DELIVERY_TIME_SLOTS, PARCEL_LOCKERS, PICKUP_STORES, type PickupStore } from '@/app/data/checkoutConfig';
+import {
+  DELIVERY_TIME_SLOTS,
+  PARCEL_LOCKERS,
+  type ParcelLocker,
+  PICKUP_STORES,
+  type PickupStore,
+} from '@/app/data/checkoutConfig';
 import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_PAGE_LABELS } from '@/app/data/checkoutLabels';
 import { useMounted } from '@/app/hooks/useMounted';
 import { useSchemas } from '@/app/utils/useFormMessages';
@@ -64,11 +70,12 @@ interface DeliveryPageProps {
    */
   pickupStores?: PickupStore[];
   /**
-   * Parcel-locker names loaded from OE by the server layer. Empty (or
-   *  omitted, e.g. Storybook / bare unit tests) keeps the local
-   *  `PARCEL_LOCKERS` fallback so the picker still renders.
+   * Parcel lockers loaded from OE by the server layer, each carrying the page
+   *  id the order references. Empty (or omitted, e.g. Storybook / bare unit
+   *  tests) keeps the local `PARCEL_LOCKERS` fallback so the picker still
+   *  renders.
    */
-  parcelLockers?: string[];
+  parcelLockers?: ParcelLocker[];
   /**
    * ISO-serialised date strip for the authed variant — built server-side
    *  from `checkout_home_delivery`'s schedule config. When omitted —
@@ -111,7 +118,7 @@ export function DeliveryPage({
   // Fall back to the literal list if the server layer didn't hand any down —
   // keeps Storybook and unit tests that render <DeliveryPage /> bare working.
   const stores: PickupStore[] = pickupStores && pickupStores.length > 0 ? pickupStores : PICKUP_STORES;
-  const lockers: string[] = parcelLockers && parcelLockers.length > 0 ? parcelLockers : PARCEL_LOCKERS;
+  const lockers: ParcelLocker[] = parcelLockers && parcelLockers.length > 0 ? parcelLockers : PARCEL_LOCKERS;
   const {
     items,
     total,
@@ -353,7 +360,10 @@ export function DeliveryPage({
       // hardcoded PICKUP_STORES fallback fired) — OE will reject it, which is
       // the correct outcome because there's no matching store in the tenant.
       storeId: method === 'store' ? (selectedStore.oeId ?? selectedStore.id) : null,
-      lockerId: method === 'locker' ? lockers.indexOf(selectedLocker) : null,
+      // The locker's OE page id. It used to be this list's index, which made
+      // the array order part of the wire contract — reordering the lockers in
+      // the admin panel silently re-pointed the order at a different one.
+      lockerId: method === 'locker' ? selectedLocker.oeId : null,
       deliveryDate: selectedDate.toISOString(),
       deliverySlot: selectedSlot,
       // The `delivery_method` option value as authored in OE. Resolved here,

@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 
 import { NEWSLETTER_FORM_LABELS } from '@/app/data/commonLabels';
-import { useFormLabel, useFormMessage, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder,useFormLabel, useFormMessage } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 

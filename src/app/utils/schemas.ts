@@ -38,6 +38,12 @@ export interface CheckoutBounds {
     fullName?: FieldBounds;
     phone?: FieldBounds;
   };
+  /**
+   * Exact length of the one-time recovery code, as configured on the OE auth
+   * provider (`config.systemCodeLength`). `null`/absent when the admin panel
+   * leaves it unset — the code field then only requires a non-empty value.
+   */
+  resetCodeLength?: number | null;
 }
 
 /**
@@ -136,6 +142,41 @@ export function createSchemas(M: FormMessages, B: CheckoutBounds = {}) {
       path: ['confirmPassword'],
     });
 
+  // ─── Password recovery (one-time code from OE) ──────────────────────────────
+
+  const resetRequestSchema = z.object({
+    email: emailSchema,
+  });
+
+  /**
+   * The code's length is provider config in OE (`systemCodeLength`), so it is
+   * passed in rather than baked in — `B.resetCodeLength` is `null` when the
+   * admin panel leaves it unset, and then any non-empty code is accepted and
+   * OE has the final say.
+   */
+  const resetCodeSchema = z.object({
+    code: z
+      .string()
+      .trim()
+      .min(1, M.resetCodeRequired)
+      .superRefine((val, ctx) => {
+        const expected = B.resetCodeLength;
+        if (expected != null && val.length !== expected) {
+          ctx.addIssue({ code: 'custom', message: M.resetCodeTooShort.replace('%length%', String(expected)) });
+        }
+      }),
+  });
+
+  const resetPasswordSchema = z
+    .object({
+      password: passwordSchema,
+      confirmPassword: z.string().min(1, M.passwordConfirm),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: M.passwordsMismatch,
+      path: ['confirmPassword'],
+    });
+
   // ─── Address (Delivery page) ────────────────────────────────────────────────
 
   const addressSchema = z.object({
@@ -200,6 +241,9 @@ export function createSchemas(M: FormMessages, B: CheckoutBounds = {}) {
   return {
     loginSchema,
     registerSchema,
+    resetRequestSchema,
+    resetCodeSchema,
+    resetPasswordSchema,
     addressSchema,
     guestContactSchema,
     paymentSchema,
@@ -235,6 +279,9 @@ const shipped = createSchemas(VALIDATION_MESSAGES);
 
 export const loginSchema = shipped.loginSchema;
 export const registerSchema = shipped.registerSchema;
+export const resetRequestSchema = shipped.resetRequestSchema;
+export const resetCodeSchema = shipped.resetCodeSchema;
+export const resetPasswordSchema = shipped.resetPasswordSchema;
 export const addressSchema = shipped.addressSchema;
 export const guestContactSchema = shipped.guestContactSchema;
 export const paymentSchema = shipped.paymentSchema;
@@ -243,6 +290,9 @@ export const promoSchema = shipped.promoSchema;
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+export type ResetRequestFormData = z.infer<typeof resetRequestSchema>;
+export type ResetCodeFormData = z.infer<typeof resetCodeSchema>;
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type AddressFormData = z.infer<typeof addressSchema>;
 export type GuestContactFormData = z.infer<typeof guestContactSchema>;
 export type PaymentFormData = z.infer<typeof paymentSchema>;

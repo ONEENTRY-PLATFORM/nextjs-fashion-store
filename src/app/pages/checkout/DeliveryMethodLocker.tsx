@@ -2,7 +2,7 @@
 import { ChevronDown, Package } from 'lucide-react';
 
 import { RadioCard } from '@/app/components/ui/RadioCard';
-import { PARCEL_LOCKERS } from '@/app/data/checkoutConfig';
+import { PARCEL_LOCKERS, type ParcelLocker } from '@/app/data/checkoutConfig';
 import {
   DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK,
   DELIVERY_METHOD_SHARED_LABELS as SH,
@@ -15,15 +15,15 @@ import { type GuestContactFormState } from './GuestContactForm';
 interface DeliveryMethodLockerProps {
   checked: boolean;
   onChange: () => void;
-  selectedLocker: string;
-  setSelectedLocker: (l: string) => void;
+  selectedLocker: ParcelLocker;
+  setSelectedLocker: (l: ParcelLocker) => void;
   lockerDropOpen: boolean;
   setLockerDropOpen: (fn: (o: boolean) => boolean) => void;
   /**
-   * Locker names from OE; omitted (Storybook / bare tests) falls back to the
-   *  local `PARCEL_LOCKERS` list.
+   * Lockers from OE, each with the page id the order references; omitted
+   *  (Storybook / bare tests) falls back to the local `PARCEL_LOCKERS` list.
    */
-  lockers?: string[];
+  lockers?: ParcelLocker[];
   isLoggedIn: boolean;
   guestContact: GuestContactFormState;
   setGuestContact: (next: GuestContactFormState) => void;
@@ -69,11 +69,12 @@ export function DeliveryMethodLocker({
         <div className="relative">
           <button
             onClick={() => setLockerDropOpen((o) => !o)}
+            data-testid="locker-picker-toggle"
             className="flex w-full items-center justify-between rounded-none border border-[#d1d5db] px-4 py-3 text-left text-sm focus-visible:outline-none"
             aria-expanded={lockerDropOpen}
             aria-haspopup="listbox"
           >
-            <span className="truncate pr-2">{selectedLocker}</span>
+            <span className="truncate pr-2">{selectedLocker.name}</span>
             <ChevronDown
               size={14}
               className={`shrink-0 transition-transform duration-200 ${lockerDropOpen ? 'rotate-180' : 'rotate-0'}`}
@@ -83,16 +84,20 @@ export function DeliveryMethodLocker({
             <div className="absolute inset-x-0 top-full z-20 border border-t-0 border-[#d1d5db] bg-white">
               {lockerList.map((l) => (
                 <button
-                  key={l}
+                  key={l.oeId ?? l.name}
+                  data-testid="locker-option"
+                  // The OE page id the order's `entity` field will carry. The
+                  // name beside it is CMS copy and changes per locale.
+                  data-locker-id={l.oeId ?? ''}
                   onClick={() => {
                     setSelectedLocker(l);
                     setLockerDropOpen(() => false);
                   }}
                   className={`w-full border-b border-[#f0f0f0] px-4 py-3 text-left text-sm transition-colors hover:bg-gray-50 focus-visible:outline-none ${
-                    selectedLocker === l ? 'font-semibold' : 'font-normal'
+                    selectedLocker.name === l.name ? 'font-semibold' : 'font-normal'
                   }`}
                 >
-                  {l}
+                  {l.name}
                 </button>
               ))}
             </div>

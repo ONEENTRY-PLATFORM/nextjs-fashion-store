@@ -30,6 +30,12 @@ export const VALIDATION_MESSAGES = {
   loginInputInvalid: 'Enter a valid email, phone number, or account identifier',
   // Register
   acceptTerms: 'You must accept the terms',
+  // Password recovery — the one-time code OE mails out
+  resetCodeRequired: 'Enter the code from the email',
+  // `%length%`, not `{length}` — a brace in an attribute value makes OE's public
+  // read of the whole `form_messages` set fail, so this key could never be
+  // authored in the admin panel with the older `{…}` convention.
+  resetCodeTooShort: 'The code is %length% characters long',
   // Address
   address1Required: 'Address line 1 is required',
   cityRequired: 'City is required',

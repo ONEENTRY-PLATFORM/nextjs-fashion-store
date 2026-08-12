@@ -14,7 +14,16 @@
  * server (the Google `client_secret` exchange, ISR revalidation) live in
  * `./oauth-actions.ts` and `./revalidate-action.ts`.
  */
+import type { IAuthFormData } from 'oneentry/dist/auth-provider/authProvidersInterfaces';
+import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces';
+import type { IOrderProductData, IOrdersFormData } from 'oneentry/dist/orders/ordersInterfaces';
+
 import { getProductPreviewsAction } from '@/lib/oneentry/catalog/product-previews-action';
+import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
+import { fieldByRole, type FieldRole, markerForRole, soleFieldOfType } from '@/lib/oneentry/forms/field-lookup';
+import type { FormContent } from '@/lib/oneentry/forms/form-content';
+import { formDataValue, hasMarker } from '@/lib/oneentry/forms/form-data-entry';
+import { loadFormContentForLang } from '@/lib/oneentry/forms/load-form';
 import {
   clearTokens,
   getApiSafe,
@@ -27,12 +36,22 @@ import {
 } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { se } from '@/lib/oneentry/server-errors';
+import type { Lang } from '@/lib/oneentry/system-text';
 
 import { readRefreshToken, readUserIdentifier, writeUserIdentifier } from './browser-session';
 import { pickImage, type RawPicture } from './pick-image';
 import { revalidateAfterOrderAction } from './revalidate-action';
 
 const SIGNUP_FORM_IDENTIFIER = 'signin';
+
+/**
+ * One field of the sign-in form, as sent to `signUp` / `PUT /me`.
+ *
+ * ⚠️ `IAuthFormData` types `value` as `string`, but OE requires an array on
+ * `list` attributes (gender) and rejects a bare string there. Only that member
+ * is widened — the marker/type pair stays the SDK's.
+ */
+type SignInFormData = Omit<IAuthFormData, 'value'> & { value: string | string[] };
 
 /** Auth-provider marker for the e-mail/password flow on this tenant. */
 const AUTH_MARKER = 'email';
@@ -257,7 +276,7 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
     currency?: string;
     createdDate?: string;
     products?: RawProduct[];
-    formData?: Array<{ marker?: string; value?: unknown }>;
+    formData?: IOrdersFormData[];
   };
   const all: OeOrder[] = [];
   await Promise.all(
@@ -459,8 +478,7 @@ async function fetchMe(): Promise<OeUser | null> {
   type RawMe = {
     id?: number;
     identifier?: string;
-    formData?:
-      Array<{ marker?: string; value?: unknown }> | Record<string, Array<{ marker?: string; value?: unknown }>>;
+    formData?: FormDataType[] | Record<string, FormDataType[]>;
     state?: OeUserState;
   };
   type RawCart = { items?: OeCartItem[]; total?: number };
@@ -492,7 +510,9 @@ async function fetchMe(): Promise<OeUser | null> {
   const arr = Array.isArray(data.formData) ? data.formData : (data.formData?.en_US ?? []);
   const formDataMap: Record<string, unknown> = {};
   for (const item of arr) {
-    if (item?.marker) formDataMap[item.marker] = item.value;
+    // `FormDataType`'s catch-all member is a bare `Record<string, unknown>`, so
+    // the marker has to be proven present before it can key the map.
+    if (hasMarker(item)) formDataMap[item.marker] = item.value;
   }
   const asString = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
   const asGender = (v: unknown): string | undefined => {
@@ -679,35 +699,58 @@ async function formDataDelete(id: number): Promise<boolean> {
   }
 }
 
-type FormDataField = { marker?: string; type?: string; value?: unknown };
 interface RawFormRecord {
   id: number;
   formIdentifier?: string;
   time?: string;
   /** OE returns either a flat array or `{ en_US: [...] }` depending on endpoint. */
-  formData?: FormDataField[] | Record<string, FormDataField[]>;
+  formData?: FormDataType[] | Record<string, FormDataType[]>;
 }
 
-const formDataArray = (rec: RawFormRecord, lang: string = DEFAULT_LOCALE): FormDataField[] => {
+const formDataArray = (rec: RawFormRecord, lang: string = DEFAULT_LOCALE): FormDataType[] => {
   const fd = rec.formData;
   if (Array.isArray(fd)) return fd;
   if (fd && typeof fd === 'object') return fd[lang] ?? [];
   return [];
 };
 
-const fieldValue = (rec: RawFormRecord, marker: string): string => {
-  const f = formDataArray(rec).find((x) => x.marker === marker);
-  return typeof f?.value === 'string' ? f.value : '';
+const fieldValue = (rec: RawFormRecord, marker: string | undefined): string => {
+  if (!marker) return '';
+  const v = formDataValue(formDataArray(rec), marker);
+  return typeof v === 'string' ? v : '';
 };
 
-function recordToAddress(rec: RawFormRecord): OeAddress {
-  const name = fieldValue(rec, 'user_addresses_lable') || 'Address';
-  const fullName = fieldValue(rec, 'user_addresses_recipient_name');
-  const phone = fieldValue(rec, 'user_addresses_recipient_phone');
-  const line1 = fieldValue(rec, 'user_addresses_line_1');
-  const city = fieldValue(rec, 'user_addresses_city');
-  const postcode = fieldValue(rec, 'user_addresses_post_code');
-  const instructions = fieldValue(rec, 'user_addresses_special_instructions');
+/**
+ * Load the saved-address form, for its field markers.
+ *
+ * `DEFAULT_LOCALE` is passed explicitly: address records are written to the
+ * canonical locale slot (see the note on `createOrder` below), and root params
+ * are unreadable from a Server Action anyway.
+ */
+async function savedAddressForm(): Promise<FormContent> {
+  return loadFormContentForLang(SAVED_ADDRESS_FORM, DEFAULT_LOCALE as Lang);
+}
+
+/**
+ * Decode one saved-address record.
+ *
+ * Which stored field is the city is asked of the form — every address attribute
+ * carries a `field_role` — so renaming a marker in the admin panel does not
+ * quietly blank the shopper's address book.
+ *
+ * @param rec  - Raw form-data record from OE.
+ * @param form - The loaded `user_addresses` form.
+ * @returns The address in the shape the account screens use.
+ */
+function recordToAddress(rec: RawFormRecord, form: FormContent): OeAddress {
+  const read = (role: FieldRole) => fieldValue(rec, markerForRole(form, role));
+  const name = read('label') || 'Address';
+  const fullName = read('fullName');
+  const phone = read('phone');
+  const line1 = read('line1');
+  const city = read('city');
+  const postcode = read('postcode');
+  const instructions = read('instructions');
   return {
     id: String(rec.id),
     recordId: rec.id,
@@ -722,22 +765,39 @@ function recordToAddress(rec: RawFormRecord): OeAddress {
   };
 }
 
-function addressToFormData(address: OeAddress): Array<{ marker: string; type: string; value: string | number }> {
-  return [
-    { marker: 'user_addresses_id', type: 'integer', value: address.recordId ?? Date.now() },
-    { marker: 'user_addresses_lable', type: 'string', value: address.name },
-    { marker: 'user_addresses_recipient_name', type: 'string', value: address.fullName },
-    { marker: 'user_addresses_recipient_phone', type: 'string', value: address.phone },
-    { marker: 'user_addresses_line_1', type: 'string', value: address.line1 },
-    { marker: 'user_addresses_city', type: 'string', value: address.city },
-    { marker: 'user_addresses_post_code', type: 'string', value: address.postcode },
-    { marker: 'user_addresses_special_instructions', type: 'string', value: address.instructions ?? '' },
-  ];
+/**
+ * Encode an address back into OE form data.
+ *
+ * @param address - Address to write.
+ * @param form    - The loaded `user_addresses` form, which supplies the markers.
+ * @returns Form-data entries; roles the form does not carry are omitted.
+ */
+function addressToFormData(address: OeAddress, form: FormContent): FormDataType[] {
+  const out: FormDataType[] = [];
+  // The record id is the form's only `integer` attribute — a bookkeeping field
+  // with no shopper-facing role to tag.
+  const idField = soleFieldOfType(form, 'integer');
+  if (idField) out.push({ marker: idField.marker, type: idField.type, value: address.recordId ?? Date.now() });
+  const write = (role: FieldRole, value: string) => {
+    const field = fieldByRole(form, role);
+    if (field) out.push({ marker: field.marker, type: field.type, value });
+  };
+  write('label', address.name);
+  write('fullName', address.fullName);
+  write('phone', address.phone);
+  write('line1', address.line1);
+  write('city', address.city);
+  write('postcode', address.postcode);
+  write('instructions', address.instructions ?? '');
+  return out;
 }
 
 async function fetchUserAddresses(): Promise<OeAddress[]> {
-  const result = await formDataGetByMarker('user_addresses', USER_ADDRESSES_MODULE_CONFIG_ID, {}, 100);
-  return (result?.items ?? []).map(recordToAddress);
+  const [result, form] = await Promise.all([
+    formDataGetByMarker(SAVED_ADDRESS_FORM, USER_ADDRESSES_MODULE_CONFIG_ID, {}, 100),
+    savedAddressForm(),
+  ]);
+  return (result?.items ?? []).map((rec) => recordToAddress(rec, form));
 }
 
 async function postUserAddress(
@@ -746,12 +806,12 @@ async function postUserAddress(
 ): Promise<{ ok: true; record: RawFormRecord } | { ok: false; message: string }> {
   type PostResponse = RawFormRecord & { formData?: RawFormRecord; actionMessage?: string };
   const res = await formDataPost<PostResponse>({
-    formIdentifier: 'user_addresses',
+    formIdentifier: SAVED_ADDRESS_FORM,
     formModuleConfigId: USER_ADDRESSES_MODULE_CONFIG_ID,
     moduleEntityIdentifier: userIdentifier,
     replayTo: null,
     status: 'sent',
-    formData: { en_US: addressToFormData(address) },
+    formData: { en_US: addressToFormData(address, await savedAddressForm()) },
   });
   if (!res.ok) return { ok: false, message: res.message };
   // POST may respond either as a flat record `{id, formData[], ...}` or wrapped
@@ -767,7 +827,7 @@ async function postUserAddress(
 async function putUserAddress(recordId: number, address: OeAddress): Promise<boolean> {
   const result = await formDataPut<unknown>(recordId, {
     langCode: DEFAULT_LOCALE,
-    formData: addressToFormData(address),
+    formData: addressToFormData(address, await savedAddressForm()),
   });
   return result !== null;
 }
@@ -804,8 +864,8 @@ async function fetchUserDataRecord(): Promise<{ recordId: number | null; extras:
   };
 }
 
-function userDataToFormData(extras: UserDataExtras): Array<{ marker: string; type: string; value: string | number }> {
-  const out: Array<{ marker: string; type: string; value: string | number }> = [];
+function userDataToFormData(extras: UserDataExtras): FormDataType[] {
+  const out: FormDataType[] = [];
   if (extras.lastName !== undefined) out.push({ marker: 'user_last_name', type: 'string', value: extras.lastName });
   if (extras.dob !== undefined) out.push({ marker: 'user_birthday', type: 'date', value: extras.dob });
   if (extras.shoeSize !== undefined && extras.shoeSize !== '') {
@@ -903,7 +963,7 @@ async function fetchSubsRecord(): Promise<{ recordId: number | null; extras: Sub
   };
 }
 
-function subsToFormData(extras: SubsExtras): Array<{ marker: string; type: string; value: string }> {
+function subsToFormData(extras: SubsExtras): FormDataType[] {
   const bool = (
     k:
       | 'emailNewsletter'
@@ -998,6 +1058,17 @@ export interface AuthProviderInfo {
   formIdentifier?: string;
   /** Whether OE requires post-signup activation via `activateUser()`. */
   isCheckCode: boolean;
+  /**
+   * Length of the one-time code OE mints for this provider
+   *  (`config.systemCodeLength`). The password-recovery screen sizes its
+   *  input from this instead of guessing — the admin panel can change it.
+   */
+  codeLength: number | null;
+  /**
+   * Seconds a minted code stays valid (`config.systemCodeTlsSec` — OE's own
+   *  spelling of "TTL sec"). Drives the countdown on the recovery screen.
+   */
+  codeTtlSec: number | null;
 }
 
 interface RawAuthProvider {
@@ -1005,7 +1076,23 @@ interface RawAuthProvider {
   type?: string;
   formIdentifier?: string;
   isCheckCode?: boolean;
+  /**
+   * The SDK types both counters as `string`; the live API answers with
+   *  numbers. Accept either and coerce at the edge.
+   */
+  config?: { systemCodeLength?: number | string | null; systemCodeTlsSec?: number | string | null };
   localizeInfos?: Record<string, { title?: string } | undefined> | { title?: string };
+}
+
+/**
+ * Coerce one of OE's numeric-ish config counters to a usable number.
+ *
+ * @param raw - Value as it arrived (number, numeric string, null, absent).
+ * @returns     The number when it is finite and positive, else `null`.
+ */
+function positiveNumber(raw: number | string | null | undefined): number | null {
+  const n = typeof raw === 'string' ? Number(raw) : raw;
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : null;
 }
 
 /**
@@ -1043,6 +1130,8 @@ export async function getAuthProvidersAction(): Promise<AuthProviderInfo[]> {
           title,
           formIdentifier: typeof p.formIdentifier === 'string' ? p.formIdentifier : undefined,
           isCheckCode: p.isCheckCode === true,
+          codeLength: positiveNumber(p.config?.systemCodeLength),
+          codeTtlSec: positiveNumber(p.config?.systemCodeTlsSec),
         };
       });
   } catch {
@@ -1116,7 +1205,7 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
   //   string      → string
   //   list        → string[] (the option marker)
   //   radioButton → string (must match a configured listTitles value, e.g. "true")
-  const formData: Array<{ marker: string; type: string; value: string | string[] }> = [
+  const formData: SignInFormData[] = [
     { marker: 'first_name', type: 'string', value: input.firstName.trim() },
     { marker: 'phone', type: 'string', value: input.phone.trim() },
   ];
@@ -1424,7 +1513,7 @@ export async function updateProfileAction(patch: ProfileUpdate): Promise<{ ok: b
   const userIdentifier = readUserIdentifier();
 
   // 1) Fields living in the sign-in form (PUT /me)
-  const formData: Array<{ marker: string; type: string; value: string | string[] }> = [];
+  const formData: SignInFormData[] = [];
   if (patch.firstName !== undefined) formData.push({ marker: 'first_name', type: 'string', value: patch.firstName });
   if (patch.phone !== undefined) formData.push({ marker: 'phone', type: 'string', value: patch.phone });
   if (patch.gender !== undefined) formData.push({ marker: 'gender', type: 'list', value: [patch.gender] });
@@ -2107,8 +2196,8 @@ export interface CreateOrderInput {
    *  gets a hosted paymentUrl to redirect to.
    */
   paymentAccountType?: 'stripe' | 'custom';
-  products: Array<{ productId: number; quantity: number }>;
-  formData?: Array<{ marker: string; type: string; value: unknown }>;
+  products: IOrderProductData[];
+  formData?: IOrdersFormData[];
   currency?: string;
   /**
    * Coupon code to apply. OE validates it server-side and folds the

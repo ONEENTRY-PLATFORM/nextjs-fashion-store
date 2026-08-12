@@ -1,15 +1,15 @@
 import { unstable_cache } from 'next/cache';
 
-import { DELIVERY_PERKS, PICKUP_PERKS } from '@/app/data/checkoutConfig';
+import { DELIVERY_PERKS, type ParcelLocker, PICKUP_PERKS } from '@/app/data/checkoutConfig';
 import {
   DELIVERY_METHOD_HOME_LABELS,
   DELIVERY_METHOD_LOCKER_LABELS,
   DELIVERY_METHOD_STORE_LABELS,
 } from '@/app/data/checkoutLabels';
 import { REVALIDATE_STORES } from '@/lib/isr';
-import { CHECKOUT_ORDER_FORMS } from '@/lib/oneentry/checkout/forms';
+import { CHECKOUT_ORDER_FORMS, type CheckoutMethod } from '@/lib/oneentry/checkout/forms';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
-import { fieldsOfType, soleFieldOfType } from '@/lib/oneentry/forms/field-lookup';
+import { selectableEntityOptions, soleFieldOfType } from '@/lib/oneentry/forms/field-lookup';
 import type { FormFieldOption } from '@/lib/oneentry/forms/form-content';
 import { loadFormContent } from '@/lib/oneentry/forms/placeholders';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -46,21 +46,22 @@ export interface DeliveryMethodInfo {
  * Fallback copy — used verbatim when OE is unavailable or the form was edited
  *  without one of the fields. Keeps the picker readable in every degraded state.
  *
- *  The `value`s mirror the tenant's current option list. They only ever apply
- *  when the form did not load at all, in which case the order would fail on the
- *  missing form long before the value mattered.
+ *  Each `value` is the order-storage marker of its method, which is what the
+ *  options themselves carry. They only ever apply when the form did not load at
+ *  all, in which case the order would fail on the missing form long before the
+ *  value mattered.
  */
 const FALLBACK: DeliveryMethodInfo = {
   home: {
     title: DELIVERY_METHOD_HOME_LABELS.title,
     subtitle: DELIVERY_METHOD_HOME_LABELS.subtitle,
-    value: 'courier',
+    value: 'home',
     perks: DELIVERY_PERKS.map((p) => p.text),
   },
   store: {
     title: DELIVERY_METHOD_STORE_LABELS.title,
     subtitle: DELIVERY_METHOD_STORE_LABELS.subtitle,
-    value: 'pickup',
+    value: 'store_pickup',
     perks: PICKUP_PERKS.map((p) => p.text),
   },
   locker: {
@@ -71,20 +72,16 @@ const FALLBACK: DeliveryMethodInfo = {
   },
 };
 
-type RawListItem = { value?: unknown; title?: unknown; extended?: { value?: unknown } | null };
-type RawDeliveryMethodAttr = {
-  marker?: unknown;
-  listTitles?: RawListItem[];
-};
-
-const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-
 /**
  * Compact one option into the copy a radio card renders.
  *
- * @param option   - Option from the `delivery_method` attribute, or `undefined`
- *                   when the admin listed fewer methods than the UI shows.
- * @param fallback - Shipped copy for that card.
+ * @param option            - Option from the `delivery_method` attribute, or
+ *                            `undefined` when the admin authored no option for
+ *                            this method.
+ * @param fallback          - Shipped copy for that card.
+ * @param fallback.title    - Shipped title.
+ * @param fallback.subtitle - Shipped subtitle.
+ * @param fallback.value    - Shipped option value (the storage marker).
  * @returns Title, subtitle (`extended.value`) and submitted value.
  */
 const toMethodCopy = (
@@ -163,30 +160,31 @@ export async function loadCheckoutSuccessMessage(langArg?: Lang): Promise<string
 /**
  * Parcel-locker pick-up points, read from the locker order form.
  *
- * The picker submits the selected *index*, so the order of the options is the
- * contract between the storefront and OE — which is exactly why the list has to
- * come from the form the order is filed into and not from anywhere else.
+ * Lockers are OE pages selected on the form's `entity` attribute — the same
+ * arrangement as pickup stores — so each option carries the page id the order
+ * will reference. Previously the attribute was a bare `integer` and the picker
+ * submitted a *list index*, which made the order of a hardcoded array part of
+ * the wire contract: inserting a locker at the top re-pointed every subsequent
+ * one, and nothing in either system could notice.
  *
- * The options are looked up by attribute type rather than by marker: whichever
- * field the locker form uses to name its pick-up points is the one that carries
- * them. Returns `[]` when the tenant has authored no options at all — the
- * tenant's current locker attribute is a bare `integer` with an empty
- * `listTitles` — in which case the caller keeps its local `PARCEL_LOCKERS`
- * fallback.
+ * The attribute is found by type, not by marker, and the section row OE returns
+ * first (`depth: 0`) is dropped — it is a heading, not a pick-up point.
+ *
+ * Returns `[]` when the tenant has selected no pages, in which case the caller
+ * keeps its local `PARCEL_LOCKERS` fallback.
  */
 /**
  * `lang` is an explicit argument so it forms part of the `unstable_cache`
  *  key; root params are also unreadable inside a cached function.
  */
 const loadParcelLockersCached = unstable_cache(
-  async (lang: Lang): Promise<string[]> => {
+  async (lang: Lang): Promise<ParcelLocker[]> => {
     try {
       const form = await loadFormContent(CHECKOUT_ORDER_FORMS.locker.authed, lang);
-      for (const field of form.fields) {
-        const names = field.options.map((o) => o.title.trim()).filter((s) => s.length > 0);
-        if (names.length > 0) return names;
-      }
-      return [];
+      const field = soleFieldOfType(form, 'entity');
+      return selectableEntityOptions(field)
+        .filter((o) => o.title.trim().length > 0)
+        .map((o) => ({ oeId: o.entityId, name: o.title.trim() }));
     } catch {
       return [];
     }
@@ -199,9 +197,9 @@ const loadParcelLockersCached = unstable_cache(
  * Parcel-locker options for the current route's locale.
  *
  * @param [langArg] - Explicit OE locale; defaults to the route's.
- * @returns Locker labels, possibly empty.
+ * @returns Lockers with their OE page ids, possibly empty.
  */
-export async function loadParcelLockers(langArg?: Lang): Promise<string[]> {
+export async function loadParcelLockers(langArg?: Lang): Promise<ParcelLocker[]> {
   return loadParcelLockersCached(langArg ?? (await currentCmsLocale()));
 }
 
@@ -218,13 +216,16 @@ const loadDeliveryMethodInfoCached = unstable_cache(
       // rename in the admin panel from silently emptying the picker.
       const methodField = soleFieldOfType(form, 'list');
       if (!methodField) return FALLBACK;
-      // Card order follows the admin panel's option order, which is the one
-      // surface where an editor expresses it. The three cards themselves are
-      // fixed — each hosts a different sub-form (address / store / locker).
-      const [homeOption, storeOption, lockerOption] = methodField.options;
-      const home = toMethodCopy(homeOption, FALLBACK.home);
-      const store = toMethodCopy(storeOption, FALLBACK.store);
-      const locker = toMethodCopy(lockerOption, FALLBACK.locker);
+      // Each card is matched to its option by the order-storage marker the
+      // option submits — the same string that names the storage and the order
+      // form (see `CHECKOUT_ORDER_FORMS`). Matching on admin order instead would
+      // silently re-point a card at the wrong method the moment an editor
+      // reordered the list: the shopper clicks "Store Pickup" and the order is
+      // filed as a courier delivery, with nothing to flag it.
+      const optionFor = (method: CheckoutMethod) => methodField.options.find((o) => o.value === method);
+      const home = toMethodCopy(optionFor('home'), FALLBACK.home);
+      const store = toMethodCopy(optionFor('store_pickup'), FALLBACK.store);
+      const locker = toMethodCopy(optionFor('locker'), FALLBACK.locker);
       const perkLines = groupPerks(methodField.fields);
       return {
         // Fall back on the whole shipped set if the admin left the fields blank

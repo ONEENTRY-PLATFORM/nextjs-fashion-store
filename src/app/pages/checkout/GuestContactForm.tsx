@@ -1,7 +1,8 @@
 'use client';
 import { FormField } from '@/app/components/ui/FormField';
 import { GUEST_CONTACT_LABELS as L_FALLBACK } from '@/app/data/checkoutLabels';
-import { useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
+import { useRoleField } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export interface GuestContactFormState {
@@ -16,13 +17,27 @@ interface GuestContactFormProps {
   onChange: (next: GuestContactFormState) => void;
   /** Optional intro line so admin can tweak wording per method. */
   helperText?: string;
+  /**
+   * CMS form these inputs are bound to — the order form of the chosen pickup
+   *  method, whose contact attributes carry the limits the order is judged by.
+   *  Defaults to the saved-address form for callers that predate the prop.
+   */
+  formMarker?: string;
 }
 
-export function GuestContactForm({ form, errors, onChange, helperText }: GuestContactFormProps) {
+export function GuestContactForm({
+  form,
+  errors,
+  onChange,
+  helperText,
+  formMarker = SAVED_ADDRESS_FORM,
+}: GuestContactFormProps) {
   const L = useDict('checkout_delivery_guest_', L_FALLBACK);
   const patch = (partial: Partial<GuestContactFormState>) => onChange({ ...form, ...partial });
-  const phFullName = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_name', L.placeholderFullName);
-  const phPhone = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_phone', L.placeholderPhone);
+  // Asked for by role, so an attribute rename in the admin panel does not blank
+  // the inputs.
+  const phFullName = useRoleField(formMarker, 'fullName', { placeholder: L.placeholderFullName }).placeholder;
+  const phPhone = useRoleField(formMarker, 'phone', { placeholder: L.placeholderPhone }).placeholder;
   return (
     <div className="mt-4 border-t border-[#e5e7eb] pt-4">
       <p className="mb-1 text-xs font-semibold tracking-wide text-[#555] uppercase">{L.heading}</p>

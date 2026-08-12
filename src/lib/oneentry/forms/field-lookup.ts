@@ -12,6 +12,26 @@
 import type { FormAttributeContent, FormContent, FormFieldOption, FormFieldType } from './form-content';
 
 /**
+ * Additional-field marker carrying an attribute's role.
+ *
+ * Type and position identify every checkout field except the address and
+ * contact inputs: those are six-to-seven interchangeable `string` attributes
+ * whose order differs between forms (`user_addresses` has a label the guest
+ * form does not). The admin panel is where that meaning now lives — each of
+ * those attributes carries `field_role`, so the storefront asks "which field is
+ * the postcode" instead of asserting what the postcode is called.
+ */
+export const FIELD_ROLE_MARKER = 'field_role';
+
+/**
+ * Roles the checkout screens ask for.
+ *
+ * Not a closed set as far as the CMS is concerned — an editor may tag anything
+ * — but these are the ones a layout has a slot for.
+ */
+export type FieldRole = 'fullName' | 'phone' | 'email' | 'line1' | 'city' | 'postcode' | 'instructions' | 'label';
+
+/**
  * Visible fields of a form, in the order the admin panel arranged them.
  *
  * @param form - Loaded form, or `undefined` when it never loaded.
@@ -47,6 +67,33 @@ export function soleFieldOfType(
 ): FormAttributeContent | undefined {
   const matches = fieldsOfType(form, type);
   return matches.length === 1 ? matches[0] : undefined;
+}
+
+/**
+ * The field an editor tagged with a given role.
+ *
+ * @param form - Loaded form, or `undefined`.
+ * @param role - Role to look for, as authored in `field_role`.
+ * @returns The field, or `undefined` when no visible attribute carries that
+ *          role — which means the layout has a slot the form does not fill, and
+ *          the caller should say so rather than guess a marker.
+ */
+export function fieldByRole(
+  form: FormContent | undefined | null,
+  role: FieldRole,
+): FormAttributeContent | undefined {
+  return visibleFields(form).find((f) => f.fields[FIELD_ROLE_MARKER] === role);
+}
+
+/**
+ * Marker of the field tagged with a role.
+ *
+ * @param form - Loaded form, or `undefined`.
+ * @param role - Role to look for.
+ * @returns The attribute marker, or `undefined` when the role is unfilled.
+ */
+export function markerForRole(form: FormContent | undefined | null, role: FieldRole): string | undefined {
+  return fieldByRole(form, role)?.marker;
 }
 
 /**

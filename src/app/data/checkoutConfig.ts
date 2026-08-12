@@ -41,11 +41,31 @@ export const PICKUP_STORES: PickupStore[] = [
   },
 ];
 
-export const PARCEL_LOCKERS = [
-  'Paddington Station — Platform 8 Locker Hub',
-  'Victoria Coach Station — Main Hall',
-  "King's Cross St Pancras — West Entrance",
-  'Waterloo Station — South Bank Exit',
+/**
+ * One parcel-locker pick-up point.
+ *
+ * Lockers are OE pages, the same as pickup stores: the order form references
+ * one by its page id through an `entity` field. The list used to be positional
+ * — the picker submitted the selected index — which meant reordering the list
+ * silently re-pointed every in-flight order at a different locker.
+ */
+export interface ParcelLocker {
+  /** OE page id; `null` only in the local fallback, which cannot be ordered against. */
+  oeId: number | null;
+  /** Locker name as authored in the admin panel. */
+  name: string;
+}
+
+/**
+ * Dev/test fallback, rendered when OE hands down no lockers at all (Storybook,
+ * bare unit tests). Carries no page ids, so an order built from it would be
+ * rejected — which is the honest outcome: there is no locker behind it.
+ */
+export const PARCEL_LOCKERS: ParcelLocker[] = [
+  { oeId: null, name: 'Paddington Station — Platform 8 Locker Hub' },
+  { oeId: null, name: 'Victoria Coach Station — Main Hall' },
+  { oeId: null, name: "King's Cross St Pancras — West Entrance" },
+  { oeId: null, name: 'Waterloo Station — South Bank Exit' },
 ];
 
 export const DELIVERY_TIME_SLOTS = [

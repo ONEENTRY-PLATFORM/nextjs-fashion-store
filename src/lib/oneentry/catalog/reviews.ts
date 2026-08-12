@@ -1,8 +1,10 @@
 import { unstable_cache } from 'next/cache';
+import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces';
 import { cache } from 'react';
 
 import type { ProductReview } from '@/app/data/productCatalog';
 import { REVALIDATE_HOME } from '@/lib/isr';
+import { formDataValue } from '@/lib/oneentry/forms/form-data-entry';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
@@ -10,7 +12,6 @@ import { withTiming } from '@/lib/oneentry/profiling';
 
 import { loadProductById } from './products';
 
-type RawFormDataField = { marker: string; type: string; value: unknown };
 interface RawFormDataItem {
   id: number;
   time?: string;
@@ -19,7 +20,7 @@ interface RawFormDataItem {
   // language-wrapped bag) but currently returns the flat `FormDataType[]`
   // shape that matches the SDK typings. Accept either so the loader stays
   // resilient to the wrapping toggling back.
-  formData?: RawFormDataField[] | { en_US?: RawFormDataField[] };
+  formData?: FormDataType[] | { en_US?: FormDataType[] };
 }
 
 interface RawFormDataResp {
@@ -71,8 +72,7 @@ const cachedFetchFormData = unstable_cache(
 
 function value(it: RawFormDataItem, marker: string): unknown {
   const raw = it.formData;
-  const fields: RawFormDataField[] | undefined = Array.isArray(raw) ? raw : raw?.en_US;
-  return fields?.find((f) => f.marker === marker)?.value;
+  return formDataValue(Array.isArray(raw) ? raw : raw?.en_US, marker);
 }
 
 /**

@@ -55,14 +55,21 @@ export function HeaderMegaMenu({
             const catalogHref = hasDropdown ? getNavHref(activeGender, key) : key === 'new' ? `/new${genderQs}` : null;
             const isSale = key === 'sale';
             const isActive = activeDropdown === key || urlSubCat === key;
+            // A tab that navigates must take the dropdown down with it: the
+            // pointer stays parked on the button after the click, so no
+            // `mouseleave` ever fires and the panel would hang over the page
+            // the shopper just landed on. Tabs with nowhere to go keep it open.
+            const navHref = catalogHref ?? (isSale ? `/sale${genderQs}` : null);
             return (
               <button
                 key={cat}
+                data-testid={`mega-nav-${key}`}
                 aria-current={urlSubCat === key ? 'page' : undefined}
                 onMouseEnter={() => onSubCatEnter(cat)}
                 onClick={() => {
-                  if (catalogHref) router.push(catalogHref);
-                  else if (isSale) router.push(`/sale${genderQs}`);
+                  if (!navHref) return;
+                  onCloseDropdown();
+                  router.push(navHref);
                 }}
                 className={`relative px-5 py-3 text-xs tracking-widest uppercase transition-all duration-100 ${
                   isSale
@@ -97,6 +104,7 @@ export function HeaderMegaMenu({
       {currentDropdownData && (
         <div
           ref={dropdownRef}
+          data-testid="mega-dropdown"
           className="absolute inset-x-0 top-full z-50 border-t-2 border-accent bg-white text-black shadow-xl"
           onMouseEnter={onDropdownEnter}
           onMouseLeave={onDropdownLeave}

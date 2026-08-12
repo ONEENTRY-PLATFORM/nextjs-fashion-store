@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { SALE_COLOR } from '@/app/constants/colors';
 import type { SizeOption } from '@/app/data/productCatalog';
 import { RESERVE_MODAL_LABELS } from '@/app/data/productPageLabels';
-import { useFormLabel, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder,useFormLabel } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 

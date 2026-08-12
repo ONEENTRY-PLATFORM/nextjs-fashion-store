@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { SERVICE_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import type { ServiceCategory } from '@/app/data/serviceData';
 import { submitServiceRequestAction } from '@/lib/oneentry/catalog/service-request-submit-action';
-import { useFormLabel, useFormOptions, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder,useFormLabel, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 /**

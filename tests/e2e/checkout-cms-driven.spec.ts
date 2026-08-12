@@ -88,11 +88,52 @@ test.describe('Checkout — driven by the CMS form definition', () => {
     expect(rendered).toEqual(authored);
   });
 
+  /**
+   * Only the list is asserted, not the handoff payload: a guest who picks
+   * Store Pickup or Parcel Locker cannot leave the delivery step at all.
+   * `handleContinueToPayment` validates `guestContactSchema` for both methods
+   * while the contact form itself is commented out of the cards ("checkout is
+   * sign-in-only"), so the values are always empty and the CTA silently does
+   * nothing. The locker id's trip to the payment step is covered by the unit
+   * tests instead.
+   */
+  test('the locker picker offers the OE pages the form points at', async ({ page }) => {
+    const form = await fetchForm('checkout_locker_guest');
+    const entityField = form.attributes.find((a) => a.type === 'entity');
+    expect(entityField, 'the locker form should reference lockers as pages').toBeTruthy();
+
+    const authored = (entityField?.listTitles ?? [])
+      .map((o) => o.value)
+      .filter((v): v is { id: number; depth: number } => !!v && typeof v === 'object' && 'id' in v)
+      .filter((v) => v.depth !== 0)
+      .map((v) => String(v.id))
+      .sort();
+    test.skip(authored.length === 0, 'tenant has no lockers selected on the locker form');
+
+    await guestDeliveryStep(page);
+    await page.getByTestId('delivery-method-locker').click();
+    await page.getByTestId('locker-picker-toggle').click();
+
+    const rendered = (
+      await page
+        .getByTestId('locker-option')
+        .evaluateAll((nodes) => nodes.map((n) => (n as HTMLElement).dataset.lockerId ?? ''))
+    ).sort();
+    // Every rendered option carries the page id the order will reference, not a
+    // position in a hardcoded array — which is what the old `integer` field
+    // submitted, and what made list order part of the wire contract.
+    expect(rendered).toEqual(authored);
+    expect(rendered.every((id) => id.length > 0)).toBe(true);
+  });
+
   test('the delivery method submitted is the option value authored in OE', async ({ page }) => {
     const form = await fetchForm('checkout_home_delivery_guest');
     const listField = form.attributes.find((a) => a.type === 'list');
-    const firstOption = listField?.listTitles?.[0]?.value;
-    expect(typeof firstOption, 'the method picker should carry option values').toBe('string');
+    // The home card is matched to its option by the order-storage marker, so
+    // the value it submits is that marker — wherever the option sits in the
+    // admin panel's list.
+    const homeOption = (listField?.listTitles ?? []).find((o) => o.value === 'home');
+    expect(homeOption, 'the method picker should carry an option for home delivery').toBeTruthy();
 
     await guestDeliveryStep(page);
     await page.getByTestId('addr-fullName').fill('Test User');
@@ -110,7 +151,7 @@ test.describe('Checkout — driven by the CMS form definition', () => {
       return raw ? (JSON.parse(raw) as { deliveryMethodValue?: string }).deliveryMethodValue : null;
     });
 
-    expect(handed).toBe(firstOption);
+    expect(handed).toBe('home');
   });
 
   test('a street line that is only long enough before trimming is rejected', async ({ page }) => {

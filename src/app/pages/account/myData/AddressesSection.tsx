@@ -7,7 +7,8 @@ import { ADDRESSES_LABELS } from '@/app/data/accountLabels';
 import { ADDRESSES_SECTION_ARIA } from '@/app/data/commonLabels';
 import { FormInput, SectionTitle } from '@/app/pages/account/shared';
 import { useFormMessages } from '@/app/utils/useFormMessages';
-import { useFormLabel, useFieldPlaceholder } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
+import { useRoleField } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 type AddrForm = {
@@ -45,25 +46,28 @@ export function AddressesSection() {
   // Labels come from the form's own attribute titles — the field copy belongs
   // to the form entity in OE, not to a system-text set. `ADDRESSES_LABELS`
   // stays the offline fallback.
-  const lbLabel = useFormLabel('user_addresses', 'user_addresses_lable', L.labelLabel);
-  const lbFullName = useFormLabel('user_addresses', 'user_addresses_recipient_name', L.labelFullName);
-  const lbPhone = useFormLabel('user_addresses', 'user_addresses_recipient_phone', L.labelPhone);
-  const lbAddressLine1 = useFormLabel('user_addresses', 'user_addresses_line_1', L.labelAddressLine1);
-  const lbCity = useFormLabel('user_addresses', 'user_addresses_city', L.labelCity);
-  const lbPostalCode = useFormLabel('user_addresses', 'user_addresses_post_code', L.labelPostalCode);
-  const lbInstructions = useFormLabel('user_addresses', 'user_addresses_special_instructions', L.labelInstructions);
-
-  const phLabel = useFieldPlaceholder('user_addresses', 'user_addresses_lable', L.placeholderLabel);
-  const phFullName = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_name', L.placeholderFullName);
-  const phPhone = useFieldPlaceholder('user_addresses', 'user_addresses_recipient_phone', L.placeholderPhone);
-  const phAddressLine1 = useFieldPlaceholder('user_addresses', 'user_addresses_line_1', L.placeholderAddressLine1);
-  const phCity = useFieldPlaceholder('user_addresses', 'user_addresses_city', L.placeholderCity);
-  const phPostalCode = useFieldPlaceholder('user_addresses', 'user_addresses_post_code', L.placeholderPostalCode);
-  const phInstructions = useFieldPlaceholder(
-    'user_addresses',
-    'user_addresses_special_instructions',
-    L.placeholderInstructions,
-  );
+  // Label and placeholder of each input come from the attribute an editor
+  // tagged with that role, so both the copy and the marker behind it can change
+  // in the admin panel without a deploy.
+  const fLabel = useRoleField(SAVED_ADDRESS_FORM, 'label', { label: L.labelLabel, placeholder: L.placeholderLabel });
+  const fFullName = useRoleField(SAVED_ADDRESS_FORM, 'fullName', {
+    label: L.labelFullName,
+    placeholder: L.placeholderFullName,
+  });
+  const fPhone = useRoleField(SAVED_ADDRESS_FORM, 'phone', { label: L.labelPhone, placeholder: L.placeholderPhone });
+  const fAddressLine1 = useRoleField(SAVED_ADDRESS_FORM, 'line1', {
+    label: L.labelAddressLine1,
+    placeholder: L.placeholderAddressLine1,
+  });
+  const fCity = useRoleField(SAVED_ADDRESS_FORM, 'city', { label: L.labelCity, placeholder: L.placeholderCity });
+  const fPostalCode = useRoleField(SAVED_ADDRESS_FORM, 'postcode', {
+    label: L.labelPostalCode,
+    placeholder: L.placeholderPostalCode,
+  });
+  const fInstructions = useRoleField(SAVED_ADDRESS_FORM, 'instructions', {
+    label: L.labelInstructions,
+    placeholder: L.placeholderInstructions,
+  });
 
   const validate = () => {
     const phoneRegex = /^\+?[\d\s\-()\[\]]{7,20}$/;
@@ -147,49 +151,55 @@ export function AddressesSection() {
       <p className="text-xs font-bold tracking-wide text-[#555] uppercase">{heading}</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormInput
-          label={lbLabel}
+          label={fLabel.label}
           value={form.name}
           onChange={(v) => setForm((f) => ({ ...f, name: v }))}
-          placeholder={phLabel}
+          placeholder={fLabel.placeholder}
         />
         <FormInput
-          label={lbFullName}
+          label={fFullName.label}
           value={form.fullName}
           onChange={patch('fullName')}
-          placeholder={phFullName}
+          placeholder={fFullName.placeholder}
           error={errors.fullName}
         />
         <FormInput
-          label={lbPhone}
+          label={fPhone.label}
           type="tel"
           value={form.phone}
           onChange={patch('phone')}
-          placeholder={phPhone}
+          placeholder={fPhone.placeholder}
           error={errors.phone}
         />
         <div className="sm:col-span-2">
           <FormInput
-            label={lbAddressLine1}
+            label={fAddressLine1.label}
             value={form.line1}
             onChange={patch('line1')}
-            placeholder={phAddressLine1}
+            placeholder={fAddressLine1.placeholder}
             error={errors.line1}
           />
         </div>
-        <FormInput label={lbCity} value={form.city} onChange={patch('city')} placeholder={phCity} error={errors.city} />
         <FormInput
-          label={lbPostalCode}
+          label={fCity.label}
+          value={form.city}
+          onChange={patch('city')}
+          placeholder={fCity.placeholder}
+          error={errors.city}
+        />
+        <FormInput
+          label={fPostalCode.label}
           value={form.postcode}
           onChange={patch('postcode')}
-          placeholder={phPostalCode}
+          placeholder={fPostalCode.placeholder}
           error={errors.postcode}
         />
         <div className="sm:col-span-2">
           <FormInput
-            label={lbInstructions}
+            label={fInstructions.label}
             value={form.instructions}
             onChange={(v) => setForm((f) => ({ ...f, instructions: v }))}
-            placeholder={phInstructions}
+            placeholder={fInstructions.placeholder}
           />
         </div>
       </div>

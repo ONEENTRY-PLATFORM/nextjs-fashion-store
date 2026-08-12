@@ -21,8 +21,7 @@ import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import { orderFormMarker } from '@/lib/oneentry/checkout/forms';
 import { buildOrderFieldLabels, explainOrderError } from '@/lib/oneentry/checkout/order-error';
-import { slotWindow } from '@/lib/oneentry/checkout/slot-window';
-import { soleFieldOfType } from '@/lib/oneentry/forms/field-lookup';
+import { buildOrderFormData, type CheckoutHandoffPayload } from '@/lib/oneentry/checkout/order-form-data';
 import { useAllFormContent } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
@@ -69,10 +68,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lErrRevalidate = useT('checkout_payment_error_revalidate', PAYMENT_PAGE_LABELS.errorRevalidate);
   const lErrStripe = useT('checkout_payment_error_stripe', PAYMENT_PAGE_LABELS.errorStripeSession);
   const lErrFieldHint = useT('checkout_payment_error_field_hint', PAYMENT_PAGE_LABELS.errorFieldHint);
-  const lErrFormUnavailable = useT(
-    'checkout_payment_error_form_unavailable',
-    PAYMENT_PAGE_LABELS.errorFormUnavailable,
-  );
+  const lErrFormUnavailable = useT('checkout_payment_error_form_unavailable', PAYMENT_PAGE_LABELS.errorFormUnavailable);
   const lErrNoAccounts = useT('checkout_payment_error_no_accounts', PAYMENT_PAGE_LABELS.errorNoAccounts);
   const lStripeRedirect = useT('checkout_payment_stripe_redirect_hint', PAYMENT_PAGE_LABELS.stripeRedirectHint);
   const securityBadges = [lSsl, lPci, l3d].filter(Boolean);
@@ -246,29 +242,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     // could get charged a different amount than the shopper saw.
     if (previewInFlight || !preview) return;
 
-    let payload: {
-      storage: 'home' | 'store_pickup' | 'locker';
-      isGuest: boolean;
-      guestContact?: { fullName?: string; phone?: string; email?: string } | null;
-      homeAddress?: {
-        fullName?: string;
-        phone?: string;
-        line1?: string;
-        city?: string;
-        postcode?: string;
-        instructions?: string;
-      } | null;
-      storeId?: string | number | null;
-      lockerId?: string | number | null;
-      deliveryDate?: string;
-      deliverySlot?: string;
-      /**
-       * The `delivery_method` option the shopper picked, as authored in the
-       * admin panel. Carried from the delivery step so this page never has to
-       * guess what OE calls "courier".
-       */
-      deliveryMethodValue?: string;
-    } | null = null;
+    let payload: CheckoutHandoffPayload | null = null;
     try {
       const raw = sessionStorage.getItem('oe_checkout_payload');
       payload = raw ? JSON.parse(raw) : null;
@@ -294,134 +268,17 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       return [{ productId: cmsId, quantity: it.quantity }];
     });
 
-    // Build formData against the CMS form the order is filed into. Its markers
-    // are read from the form itself — the method picker is its only `list`
-    // attribute, the date window its only `timeInterval`, the store its only
-    // `entity`, the locker its only `integer` — so renaming any of them in the
-    // admin panel keeps working. Guest forms additionally require contact info
-    // (full_name / phone / email); the authed forms only need delivery details.
+    // The order body is assembled from the CMS form the order is filed into,
+    // which is what supplies every field marker (see `order-form-data.ts`).
+    // A form that did not load fails the build rather than posting a body OE
+    // is certain to reject by naming a raw marker under this button.
     const orderForm = checkoutForms[orderFormMarker(payload.storage, payload.isGuest)];
-    const methodField = soleFieldOfType(orderForm, 'list');
-    const intervalField = soleFieldOfType(orderForm, 'timeInterval');
-    const storeField = soleFieldOfType(orderForm, 'entity');
-    const lockerField = soleFieldOfType(orderForm, 'integer');
-    const formData: Array<{ marker: string; type: string; value: unknown }> = [];
-    if (payload.storage === 'home') {
-      // Authed: delivery_method + delivery_date-time; Guest: also address.
-      if (!methodField || !intervalField) {
-        setSubmitError(lErrFormUnavailable);
-        return;
-      }
-      formData.push({
-        marker: methodField.marker,
-        type: methodField.type,
-        // The option the shopper picked on the delivery step, carried across in
-        // the handoff payload. Falls back to the form's first option, which is
-        // the home-delivery one by the same ordering the picker renders.
-        value: [payload.deliveryMethodValue || (methodField.options[0]?.value ?? '')],
-      });
-      // OE timeInterval expects array of [fromISO, toISO] tuples. Slots loaded
-      // from OE carry an `HHMM-HHMM` id (see `delivery-schedule.ts`); the
-      // hardcoded fallback list still uses the legacy morning/afternoon/evening
-      // names. Decode both — reading only the legacy names collapsed every
-      // OE-configured slot onto the 09:00–13:00 default, so an evening pick was
-      // filed as a morning delivery.
-      const dayIso = (payload.deliveryDate ?? new Date().toISOString()).slice(0, 10);
-      const [fromIso, toIso] = slotWindow(payload.deliverySlot, dayIso);
-      formData.push({
-        marker: intervalField.marker,
-        type: intervalField.type,
-        value: [[fromIso, toIso]],
-      });
-      if (payload.isGuest && payload.homeAddress) {
-        // OE phone field caps at 15 chars; strip spaces so the formatted value fits.
-        const compactPhone = (payload.homeAddress.phone ?? payload.guestContact?.phone ?? '').replace(/\s+/g, '');
-        formData.push({
-          marker: 'checkout_home_guest_full_name',
-          type: 'string',
-          value: payload.homeAddress.fullName ?? payload.guestContact?.fullName ?? '',
-        });
-        formData.push({ marker: 'checkout_home_guest_phone', type: 'string', value: compactPhone });
-        formData.push({
-          marker: 'checkout_home_guest_address_line1',
-          type: 'string',
-          value: payload.homeAddress.line1 ?? '',
-        });
-        formData.push({ marker: 'checkout_home_guest_city', type: 'string', value: payload.homeAddress.city ?? '' });
-        formData.push({
-          marker: 'checkout_home_guest_post_code',
-          type: 'string',
-          value: payload.homeAddress.postcode ?? '',
-        });
-        if (payload.homeAddress.instructions) {
-          formData.push({
-            marker: 'checkout_home_guest_special_instrations',
-            type: 'string',
-            value: payload.homeAddress.instructions,
-          });
-        }
-      }
-    } else if (payload.storage === 'store_pickup') {
-      if (!storeField) {
-        setSubmitError(lErrFormUnavailable);
-        return;
-      }
-      formData.push({
-        marker: storeField.marker,
-        type: storeField.type,
-        // OE entity type accepts an array of ids on form-data; wrap to keep it valid.
-        value: [String(payload.storeId ?? '')],
-      });
-      if (payload.isGuest && payload.guestContact) {
-        formData.push({
-          marker: 'checkout_store_pickup_guest_full_name',
-          type: 'string',
-          value: payload.guestContact.fullName ?? '',
-        });
-        formData.push({
-          marker: 'checkout_store_pickup_guest_phone',
-          type: 'string',
-          value: (payload.guestContact.phone ?? '').replace(/\s+/g, ''),
-        });
-        formData.push({
-          marker: 'checkout_store_pickup_guest_email',
-          type: 'string',
-          value: payload.guestContact.email ?? '',
-        });
-      }
-    } else if (payload.storage === 'locker') {
-      if (!lockerField) {
-        setSubmitError(lErrFormUnavailable);
-        return;
-      }
-      // OE rejects 0 as a missing integer value — shift by 1 so the first locker maps to 1.
-      const lockerNum =
-        typeof payload.lockerId === 'number'
-          ? payload.lockerId + 1
-          : (parseInt(String(payload.lockerId ?? '0'), 10) || 0) + 1;
-      formData.push({
-        marker: lockerField.marker,
-        type: lockerField.type,
-        value: lockerNum,
-      });
-      if (payload.isGuest && payload.guestContact) {
-        formData.push({
-          marker: 'checkout_locker_guest_full_name',
-          type: 'string',
-          value: payload.guestContact.fullName ?? '',
-        });
-        formData.push({
-          marker: 'checkout_locker_guest_phone',
-          type: 'string',
-          value: (payload.guestContact.phone ?? '').replace(/\s+/g, ''),
-        });
-        formData.push({
-          marker: 'checkout_locker_guest_email',
-          type: 'string',
-          value: payload.guestContact.email ?? '',
-        });
-      }
+    const built = buildOrderFormData(payload, orderForm);
+    if (!built.ok) {
+      setSubmitError(lErrFormUnavailable);
+      return;
     }
+    const formData = built.formData;
 
     // OE marks anonymous orders by `x-guest-id`. The shared helper mints a
     // stable per-browser id (or returns the existing one) so multi-page guest

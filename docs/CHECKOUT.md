@@ -72,7 +72,7 @@ Three methods, selected via radio cards:
 
 Radio card copy (title, subtitle, perks, and the locker PIN hint) is loaded at request time from the OE admin panel and passed down to the method components through a React Context:
 
-- `src/lib/oneentry/checkout/delivery-methods.ts` — exports `loadDeliveryMethodInfo(lang?)` and the `DeliveryMethodInfo` interface. The loader reads `checkout_home_delivery` through `loadFormContent` and finds the picker as the form's **only `list` attribute** (`soleFieldOfType`) rather than by marker. Its options supply each card's `title`, `subtitle` (`extended.value`) **and `value`** — the last of which travels into the order's `delivery_method` form data, so an editor renaming an option no longer breaks order creation. Cards map to options by admin order (first → home, second → store, third → locker), which is the only place that order is expressed. Perks come from the same attribute's `additionalFields`, grouped by marker **prefix** (`home*` → home card, `store*` → store card, anything else → the locker PIN hint) — so a perk added in the admin panel appears without a deploy, and the tenant's misspelled `locaer_text` needs no mention in code. Wrapped with `unstable_cache` (cache key `oe-delivery-method-info`, tag `oe-forms`, TTL `REVALIDATE_STORES`). Any OE error returns the local `FALLBACK` constant built from `DELIVERY_METHOD_HOME/STORE/LOCKER_LABELS` and `DELIVERY_PERKS` / `PICKUP_PERKS`.
+- `src/lib/oneentry/checkout/delivery-methods.ts` — exports `loadDeliveryMethodInfo(lang?)` and the `DeliveryMethodInfo` interface. The loader reads `checkout_home_delivery` through `loadFormContent` and finds the picker as the form's **only `list` attribute** (`soleFieldOfType`) rather than by marker. Its options supply each card's `title`, `subtitle` (`extended.value`) **and `value`** — the last of which travels into the order's `delivery_method` form data, so an editor renaming an option no longer breaks order creation. Each card finds its option by matching that `value` against its **order-storage marker** (`home` / `store_pickup` / `locker`) — the same string that names the storage and the order form in `CHECKOUT_ORDER_FORMS`. Matching on admin order instead would re-point a card at the wrong method the moment an editor reordered the list: the shopper clicks "Store Pickup" and the order is filed as a courier delivery, with nothing to flag it. The option values were migrated in the admin panel from `courier` / `pickup` / `locker` to the storage markers for exactly this reason. Perks come from the same attribute's `additionalFields`, grouped by marker **prefix** (`home*` → home card, `store*` → store card, anything else → the locker PIN hint) — so a perk added in the admin panel appears without a deploy, and the tenant's misspelled `locaer_text` needs no mention in code. Wrapped with `unstable_cache` (cache key `oe-delivery-method-info`, tag `oe-forms`, TTL `REVALIDATE_STORES`). Any OE error returns the local `FALLBACK` constant built from `DELIVERY_METHOD_HOME/STORE/LOCKER_LABELS` and `DELIVERY_PERKS` / `PICKUP_PERKS`.
 - `src/lib/oneentry/checkout/DeliveryMethodInfoContext.tsx` — exports `DeliveryMethodInfoProvider` (wraps children with the loaded `DeliveryMethodInfo`) and `useDeliveryMethodInfo()` (returns `DeliveryMethodInfo | null`; returns `null` when the provider is absent so Storybook / unit tests can omit it).
 - `app/checkout/delivery/page.tsx` — `Promise.all`s `loadDeliveryMethodInfo()` alongside `loadStores()` and the other loaders, then wraps `<DeliveryPage />` in `<DeliveryMethodInfoProvider data={info}>`.
 - `DeliveryMethodHome.tsx` / `DeliveryMethodStore.tsx` / `DeliveryMethodLocker.tsx` — each calls `useDeliveryMethodInfo()` and reads `.home` / `.store` / `.locker`; falls back to its local literal labels when the hook returns `null`. Perks are rendered as a plain string list; `DeliveryMethodLocker` additionally replaces the hardcoded `pinHint` with `info.locker.pinHint`.
@@ -99,8 +99,10 @@ export interface PickupStore {
 Other static resources in `src/app/data/checkoutConfig.ts`:
 
 ```ts
-PARCEL_LOCKERS = [
-  'Paddington Station — Platform 8 Locker Hub',
+// Fallback only — production lockers are OE pages loaded by `loadParcelLockers()`.
+// `oeId: null` means "no page behind this entry", so an order cannot reference it.
+PARCEL_LOCKERS: ParcelLocker[] = [
+  { oeId: null, name: 'Paddington Station — Platform 8 Locker Hub' },
   ...
 ]
 DELIVERY_TIME_SLOTS = [
@@ -203,7 +205,8 @@ On "Continue to Payment", the page writes to `sessionStorage['oe_checkout_payloa
     fullName, phone, line1, city, postcode, instructions,
   } | null,
   storeId: string | number | null,               // selectedStore.oeId ?? selectedStore.id when storage === 'store_pickup'; numeric oeId is strongly preferred — OE's entity field expects the page's numeric id, not the slug
-  lockerId: number | null,                       // 0-based index into PARCEL_LOCKERS (shifted +1 later, see §3.3)
+  lockerId: number | null,                       // the locker's OE page id (see §3.3)
+  deliveryMethodValue: string,                   // the `delivery_method` option value, i.e. the order-storage marker
   deliveryDate: string,                          // ISO string (selectedDate.toISOString())
   deliverySlot: 'morning' | 'afternoon' | 'evening',
   couponCode: string | null,                     // mirrored from CartContext (not `preview.discountAmount`)
@@ -284,11 +287,11 @@ The caller passes `formData` to `createOrderAction` as a **plain array** `[{mark
 | Delivery method | `soleFieldOfType(form, 'list')` | `[payload.deliveryMethodValue]` — the option the shopper picked, read off `delivery_method.listTitles` on the delivery step |
 | Delivery window | `soleFieldOfType(form, 'timeInterval')` | `[[fromISO, toISO]]` |
 | Pickup store | `soleFieldOfType(form, 'entity')` | `[String(storeId)]` |
-| Locker point | `soleFieldOfType(form, 'integer')` | `lockerId + 1` |
+| Locker point | `soleFieldOfType(form, 'entity')` | `[String(lockerId)]` — the locker's OE page id |
 
 `soleFieldOfType` returns `undefined` when a form has none — or more than one — field of that type, and `handlePlaceOrder` then **refuses to submit**, showing `errorFormUnavailable` instead of posting a body OE is certain to reject. This is deliberate: the previous shipped markers degraded silently, so a rename in the admin panel surfaced only as a raw-marker rejection at "Place Order".
 
-The guest **contact / address** markers are still written down (see §8a) — they are six interchangeable `string` attributes with no structural way to tell them apart.
+**The address and contact fields are found by role.** They are all `string` attributes and nothing structural tells them apart, so each one carries an additional field `field_role` authored in the admin panel — `fullName`, `phone`, `email`, `line1`, `city`, `postcode`, `instructions`, `label`. `fieldByRole(form, role)` / `markerForRole(form, role)` (`src/lib/oneentry/forms/field-lookup.ts`) resolve it, and a role the form does not carry is **skipped**, never guessed. This is what lets `order-form-data.ts`, `field-bounds.ts`, `actions.ts` and the address inputs name no markers at all.
 
 **Home delivery (authenticated):**
 
@@ -343,19 +346,23 @@ Note: the guest variant uses a distinct marker (`..._guest_store`), not a suffix
 **Locker (authenticated):**
 
 ```
-checkout_locker_pickup_point   type=integer   value=lockerId + 1   # 0-based index → 1-based OE integer
+checkout_locker_pickup_point   type=entity   value=[String(lockerPageId)]
 ```
 
 **Locker (guest):**
 
 ```
-checkout_locker_guest_pickup_point   type=integer   value=lockerId + 1
+checkout_locker_guest_pickup_point   type=entity   value=[String(lockerPageId)]
 checkout_locker_guest_full_name      type=string   value=fullName
 checkout_locker_guest_phone          type=string   value=phone (spaces stripped)
 checkout_locker_guest_email          type=string   value=email
 ```
 
-The `+1` shift is necessary because OE rejects `0` as a missing integer.
+**Lockers are OE pages.** They live under the `lockers` section page and are selected on the order form's `entity` attribute, exactly as pickup stores are under `stores`. `loadParcelLockers()` reads them off that attribute (`selectableEntityOptions`, which drops the `depth: 0` section row) and returns `ParcelLocker[] = {oeId, name}`.
+
+Previously the attribute was a bare `integer` with an empty `listTitles`: the names came from the hardcoded `PARCEL_LOCKERS` array and the order submitted the shopper's **index into that array**, offset by one because OE reads a literal `0` as "missing". That made array order part of the wire contract — inserting a locker at the top silently re-pointed every order below it, and neither system could detect the shift. There was also no CMS surface for the list at all: an editor could not add or rename a locker.
+
+`PARCEL_LOCKERS` remains as a Storybook / bare-unit-test fallback, with `oeId: null` on every entry — an order built from it has no page to reference and OE rejects it, which is the honest outcome.
 
 ### 3.4 Stripe redirect
 
@@ -532,6 +539,8 @@ Payment accounts (OE Payments) ────────────────�
 
 The `x-guest-id` header (from `src/app/utils/guest-id.ts`, minted / persisted in `localStorage` as `oe_guest_id`) turns anonymous checkout into a first-class flow:
 
+> **Known dead end: a guest cannot use Store Pickup or Parcel Locker.** `DeliveryPage.handleContinueToPayment` validates `guestContactSchema` for every non-`home` method when `!isLoggedIn`, but the `<GuestContactForm>` that collects those values is commented out of both `DeliveryMethodStore` and `DeliveryMethodLocker` ("checkout is sign-in-only"). The values are therefore always empty, the parse always fails, and "Continue to Payment" does nothing — with the field errors rendered into a block that is not on the page. Either re-enable the contact form (uncomment it and drop the `_` prefixes from the guest-contact props) or skip the guest-contact validation for as long as it stays hidden.
+
 - `GuestCheckoutModal` unlocks the page after "Continue as Guest".
 - Delivery page collects `guestContact = {fullName, email, phone}` when the method is store or locker (home already asks for full address).
 - The `_guest` suffix is applied at two levels (see §3.2 / §3.3):
@@ -578,7 +587,7 @@ The limits are therefore mirrored client-side, sourced from OE rather than hardc
 - `useSchemas(bounds)` rebuilds `addressSchema` / `guestContactSchema` with those bounds layered on top (`createSchemas(M, B)`); the phone bound is applied to the compacted value, matching what `PaymentPage` sends.
 - Should OE still reject something the storefront doesn't model (a regex, a `list` value, a bad store entity id), `explainOrderError` (`src/lib/oneentry/checkout/order-error.ts`) rewrites the marker in the message to the field label the shopper saw and appends `PAYMENT_PAGE_LABELS.errorFieldHint`. The marker → label table is **built at runtime** by `buildOrderFieldLabels()` from the loaded forms' `localizeInfos.title`, so relabelling a field in the admin panel changes the error message with it; a shipped table went stale on the first rename and quietly fell back to naming the raw marker.
 
-**Address markers are the one table left.** `ADDRESS_MARKERS` in `field-bounds.ts` still names the six address / contact attributes, because they are all `string` and nothing structural distinguishes them. That table has the failure mode described above — rename one marker in the admin panel and its bound silently disappears. It goes away when the address inputs are rendered from the form's own field list (order, label, placeholder, control, validators) instead of from a fixed layout.
+**No marker table is left.** `ADDRESS_MARKERS` used to name the six address / contact attributes here, with exactly that failure mode — rename one in the admin panel and its bound silently disappeared. Each of those attributes now carries a `field_role` additional field, and `boundsOf(form, role)` asks the form which attribute plays that role. The same lookup drives the order body (`order-form-data.ts`), the saved-address read/write (`actions.ts`), and every address input's label and placeholder (`useRoleField`).
 
 | Schema | Fields |
 | --- | --- |
@@ -646,11 +655,13 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 | `src/app/pages/checkout/DeliveryMethodHome.tsx` / `Locker.tsx` / `Store.tsx` | Method-specific sub-forms; `Store.tsx` takes a `stores: PickupStore[]` prop; `DeliveryMethodHome.tsx` accepts optional `timeSlots?: DeliveryTimeSlot[]` (falls back to `DELIVERY_TIME_SLOTS` when absent); all three read OE copy via `useDeliveryMethodInfo()` with literal-label fallback |
 | `src/lib/oneentry/checkout/delivery-methods.ts` | `loadDeliveryMethodInfo()` — cached OE form loader; returns `DeliveryMethodInfo`. Also exports `loadCheckoutSuccessMessage(lang)` — reads `checkout_home_delivery` form's `localizeInfos.successMessage`; cached under key `oe-checkout-success-message`, tag `oe-forms`, TTL `REVALIDATE_STORES`; returns `null` on error/empty (see §4.4) |
 | `src/lib/oneentry/checkout/delivery-schedule.ts` | `loadDeliverySchedule(variant?, lang?)` — cached OE loader for the date-strip + time-slot config; `variant` selects the `authed` or `guest` aset/attribute marker pair (see §2.2a). `buildDeliveryDates(daysAhead, disabledWeekdays, now?)` — pure date-strip generator, server and test safe |
-| `src/lib/oneentry/checkout/delivery-methods.ts` | also exports `loadParcelLockers(lang?)` — reads the locker names off whichever attribute of `checkout_locker` carries options. The tenant's current locker attribute is a bare `integer` with an empty `listTitles`, so this returns `[]` and the `PARCEL_LOCKERS` literal is what actually renders. **There is no CMS surface for the locker list today** — giving the attribute options (or turning lockers into pages behind an `entity` field, as stores are) is what would make it editable |
+| `src/lib/oneentry/checkout/delivery-methods.ts` | also exports `loadParcelLockers(lang?)` — reads the lockers off `checkout_locker`'s `entity` attribute as `ParcelLocker[] = {oeId, name}` (see §3.3). Falls back to `[]`, which leaves the caller on the local `PARCEL_LOCKERS` list |
 | `src/lib/oneentry/checkout/DeliveryMethodInfoContext.tsx` | `DeliveryMethodInfoProvider` + `useDeliveryMethodInfo()` |
 | `src/lib/oneentry/checkout/field-bounds.ts` | `buildCheckoutBounds()` — maps the active OE form's `validators` onto the address / guest-contact schema fields (see §8a) |
 | `src/lib/oneentry/checkout/forms.ts` | `CHECKOUT_ORDER_FORMS` / `SAVED_ADDRESS_FORM` / `orderFormMarker()` / `CHECKOUT_FORM_MARKERS` — the single place checkout names a CMS form |
-| `src/lib/oneentry/forms/field-lookup.ts` | `visibleFields` / `fieldsOfType` / `soleFieldOfType` / `selectableEntityOptions` / `entityOptionIds` — find a form field by what it is rather than by its marker |
+| `src/lib/oneentry/checkout/order-form-data.ts` | `buildOrderFormData(payload, form, now?)` — pure assembly of the order body from the handoff payload plus the CMS form's own field definitions; returns `{ok:false, missing}` rather than posting a body OE would reject |
+| `src/lib/oneentry/forms/field-lookup.ts` | `visibleFields` / `fieldsOfType` / `soleFieldOfType` / `fieldByRole` / `markerForRole` / `selectableEntityOptions` / `entityOptionIds` — find a form field by what it is, or by the `field_role` an editor tagged it with, rather than by its marker |
+| `src/lib/oneentry/forms/load-form.ts` | `loadFormContentForLang(marker, lang)` — fetch + decode + cache with the locale passed in. **Server Actions and cached loaders must import this**, not `placeholders.ts`: that one resolves the locale via `next/root-params`, which is Server-Component-only and fails every route with "Invalid import" when pulled into a client graph |
 | `src/lib/oneentry/checkout/slot-window.ts` | `slotWindow()` — slot id (`HHMM-HHMM` or legacy name) → `[fromISO, toISO]` (see §3.3) |
 | `src/lib/oneentry/checkout/order-error.ts` | `explainOrderError()` — rewrites OE's raw attribute markers into the labels the shopper saw |
 | `src/app/data/stores.ts` | `Store` interface — carries optional `oeId?: number` (numeric OE page id) |

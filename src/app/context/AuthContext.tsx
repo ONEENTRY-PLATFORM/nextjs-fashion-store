@@ -96,6 +96,16 @@ interface AuthContextType {
   setAuthError: (msg: string | null) => void;
   openRegisterModal: () => void;
   closeRegisterModal: () => void;
+  /** Password-recovery modal (OE's code flow — see `auth/password-reset.ts`). */
+  resetPasswordModalOpen: boolean;
+  /**
+   * Open the recovery modal, carrying over whatever the shopper already typed
+   *  in the sign-in field so they don't retype their address.
+   */
+  openResetPasswordModal: (prefillEmail?: string) => void;
+  closeResetPasswordModal: () => void;
+  /** Address to prefill the recovery modal's first step with; `''` when none. */
+  resetPasswordEmail: string;
   login: (emailOrPhone: string, password: string) => Promise<boolean>;
   /**
    * Start the Google OAuth authorization-code flow — user is redirected to
@@ -316,6 +326,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [resetPasswordEmail, setResetPasswordEmail] = useState('');
 
   // StrictMode runs effects twice in dev. `reDefine` + `/me` is idempotent
   // (the SDK single-flights its internal refresh), but the guard still avoids
@@ -370,6 +382,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const openLoginModal = useCallback(() => {
     setRegisterModalOpen(false);
+    setResetPasswordModalOpen(false);
     setLoginModalOpen(true);
   }, []);
   const closeLoginModal = useCallback(() => {
@@ -381,9 +394,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const openRegisterModal = useCallback(() => {
     setLoginModalOpen(false);
+    setResetPasswordModalOpen(false);
     setRegisterModalOpen(true);
   }, []);
   const closeRegisterModal = useCallback(() => setRegisterModalOpen(false), []);
+
+  const openResetPasswordModal = useCallback((prefillEmail?: string) => {
+    // Only an address is worth carrying over — a phone or a bare identifier
+    // would land in a field the recovery flow validates as an e-mail.
+    setResetPasswordEmail(prefillEmail?.includes('@') ? prefillEmail.trim() : '');
+    setLoginModalOpen(false);
+    setRegisterModalOpen(false);
+    setAuthError(null);
+    setResetPasswordModalOpen(true);
+  }, []);
+  const closeResetPasswordModal = useCallback(() => setResetPasswordModalOpen(false), []);
 
   const login = useCallback(
     async (emailOrPhone: string, password: string): Promise<boolean> => {
@@ -409,6 +434,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(mergeOeUser(result.user));
         setIsLoggedIn(true);
         setLoginModalOpen(false);
+        // The recovery flow signs the shopper in on its last step — close it
+        // here too, so a successful reset doesn't leave the modal standing.
+        setResetPasswordModalOpen(false);
         return true;
       }
 
@@ -545,6 +573,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         closeLoginModal,
         openRegisterModal,
         closeRegisterModal,
+        resetPasswordModalOpen,
+        openResetPasswordModal,
+        closeResetPasswordModal,
+        resetPasswordEmail,
         authError,
         setAuthError,
         login,

@@ -34,7 +34,6 @@ export const LOGIN_MODAL_LABELS = {
   passwordLabel: 'Password',
   passwordPlaceholder: '••••••••',
   forgotPassword: 'Forgot password?',
-  forgotConfirm: 'Password reset link sent!',
   ctaSubmit: 'Log In',
   ctaLoading: 'Signing in…',
   switchPrompt: "Don't have an account?",
@@ -44,6 +43,52 @@ export const LOGIN_MODAL_LABELS = {
   closeLabel: 'Close',
   loadingOptions: 'Loading sign-in options',
   dismissError: 'Dismiss error',
+} as const;
+
+/**
+ * Password-recovery copy.
+ *
+ * Three steps, because that is what OneEntry's flow actually is: ask for the
+ * address, type the code it mails back, choose the new password. Nothing here
+ * promises a link — there is none. Keys resolve as `sign_in_reset_<key>` in the
+ * CMS `sign_in` set, so an editor rewords the whole flow without a deploy.
+ */
+export const PASSWORD_RESET_LABELS = {
+  title: 'Reset Password',
+  stepEmailHeading: 'Enter your email',
+  stepEmailHint: "We'll send a one-time code to the email on your account.",
+  emailLabel: 'Email Address',
+  emailPlaceholder: 'you@example.com',
+  sendCode: 'Send code',
+  sending: 'Sending…',
+  stepCodeHeading: 'Enter the code',
+  /**
+   * `%email%` is replaced with the address the code went to. The placeholder is
+   * `%…%`, not `{…}`: OE casts attribute values to JSON in Postgres, so a value
+   * containing a brace makes the public read of the *whole set* fail.
+   */
+  stepCodeHint: 'We sent a code to %email%.',
+  codeLabel: 'Code',
+  codePlaceholder: 'Code from the email',
+  verifyCode: 'Continue',
+  verifying: 'Checking…',
+  /** `%seconds%` is replaced with the remaining validity of the code. */
+  codeExpiresIn: 'The code expires in %seconds%s',
+  codeExpired: 'The code has expired — request a new one.',
+  resendCode: 'Send a new code',
+  stepPasswordHeading: 'Choose a new password',
+  passwordLabel: 'New Password',
+  passwordPlaceholder: 'Min. 8 characters',
+  confirmLabel: 'Repeat Password',
+  confirmPlaceholder: 'Repeat the password',
+  submit: 'Save password',
+  submitting: 'Saving…',
+  success: 'Password changed — signing you in…',
+  backToLogin: 'Back to sign in',
+  closeLabel: 'Close',
+  showPassword: 'Show password',
+  hidePassword: 'Hide password',
+  unavailable: 'Password recovery is unavailable for this store.',
 } as const;
 
 /** OAuth failure banner copy, keyed by the `?googleAuthError=` code family. */

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   entityOptionIds,
+  fieldByRole,
   fieldsOfType,
+  markerForRole,
   selectableEntityOptions,
   soleFieldOfType,
   visibleFields,
@@ -74,6 +76,32 @@ describe('fieldsOfType / soleFieldOfType', () => {
     const f = form([field({ marker: 'a', type: 'list' }), field({ marker: 'b', type: 'list', isVisible: false })]);
 
     expect(soleFieldOfType(f, 'list')?.marker).toBe('a');
+  });
+});
+
+describe('fieldByRole / markerForRole', () => {
+  /** Two same-typed fields that only the editor's `field_role` tells apart. */
+  const ADDRESS = form([
+    field({ marker: 'q7x', fields: { field_role: 'city' } }),
+    field({ marker: 'b12', position: 2, fields: { field_role: 'postcode' } }),
+    field({ marker: 'untagged', position: 3 }),
+  ]);
+
+  it('finds a field by the role an editor tagged it with', () => {
+    expect(fieldByRole(ADDRESS, 'city')?.marker).toBe('q7x');
+    expect(markerForRole(ADDRESS, 'postcode')).toBe('b12');
+  });
+
+  it('returns undefined for a role the form does not carry', () => {
+    expect(fieldByRole(ADDRESS, 'instructions')).toBeUndefined();
+    expect(markerForRole(ADDRESS, 'instructions')).toBeUndefined();
+    expect(markerForRole(undefined, 'city')).toBeUndefined();
+  });
+
+  it('ignores a hidden field even when it carries the role', () => {
+    const withHidden = form([field({ marker: 'h', isVisible: false, fields: { field_role: 'city' } })]);
+
+    expect(fieldByRole(withHidden, 'city')).toBeUndefined();
   });
 });
 

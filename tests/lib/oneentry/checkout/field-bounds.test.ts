@@ -5,34 +5,48 @@ import { createSchemas } from '@/app/utils/schemas';
 import { buildCheckoutBounds } from '@/lib/oneentry/checkout/field-bounds';
 import type { FormContent } from '@/lib/oneentry/forms/form-content';
 
-/** Minimal `FormContent` carrying just the limits under test. */
+/**
+ * Minimal `FormContent` carrying just the limits under test, keyed by the role
+ * an editor tagged each attribute with.
+ *
+ * The markers are deliberately not the tenant's: bounds are found through
+ * `field_role`, so a form whose attributes are called anything at all must
+ * still resolve.
+ */
 function form(limits: Record<string, { min?: number | null; max?: number | null }>): FormContent {
+  const fields = Object.entries(limits).map(([role, { min = null, max = null }], i) => ({
+    marker: `attr_${i}`,
+    type: 'string',
+    position: i + 1,
+    isVisible: true,
+    title: '',
+    placeholder: '',
+    fields: { field_role: role },
+    options: [],
+    limits: { required: true, min, max, email: false, trim: false },
+  }));
   return {
     title: '',
     titleForSite: '',
     successMessage: '',
     unsuccessMessage: '',
-    attributes: Object.fromEntries(
-      Object.entries(limits).map(([marker, { min = null, max = null }]) => [
-        marker,
-        { title: '', fields: {}, options: [], limits: { required: true, min, max, email: false } },
-      ]),
-    ),
+    attributes: Object.fromEntries(fields.map((f) => [f.marker, f])),
+    fields,
   };
 }
 
 const GUEST_HOME = form({
-  checkout_home_guest_full_name: { min: 2, max: 60 },
-  checkout_home_guest_phone: { min: 9, max: 15 },
-  checkout_home_guest_address_line1: { min: 10, max: 100 },
-  checkout_home_guest_city: { min: 2, max: 20 },
-  checkout_home_guest_post_code: { min: 5, max: 10 },
-  checkout_home_guest_special_instrations: { max: 200 },
+  fullName: { min: 2, max: 60 },
+  phone: { min: 9, max: 15 },
+  line1: { min: 10, max: 100 },
+  city: { min: 2, max: 20 },
+  postcode: { min: 5, max: 10 },
+  instructions: { max: 200 },
 });
 
 const SAVED_ADDRESSES = form({
-  user_addresses_recipient_name: { min: 1, max: 50 },
-  user_addresses_line_1: {},
+  fullName: { min: 1, max: 50 },
+  line1: {},
 });
 
 describe('buildCheckoutBounds', () => {
@@ -42,8 +56,8 @@ describe('buildCheckoutBounds', () => {
       method: 'home',
       forms: { checkout_home_delivery_guest: GUEST_HOME },
     });
-    expect(bounds.address?.line1).toEqual({ min: 10, max: 100 });
-    expect(bounds.address?.postcode).toEqual({ min: 5, max: 10 });
+    expect(bounds.address?.line1).toEqual({ min: 10, max: 100, trim: false });
+    expect(bounds.address?.postcode).toEqual({ min: 5, max: 10, trim: false });
   });
 
   it('reads user_addresses for a signed-in shopper', () => {
@@ -52,7 +66,7 @@ describe('buildCheckoutBounds', () => {
       method: 'home',
       forms: { user_addresses: SAVED_ADDRESSES, checkout_home_delivery_guest: GUEST_HOME },
     });
-    expect(bounds.address?.fullName).toEqual({ min: 1, max: 50 });
+    expect(bounds.address?.fullName).toEqual({ min: 1, max: 50, trim: false });
     // `user_addresses_line_1` is unbounded in OE — no bound must leak in from
     // the guest form.
     expect(bounds.address?.line1).toBeUndefined();
@@ -60,16 +74,18 @@ describe('buildCheckoutBounds', () => {
 
   it('picks the contact form matching the delivery method', () => {
     const forms = {
-      checkout_store_pickup_guest: form({ checkout_store_pickup_guest_phone: { min: 9, max: 15 } }),
-      checkout_locker_guest: form({ checkout_locker_guest_phone: { min: 7, max: 30 } }),
+      checkout_store_pickup_guest: form({ phone: { min: 9, max: 15 } }),
+      checkout_locker_guest: form({ phone: { min: 7, max: 30 } }),
     };
     expect(buildCheckoutBounds({ isLoggedIn: false, method: 'store', forms }).guestContact?.phone).toEqual({
       min: 9,
       max: 15,
+      trim: false,
     });
     expect(buildCheckoutBounds({ isLoggedIn: false, method: 'locker', forms }).guestContact?.phone).toEqual({
       min: 7,
       max: 30,
+      trim: false,
     });
   });
 

@@ -50,6 +50,10 @@ export const SERVER_ERROR_FALLBACKS = {
   noAuthOrGuestId: 'No auth or guest id',
   formSubmitFailed: 'Form submit failed',
   profileDisabled: 'OE_PROFILE is not enabled — set OE_PROFILE=1 in env and redeploy.',
+  passwordResetUnavailable: 'Password recovery is unavailable for this store',
+  passwordResetCodeFailed: "We couldn't send the code. Please try again.",
+  passwordResetCodeInvalid: 'The code is incorrect or has expired',
+  passwordResetFailed: "We couldn't change the password. Please try again.",
 } as const;
 
 export type ServerErrorKey = keyof typeof SERVER_ERROR_FALLBACKS;
@@ -84,6 +88,10 @@ const MARKERS: Record<ServerErrorKey, string> = {
   noAuthOrGuestId: 'server_errors_no_auth_or_guest_id',
   formSubmitFailed: 'server_errors_form_submit_failed',
   profileDisabled: 'server_errors_profile_disabled',
+  passwordResetUnavailable: 'server_errors_password_reset_unavailable',
+  passwordResetCodeFailed: 'server_errors_password_reset_code_failed',
+  passwordResetCodeInvalid: 'server_errors_password_reset_code_invalid',
+  passwordResetFailed: 'server_errors_password_reset_failed',
 };
 
 /**

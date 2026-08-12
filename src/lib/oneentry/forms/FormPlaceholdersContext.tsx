@@ -1,6 +1,7 @@
 'use client';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
+import { fieldByRole, type FieldRole } from './field-lookup';
 // From the client-safe module, not `./placeholders` — that one imports
 // `next/root-params`, which cannot appear in a client bundle.
 import { EMPTY_FORM_CONTENT, type FieldLimits, type FormContent, NO_FIELD_LIMITS } from './form-content';
@@ -63,6 +64,34 @@ export function useFieldPlaceholder(formMarker: string, attrMarker: string, fall
   const forms = useContext(FormPlaceholdersContext);
   const value = forms[formMarker]?.attributes?.[attrMarker]?.placeholder;
   return typeof value === 'string' && value.length > 0 ? value : fallback;
+}
+
+/**
+ * Placeholder and label of the field an editor tagged with a role.
+ *
+ * The address inputs are all `string` attributes with no structural tell, so
+ * the layout asks for "the postcode field" rather than naming the marker it
+ * expects. A role the form does not carry falls back to the shipped copy.
+ *
+ * @param formMarker           - Form the field belongs to.
+ * @param role                 - Role to look up, as authored in `field_role`.
+ * @param fallback             - Shipped copy for this input.
+ * @param fallback.label       - Shipped label.
+ * @param fallback.placeholder - Shipped placeholder.
+ * @returns The authored copy, or the fallback for whichever half is missing.
+ */
+export function useRoleField(
+  formMarker: string,
+  role: FieldRole,
+  fallback: { label?: string; placeholder?: string } = {},
+): { label: string; placeholder: string; marker: string | undefined } {
+  const forms = useContext(FormPlaceholdersContext);
+  const field = fieldByRole(forms[formMarker], role);
+  return {
+    label: field?.title || (fallback.label ?? ''),
+    placeholder: field?.placeholder || (fallback.placeholder ?? ''),
+    marker: field?.marker,
+  };
 }
 
 /**
