@@ -6,12 +6,59 @@ import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
 import { useCart } from '@/app/context/CartContext';
-import { CART_LINE_LABELS } from '@/app/data/commonLabels';
-import { CONFIRMATION_INFO_CARDS, CONFIRMATION_LABELS } from '@/app/data/confirmationLabels';
 import { useMounted } from '@/app/hooks/useMounted';
+import { CART_LINE_LABELS } from '@/app/pages/cart/copy';
 import { fmt } from '@/app/utils/formatPrice';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const CONFIRMATION_INFO_CARDS: ConfirmationInfoCard[] = [
+  {
+    iconKey: 'mail',
+    title: 'Confirmation Sent',
+    desc: 'A receipt has been sent to your email address.',
+  },
+  {
+    iconKey: 'package',
+    title: 'Processing',
+    desc: 'Your order is being picked and packed right now.',
+  },
+  {
+    iconKey: 'check',
+    title: 'Estimated Delivery',
+    desc: '2–5 business days to your chosen address.',
+  },
+];
+
+/**
+ * Post-purchase Confirmation page copy. Includes the three "what happens next"
+ * info cards — those are pure content and are exactly what marketing edits.
+ */
+
+interface ConfirmationInfoCard {
+  iconKey: 'mail' | 'package' | 'check';
+  title: string;
+  desc: string;
+}
+
+export const CONFIRMATION_LABELS = {
+  heading: 'Order Confirmed!',
+  subheading: "Thank you for your purchase. We're preparing your order now.",
+  orderIdLabel: 'Order ID',
+  itemsHeader: 'Your Items',
+  totalPaid: 'Total Paid',
+
+  // Loyalty
+  loyaltyPrefix: 'You earned',
+  loyaltyAmountSuffix: 'bonus points',
+  loyaltySuffix: 'with this order!',
+
+  // CTAs
+  ctaPrimary: 'Continue Shopping',
+  ctaPrimaryHref: '/',
+  ctaSecondary: 'New Arrivals',
+  ctaSecondaryHref: '/women/clothing',
+} as const;
 
 const ICON_MAP = {
   mail: <Mail size={20} />,

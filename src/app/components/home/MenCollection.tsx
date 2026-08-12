@@ -2,11 +2,11 @@
 
 import { ChevronRight } from 'lucide-react';
 
+import { CATALOG_VIEW_LABELS as CVL } from '@/app/components/catalog/copy';
+import { SECTION_TITLES } from '@/app/components/home/copy';
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
 import { HorizontalScroller } from '@/app/components/ui/HorizontalScroller';
 import { ACCENT_MEN as MEN_COLOR } from '@/app/constants/colors';
-import { CATALOG_VIEW_LABELS as CVL } from '@/app/data/commonLabels';
-import { SECTION_TITLES } from '@/app/data/sectionTitles';
 import { Link } from '@/lib/i18n/navigation';
 import type { SectionChrome } from '@/lib/oneentry/blocks/section-chrome';
 

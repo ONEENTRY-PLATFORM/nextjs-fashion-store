@@ -18,13 +18,8 @@ import {
   SALE_SORT_OPTIONS,
   type SaleCategory,
 } from '@/app/data/saleConfig';
-import {
-  SALE_CATEGORY_LABELS as CAT_FALLBACK,
-  SALE_DISCOUNT_LABELS as DL,
-  SALE_PAGE_LABELS,
-  SALE_SORT_LABELS,
-} from '@/app/data/salePageLabels';
 import { useMounted } from '@/app/hooks/useMounted';
+import { SALE_DISCOUNT_LABELS as DL , SALE_PAGE_LABELS , SALE_SORT_LABELS } from '@/app/pages/sale/copy';
 import {
   clearFilters,
   setFilters,
@@ -43,6 +38,18 @@ import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { useCountdown } from './sale/SaleCountdown';
 import { ColorPillDropdown, PillDropdown } from './sale/SaleFilterDropdowns';
 import { SaleHero } from './sale/SaleHero';
+
+export const SALE_CATEGORY_LABELS = {
+  all: 'All',
+  womenClothing: "Women's Clothing",
+  womenShoes: "Women's Shoes",
+  menClothing: "Men's Clothing",
+  menShoes: "Men's Shoes",
+  bags: 'Bags',
+  accessories: 'Accessories',
+} as const;
+
+const CAT_FALLBACK = SALE_CATEGORY_LABELS;
 
 const SALE_KEY = 'sale';
 

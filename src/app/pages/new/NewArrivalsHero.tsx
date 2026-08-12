@@ -1,8 +1,17 @@
 'use client';
 import CmsImage from '@/app/components/ui/CmsImage';
-import { NEW_ARRIVALS_HERO_LABELS } from '@/app/data/newArrivalsLabels';
 import type { NewArrivalsPageFromCms } from '@/lib/oneentry/catalog/new-arrivals-page';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+/**
+ * New Arrivals page UI copy.
+ */
+export const NEW_ARRIVALS_HERO_LABELS = {
+  imageAlt: 'New Arrivals editorial',
+  eyebrow: 'KEKIMORO',
+  heading: 'NEW ARRIVALS',
+  subheading: 'Latest fashion drops',
+} as const;
 
 const FALLBACK_HERO_IMAGE =
   'https://images.unsplash.com/photo-1699579091591-f64e682f8ed5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXclMjBhcnJpdmFscyUyMGZhc2hpb24lMjBlZGl0b3JpYWwlMjBsdXh1cnklMjBjbG90aGluZ3xlbnwxfHx8fDE3NzI0NTIzODV8MA&ixlib=rb-4.1.0&q=80&w=1080';

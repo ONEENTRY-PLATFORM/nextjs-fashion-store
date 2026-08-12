@@ -17,7 +17,6 @@ import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { ACCOUNT_PAGE_LABELS as APL, ACCOUNT_SECTION_TITLES } from '@/app/data/accountLabels';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
@@ -41,6 +40,30 @@ import {
 import { SubscriptionsSection } from './account/SubscriptionsSection';
 import { WaitingListSection } from './account/WaitingListSection';
 import { WishlistSection } from './account/WishlistSection';
+
+export const ACCOUNT_PAGE_LABELS = {
+  pageTitle: 'My Account',
+  signInPrompt: 'Please sign in to view your account',
+  signInCta: 'Sign In',
+  welcomeBack: 'Welcome back',
+  signOut: 'Sign Out',
+} as const;
+
+const APL = ACCOUNT_PAGE_LABELS;
+
+// ─── Sidebar / section names ────────────────────────────────────────────────
+export const ACCOUNT_SECTION_TITLES = {
+  myData: 'My Data',
+  myOrders: 'My Orders',
+  bonuses: 'My Bonuses',
+  wishlist: 'My Wishlist',
+  waitingList: 'Waiting List',
+  history: 'Purchase History',
+  service: 'Service Maintenance',
+  refer: 'Refer a Friend',
+  feedback: 'Feedback',
+  subscriptions: 'Subscription Management',
+} as const;
 
 type Section =
   | 'my-data'

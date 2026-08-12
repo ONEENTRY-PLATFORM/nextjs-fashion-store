@@ -222,10 +222,7 @@ describe('categoryPathToViewAllHref', () => {
 // ─── categoryPathToBreadcrumbs ──────────────────────────────────────────────
 // Pure function — imported directly, no mock needed.
 describe('categoryPathToBreadcrumbs', () => {
-  let categoryPathToBreadcrumbs: (
-    p: string | undefined,
-    genderHref?: string,
-  ) => Array<{ name: string; href?: string }>;
+  let categoryPathToBreadcrumbs: (p: string | undefined, genderHref?: string) => Array<{ name: string; href?: string }>;
   beforeEach(async () => {
     ({ categoryPathToBreadcrumbs } = await import('@/lib/oneentry/catalog/products'));
   });

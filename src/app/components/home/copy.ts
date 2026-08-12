@@ -1,9 +1,7 @@
-export interface SectionTitle {
-  eyebrow?: string;
-  title: string;
-  subtitle?: string;
-  viewAllHref: string;
-}
+/**
+ * Copy shared by this feature's components, overlaid by the OneEntry
+ * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
+ */
 
 export const SECTION_TITLES: Record<string, SectionTitle> = {
   bestSellers: {
@@ -22,3 +20,10 @@ export const SECTION_TITLES: Record<string, SectionTitle> = {
     viewAllHref: '/sale',
   },
 };
+
+export interface SectionTitle {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  viewAllHref: string;
+}

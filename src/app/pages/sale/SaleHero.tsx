@@ -2,7 +2,7 @@
 import { ChevronRight, Tag } from 'lucide-react';
 
 import CmsImage from '@/app/components/ui/CmsImage';
-import { SALE_PAGE_LABELS as L } from '@/app/data/salePageLabels';
+import { SALE_PAGE_LABELS as L } from '@/app/pages/sale/copy';
 import type { SalePageFromCms } from '@/lib/oneentry/catalog/sale-page';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { sanitizeHtml } from '@/lib/sanitize-html';

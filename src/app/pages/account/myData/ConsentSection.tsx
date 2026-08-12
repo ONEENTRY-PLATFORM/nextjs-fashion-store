@@ -1,8 +1,17 @@
 'use client';
 import { useAuth } from '@/app/context/AuthContext';
-import { CONSENT_LABELS } from '@/app/data/accountLabels';
 import { SectionTitle } from '@/app/pages/account/shared';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+// ─── My Data → Consent section ──────────────────────────────────────────────
+export const CONSENT_LABELS = {
+  title: 'Personal Data Consent',
+  consentDataProcessing: 'Consent for personal data processing',
+  consentCrossBorder: 'Consent for cross-border data transfer',
+  revokeWarning:
+    'If you revoke consent for personal data processing, your account will be scheduled for deletion within 30 days. ' +
+    'This action cannot be undone.',
+} as const;
 
 export function ConsentSection() {
   const L = useDict('user_account_personal_data_consent_', CONSENT_LABELS);

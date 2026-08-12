@@ -4,11 +4,18 @@ import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Product } from '@/app/components/product/ProductCard';
-import { HEADER_SEARCH_LABELS as HS } from '@/app/data/commonLabels';
 import { trackActivity } from '@/app/utils/track-activity';
 import { useRouter } from '@/lib/i18n/navigation';
 import { searchProductsAction } from '@/lib/oneentry/catalog/search-action';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+/** Header quick-search dropdown states. */
+export const HEADER_SEARCH_LABELS = {
+  searching: 'Searching…',
+  noResults: 'No results',
+} as const;
+
+const HS = HEADER_SEARCH_LABELS;
 
 /**
  * Shortest query worth sending to OE — one or two characters match almost

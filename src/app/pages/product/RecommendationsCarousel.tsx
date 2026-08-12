@@ -2,8 +2,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
 
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
+import { CAROUSEL_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
-import { CAROUSEL_LABELS } from '@/app/data/commonLabels';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 export function RecommendationsCarousel({ products }: { products: Product[] }) {

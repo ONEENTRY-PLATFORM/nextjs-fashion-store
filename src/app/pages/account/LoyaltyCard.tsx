@@ -2,11 +2,38 @@
 import React from 'react';
 
 import { type useAuth } from '@/app/context/AuthContext';
-import { LOYALTY_CARD_LABELS } from '@/app/data/accountLabels';
 import { snakeKey } from '@/lib/oneentry/labels/dict';
 import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, fmt } from './shared';
+
+// ─── Loyalty card widget ────────────────────────────────────────────────────
+export const LOYALTY_CARD_LABELS = {
+  loyaltyStatus: 'Loyalty Status',
+  discount: 'Discount',
+  bonuses: 'Bonuses',
+  perkDiscountTpl: (pct: number) => `${pct}% off every order`,
+  perkPlaceholder: 'Discount on every order',
+  purchasesPrefix: 'Purchases:',
+  nextLevelPrefix: 'Next level at',
+  moreToTierTpl: (left: string, tier: string) => `${left} more to ${tier} status`,
+  highestTier: 'You have reached the highest tier',
+  perks: {
+    // Entry-level for shoppers who haven't yet unlocked a paid tier.
+    // Intentionally soft — no discount, just the account basics.
+    Member: ['Save items to your wishlist', 'Order history at your fingertips', 'Personalised recommendations'],
+    // First bullet on paid tiers is `perkPlaceholder` on purpose — the
+    // LoyaltyCard swaps it for `${pct}% off every order` at render time,
+    // reading the real percentage from OE (`Discounts.marker.<tier>`).
+    // Hardcoding "5% off" here made every Bronze member look 5% regardless
+    // of what the merchant actually configured.
+    Bronze: ['Discount on every order', 'Free standard returns', 'Early access to sales'],
+    Silver: ['Discount on every order', 'Free returns & exchanges', 'Priority customer support'],
+    Gold: ['Discount on every order', 'Free express delivery', 'Dedicated personal stylist'],
+    Platinum: ['Discount on every order', 'Same-day delivery', 'Exclusive VIP events & previews'],
+  } as Record<string, readonly string[]>,
+  tierOrder: ['Member', 'Bronze', 'Silver', 'Gold', 'Platinum'] as const,
+} as const;
 
 // Backward-compat re-exports for any code still importing them from this module.
 export const TIER_PERKS = LOYALTY_CARD_LABELS.perks;

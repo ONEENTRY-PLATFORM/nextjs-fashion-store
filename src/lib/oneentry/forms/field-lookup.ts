@@ -78,10 +78,7 @@ export function soleFieldOfType(
  *          role — which means the layout has a slot the form does not fill, and
  *          the caller should say so rather than guess a marker.
  */
-export function fieldByRole(
-  form: FormContent | undefined | null,
-  role: FieldRole,
-): FormAttributeContent | undefined {
+export function fieldByRole(form: FormContent | undefined | null, role: FieldRole): FormAttributeContent | undefined {
   return visibleFields(form).find((f) => f.fields[FIELD_ROLE_MARKER] === role);
 }
 

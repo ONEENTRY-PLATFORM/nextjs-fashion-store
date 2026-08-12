@@ -2,12 +2,23 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-import { SOCIAL_NETWORKS_LABELS } from '@/app/data/accountLabels';
 import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '@/app/data/socialProviderRegistry';
 import { useAuthProviders } from '@/app/hooks/useAuthProviders';
 import { SectionTitle } from '@/app/pages/account/shared';
 import { startGoogleOAuth } from '@/lib/google-auth';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+// ─── My Data → Social Networks section ──────────────────────────────────────
+export const SOCIAL_NETWORKS_LABELS = {
+  title: 'Connected Social Accounts',
+  connectedBadge: 'Connected',
+  connect: 'Connect',
+  disconnect: 'Disconnect',
+  errorConnect: 'Failed to connect Google',
+  loading: 'Loading…',
+  emptyProviders: 'No social sign-in providers configured.',
+  comingSoon: 'Coming soon',
+} as const;
 
 // Local persistence key for the "connected" badge. OE doesn't expose a
 // per-user `linkedProviders` field on this tenant, so we remember the link

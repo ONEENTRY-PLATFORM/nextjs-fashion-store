@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/data/commonLabels';
+import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/components/catalog/copy';
 import { strikeColor } from '@/app/utils/colorUtils';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 

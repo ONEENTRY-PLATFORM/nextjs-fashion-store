@@ -2,9 +2,17 @@
 import Image from 'next/image';
 import React from 'react';
 
-import { SPECIAL_OFFERS_LABELS } from '@/app/data/productPageLabels';
 import type { SpecialOffer } from '@/app/data/specialOffers';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+// ─── ProductSpecialOffers ───────────────────────────────────────────────────
+export const SPECIAL_OFFERS_LABELS = {
+  sectionTitle: 'Special Offers',
+  limitedTime: 'Limited Time',
+  bundleBadge: 'BUNDLE',
+  bundlePrice: 'Bundle price',
+  completeLook: 'Complete the Look',
+} as const;
 
 interface ProductSpecialOffersProps {
   offers: SpecialOffer[];

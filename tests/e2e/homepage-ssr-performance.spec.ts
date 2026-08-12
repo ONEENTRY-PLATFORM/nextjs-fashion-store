@@ -51,9 +51,9 @@ test.describe('Homepage critical path', () => {
 
   test('declared icons resolve to real files, not the 404 page', async ({ page, request }) => {
     await page.goto('/');
-    const hrefs = await page.locator('link[rel~="icon"], link[rel="shortcut icon"]').evaluateAll((nodes) =>
-      nodes.map((n) => (n as HTMLLinkElement).getAttribute('href') ?? ''),
-    );
+    const hrefs = await page
+      .locator('link[rel~="icon"], link[rel="shortcut icon"]')
+      .evaluateAll((nodes) => nodes.map((n) => (n as HTMLLinkElement).getAttribute('href') ?? ''));
     expect(hrefs.length).toBeGreaterThan(0);
 
     for (const href of hrefs) {

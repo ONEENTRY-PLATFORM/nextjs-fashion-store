@@ -3,10 +3,7 @@ import { CheckCircle, ChevronDown, Clock, MapPin, Store } from 'lucide-react';
 
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { PICKUP_PERKS, type PickupStore } from '@/app/data/checkoutConfig';
-import {
-  DELIVERY_METHOD_SHARED_LABELS as SH,
-  DELIVERY_METHOD_STORE_LABELS as L_FALLBACK,
-} from '@/app/data/checkoutLabels';
+import { DELIVERY_METHOD_SHARED_LABELS as SH,DELIVERY_METHOD_STORE_LABELS as L_FALLBACK  } from '@/app/pages/checkout/copy';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 

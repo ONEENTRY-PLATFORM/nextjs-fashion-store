@@ -2,9 +2,28 @@
 import { CreditCard, Lock } from 'lucide-react';
 import React, { forwardRef, useImperativeHandle, useState } from 'react';
 
-import { PAYMENT_PARTS_LABELS } from '@/app/data/checkoutLabels';
 import { useSchemas } from '@/app/utils/useFormMessages';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const PAYMENT_PARTS_LABELS = {
+  cardNumber: 'Card Number',
+  cardholderName: 'Cardholder Name',
+  expiry: 'Expiry',
+  cvv: 'CVV',
+  placeholderCardNumber: '1234 5678 9012 3456',
+  placeholderCardholder: 'Jane Smith',
+  placeholderExpiry: 'MM/YY',
+  placeholderCvv: '•••',
+  encryptionNote: 'Your card details are encrypted and secure (CloudPayments)',
+  qrScanHint: 'Scan with your banking app via Faster Payment System (FPS)',
+  qrSecureNote: 'Instant & secure transfer',
+  installmentsCount: 'Number of Installments',
+  installmentsTrust: '0% interest · No hidden fees',
+  installmentsMonthlyPrefix: '~$',
+  installmentsMonthlySuffix: '/ month for',
+  installmentsMonthsSuffix: 'months',
+  installmentsMonthShort: 'mo',
+} as const;
 
 // `PayMethod` used to live here — a hardcoded union of `'card-delivery' |
 // 'apple-pay' | 'google-pay' | 'installment' | …`. Nothing imported it, and

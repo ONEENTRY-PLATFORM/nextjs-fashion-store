@@ -262,7 +262,7 @@ When `reviews.length > 0` it renders:
 
 When `productReviews.length === 0`, the right-hand column of `ProductReviewsSection` (`src/app/pages/product/ProductReviewsSection.tsx`) renders a dashed-border card containing:
 
-- Heading: `L.emptyHeading` ("No reviews yet") from `PRODUCT_REVIEWS_LABELS` (`src/app/data/productPageLabels.ts`).
+- Heading: `L.emptyHeading` ("No reviews yet") from `PRODUCT_REVIEWS_LABELS` (`src/app/components/product/copy.ts`).
 - Body copy: `L.emptyBody` ("Be the first to share your thoughts about this product.").
 
 The empty-state card has no button of its own. The left-column bordered "Write a Review" CTA (auth-gated via `ReviewsClient.requestWriteReview`) is the sole entry point for submitting a review when the list is empty.
@@ -303,7 +303,7 @@ Submit is wrapped in `useTransition` and runs **exactly two sequential** `submit
 2. `submitForm('review_feedback', [{marker:'body', value: body, type:'text'}, {marker:'occasions', value: selectedOccasions, type:'list'}])` — `selectedOccasions` is a `string[]` of OE marker values (`everyday | work | party | travel | sport`). `FormField.value` accepts `string | string[]`; the wire cast follows the existing sign-up action pattern.
    - Fails → `setSubmitError(res.error)`; the `review_rating` record already exists but has no matching feedback. `loadProductReviews` filters it out via the empty-body guard.
 
-Occasion chips display storefront-facing labels from `WRITE_REVIEW_LABELS.occasions` (`{ value, label }[]` in `src/app/data/productPageLabels.ts`); `value` matches the OE marker, `label` is the display copy rendered in the UI.
+Occasion chips display storefront-facing labels from `WRITE_REVIEW_LABELS.occasions` (`{ value, label }[]` in `src/app/pages/product/WriteReviewModal.tsx`); `value` matches the OE marker, `label` is the display copy rendered in the UI.
 
 Success path (both calls `ok:true`):
 

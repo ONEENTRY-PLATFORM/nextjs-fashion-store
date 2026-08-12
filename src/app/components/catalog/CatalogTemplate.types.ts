@@ -1,3 +1,4 @@
+import { type CATALOG_SORT_LABELS } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 
 export interface FilterOption {
@@ -90,8 +91,6 @@ export interface CatalogTemplateProps {
     categories: CrossSellCategory[];
   };
 }
-
-import { type CATALOG_SORT_LABELS } from '@/app/data/commonLabels';
 
 /**
  * Sort values paired with the `CATALOG_SORT_LABELS` key that words them.

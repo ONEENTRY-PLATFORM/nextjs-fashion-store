@@ -42,16 +42,6 @@ export function configureCurrency(next: { symbol?: string | null; code?: string 
 }
 
 /**
- * The pair currently in force. Exposed for tests and for callers that need the
- * raw values rather than a formatted string.
- *
- * @returns The active symbol and ISO code.
- */
-export function getActiveCurrency(): { symbol: string; code: string } {
-  return active;
-}
-
-/**
  * Currency accessors and formatters.
  *
  * `symbol` and `code` are getters, not frozen values: a module that reads them

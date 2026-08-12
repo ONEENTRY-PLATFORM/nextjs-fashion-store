@@ -16,12 +16,6 @@ import { NewArrivals } from '@/app/components/home/NewArrivals';
 import { ProductCard } from '@/app/components/product/ProductCard';
 import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
 import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
-import {
-  CATALOG_PAGINATION_LABELS,
-  CATALOG_SORT_LABELS,
-  CATALOG_VIEW_LABELS as CVL_FALLBACK,
-  COMMON_EMPTY_STATES,
-} from '@/app/data/commonLabels';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
@@ -42,6 +36,7 @@ export type {
   FilterGroup,
   FilterOption,
 } from './CatalogTemplate.types';
+import { CATALOG_SORT_LABELS , CATALOG_VIEW_LABELS as CVL_FALLBACK , COMMON_EMPTY_STATES } from '@/app/components/catalog/copy';
 import { CatalogAccentContext } from '@/app/context/CatalogAccentContext';
 import { setListMode as dispatchSetListMode, setViewCols as dispatchSetViewCols } from '@/app/store/catalogSlice';
 import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
@@ -55,6 +50,11 @@ import {
   serializeCatalogSearchParams,
   toggleFilterOption,
 } from '@/lib/oneentry/catalog/filters';
+
+export const CATALOG_PAGINATION_LABELS = {
+  /** `%current%` / `%total%` — the 1-based page number and page count. */
+  pageOf: 'Page %current% of %total%',
+} as const;
 
 export function CatalogTemplate({
   catalogKey,

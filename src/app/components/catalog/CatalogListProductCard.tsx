@@ -2,14 +2,13 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
+import { PRODUCT_CARD_LABELS,QUICK_VIEW_LABELS  } from '@/app/components/product/copy';
 import { type Product } from '@/app/components/product/ProductCard';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { SALE_COLOR } from '@/app/constants/colors';
 import { TIMINGS } from '@/app/constants/timings';
 import { useCart } from '@/app/context/CartContext';
 import { useWishlist } from '@/app/context/WishlistContext';
-import { PRODUCT_CARD_LABELS } from '@/app/data/commonLabels';
-import { QUICK_VIEW_LABELS } from '@/app/data/productPageLabels';
 import { useMounted } from '@/app/hooks/useMounted';
 import { hexToColorName } from '@/app/utils/colorNames';
 import { stripTrailingZeros } from '@/app/utils/formatPrice';

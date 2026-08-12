@@ -1,11 +1,7 @@
 import { unstable_cache } from 'next/cache';
 
 import { DELIVERY_PERKS, type ParcelLocker, PICKUP_PERKS } from '@/app/data/checkoutConfig';
-import {
-  DELIVERY_METHOD_HOME_LABELS,
-  DELIVERY_METHOD_LOCKER_LABELS,
-  DELIVERY_METHOD_STORE_LABELS,
-} from '@/app/data/checkoutLabels';
+import { DELIVERY_METHOD_HOME_LABELS , DELIVERY_METHOD_LOCKER_LABELS , DELIVERY_METHOD_STORE_LABELS } from '@/app/pages/checkout/copy';
 import { REVALIDATE_STORES } from '@/lib/isr';
 import { CHECKOUT_ORDER_FORMS, type CheckoutMethod } from '@/lib/oneentry/checkout/forms';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';

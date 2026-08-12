@@ -3,11 +3,14 @@ import { useState } from 'react';
 
 import CmsImage from '@/app/components/ui/CmsImage';
 import type { ShopCategory } from '@/app/data/categories';
-import { CATEGORY_SECTION_LABELS } from '@/app/data/commonLabels';
 import { useMounted } from '@/app/hooks/useMounted';
 import { Link } from '@/lib/i18n/navigation';
 import type { CategoryItemFromCms } from '@/lib/oneentry/blocks/category-section';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+export const CATEGORY_SECTION_LABELS = {
+  heading: 'Shop By Category',
+} as const;
 
 // Base delay (ms) before cards animate in — waits for the parent AnimatedSection fade-up (~650ms).
 // On back navigation sessionStorage='1' so animated=true and this is never used.

@@ -14,12 +14,8 @@ import {
   NEW_ARRIVALS_SORT_OPTIONS,
   type NewArrivalCategory,
 } from '@/app/data/newArrivalsConfig';
-import {
-  NEW_ARRIVALS_CATEGORY_LABELS as NACL_FALLBACK,
-  NEW_ARRIVALS_PAGE_LABELS,
-  NEW_ARRIVALS_SORT_LABELS,
-} from '@/app/data/newArrivalsLabels';
 import { useMounted } from '@/app/hooks/useMounted';
+import { NEW_ARRIVALS_SORT_LABELS } from '@/app/pages/new/copy';
 import { setFilters, setSort, setViewCols as dispatchSetViewCols } from '@/app/store/catalogSlice';
 import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import { genderFilterFromQuery, matchesGender } from '@/app/utils/gender-filter';
@@ -29,6 +25,39 @@ import type { NewArrivalsPageFromCms } from '@/lib/oneentry/catalog/new-arrivals
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { NewArrivalsHero } from './new/NewArrivalsHero';
+
+export const NEW_ARRIVALS_PAGE_LABELS = {
+  // Breadcrumb
+  breadcrumbHome: 'Home',
+  breadcrumbCurrent: 'New Arrivals',
+  stylesSuffix: 'styles',
+  // Sort/view controls
+  viewLabel: 'View:',
+  view3ColAria: '3-column view',
+  view4ColAria: '4-column view',
+  sortFallback: 'Sort',
+  sortMobileCta: 'Sort',
+  // Results
+  resultSingular: 'Result',
+  resultPlural: 'Results',
+  emptyMessage: 'No products in this category yet.',
+  // Editorial strip
+  editorialEyebrow: 'Always in stock — never out of style',
+  editorialHeading: 'New drops every week',
+  editorialBody:
+    'Subscribe to stay ahead of the curve. Get first access to new arrivals, exclusive launches, and members-only offers.',
+  newsletterPlaceholder: 'Your email address',
+  newsletterCta: 'Subscribe',
+} as const;
+
+export const NEW_ARRIVALS_CATEGORY_LABELS = {
+  all: 'All',
+  clothing: 'Clothing',
+  shoes: 'Shoes',
+  accessories: 'Accessories',
+} as const;
+
+const NACL_FALLBACK = NEW_ARRIVALS_CATEGORY_LABELS;
 
 const NEW_KEY = 'new-arrivals';
 type NewProduct = Product & { category: Exclude<NewArrivalCategory, 'All'> };

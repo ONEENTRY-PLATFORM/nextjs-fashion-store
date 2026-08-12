@@ -2,7 +2,7 @@
 import { ExternalLink, Package, X } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { HISTORY_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
+import { HISTORY_LABELS as L_FALLBACK } from '@/app/pages/account/history/copy';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 interface TrackingModalProps {

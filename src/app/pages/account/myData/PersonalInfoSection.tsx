@@ -2,12 +2,46 @@
 import { useState } from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { PERSONAL_INFO_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
-import { PERSONAL_INFO_SECTION_ARIA } from '@/app/data/commonLabels';
 import { EditBtn, Field, FormInput, SectionTitle } from '@/app/pages/account/shared';
 import { useFormMessages, useSchemas } from '@/app/utils/useFormMessages';
 import { useFormLabel } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const PERSONAL_INFO_SECTION_ARIA = {
+  save: 'Save personal information',
+  cancel: 'Cancel editing personal information',
+} as const;
+
+// ─── My Data → Personal Info section ────────────────────────────────────────
+export const PERSONAL_INFO_LABELS = {
+  title: 'Personal Information',
+  labelFirstName: 'First Name',
+  labelEmail: 'Email',
+  labelPhone: 'Phone',
+  labelDob: 'Date of Birth',
+  labelShoeSize: 'Shoe Size',
+  labelClothingSize: 'Clothing Size',
+  labelGender: 'Gender',
+  placeholderFirstName: 'Jane',
+  placeholderEmail: 'you@example.com',
+  placeholderPhone: '+44 20 0000 0000',
+  placeholderShoeSize: '38',
+  placeholderClothingSize: 'S',
+  saveChanges: 'Save Changes',
+  cancel: 'Cancel',
+  fieldName: 'Name',
+  fieldEmail: 'Email',
+  fieldPhone: 'Phone',
+  fieldDob: 'Date of Birth',
+  fieldGender: 'Gender',
+  fieldShoeSize: 'Shoe Size',
+  fieldClothingSize: 'Clothing Size',
+  fieldGenderFemale: 'Female',
+  fieldGenderMale: 'Male',
+  fieldEmpty: '—',
+} as const;
+
+const L_FALLBACK = PERSONAL_INFO_LABELS;
 
 const primaryBtn =
   'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';

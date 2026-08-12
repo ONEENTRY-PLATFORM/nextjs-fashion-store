@@ -2,8 +2,23 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { OFFLINE_PAGE_LABELS as L_FALLBACK } from '@/app/data/offlinePageLabels';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+/**
+ * Offline page UI copy (app/offline/page.tsx).
+ */
+export const OFFLINE_PAGE_LABELS = {
+  brand: 'KEKIMORO',
+  heading: 'No Internet Connection',
+  subtitle: "Check your Wi-Fi or mobile data and we'll get you back to shopping.",
+  checking: 'Checking connection',
+  nextCheckIn: 'Next check in',
+  retryChecking: 'Checking…',
+  retry: 'Try Now',
+  footerNote: 'Previously visited pages are available offline',
+} as const;
+
+const L_FALLBACK = OFFLINE_PAGE_LABELS;
 
 const CHECK_INTERVAL = 10; // seconds
 

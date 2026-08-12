@@ -17,21 +17,16 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
+import { PRODUCT_ACTION_LABELS } from '@/app/components/product/copy';
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { useWishlist } from '@/app/context/WishlistContext';
 import { CURRENCY } from '@/app/data/currencyConfig';
 import { type CatalogProduct, hexToColorName } from '@/app/data/productCatalog';
-import {
-  PRODUCT_ACCORDION_LABELS as PA,
-  PRODUCT_ACTION_LABELS,
-  PRODUCT_BREADCRUMB_LABELS,
-  PRODUCT_DEFAULTS as PD,
-  PRODUCT_PRICE_NOTE,
-} from '@/app/data/productPageLabels';
 import { type SpecialOffer } from '@/app/data/specialOffers';
 import { useAnnounce } from '@/app/hooks/useAnnounce';
+import { PRODUCT_BREADCRUMB_LABELS } from '@/app/pages/product/copy';
 import type { AppDispatch, RootState } from '@/app/store';
 import { recentlyViewedActions } from '@/app/store/recentlyViewedSlice';
 import { strikeColor } from '@/app/utils/colorUtils';
@@ -58,6 +53,39 @@ import { ReserveInStoreModal, type ReserveStore } from './product/ReserveInStore
 import { SizeGuideModal } from './product/SizeGuideModal';
 import { StarRating } from './product/StarRating';
 import { useProductPageUIState } from './product/useProductPageUIState';
+
+// UI-copy fallbacks for OE system-text keys that don't have a product-data
+// equivalent. Anything referring to a specific product (name/brand/price/size/
+// colour) is intentionally NOT here — that data must come from OneEntry, never
+// from a static dataset. Add fallbacks only for admin-controllable copy.
+export const PRODUCT_DEFAULTS = {
+  saveToWishlist: 'Save to Wishlist',
+  savedToWishlist: 'Saved to Wishlist',
+} as const;
+
+const PD = PRODUCT_DEFAULTS;
+
+// Product detail accordion section titles. Per-item content (description body,
+// delivery rows, care list) comes from OneEntry — the Specifications accordion
+// is built dynamically from product attributes.
+export const PRODUCT_ACCORDION_LABELS = {
+  specificationsTitle: 'Product Specifications',
+  descriptionTitle: 'Product Description',
+  deliveryTitle: 'Delivery & Returns',
+  careTitle: 'Care Instructions',
+} as const;
+
+const PA = PRODUCT_ACCORDION_LABELS;
+
+/**
+ * Product detail page copy.
+ * Delivery promises, common CTAs, accordion section titles.
+ */
+
+// Quick delivery snippets, the "Incl. VAT" note and other static rows are
+// now driven by the `product-card` OE system-text set. Only the price-note
+// fallback remains here for offline development.
+export const PRODUCT_PRICE_NOTE = 'Incl. VAT · Free delivery from $100';
 
 const DELIVERY_ICONS = {
   truck: <Truck size={14} />,

@@ -28,23 +28,16 @@ export default async function Page() {
   // carry the field labels, placeholders, option lists and `validators` the
   // delivery UI renders and validates against, so a shopper never gets past a
   // value OE would reject at "Place Order".
-  const [
-    stores,
-    deliveryMethodInfo,
-    parcelLockers,
-    scheduleAuthed,
-    scheduleGuest,
-    pageBlocks,
-    ...checkoutForms
-  ] = await Promise.all([
-    loadStores(),
-    loadDeliveryMethodInfo(),
-    loadParcelLockers(),
-    loadDeliverySchedule('authed'),
-    loadDeliverySchedule('guest'),
-    loadPageBlocksByUrl('delivery_method'),
-    ...CHECKOUT_FORM_MARKERS.map((marker) => loadFormContent(marker)),
-  ]);
+  const [stores, deliveryMethodInfo, parcelLockers, scheduleAuthed, scheduleGuest, pageBlocks, ...checkoutForms] =
+    await Promise.all([
+      loadStores(),
+      loadDeliveryMethodInfo(),
+      loadParcelLockers(),
+      loadDeliverySchedule('authed'),
+      loadDeliverySchedule('guest'),
+      loadPageBlocksByUrl('delivery_method'),
+      ...CHECKOUT_FORM_MARKERS.map((marker) => loadFormContent(marker)),
+    ]);
   // `as const` on the pair keeps `Object.fromEntries` on its typed overload —
   // a plain array falls through to the `any`-returning one.
   const formsByMarker: Record<string, FormContent> = Object.fromEntries(

@@ -1,6 +1,6 @@
 'use client';
 import type { Product } from '@/app/components/product/ProductCard';
-import { PRODUCT_BREADCRUMB_LABELS as PB } from '@/app/data/productPageLabels';
+import { PRODUCT_BREADCRUMB_LABELS as PB } from '@/app/pages/product/copy';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import { RecommendationsCarousel } from './RecommendationsCarousel';

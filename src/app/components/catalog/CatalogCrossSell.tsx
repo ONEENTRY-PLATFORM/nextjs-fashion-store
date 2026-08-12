@@ -2,8 +2,8 @@
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 
+import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/components/catalog/copy';
 import { BANNER_BG } from '@/app/constants/colors';
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/data/commonLabels';
 import { Link } from '@/lib/i18n/navigation';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { RESERVE_MODAL_LABELS } from '@/app/data/productPageLabels';
+import { RESERVE_MODAL_LABELS } from '@/app/pages/product/ReserveInStoreModal';
 
 /**
  * The reserve-in-store picker lists the tenant's real OneEntry stores (loaded

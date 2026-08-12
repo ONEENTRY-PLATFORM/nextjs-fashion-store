@@ -2,9 +2,16 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
-import { RECENTLY_VIEWED_LABELS as L_FALLBACK } from '@/app/data/productPageLabels';
 import { useMounted } from '@/app/hooks/useMounted';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+// ─── RecentlyViewedSection ──────────────────────────────────────────────────
+export const RECENTLY_VIEWED_LABELS = {
+  eyebrow: 'Your History',
+  heading: 'Recently Viewed',
+} as const;
+
+const L_FALLBACK = RECENTLY_VIEWED_LABELS;
 
 const RV_PER_ROW = 5;
 

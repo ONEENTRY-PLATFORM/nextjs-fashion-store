@@ -2,7 +2,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-import { OAUTH_ERROR_LABELS as OAE } from '@/app/data/authLabels';
+import { OAUTH_ERROR_LABELS as OAE } from '@/app/components/system/copy';
 import { useRouter } from '@/lib/i18n/navigation';
 import { completeGoogleSignIn } from '@/lib/oneentry/auth/actions';
 import { useT } from '@/lib/oneentry/labels/DictContext';

@@ -137,7 +137,7 @@ The OE tenant reuses the same canonical attribute *name* across attribute sets b
 
 ## 5. Sort options
 
-Declared per-catalog in `src/app/data/salePageLabels.ts` / `newArrivalsConfig.ts` / catalog config sections. Standard set:
+Declared per-catalog in `src/app/pages/sale/copy.ts` / `newArrivalsConfig.ts` / catalog config sections. Standard set:
 
 | UI label | `sortKey` sent to OE |
 | --- | --- |
@@ -351,7 +351,7 @@ Beyond the generic catalog engine, three routes carry extra business rules:
 
 **`/[...slug]` info pages (`InfoPage`)**
 
-- Static copy is pulled from `INFO_PAGE_LABELS`, `INFO_PAGE_DEMO_NOTICE`, `INFO_PAGE_HERO`, `INFO_PAGE_CTA`, `INFO_PAGE_SECTIONS`, `INFO_PAGE_FEATURE_CARDS` in `data/infoPageLabels.ts`. Additionally, the `[...slug]` shell now calls `loadPageBlocksByUrl(entry.slug)` (e.g. `about-us`, `faq`) for non-hub info entries and passes the result as `pageBlocks` to `<InfoPage>`, which renders any CMS-attached blocks below the Platform CTA section, just before `<Footer>` (see `ONEENTRY_INTEGRATION §5.2` — `loadPageByUrl` remains retained scaffolding for full page-attribute wiring).
+- Static copy is pulled from `INFO_PAGE_LABELS`, `INFO_PAGE_DEMO_NOTICE`, `INFO_PAGE_HERO`, `INFO_PAGE_CTA`, `INFO_PAGE_SECTIONS`, `INFO_PAGE_FEATURE_CARDS` in `pages/InfoPage.tsx`. Additionally, the `[...slug]` shell now calls `loadPageBlocksByUrl(entry.slug)` (e.g. `about-us`, `faq`) for non-hub info entries and passes the result as `pageBlocks` to `<InfoPage>`, which renders any CMS-attached blocks below the Platform CTA section, just before `<Footer>` (see `ONEENTRY_INTEGRATION §5.2` — `loadPageByUrl` remains retained scaffolding for full page-attribute wiring).
 - Layout: full-bleed **Hero** (Unsplash editorial image, dark overlay, breadcrumb `Home › Info`, H1, subtitle) → **OneEntry Demo Notice** beige bar (`Edit3` icon + strong / mid / strong / suffix run-on text + external `Explore OneEntry` link) → **Lead paragraph** → **Alternating text / image sections** (`SECTIONS.map`, image side flips per `imageRight` flag, eyebrow + rule + H2 + `body.split('\n\n')` paragraphs) → **dark Stats strip** (`IPL.stats` grid) → **Platform CTA** with 4 feature cards (`ICON_MAP: edit/layout/zap/globe`) and two outbound buttons (`ctaExplorePlatform`, `ctaSdkDocs`, both `target="_blank" rel="noopener noreferrer"`).
 
 **`/not-found` (`NotFoundPage`)**

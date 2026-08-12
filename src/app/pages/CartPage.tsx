@@ -17,12 +17,59 @@ type RenderRow = { kind: 'item'; item: CartItem } | { kind: 'bundle'; bundleId: 
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
-import { CART_PAGE_LABELS } from '@/app/data/cartLabels';
 import { useMounted } from '@/app/hooks/useMounted';
 import { fmt } from '@/app/utils/formatPrice';
 import { useRouter } from '@/lib/i18n/navigation';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const CART_PAGE_LABELS = {
+  pageTitle: 'Shopping Cart',
+  itemSingular: 'item',
+  itemPlural: 'items',
+
+  // Empty state
+  emptyTitle: 'Your cart is empty',
+  emptyCta: 'Start Shopping',
+  emptyCtaHref: '/women/clothing',
+
+  // Bulk controls
+  selectAll: 'Select All',
+  /** Pattern: "Remove Selected (N)" */
+  removeSelectedPrefix: 'Remove Selected',
+
+  // Order summary
+  orderSummary: 'Order Summary',
+  subtotal: 'Subtotal',
+  itemsDiscount: 'Items discount',
+  promo: 'Promo',
+  delivery: 'Delivery',
+  deliveryFree: 'Free',
+  total: 'Total',
+  /** "You'll earn N pts with this order" — only N is dynamic. */
+  loyaltyEarnTemplate: 'with this order',
+  loyaltyEarnPrefix: "You'll earn",
+  loyaltyEarnSuffix: 'pts',
+
+  // Promo
+  promoCheckboxLabel: 'I have a promo code',
+  promoPlaceholder: 'Enter code',
+  promoApplyButton: 'Apply',
+  promoAppliedPrefix: '✓ Promo applied',
+  promoAppliedFallback: 'discount',
+  promoInvalidError: 'Invalid promo code',
+
+  // Gift rows + summary lines that had no dictionary entry.
+  freeGift: 'Free gift',
+  qtyPrefix: 'Qty',
+  giftFree: 'Free',
+  loyaltyDiscount: 'Loyalty discount',
+  promoRemove: 'Remove',
+
+  // Footer CTA
+  proceedToCheckout: 'Proceed to Checkout',
+  trustNote: 'Secure checkout · Free returns · 30-day guarantee',
+} as const;
 
 export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const L = useDict('checkout_cart_page_', CART_PAGE_LABELS);

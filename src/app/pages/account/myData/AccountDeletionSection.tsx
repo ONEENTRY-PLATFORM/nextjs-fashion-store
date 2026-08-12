@@ -3,10 +3,29 @@ import { AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { ACCOUNT_DELETION_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import { SectionTitle } from '@/app/pages/account/shared';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useList } from '@/lib/oneentry/labels/DictContext';
+
+// ─── My Data → Account Deletion section ─────────────────────────────────────
+export const ACCOUNT_DELETION_LABELS = {
+  title: 'Account Deletion',
+  warningTitle: 'Warning: This action is permanent',
+  warningPoints: [
+    'Your loyalty card will be permanently blocked',
+    'All discounts and bonuses will be reset to zero',
+    'Service maintenance access will be revoked',
+    'Your card cannot be restored after deletion',
+  ] as readonly string[],
+  supportLabel: 'For assistance, call us at',
+  supportPhone: '+44 20 7946 0958',
+  ctaDelete: 'Delete Account',
+  confirmHeading: 'Are you absolutely sure?',
+  ctaConfirmDelete: 'Yes, Delete My Account',
+  ctaCancel: 'Cancel',
+} as const;
+
+const L_FALLBACK = ACCOUNT_DELETION_LABELS;
 
 export function AccountDeletionSection() {
   const L = useDict('user_account_deletion_', L_FALLBACK);

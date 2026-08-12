@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
 import { SALE_COLOR as SALE_RED } from '@/app/constants/colors';
 import { SALE_COLOR_OPTIONS } from '@/app/data/saleConfig';
-import { SALE_PAGE_LABELS } from '@/app/data/salePageLabels';
+import { SALE_PAGE_LABELS } from '@/app/pages/sale/copy';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;

@@ -3,8 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import CmsImage from '@/app/components/ui/CmsImage';
-import { FULLSCREEN_VIEWER_LABELS as L_FALLBACK } from '@/app/data/productPageLabels';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const FULLSCREEN_VIEWER_LABELS = {
+  closeAria: 'Close',
+  photoPositionTpl: (current: number, total: number) => `${current + 1} / ${total}`,
+  photoAltTpl: (name: string, current: number, total: number) => `${name} – photo ${current + 1} of ${total}`,
+} as const;
+
+const L_FALLBACK = FULLSCREEN_VIEWER_LABELS;
 
 interface FullscreenViewerProps {
   images: string[];

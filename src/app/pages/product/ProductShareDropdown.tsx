@@ -3,8 +3,19 @@ import { Check, Link2, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
-import { SHARE_DROPDOWN_LABELS } from '@/app/data/productPageLabels';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+// ─── ProductShareDropdown ───────────────────────────────────────────────────
+export const SHARE_DROPDOWN_LABELS = {
+  triggerLabel: 'Share',
+  copyLink: 'Copy link',
+  linkCopied: 'Link copied!',
+  facebook: 'Facebook',
+  twitter: 'X (Twitter)',
+  pinterest: 'Pinterest',
+  whatsapp: 'WhatsApp',
+  twitterShortName: 'X',
+} as const;
 
 const ShareIcon = ({ src, alt }: { src: string; alt: string }) => (
   <Image src={src} alt={alt} width={14} height={14} unoptimized />

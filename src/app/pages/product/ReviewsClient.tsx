@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 
+import { PRODUCT_REVIEWS_LABELS as L_FALLBACK } from '@/app/components/product/copy';
 import type { ProductReview } from '@/app/components/product/ProductCard';
 import { useAuth } from '@/app/context/AuthContext';
-import { PRODUCT_REVIEWS_LABELS as L_FALLBACK } from '@/app/data/productPageLabels';
 import { canReviewProduct } from '@/app/utils/review-eligibility';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 

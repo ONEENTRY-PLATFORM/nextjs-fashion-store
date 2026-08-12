@@ -2,10 +2,11 @@
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useRef } from 'react';
 
+import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
+import { HORIZONTAL_SCROLLER_LABELS } from '@/app/components/ui/copy';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { useCart } from '@/app/context/CartContext';
 import { extractCmsProductId } from '@/app/data/cms-product-id-map';
-import { CATALOG_VIEW_LABELS, HORIZONTAL_SCROLLER_LABELS } from '@/app/data/commonLabels';
 import { hexToColorName } from '@/app/utils/colorNames';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 

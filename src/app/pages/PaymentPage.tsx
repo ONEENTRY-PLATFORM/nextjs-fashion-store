@@ -8,11 +8,10 @@ import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
-import { ORDER_SUMMARY_LABELS } from '@/app/data/checkoutLabels';
 import { extractCmsProductId } from '@/app/data/cms-product-id-map';
-import { CART_LINE_LABELS } from '@/app/data/commonLabels';
 import { PAYMENT_PAGE_LABELS } from '@/app/data/paymentMethodsConfig';
 import { useMounted } from '@/app/hooks/useMounted';
+import { CART_LINE_LABELS } from '@/app/pages/cart/copy';
 import { fmt } from '@/app/utils/formatPrice';
 import { getOrCreateGuestId } from '@/app/utils/guest-id';
 import { trackActivity } from '@/app/utils/track-activity';
@@ -27,6 +26,16 @@ import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
+
+export const ORDER_SUMMARY_LABELS = {
+  heading: 'Order Summary',
+  qtyPrefix: 'Qty',
+  sizePrefix: 'Size',
+  discount: 'Discount',
+  delivery: 'Delivery',
+  deliveryFree: 'Free',
+  total: 'Total',
+} as const;
 
 export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const OS = useDict('checkout_payment_summary_', ORDER_SUMMARY_LABELS);

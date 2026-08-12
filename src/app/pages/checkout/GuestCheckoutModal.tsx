@@ -1,8 +1,32 @@
 'use client';
 import { LogIn, ShoppingBag, UserPlus, X } from 'lucide-react';
 
-import { AUTH_LABELS } from '@/app/data/authLabels';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+/**
+ * Auth flow copy: Sign In, Create Account, Guest checkout choice.
+ * Consolidated so all three modals can be edited from one file.
+ */
+
+export const AUTH_LABELS = {
+  signIn: {
+    title: 'Sign In',
+    subtitle: 'Autofill address, track orders, earn bonuses',
+  },
+  register: {
+    title: 'Create Account',
+    subtitle: 'Join and get 10% off your first order',
+  },
+  guest: {
+    title: 'Continue as Guest',
+    subtitle: 'You can create an account after checkout',
+  },
+
+  // GuestCheckoutModal header
+  guestModalEyebrow: 'Checkout',
+  guestModalHeading: 'How would you like to continue?',
+  divider: 'or',
+} as const;
 
 interface GuestCheckoutModalProps {
   onClose: () => void;

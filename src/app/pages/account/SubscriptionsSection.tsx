@@ -2,10 +2,35 @@
 import React from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { SUBSCRIPTIONS_LABELS } from '@/app/data/accountLabels';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { SectionTitle } from './shared';
+
+// ─── Subscriptions section ──────────────────────────────────────────────────
+/**
+ * Flat on purpose. `mergeDict` overlays **string** entries only — a nested
+ * `{label, desc}` pair is structure to it and would stay frozen in code, which
+ * is exactly how these seven rows ended up un-editable. Flattening them to
+ * `<key>Label` / `<key>Desc` puts every string back under the convention:
+ * `subscription_management_email_newsletter_label`, and so on.
+ */
+export const SUBSCRIPTIONS_LABELS = {
+  title: 'Subscription Management',
+  emailNewsletterLabel: 'Email Newsletter',
+  emailNewsletterDesc: 'Trends, events, exclusive offers & new arrivals',
+  smsNotificationsLabel: 'SMS Notifications',
+  smsNotificationsDesc: 'Order updates, flash sales & special events',
+  pushNotificationsLabel: 'Push Notifications',
+  pushNotificationsDesc: 'Browser notifications for new arrivals & sales',
+  orderUpdatesLabel: 'Order Updates',
+  orderUpdatesDesc: 'Shipping status, delivery confirmations & returns',
+  newArrivalsLabel: 'New Arrivals',
+  newArrivalsDesc: 'Be first to know when new collections drop',
+  saleAlertsLabel: 'Sale Alerts',
+  saleAlertsDesc: 'Exclusive early access to sales & promotions',
+  loyaltyUpdatesLabel: 'Loyalty Updates',
+  loyaltyUpdatesDesc: 'Bonus points, tier upgrades & member rewards',
+} as const;
 
 /**
  * The toggles, in render order. Also the shape of {@link EMPTY_SUBS} and the

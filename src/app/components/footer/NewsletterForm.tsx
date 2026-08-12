@@ -1,10 +1,26 @@
 'use client';
 import { useState, useTransition } from 'react';
 
-import { NEWSLETTER_FORM_LABELS } from '@/app/data/commonLabels';
-import { useFieldPlaceholder,useFormLabel, useFormMessage } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder, useFormLabel, useFormMessage } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+/**
+ * Offline fallback for the footer newsletter. The live copy comes from the OE
+ * `subscribe_new_drops` form (field label/placeholder + the form's
+ * success/failure messages) — see `docs/HARDCODED_TEXTS.md` §4.3.
+ *
+ * `notConfigured` deliberately has no OE counterpart: it is shown exactly when
+ * OneEntry has no such form, so it could never be read from there.
+ */
+export const NEWSLETTER_FORM_LABELS = {
+  placeholder: 'Your email address',
+  submit: 'Subscribe',
+  pending: '...',
+  success: 'Subscribed!',
+  failure: 'Something went wrong.',
+  notConfigured: "Newsletter isn't set up yet — please check back soon.",
+} as const;
 
 /** OE form marker — the form lives on the `subscribe` page in the admin panel. */
 const FORM = 'subscribe_new_drops';

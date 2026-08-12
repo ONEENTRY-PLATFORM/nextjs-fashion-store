@@ -2,8 +2,24 @@
 import { AlertTriangle } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { ERROR_PAGE_LABELS as L_FALLBACK } from '@/app/data/errorPageLabels';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+/**
+ * Global Error page UI copy (app/error.tsx).
+ */
+export const ERROR_PAGE_LABELS = {
+  heading: 'Something went wrong',
+  body: "We couldn't load this page. Please try again or return to the homepage.",
+  tryAgain: 'Try Again',
+  goHome: 'Go Home',
+  homeHref: '/',
+  errorIdPrefix: 'Error ID:',
+  supportPrefix: 'If this keeps happening, please',
+  supportCtaText: 'contact support',
+  supportEmail: 'support@oneentry.cloud',
+} as const;
+
+const L_FALLBACK = ERROR_PAGE_LABELS;
 
 interface ErrorProps {
   error: Error & { digest?: string };

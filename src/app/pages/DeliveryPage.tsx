@@ -23,8 +23,8 @@ import {
   PICKUP_STORES,
   type PickupStore,
 } from '@/app/data/checkoutConfig';
-import { DELIVERY_METHOD_HOME_LABELS, DELIVERY_PAGE_LABELS } from '@/app/data/checkoutLabels';
 import { useMounted } from '@/app/hooks/useMounted';
+import { DELIVERY_METHOD_HOME_LABELS } from '@/app/pages/checkout/copy';
 import { useSchemas } from '@/app/utils/useFormMessages';
 import { useRouter } from '@/lib/i18n/navigation';
 import type { OeAddress } from '@/lib/oneentry/auth/actions';
@@ -39,6 +39,12 @@ import { DeliveryMethodLocker } from './checkout/DeliveryMethodLocker';
 import { DeliveryMethodStore } from './checkout/DeliveryMethodStore';
 import { GuestCheckoutModal } from './checkout/GuestCheckoutModal';
 import { type GuestContactFormState } from './checkout/GuestContactForm';
+
+export const DELIVERY_PAGE_LABELS = {
+  pageTitle: 'Delivery Method',
+  backToCart: '← Back to Cart',
+  continueToPayment: 'Continue to Payment',
+} as const;
 
 type DeliveryMethod = 'home' | 'store' | 'locker';
 

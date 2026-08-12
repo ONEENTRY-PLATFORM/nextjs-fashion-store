@@ -10,7 +10,6 @@ import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { useWishlist } from '@/app/context/WishlistContext';
 import { extractCmsProductId } from '@/app/data/cms-product-id-map';
-import { FAVORITES_PAGE_LABELS } from '@/app/data/favoritesLabels';
 import { useMounted } from '@/app/hooks/useMounted';
 import type { RootState } from '@/app/store';
 import { useRouter } from '@/lib/i18n/navigation';
@@ -21,6 +20,30 @@ import { FavoriteCard } from './favorites/FavoriteCard';
 import { FavoritesCarousel } from './favorites/FavoritesCarousel';
 import { FavoritesEmptyState } from './favorites/FavoritesEmptyState';
 import { RecentlyViewedSection } from './product/RecentlyViewedSection';
+
+/**
+ * Favorites page UI copy.
+ */
+export const FAVORITES_PAGE_LABELS = {
+  breadcrumbHome: 'Home',
+  breadcrumbCurrent: 'Favourites',
+  pageTitle: 'Favourites',
+  itemSingular: 'item',
+  itemPlural: 'items',
+  moveAllToBag: 'Move All to Bag',
+  clearAll: 'Clear All',
+  confirmClear: 'Are you sure?',
+  confirmYes: 'Yes',
+  confirmCancel: 'Cancel',
+  priceDropTitle: 'Price drop alert!',
+  priceDropBody: "Some items in your favourites have dropped in price. Don't miss out!",
+  recommendedHeading: 'Recommended for You',
+  trendingHeading: 'Trending Now',
+  recentlyViewedEyebrow: 'Your History',
+  recentlyViewedHeading: 'Recently Viewed',
+  ctaContinue: 'Continue Browsing',
+  ctaContinueHref: '/women/clothing',
+} as const;
 
 /* ─── Main Page ─── */
 export function FavoritesPage({

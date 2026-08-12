@@ -25,11 +25,9 @@ const importFresh = async () => {
 // ── Fallback constants (mirror checkoutLabels / checkoutConfig) ────────────────
 // We import them statically once; the mock above keeps their module untouched.
 import { DELIVERY_PERKS, PICKUP_PERKS } from '@/app/data/checkoutConfig';
-import {
-  DELIVERY_METHOD_HOME_LABELS,
-  DELIVERY_METHOD_LOCKER_LABELS,
-  DELIVERY_METHOD_STORE_LABELS,
-} from '@/app/data/checkoutLabels';
+import { DELIVERY_METHOD_HOME_LABELS , DELIVERY_METHOD_LOCKER_LABELS , DELIVERY_METHOD_STORE_LABELS } from '@/app/pages/checkout/copy';
+
+
 
 const FALLBACK_HOME_PERKS = DELIVERY_PERKS.map((p) => p.text);
 const FALLBACK_STORE_PERKS = PICKUP_PERKS.map((p) => p.text);

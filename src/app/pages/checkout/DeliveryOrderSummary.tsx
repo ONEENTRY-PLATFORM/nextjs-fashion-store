@@ -4,9 +4,26 @@ import Image from 'next/image';
 
 import { SALE_COLOR } from '@/app/constants/colors';
 import { type GiftCartItem, useCart } from '@/app/context/CartContext';
-import { DELIVERY_SUMMARY_LABELS } from '@/app/data/checkoutLabels';
 import { fmt } from '@/app/utils/formatPrice';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const DELIVERY_SUMMARY_LABELS = {
+  heading: 'Order Summary',
+  qtyPrefix: 'Qty',
+  sizePrefix: 'Size',
+  promoCodeLabel: 'Promo Code',
+  promoPlaceholder: 'Enter promo code',
+  promoApply: 'Apply',
+  promoInvalid: 'Invalid or expired code',
+  discount: 'Discount',
+  promo: 'Promo',
+  delivery: 'Delivery',
+  deliveryFree: 'Free',
+  total: 'Total',
+  freeGift: 'Free gift',
+  giftFree: 'Free',
+  loyaltyDiscount: 'Loyalty discount',
+} as const;
 
 interface Props {
   summaryOpen: boolean;

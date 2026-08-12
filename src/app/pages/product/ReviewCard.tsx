@@ -1,12 +1,17 @@
 import { Check, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
 
-import { REVIEW_CARD_LABELS as RC } from '@/app/data/commonLabels';
+import { PRODUCT_REVIEWS_LABELS } from '@/app/components/product/copy';
 import type { ProductReview } from '@/app/data/productCatalog';
-import { PRODUCT_REVIEWS_LABELS } from '@/app/data/productPageLabels';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { StarRating } from './StarRating';
+
+export const REVIEW_CARD_LABELS = {
+  verifiedPurchase: 'Verified purchase',
+} as const;
+
+const RC = REVIEW_CARD_LABELS;
 
 export function ReviewCard({ review }: { review: ProductReview }) {
   const L = useDict('customer_reviews_', PRODUCT_REVIEWS_LABELS);

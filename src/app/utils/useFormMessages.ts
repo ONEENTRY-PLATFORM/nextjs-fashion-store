@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react';
 
-import { VALIDATION_MESSAGES, type ValidationMessages } from '@/app/data/validationMessages';
+import type { ValidationMessages } from '@/app/utils/copy';
+import { VALIDATION_MESSAGES } from '@/app/utils/copy';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 import { type CheckoutBounds, createSchemas } from './schemas';

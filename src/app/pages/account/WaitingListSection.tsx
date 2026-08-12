@@ -7,13 +7,58 @@ import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { useWishlist } from '@/app/context/WishlistContext';
-import { WAITING_LIST_LABELS } from '@/app/data/accountLabels';
 import { type WaitingItem } from '@/app/data/userData';
 import { useRouter } from '@/lib/i18n/navigation';
 import { getWaitingListAction } from '@/lib/oneentry/catalog/waiting-list-action';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, fmt, SectionTitle } from './shared';
+
+// ─── Waiting List section ───────────────────────────────────────────────────
+export const WAITING_LIST_LABELS = {
+  title: 'Waiting List',
+  bannerEyebrow: 'Never Miss Out',
+  bannerHeading: 'Your Saved Items',
+  bannerHint: "We'll notify you when these items are back in stock or drop in price.",
+  filterBackInStock: 'Back in stock',
+  filterPriceDrop: 'Price drop',
+  filterArrivingSoon: 'Arriving soon',
+  statuses: {
+    back_in_stock: 'Back in Stock',
+    low_stock: 'Low Stock',
+    out_of_stock: 'Out of Stock',
+  },
+  emptyText: "Your waiting list is empty. Browse our store and save items to be notified when they're back in stock.",
+  viewProductPrefix: 'View product:',
+  sizeLabel: 'Size:',
+  colourLabel: 'Colour:',
+  addedPrefix: 'Added',
+  notifyEnableAria: 'Enable notifications for',
+  notifyDisableAria: 'Disable notifications for',
+  removeAriaPrefix: 'Remove',
+  removeAriaSuffix: 'from waiting list',
+  ctaAdded: 'Added',
+  ctaUnavailable: 'Unavailable',
+  ctaAddToCart: 'Add to Cart',
+  howSteps: [
+    {
+      step: '01',
+      title: 'Save Your Size',
+      desc: 'Add sold-out items to your waiting list with your preferred size and colour.',
+    },
+    {
+      step: '02',
+      title: 'Get Notified',
+      desc: 'Toggle the bell icon to receive alerts the moment stock is replenished.',
+    },
+    {
+      step: '03',
+      title: 'Shop First',
+      desc: 'Waiting list members get early access before items go back on general sale.',
+    },
+  ] as const,
+  loadingAria: 'Loading waiting list',
+} as const;
 
 export function WaitingListSection() {
   const L = useDict('waiting_list_', WAITING_LIST_LABELS);

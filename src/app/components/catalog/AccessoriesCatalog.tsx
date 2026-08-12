@@ -5,7 +5,8 @@
  * All rendering logic lives in ShoesCatalog; this file only overrides the
  * catalog title and breadcrumb label.
  */
-import { CATALOG_PAGE_LABELS as CL } from '@/app/data/catalogPageLabels';
+
+import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import {

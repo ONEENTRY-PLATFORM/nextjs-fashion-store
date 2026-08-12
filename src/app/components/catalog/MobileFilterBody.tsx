@@ -3,8 +3,8 @@ import { Search, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
 
+import { COMMON_EMPTY_STATES } from '@/app/components/catalog/copy';
 import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
-import { COMMON_EMPTY_STATES } from '@/app/data/commonLabels';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 

@@ -3,10 +3,14 @@ import Image from 'next/image';
 import { useCallback, useRef, useState } from 'react';
 
 import CmsImage from '@/app/components/ui/CmsImage';
-import { PRODUCT_GALLERY_LABELS } from '@/app/data/productPageLabels';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import { FullscreenViewer } from './FullscreenViewer';
+
+// ─── ProductGallery ─────────────────────────────────────────────────────────
+export const PRODUCT_GALLERY_LABELS = {
+  zoomHint: 'Click to zoom · Double-click for fullscreen',
+} as const;
 
 export function ProductGallery({
   images,

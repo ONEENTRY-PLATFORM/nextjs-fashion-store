@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
+import { CATALOG_PAGE_LABELS } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { JsonLd } from '@/app/components/system/JsonLd';
-import { CATALOG_PAGE_LABELS } from '@/app/data/catalogPageLabels';
 import { INFO_PAGE_META } from '@/app/data/infoPages';
 import {
   buildBreadcrumbSchema,
@@ -489,7 +489,9 @@ export default async function Page({ params, searchParams }: Props) {
 
     const pageTitle = isHub
       ? label('info_hub_title', 'Content Hub')
-      : (INFO_PAGE_META[entry.slug]?.title ?? cmsPage?.title ?? entry.slug);
+      // CMS first: `INFO_PAGE_META` is the offline fallback, so letting it win
+      // meant a title an editor changed in OneEntry never reached the page.
+      : (cmsPage?.title ?? INFO_PAGE_META[entry.slug]?.title ?? entry.slug);
     const crumbHome = label('info_breadcrumb_home', 'Home');
 
     const breadcrumbSchema = buildBreadcrumbSchema(

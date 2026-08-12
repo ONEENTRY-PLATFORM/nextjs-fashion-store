@@ -201,7 +201,6 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
   }
 }
 
-
 /**
  * Load a form's authored content for one locale.
  *

@@ -28,7 +28,10 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
-  timeout: 60_000,
+  // Per-test budget, sized to hold two or three navigations at the
+  // `navigationTimeout` below — most specs open `/`, clear storage, reload, and
+  // only then start asserting.
+  timeout: 240_000,
   expect: { timeout: 15_000 },
 
   use: {
@@ -42,7 +45,15 @@ export default defineConfig({
     // OneEntry is slow on a cold dev server — the first form / catalogue fetch
     // routinely takes several seconds.
     actionTimeout: 15_000,
-    navigationTimeout: 30_000,
+    // `/` is the expensive one: seven OneEntry loaders behind a Turbopack
+    // compile, and every spec's `beforeEach` starts there. Measured on a loaded
+    // dev machine (two sessions sharing one server) it answered in 6 s, 59 s and
+    // 70 s on three consecutive requests — so a 30 s ceiling failed specs whose
+    // subject was something else entirely, and failed them as a navigation
+    // timeout that reads exactly like a broken page. `global-setup.ts` warms the
+    // heavy routes, but its own budget is best-effort and the caches it fills
+    // (ISR, the 5-minute form cache) expire mid-suite.
+    navigationTimeout: 120_000,
   },
 
   projects: [

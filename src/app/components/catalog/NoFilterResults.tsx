@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
 
-import { COMMON_EMPTY_STATES as L } from '@/app/data/commonLabels';
+import { COMMON_EMPTY_STATES as L } from '@/app/components/catalog/copy';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 interface NoFilterResultsProps {

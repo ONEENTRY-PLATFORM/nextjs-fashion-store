@@ -6,13 +6,56 @@ import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { ACCENT_MEN, ACCENT_WOMEN as ACCENT, BANNER_BG } from '@/app/constants/colors';
 import type { Store } from '@/app/data/stores';
-import { STORE_LOCATIONS_LABELS } from '@/app/data/storesLabels';
 import { useRouter } from '@/lib/i18n/navigation';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import type { StoreLocationsPageFromCms } from '@/lib/oneentry/catalog/store-locations-page';
 import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { StoreCard } from './stores/StoreCard';
+
+/**
+ * Stores page + StoreCard UI copy.
+ */
+export const STORE_LOCATIONS_LABELS = {
+  // Hero
+  heroEyebrow: 'Visit Us In Store',
+  heroTitle: 'Our Stores',
+  heroSubtitleSuffix: 'locations across the UK — discover KEKIMORO in person.',
+  heroImageAlt: 'Kekimoro Store',
+  // Breadcrumb
+  breadcrumbHome: 'Home',
+  breadcrumbCurrent: 'Store Locations',
+  // Controls
+  searchPlaceholder: 'Search by city or postcode…',
+  cityAll: 'All',
+  storesFoundSingular: 'store found',
+  storesFoundPlural: 'stores found',
+  // Empty state
+  emptyHeading: 'No stores found',
+  emptyHint: 'Try a different city or postcode.',
+  clearFilters: 'Clear Filters',
+  // Services strip
+  allStoresOffer: 'All Stores Offer',
+  services: [
+    { icon: '👗', label: 'Try Before You Buy' },
+    { icon: '📦', label: 'Click & Collect' },
+    { icon: '↩️', label: 'Easy In-Store Returns' },
+    { icon: '🎁', label: 'Gift Wrapping' },
+  ] as const,
+  // Flagship callout
+  flagshipEyebrow: 'Flagship Experience',
+  flagshipName: 'Oxford Street',
+  flagshipImageAlt: 'Oxford Street Flagship',
+  flagshipBody:
+    'Our largest store across 3 floors. Book a free personal styling session with one of our expert stylists ' +
+    "and discover the full KEKIMORO collection — women's, men's, and exclusive in-store edits.",
+  flagshipDirections: 'Get Directions',
+  flagshipBookStyling: 'Book Styling',
+  // Bottom CTA
+  shopOnlineCopy: "Can't make it in? Shop everything online with free delivery over $80.",
+  shopOnlineCta: 'Shop Online',
+  shopOnlineHref: '/women/clothing',
+} as const;
 
 type StoreLocationsPageProps = {
   initialStores?: Store[];

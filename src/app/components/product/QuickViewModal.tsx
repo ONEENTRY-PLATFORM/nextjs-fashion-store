@@ -3,13 +3,13 @@ import { ChevronDown, Heart, X } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
+import { PRODUCT_ACTION_LABELS , PRODUCT_REVIEWS_LABELS , QUICK_VIEW_LABELS } from '@/app/components/product/copy';
+import { SIZE_DROPDOWN_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_WOMEN, BUY_GREEN, BUY_GREEN_HOVER, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { useQuickView } from '@/app/context/QuickViewContext';
 import { useWishlist } from '@/app/context/WishlistContext';
-import { SIZE_DROPDOWN_LABELS } from '@/app/data/commonLabels';
-import { PRODUCT_ACTION_LABELS, PRODUCT_REVIEWS_LABELS, QUICK_VIEW_LABELS } from '@/app/data/productPageLabels';
 import { useFocusTrap } from '@/app/hooks/useFocusTrap';
 import { StarRating } from '@/app/pages/product/StarRating';
 import { WriteReviewModal } from '@/app/pages/product/WriteReviewModal';

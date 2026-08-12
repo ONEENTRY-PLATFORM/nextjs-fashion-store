@@ -1,8 +1,8 @@
 'use client';
 import { CatalogTemplate, type FilterGroup } from '@/app/components/catalog/CatalogTemplate';
+import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { ACCENT_MEN, ACCENT_WOMEN } from '@/app/constants/colors';
-import { CATALOG_PAGE_LABELS as CL } from '@/app/data/catalogPageLabels';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
 import { useT } from '@/lib/oneentry/labels/DictContext';

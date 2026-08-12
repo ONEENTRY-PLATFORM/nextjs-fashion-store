@@ -25,7 +25,7 @@ Bottom line: this is a PWA in the sense Chrome Lighthouse awards an installabili
 | `app/icon.svg` / `app/favicon.ico` | Browser tab icons |
 | `src/app/components/system/ServiceWorkerRegistrar.tsx` | Client-side SW registration (called from `<Providers>`) |
 | `app/offline/page.tsx` | Client component rendering the offline UI shell |
-| `src/app/data/offlinePageLabels.ts` | Copy for the offline page |
+| `app/[locale]/offline/page.tsx` | Copy for the offline page (`OFFLINE_PAGE_LABELS`, next to its JSX) |
 
 ## 3. Manifest
 

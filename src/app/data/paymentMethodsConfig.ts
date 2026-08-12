@@ -43,13 +43,3 @@ export const PAYMENT_PAGE_LABELS = {
   // to reject with a raw marker name — so the shopper is told to retry instead.
   errorFormUnavailable: 'Checkout is temporarily unavailable. Please refresh the page and try again.',
 } as const;
-
-// `PAYMENT_METHODS_COPY` was removed: `PaymentMethodsList` renders each
-// account's own `title` / `description` from OE (`getPaymentAccountsAction`),
-// so the local per-identifier copy had no reader and only invited drift
-// between the storefront and the accounts configured in the admin panel.
-
-export const WALLET_BUTTON_LABELS = {
-  applePay: 'Pay with Apple Pay',
-  googlePay: 'Pay with Google Pay',
-} as const;

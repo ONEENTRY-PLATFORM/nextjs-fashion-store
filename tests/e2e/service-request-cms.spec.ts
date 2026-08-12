@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { SERVICE_LABELS } from '@/app/data/accountLabels';
+import { SERVICE_LABELS } from '@/app/pages/account/service/copy';
 
 import { clearState, login } from './helpers';
 

@@ -1,11 +1,16 @@
 'use client';
 import { X } from 'lucide-react';
 
+import { CATALOG_SORT_LABELS } from '@/app/components/catalog/copy';
 import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
-import { CATALOG_MOBILE_SORT_LABELS, CATALOG_SORT_LABELS } from '@/app/data/commonLabels';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { SORT_OPTIONS } from './CatalogTemplate.types';
+
+export const CATALOG_MOBILE_SORT_LABELS = {
+  heading: 'SORT BY',
+  closeSort: 'Close sort',
+} as const;
 
 interface CatalogMobileSortProps {
   isOpen: boolean;

@@ -6,11 +6,17 @@ import type { HeroSlideFromCms } from '@/lib/oneentry/blocks/hero-slides';
 
 type HeroSlide = HeroSlideFromCms;
 import CmsImage from '@/app/components/ui/CmsImage';
+import { CAROUSEL_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_MEN, ACCENT_WOMEN } from '@/app/constants/colors';
 import { TIMINGS } from '@/app/constants/timings';
-import { CAROUSEL_LABELS, HERO_SLIDER_DYNAMIC_ARIA } from '@/app/data/commonLabels';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+export const HERO_SLIDER_DYNAMIC_ARIA = {
+  /** `%index%` / `%total%` / `%headline%` — slide position and its headline. */
+  slideDescription: '%index% of %total%: %headline%',
+  slidePrefix: 'Slide',
+} as const;
 
 // ─── Gradient per alignment direction ────────────────────────────────────────
 const GRADIENTS = {

@@ -1,9 +1,22 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { SIZE_GUIDE_MODAL_LABELS as L_FALLBACK } from '@/app/data/productPageLabels';
 import { parseSizeGuide, serializeSizeGuide, SIZE_GUIDE_DATA } from '@/app/data/sizeGuide';
 import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
+
+// ─── SizeGuideModal (product page) ──────────────────────────────────────────
+export const SIZE_GUIDE_MODAL_LABELS = {
+  title: 'Size Guide',
+  measurementsNote: 'All measurements in inches. Model is 180cm and wearing size S.',
+  colHeaders: ['Size', 'US', 'Bust', 'Waist', 'Hip'] as const,
+  howToHeader: 'How to measure:',
+  howToBody:
+    'Bust — measure around the fullest part of your chest. ' +
+    'Waist — measure around your natural waistline. ' +
+    'Hip — measure around the fullest part of your hips.',
+} as const;
+
+const L_FALLBACK = SIZE_GUIDE_MODAL_LABELS;
 
 export function SizeGuideModal({ onClose }: { onClose: () => void }) {
   const L = useDict('size_guide_', L_FALLBACK);

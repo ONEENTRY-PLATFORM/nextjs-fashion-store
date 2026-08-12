@@ -8,7 +8,6 @@ import {
 import Image from 'next/image';
 import React from 'react';
 
-import { FOOTER_ARIA, FOOTER_DYNAMIC_ARIA, FOOTER_LABELS as FL } from '@/app/data/commonLabels';
 import {
   BOTTOM_LINKS,
   COMPANY_INFO,
@@ -27,6 +26,24 @@ import { footerBottomLinksFromMenu, type FooterColumn, footerColumnsFromMenu } f
 import { useFooterColumnsMenu, useFooterMenu } from '@/lib/oneentry/menus/FooterMenuContext';
 
 import { NewsletterForm } from './NewsletterForm';
+
+export const FOOTER_DYNAMIC_ARIA = {
+  /** `%network%` — the social network's display name. */
+  followOn: 'Follow us on %network%',
+} as const;
+
+export const FOOTER_ARIA = {
+  legalLinks: 'Legal links',
+} as const;
+
+export const FOOTER_LABELS = {
+  acceptedPaymentMethods: 'Accepted Payment Methods',
+  followUs: 'Follow Us',
+  customerSupport: 'Customer Support:',
+  newsletterHeading: 'Subscribe to new drops',
+} as const;
+
+const FL = FOOTER_LABELS;
 
 const PAYMENT_ICON_SRC: Record<string, string> = {
   Visa: '/icons/payment/visa.svg',

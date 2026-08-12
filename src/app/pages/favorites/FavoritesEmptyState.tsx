@@ -2,9 +2,18 @@
 import { Heart } from 'lucide-react';
 import Image from 'next/image';
 
-import { FAVORITES_EMPTY_LABELS } from '@/app/data/favoritesLabels';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const FAVORITES_EMPTY_LABELS = {
+  heading: 'Your Favorites List is Empty',
+  body: 'Save the pieces you love and come back to them any time. Start browsing to find your favourites.',
+  imageAlt: 'Empty wardrobe',
+  ctaWomen: "Browse Women's Collection",
+  ctaWomenHref: '/women/clothing',
+  ctaHome: 'Go to Home',
+  ctaHomeHref: '/',
+} as const;
 
 export function FavoritesEmptyState() {
   const L = useDict('favorites_page_empty_', FAVORITES_EMPTY_LABELS);

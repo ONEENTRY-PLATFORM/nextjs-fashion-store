@@ -4,8 +4,23 @@ import { useCallback, useEffect, useState } from 'react';
 
 import CmsImage from '@/app/components/ui/CmsImage';
 import type { Store } from '@/app/data/stores';
-import { STORE_CARD_LABELS as L_FALLBACK } from '@/app/data/storesLabels';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const STORE_CARD_LABELS = {
+  flagshipBadge: 'FLAGSHIP',
+  monSatSuffix: '(Mon–Sat)',
+  directions: 'Directions',
+  moreInfo: 'More Info',
+  // Modal
+  modalCloseLabel: 'Close',
+  sectionLocation: 'Location',
+  sectionHours: 'Opening Hours',
+  sectionServices: 'In-Store Services',
+  ctaGetDirections: 'Get Directions',
+  ctaClose: 'Close',
+} as const;
+
+const L_FALLBACK = STORE_CARD_LABELS;
 
 export function StoreCard({ store }: { store: Store }) {
   const L = useDict('store_location_card_', L_FALLBACK);

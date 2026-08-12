@@ -17,11 +17,7 @@ import { createContext, useContext } from 'react';
  * @param options - `next/navigation` navigate options.
  * @param method  - `push` (default) or `replace`.
  */
-export type TransitionNavigate = (
-  href: string,
-  options?: { scroll?: boolean },
-  method?: 'push' | 'replace',
-) => void;
+export type TransitionNavigate = (href: string, options?: { scroll?: boolean }, method?: 'push' | 'replace') => void;
 
 const TransitionNavigationContext = createContext<TransitionNavigate | null>(null);
 

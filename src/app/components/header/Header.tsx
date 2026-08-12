@@ -28,7 +28,6 @@ const QuickViewModal = dynamic(() =>
 );
 
 import { type Gender, type SubCat } from '@/app/data/categories';
-import { HEADER_ARIA } from '@/app/data/commonLabels';
 import {
   ACCOUNT_HREF,
   GENDER_NAV_HREFS,
@@ -43,6 +42,10 @@ import { Link, useRouter } from '@/lib/i18n/navigation';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 import { adaptHeaderMenuToMega } from '@/lib/oneentry/menus/adapt-header';
 import { useHeaderMenu } from '@/lib/oneentry/menus/HeaderMenuContext';
+
+export const HEADER_ARIA = {
+  mainNavigation: 'Main navigation',
+} as const;
 
 /**
  * Reads `?gender=` and hands it to the header, rendering nothing itself.

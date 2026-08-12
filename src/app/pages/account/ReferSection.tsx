@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
-import { REFER_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import { CURRENCY } from '@/app/data/currencyConfig';
 import { SITE_URL } from '@/app/data/seoData';
 import { fillTokens } from '@/app/utils/fillTokens';
@@ -12,6 +11,54 @@ import { useDict } from '@/lib/oneentry/labels/DictContext';
 import { useSiteSettings } from '@/lib/oneentry/SiteSettingsContext';
 
 import { ACCENT, SectionTitle } from './shared';
+
+// ─── Refer a Friend section ─────────────────────────────────────────────────
+export const REFER_LABELS = {
+  title: 'Refer a Friend',
+  eyebrow: 'Exclusive Offer',
+  bannerHeadingTpl: (amount: string) => `Give ${amount}, Get ${amount}`,
+  bannerBodyPrefix: 'Invite a friend to KEKIMORO. When they place their first order, you both receive a ',
+  // The currency symbol is not copy — it is rendered from the configured
+  // currency at the call site, so a shop that switches to € does not have to
+  // remember to reword this label too.
+  bannerBodyCreditSuffix: ' store credit',
+  bannerBodySuffix: '.',
+  perReferral: 'per referral',
+  // The `statFriendsInvited` / `statOrdersPlaced` / `statCreditsEarned` labels
+  // were dropped with the stats row they titled: nothing on this tenant counts
+  // referrals, so the row could only render fixed zeros.
+  // Link
+  linkLabel: 'Your Referral Link',
+  copyLink: 'Copy Link',
+  copied: 'Copied!',
+  // Code
+  codeLabel: 'Your Referral Code',
+  copyCode: 'Copy Code',
+  // Email
+  orInviteEmail: 'or invite by email',
+  emailLabel: 'Invite via Email',
+  emailHint: 'Enter one or more email addresses, separated by commas.',
+  emailPlaceholder: 'friend@example.com, another@example.com',
+  emailCta: 'Send Invitations',
+  emailSent: 'Invitations Sent!',
+  // How it works
+  howItWorks: 'How It Works',
+  // Flat strings so the dictionary can reach them. The third step needs the
+  // credit amount, which an admin-authored value cannot interpolate — hence a
+  // `%amount%` placeholder filled by `fillTokens` at render time.
+  howStep1Title: 'Share Your Link',
+  howStep1Desc: 'Send your unique referral link or code to friends and family.',
+  howStep2Title: 'Friend Signs Up',
+  howStep2Desc: 'Your friend creates an account and places their first order.',
+  howStep3Title: 'Both Get %amount%',
+  howStep3Desc: 'You receive %amount% store credit. Your friend gets %amount% off their order.',
+  // Terms
+  termsTpl: (minPurchase: number, months: number) =>
+    `* Store credit is applied after the referred friend completes their first purchase of ${CURRENCY.formatInteger(minPurchase)} or more. ` +
+    `Credits expire ${months} months after being issued. Cannot be combined with other promotional offers.`,
+} as const;
+
+const L_FALLBACK = REFER_LABELS;
 
 export function ReferSection() {
   const L = useDict('user_account_refer_', L_FALLBACK);

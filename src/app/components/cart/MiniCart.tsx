@@ -5,13 +5,46 @@ import { useEffect, useMemo } from 'react';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { QtyControl } from '@/app/components/ui/QtyControl';
 import { type CartItem, useCart } from '@/app/context/CartContext';
-import { MINI_CART_LABELS } from '@/app/data/cartLabels';
-import { MINI_CART_ARIA_LABELS, MINI_CART_DYNAMIC_ARIA } from '@/app/data/commonLabels';
 import { useFocusTrap } from '@/app/hooks/useFocusTrap';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { fmt } from '@/app/utils/formatPrice';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const MINI_CART_DYNAMIC_ARIA = {
+  /** `%name%` — the line item's product name. */
+  removeFromCart: 'Remove %name% from cart',
+} as const;
+
+export const MINI_CART_ARIA_LABELS = {
+  yourBag: 'Your bag',
+  removeBundle: 'Remove bundle',
+} as const;
+
+/**
+ * Cart-page UI labels. Editable content (not validation messages or aria-labels).
+ */
+export const MINI_CART_LABELS = {
+  heading: 'Your Bag',
+  emptyTitle: 'Your bag is empty',
+  emptyCta: 'Continue Shopping',
+  subtotal: 'Subtotal',
+  shippingNote: 'Shipping & discounts calculated at checkout',
+  checkout: 'Checkout',
+  viewFullCart: 'View Full Cart',
+  bundleLabel: 'Special Offer Bundle',
+  closeLabel: 'Close cart',
+  // Summary + gift rows. Word prefixes rather than `{x}` templates: OE drops
+  // the whole set when a value contains braces (see HARDCODED_TEXTS §0).
+  sizePrefix: 'Size',
+  qtyPrefix: 'Qty',
+  freeGift: 'Free gift',
+  free: 'Free',
+  loyaltyDiscount: 'Loyalty discount',
+  promoPrefix: 'Promo',
+  total: 'Total',
+  appliedAtCheckout: 'Applied at checkout',
+} as const;
 
 type RenderRow = { kind: 'item'; item: CartItem } | { kind: 'bundle'; bundleId: string; items: CartItem[] };
 

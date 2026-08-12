@@ -3,10 +3,26 @@
 import { Check } from 'lucide-react';
 
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
-import { CHECKOUT_STEPPER_LABELS } from '@/app/data/checkoutLabels';
-import { CHECKOUT_STEPPER_ARIA, CHECKOUT_STEPPER_DYNAMIC_ARIA } from '@/app/data/commonLabels';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const CHECKOUT_STEPPER_ARIA = {
+  checkoutProgress: 'Checkout progress',
+} as const;
+
+/** Appended to a step's own label, so each value is a standalone word group. */
+export const CHECKOUT_STEPPER_DYNAMIC_ARIA = {
+  stepSuffixCompleted: '(completed)',
+  stepSuffixCurrent: '(current step)',
+  stepSuffixUpcoming: '(upcoming)',
+} as const;
+
+export const CHECKOUT_STEPPER_LABELS = {
+  cart: 'Cart',
+  delivery: 'Delivery',
+  payment: 'Payment',
+  confirmation: 'Confirmation',
+} as const;
 
 /**
  * Path per step, keyed by the dictionary key — the copy is editable, the

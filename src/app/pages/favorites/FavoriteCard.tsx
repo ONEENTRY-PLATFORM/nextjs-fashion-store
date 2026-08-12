@@ -2,6 +2,8 @@
 import { AlertTriangle, Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
+import { PRODUCT_CARD_ARIA_LABELS , PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
@@ -10,11 +12,22 @@ import { useCart } from '@/app/context/CartContext';
 import { useQuickView } from '@/app/context/QuickViewContext';
 import { useWishlist, type WishlistItem } from '@/app/context/WishlistContext';
 import { extractCmsProductId } from '@/app/data/cms-product-id-map';
-import { CATALOG_VIEW_LABELS, PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS } from '@/app/data/commonLabels';
-import { FAVORITE_CARD_LABELS as FCL } from '@/app/data/favoritesLabels';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const FAVORITE_CARD_LABELS = {
+  badgeSale: 'SALE',
+  priceDrop: 'Price Drop',
+  outOfStock: 'Out of Stock',
+  removeFromFavourites: 'Remove from favourites',
+  addToCart: 'Add to Cart',
+  addedToCart: 'Added!',
+  quickView: 'Quick View',
+  sizeLabel: 'Size',
+} as const;
+
+const FCL = FAVORITE_CARD_LABELS;
 
 export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);

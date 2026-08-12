@@ -3,13 +3,43 @@ import { Edit2, MapPin, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { ADDRESSES_LABELS } from '@/app/data/accountLabels';
-import { ADDRESSES_SECTION_ARIA } from '@/app/data/commonLabels';
 import { FormInput, SectionTitle } from '@/app/pages/account/shared';
 import { useFormMessages } from '@/app/utils/useFormMessages';
 import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
 import { useRoleField } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const ADDRESSES_SECTION_ARIA = {
+  editAddress: 'Edit address',
+  deleteAddress: 'Delete address',
+} as const;
+
+// ─── My Data → Addresses section ────────────────────────────────────────────
+export const ADDRESSES_LABELS = {
+  title: 'My Addresses',
+  addAddress: 'Add Address',
+  newAddressHeading: 'New Address',
+  editAddressHeading: 'Edit Address',
+  save: 'Save',
+  add: 'Add',
+  cancel: 'Cancel',
+  errorRequired: 'Required',
+  errorInvalidPhone: 'Enter a valid phone number',
+  labelLabel: 'Label (e.g. Home, Office)',
+  labelFullName: 'Full Name',
+  labelPhone: 'Phone',
+  labelAddressLine1: 'Address Line 1',
+  labelCity: 'City',
+  labelPostalCode: 'Postal Code',
+  labelInstructions: 'Special Instructions (optional)',
+  placeholderLabel: 'Home',
+  placeholderFullName: 'Jane Smith',
+  placeholderPhone: '+44 20 0000 0000',
+  placeholderAddressLine1: 'Street name and number',
+  placeholderCity: 'London',
+  placeholderPostalCode: 'SW1A 1AA',
+  placeholderInstructions: 'Gate code, floor, etc.',
+} as const;
 
 type AddrForm = {
   name: string;

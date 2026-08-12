@@ -1,8 +1,13 @@
 'use client';
 import React from 'react';
 
-import { ERROR_BOUNDARY_LABELS } from '@/app/data/commonLabels';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const ERROR_BOUNDARY_LABELS = {
+  heading: 'Something went wrong',
+  tryAgain: 'Try Again',
+  unexpectedError: 'An unexpected error occurred.',
+} as const;
 
 /**
  * The default fallback UI.

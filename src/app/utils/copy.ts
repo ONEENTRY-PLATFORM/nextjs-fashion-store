@@ -1,4 +1,9 @@
 /**
+ * Copy shared by this feature's components, overlaid by the OneEntry
+ * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
+ */
+
+/**
  * Form messages — every zod schema error string, plus the generic save-failure
  * feedback shared by the account forms.
  *

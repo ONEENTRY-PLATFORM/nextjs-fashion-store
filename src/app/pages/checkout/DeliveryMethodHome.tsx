@@ -4,11 +4,8 @@ import { MapPin } from 'lucide-react';
 import { FormField } from '@/app/components/ui/FormField';
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { DELIVERY_PERKS, DELIVERY_TIME_SLOTS } from '@/app/data/checkoutConfig';
-import {
-  DELIVERY_METHOD_HOME_LABELS as L_FALLBACK,
-  DELIVERY_METHOD_SHARED_LABELS as SH,
-} from '@/app/data/checkoutLabels';
 import type { UserAddress } from '@/app/data/userData';
+import { DELIVERY_METHOD_HOME_LABELS as L_FALLBACK , DELIVERY_METHOD_SHARED_LABELS as SH } from '@/app/pages/checkout/copy';
 import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';

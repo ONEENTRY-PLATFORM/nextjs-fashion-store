@@ -3,11 +3,28 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
-import { BONUSES_LABELS as L } from '@/app/data/accountLabels';
 import { fetchBonusHistoryAction, type OeBonusTransaction } from '@/lib/oneentry/auth/actions';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, SectionTitle } from './shared';
+
+// ─── Bonuses section ────────────────────────────────────────────────────────
+export const BONUSES_LABELS = {
+  title: 'My Bonuses',
+  availableBonuses: 'Available Bonuses',
+  discountLevel: 'Discount Level',
+  transactionHistory: 'Bonus Transaction History',
+  emptyHistory: 'No bonus transactions yet.',
+  /** OE bonus-transaction type → shopper-facing wording. */
+  typeAccrual: 'Earned',
+  typeReversalUsage: 'Refunded',
+  typeUsage: 'Spent on order',
+  typeReduce: 'Adjustment',
+  typeReversalAccrual: 'Accrual reversed',
+  typeExpiration: 'Expired',
+} as const;
+
+const L = BONUSES_LABELS;
 
 /**
  * Built from the OE `my_bonuses` set so an editor can reword a transaction

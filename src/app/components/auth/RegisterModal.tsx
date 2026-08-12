@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
-import { REGISTER_MODAL_LABELS } from '@/app/data/authLabels';
 import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '@/app/data/socialProviderRegistry';
 import { useAuthProviders } from '@/app/hooks/useAuthProviders';
 import { useFocusTrap } from '@/app/hooks/useFocusTrap';
@@ -13,6 +12,38 @@ import { useSchemas } from '@/app/utils/useFormMessages';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useSignUpFormSchema } from '@/lib/oneentry/auth/SignUpFormSchemaContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const REGISTER_MODAL_LABELS = {
+  title: 'Create Account',
+  socialGoogle: 'Google',
+  socialApple: 'Apple',
+  socialFacebook: 'Facebook',
+  dividerOr: 'or',
+  firstNameLabel: 'First Name',
+  firstNamePlaceholder: 'Jane',
+  genderLabel: 'Gender',
+  genderFemale: 'Female',
+  genderMale: 'Male',
+  emailLabel: 'Email Address',
+  emailPlaceholder: 'you@example.com',
+  passwordLabel: 'Password',
+  passwordPlaceholder: 'Min. 8 characters',
+  emailSubscribe: 'Subscribe to promotional email newsletters about trends, events, and exclusive offers',
+  smsSubscribe: 'Subscribe to promotional SMS notifications about offers and customer events',
+  agreePrefix: 'I agree to the',
+  termsLink: 'Terms of Service',
+  agreeAnd: 'and',
+  privacyLink: 'Personal Data Processing & Protection Policy',
+  required: '*',
+  ctaSubmit: 'Register',
+  ctaLoading: 'Creating Account…',
+  switchPrompt: 'Already have an account?',
+  switchCta: 'Sign in',
+  errorGeneric: 'Something went wrong. Please try again.',
+  errorGoogleFailed: 'Google sign-in failed',
+  closeLabel: 'Close',
+  loadingOptions: 'Loading sign-up options',
+} as const;
 
 /**
  * Consent / subscription checkbox.

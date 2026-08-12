@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { TIMINGS } from '@/app/constants/timings';
 import { useAuth } from '@/app/context/AuthContext';
-import { LOGIN_MODAL_LABELS } from '@/app/data/authLabels';
 import { isFormBasedProvider, SOCIAL_PROVIDER_REGISTRY } from '@/app/data/socialProviderRegistry';
 import { useAuthProviders } from '@/app/hooks/useAuthProviders';
 import { useFocusTrap } from '@/app/hooks/useFocusTrap';
@@ -14,6 +13,28 @@ import { useSchemas } from '@/app/utils/useFormMessages';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useSignUpFormSchema } from '@/lib/oneentry/auth/SignUpFormSchemaContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const LOGIN_MODAL_LABELS = {
+  title: 'Sign In',
+  socialGoogle: 'Continue with Google',
+  socialApple: 'Continue with Apple',
+  socialFacebook: 'Continue with Facebook',
+  dividerOr: 'or',
+  identifierLabel: 'Phone or Email',
+  identifierPlaceholder: 'you@example.com or +44...',
+  passwordLabel: 'Password',
+  passwordPlaceholder: '••••••••',
+  forgotPassword: 'Forgot password?',
+  ctaSubmit: 'Log In',
+  ctaLoading: 'Signing in…',
+  switchPrompt: "Don't have an account?",
+  switchCta: 'Create one',
+  errorInvalidCredentials: 'Invalid email or password.',
+  errorGoogleFailed: 'Google sign-in failed',
+  closeLabel: 'Close',
+  loadingOptions: 'Loading sign-in options',
+  dismissError: 'Dismiss error',
+} as const;
 
 function SocialBtn({
   iconPath,

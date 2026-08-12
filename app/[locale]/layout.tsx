@@ -10,13 +10,12 @@ import { Header } from '@/app/components/header/Header';
 import { PageContent, TransitionProvider } from '@/app/components/system/PageTransition';
 import { Providers } from '@/app/components/system/Providers';
 import { ScrollToTop } from '@/app/components/system/ScrollToTop';
-import { A11Y_LABELS } from '@/app/data/commonLabels';
 import { OG_IMAGE, SITE_URL } from '@/app/data/seoData';
 import { loadSignUpFormSchema } from '@/lib/oneentry/auth/sign-up-form';
 // One dictionary for the whole storefront: every attribute marker the CMS
 // knows, flattened to `marker → value`. Screens no longer carry their own
 // label set — see `src/lib/oneentry/dictionary.ts`.
-import { getDictionary, getSiteSettings } from '@/lib/oneentry/dictionary';
+import { getDictionary, getSiteSettings, translate } from '@/lib/oneentry/dictionary';
 // Site-wide OE forms only. Everything here renders on every route, so the copy
 // travels with the root layout rather than a per-page provider; route-scoped
 // forms mount their own `FormPlaceholdersProvider` next to the page that needs
@@ -34,6 +33,11 @@ import {
 import { loadLocales } from '@/lib/oneentry/locales';
 import { loadMenu } from '@/lib/oneentry/menus/menus';
 import { themeCssVariables } from '@/lib/oneentry/site-settings';
+
+export const A11Y_LABELS = {
+  skipToContent: 'Skip to content',
+  errorLoadingImage: 'Error loading image',
+} as const;
 
 /**
  * The storefront's typeface.
@@ -212,7 +216,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:bg-black focus:px-4 focus:py-2 focus:text-xs focus:tracking-widest focus:text-white focus:uppercase"
         >
-          {A11Y_LABELS.skipToContent}
+          {translate(dict, 'header_aria_skip_to_content', A11Y_LABELS.skipToContent)}
         </a>
         <Suspense fallback={null}>
           <ScrollToTop />

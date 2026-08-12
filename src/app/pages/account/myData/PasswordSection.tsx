@@ -2,9 +2,25 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { PASSWORD_LABELS } from '@/app/data/accountLabels';
 import { EditBtn, FormInput, SectionTitle } from '@/app/pages/account/shared';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+// ─── My Data → Password section ─────────────────────────────────────────────
+export const PASSWORD_LABELS = {
+  title: 'Password',
+  currentPassword: 'Current Password',
+  newPassword: 'New Password',
+  confirmNewPassword: 'Confirm New Password',
+  newPlaceholder: 'Min. 8 characters',
+  confirmPlaceholder: 'Repeat password',
+  currentPlaceholder: '••••••••',
+  maskedDisplay: '••••••••••••',
+  errorMismatch: 'Passwords do not match.',
+  errorTooShort: 'Password must be at least 8 characters.',
+  successMessage: 'Password updated successfully!',
+  save: 'Save',
+  cancel: 'Cancel',
+} as const;
 
 const primaryBtn =
   'px-6 py-2.5 text-white text-xs tracking-[0.15em] uppercase focus-visible:outline-none bg-black rounded-none font-bold';

@@ -2,24 +2,32 @@
 import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
+import { PRODUCT_CARD_ARIA_LABELS , PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { SALE_COLOR } from '@/app/constants/colors';
 import { TIMINGS } from '@/app/constants/timings';
 import { useCart } from '@/app/context/CartContext';
 import { useWishlist, type WishlistItem } from '@/app/context/WishlistContext';
-import { WISHLIST_LABELS } from '@/app/data/accountLabels';
-import {
-  CATALOG_VIEW_LABELS,
-  PRODUCT_CARD_ARIA_LABELS,
-  PRODUCT_CARD_LABELS,
-  WISHLIST_DYNAMIC_ARIA,
-} from '@/app/data/commonLabels';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, SectionTitle } from './shared';
+
+export const WISHLIST_DYNAMIC_ARIA = {
+  quickViewPrefix: 'Quick view',
+} as const;
+
+// ─── Wishlist section ───────────────────────────────────────────────────────
+export const WISHLIST_LABELS = {
+  title: 'Wishlist',
+  emptyText: 'Your wishlist is empty',
+  emptyCta: 'Browse Collection',
+  emptyCtaHref: '/women/clothing',
+  saleBadge: 'SALE',
+} as const;
 
 export function WishlistSection() {
   const WL = useDict('user_account_wishlist_', WISHLIST_LABELS);

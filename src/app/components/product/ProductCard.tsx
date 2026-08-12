@@ -4,21 +4,17 @@ import Image from 'next/image';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
+import { PRODUCT_CARD_ARIA_LABELS , PRODUCT_CARD_LABELS,QUICK_VIEW_LABELS  } from '@/app/components/product/copy';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
+import { SIZE_DROPDOWN_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_WOMEN } from '@/app/constants/colors';
 import { TIMINGS } from '@/app/constants/timings';
 import { useCart } from '@/app/context/CartContext';
 import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
 import { useQuickView } from '@/app/context/QuickViewContext';
 import { useWishlist } from '@/app/context/WishlistContext';
-import {
-  CATALOG_VIEW_LABELS,
-  PRODUCT_CARD_ARIA_LABELS,
-  PRODUCT_CARD_LABELS,
-  SIZE_DROPDOWN_LABELS,
-} from '@/app/data/commonLabels';
-import { QUICK_VIEW_LABELS } from '@/app/data/productPageLabels';
 import { useMounted } from '@/app/hooks/useMounted';
 import { hexToColorName as colorName } from '@/app/utils/colorNames';
 import { stripTrailingZeros } from '@/app/utils/formatPrice';

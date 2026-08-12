@@ -18,6 +18,26 @@ export const SIZE_GUIDE_DATA: SizeRow[] = [
 /** Column order of the pipe-separated rows an editor types in the admin panel. */
 const SIZE_GUIDE_COLUMNS = ['size', 'us', 'bust', 'waist', 'hip'] as const;
 
+/** Quick View shows the metric chart: `size|chest|waist|hips`. */
+export const QUICK_VIEW_COLUMNS = ['size', 'chest', 'waist', 'hips'] as const;
+
+export type QuickViewSizeRow = Record<(typeof QUICK_VIEW_COLUMNS)[number], string>;
+
+/**
+ * Measurements, not copy — the same kind of data as {@link SIZE_GUIDE_DATA},
+ * which is why it lives here and not with the Quick View modal's wording. The
+ * fill script seeds `size_guide_quick_view_rows` from it, and cannot import a
+ * client component to reach it.
+ */
+export const QUICK_VIEW_SIZE_DATA: readonly QuickViewSizeRow[] = [
+  { size: 'XS', chest: '80–84', waist: '60–64', hips: '86–90' },
+  { size: 'S', chest: '84–88', waist: '64–68', hips: '90–94' },
+  { size: 'M', chest: '88–92', waist: '68–72', hips: '94–98' },
+  { size: 'L', chest: '92–96', waist: '72–76', hips: '98–102' },
+  { size: 'XL', chest: '96–100', waist: '76–80', hips: '102–106' },
+  { size: 'XXL', chest: '100–104', waist: '80–84', hips: '106–110' },
+];
+
 /**
  * Parse a CMS-authored measurement table.
  *

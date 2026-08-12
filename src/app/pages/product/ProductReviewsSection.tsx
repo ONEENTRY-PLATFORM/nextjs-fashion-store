@@ -2,8 +2,8 @@
 import { Star } from 'lucide-react';
 import React from 'react';
 
+import { PRODUCT_REVIEWS_LABELS } from '@/app/components/product/copy';
 import type { ProductReview } from '@/app/components/product/ProductCard';
-import { PRODUCT_REVIEWS_LABELS } from '@/app/data/productPageLabels';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ReviewCard } from './ReviewCard';

@@ -1,9 +1,23 @@
 'use client';
 import { FormField } from '@/app/components/ui/FormField';
-import { GUEST_CONTACT_LABELS as L_FALLBACK } from '@/app/data/checkoutLabels';
 import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
 import { useRoleField } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const GUEST_CONTACT_LABELS = {
+  heading: 'Your Contact Details',
+  defaultHint: "We'll use these to notify you when your order is ready.",
+  storePickupHint: "We'll text and email you when your order is ready for pickup.",
+  lockerHint: 'We need your phone for the locker PIN and email for the delivery receipt.',
+  labelFullName: 'Full Name',
+  labelPhone: 'Phone',
+  labelEmail: 'Email',
+  placeholderFullName: 'Jane Smith',
+  placeholderPhone: '+44 20 0000 0000',
+  placeholderEmail: 'jane@example.com',
+} as const;
+
+const L_FALLBACK = GUEST_CONTACT_LABELS;
 
 export interface GuestContactFormState {
   fullName: string;

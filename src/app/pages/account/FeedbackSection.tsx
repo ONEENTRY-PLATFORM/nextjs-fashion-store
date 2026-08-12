@@ -5,10 +5,56 @@ import React, { useMemo, useState } from 'react';
 
 import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
-import { FEEDBACK_LABELS } from '@/app/data/accountLabels';
 import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, fmt, SectionTitle } from './shared';
+
+// ─── Feedback section ───────────────────────────────────────────────────────
+export const FEEDBACK_LABELS = {
+  title: 'Feedback',
+  eyebrow: 'Your Voice Matters',
+  bannerHeading: 'Share Your Experience',
+  bannerHint: 'Help us improve by telling us what went well and what we can do better.',
+  ratingLabel: 'Overall Rating',
+  requiredMark: '*',
+  starAriaPrefix: 'Rate',
+  starAriaSuffix: 'stars',
+  rating: {
+    1: 'Very Dissatisfied',
+    2: 'Dissatisfied',
+    3: 'Neutral',
+    4: 'Satisfied',
+    5: 'Very Satisfied',
+  } as Record<number, string>,
+  categories: [
+    'Product Quality',
+    'Delivery',
+    'Customer Service',
+    'Website Experience',
+    'Returns & Refunds',
+    'Other',
+  ] as const,
+  labelCategory: 'Feedback Category',
+  labelOrder: 'Related Order',
+  optionalSuffix: '(optional)',
+  placeholderOrder: 'Select an order…',
+  labelMessage: 'Your Message',
+  messageHint: 'Please describe your experience in detail. Minimum 20 characters.',
+  placeholderMessage: 'Tell us what you loved or what we can improve…',
+  charsNeededTpl: 'more characters needed',
+  charsCounterTpl: '/ 500',
+  howStep1Title: 'Rate Your Experience',
+  howStep1Desc: 'Give a star rating that reflects your overall satisfaction.',
+  howStep2Title: 'Choose a Category',
+  howStep2Desc: 'Help us route your feedback to the right team.',
+  howStep3Title: 'We Take Action',
+  howStep3Desc: 'Our team reviews every submission and improves accordingly.',
+  submit: 'Submit Feedback',
+  requiredNote: 'Required fields',
+  thankTitle: 'Thank You!',
+  thankBody: 'Your feedback has been submitted. We truly appreciate you taking the time to share your experience.',
+  submitAnother: 'Submit Another',
+} as const;
 
 export function FeedbackSection() {
   const L = useDict('user_account_feedback_', FEEDBACK_LABELS);

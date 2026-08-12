@@ -82,7 +82,7 @@ export function HeaderMegaMenu({
                 {isSale ? (
                   <span className="flex items-center gap-1">
                     {cat}
-                    <span className="inline-block size-[5px] animate-pulse rounded-full bg-(--sale-yellow) align-middle" />
+                    <span className="inline-block size-1.25 animate-pulse rounded-full bg-(--sale-yellow) align-middle" />
                   </span>
                 ) : (
                   <>

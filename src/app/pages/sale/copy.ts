@@ -1,4 +1,17 @@
 /**
+ * Copy shared by this feature's components, overlaid by the OneEntry
+ * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
+ */
+
+export const SALE_SORT_LABELS = {
+  biggestDiscount: 'Biggest Discount',
+  priceLowToHigh: 'Price: Low to High',
+  priceHighToLow: 'Price: High to Low',
+  popularity: 'Popularity',
+  newArrivals: 'New Arrivals',
+} as const;
+
+/**
  * Sale page UI copy (filter bar, results count, promo block, recommendations).
  */
 export const SALE_PAGE_LABELS = {
@@ -61,39 +74,10 @@ export const SALE_PAGE_LABELS = {
   selectedSuffix: 'selected',
 } as const;
 
-export const SALE_CATEGORY_LABELS = {
-  all: 'All',
-  womenClothing: "Women's Clothing",
-  womenShoes: "Women's Shoes",
-  menClothing: "Men's Clothing",
-  menShoes: "Men's Shoes",
-  bags: 'Bags',
-  accessories: 'Accessories',
-} as const;
-
 export const SALE_DISCOUNT_LABELS = {
   d10_20: '10% – 20%',
   d20_30: '20% – 30%',
   d30_40: '30% – 40%',
   d40_50: '40% – 50%',
   d50plus: '50% and more',
-} as const;
-
-export const SALE_COLOR_LABELS = {
-  black: 'Black',
-  white: 'White',
-  brown: 'Brown',
-  beige: 'Beige',
-  navy: 'Navy',
-  gray: 'Gray',
-  red: 'Red',
-  pink: 'Pink',
-} as const;
-
-export const SALE_SORT_LABELS = {
-  biggestDiscount: 'Biggest Discount',
-  priceLowToHigh: 'Price: Low to High',
-  priceHighToLow: 'Price: High to Low',
-  popularity: 'Popularity',
-  newArrivals: 'New Arrivals',
 } as const;

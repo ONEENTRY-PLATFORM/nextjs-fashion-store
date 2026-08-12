@@ -1,8 +1,15 @@
 'use client';
 import { Minus, Plus } from 'lucide-react';
 
-import { QTY_CONTROL_LABELS as L } from '@/app/data/commonLabels';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+export const QTY_CONTROL_LABELS = {
+  groupLabel: 'Quantity',
+  decreaseLabel: 'Decrease quantity',
+  increaseLabel: 'Increase quantity',
+} as const;
+
+const L = QTY_CONTROL_LABELS;
 
 interface QtyControlProps {
   value: number;

@@ -2,10 +2,10 @@
 import { Check } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 
-import { SERVICE_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
 import type { ServiceCategory } from '@/app/data/serviceData';
+import { SERVICE_LABELS as L_FALLBACK } from '@/app/pages/account/service/copy';
 import { submitServiceRequestAction } from '@/lib/oneentry/catalog/service-request-submit-action';
-import { useFieldPlaceholder,useFormLabel, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder, useFormLabel, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 /**

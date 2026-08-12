@@ -3,8 +3,18 @@ import { AlertTriangle, X } from 'lucide-react';
 import { useEffect } from 'react';
 
 import { useCart } from '@/app/context/CartContext';
-import { CART_UNAVAILABLE_LABELS as L } from '@/app/data/cartLabels';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+/** Toast shown when OE reports cart lines that went out of stock. */
+export const CART_UNAVAILABLE_LABELS = {
+  removedPrefix: 'Removed from your bag:',
+  removedSuffix: '— no longer available.',
+  itemSingular: 'item',
+  itemPlural: 'items',
+  dismiss: 'Dismiss notice',
+} as const;
+
+const L = CART_UNAVAILABLE_LABELS;
 
 /**
  * How long the notice stays on screen before self-dismissing. Matches the

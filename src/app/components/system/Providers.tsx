@@ -5,9 +5,9 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Provider } from 'react-redux';
 
 import { CartUnavailableNotice } from '@/app/components/cart/CartUnavailableNotice';
+import { OAUTH_ERROR_LABELS } from '@/app/components/system/copy';
 import { ErrorBoundary } from '@/app/components/ui/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/app/context/AuthContext';
-import { OAUTH_ERROR_LABELS } from '@/app/data/authLabels';
 import { configureCurrency } from '@/app/data/currencyConfig';
 import { type AppStore, loadCatalogFromStorage, makeStore } from '@/app/store';
 import { type CatalogsState, hydrateCatalogs } from '@/app/store/catalogSlice';

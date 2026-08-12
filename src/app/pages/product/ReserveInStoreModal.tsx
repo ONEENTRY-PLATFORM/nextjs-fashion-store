@@ -4,10 +4,56 @@ import { useEffect, useState, useTransition } from 'react';
 
 import { SALE_COLOR } from '@/app/constants/colors';
 import type { SizeOption } from '@/app/data/productCatalog';
-import { RESERVE_MODAL_LABELS } from '@/app/data/productPageLabels';
-import { useFieldPlaceholder,useFormLabel } from '@/lib/oneentry/forms/FormPlaceholdersContext';
+import { useFieldPlaceholder, useFormLabel } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+// ─── ReserveInStoreModal ────────────────────────────────────────────────────
+export const RESERVE_MODAL_LABELS = {
+  title: 'Reserve in Store',
+  closeLabel: 'Close',
+  // Store list comes from OneEntry (`loadStores`) via the PDP route — see
+  // `ReserveInStoreModal`. Per-branch stock badges were removed with it: OE
+  // has no branch-level inventory, so the old "In stock / Low stock" labels
+  // were promising availability the business could not honour.
+  // Top blurb under header
+  blurbPrefix: 'Reserve your item at a nearby store — free of charge. Your reservation is held for',
+  blurbHoldDuration: '48 hours',
+  blurbSuffix: '. Payment is made in store.',
+  // Confirmation screen
+  confirmedHeading: 'Reservation Confirmed',
+  refPrefix: 'Ref:',
+  receiptStore: 'Store',
+  receiptAddress: 'Address',
+  receiptSize: 'Size',
+  receiptPickupBy: 'Pick-up by',
+  receiptName: 'Name',
+  confirmEmailedPrefix: 'A confirmation has been sent to',
+  ctaDone: 'Done',
+  // Form labels
+  selectStore: 'Select a store',
+  selectSize: 'Size',
+  yourDetails: 'Your details',
+  labelFirstName: 'First name',
+  labelLastName: 'Last name',
+  labelPhone: 'Phone number',
+  labelEmail: 'Email address',
+  labelPickup: 'Preferred pick-up date',
+  placeholderFirstName: 'Jane',
+  placeholderLastName: 'Doe',
+  placeholderPhone: '+44 7700 900000',
+  placeholderEmail: 'jane@email.com',
+  termsPrefix: 'I understand my reservation will be held for',
+  termsHold: '48 hours',
+  termsSuffix: 'from confirmation. After this period the item may be released. Payment is made in store.',
+  requiredFieldsNote: '* required fields',
+  ctaReserve: 'Reserve',
+  // Validation errors
+  errorRequired: 'Required',
+  errorInvalidPhone: 'Enter a valid phone number',
+  errorInvalidEmail: 'Enter a valid email',
+  errorMustAgree: 'You must agree to continue',
+} as const;
 
 /**
  * Slim store descriptor for the picker — mapped from the OE store pages by

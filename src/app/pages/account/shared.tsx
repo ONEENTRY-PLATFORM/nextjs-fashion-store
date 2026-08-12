@@ -2,11 +2,16 @@
 import { Edit2 } from 'lucide-react';
 import React from 'react';
 
-import { ACCOUNT_SHARED_LABELS } from '@/app/data/accountLabels';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 export { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
 import { SALE_COLOR } from '@/app/constants/colors';
+
+// ─── Shared account section widgets ─────────────────────────────────────────
+export const ACCOUNT_SHARED_LABELS = {
+  edit: 'Edit',
+  emptyValueDash: '—',
+} as const;
 
 export { fmt } from '@/app/utils/formatPrice';
 

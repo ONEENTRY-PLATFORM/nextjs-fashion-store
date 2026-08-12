@@ -6,8 +6,6 @@ import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
-import { MY_ORDERS_LABELS } from '@/app/data/accountLabels';
-import { MY_ORDERS_DYNAMIC_ARIA } from '@/app/data/commonLabels';
 import type { UserOrder } from '@/app/data/userData';
 import { useAppSelector } from '@/app/store/hooks';
 import { fillTokens } from '@/app/utils/fillTokens';
@@ -16,6 +14,42 @@ import { cancelOrderAction, type OeOrder } from '@/lib/oneentry/auth/actions';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ACCENT, fmt, SectionTitle } from './shared';
+
+export const MY_ORDERS_DYNAMIC_ARIA = {
+  /** `%id%` — the order's shopper-facing identifier. */
+  viewDetails: 'View details for order %id%',
+} as const;
+
+// ─── My Orders section ──────────────────────────────────────────────────────
+export const MY_ORDERS_LABELS = {
+  title: 'My Orders',
+  emptyText: 'You have no orders yet.',
+  emptyCta: 'Start Shopping',
+  emptyCtaHref: '/women/clothing',
+  orderId: 'Order ID',
+  datePlaced: 'Date Placed',
+  status: 'Status',
+  tracking: 'Tracking',
+  estDelivery: 'Est. Delivery',
+  itemSize: 'Size',
+  itemColour: 'Colour',
+  itemQty: 'Qty',
+  orderTotal: 'Order Total',
+  fullHistory: 'Full History →',
+  reorder: 'Reorder',
+  viewOrderDetails: 'View Order Details',
+  hideDetails: 'Hide Details',
+  itemSingular: 'item',
+  itemPlural: 'items',
+  statusDelivered: 'Delivered',
+  statusProcessing: 'Processing',
+  statusCancelled: 'Cancelled',
+  cancelDialogTitle: 'Cancel order',
+  cancelDialogQuestionPrefix: 'Do you want to cancel order',
+  cancelDialogQuestionSuffix: '?',
+  cancelDialogNo: 'No',
+  cancelDialogConfirm: 'Confirm',
+} as const;
 
 /**
  * Map a raw OneEntry order to the shape the UI already expects.

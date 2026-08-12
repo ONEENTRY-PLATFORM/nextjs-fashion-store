@@ -1,5 +1,6 @@
 'use client';
-import { SERVICE_LABELS as L_FALLBACK } from '@/app/data/accountLabels';
+
+import { SERVICE_LABELS as L_FALLBACK } from '@/app/pages/account/service/copy';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export function ServiceHowItWorks() {

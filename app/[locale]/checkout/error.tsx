@@ -2,7 +2,23 @@
 import { AlertTriangle } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { CHECKOUT_ERROR_LABELS as L } from '@/app/data/errorPageLabels';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+/**
+ * Shown when the checkout segment throws. Overlaid by `checkout_error_*` in the
+ * OE `system_pages` set, alongside the 404 / offline / generic-error copy.
+ */
+export const CHECKOUT_ERROR_LABELS = {
+  heading: 'Checkout unavailable',
+  body: 'There was a problem loading the checkout. Your cart has not been charged.',
+  supportPrefix: 'Please try again or',
+  supportCtaText: 'contact support',
+  supportSuffix: 'if the issue persists.',
+  supportEmail: 'support@oneentry.cloud',
+  tryAgain: 'Try Again',
+  backToCart: 'Back to Cart',
+  cartHref: '/cart',
+} as const;
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -10,6 +26,7 @@ interface ErrorProps {
 }
 
 export default function CheckoutError({ error, reset }: ErrorProps) {
+  const L = useDict('checkout_error_', CHECKOUT_ERROR_LABELS);
   useEffect(() => {
     console.error(error);
   }, [error]);

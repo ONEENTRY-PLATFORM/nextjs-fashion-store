@@ -2,11 +2,16 @@
 import { ChevronDown, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/components/catalog/copy';
 import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK, MOBILE_FILTER_ARIA } from '@/app/data/commonLabels';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { FilterBody } from './MobileFilterBody';
+
+export const MOBILE_FILTER_ARIA = {
+  productFilters: 'Product Filters',
+  closeFilters: 'Close filters',
+} as const;
 
 /* ─── Types ──────────────────────────────────────────────── */
 export interface MobileFilterOption {

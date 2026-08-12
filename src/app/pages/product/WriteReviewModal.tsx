@@ -3,12 +3,51 @@ import { Check, Star, X } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 
 import { SALE_COLOR } from '@/app/constants/colors';
-import { WRITE_REVIEW_DYNAMIC_ARIA } from '@/app/data/commonLabels';
-import { WRITE_REVIEW_LABELS } from '@/app/data/productPageLabels';
 import { trackActivity } from '@/app/utils/track-activity';
 import { useFormLabel, useFormMessage, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const WRITE_REVIEW_DYNAMIC_ARIA = {
+  starSuffix: 'star',
+} as const;
+
+// ─── WriteReviewModal ───────────────────────────────────────────────────────
+// Fields mirror the OE `review_feedback` (id 8) + `review_rating` (id 7)
+// forms currently deployed on the tenant:
+//   feedback → body (text) + occasions (list) + add_media (groupOfImages)
+//   rating   → rating (integer)
+// Legacy headline/name/email fields were removed from OE and dropped here.
+export const WRITE_REVIEW_LABELS = {
+  title: 'Share your thoughts',
+  closeLabel: 'Close',
+  emailBannerNote: 'TO EARN REWARDS POINTS, YOU MUST SUBMIT VIA THE AUTOMATIC REVIEW REQUEST EMAIL',
+  submittedHeading: 'Review Submitted',
+  submittedBody: 'Thank you! Your review is pending approval.',
+  closeButton: 'Close',
+  // Form
+  rateLabel: 'Rate your experience',
+  rateLabels: ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'] as const,
+  writeReviewLabel: 'Write a review',
+  writeReviewPlaceholder: 'Tell us what you like or dislike',
+  mediaLabel: 'Add media',
+  mediaUpload: 'Upload photos or videos',
+  mediaHint: 'Up to 10 images and 3 videos (max. file size 2 GB)',
+  occasionLabel: 'What occasion did you buy this for?',
+  occasionHint: 'Choose 1',
+  requiredFieldsNote: '* required fields',
+  ctaSend: 'Send',
+  // Value ↔ display label for the OE `occasions` `list` field. Values must
+  // match the OE `listTitles` markers exactly (`everyday`, `work`, `party`,
+  // `travel`, `sport`) — display labels are storefront copy.
+  occasions: [
+    { value: 'everyday', label: 'Everyday' },
+    { value: 'work', label: 'Work' },
+    { value: 'party', label: 'Party' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'sport', label: 'Sport' },
+  ] as const,
+} as const;
 
 /** Fallback option list — values must match the OE `listTitles` markers. */
 const OCCASIONS_FALLBACK = WRITE_REVIEW_LABELS.occasions.map((o) => ({ title: o.label, value: o.value }));

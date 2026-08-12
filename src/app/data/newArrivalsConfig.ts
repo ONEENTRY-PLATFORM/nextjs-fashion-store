@@ -1,9 +1,9 @@
-import { NEW_ARRIVALS_SORT_LABELS as SL } from './newArrivalsLabels';
-
 /**
  * Sort key ↔ the dictionary entry that names it. The `value` is the sort key
  *  sent to OE and must never change; only `labelKey` maps to editable copy.
  */
+import { NEW_ARRIVALS_SORT_LABELS as SL } from '@/app/pages/new/copy';
+
 export const NEW_ARRIVALS_SORT_OPTIONS = [
   { labelKey: 'newestFirst', label: SL.newestFirst, value: 'newest' },
   { labelKey: 'priceLowToHigh', label: SL.priceLowToHigh, value: 'price_asc' },
