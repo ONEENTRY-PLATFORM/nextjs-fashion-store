@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { VALIDATION_MESSAGES, type ValidationMessages } from '@/app/data/validationMessages';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-import { createSchemas } from './schemas';
+import { type CheckoutBounds, createSchemas } from './schemas';
 
 /** Marker prefix of the OE `form_messages` set. */
 const PREFIX = 'form_messages_';
@@ -28,9 +28,15 @@ export function useFormMessages(): ValidationMessages {
  * Drop-in replacement for importing `loginSchema` & co. directly — those stay
  * exported, but they close over the shipped copy and cannot be reworded.
  *
- * @returns The seven schemas, rebuilt whenever the dictionary changes.
+ * @param bounds - Length limits read from the OE checkout forms, so the
+ *                 address / guest-contact schemas reject exactly what OE would
+ *                 reject on submit. Omit outside checkout.
+ * @returns The seven schemas, rebuilt whenever the dictionary or bounds change.
  */
-export function useSchemas(): ReturnType<typeof createSchemas> {
+export function useSchemas(bounds?: CheckoutBounds): ReturnType<typeof createSchemas> {
   const messages = useFormMessages();
-  return useMemo(() => createSchemas(messages), [messages]);
+  // `bounds` is rebuilt each render by the caller's own `useMemo`; keying on
+  // its JSON keeps the schemas stable when the numbers didn't actually move.
+  const boundsKey = JSON.stringify(bounds ?? {});
+  return useMemo(() => createSchemas(messages, bounds ?? {}), [messages, boundsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 }

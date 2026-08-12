@@ -33,6 +33,11 @@ export const VALIDATION_MESSAGES = {
   // Address
   address1Required: 'Address line 1 is required',
   cityRequired: 'City is required',
+  // Length bounds mirrored from the OE form validators. `{min}` / `{max}` are
+  // substituted with the number the admin panel configured for that field —
+  // OE rejects the order otherwise, and its own message names the raw marker.
+  tooShort: 'Must be at least {min} characters',
+  tooLong: 'Must be {max} characters or less',
   // Payment
   cardNumberRequired: 'Card number is required',
   cardNumberInvalid: 'Enter a valid card number',

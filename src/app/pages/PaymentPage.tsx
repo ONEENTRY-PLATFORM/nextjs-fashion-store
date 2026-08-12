@@ -19,6 +19,8 @@ import { trackActivity } from '@/app/utils/track-activity';
 import { useRouter } from '@/lib/i18n/navigation';
 import { createOrderAction, previewOrderAction, type PreviewOrderResult } from '@/lib/oneentry/auth/actions';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
+import { explainOrderError } from '@/lib/oneentry/checkout/order-error';
+import { slotWindow } from '@/lib/oneentry/checkout/slot-window';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
@@ -63,6 +65,7 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lErrNoDelivery = useT('checkout_payment_error_no_delivery', PAYMENT_PAGE_LABELS.errorNoDelivery);
   const lErrRevalidate = useT('checkout_payment_error_revalidate', PAYMENT_PAGE_LABELS.errorRevalidate);
   const lErrStripe = useT('checkout_payment_error_stripe', PAYMENT_PAGE_LABELS.errorStripeSession);
+  const lErrFieldHint = useT('checkout_payment_error_field_hint', PAYMENT_PAGE_LABELS.errorFieldHint);
   const lErrNoAccounts = useT('checkout_payment_error_no_accounts', PAYMENT_PAGE_LABELS.errorNoAccounts);
   const lStripeRedirect = useT('checkout_payment_stripe_redirect_hint', PAYMENT_PAGE_LABELS.stripeRedirectHint);
   const securityBadges = [lSsl, lPci, l3d].filter(Boolean);
@@ -283,17 +286,14 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
         type: 'list',
         value: ['courier'],
       });
-      // OE timeInterval expects array of [fromISO, toISO] tuples. Map the
-      // morning/afternoon/evening slot to a concrete window on the chosen day.
-      const slotToWindow: Record<string, [number, number]> = {
-        morning: [9, 13],
-        afternoon: [13, 17],
-        evening: [17, 21],
-      };
+      // OE timeInterval expects array of [fromISO, toISO] tuples. Slots loaded
+      // from OE carry an `HHMM-HHMM` id (see `delivery-schedule.ts`); the
+      // hardcoded fallback list still uses the legacy morning/afternoon/evening
+      // names. Decode both — reading only the legacy names collapsed every
+      // OE-configured slot onto the 09:00–13:00 default, so an evening pick was
+      // filed as a morning delivery.
       const dayIso = (payload.deliveryDate ?? new Date().toISOString()).slice(0, 10);
-      const [fromH, toH] = slotToWindow[payload.deliverySlot ?? 'morning'] ?? [9, 13];
-      const fromIso = `${dayIso}T${String(fromH).padStart(2, '0')}:00:00.000Z`;
-      const toIso = `${dayIso}T${String(toH).padStart(2, '0')}:00:00.000Z`;
+      const [fromIso, toIso] = slotWindow(payload.deliverySlot, dayIso);
       formData.push({
         marker: `delivery_date-time${guestPrefix}`,
         type: 'timeInterval',
@@ -461,7 +461,9 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     });
     setPlacing(false);
     if (!res.ok) {
-      setSubmitError(res.error);
+      // OE names the offending attribute by its raw marker; translate it to the
+      // label the shopper saw so the message is actionable.
+      setSubmitError(explainOrderError(res.error, lErrFieldHint));
       return;
     }
     // Record a purchase event per line item so each product's purchase

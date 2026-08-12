@@ -35,6 +35,9 @@ export const PAYMENT_PAGE_LABELS = {
   errorRevalidate: 'Cart could not be re-validated. Please review your cart and try again.',
   errorStripeSession: 'Stripe session could not be created. Please try again or pick another payment method.',
   errorNoAccounts: 'Payment methods are unavailable right now. Please try again later.',
+  // Appended when OE rejects a delivery-form value: the field it names was
+  // filled in on the previous step, so that's where the fix has to happen.
+  errorFieldHint: 'Please go back to the delivery step and correct that field.',
 } as const;
 
 // `PAYMENT_METHODS_COPY` was removed: `PaymentMethodsList` renders each

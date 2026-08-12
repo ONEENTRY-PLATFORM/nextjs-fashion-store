@@ -5,6 +5,36 @@ import { VALIDATION_MESSAGES, type ValidationMessages } from '@/app/data/validat
 /** Shape of the message table the schemas are built from. */
 export type FormMessages = ValidationMessages;
 
+/** Min/max string length for one field, as configured on the OE attribute. */
+export interface FieldBounds {
+  min?: number | null;
+  max?: number | null;
+}
+
+/**
+ * Length bounds for the checkout fields, read from the OE form the order will
+ * actually be POSTed to (`checkout_home_delivery_guest`, `user_addresses`, …).
+ *
+ * OE enforces these server-side; without mirroring them the shopper only finds
+ * out at "Place Order", as `required values are missing or incorrect:
+ * checkout_home_guest_address_line1`. Every entry is optional — an unloaded
+ * form adds no bounds and the shipped rules below still apply.
+ */
+export interface CheckoutBounds {
+  address?: {
+    fullName?: FieldBounds;
+    phone?: FieldBounds;
+    line1?: FieldBounds;
+    city?: FieldBounds;
+    postcode?: FieldBounds;
+    instructions?: FieldBounds;
+  };
+  guestContact?: {
+    fullName?: FieldBounds;
+    phone?: FieldBounds;
+  };
+}
+
 /**
  * Build the form schemas against one set of error messages.
  *
@@ -17,21 +47,47 @@ export type FormMessages = ValidationMessages;
  * inside a `useMemo` keyed on the message table rather than per render.
  *
  * @param M - Error messages, CMS values or the shipped copy.
+ * @param B - Length bounds mirrored from the OE checkout forms. Omitted in
+ *            non-checkout contexts (and by the shipped exports below), where
+ *            only the storefront's own rules apply.
  * @returns The seven form schemas, built with those messages.
  */
-export function createSchemas(M: FormMessages) {
+export function createSchemas(M: FormMessages, B: CheckoutBounds = {}) {
   // ─── Reusable field validators ──────────────────────────────────────────────
+
+  /**
+   * Layer the OE-configured length bounds on top of a field's own rules.
+   *
+   * `normalize` matches whatever transform the value undergoes before it is
+   * POSTed — the phone loses its spaces on the way out, so its length must be
+   * measured the same way OE will measure it.
+   */
+  const bounded = (schema: z.ZodString, bounds: FieldBounds | undefined, normalize: (v: string) => string = (v) => v) =>
+    schema.superRefine((val, ctx) => {
+      const len = normalize(val).length;
+      // An empty optional field is the `required` validator's business, not
+      // the length bound's — otherwise a blank "instructions" trips `min`.
+      if (len === 0) return;
+      if (bounds?.min != null && len < bounds.min) {
+        ctx.addIssue({ code: 'custom', message: M.tooShort.replace('{min}', String(bounds.min)) });
+      }
+      if (bounds?.max != null && len > bounds.max) {
+        ctx.addIssue({ code: 'custom', message: M.tooLong.replace('{max}', String(bounds.max)) });
+      }
+    });
+
+  const compact = (v: string) => v.replace(/\s+/g, '');
 
   const emailSchema = z.string().min(1, M.emailRequired).email(M.emailInvalid);
 
   const passwordSchema = z.string().min(8, M.passwordTooShort).max(128, M.passwordTooLong);
 
-  const phoneSchema = z
+  const phoneBase = z
     .string()
     .min(1, M.phoneRequired)
     .regex(/^\+?[\d\s\-()\[\]]{7,20}$/, M.phoneInvalid);
 
-  const postcodeSchema = z
+  const postcodeBase = z
     .string()
     .min(1, M.postcodeRequired)
     .regex(/^[A-Z0-9\s\-]{3,10}$/i, M.postcodeInvalid);
@@ -74,20 +130,20 @@ export function createSchemas(M: FormMessages) {
   // ─── Address (Delivery page) ────────────────────────────────────────────────
 
   const addressSchema = z.object({
-    fullName: z.string().min(1, M.fullNameRequired).max(100),
-    phone: phoneSchema,
-    line1: z.string().min(1, M.address1Required).max(200),
-    city: z.string().min(1, M.cityRequired).max(100),
-    postcode: postcodeSchema,
-    instructions: z.string().max(500).optional(),
+    fullName: bounded(z.string().min(1, M.fullNameRequired).max(100), B.address?.fullName),
+    phone: bounded(phoneBase, B.address?.phone, compact),
+    line1: bounded(z.string().min(1, M.address1Required).max(200), B.address?.line1),
+    city: bounded(z.string().min(1, M.cityRequired).max(100), B.address?.city),
+    postcode: bounded(postcodeBase, B.address?.postcode),
+    instructions: bounded(z.string().max(500), B.address?.instructions).optional(),
   });
 
   // ─── Guest contact (Store pickup / Parcel locker, when not logged in) ───────
 
   const guestContactSchema = z.object({
-    fullName: z.string().min(1, M.fullNameRequired).max(100),
+    fullName: bounded(z.string().min(1, M.fullNameRequired).max(100), B.guestContact?.fullName),
     email: emailSchema,
-    phone: phoneSchema,
+    phone: bounded(phoneBase, B.guestContact?.phone, compact),
   });
 
   // ─── Payment card ───────────────────────────────────────────────────────────

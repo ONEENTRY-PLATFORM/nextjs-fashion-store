@@ -1,6 +1,6 @@
 'use client';
 import { ArrowRight, CheckCircle, Mail, Package } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
@@ -66,11 +66,19 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
   ];
 
   const mounted = useMounted();
+  // The handoff keys are consumed on read, so this effect must run its read
+  // exactly once per mounted component. Under React Strict Mode the effect
+  // fires twice: the first pass took the real order id and deleted it, the
+  // second found an empty slot and replaced it with a random `OE-XXXXXXXX` —
+  // the receipt showed a fake number and `$0` worth of loyalty points.
+  const handoffRead = useRef(false);
   useEffect(() => {
     // Deferred one microtask: reading (and consuming) the sessionStorage
     // handoff can only happen in the browser, but writing the result
     // synchronously inside the effect would trigger a cascading render pass.
     queueMicrotask(() => {
+      if (handoffRead.current) return;
+      handoffRead.current = true;
       // Prefer the real OE order id stashed by PaymentPage. Random fallback is
       // only for edge cases (opened /confirmation directly, sessionStorage
       // cleared by Stripe round-trip on some browsers) so we still render

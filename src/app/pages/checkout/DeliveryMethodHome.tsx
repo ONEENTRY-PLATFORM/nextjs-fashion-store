@@ -196,6 +196,7 @@ export function DeliveryMethodHome({
                 value={newAddrForm.fullName}
                 onChange={updateAddr('fullName')}
                 error={addrErrors.fullName}
+                testId="addr-fullName"
               />
               <FormField
                 label={L.labelPhone}
@@ -204,6 +205,7 @@ export function DeliveryMethodHome({
                 value={newAddrForm.phone}
                 onChange={updateAddr('phone')}
                 error={addrErrors.phone}
+                testId="addr-phone"
               />
               <div className="sm:col-span-2">
                 <FormField
@@ -212,6 +214,7 @@ export function DeliveryMethodHome({
                   value={newAddrForm.line1}
                   onChange={updateAddr('line1')}
                   error={addrErrors.line1}
+                  testId="addr-line1"
                 />
               </div>
               <FormField
@@ -220,6 +223,7 @@ export function DeliveryMethodHome({
                 value={newAddrForm.city}
                 onChange={updateAddr('city')}
                 error={addrErrors.city}
+                testId="addr-city"
               />
               <FormField
                 label={L.labelPostalCode}
@@ -227,6 +231,7 @@ export function DeliveryMethodHome({
                 value={newAddrForm.postcode}
                 onChange={updateAddr('postcode')}
                 error={addrErrors.postcode}
+                testId="addr-postcode"
               />
               <div className="sm:col-span-2">
                 <FormField
@@ -234,6 +239,7 @@ export function DeliveryMethodHome({
                   placeholder={phInstructions}
                   value={newAddrForm.instructions}
                   onChange={updateAddr('instructions')}
+                  testId="addr-instructions"
                 />
               </div>
               <div className="flex items-center gap-2 sm:col-span-2">
@@ -281,6 +287,7 @@ export function DeliveryMethodHome({
             value={newAddrForm.fullName}
             onChange={updateAddr('fullName')}
             error={addrErrors.fullName}
+            testId="addr-fullName"
           />
           <FormField
             label={L.labelPhone}
@@ -289,6 +296,7 @@ export function DeliveryMethodHome({
             value={newAddrForm.phone}
             onChange={updateAddr('phone')}
             error={addrErrors.phone}
+            testId="addr-phone"
           />
           <div className="sm:col-span-2">
             <FormField
@@ -297,6 +305,7 @@ export function DeliveryMethodHome({
               value={newAddrForm.line1}
               onChange={updateAddr('line1')}
               error={addrErrors.line1}
+              testId="addr-line1"
             />
           </div>
           <FormField
@@ -305,6 +314,7 @@ export function DeliveryMethodHome({
             value={newAddrForm.city}
             onChange={updateAddr('city')}
             error={addrErrors.city}
+            testId="addr-city"
           />
           <FormField
             label={L.labelPostalCode}
@@ -312,6 +322,7 @@ export function DeliveryMethodHome({
             value={newAddrForm.postcode}
             onChange={updateAddr('postcode')}
             error={addrErrors.postcode}
+            testId="addr-postcode"
           />
           <div className="sm:col-span-2">
             <FormField
@@ -319,6 +330,7 @@ export function DeliveryMethodHome({
               placeholder={phInstructions}
               value={newAddrForm.instructions}
               onChange={updateAddr('instructions')}
+              testId="addr-instructions"
             />
           </div>
         </div>

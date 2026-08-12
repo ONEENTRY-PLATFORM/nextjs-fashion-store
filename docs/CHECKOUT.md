@@ -297,15 +297,16 @@ checkout_home_guest_post_code              type=string  value=postcode
 checkout_home_guest_special_instrations    type=string  value=instructions   (only when non-empty; note the OE typo)
 ```
 
-**Time-interval derivation** — the client maps the picked slot id to fixed hours on `deliveryDate`:
+**Time-interval derivation** — `slotWindow(slotId, dayIso)` (`src/lib/oneentry/checkout/slot-window.ts`) turns the picked slot id into the `[fromISO, toISO]` pair. Two id shapes are accepted:
 
-```
-morning:   [09:00 UTC, 13:00 UTC]
-afternoon: [13:00 UTC, 17:00 UTC]
-evening:   [17:00 UTC, 21:00 UTC]
-```
+| Slot id | Source | Window |
+| --- | --- | --- |
+| `HHMM-HHMM` (e.g. `1700-2100`) | `loadDeliverySchedule` — what production actually sends | the exact hours/minutes encoded in the id |
+| `morning` / `afternoon` / `evening` | `DELIVERY_TIME_SLOTS` fallback (Storybook, bare unit tests) | `[09,13]` / `[13,17]` / `[17,21]` UTC |
 
-Format: `${dayIso}T${HH}:00:00.000Z` for both ends; `dayIso = payload.deliveryDate.slice(0, 10)`.
+Anything unrecognised falls back to the morning window rather than throwing. `dayIso = payload.deliveryDate.slice(0, 10)`; both ends are UTC instants on that day.
+
+> Previously the mapping only knew the three legacy names, so every OE-configured slot fell through to the `[9, 13]` default — an evening pick was filed as a morning delivery.
 
 **Store pickup (authenticated):**
 
@@ -436,6 +437,8 @@ On mount, `ConfirmationPage` reads `sessionStorage['oe_last_order_id']` (set by 
 
 `randomOrderId()` (`'OE-' + crypto.randomUUID().replace(/-/g,'').slice(0,8).toUpperCase()`) is now only a fallback — it fires when the `sessionStorage` read returns empty (direct navigation to `/checkout/confirmation`, or Stripe round-trip clearing `sessionStorage` on some browsers). The fallback keeps the receipt from rendering `null` for the order number.
 
+Both handoff keys are consumed on read, so the effect guards itself with a `useRef` one-shot flag. Under React Strict Mode (`reactStrictMode: true`) the effect runs twice: the first pass took the real id and deleted it, the second found an empty slot and overwrote the state with `randomOrderId()` — the receipt showed a fake order number and, via the same double read of `oe_last_order_total`, `0` loyalty points.
+
 ### 4.2 Cart cleanup — two-stage
 
 The cart is actually cleared in **two places**, in order:
@@ -522,6 +525,7 @@ The `x-guest-id` header (from `src/app/utils/guest-id.ts`, minted / persisted in
   - **Individual formData markers** do NOT all follow the suffix pattern — `delivery_method` / `delivery_date-time` get a `_guest` suffix, `checkout_store_pickup_select_store` is replaced with `checkout_store_pickup_guest_store` (distinct name), and contact fields use hard-coded names like `checkout_home_guest_full_name`.
 - The guest id is installed on the browser-side singleton (`Orders.setGuestId(guestId)`); the SDK then adds `x-guest-id: <guestId>` to every unauthenticated OE request (`Orders.createOrder`, `Payments.createSession`, `previewOrder`).
 - Orders are persisted on the Platform side, associated with the guest UUID instead of a user identifier. On a later sign-in, the guest cart merges (see [CART_WISHLIST.md](./CART_WISHLIST.md) §6), but guest **orders** do not automatically re-parent — OE keeps them under the guest id.
+- The guest forms carry **stricter length validators** than the authed ones (a 10-character minimum on the street line, a 20-character maximum on the city, …). They are mirrored into the delivery-step schemas — see §8a; without that, a short address passed the delivery step and the order was rejected at "Place Order".
 
 Guest cart persists in `localStorage`; if the guest signs in later, `CartContext` performs the login-time merge (see [CART_WISHLIST.md](./CART_WISHLIST.md) §6).
 
@@ -549,6 +553,16 @@ Some OE coupon discount configs award a free product rather than a price reducti
 
 Zod schemas in `src/app/utils/schemas.ts`:
 
+**§8a OE-driven length limits.** Every OE order form declares its own `validators` per attribute (`requiredValidator`, `stringInspectionValidator.stringMin/stringMax`, `emailInspectionValidator`), and OE enforces them when the order is POSTed. A value that violates one comes back as `required values are missing or incorrect: <attribute marker>` — from the *payment* step, naming an internal marker for a field the shopper filled in on the *delivery* step. The guest home form is the strictest: `checkout_home_guest_address_line1` requires **10–100** characters, `checkout_home_guest_city` **2–20**, `checkout_home_guest_post_code` **5–10**, `checkout_home_guest_phone` **9–15** (measured on the space-stripped value) — all tighter than the storefront's own `addressSchema`.
+
+The limits are therefore mirrored client-side, sourced from OE rather than hardcoded:
+
+- `loadFormContent` decodes each attribute's `validators` into `FieldLimits {required, min, max, email}` on `FormAttributeContent.limits` (`src/lib/oneentry/forms/placeholders.ts`). `0` means "no bound", not "length zero".
+- `app/[locale]/checkout/delivery/page.tsx` loads `checkout_home_delivery_guest`, `checkout_store_pickup_guest` and `checkout_locker_guest` alongside `user_addresses`, purely for those limits, and passes all four through `FormPlaceholdersProvider`.
+- `buildCheckoutBounds({isLoggedIn, method, forms})` (`src/lib/oneentry/checkout/field-bounds.ts`) picks the form the order will actually land in — guest home form vs `user_addresses`, and the store/locker guest form for the contact fields — and maps its markers onto the schema field names.
+- `useSchemas(bounds)` rebuilds `addressSchema` / `guestContactSchema` with those bounds layered on top (`createSchemas(M, B)`); the phone bound is applied to the compacted value, matching what `PaymentPage` sends.
+- Should OE still reject something the storefront doesn't model (a regex, a `list` value, a bad store entity id), `explainOrderError` (`src/lib/oneentry/checkout/order-error.ts`) rewrites the marker in the message to the field label the shopper saw and appends `PAYMENT_PAGE_LABELS.errorFieldHint`.
+
 | Schema | Fields |
 | --- | --- |
 | `loginSchema` | email/phone/identifier + password |
@@ -559,7 +573,7 @@ Zod schemas in `src/app/utils/schemas.ts`:
 | `profileSchema` | Account "My Data" form |
 | `promoSchema` | Refer-a-friend, gift certificate promo codes |
 
-Client validation runs on the DeliveryPage "Continue to Payment" click. Server validation happens inside OneEntry when the order is POSTed — its errors surface in `createOrderAction`'s `{ok: false, error}` return.
+Client validation runs on the DeliveryPage "Continue to Payment" click. Server validation happens inside OneEntry when the order is POSTed — its errors surface in `createOrderAction`'s `{ok: false, error}` return, rewritten by `explainOrderError` before they reach the banner.
 
 ---
 
@@ -616,6 +630,9 @@ The applied promo now persists across `/cart` → Delivery because both surfaces
 | `src/lib/oneentry/checkout/delivery-methods.ts` | `loadDeliveryMethodInfo()` — cached OE form loader; returns `DeliveryMethodInfo`. Also exports `loadCheckoutSuccessMessage(lang)` — reads `checkout_home_delivery` form's `localizeInfos.successMessage`; cached under key `oe-checkout-success-message`, tag `oe-forms`, TTL `REVALIDATE_STORES`; returns `null` on error/empty (see §4.4) |
 | `src/lib/oneentry/checkout/delivery-schedule.ts` | `loadDeliverySchedule(variant?, lang?)` — cached OE loader for the date-strip + time-slot config; `variant` selects the `authed` or `guest` aset/attribute marker pair (see §2.2a). `buildDeliveryDates(daysAhead, disabledWeekdays, now?)` — pure date-strip generator, server and test safe |
 | `src/lib/oneentry/checkout/DeliveryMethodInfoContext.tsx` | `DeliveryMethodInfoProvider` + `useDeliveryMethodInfo()` |
+| `src/lib/oneentry/checkout/field-bounds.ts` | `buildCheckoutBounds()` — maps the active OE form's `validators` onto the address / guest-contact schema fields (see §8a) |
+| `src/lib/oneentry/checkout/slot-window.ts` | `slotWindow()` — slot id (`HHMM-HHMM` or legacy name) → `[fromISO, toISO]` (see §3.3) |
+| `src/lib/oneentry/checkout/order-error.ts` | `explainOrderError()` — rewrites OE's raw attribute markers into the labels the shopper saw |
 | `src/app/data/stores.ts` | `Store` interface — carries optional `oeId?: number` (numeric OE page id) |
 | `src/lib/oneentry/catalog/stores.ts` | `normalize()` populates `oeId: raw.id` on every store returned from OE |
 | `src/app/pages/checkout/DeliveryOrderSummary.tsx` | Right-rail order summary |

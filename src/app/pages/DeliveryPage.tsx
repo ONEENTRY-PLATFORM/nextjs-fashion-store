@@ -23,6 +23,8 @@ import { useSchemas } from '@/app/utils/useFormMessages';
 import { useRouter } from '@/lib/i18n/navigation';
 import type { OeAddress } from '@/lib/oneentry/auth/actions';
 import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
+import { buildCheckoutBounds } from '@/lib/oneentry/checkout/field-bounds';
+import { useFormContent } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { DeliveryMethodHome } from './checkout/DeliveryMethodHome';
@@ -100,7 +102,6 @@ export function DeliveryPage({
 }: DeliveryPageProps = {}) {
   const DH = useDict('checkout_delivery_', DELIVERY_METHOD_HOME_LABELS);
   const L = useDict('checkout_delivery_page_', DELIVERY_PAGE_LABELS);
-  const schemas = useSchemas();
   const router = useRouter();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
   // Fall back to the literal list if the server layer didn't hand any down —
@@ -129,6 +130,30 @@ export function DeliveryPage({
   const [method, setMethod] = useState<DeliveryMethod>('home');
   const [selectedStore, setSelectedStore] = useState<PickupStore>(stores[0]);
   const [selectedLocker, setSelectedLocker] = useState(lockers[0]);
+  // OE enforces per-field length limits on the form the order lands in, and
+  // rejects the whole order when one is missed — with a message that names the
+  // raw attribute marker. Mirror those limits into the Zod schemas so the
+  // shopper sees the problem under the input, on the step that owns it.
+  const guestHomeForm = useFormContent('checkout_home_delivery_guest');
+  const savedAddressForm = useFormContent('user_addresses');
+  const storeGuestForm = useFormContent('checkout_store_pickup_guest');
+  const lockerGuestForm = useFormContent('checkout_locker_guest');
+  const checkoutBounds = useMemo(
+    () =>
+      buildCheckoutBounds({
+        isLoggedIn,
+        method,
+        forms: {
+          user_addresses: savedAddressForm,
+          checkout_home_delivery_guest: guestHomeForm,
+          checkout_store_pickup_guest: storeGuestForm,
+          checkout_locker_guest: lockerGuestForm,
+        },
+      }),
+    [isLoggedIn, method, savedAddressForm, guestHomeForm, storeGuestForm, lockerGuestForm],
+  );
+  const schemas = useSchemas(checkoutBounds);
+
   const [storeDropOpen, setStoreDropOpen] = useState(false);
   const [lockerDropOpen, setLockerDropOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -441,6 +466,7 @@ export function DeliveryPage({
               </button>
               <button
                 onClick={handleContinueToPayment}
+                data-testid="delivery-continue"
                 className="rounded-lg bg-black px-10 py-4 text-sm font-semibold tracking-[0.2em] text-white uppercase transition-opacity hover:opacity-90 focus-visible:outline-none"
               >
                 {lContinue}

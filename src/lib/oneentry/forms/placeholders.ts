@@ -5,23 +5,29 @@ import { getApiSafe, isError } from '@/lib/oneentry/index';
 import { logCaught } from '@/lib/oneentry/log';
 import type { Lang } from '@/lib/oneentry/system-text';
 
-import type { FormContent, FormPlaceholders } from './form-content';
-import { EMPTY_FORM_CONTENT } from './form-content';
+import type { FieldLimits, FormContent, FormPlaceholders } from './form-content';
+import { EMPTY_FORM_CONTENT, NO_FIELD_LIMITS } from './form-content';
 
 // Re-exported so existing importers keep their current specifier; the
 // definitions live in a client-safe module (see `form-content.ts`), because
 // this file reaches for `next/root-params` and cannot enter a client bundle.
-export type { FormAttributeContent, FormContent, FormPlaceholders } from './form-content';
-export { EMPTY_FORM_CONTENT } from './form-content';
+export type { FieldLimits, FormAttributeContent, FormContent, FormPlaceholders } from './form-content';
+export { EMPTY_FORM_CONTENT, NO_FIELD_LIMITS } from './form-content';
 
 type RawLocalize = { title?: unknown } & Record<string, unknown>;
 type RawAdditionalField = { value?: unknown } | null | undefined;
 type RawListTitle = { title?: unknown; value?: unknown; position?: unknown };
+type RawValidators = {
+  requiredValidator?: { strict?: unknown } | boolean | null;
+  emailInspectionValidator?: unknown;
+  stringInspectionValidator?: { stringMin?: unknown; stringMax?: unknown } | null;
+} | null;
 type RawAttribute = {
   marker?: unknown;
   localizeInfos?: RawLocalize | null;
   additionalFields?: Record<string, RawAdditionalField> | null;
   listTitles?: RawListTitle[] | null;
+  validators?: RawValidators;
 };
 type RawForm =
   | {
@@ -51,6 +57,28 @@ function touchFormCache(key: string, entry: { at: number; value: FormContent }) 
 }
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+/**
+ * OE writes the string-length bounds as either a number or a numeric string
+ * (`"10"`), and uses `0` to mean "no bound" — a literal 0 would otherwise read
+ * as "must be empty" and reject every value.
+ */
+function asBound(v: unknown): number | null {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Decode an attribute's `validators` block into the limits the UI enforces. */
+function readLimits(validators: RawValidators | undefined): FieldLimits {
+  if (!validators || typeof validators !== 'object') return NO_FIELD_LIMITS;
+  const si = validators.stringInspectionValidator;
+  return {
+    required: Boolean(validators.requiredValidator),
+    min: si && typeof si === 'object' ? asBound(si.stringMin) : null,
+    max: si && typeof si === 'object' ? asBound(si.stringMax) : null,
+    email: Boolean(validators.emailInspectionValidator),
+  };
+}
 
 /**
  * OE returns `localizeInfos` either language-keyed (`{en_US: {title}}`) or
@@ -111,6 +139,7 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
         title: asString(localized(attr.localizeInfos, lang).title),
         fields,
         options,
+        limits: readLimits(attr.validators),
       };
     }
 

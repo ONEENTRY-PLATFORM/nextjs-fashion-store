@@ -71,6 +71,7 @@ export function GuestCheckoutModal({ onClose, onSignIn, onRegister, onContinueAs
 
           <button
             onClick={onContinueAsGuest}
+            data-testid="guest-continue"
             className="flex w-full items-center gap-4 border border-[#e5e7eb] bg-white px-5 py-4 text-left text-[#374151] transition-colors hover:bg-[#f9fafb] focus-visible:outline-none"
           >
             <ShoppingBag size={18} strokeWidth={1.5} className="text-gray-400" />

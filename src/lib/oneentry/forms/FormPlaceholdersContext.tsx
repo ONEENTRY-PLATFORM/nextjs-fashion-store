@@ -3,7 +3,7 @@ import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
 // From the client-safe module, not `./placeholders` — that one imports
 // `next/root-params`, which cannot appear in a client bundle.
-import { EMPTY_FORM_CONTENT, type FormContent } from './form-content';
+import { EMPTY_FORM_CONTENT, type FieldLimits, type FormContent, NO_FIELD_LIMITS } from './form-content';
 
 type FormsMap = Record<string, FormContent>;
 
@@ -47,6 +47,18 @@ export function useFormPlaceholder(
   const forms = useContext(FormPlaceholdersContext);
   const value = forms[formMarker]?.attributes?.[attrMarker]?.fields?.[fieldMarker];
   return typeof value === 'string' && value.length > 0 ? value : fallback;
+}
+
+/**
+ * Read the constraints OE enforces on one form field.
+ *
+ * Returns {@link NO_FIELD_LIMITS} when the form (or the attribute) was not
+ * loaded, so callers can always build a schema — an unloaded form simply adds
+ * no bounds on top of the storefront's own.
+ */
+export function useFieldLimits(formMarker: string, attrMarker: string): FieldLimits {
+  const forms = useContext(FormPlaceholdersContext);
+  return forms[formMarker]?.attributes?.[attrMarker]?.limits ?? NO_FIELD_LIMITS;
 }
 
 /**

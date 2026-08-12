@@ -21,16 +21,32 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [userAddresses, stores, deliveryMethodInfo, parcelLockers, scheduleAuthed, scheduleGuest, pageBlocks] =
-    await Promise.all([
-      loadFormContent('user_addresses'),
-      loadStores(),
-      loadDeliveryMethodInfo(),
-      loadParcelLockers(),
-      loadDeliverySchedule('authed'),
-      loadDeliverySchedule('guest'),
-      loadPageBlocksByUrl('delivery_method'),
-    ]);
+  // The three `*_guest` order forms are loaded for their `validators` only:
+  // `DeliveryPage` mirrors OE's own length limits into its Zod schemas so a
+  // value OE would reject is caught here rather than at "Place Order".
+  const [
+    userAddresses,
+    guestHomeForm,
+    storeGuestForm,
+    lockerGuestForm,
+    stores,
+    deliveryMethodInfo,
+    parcelLockers,
+    scheduleAuthed,
+    scheduleGuest,
+    pageBlocks,
+  ] = await Promise.all([
+    loadFormContent('user_addresses'),
+    loadFormContent('checkout_home_delivery_guest'),
+    loadFormContent('checkout_store_pickup_guest'),
+    loadFormContent('checkout_locker_guest'),
+    loadStores(),
+    loadDeliveryMethodInfo(),
+    loadParcelLockers(),
+    loadDeliverySchedule('authed'),
+    loadDeliverySchedule('guest'),
+    loadPageBlocksByUrl('delivery_method'),
+  ]);
   // Serialise dates for hand-off to the client component — `Date` objects
   // survive the RSC boundary in Next.js 15+, but ISO strings are cheaper
   // and preserve the "no timezone drift on hydrate" guarantee. Both
@@ -57,7 +73,14 @@ export default async function Page() {
       hours: s.hours.map((h) => `${h.day} ${h.time}`).join(', '),
     }));
   return (
-    <FormPlaceholdersProvider forms={{ user_addresses: userAddresses }}>
+    <FormPlaceholdersProvider
+      forms={{
+        user_addresses: userAddresses,
+        checkout_home_delivery_guest: guestHomeForm,
+        checkout_store_pickup_guest: storeGuestForm,
+        checkout_locker_guest: lockerGuestForm,
+      }}
+    >
       <DeliveryMethodInfoProvider data={deliveryMethodInfo}>
         <DeliveryPage
           pickupStores={pickupStores}

@@ -45,6 +45,7 @@ export function GuestContactForm({ form, errors, onChange, helperText }: GuestCo
           value={form.fullName}
           onChange={(v) => patch({ fullName: v })}
           error={errors.fullName}
+          testId="guest-fullName"
         />
         <FormField
           label={L.labelPhone}
@@ -54,6 +55,7 @@ export function GuestContactForm({ form, errors, onChange, helperText }: GuestCo
           value={form.phone}
           onChange={(v) => patch({ phone: v })}
           error={errors.phone}
+          testId="guest-phone"
         />
         <div className="sm:col-span-2">
           <FormField
@@ -64,6 +66,7 @@ export function GuestContactForm({ form, errors, onChange, helperText }: GuestCo
             value={form.email}
             onChange={(v) => patch({ email: v })}
             error={errors.email}
+            testId="guest-email"
           />
         </div>
       </div>
