@@ -34,14 +34,10 @@ export function FavoritesCarousel({ title, products }: { title: string; products
   };
   const handleQuickAdd = (p: CarouselProduct) => {
     // Cart stores prices as numbers — strip currency formatting first.
-    // `originalPrice` is only set when there's an active sale (produces
-    // the strike-through UX downstream).
     const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^\d.]/g, '')) || 0;
     const priceNumber = parsePrice(p.salePrice ?? p.price);
     const originalPrice = p.salePrice ? parsePrice(p.price) : undefined;
-    // Numeric cmsId keeps `productsForPreview` / `syncCart` in sync — the
-    // helper strips any accidental UI suffix. Falls back to the raw id
-    // string so downstream Redux still keys the cart entry.
+    // Numeric cmsId keeps `productsForPreview` / `syncCart` in sync — the helper strips any accidental UI suffix.
     const cmsId = extractCmsProductId(p.id);
     const cartId = cmsId !== null ? String(cmsId) : p.id;
     const firstColorHex = p.colors?.[0];

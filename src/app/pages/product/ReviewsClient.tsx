@@ -10,15 +10,7 @@ import { useDict } from '@/lib/oneentry/labels/DictContext';
 import { ProductReviewsSection } from './ProductReviewsSection';
 import { WriteReviewModal } from './WriteReviewModal';
 
-/**
- * Client wrapper around `ProductReviewsSection`. Owns the show-all and
- * write-review modal toggles so the streamed reviews block stays a
- * self-contained island — no state has to live in the page-level component.
- * Renders even with zero reviews so shoppers still see the section shell,
- * the empty-state message and the "Write a Review" CTA. The CTA itself is
- * auth-gated: unauthed shoppers get the login modal (which offers
- * register), authed ones open the write-review modal directly.
- */
+/** Client wrapper around `ProductReviewsSection`. Owns the show-all and write-review modal toggles so the streamed reviews block stays a self-contained island. */
 export function ReviewsClient({ productId, reviews }: { productId: number; reviews: ProductReview[] }) {
   const L = useDict('customer_reviews_', L_FALLBACK);
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -26,8 +18,7 @@ export function ReviewsClient({ productId, reviews }: { productId: number; revie
   const [showPurchaseNotice, setShowPurchaseNotice] = useState(false);
   const { isLoggedIn, openLoginModal, user } = useAuth();
 
-  // Auto-dismiss the "purchase required" notice after 4 s so it doesn't
-  // linger under the CTA indefinitely.
+  // Auto-dismiss the "purchase required" notice after 4 s so it doesn't linger under the CTA indefinitely.
   useEffect(() => {
     if (!showPurchaseNotice) return;
     const t = setTimeout(() => setShowPurchaseNotice(false), 4000);
@@ -50,12 +41,7 @@ export function ReviewsClient({ productId, reviews }: { productId: number; revie
 
   const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
-  // Callback shape matches the existing `setShowReviewModal(true)` call
-  // inside ProductReviewsSection; the boolean arg is intentionally
-  // ignored — we only ever "open", and the section never asks us to close.
-  // Reviews are gated twice: sign-in (redirect to login) and delivered-order
-  // ownership (inline notice — the shopper is logged in but never actually
-  // received the product).
+  // Callback shape matches the existing `setShowReviewModal(true)` call inside ProductReviewsSection; the boolean arg is intentionally ignored.
   const requestWriteReview = (_open: boolean) => {
     if (!isLoggedIn) {
       openLoginModal();

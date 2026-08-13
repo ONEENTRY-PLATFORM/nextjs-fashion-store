@@ -9,11 +9,7 @@ export function DeliveryMethodInfoProvider({ data, children }: { data: DeliveryM
   return <Ctx.Provider value={data}>{children}</Ctx.Provider>;
 }
 
-/**
- * Read the OE-populated method copy inside a client component. Returns `null`
- *  when the provider is missing so callers can safely fall back to their local
- *  literal labels (Storybook, unit tests).
- */
+/** Read the OE-populated method copy inside a client component. */
 export function useDeliveryMethodInfo(): DeliveryMethodInfo | null {
   return useContext(Ctx);
 }

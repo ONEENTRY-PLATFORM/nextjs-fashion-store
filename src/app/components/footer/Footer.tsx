@@ -71,8 +71,7 @@ export function Footer() {
   const cmsColumnsMenu = useFooterColumnsMenu();
   const cmsLegalMenu = useFooterMenu();
 
-  // Branding copy from the OE `footer` set — the fields marketing changes
-  // without a release. `COMPANY_INFO` / `SUPPORT_ITEMS` remain the fallback.
+  // Branding copy from the OE `footer` set — the fields marketing changes without a release.
   const lCustomerSupport = useT('footer_customer_support', FL.customerSupport);
   const lNewsletterHead = useT('footer_newsletter_heading', FL.newsletterHeading);
   const lPaymentMethods = useT('footer_accepted_payment_methods', FL.acceptedPaymentMethods);
@@ -81,9 +80,7 @@ export function Footer() {
   const lPhone = useT('footer_support_phone', COMPANY_INFO.phone);
   const lCopyright = useT('footer_copyright', COMPANY_INFO.copyright);
 
-  // Four support cards are a fixed layout slot, so each key is read with its
-  // own top-level hook call — a loop would break the rules of hooks. The icon
-  // stays in code: it selects a component, it is not copy.
+  // Four support cards are a fixed layout slot, so each key is read with its own top-level hook call — a loop would break the rules of hooks.
   const support1Title = useT('footer_support_1_title', SUPPORT_ITEMS[0]?.title ?? '');
   const support1Desc = useT('footer_support_1_desc', SUPPORT_ITEMS[0]?.desc ?? '');
   const support2Title = useT('footer_support_2_title', SUPPORT_ITEMS[1]?.title ?? '');
@@ -99,8 +96,7 @@ export function Footer() {
     { title: support4Title, desc: support4Desc },
   ].filter((item) => item.title || item.desc);
 
-  // Social profile URLs: the network name keys the icon asset and stays in
-  // code, only the destination is CMS-editable.
+  // Social profile URLs: the network name keys the icon asset and stays in code, only the destination is CMS-editable.
   const tiktokHref = useT('footer_social_tiktok', SOCIAL_LINKS[0]?.href ?? '');
   const facebookHref = useT('footer_social_facebook', SOCIAL_LINKS[1]?.href ?? '');
   const instagramHref = useT('footer_social_instagram', SOCIAL_LINKS[2]?.href ?? '');
@@ -111,10 +107,7 @@ export function Footer() {
     href: [tiktokHref, facebookHref, instagramHref, youtubeHref, pinterestHref][i] ?? s.href,
   })).filter((s) => s.href.length > 0);
 
-  // The two halves of the footer navigation come from two different OE menus:
-  // `bottom_menu` carries the link columns, `footer` the legal bottom bar. Each
-  // half falls back to its local dataset independently, so a tenant that has
-  // only one of them keeps the coded copy for the other.
+  // The two halves of the footer navigation come from two different OE menus: `bottom_menu` carries the link columns, `footer` the legal bottom bar.
   const cmsColumns = footerColumnsFromMenu(cmsColumnsMenu);
   const columns: FooterColumn[] =
     cmsColumns.length > 0
@@ -136,9 +129,7 @@ export function Footer() {
       <div className="border-b border-white/10">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-8 md:grid-cols-4 lg:px-8">
           {(() => {
-            // Icon *components*, not elements — an array of JSX elements is an
-            // array of children React wants keys on, and rendering them by
-            // index also re-mounts each icon whenever the list order shifts.
+            // Icon *components*, not elements.
             const SUPPORT_ICONS = [
               QuestionMarkCircleIcon,
               DevicePhoneMobileIcon,

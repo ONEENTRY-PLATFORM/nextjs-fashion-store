@@ -1,14 +1,4 @@
-/**
- * pageRegistry — the single source of truth for dynamic pages.
- *
- * Key   = URL path (without leading slash), e.g. 'women/clothing', 'about-us'.
- * Data is currently sourced from datasets; once the API is ready, replace
- * `PAGE_REGISTRY` with an async fetch from OneEntry.
- *
- * Used in:
- *   app/[...slug]/page.tsx  — catch-all route
- *   app/sitemap.ts          — sitemap generation
- */
+/** pageRegistry — the single source of truth for dynamic pages. */
 
 import { type Metadata } from 'next';
 
@@ -21,17 +11,9 @@ export interface CatalogPageEntry {
   type: 'catalog';
   /** Catalog component key, e.g. 'women-clothing' */
   catalogKey: string;
-  /**
-   * Key in the SEO object (seoData.ts). Absent on a category discovered from
-   * the CMS after the last deploy — it has no shipped copy, so its metadata
-   * comes from the OE page's own `meta_*` attributes.
-   */
+  /** Key in the SEO object (seoData.ts). */
   seoKey?: keyof typeof SEO;
-  /**
-   * OE product-category path. Set only on CMS-discovered entries, whose leaf
-   * url need not follow the `{parent}_{leaf}` convention the derivation in
-   * `catalogKeyToCategoryPath` assumes.
-   */
+  /** OE product-category path. */
   categoryPath?: string;
   /** Name for schema.org ItemList */
   schemaName: string;
@@ -114,10 +96,7 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
   // Hub listing all info sections
   info: { type: 'info', slug: '__hub' },
 
-  // Each info page is reachable under both `/{slug}` and `/info/{slug}` —
-  // the footer / breadcrumbs link to the prefixed form, while the OE menu
-  // returns bare slugs. Registering both shapes keeps every entry point in
-  // the storefront resolving to the same InfoPage instead of a 404.
+  // Each info page is reachable under both `/{slug}` and `/info/{slug}`.
   ...Object.fromEntries(
     INFO_SLUGS.flatMap((slug) => [
       [slug, { type: 'info' as const, slug }],
@@ -128,13 +107,10 @@ export const PAGE_REGISTRY: Record<string, PageEntry> = {
 
 /* ─── Helpers ─── */
 
-/**
- * Generate metadata for the catch-all route
- */
+/** Generate metadata for the catch-all route */
 export function buildPageMetadata(entry: PageEntry): Metadata {
   if (entry.type === 'catalog') {
-    // No `seoKey` means the category came from the CMS and has no shipped
-    // copy; the caller overlays the OE page's own `meta_*` on top of this.
+    // No `seoKey` means the category came from the CMS and has no shipped copy; the caller overlays the OE page's own `meta_*` on top of this.
     return (entry.seoKey ? (SEO[entry.seoKey] ?? {}) : {}) as Metadata;
   }
   if (entry.slug === '__hub') {
@@ -155,9 +131,7 @@ export function buildPageMetadata(entry: PageEntry): Metadata {
   };
 }
 
-/**
- * JSON-LD breadcrumb schema
- */
+/** JSON-LD breadcrumb schema */
 export function buildBreadcrumbSchema(breadcrumbs: Array<{ name: string; href?: string }>) {
   return {
     '@context': 'https://schema.org',

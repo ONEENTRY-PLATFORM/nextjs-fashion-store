@@ -5,11 +5,7 @@ import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import { RecommendationsCarousel } from './RecommendationsCarousel';
 
-/**
- * Client wrapper for the "You May Also Like" carousel. Lives in its own file
- * so the server component can `await` OE without bringing the whole client
- * tree into scope.
- */
+/** Client wrapper for the "You May Also Like" carousel. */
 export function FrequentlyOrderedClient({
   products,
   title,

@@ -9,17 +9,12 @@ import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadStoreLocationsPage } from '@/lib/oneentry/catalog/store-locations-page';
 import { loadStores } from '@/lib/oneentry/catalog/stores';
 
-/**
- * Title/description/keywords/canonical come from the OE `stores` page when an
- *  editor filled them; `SEO.stores` stays as the offline fallback.
- */
+/** Title/description/keywords/canonical come from the OE `stores` page when an editor filled them. */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('stores', SEO.stores);
 }
 
-// ISR — stores barely change. Next.js 16 requires a literal for segment
-// config exports (it AST-parses the file and refuses imported identifiers),
-// so we can't use the shared `REVALIDATE_STORES` constant here.
+// ISR — stores barely change.
 export const revalidate = 3600;
 
 function buildStoreSchema(store: Store) {
@@ -72,8 +67,7 @@ export default async function Page() {
   const [stores, cmsPage, pageBlocks] = await Promise.all([
     loadStores(),
     loadStoreLocationsPage(),
-    // OE-attached blocks for the `stores` page. Empty when nothing is
-    // attached — safe fallback.
+    // OE-attached blocks for the `stores` page.
     loadPageBlocksByUrl('stores'),
   ]);
   const schemas = stores.map(buildStoreSchema);

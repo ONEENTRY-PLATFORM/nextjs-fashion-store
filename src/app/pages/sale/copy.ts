@@ -1,7 +1,4 @@
-/**
- * Copy shared by this feature's components, overlaid by the OneEntry
- * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
- */
+/** Copy shared by this feature's components, overlaid by the OneEntry dictionary at render time. */
 
 export const SALE_SORT_LABELS = {
   biggestDiscount: 'Biggest Discount',
@@ -11,9 +8,7 @@ export const SALE_SORT_LABELS = {
   newArrivals: 'New Arrivals',
 } as const;
 
-/**
- * Sale page UI copy (filter bar, results count, promo block, recommendations).
- */
+/** Sale page UI copy (filter bar, results count, promo block, recommendations). */
 export const SALE_PAGE_LABELS = {
   // Breadcrumb
   breadcrumbHome: 'Home',

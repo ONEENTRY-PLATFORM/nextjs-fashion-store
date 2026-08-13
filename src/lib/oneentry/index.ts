@@ -1,36 +1,11 @@
 import { defineOneEntry } from 'oneentry';
 import type { IError } from 'oneentry/dist/base/utils';
 
-/**
- * Canonical OneEntry SDK entry point (MCP `sdk-init` / `tokens` rules).
- *
- * The SDK is isomorphic: the very same singleton serves Server Components /
- * ISR fetchers (app token only) and the browser (app token + the shopper's
- * refresh token installed by {@link reDefine}). Everything that needs an SDK
- * handle goes through {@link getApi} so there is exactly one place where the
- * instance can be swapped.
- *
- * `NEXT_PUBLIC_*` is required because auth (`AuthProvider.auth` / `signUp`)
- * must run in the browser — the API binds the refresh token to the device
- * fingerprint it sees on the issuing request, and a server-issued token
- * carries a `Node.js/...` fingerprint that the browser can never refresh.
- * The legacy server-only names stay as a fallback so an existing deployment
- * keeps rendering while its env is being updated.
- */
+/** Canonical OneEntry SDK entry point (MCP `sdk-init` / `tokens` rules). */
 const PROJECT_URL = process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY_URL ?? '';
 const APP_TOKEN = process.env.NEXT_PUBLIC_ONEENTRY_TOKEN ?? process.env.ONEENTRY_TOKEN ?? '';
 
-/**
- * Origin that serves CMS media (`/cloud-static/...`). Every block picture and
- *  catalogue photo — including the homepage hero, which is the LCP element —
- *  is loaded from here, and it is a different origin from the app itself, so
- *  the first image pays for a DNS lookup plus a TLS handshake before a single
- *  byte arrives. Exported so the document head can `preconnect` and get that
- *  out of the way while the HTML is still parsing.
- *
- * Empty string when the SDK is unconfigured or the URL is unparseable — call
- *  sites are expected to skip the hint rather than emit `<link href="">`.
- */
+/** Origin that serves CMS media (`/cloud-static/...`). */
 export const CMS_MEDIA_ORIGIN = (() => {
   try {
     return PROJECT_URL ? new URL(PROJECT_URL).origin : '';
@@ -39,40 +14,19 @@ export const CMS_MEDIA_ORIGIN = (() => {
   }
 })();
 
-/**
- * Default OE locale. Mirrors `DEFAULT_LOCALE` in `./locale`, duplicated here to
- *  keep this module dependency-free (it is imported by literally every OE
- *  consumer, including `proxy.ts` transitively). Both are constants, so the two
- *  cannot drift apart at runtime the way two env reads could.
- */
+/** Default OE locale. */
 const DEFAULT_LANG = 'en_US';
 
-/**
- * `true` when both the project URL and the app token are configured. Every
- *  graceful-degradation path (mock catalog, empty CMS blocks) gates on it.
- */
+/** `true` when both the project URL and the app token are configured. */
 export const isOneEntryEnabled = Boolean(PROJECT_URL && APP_TOKEN);
 
-/**
- * localStorage key the SDK's `saveFunction` writes the rotated refresh token
- *  to. The hyphenated spelling is mandated by the MCP `tokens` rule.
- */
+/** localStorage key the SDK's `saveFunction` writes the rotated refresh token to. */
 export const REFRESH_TOKEN_KEY = 'refresh-token';
 
-/**
- * localStorage key holding the auth-provider marker that minted the current
- *  session. The SDK needs it to build the proactive `/refresh` URL.
- */
+/** localStorage key holding the auth-provider marker that minted the current session. */
 export const AUTH_PROVIDER_KEY = 'authProviderMarker';
 
-/**
- * Passive callback the SDK invokes on every successful refresh-token
- * rotation. Never called on failure — clearing a dead token is the app's job
- * (see {@link clearTokens}).
- *
- * @param refreshToken - Freshly rotated refresh token.
- * @returns Resolves once the token is persisted.
- */
+/** Passive callback the SDK invokes on every successful refresh-token rotation. */
 const saveFunction = async (refreshToken: string): Promise<void> => {
   if (!refreshToken || typeof window === 'undefined') {
     return;
@@ -84,18 +38,7 @@ const saveFunction = async (refreshToken: string): Promise<void> => {
   }
 };
 
-/**
- * Build a fresh SDK instance. `defineOneEntry` validates its input
- * synchronously and throws a plain `Error` (not `IError`) on empty url/token,
- * so the caller must guard on {@link isOneEntryEnabled} first.
- *
- * @param  [config]              - Optional per-instance overrides.
- * @param  [config.langCode]     - OE locale code.
- * @param  [config.refreshToken] - Shopper refresh token to install.
- * @param  [config.guestId]      - `x-guest-id` for anonymous traffic.
- * @param  [config.deviceMetadata] - Browser fingerprint override.
- * @returns A configured SDK instance.
- */
+/** Build a fresh SDK instance. */
 function createInstance(
   config: {
     langCode?: string;
@@ -116,28 +59,15 @@ function createInstance(
   });
 }
 
-/**
- * Mutable singleton. Swapped by {@link reDefine} when a browser session is
- *  restored from localStorage. `null` only when OE env vars are absent.
- */
+/** Mutable singleton. */
 let apiInstance = isOneEntryEnabled ? createInstance() : null;
 
-/**
- * Current SDK language code. Kept alongside the instance so
- *  {@link getLang} works in Client Components without `useParams`.
- */
+/** Current SDK language code. */
 let currentLang = DEFAULT_LANG;
 
 export type OneEntryClient = ReturnType<typeof defineOneEntry>;
 
-/**
- * MCP-canonical accessor. Returns the current SDK instance and throws loudly
- * when the OE env vars are missing — a deploy-time misconfiguration surfaces
- * here instead of as an obscure "cannot read property of null" later.
- *
- * @returns The live SDK instance.
- * @see {@link https://oneentry.cloud/instructions/npm OneEntry CMS docs}
- */
+/** MCP-canonical accessor. */
 export function getApi(): OneEntryClient {
   if (!apiInstance) {
     throw new Error('OneEntry SDK is not configured. Set NEXT_PUBLIC_ONEENTRY_URL and NEXT_PUBLIC_ONEENTRY_TOKEN.');
@@ -145,41 +75,15 @@ export function getApi(): OneEntryClient {
   return apiInstance;
 }
 
-/**
- * Non-throwing variant of {@link getApi} for the storefront's
- * graceful-degradation paths (mock catalog, empty CMS blocks) that must keep
- * rendering when OE is not configured.
- *
- * @returns The live instance, or `null` when unconfigured.
- */
+/** Non-throwing variant of {@link getApi} for the storefront's graceful-degradation paths (mock catalog, empty CMS blocks) that must keep rendering when OE is not configured. */
 export function getApiSafe(): OneEntryClient | null {
   return apiInstance;
 }
 
-/**
- * Read-only instances pinned to one locale, one per language, created lazily.
- *
- * A few SDK endpoints take no `langCode` argument and answer in whatever
- * language their instance was built with — `Blocks.getSlides` is the one the
- * storefront depends on. The singleton is built with {@link DEFAULT_LANG} and
- * must not be re-pointed on the server (it is shared by every visitor, and on
- * the browser it also carries the shopper's session), so a second locale needs
- * its own handle rather than a mutation.
- *
- * These carry the app token only — never a refresh token — so they are safe to
- * share across requests the same way the app-token singleton is.
- */
+/** Read-only instances pinned to one locale, one per language, created lazily. */
 const localeInstances = new Map<string, OneEntryClient>();
 
-/**
- * SDK instance that answers in `lang`, for endpoints that cannot take a locale
- * argument. Returns the singleton for the default locale and for callers that
- * pass nothing, so nothing changes on a single-locale deployment.
- *
- * @param   [lang] - OE locale code, e.g. `de_DE`.
- * @returns          An instance pinned to that locale, or `null` when
- *                   unconfigured.
- */
+/** SDK instance that answers in `lang`, for endpoints that cannot take a locale argument. */
 export function getApiForLang(lang?: string): OneEntryClient | null {
   if (!isOneEntryEnabled) return null;
   if (!lang || lang === DEFAULT_LANG) return apiInstance;
@@ -190,21 +94,7 @@ export function getApiForLang(lang?: string): OneEntryClient | null {
   return created;
 }
 
-/**
- * Re-create the singleton with the shopper's refresh token — the session
- * bootstrap step, called once from `AuthContext` on mount.
- *
- * `reDefine` does not itself refresh: it only places the token in state, and
- * the SDK proactively fetches an access token before the first user-auth
- * request. Guarded to the browser on purpose — on the server a single
- * instance serves every visitor, so installing one shopper's token there
- * would leak their `Authorization` header onto everybody else's requests.
- *
- * @param refreshToken - Refresh token read from localStorage.
- * @param [langCode]   - Locale for the new instance.
- * @returns Resolves once the instance is swapped.
- * @see {@link https://oneentry.cloud/instructions/npm OneEntry CMS docs}
- */
+/** Re-create the singleton with the shopper's refresh token. Browser-only: the server singleton is shared, so a token installed there would leak onto other visitors' requests. */
 export async function reDefine(refreshToken: string, langCode?: string): Promise<void> {
   if (!refreshToken || !isOneEntryEnabled) {
     return;
@@ -216,21 +106,7 @@ export async function reDefine(refreshToken: string, langCode?: string): Promise
   apiInstance = createInstance({ langCode: currentLang, refreshToken });
 }
 
-/**
- * Create a throw-away SDK instance that never touches the shared singleton.
- *
- * Required whenever a server request must speak on behalf of one specific
- * visitor — `AuthProvider.oauth` stamping the browser's `deviceMetadata`, or
- * a guest-scoped call carrying `x-guest-id`. Mutating the singleton for
- * those (`setDeviceMetadata` / `setGuestId` / `auth()`) would apply to every
- * concurrent visitor on the same Node process.
- *
- * @param [config]                 - Per-request overrides.
- * @param [config.langCode]        - OE locale code.
- * @param [config.guestId]         - `x-guest-id` value.
- * @param [config.deviceMetadata]  - Browser fingerprint string.
- * @returns A fresh instance, or `null` when unconfigured.
- */
+/** Create a throw-away SDK instance that never touches the shared singleton. */
 export function createRequestApi(
   config: {
     langCode?: string;
@@ -242,16 +118,7 @@ export function createRequestApi(
   return createInstance(config);
 }
 
-/**
- * Whether the current instance already holds an access token. Checked before
- * {@link reDefine} so an active session is not needlessly re-created (which
- * would burn a `/refresh` round-trip).
- *
- * The SDK's `IDefineApi` has no top-level `.state` — the shared state object
- * is reachable only through a module (`AuthProvider`).
- *
- * @returns `true` when an access token is installed.
- */
+/** Whether the current instance already holds an access token. */
 export function hasActiveSession(): boolean {
   if (!apiInstance) return false;
   const provider = apiInstance.AuthProvider as unknown as {
@@ -260,24 +127,14 @@ export function hasActiveSession(): boolean {
   return Boolean(provider?.state?.accessToken);
 }
 
-/**
- * Install both tokens on the current instance. Needed after `oauth()`, which
- * — unlike `auth()` — does not write them into state itself.
- *
- * @param accessToken  - Bearer token for user-auth requests.
- * @param refreshToken - Rotating refresh token.
- */
+/** Install both tokens on the current instance. */
 export function syncTokens(accessToken: string, refreshToken: string): void {
   if (!apiInstance) return;
   apiInstance.AuthProvider.setAccessToken(accessToken);
   apiInstance.AuthProvider.setRefreshToken(refreshToken);
 }
 
-/**
- * Drop the persisted session. The SDK never clears storage on a failed
- * refresh, so without this a dead token replays `POST /refresh 400` on every
- * page load. Also resets the singleton back to app-token-only.
- */
+/** Drop the persisted session. */
 export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   try {
@@ -291,16 +148,7 @@ export function clearTokens(): void {
   }
 }
 
-/**
- * Whether this browser holds a shopper session — i.e. a refresh token that
- * {@link reDefine} has installed (or is about to). This is the client-side
- * replacement for "is the auth cookie present?": user-scoped calls short-
- * circuit on it instead of firing a guaranteed-401 request.
- *
- * Always `false` on the server, where no visitor session exists.
- *
- * @returns `true` when a session can be resumed or is already live.
- */
+/** Whether this browser holds a shopper session — i.e. a refresh token that {@link reDefine} has installed. */
 export function hasStoredSession(): boolean {
   if (hasActiveSession()) return true;
   if (typeof window === 'undefined') return false;
@@ -311,16 +159,7 @@ export function hasStoredSession(): boolean {
   }
 }
 
-/**
- * Persist the shopper's refresh token + provider marker and install both
- * tokens on the live instance. `auth()` already does the state part itself,
- * but `oauth()` does not — so the OAuth callback must call this explicitly.
- *
- * @param entity                - Auth entity returned by OE.
- * @param entity.accessToken    - Bearer token.
- * @param entity.refreshToken   - Rotating refresh token.
- * @param providerMarker        - Marker that minted the session.
- */
+/** Persist the shopper's refresh token + provider marker and install both tokens on the live instance. */
 export function storeSession(entity: { accessToken?: string; refreshToken?: string }, providerMarker: string): void {
   if (typeof window === 'undefined') return;
   try {
@@ -336,13 +175,7 @@ export function storeSession(entity: { accessToken?: string; refreshToken?: stri
   }
 }
 
-/**
- * Provider marker that minted the current session (`'email'`, `'google'`, …).
- * `AuthProvider.refresh` / `.logout` must be called with the same marker that
- * issued the token, otherwise OE rejects the call.
- *
- * @returns The stored marker, defaulting to `'email'`.
- */
+/** Provider marker that minted the current session (`'email'`, `'google'`, …). */
 export function getAuthProviderMarker(): string {
   if (typeof window === 'undefined') return 'email';
   try {
@@ -352,86 +185,31 @@ export function getAuthProviderMarker(): string {
   }
 }
 
-/**
- * Current SDK language code — for Client Components that need the locale
- * without threading `params` through the tree.
- *
- * @returns Active OE locale code (e.g. `"en_US"`).
- */
+/** Current SDK language code. */
 export function getLang(): string {
   return currentLang;
 }
 
-/**
- * Point the browser's shopper-scoped calls at a locale.
- *
- * Every user-auth call (`Users.getUser`, `Orders.*`, `Discounts.*`) takes
- * `langCode` as an argument, so the storefront does not need — and must not
- * pay for — a rebuilt SDK instance when the shopper switches language:
- * {@link reDefine} would discard the in-memory access token and buy a fresh
- * `/refresh` round-trip for a copy change. This records the locale those call
- * sites read through {@link getLang} instead.
- *
- * Browser-only by design. On the server one instance serves every visitor
- * concurrently, so a module-level "current locale" would be one request
- * overwriting another's; server code resolves its locale from root params
- * (`currentCmsLocale`) and passes it down explicitly.
- *
- * @param lang - OE locale code, e.g. `de_DE`.
- */
+/** Point the browser's shopper-scoped calls at a locale. */
 export function setLang(lang: string): void {
   if (typeof window === 'undefined' || !lang) return;
   currentLang = lang;
 }
 
-/**
- * One entry of an OE `image` / `file` / `groupOfImages` attribute value.
- *
- * `previewLink` has two shapes on the wire, and which one you get depends on
- * whether the file was uploaded through a preview template:
- *
- * - **legacy** — a plain string URL to a recompressed copy of the original. Same
- *   pixel dimensions, roughly half the bytes; useless as a placeholder.
- * - **preview-template** — an object keyed by preview level,
- *   `{ [level]: [blurDataUri, previewUrl] }`, where the first entry of the pair
- *   is a ~130-character base64 WebP LQIP. `defaultPreview` names the level to
- *   read, and the tenant currently ships `default` (20×20) plus `thumb`.
- *
- * Reading the object shape into an `<img src>` stringifies it to
- * `"[object Object]"` and 404s, so every consumer must go through
- * {@link getImage}.
- */
+/** One entry of an OE `image` / `file` / `groupOfImages` attribute value. */
 type OeFileValue = {
   downloadLink?: unknown;
   previewLink?: unknown;
   defaultPreview?: unknown;
 };
 
-/**
- * A CMS image reduced to what the renderer needs: where to fetch it, and the
- * inline placeholder to paint until it arrives.
- *
- * url - Absolute URL of the full-size image.
- *
- * [blur] - Base64 data URI for `next/image`'s `blurDataURL`.
- */
+/** A CMS image reduced to what the renderer needs: where to fetch it, and the inline placeholder to paint until it arrives. */
 export type OeImage = {
   url: string;
   blur?: string;
 };
 
-/**
- * Pull the LQIP data URI out of a file record, when the upload went through a
- * preview template.
- *
- * The pair is `[blurDataUri, previewUrl]`; only the first entry is inlineable.
- * `defaultPreview` picks the level, falling back to `default` — and then to
- * whichever level exists, so a tenant that renames its levels still gets a
- * placeholder instead of silently losing one.
- *
- * @param file - A single OE file record.
- * @returns Base64 data URI, or `undefined` when absent.
- */
+/** Pull the LQIP data URI out of a file record, when the upload went through a preview template. */
 function fileBlur(file: OeFileValue): string | undefined {
   const preview = file.previewLink;
   if (!preview || typeof preview !== 'object') return undefined;
@@ -445,51 +223,19 @@ function fileBlur(file: OeFileValue): string | undefined {
   return typeof blur === 'string' && blur.startsWith('data:') ? blur : undefined;
 }
 
-/**
- * Normalize any OE image-ish attribute value into a single URL.
- *
- * The wire shape depends **only on the number of uploaded files**: one file
- * arrives as a bare object, two or more as an array (SDK ≥ 1.0.157) — and
- * `groupOfImages` is always an array. Accepting both is what keeps a banner
- * from silently disappearing the moment a content manager deletes the second
- * picture. The attribute wrapper (`{ value: … }`) is unwrapped too, so both
- * `getImageUrl(attrs.photo)` and `getImageUrl(attrs.photo?.value)` work.
- *
- * `previewLink` is the documented fallback for records that ship only a
- * preview (OE order products, some form-data records).
- *
- * @param value - Attribute, attribute value, array or bare object.
- * @returns An absolute URL, or `''` when there is no usable image.
- */
+/** Normalize any OE image-ish attribute value into a single URL. */
 export function getImageUrl(value: unknown): string {
   return getImage(value).url;
 }
 
-/**
- * Strip the `{ value: … }` attribute envelope, so callers may pass either the
- * attribute or its value.
- *
- * @param value - Attribute or attribute value.
- * @returns The unwrapped value.
- */
+/** Strip the `{ value: … }` attribute envelope, so callers may pass either the attribute or its value. */
 function unwrapAttr(value: unknown): unknown {
   return !Array.isArray(value) && typeof value === 'object' && value !== null && 'value' in value
     ? (value as { value: unknown }).value
     : value;
 }
 
-/**
- * Normalize any OE image-ish attribute value into a URL plus its inline blur
- * placeholder.
- *
- * Same shape tolerance as {@link getImageUrl} — one uploaded file arrives as a
- * bare object, two or more as an array. The blur is only present for files
- * uploaded through a preview template; callers must treat it as optional and
- * fall back to `placeholder="empty"`.
- *
- * @param value - Attribute, attribute value, array or bare object.
- * @returns URL (`''` when there is no usable image) and optional blur.
- */
+/** Normalize any OE image-ish attribute value into a URL plus its inline blur placeholder. */
 export function getImage(value: unknown): OeImage {
   if (!value) return { url: '' };
   if (typeof value === 'string') return { url: value };
@@ -506,20 +252,11 @@ export function getImage(value: unknown): OeImage {
   if (typeof file.downloadLink === 'string' && file.downloadLink) {
     return { url: file.downloadLink, blur };
   }
-  // Only the legacy string shape is a usable `src`; the preview-template object
-  // would stringify to "[object Object]".
+  // Only the legacy string shape is a usable `src`; the preview-template object would stringify to "[object Object]".
   return { url: typeof file.previewLink === 'string' ? file.previewLink : '', blur };
 }
 
-/**
- * Every image of an OE attribute, in wire order, each with its blur.
- *
- * The gallery counterpart of {@link getImage}; entries without a usable URL are
- * dropped, exactly as {@link getImageUrls} does.
- *
- * @param value - Attribute, attribute value, array or bare object.
- * @returns Non-empty images, possibly an empty array.
- */
+/** Every image of an OE attribute, in wire order, each with its blur. */
 export function getImages(value: unknown): OeImage[] {
   if (!value) return [];
 
@@ -530,18 +267,7 @@ export function getImages(value: unknown): OeImage[] {
   return list.map((item) => getImage(item)).filter((img) => img.url.length > 0);
 }
 
-/**
- * Index a gallery's blurs by image URL.
- *
- * Keyed by URL rather than by position on purpose: the adapters slice the image
- * list several ways (`colorImages`, `galleryImages`, per-variant previews), and
- * a parallel blur array would have to be sliced in lockstep every time — one
- * missed slice and every card shows the wrong placeholder. A map survives any
- * reshuffling, and it serializes to the client as plain JSON.
- *
- * @param images - Images from {@link getImages}.
- * @returns URL → blur data URI, omitting images without one.
- */
+/** Index a gallery's blurs by image URL. */
 export function blurByUrl(images: OeImage[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const img of images) {
@@ -550,32 +276,15 @@ export function blurByUrl(images: OeImage[]): Record<string, string> {
   return map;
 }
 
-/**
- * Every URL of an OE image attribute, in wire order — for galleries and
- * `groupOfImages`. Same one-file-is-an-object tolerance as
- * {@link getImageUrl}; entries without a usable link are dropped.
- *
- * @param value - Attribute, attribute value, array or bare object.
- * @returns Non-empty URLs, possibly an empty array.
- */
+/** Every URL of an OE image attribute, in wire order. */
 export function getImageUrls(value: unknown): string[] {
   return getImages(value).map((img) => img.url);
 }
 
-/**
- * Alias for the SDK's `IError`. Re-exported so app code can `import { OeError }
- * from '@/lib/oneentry'` without reaching into `oneentry/dist/base/utils`.
- */
+/** Alias for the SDK's `IError`. Re-exported so app code can `import { OeError } from '@/lib/oneentry'` without reaching into `oneentry/dist/base/utils`. */
 export type OeError = IError;
 
-/**
- * Type-guard for the SDK's `IError`. Narrows to `IError` on true — and,
- * critically, narrows the sibling union arm (`IAuthEntity`, `IProductEntity`,
- * …) on false, so callers can `if (isError(r)) return; r.accessToken`.
- *
- * @param value - Any SDK return value.
- * @returns `true` when the value is an OE error envelope.
- */
+/** Type-guard for the SDK's `IError`. Narrows to `IError` on true. */
 export function isError<T>(value: T | IError): value is IError {
   return (
     typeof value === 'object' &&

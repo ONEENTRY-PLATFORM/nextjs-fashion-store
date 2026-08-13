@@ -90,9 +90,7 @@ export function FeedbackSection() {
   const submitLabel = useT('user_account_feedback_submit', L.submit);
   const requiredNote = useT('user_account_feedback_required_fields', L.requiredNote);
 
-  // `mergeDict` overlays strings only, so the array and the 1–5 map below stay
-  // frozen in code unless they get markers of their own: one comma-separated
-  // list, and one nested overlay keyed by the rating itself.
+  // `mergeDict` overlays strings only, so the array and the 1–5 map below stay frozen in code unless they get markers of their own: one comma-separated list, and one nested overlay keyed by the rating itself.
   const categories = useList('user_account_feedback_categories', L.categories);
   // Same flattening as the service section: one key per step field.
   const howSteps = [1, 2, 3].map((n) => ({

@@ -1,13 +1,4 @@
-/**
- * Registry of social providers we have client-side wiring for.
- *
- * OE returns the list of enabled providers via `getAuthProviders()`. For each
- * one we need (a) an icon to show and (b) a way to actually start the flow.
- * Google is fully wired via `requestGoogleIdToken()`; Apple and Facebook have
- * icons but no OAuth client yet, so we render them disabled with "Coming
- * soon". Providers OE returns that aren't in this registry render with just
- * their title (no icon) and disabled.
- */
+/** Registry of social providers we have client-side wiring for. */
 export interface SocialProviderMeta {
   iconPath: string;
   /** `true` when we can actually trigger the OAuth flow client-side. */

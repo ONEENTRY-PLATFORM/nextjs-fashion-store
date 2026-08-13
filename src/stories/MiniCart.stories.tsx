@@ -8,19 +8,7 @@ import { useAppDispatch } from '@/app/store/hooks';
 
 import { MOCK_CART_ITEM, MOCK_CART_ITEM_SALE } from './mockData';
 
-/**
- * Wrapper that opens MiniCart with items pre-loaded.
- *
- * Rendering notes:
- * - Line items render `item.price` (sale price) with `item.originalPrice`
- *   struck through below it — classic sale strike-through UX, same as
- *   catalog / PDP (e.g. MOCK_CART_ITEM_SALE: $65 × 2 = $130 shown, $89 × 2
- *   struck through).
- * - Subtotal row = sum of `item.price` across all items.
- * - No "Sale" or "Items discount" row in the footer.
- * - Total row equals `subtotal` when no OE discount applies; switches to
- *   `totalDue` (OE) when `personalDiscount > 0 || couponDiscount > 0 || bonusBurned`.
- */
+/** Wrapper that opens MiniCart with items pre-loaded. */
 function OpenWithItems() {
   const dispatch = useAppDispatch();
   useEffect(() => {

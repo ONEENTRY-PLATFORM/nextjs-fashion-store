@@ -1,16 +1,4 @@
-/**
- * Wishlist API slice (RTK Query)
- *
- * Talks to the Platform Content REST API at
- *   {NEXT_PUBLIC_API_URL}/users/me/wishlist
- * If `NEXT_PUBLIC_API_URL` is empty, the slice is still created (RTK
- * Query requires a `baseQuery`) but `isWishlistApiEnabled()` returns
- * `false`, and callers are expected to skip both queries and mutations.
- *
- * Authorization: a Bearer JWT pulled from `state.user.data.authToken`
- * via `prepareHeaders`. No token → no header → the request will 401 on
- * the server; callers must gate queries with `skip: !authToken`.
- */
+/** Wishlist API slice (RTK Query) over `{NEXT_PUBLIC_API_URL}/users/me/wishlist`. Without that env the slice still exists, but `isWishlistApiEnabled()` is `false` and callers must skip it. */
 import { createApi, fetchBaseQuery, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 
 import type { RootState } from '@/app/store/index';
@@ -22,17 +10,10 @@ import type {
   WishlistSetArgs,
 } from './types/wishlist';
 
-/**
- * Resolve the Platform base URL once at module import. We do NOT call
- * `process.env` inside `prepareHeaders` — Next.js only inlines
- * `NEXT_PUBLIC_*` at build time.
- */
+/** Resolve the Platform base URL once at module import. */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-/**
- * True when the playground should attempt real HTTP calls. When false,
- * callers fall back to localStorage-only behaviour.
- */
+/** True when the playground should attempt real HTTP calls. */
 export function isWishlistApiEnabled(): boolean {
   return API_BASE_URL.length > 0;
 }
@@ -40,9 +21,7 @@ export function isWishlistApiEnabled(): boolean {
 export const wishlistApi = createApi({
   reducerPath: 'wishlistApi',
   tagTypes: ['Wishlist'],
-  // Wishlist changes are relatively rare (user opens their favourites, occasionally
-  // toggles). Keep cache warm for 5 min after last subscriber unmounts — MCP-recommended
-  // TTL for "user-owned collections". Adjust in `performance-rtk.md` guidance.
+  // Wishlist changes are relatively rare (user opens their favourites, occasionally toggles).
   keepUnusedDataFor: 300,
   refetchOnMountOrArgChange: 60,
   refetchOnFocus: false,
@@ -95,11 +74,7 @@ export const {
   useSetWishlistMutation,
 } = wishlistApi;
 
-/**
- * Convenience type guard for narrowing RTK Query errors to a HTTP-shaped
- * `{ status, data }` object — mostly useful in catch blocks where we
- * want to differentiate "transport failure" from "server 4xx".
- */
+/** Convenience type guard for narrowing RTK Query errors to a HTTP-shaped `{ status, data }` object. */
 export function isFetchBaseQueryError(error: unknown): error is FetchBaseQueryError {
   return typeof error === 'object' && error !== null && 'status' in error;
 }

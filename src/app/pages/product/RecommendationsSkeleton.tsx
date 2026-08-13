@@ -1,7 +1,4 @@
-/**
- * Skeleton for the streamed "You May Also Like" carousel. Renders a row of
- * five product-card stubs while `frequently_ordered_block` resolves on OE.
- */
+/** Skeleton for the streamed "You May Also Like" carousel. */
 export function RecommendationsSkeleton() {
   return (
     <div className="border-y border-black py-12">

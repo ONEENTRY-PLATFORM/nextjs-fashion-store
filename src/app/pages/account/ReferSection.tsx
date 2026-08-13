@@ -18,16 +18,11 @@ export const REFER_LABELS = {
   eyebrow: 'Exclusive Offer',
   bannerHeadingTpl: (amount: string) => `Give ${amount}, Get ${amount}`,
   bannerBodyPrefix: 'Invite a friend to KEKIMORO. When they place their first order, you both receive a ',
-  // The currency symbol is not copy — it is rendered from the configured
-  // currency at the call site, so a shop that switches to € does not have to
-  // remember to reword this label too.
+  // The currency symbol is not copy.
   bannerBodyCreditSuffix: ' store credit',
   bannerBodySuffix: '.',
   perReferral: 'per referral',
-  // The `statFriendsInvited` / `statOrdersPlaced` / `statCreditsEarned` labels
-  // were dropped with the stats row they titled: nothing on this tenant counts
-  // referrals, so the row could only render fixed zeros.
-  // Link
+  // The `statFriendsInvited` / `statOrdersPlaced` / `statCreditsEarned` labels were dropped with the stats row they titled: nothing on this tenant counts referrals, so the row could only render fixed zeros.
   linkLabel: 'Your Referral Link',
   copyLink: 'Copy Link',
   copied: 'Copied!',
@@ -43,9 +38,7 @@ export const REFER_LABELS = {
   emailSent: 'Invitations Sent!',
   // How it works
   howItWorks: 'How It Works',
-  // Flat strings so the dictionary can reach them. The third step needs the
-  // credit amount, which an admin-authored value cannot interpolate — hence a
-  // `%amount%` placeholder filled by `fillTokens` at render time.
+  // Flat strings so the dictionary can reach them.
   howStep1Title: 'Share Your Link',
   howStep1Desc: 'Send your unique referral link or code to friends and family.',
   howStep2Title: 'Friend Signs Up',
@@ -64,13 +57,9 @@ export function ReferSection() {
   const L = useDict('user_account_refer_', L_FALLBACK);
   const { user } = useAuth();
   // Programme terms are editor-owned (OE `site_settings` → `Referral — …`).
-  // `enabled` is derived from the credit: zero means the shop is not paying
-  // anything out, and the section then renders as what it actually is — a
-  // share-your-link tool — instead of advertising a reward nobody honours.
   const { referral } = useSiteSettings();
   const referralCode = `OE-${(user?.firstName ?? 'FRIEND').toUpperCase().slice(0, 4)}2026`;
-  // On our own origin: the base used to be a hard-coded third-party domain
-  // that does not serve this storefront, so every shared link 404'd.
+  // On our own origin: the base used to be a hard-coded third-party domain that does not serve this storefront, so every shared link 404'd.
   const referralLink = `${SITE_URL}/ref/${referralCode}`;
 
   const [emails, setEmails] = useState('');
@@ -114,8 +103,7 @@ export function ReferSection() {
 
   const sectionLabel = 'block text-xs uppercase tracking-[0.15em] mb-2 font-bold text-[#555]';
 
-  // Rebuilt from the flat `howStepNTitle` / `howStepNDesc` keys. `%amount%` is
-  // filled here because an admin-authored string cannot interpolate.
+  // Rebuilt from the flat `howStepNTitle` / `howStepNDesc` keys.
   const creditLabel = CURRENCY.formatInteger(referral.creditAmount);
   const howSteps = [1, 2, 3].map((n) => ({
     step: String(n).padStart(2, '0'),

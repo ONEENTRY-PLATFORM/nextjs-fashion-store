@@ -42,9 +42,7 @@ export const HEX_COLOR_NAMES: Record<string, string> = {
   '#800080': 'Purple',
 };
 
-/**
- * Returns a human-readable colour name for a hex value, falling back to the hex itself.
- */
+/** Returns a human-readable colour name for a hex value, falling back to the hex itself. */
 export function hexToColorName(hex: string): string {
   return HEX_COLOR_NAMES[hex.toUpperCase()] ?? HEX_COLOR_NAMES[hex] ?? hex;
 }

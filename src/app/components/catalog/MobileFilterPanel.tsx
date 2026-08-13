@@ -16,11 +16,7 @@ export const MOBILE_FILTER_ARIA = {
 /* ─── Types ──────────────────────────────────────────────── */
 export interface MobileFilterOption {
   label: string;
-  /**
-   * Stable identity reported back through `onToggleFilter`. Defaults to
-   *  `label` — set it when the label is editable copy (e.g. a CMS-managed
-   *  category name) so renaming the label cannot break the filter.
-   */
+  /** Stable identity reported back through `onToggleFilter`. Defaults to `label`. */
   value?: string;
   count?: number;
   color?: string;

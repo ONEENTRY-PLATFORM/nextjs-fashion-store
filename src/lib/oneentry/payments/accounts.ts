@@ -11,10 +11,7 @@ export interface PaymentAccount {
   isVisible: boolean;
 }
 
-// Fetches all payment accounts from OneEntry. Returns only the visible ones —
-// hidden accounts stay in the admin panel but are excluded from checkout.
-// The SDK unwraps localizeInfos to a single-locale object based on the
-// x-app-token; the checkout doesn't need multi-locale variants here.
+// Fetches all payment accounts from OneEntry.
 export async function getPaymentAccountsAction(): Promise<PaymentAccount[]> {
   const api = getApiSafe();
   if (!api) return [];

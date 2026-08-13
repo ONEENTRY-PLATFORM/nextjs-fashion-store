@@ -30,8 +30,7 @@ const extractTitle = (raw: RawPage, lang: Lang): string => {
 };
 
 const splitAddressPostcode = (full: string): { address: string; postcode: string } => {
-  // OneEntry stores address+postcode in one string like "214 Oxford Street, W1C 1AX".
-  // Split off the last token after the final comma when it looks like a postcode.
+  // OneEntry stores address+postcode in one string like "214 Oxford Street, W1C 1AX". Split off the last token after the final comma when it looks like a postcode.
   const trimmed = full.trim();
   const lastComma = trimmed.lastIndexOf(',');
   if (lastComma === -1) return { address: trimmed, postcode: '' };
@@ -53,9 +52,6 @@ const padHM = (n: number): string => String(n).padStart(2, '0');
 
 const formatHours = (rawValue: unknown, dayLabel: string): { day: string; time: string }[] => {
   // OneEntry stores opening hours as a timeInterval with recurring windows.
-  // We don't parse the full recurrence — just emit one "<dayLabel> · HH:MM – HH:MM"
-  // line per window. `dayLabel` comes from the `store_location` set so the
-  // day-range wording is editable in the admin panel.
   if (!Array.isArray(rawValue) || rawValue.length === 0) return [];
   const out: { day: string; time: string }[] = [];
   for (const entry of rawValue) {
@@ -78,11 +74,7 @@ const formatHours = (rawValue: unknown, dayLabel: string): { day: string; time: 
   return out;
 };
 
-/**
- * OE stores the store tag/label as a single-value list attribute.
- *  - `value` is the machine id (e.g. `flagship`, `new`) — used to detect the flagship store.
- *  - `title` is the human-readable badge shown on the card (e.g. `FLAGSHIP`, `New`).
- */
+/** OE stores the store tag/label as a single-value list attribute. */
 const extractLabel = (rawValue: unknown): { title: string; value: string } => {
   if (!Array.isArray(rawValue) || rawValue.length === 0) return { title: '', value: '' };
   const first = rawValue[0] as { title?: unknown; value?: unknown };
@@ -124,20 +116,12 @@ const normalize = (raw: RawPage, lang: Lang, dayLabel: string, mockFallback?: St
   };
 };
 
-/**
- * `lang` is an explicit argument so it lands in the `unstable_cache` key —
- *  otherwise every locale would read whichever one warmed the entry first.
- *  `dayLabel` is passed in for the same reason *and* so that editing it in the
- *  admin panel changes the cache key, surfacing the new wording immediately
- *  instead of waiting out `REVALIDATE_STORES`.
- */
+/** `lang` is an explicit argument so it lands in the `unstable_cache` key. */
 const loadStoresCached = withTiming(
   'loadStores',
   unstable_cache(
     async (lang: Lang, dayLabel: string): Promise<Store[]> => {
-      // Mock fallback so all stores render even while a few OE store pages
-      // remain partially filled. When every store page has full attributes
-      // the MOCK_STORES fallback can be dropped.
+      // Mock fallback so all stores render even while a few OE store pages remain partially filled.
       const api = getApiSafe();
       if (!api) return MOCK_STORES;
       try {
@@ -158,16 +142,10 @@ const loadStoresCached = withTiming(
   ),
 );
 
-/**
- * Store list for the current route's locale.
- *
- * @param [langArg] - Explicit OE locale; defaults to the route's.
- * @returns Stores, falling back to the mock list.
- */
+/** Store list for the current route's locale. */
 export async function loadStores(langArg?: Lang): Promise<Store[]> {
   const lang = langArg ?? (await currentCmsLocale());
-  // Read outside `unstable_cache` so the label isn't pinned for the whole
-  // stores TTL; `getSystemSet` has its own 5-minute cache.
+  // Read outside `unstable_cache` so the label isn't pinned for the whole stores TTL; `getSystemSet` has its own 5-minute cache.
   const dayLabel = await t('store_location', 'store_location_card_hours_day_default', 'Mon – Sun', lang);
   return loadStoresCached(lang, dayLabel);
 }

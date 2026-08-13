@@ -3,7 +3,10 @@ import { ChevronDown, Package } from 'lucide-react';
 
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { PARCEL_LOCKERS, type ParcelLocker } from '@/app/data/checkoutConfig';
-import { DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK , DELIVERY_METHOD_SHARED_LABELS as SH } from '@/app/pages/checkout/copy';
+import {
+  DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK,
+  DELIVERY_METHOD_SHARED_LABELS as SH,
+} from '@/app/pages/checkout/copy';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
@@ -16,10 +19,7 @@ interface DeliveryMethodLockerProps {
   setSelectedLocker: (l: ParcelLocker) => void;
   lockerDropOpen: boolean;
   setLockerDropOpen: (fn: (o: boolean) => boolean) => void;
-  /**
-   * Lockers from OE, each with the page id the order references; omitted
-   *  (Storybook / bare tests) falls back to the local `PARCEL_LOCKERS` list.
-   */
+  /** Lockers from OE, each with the page id the order references. */
   lockers?: ParcelLocker[];
   isLoggedIn: boolean;
   guestContact: GuestContactFormState;
@@ -83,8 +83,7 @@ export function DeliveryMethodLocker({
                 <button
                   key={l.oeId ?? l.name}
                   data-testid="locker-option"
-                  // The OE page id the order's `entity` field will carry. The
-                  // name beside it is CMS copy and changes per locale.
+                  // The OE page id the order's `entity` field will carry.
                   data-locker-id={l.oeId ?? ''}
                   onClick={() => {
                     setSelectedLocker(l);

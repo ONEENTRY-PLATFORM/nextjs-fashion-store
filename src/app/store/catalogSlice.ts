@@ -1,13 +1,4 @@
-/**
- * catalogSlice — per-catalog UI state
- *
- * Manages filter selections, sort, pagination, view mode, and active quick-filter chip
- * for every catalog page, keyed by a catalog identifier (e.g. 'women-clothing').
- *
- * Why here instead of local state:
- * - Persists filter state when navigating back to a catalog
- * - Single source of truth for filter logic, easy to swap to API-driven filters later
- */
+/** catalogSlice — per-catalog UI state Manages filter selections, sort, pagination, view mode, and active quick-filter chip for every catalog page, keyed by a catalog identifier. */
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 export interface CatalogUIState {
@@ -40,9 +31,7 @@ const catalogSlice = createSlice({
   name: 'catalog',
   initialState: {} as CatalogsState,
   reducers: {
-    /**
-     * Toggle a single filter value on/off
-     */
+    /** Toggle a single filter value on/off */
     toggleFilter(state, action: PayloadAction<{ catalogKey: string; filterKey: string; value: string }>) {
       const { catalogKey, filterKey, value } = action.payload;
       const catalog = getCatalog(state, catalogKey);
@@ -53,9 +42,7 @@ const catalogSlice = createSlice({
       catalog.currentPage = 1;
     },
 
-    /**
-     * Set all filters at once (e.g. from URL params)
-     */
+    /** Set all filters at once (e.g. from URL params) */
     setFilters(state, action: PayloadAction<{ catalogKey: string; filters: Record<string, string[]> }>) {
       const { catalogKey, filters } = action.payload;
       const catalog = getCatalog(state, catalogKey);
@@ -63,9 +50,7 @@ const catalogSlice = createSlice({
       catalog.currentPage = 1;
     },
 
-    /**
-     * Clear all filters for a catalog
-     */
+    /** Clear all filters for a catalog */
     clearFilters(state, action: PayloadAction<string>) {
       const catalog = getCatalog(state, action.payload);
       catalog.selectedFilters = {};
@@ -97,9 +82,7 @@ const catalogSlice = createSlice({
       catalog.currentPage = 1;
     },
 
-    /**
-     * Load persisted catalog state from localStorage after client mount
-     */
+    /** Load persisted catalog state from localStorage after client mount */
     hydrateCatalogs(_state, action: PayloadAction<CatalogsState>) {
       return action.payload;
     },

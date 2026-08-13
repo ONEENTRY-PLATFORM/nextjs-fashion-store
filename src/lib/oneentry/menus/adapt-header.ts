@@ -2,18 +2,10 @@ import type { Gender, SubCat } from '@/app/data/categories';
 
 import type { MenuPageNode } from './menus';
 
-/**
- * Shape consumed by `Header` / `HeaderMobileDrawer` — mirrors the legacy
- * hardcoded `MEGA_DATA` object. Each subcategory resolves to a list of
- * sections, and each section holds `{ label, pageUrl }` items so links can
- * navigate to the actual OE category (not just a chip label).
- */
+/** Shape consumed by `Header` / `HeaderMobileDrawer` — mirrors the legacy hardcoded `MEGA_DATA` object. */
 export interface HeaderMegaItem {
   label: string;
-  /**
-   * OE `pageUrl` of the leaf node — used to filter the catalog by that
-   *  specific category path (e.g. `?category=dresses_skirts`).
-   */
+  /** OE `pageUrl` of the leaf node — used to filter the catalog by that specific category path. */
   pageUrl: string;
 }
 export type HeaderMega = Record<Gender, Record<Exclude<SubCat, null>, { title: string; items: HeaderMegaItem[] }[]>>;
@@ -22,11 +14,7 @@ const SUBCAT_KEYS: Exclude<SubCat, null>[] = ['shoes', 'clothing', 'bags', 'acce
 
 const norm = (s: string) => s.toLowerCase().trim();
 
-/**
- * Try to match a node against a known gender by string. Positional fallback
- *  applies later — this is just an optimisation when the OE admin does use
- *  meaningful `pageUrl`s / `menuTitle`s.
- */
+/** Try to match a node against a known gender by string. */
 const matchGender = (node: MenuPageNode): Gender | null => {
   const n = norm(node.pageUrl) || norm(node.menuTitle) || norm(node.title);
   if (n.includes('women')) return 'women';
@@ -34,34 +22,14 @@ const matchGender = (node: MenuPageNode): Gender | null => {
   return null;
 };
 
-/**
- * Same idea for subcats.
- */
+/** Same idea for subcats. */
 const matchSubCat = (node: MenuPageNode): Exclude<SubCat, null> | null => {
   const n = norm(node.pageUrl) || norm(node.menuTitle) || norm(node.title);
   for (const key of SUBCAT_KEYS) if (n.includes(key)) return key;
   return null;
 };
 
-/**
- * Turn the OE `header` menu tree into the mega-menu shape the storefront
- * already knows how to render.
- *
- * Strategy:
- * 1. Try to match gender / subcat by keyword (`women`, `men`, `shoes`,
- *    `clothing`, `bags`, `accessories`) so the admin doesn't have to keep
- *    the tree in any specific order.
- * 2. When keyword matching fails, fall back to **positional** mapping:
- *    first top-level page → women, second → men; within each, first four
- *    children fill `shoes`, `clothing`, `bags`, `accessories` in order.
- *
- * A subcategory then resolves to either:
- * - an explicit list of section groups (grandchildren wrap the items), or
- * - a flat list of items (children ARE the items), auto-wrapped in one
- *   section named after the subcategory.
- *
- * Returns `null` only when the menu is missing / empty.
- */
+/** Turn the OE `header` menu tree into the mega-menu shape the storefront already knows how to render. */
 export function adaptHeaderMenuToMega(pages: MenuPageNode[]): HeaderMega | null {
   if (!pages || pages.length === 0) return null;
 
@@ -97,8 +65,7 @@ export function adaptHeaderMenuToMega(pages: MenuPageNode[]): HeaderMega | null 
       const s = matchSubCat(child);
       if (s && !subNodes[s]) subNodes[s] = child;
     }
-    // Pass 2: positional fill — assign remaining unmatched children to the
-    // subcategory slots that are still empty, in order.
+    // Pass 2: positional fill — assign remaining unmatched children to the subcategory slots that are still empty, in order.
     const usedIds = new Set(
       Object.values(subNodes)
         .filter((n): n is MenuPageNode => n !== null)
@@ -115,13 +82,7 @@ export function adaptHeaderMenuToMega(pages: MenuPageNode[]): HeaderMega | null 
     for (const key of SUBCAT_KEYS) {
       const subNode = subNodes[key];
       if (!subNode) continue;
-      // Two shapes of subcategory tree in OE:
-      //   1. Wrapped — level-3 nodes are section headers (OUTERWEAR, SEASONAL
-      //      TRENDS), their level-4 children are the actual items.
-      //   2. Flat — level-3 nodes ARE the items themselves (accessories tree:
-      //      women_accessories > [headwear, scarves, belts, …]).
-      // Detect the flat shape when none of the level-3 nodes have children —
-      // then wrap them into a single synthetic column named after the subcat.
+      // Two shapes of subcategory tree in OE: 1.
       const level3 = subNode.children ?? [];
       const isFlat = level3.length > 0 && level3.every((n) => (n.children ?? []).length === 0);
       if (isFlat) {
@@ -145,8 +106,7 @@ export function adaptHeaderMenuToMega(pages: MenuPageNode[]): HeaderMega | null 
     }
   }
 
-  // Return null only if we couldn't extract anything useful at all, so the
-  // dropdown just doesn't render (rather than showing an empty white panel).
+  // Return null only if we couldn't extract anything useful at all, so the dropdown just doesn't render (rather than showing an empty white panel).
   const empty = SUBCAT_KEYS.every((k) => out.women[k].length === 0 && out.men[k].length === 0);
   return empty ? null : out;
 }

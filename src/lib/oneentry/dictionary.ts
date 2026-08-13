@@ -6,42 +6,10 @@ import { currentCmsLocale } from './current-locale';
 import { parseSiteSettings, type SiteSettings } from './site-settings';
 import { getSystemSet, type Lang, readSystemValue, type SystemSchema } from './system-text';
 
-/**
- * The storefront's UI-text dictionary: every attribute marker the CMS knows,
- * flattened to `marker → value`.
- *
- * Copy lives as each attribute's `initialValue` — the field a content editor
- * fills in the admin panel's attribute-set editor. Markers are unique across
- * sets on this tenant (verified against the live project: 718 keys over the 41
- * sets below, zero collisions), so the sets are an admin-side grouping only and
- * callers never need to know which set a key came from. One lookup, one
- * namespace.
- *
- * Read it with `useT()` on the client or {@link getDictionary} on the server;
- * every call site supplies its own English fallback inline, so a CMS outage
- * degrades to the shipped copy rather than blank UI.
- */
+/** The storefront's UI-text dictionary: every attribute marker the CMS knows, flattened to `marker → value`. Copy lives as each attribute's `initialValue`. */
 export type Dictionary = Record<string, string>;
 
-/**
- * Every attribute set the storefront reads copy from.
- *
- * This list is explicit rather than discovered because the public
- * `GET /api/content/attributes-sets` endpoint **ignores `offset`/`limit`** and
- * always returns the first 10 of the tenant's 90 sets — verified over raw HTTP
- * against `offset=10`, `limit=90` and `page=2`, all of which return the same
- * first page. Enumerating the tenant is therefore impossible from the public
- * API, and `getAttributeSetByMarker` per marker is the only complete path.
- *
- * The sets are fetched in parallel and each one is TTL-cached by
- * `getSystemSet`, so the cost is 42 concurrent requests once every five
- * minutes per server process, not per render.
- *
- * Note: `product_specs` and `server_errors` are deliberately absent. Both are
- * read server-side only — `loadProductSpecLabels` and `se()` call `getSystemSet`
- * directly — so shipping them in the client dictionary would send copy no
- * Client Component asks for.
- */
+/** Every attribute set the storefront reads copy from. */
 export const DICTIONARY_SET_MARKERS = [
   // Site-wide settings.
   'site_settings',
@@ -66,8 +34,7 @@ export const DICTIONARY_SET_MARKERS = [
   // Product detail
   'product_card_delivery_returns',
   'product_card_actions',
-  // Added with the quick-view accordion copy — the set did not exist before, so
-  // that screen rendered its shipped English fallbacks in every locale.
+  // Added with the quick-view accordion copy — the set did not exist before, so that screen rendered its shipped English fallbacks in every locale.
   'quick_view',
   'special_offers_product_card',
   'special-offers-bundle-product-card',
@@ -101,9 +68,7 @@ export const DICTIONARY_SET_MARKERS = [
   'store_pages',
 ] as const;
 
-/**
- * Flatten one OE attribute-set schema to `marker → value`, dropping empties.
- */
+/** Flatten one OE attribute-set schema to `marker → value`, dropping empties. */
 function flattenSet(schema: SystemSchema, lang: Lang): Dictionary {
   const out: Dictionary = {};
   for (const [key, item] of Object.entries(schema)) {
@@ -113,22 +78,7 @@ function flattenSet(schema: SystemSchema, lang: Lang): Dictionary {
   return out;
 }
 
-/**
- * Load the whole dictionary. Server-side; pass it to `DictProvider` for client
- * components.
- *
- * Never throws — an unreachable CMS yields an empty dictionary and every call
- * site falls back to its inline English copy. Per-set caching and in-flight
- * de-duplication both live in `getSystemSet`, so calling this repeatedly within
- * a request (or across requests inside the TTL) costs nothing.
- *
- * With no argument the locale comes from the `[locale]` route segment via
- * {@link currentCmsLocale}; pass one explicitly from Server Actions and Route
- * Handlers, where root parameters are unavailable.
- *
- * @param   {Lang}                 [lang] - OE locale code. Defaults to the route's.
- * @returns {Promise<Dictionary>}         Flat `marker → value` map.
- */
+/** Load the whole dictionary. */
 export const getDictionary = cache(async (langArg?: Lang): Promise<Dictionary> => {
   const lang = langArg ?? (await currentCmsLocale());
   const sets = await Promise.all(
@@ -138,9 +88,7 @@ export const getDictionary = cache(async (langArg?: Lang): Promise<Dictionary> =
   const dict: Dictionary = {};
   for (const set of sets) {
     for (const [key, value] of Object.entries(set)) {
-      // First writer wins. Markers are unique tenant-wide today; a future
-      // collision would be an admin-side mistake, so surface it in dev
-      // rather than letting one screen silently reword another.
+      // First writer wins.
       if (dict[key] === undefined) {
         dict[key] = value;
       } else if (process.env.NODE_ENV !== 'production' && dict[key] !== value) {
@@ -151,31 +99,13 @@ export const getDictionary = cache(async (langArg?: Lang): Promise<Dictionary> =
   return dict;
 });
 
-/**
- * Resolve one marker against a dictionary, falling back to the shipped copy.
- *
- * @param dict     - Loaded dictionary, if any.
- * @param                        marker   - Attribute marker to read.
- * @param                        fallback - Inline English copy.
- * @returns                                 The CMS value or `fallback`.
- */
+/** Resolve one marker against a dictionary, falling back to the shipped copy. */
 export function translate(dict: Dictionary | null | undefined, marker: string, fallback: string): string {
   const v = dict?.[marker];
   return typeof v === 'string' && v.length > 0 ? v : fallback;
 }
 
-/**
- * Server-side settings read: the `site_settings` slice of the dictionary,
- * parsed into typed values.
- *
- * Also installs the CMS currency for this runtime, so the plain formatters in
- * `currencyConfig` (used by server loaders that cannot call a hook) render the
- * configured symbol. Awaiting this before formatting prices is what guarantees
- * the ordering — see the note on {@link configureCurrency}.
- *
- * @param   lang - OE locale code. Defaults to the route's.
- * @returns        Resolved settings, fallbacks included.
- */
+/** Server-side settings read: the `site_settings` slice of the dictionary, parsed into typed values. */
 export const getSiteSettings = cache(async (lang?: Lang): Promise<SiteSettings> => {
   const settings = parseSiteSettings(await getDictionary(lang));
   configureCurrency(settings.currency);

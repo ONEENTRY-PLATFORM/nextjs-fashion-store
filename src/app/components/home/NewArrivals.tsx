@@ -10,10 +10,7 @@ import { ACCENT_WOMEN } from '@/app/constants/colors';
 import { Link } from '@/lib/i18n/navigation';
 import type { SectionChrome } from '@/lib/oneentry/blocks/section-chrome';
 
-/**
- * `chrome` carries the OE block's own subtitle / view-all link; the
- *  `SECTION_TITLES` entry is the offline fallback for each field.
- */
+/** `chrome` carries the OE block's own subtitle / view-all link. */
 export function NewArrivals({
   products = [],
   title,

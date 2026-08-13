@@ -41,20 +41,14 @@ interface Props {
   handleRemoveCoupon: () => void;
   /** Amount OE deducted for the coupon (from `previewOrder.couponDiscountAmount`). */
   couponDiscount: number;
-  /** Loyalty tier discount, EXCLUDING the coupon slice (parent should pass `discountAmount - couponDiscountAmount`). */
+  /** Loyalty tier discount, EXCLUDING the coupon slice. */
   personalDiscount: number;
   finalTotal: number;
   /** `previewOrder` is in flight and we don't yet know the discounts — show skeleton. */
   previewLoading: boolean;
   /** `true` once the first preview has arrived; suppresses skeleton for subsequent refetches. */
   hasPreview: boolean;
-  /**
-   * Free gifts OE appended to the order (hydrated with product name/image).
-   *  Passed from the parent so an in-session Apply Coupon fires the parent's
-   *  `useCart` instance while this component reads its own — otherwise the
-   *  gift wouldn't appear until the shopper reloads and both instances re-init
-   *  from the persisted coupon.
-   */
+  /** Free gifts OE appended to the order (hydrated with product name/image). */
   giftItems: GiftCartItem[];
 }
 

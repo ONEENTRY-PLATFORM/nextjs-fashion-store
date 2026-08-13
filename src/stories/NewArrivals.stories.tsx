@@ -12,8 +12,5 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/**
- * NewArrivals loads products via RTK Query (homepageApi → fakeBaseQuery → SALE_PRODUCTS).
- * Renders a horizontally scrollable product carousel.
- */
+/** NewArrivals loads products via RTK Query (homepageApi → fakeBaseQuery → SALE_PRODUCTS). */
 export const Default: Story = {};

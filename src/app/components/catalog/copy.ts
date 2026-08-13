@@ -1,7 +1,4 @@
-/**
- * Copy shared by this feature's components, overlaid by the OneEntry
- * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
- */
+/** Copy shared by this feature's components, overlaid by the OneEntry dictionary at render time. */
 
 export const COMMON_EMPTY_STATES = {
   noResults: 'No results',
@@ -12,10 +9,7 @@ export const COMMON_EMPTY_STATES = {
   searchInGroup: 'Search %group%…',
 } as const;
 
-/**
- * Catalog page titles, gender labels, and breadcrumb fragments.
- * Used by WomenCatalogPage, MenCatalogPage, WomenBagsPage, MenBagsPage, etc.
- */
+/** Catalog page titles, gender labels, and breadcrumb fragments. */
 
 export const CATALOG_PAGE_LABELS = {
   // Gender labels (uppercase, displayed in catalog header)
@@ -34,8 +28,7 @@ export const CATALOG_PAGE_LABELS = {
   breadcrumbShoes: 'Shoes',
   breadcrumbBags: 'Bags',
   breadcrumbAccessories: 'Accessories',
-  // Heading of the trending carousel when OE has no `catalog_trend_blocks`
-  // block (or the block carries no title of its own).
+  // Heading of the trending carousel when OE has no `catalog_trend_blocks` block (or the block carries no title of its own).
   trendingFallbackTitle: "We Think You'll Love",
 } as const;
 

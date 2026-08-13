@@ -7,13 +7,7 @@ import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { SectionTitle } from './shared';
 
 // ─── Subscriptions section ──────────────────────────────────────────────────
-/**
- * Flat on purpose. `mergeDict` overlays **string** entries only — a nested
- * `{label, desc}` pair is structure to it and would stay frozen in code, which
- * is exactly how these seven rows ended up un-editable. Flattening them to
- * `<key>Label` / `<key>Desc` puts every string back under the convention:
- * `subscription_management_email_newsletter_label`, and so on.
- */
+/** Flat on purpose. */
 export const SUBSCRIPTIONS_LABELS = {
   title: 'Subscription Management',
   emailNewsletterLabel: 'Email Newsletter',
@@ -32,11 +26,7 @@ export const SUBSCRIPTIONS_LABELS = {
   loyaltyUpdatesDesc: 'Bonus points, tier upgrades & member rewards',
 } as const;
 
-/**
- * The toggles, in render order. Also the shape of {@link EMPTY_SUBS} and the
- * stem of every dictionary marker (`<key>Label` / `<key>Desc`), so the rows,
- * the default state and the CMS copy cannot drift apart.
- */
+/** The toggles, in render order. */
 const SUBSCRIPTION_KEYS = [
   'emailNewsletter',
   'smsNotifications',
@@ -52,19 +42,7 @@ const EMPTY_SUBS = Object.fromEntries(SUBSCRIPTION_KEYS.map((k) => [k, false])) 
   boolean
 >;
 
-/**
- * One notification toggle row. Declared at module scope, not inside
- * `SubscriptionsSection` — a component created during render is a brand-new
- * type on every pass, so React unmounts and remounts it, throwing away its
- * DOM state (focus, transition) each time the parent re-renders.
- *
- * @param   props          - Row props.
- * @param  props.value    - Current toggle state.
- * @param props.onChange - Called when the shopper flips it.
- * @param   props.label    - Visible label / accessible name.
- * @param   props.desc     - Supporting copy under the label.
- * @returns The rendered row.
- */
+/** One notification toggle row. */
 function Toggle({
   value,
   onChange,

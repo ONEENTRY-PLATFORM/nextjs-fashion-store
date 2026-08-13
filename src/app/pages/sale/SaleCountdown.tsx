@@ -2,8 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 export function useCountdown(target: number) {
-  // Memoised on `target` so the ticking effect restarts against the new
-  // deadline when the OE-driven end date arrives after first paint.
+  // Memoised on `target` so the ticking effect restarts against the new deadline when the OE-driven end date arrives after first paint.
   const calc = useCallback(() => {
     const diff = Math.max(0, target - Date.now());
     return {

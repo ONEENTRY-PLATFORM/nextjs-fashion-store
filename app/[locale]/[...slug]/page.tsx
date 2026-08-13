@@ -61,17 +61,7 @@ const CATALOG_COMPONENTS: Record<string, React.ComponentType<CatalogProps>> = {
   'men-accessories': MenAccessoriesPage,
 };
 
-/**
- * Adapt a CMS-discovered category to the shape the registry-driven branch of
- * this route already understands, so both kinds of catalog page take exactly
- * the same code path.
- *
- * No `seoKey`: the category has no shipped copy, and its metadata comes from
- * the OE page's own `meta_*` attributes instead.
- *
- * @param   route - Category discovered in the OE page tree.
- * @returns         A catalog entry with the CMS titles as breadcrumbs.
- */
+/** Adapt a CMS-discovered category to the shape the registry-driven branch of this route already understands, so both kinds of catalog page take exactly the same code path. */
 function catalogEntryFromCmsRoute(route: CmsCatalogRoute): CatalogPageEntry {
   return {
     type: 'catalog',
@@ -92,66 +82,36 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/**
- * Server-side product page size. Matches the client default in
- *  `CatalogTemplate`. Per-catalog overrides can be added here later.
- */
+/** Server-side product page size. */
 const PRODUCTS_PER_PAGE = 16;
 
-// NOTE: this route is `ƒ Dynamic` in the build output, not ISR — the segment
-// config below currently buys nothing. `Page` awaits `searchParams`
-// unconditionally on the catalog branch (it needs the filters to issue the
-// filtered OE query server-side), and reading `searchParams` opts the whole
-// segment out of static generation, clean URL or not. The export is kept
-// because it becomes live the moment the filter read is deferred behind its
-// own Suspense boundary, which is the real fix — until then, do not read this
-// line as "clean catalog URLs are cached for 60 s". They are not.
-//
-// What actually caches today is one level down: the loaders wrap their OE
-// calls in `unstable_cache`, so repeat requests reuse OE responses for
-// `ISR_CATALOG_TTL_SEC` (default 60 s, see `src/lib/isr.ts`) even though the
-// HTML is rebuilt per request.
-//
-// This value MUST be a literal — Next.js statically analyses route
-// segment config at build time and rejects imported / re-exported /
-// computed values with "Invalid segment configuration export detected".
+// NOTE: this route is `ƒ Dynamic` in the build output, not ISR — the segment config below currently buys nothing.
 export const revalidate = 60;
 
 /* ─── generateMetadata ─── */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const path = slug.join('/');
-  // A path missing from the static registry may still be an info page the
-  // editor created in OE after the last deploy — ask the CMS before giving up.
+  // A path missing from the static registry may still be an info page the editor created in OE after the last deploy — ask the CMS before giving up.
   const dynamicSlug = PAGE_REGISTRY[path] ? null : await resolveInfoPageSlug(path);
-  // Still nothing? It may be a catalog category an editor added in OE after
-  // the last deploy — the same courtesy info pages have had for a while.
+  // Still nothing?
   const cmsCatalog = PAGE_REGISTRY[path] || dynamicSlug ? null : await resolveCatalogRoute(path);
   const entry =
     PAGE_REGISTRY[path] ??
     (dynamicSlug ? { type: 'info' as const, slug: dynamicSlug } : undefined) ??
     (cmsCatalog ? catalogEntryFromCmsRoute(cmsCatalog) : undefined);
-  // Nothing matched: this request ends in `notFound()` below. Next does not
-  // read metadata from `not-found.tsx`, so returning `{}` here left the 404
-  // wearing the root layout's title — a soft 404 as far as a crawler is
-  // concerned. The copy comes from `system_pages`, next to the rest of the
-  // 404 wording, with `SEO.notFound` as the offline fallback.
+  // Nothing matched: this request ends in `notFound()` below.
   if (!entry) {
     const dict = await getDictionary();
     return {
       ...SEO.notFound,
-      // `absolute`, because both the CMS value and the coded fallback already
-      // carry the brand — the root layout's `%s | <brand>` template would
-      // otherwise append it a second time.
+      // `absolute`, because both the CMS value and the coded fallback already carry the brand.
       title: { absolute: translate(dict, 'not_found_seo_title', SEO.notFound.title as string) },
       description: translate(dict, 'not_found_seo_description', SEO.notFound.description as string),
     };
   }
 
-  // Info pages carry their SEO on the OE page itself (`meta_title`,
-  // `meta_description`, `meta_keywords`, `canonical`), so an editor can tune it
-  // without a deploy. `buildPageMetadata` stays as the offline fallback and
-  // still owns the catalog pages and the `/info` hub.
+  // Info pages carry their SEO on the OE page itself (`meta_title`, `meta_description`, `meta_keywords`, `canonical`), so an editor can tune it without a deploy.
   if (entry.type === 'info' && entry.slug !== '__hub') {
     const page = await loadPageByUrl(entry.slug);
     const attr = (marker: string): string => {
@@ -172,8 +132,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ...(canonical ? { alternates: { canonical } } : {}),
       };
     }
-    // CMS-only page with no `meta_*` attributes: `INFO_PAGE_META` has no entry
-    // for it either, so fall back to the page's own title.
+    // CMS-only page with no `meta_*` attributes: `INFO_PAGE_META` has no entry for it either, so fall back to the page's own title.
     if (page?.title && !INFO_PAGE_META[entry.slug]) {
       return {
         title: `${page.title} | ${(await getSiteSettings()).brand.siteName}`,
@@ -182,10 +141,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
 
-  // Catalog pages have an OE page of their own — the same one the block loader
-  // reads, under the `catalogKey` with hyphens swapped for underscores. Overlay
-  // whatever `meta_*` the editor filled there; `buildPageMetadata` (i.e.
-  // `seoData.ts`) stays the fallback for every field left blank.
+  // Catalog pages have an OE page of their own — the same one the block loader reads, under the `catalogKey` with hyphens swapped for underscores.
   if (entry.type === 'catalog') {
     return withCmsSeo(entry.catalogKey.replace(/-/g, '_'), buildPageMetadata(entry));
   }
@@ -194,16 +150,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /* ─── JSON-LD helpers ─── */
-/**
- * Breadcrumb + ItemList JSON-LD for a catalog page.
- *
- * @param   entry - Registry entry, or one adapted from a CMS category.
- * @param   path  - The route's own path, used as the list's canonical url.
- * @returns         Both schema nodes.
- */
+/** Breadcrumb + ItemList JSON-LD for a catalog page. */
 async function buildCatalogSchemas(entry: CatalogPageEntry, path: string) {
-  // Seed the schema.org ItemList with the first 10 in-stock products of this
-  // catalog — pulled from OE by category path (no id-prefix heuristic).
+  // Seed the schema.org ItemList with the first 10 in-stock products of this catalog — pulled from OE by category path (no id-prefix heuristic).
   const categoryPath = entry.categoryPath ?? catalogKeyToCategoryPath(entry.catalogKey);
   const productsResult = categoryPath
     ? await loadProducts({ categoryPath, limit: 10 })
@@ -234,11 +183,7 @@ async function buildCatalogSchemas(entry: CatalogPageEntry, path: string) {
 export default async function Page({ params, searchParams }: Props) {
   const { slug } = await params;
   const path = slug.join('/');
-  // OE hosting and mega-menu deep-links use a `/category/<slug>` suffix on
-  // top of the base catalog path (e.g. `/women/clothing/category/outerwear`).
-  // Redirect these to the canonical `?chip=<Prettified>` form so the client's
-  // chip / breadcrumb / share-link machinery — which is query-driven — lights
-  // up correctly. Preserves any other query params on the incoming URL.
+  // OE hosting and mega-menu deep-links use a `/category/<slug>` suffix on top of the base catalog path (e.g. `/women/clothing/category/outerwear`).
   const entryFromExact = PAGE_REGISTRY[path];
   if (!entryFromExact) {
     const catIdx = slug.lastIndexOf('category');
@@ -267,9 +212,7 @@ export default async function Page({ params, searchParams }: Props) {
       }
     }
   }
-  // Same CMS-first resolution as `generateMetadata`: an info page created in
-  // OE after the last deploy is absent from the static registry but must still
-  // render. `React.cache` makes this the same lookup the metadata pass did.
+  // Same CMS-first resolution as `generateMetadata`: an info page created in OE after the last deploy is absent from the static registry but must still render.
   const dynamicSlug = entryFromExact ? null : await resolveInfoPageSlug(path);
   const cmsCatalog = entryFromExact || dynamicSlug ? null : await resolveCatalogRoute(path);
   const entry: PageEntry | undefined =
@@ -281,41 +224,25 @@ export default async function Page({ params, searchParams }: Props) {
 
   /* ── Catalog page ── */
   if (entry.type === 'catalog') {
-    // A registry category renders its bespoke wrapper; one discovered in the
-    // CMS renders the generic template built from the page's own titles.
+    // A registry category renders its bespoke wrapper; one discovered in the CMS renders the generic template built from the page's own titles.
     const CatalogComponent = CATALOG_COMPONENTS[entry.catalogKey];
     if (!CatalogComponent && !cmsCatalog) notFound();
     const { breadcrumb, itemList } = await buildCatalogSchemas(entry, path);
 
-    // Parse the URL filters once on the server so we can issue a filtered OE
-    // request and seed the client with the resolved state.
+    // Parse the URL filters once on the server so we can issue a filtered OE request and seed the client with the resolved state.
     const sp = await searchParams;
     let filters: CatalogFilters = parseCatalogSearchParams(sp);
-    // SEASONAL TRENDS redirect: when the mega-menu clicked a leaf whose OE page
-    // carries `st_type-of-trends` + `st_trends`, swap the raw `?category=`
-    // filter for the real intent — either match a different category or an
-    // attribute value (Material/Style/Brand/…). Pages without those attributes
-    // fall through unchanged.
+    // SEASONAL TRENDS redirect: when the mega-menu clicked a leaf whose OE page carries `st_type-of-trends` + `st_trends`, swap the raw `?category=` filter for the real intent.
     if (filters.category) {
       const trend = await resolveSeasonalTrend(filters.category);
       if (trend) filters = applySeasonalTrend(filters, trend);
     }
 
-    // Load OE quick-filter chip descriptors up-front — we need them both to
-    // seed the client UI (rendered as labels only) and to translate a
-    // `?chip=<label>` URL param into the real filter effect below.
+    // Load OE quick-filter chip descriptors up-front.
     const chips = await loadFilterChips(entry.catalogKey);
     const initialQuickChips = chips && chips.length > 0 ? chips.map((c) => c.label) : undefined;
 
-    // Chip clicks land as `?chip=<label>`. Look up the descriptor and merge
-    // its effect into `filters`:
-    //   - `type: 'page'`      → `filters.category = <url>` (chip wins over
-    //     any earlier category so a fresh chip click always narrows to that
-    //     category page).
-    //   - `type: 'attribute'` → append `value` into the list field matching
-    //     the attribute marker (`material_14` → `filters.materials`).
-    // `loadFilteredProducts` runs the resulting filter set through the
-    // shared `matchesCatalogFilters` predicate.
+    // Chip clicks land as `?chip=<label>`. Look up the descriptor and merge its effect into `filters`: - `type: 'page'` → `filters.category = <url>`.
     if (filters.chip) {
       const patch = chipToFilterPatch(filters.chip, chips);
       if (patch) {
@@ -337,19 +264,14 @@ export default async function Page({ params, searchParams }: Props) {
 
     const categoryPath = entry.categoryPath ?? catalogKeyToCategoryPath(entry.catalogKey) ?? undefined;
 
-    // Visible slice: paged + filtered + sorted by OE. `loadFilteredProducts`
-    // picks the cached-catalog fast path when no attribute filters are set.
+    // Visible slice: paged + filtered + sorted by OE.
     const filtered = await loadFilteredProducts({
       categoryPath,
       filters,
       page: currentPage,
       limit: PRODUCTS_PER_PAGE,
     });
-    // Direct URL navigation to `?page=N` beyond the last valid page (e.g.
-    // shared/bookmarked link, guess-and-type, changed catalog size) lands the
-    // shopper on a `NoFilterResults` placeholder even though results DO exist —
-    // just on other pages. Clamp to the last valid page and redirect, keeping
-    // any other query params (color / size / sort / …) intact.
+    // Direct URL navigation to `?page=N` beyond the last valid page (e.g. shared/bookmarked link, guess-and-type, changed catalog size) lands the shopper on a `NoFilterResults` placeholder even though results DO exist.
     if (currentPage > 1 && filtered.items.length === 0 && filtered.total > 0) {
       const totalPages = Math.max(1, Math.ceil(filtered.total / PRODUCTS_PER_PAGE));
       const targetPage = Math.min(currentPage, totalPages);
@@ -372,9 +294,7 @@ export default async function Page({ params, searchParams }: Props) {
       filtered.items.length > 0 ? filtered.items.map(adaptCatalogProductToUiProduct) : undefined;
     const total = filtered.total;
 
-    // Counts for filter options come from the full (unfiltered) category, so
-    // empty options still show `(N)` and aren't hidden when active filters
-    // narrow the visible grid.
+    // Counts for filter options come from the full (unfiltered) category, so empty options still show `(N)` and aren't hidden when active filters narrow the visible grid.
     let countingProducts: Product[] = initialProducts ?? [];
     if (categoryPath) {
       const all = await loadProducts({ categoryPath, limit: 1000 });
@@ -383,35 +303,19 @@ export default async function Page({ params, searchParams }: Props) {
       }
     }
 
-    // The OE-managed `clothing` filter drives every catalog page now — its
-    // shape (Style / Fit / Details / Brand / Color / Size / Material / Lining
-    // / Care / Season / Country / Label / Price) is generic enough for every
-    // category, and `adaptFilterToGroups` re-counts each option against the
-    // products on the page so irrelevant rows stay empty.
-    // Filter marker in OE mirrors `catalogKey` with hyphens swapped for
-    // underscores (`women-clothing` → `women_clothing`, `men-shoes` →
-    // `men_shoes`). That's how the OE tenant currently ships the six
-    // filter definitions — one per gender × category. Section-less catalogs
-    // fall through to a `null` result and hide the row entirely.
+    // The OE-managed `clothing` filter drives every catalog page now.
     let initialFilterGroups: ClothingFilterGroup[] | undefined;
     const filterMarker = entry.catalogKey.replace(/-/g, '_');
     const groups = await loadCatalogFilter(countingProducts, filterMarker);
     if (groups && groups.length > 0) initialFilterGroups = groups;
 
-    // OE-managed trending block shown under the product grid. One marker per
-    // tenant for now — when admin wires per-catalog blocks we can route by
-    // `entry.catalogKey`. The block is gender-scoped to the current catalog
-    // (e.g. `women-*` keys never surface men's items even if the OE block
-    // returns a mixed list). When OE returns no products at all, we fall back
-    // to a slice of the unfiltered category so the carousel still has stock.
+    // OE-managed trending block shown under the product grid.
     const catalogGender: 'W' | 'M' | '' = entry.catalogKey.startsWith('women-')
       ? 'W'
       : entry.catalogKey.startsWith('men-')
         ? 'M'
         : '';
-    // Heading for the trending carousel: OE block title → CMS dictionary →
-    // local constant. Read here because the block below may be synthesised
-    // from the catalog's own products.
+    // Heading for the trending carousel: OE block title → CMS dictionary → local constant.
     const trendingFallbackTitle = translate(
       await getDictionary(),
       'catalog_page_trending_title',
@@ -437,14 +341,7 @@ export default async function Page({ params, searchParams }: Props) {
       };
     }
 
-    // OE-attached page blocks for this catalog. The tenant's pageUrl mirrors
-    // `catalogKey` with hyphens swapped for underscores (`women-clothing` →
-    // `women_clothing`) — same convention already used for filter markers.
-    // Empty when admin hasn't attached any blocks to the catalog page in OE.
-    // Filter out `catalog_trend_blocks` because it is already loaded and
-    // rendered separately via `trendingBlock` above (with a gender-scoped
-    // fallback the generic loader doesn't do). Rendering it in both places
-    // would double the "We Think You'll Love" carousel.
+    // OE-attached page blocks for this catalog.
     const pageBlocksUrl = entry.catalogKey.replace(/-/g, '_');
     const pageBlocks = (await loadPageBlocksByUrl(pageBlocksUrl)).filter((b) => b.marker !== 'catalog_trend_blocks');
 
@@ -489,27 +386,20 @@ export default async function Page({ params, searchParams }: Props) {
   if (entry.type === 'info') {
     const isHub = entry.slug === '__hub';
 
-    // Page chrome + breadcrumb labels come from the CMS dictionary; the local
-    // constants remain the offline fallback.
+    // Page chrome + breadcrumb labels come from the CMS dictionary; the local constants remain the offline fallback.
     const [dict, infoPageBlocks, cmsPage] = await Promise.all([
       getDictionary(),
       // `entry.slug` matches the OE pageUrl marker (e.g. 'about-us', 'faq').
-      // The hub landing has no OE page — skip loading and pass empty.
       isHub ? Promise.resolve([] as PageBlock[]) : loadPageBlocksByUrl(entry.slug),
-      // Cached per request alongside the metadata pass; supplies the crumb
-      // label for pages that exist only in the CMS.
+      // Cached per request alongside the metadata pass; supplies the crumb label for pages that exist only in the CMS.
       isHub ? Promise.resolve(null) : loadPageByUrl(entry.slug),
     ]);
     const label = (key: string, fallback: string) => translate(dict, key, fallback);
 
     const pageTitle = isHub
       ? label('info_hub_title', 'Content Hub')
-      // CMS first: `INFO_PAGE_META` is the offline fallback, so letting it win
-      // meant a title an editor changed in OneEntry never reached the page.
-      // Emptiness has to be tested, not `??`'d: a page OE knows nothing about
-      // yields `''`, which is a perfectly good value as far as `??` is concerned
-      // and would render a blank breadcrumb.
-      : (cmsPage?.title?.trim() || INFO_PAGE_META[entry.slug]?.title || entry.slug);
+      : // CMS first: `INFO_PAGE_META` is the offline fallback, so letting it win meant a title an editor changed in OneEntry never reached the page.
+        cmsPage?.title?.trim() || INFO_PAGE_META[entry.slug]?.title || entry.slug;
     const crumbHome = label('info_breadcrumb_home', 'Home');
 
     const breadcrumbSchema = buildBreadcrumbSchema(
@@ -518,10 +408,7 @@ export default async function Page({ params, searchParams }: Props) {
         : [{ name: crumbHome, href: '/' }, { name: pageTitle }],
     );
 
-    // FAQ structured data is derived from the very blocks `<InfoPage>` renders
-    // below, so the markup can never describe copy the visitor cannot see —
-    // Google treats that mismatch as a structured-data violation. No
-    // question-shaped section in OE means no `FAQPage` node at all.
+    // FAQ structured data is derived from the very blocks `<InfoPage>` renders below, so the markup can never describe copy the visitor cannot see.
     const faqItems = entry.slug === 'faq' ? faqItemsFromBlocks(infoPageBlocks) : [];
 
     return (

@@ -3,14 +3,7 @@ import { cache } from 'react';
 import { getApiSafe, isError } from './index';
 import { logCaught } from './log';
 
-/**
- * Active content locales configured on the OneEntry project
- * (admin → Settings → Localization).
- *
- * These are the real languages the tenant publishes content in — not a
- * decorative list. The header language switcher renders from this, so adding a
- * locale in the admin panel is enough to surface it in the storefront.
- */
+/** Active content locales configured on the OneEntry project (admin → Settings → Localization). */
 export interface CmsLocale {
   /** Numeric OE id. */
   id: number;
@@ -26,17 +19,7 @@ export interface CmsLocale {
   position: number;
 }
 
-/**
- * Load active locales through the SDK.
- *
- * Goes via `Locales.getLocales()` rather than a raw fetch: the SDK normalises
- * the payload and error shapes, and `/api/content/locales` is not reachable
- * with a plain token request. Only active locales are returned, ordered by the
- * `position` set in the admin panel.
- *
- * Never throws — an unreachable CMS yields an empty array so the caller can
- * fall back to its local default.
- */
+/** Load active locales through the SDK. */
 export const loadLocales = cache(async (): Promise<CmsLocale[]> => {
   const api = getApiSafe();
   if (!api) return [];

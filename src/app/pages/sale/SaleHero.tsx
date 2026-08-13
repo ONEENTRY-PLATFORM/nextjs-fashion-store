@@ -11,15 +11,9 @@ import { CountdownUnit } from './SaleCountdown';
 
 interface SaleHeroProps {
   countdown: { days: number; hours: number; minutes: number; seconds: number };
-  /**
-   * Countdown target as an epoch ms — used to build the "Ends …" caption
-   *  under the numbers when OE doesn't provide `timerEndsText`.
-   */
+  /** Countdown target as an epoch ms. */
   endsAt?: number;
-  /**
-   * OE `sale` page attributes. When present, drives all banner copy /
-   *  image / CTA. Missing fields degrade to the static `L.*` fallbacks.
-   */
+  /** OE `sale` page attributes. */
   cms?: SalePageFromCms | null;
 }
 
@@ -35,19 +29,7 @@ const ENDS_AT_FORMATTER = new Intl.DateTimeFormat('en-US', {
   hour12: false,
 });
 
-/**
- * Parse the OE `text.plainValue` into the four visual slots of the
- *  original hero markup. Convention (documented for the admin panel):
- *    line 1 → giant title line 1
- *    line 2 → giant title line 2
- *    line 3 → discount line, split on `NN%` into { prefix, percent, suffix }
- *              e.g. `"UP TO 50% OFF"` → `{ prefix:"UP TO", percent:"50%", suffix:"OFF" }`.
- *              If no `NN%` is present the whole line renders as `prefix`.
- *    line 4+ (joined by space) → subtitle
- *
- *  Missing lines fall through to the static `L.*` labels so the banner
- *  keeps its shape even when the admin gives us less content.
- */
+/** Parse the OE `text.plainValue` into the four visual slots of the original hero markup. */
 export function parseHeroPlain(plain: string) {
   const lines = plain
     .split(/\r?\n/)
@@ -67,10 +49,7 @@ export function parseHeroPlain(plain: string) {
 }
 
 export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
-  // Whole-object overlay: every string in `SALE_PAGE_LABELS` is editable as
-  // `sale_page_<snake_case_key>`. `parseHeroPlain` keeps reading the static
-  // object because it runs outside React (and only as a fallback for copy the
-  // admin already authors on the OE `sale` page).
+  // Whole-object overlay: every string in `SALE_PAGE_LABELS` is editable as `sale_page_<snake_case_key>`. `parseHeroPlain` keeps reading the static object because it runs outside React.
   const SP = useDict('sale_page_', L);
   const lEndsPrefix = useT('sale_page_countdown_ends_prefix', 'Ends');
   const lDays = useT('sale_page_top_banner_days', SP.countdownDays);
@@ -111,19 +90,13 @@ export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
             <span className="text-xs tracking-[0.3em] text-white uppercase opacity-80">{eyebrow}</span>
           </div>
           {contentHtml ? (
-            // Admin filled the OE rich-text editor with actual HTML. It is
-            // first-party content but not trusted markup — a compromised admin
-            // account would otherwise own every shopper session, so it goes
-            // through the allow-list sanitizer first.
+            // Admin filled the OE rich-text editor with actual HTML.
             <div
               className="oe-rich-text mb-6 text-white"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentHtml) }}
             />
           ) : (
-            // No HTML — reconstruct the original title / discount /
-            // subtitle layout from `plainValue` so the banner keeps its
-            // visual weight. Falls all the way through to static `L.*`
-            // labels when the plain field is also blank.
+            // No HTML — reconstruct the original title / discount / subtitle layout from `plainValue` so the banner keeps its visual weight.
             <>
               <h1 className="hero-h1 mb-2 text-white uppercase">
                 {parsed.titleLine1}

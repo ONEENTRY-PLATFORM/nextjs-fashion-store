@@ -24,12 +24,7 @@ export interface CmsMenu {
 /** Localization fields OE can carry on a page/menu node. */
 type LocalizedFields = { title?: string; menuTitle?: string };
 
-/**
- * The SDK's `Menus.getMenusByMarker` docs promise a "normalized" payload:
- *  `localizeInfos` is unwrapped to a single locale, so it's `{ title, menuTitle }`
- *  directly. Other OE endpoints return the raw per-locale map
- *  (`{ en_US: {...}, ru_RU: {...} }`), so `RawLocalize` covers both shapes.
- */
+/** The SDK's `Menus.getMenusByMarker` docs promise a "normalized" payload: `localizeInfos` is unwrapped to a single locale, so it's `{ title, menuTitle }` directly. */
 type RawLocalize = LocalizedFields | Record<string, LocalizedFields>;
 
 type RawNode = {
@@ -51,18 +46,12 @@ type RawMenu = {
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-/**
- * Extract title/menuTitle regardless of whether OE returned the flat shape
- *  (SDK-normalized) or the raw per-locale map. Without this fallback
- *  `menuTitle`/`title` came out empty because the wrapper-only code path
- *  landed on the string value of `title` instead of a locale object.
- */
+/** Extract title/menuTitle regardless of whether OE returned the flat shape (SDK-normalized) or the raw per-locale map. */
 const pickLocalized = (li: RawLocalize | undefined, lang: Lang): LocalizedFields => {
   if (!li || typeof li !== 'object') return {};
   // Flat shape: SDK already unwrapped for us.
   if ('title' in li || 'menuTitle' in li) return li as LocalizedFields;
-  // Per-locale wrapper: prefer the requested locale, fall back to whichever
-  // the CMS filled in first.
+  // Per-locale wrapper: prefer the requested locale, fall back to whichever the CMS filled in first.
   const map = li as Record<string, LocalizedFields>;
   return map[lang] ?? Object.values(map)[0] ?? {};
 };

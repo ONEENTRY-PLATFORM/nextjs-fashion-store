@@ -3,10 +3,7 @@ import { LogIn, ShoppingBag, UserPlus, X } from 'lucide-react';
 
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Auth flow copy: Sign In, Create Account, Guest checkout choice.
- * Consolidated so all three modals can be edited from one file.
- */
+/** Auth flow copy: Sign In, Create Account, Guest checkout choice. */
 
 export const AUTH_LABELS = {
   signIn: {

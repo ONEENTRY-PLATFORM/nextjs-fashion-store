@@ -1,19 +1,4 @@
-/**
- * Header configuration.
- *
- * Only two kinds of thing live here:
- *  - **Routing / styling** — hrefs and accent colours. Application wiring, not
- *    copy; a content editor must not be able to break navigation from the
- *    admin panel.
- *  - **Shared or structural fallbacks** — a string reused by several
- *    components, or a list rendered by a `.map()`.
- *
- * One-off copy is NOT here: its offline fallback is passed inline at the
- * `useHeaderT` call site, so the OE key and its fallback sit together.
- *
- * Live values come from the OE `header` system-text set; languages come from
- * the project's active locales (`Locales.getLocales()`).
- */
+/** Header configuration. */
 
 // ── Routing (code-owned) ─────────────────────────────────────────────────────
 export const STORE_LOCATIONS_HREF = '/stores';

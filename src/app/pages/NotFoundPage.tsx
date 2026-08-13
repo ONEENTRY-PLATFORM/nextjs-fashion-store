@@ -5,9 +5,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * 404 page UI copy.
- */
+/** 404 page UI copy. */
 export const NOT_FOUND_LABELS = {
   largeNumberAria: '404',
   eyebrow: 'Error 404',

@@ -24,10 +24,7 @@ export const CHECKOUT_STEPPER_LABELS = {
   confirmation: 'Confirmation',
 } as const;
 
-/**
- * Path per step, keyed by the dictionary key — the copy is editable, the
- *  route is not, so they are kept apart.
- */
+/** Path per step, keyed by the dictionary key — the copy is editable, the route is not, so they are kept apart. */
 const STEP_PATHS = ['cart', 'delivery', 'payment', 'confirmation'] as const;
 const STEP_ROUTES: Record<(typeof STEP_PATHS)[number], string> = {
   cart: '/cart',

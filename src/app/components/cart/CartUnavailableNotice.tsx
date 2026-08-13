@@ -16,11 +16,7 @@ export const CART_UNAVAILABLE_LABELS = {
 
 const L = CART_UNAVAILABLE_LABELS;
 
-/**
- * How long the notice stays on screen before self-dismissing. Matches the
- *  cadence of typical UX toasts — long enough for a shopper to read the item
- *  name, short enough not to linger past the next interaction.
- */
+/** How long the notice stays on screen before self-dismissing. */
 const AUTO_DISMISS_MS = 5000;
 
 export function CartUnavailableNotice() {
@@ -34,8 +30,7 @@ export function CartUnavailableNotice() {
     if (unavailableRemoved.length === 0) return;
     const t = setTimeout(dismissUnavailableNotice, AUTO_DISMISS_MS);
     return () => clearTimeout(t);
-    // A fresh removal batch replaces the array reference — timer restarts so
-    // the shopper always gets the full window per notice, not a leftover slice.
+    // A fresh removal batch replaces the array reference — timer restarts so the shopper always gets the full window per notice, not a leftover slice.
   }, [unavailableRemoved, dismissUnavailableNotice]);
   if (unavailableRemoved.length === 0) return null;
   const names = unavailableRemoved.map((it) => it.name).filter(Boolean);

@@ -51,18 +51,13 @@ export const MY_ORDERS_LABELS = {
   cancelDialogConfirm: 'Confirm',
 } as const;
 
-/**
- * Map a raw OneEntry order to the shape the UI already expects.
- */
+/** Map a raw OneEntry order to the shape the UI already expects. */
 function adaptOeOrder(o: OeOrder): UserOrder {
   const total = parseFloat(o.totalSum) || 0;
   const date = o.createdDate
     ? new Date(o.createdDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     : '';
-  // Prefer OE's admin-panel display title (`statusLocalizeInfos.title` —
-  // what the merchant sees in the CMS). Only fall back to the marker map
-  // when the response didn't carry a title, and only in the last resort
-  // pretty-print the raw marker so the badge never reads as an empty string.
+  // Prefer OE's admin-panel display title (`statusLocalizeInfos.title` — what the merchant sees in the CMS).
   const raw = o.statusIdentifier?.toString().trim() ?? '';
   const key = raw.toLowerCase();
   const statusMap: Record<string, UserOrder['status']> = {
@@ -113,8 +108,7 @@ export function MyOrdersSection() {
   const L = useDict('my_orders_', MY_ORDERS_LABELS);
   const { user, isLoggedIn } = useAuth();
   const fallback = useAppSelector((s) => s.user.data.orders);
-  // When signed in, source orders from OE. Otherwise (e.g. dev preview without
-  // auth) keep the redux mock so the layout still demoes.
+  // When signed in, source orders from OE.
   const orders = isLoggedIn && user?.oeOrders ? user.oeOrders.map(adaptOeOrder) : fallback;
   const router = useRouter();
   const { addItem } = useCart();
@@ -123,12 +117,10 @@ export function MyOrdersSection() {
   const [cancelBusy, setCancelBusy] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   // Local overlay so a just-cancelled order flips its badge immediately.
-  // OE's `oeOrders` prop only refreshes on next login/hydration.
   const [locallyCancelledIds, setLocallyCancelledIds] = useState<Set<number>>(new Set());
 
   const handleReorder = (order: UserOrder) => {
-    // Push every OE-sourced line item back into the cart. Mock rows without
-    // `productId` are ignored — they can't be resolved to a real product.
+    // Push every OE-sourced line item back into the cart.
     for (const item of order.orderItems) {
       if (typeof item.productId !== 'number') continue;
       addItem({
@@ -147,8 +139,7 @@ export function MyOrdersSection() {
   };
 
   const handleConfirmCancel = async () => {
-    // Captured up front so the post-await state updater keeps the narrowed
-    // (non-undefined) ids instead of re-reading the nullable state value.
+    // Captured up front so the post-await state updater keeps the narrowed (non-undefined) ids instead of re-reading the nullable state value.
     const oeId = cancelTarget?.oeId;
     const oeStorage = cancelTarget?.oeStorage;
     if (!oeId || !oeStorage) return;
@@ -193,11 +184,7 @@ export function MyOrdersSection() {
     [L.statusCancelled]: '#fef2f2',
   };
 
-  // Semantic palette + deterministic fallback so merchant-defined statuses
-  // (whatever OE returns via `statusLocalizeInfos.title`) don't all read as
-  // neutral grey. Keyword rules run first so "Shipped" always looks like a
-  // shipping state, then anything unmatched gets a stable hash-picked colour
-  // so two different unknown statuses stay visually distinct.
+  // Semantic palette + deterministic fallback so merchant-defined statuses (whatever OE returns via `statusLocalizeInfos.title`) don't all read as neutral grey.
   const KEYWORD_TINTS: Array<{ match: RegExp; color: string; bg: string }> = [
     { match: /cancel|reject|fail|declin|void/i, color: '#dc2626', bg: '#fef2f2' },
     { match: /refund|return/i, color: '#9333ea', bg: '#faf5ff' },
@@ -209,8 +196,7 @@ export function MyOrdersSection() {
     { match: /pending|awaiting|hold|await/i, color: '#ca8a04', bg: '#fefce8' },
     { match: /new|received|created|placed/i, color: '#6366f1', bg: '#eef2ff' },
   ];
-  // 12-colour fallback palette — enough distinct hues that any random
-  // status string picks a colour that reads as its own state.
+  // 12-colour fallback palette — enough distinct hues that any random status string picks a colour that reads as its own state.
   const FALLBACK_PALETTE: Array<{ color: string; bg: string }> = [
     { color: '#0d9488', bg: '#f0fdfa' },
     { color: '#7c3aed', bg: '#f5f3ff' },
@@ -257,10 +243,7 @@ export function MyOrdersSection() {
       <SectionTitle title={L.title} />
       <div className="space-y-3">
         {orders.map((rawOrder) => {
-          // Overlay the local-cancel snapshot so the badge flips immediately
-          // after the user confirms — OE's `oeOrders` prop only refreshes
-          // on next login/hydration, which would otherwise leave the badge
-          // stale until page reload.
+          // Overlay the local-cancel snapshot so the badge flips immediately after the user confirms.
           const order: UserOrder =
             rawOrder.oeId != null && locallyCancelledIds.has(rawOrder.oeId)
               ? { ...rawOrder, status: 'Cancelled' }

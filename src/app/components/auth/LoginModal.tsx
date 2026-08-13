@@ -98,9 +98,7 @@ export function LoginModal() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
-  // Social-provider (Google) errors get their own slot near the Google
-  // button so a long OE response doesn't visually stick to the password
-  // field. Cleared whenever the form errors are cleared too.
+  // Social-provider (Google) errors get their own slot near the Google button so a long OE response doesn't visually stick to the password field.
   const [socialError, setSocialError] = useState('');
   const [loading, setLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -152,9 +150,7 @@ export function LoginModal() {
     if (provider === 'google') {
       setLoading(true);
       try {
-        // Full-page redirect to Google. After OE exchanges the code the
-        // callback route bounces the user back — we come back to /account
-        // (post-checkout would be handled by that page's own logic).
+        // Full-page redirect to Google.
         await startGoogleOAuth(isCheckout ? window.location.pathname : '/account');
       } catch (e) {
         setSocialError(e instanceof Error ? e.message : lGoogleFail);
@@ -162,8 +158,7 @@ export function LoginModal() {
       }
       return;
     }
-    // Apple / Facebook are temporarily hidden; this branch only fires if
-    // they are restored before the OE OAuth wiring is finished.
+    // Apple / Facebook are temporarily hidden; this branch only fires if they are restored before the OE OAuth wiring is finished.
     await login(provider, 'social');
     if (!isCheckout) router.push('/account');
   };

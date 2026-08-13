@@ -3,12 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { type AuthProviderInfo, getAuthProvidersAction } from '@/lib/oneentry/auth/actions';
 
-/**
- * Module-level cache so LoginModal, RegisterModal and SocialNetworksSection
- * share one server round-trip per page load instead of each firing its own
- * `getAuthProviders` call. The list rarely changes so a per-tab cache is
- * fine — a full page reload picks up any admin changes.
- */
+/** Module-level cache so LoginModal, RegisterModal and SocialNetworksSection share one server round-trip per page load instead of each firing its own `getAuthProviders` call. */
 let cache: AuthProviderInfo[] | null = null;
 let inflight: Promise<AuthProviderInfo[]> | null = null;
 
@@ -28,9 +23,7 @@ export function useAuthProviders(): {
   providers: AuthProviderInfo[];
   loading: boolean;
 } {
-  // Seed straight from the module cache — a warm second mount renders the
-  // providers on its first pass instead of flashing the loading state and
-  // then correcting itself from an effect.
+  // Seed straight from the module cache.
   const [providers, setProviders] = useState<AuthProviderInfo[]>(cache ?? []);
   const [loading, setLoading] = useState(cache === null);
 

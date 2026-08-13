@@ -1,13 +1,5 @@
 'use server';
-/**
- * Preview-thumbnail lookup for products referenced from shopper-scoped data.
- *
- * Order snapshots frequently ship `previewImage: null` (OE does not inline the
- * picture entity), so the account pages fall back to the catalogue image. The
- * catalogue read itself is public and cached (`unstable_cache` inside
- * `loadProductsByIds`), which only works on the server — hence this thin
- * Server Action rather than an SDK call from the browser.
- */
+/** Preview-thumbnail lookup for products referenced from shopper-scoped data. */
 import { loadProductsByIds } from './products';
 
 export interface ProductPreview {
@@ -16,12 +8,7 @@ export interface ProductPreview {
   preview: string;
 }
 
-/**
- * Resolve catalogue preview images for the given product ids.
- *
- * @param ids - OE numeric product ids.
- * @returns One entry per product that has an image.
- */
+/** Resolve catalogue preview images for the given product ids. */
 export async function getProductPreviewsAction(ids: number[]): Promise<ProductPreview[]> {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   const items = await loadProductsByIds(ids);

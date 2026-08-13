@@ -21,9 +21,7 @@ export const MINI_CART_ARIA_LABELS = {
   removeBundle: 'Remove bundle',
 } as const;
 
-/**
- * Cart-page UI labels. Editable content (not validation messages or aria-labels).
- */
+/** Cart-page UI labels. */
 export const MINI_CART_LABELS = {
   heading: 'Your Bag',
   emptyTitle: 'Your bag is empty',
@@ -34,8 +32,7 @@ export const MINI_CART_LABELS = {
   viewFullCart: 'View Full Cart',
   bundleLabel: 'Special Offer Bundle',
   closeLabel: 'Close cart',
-  // Summary + gift rows. Word prefixes rather than `{x}` templates: OE drops
-  // the whole set when a value contains braces (see HARDCODED_TEXTS §0).
+  // Summary + gift rows.
   sizePrefix: 'Size',
   qtyPrefix: 'Qty',
   freeGift: 'Free gift',
@@ -67,12 +64,7 @@ export function MiniCart() {
     previewLoading,
     giftItems,
   } = useCart();
-  // Line items already reflect the sale price (item.price) with the
-  // strike-through UX; keep the summary aligned so the shopper sees the
-  // same numbers here and in the catalog / PDP. OE's `totalDue` is used
-  // when OE actually knocked something extra off — loyalty tier, coupon,
-  // or the shopper spent bonus points. Matches the CartPage /
-  // DeliveryPage `finalTotal` logic.
+  // Line items already reflect the sale price (item.price) with the strike-through UX.
   const bonusBurned = (preview?.bonusApplied ?? 0) > 0;
   const displayTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : subtotal;
   const router = useRouter();

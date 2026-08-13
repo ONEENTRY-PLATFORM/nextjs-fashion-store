@@ -10,22 +10,11 @@ export type FormMessages = ValidationMessages;
 export interface FieldBounds {
   min?: number | null;
   max?: number | null;
-  /**
-   * `trimValidator` — OE strips surrounding whitespace before measuring, so a
-   * padded value that looks long enough here would still be rejected there.
-   */
+  /** `trimValidator` — OE strips surrounding whitespace before measuring, so a padded value that looks long enough here would still be rejected there. */
   trim?: boolean;
 }
 
-/**
- * Length bounds for the checkout fields, read from the OE form the order will
- * actually be POSTed to (`checkout_home_delivery_guest`, `user_addresses`, …).
- *
- * OE enforces these server-side; without mirroring them the shopper only finds
- * out at "Place Order", as `required values are missing or incorrect:
- * checkout_home_guest_address_line1`. Every entry is optional — an unloaded
- * form adds no bounds and the shipped rules below still apply.
- */
+/** Length bounds for the checkout fields, read from the OE form the order will actually be POSTed to. */
 export interface CheckoutBounds {
   address?: {
     fullName?: FieldBounds;
@@ -39,50 +28,21 @@ export interface CheckoutBounds {
     fullName?: FieldBounds;
     phone?: FieldBounds;
   };
-  /**
-   * Exact length of the one-time recovery code, as configured on the OE auth
-   * provider (`config.systemCodeLength`). `null`/absent when the admin panel
-   * leaves it unset — the code field then only requires a non-empty value.
-   */
+  /** Exact length of the one-time recovery code, as configured on the OE auth provider (`config.systemCodeLength`). */
   resetCodeLength?: number | null;
 }
 
-/**
- * Build the form schemas against one set of error messages.
- *
- * The schemas used to be module-level constants closing over the shipped
- * English copy, which made the wording unreachable from the admin panel. They
- * are a factory now so a Client Component can rebuild them from the CMS
- * dictionary — see `useSchemas()`.
- *
- * `M` is a plain object, so the returned schemas are cheap to recreate; do it
- * inside a `useMemo` keyed on the message table rather than per render.
- *
- * @param M - Error messages, CMS values or the shipped copy.
- * @param B - Length bounds mirrored from the OE checkout forms. Omitted in
- *            non-checkout contexts (and by the shipped exports below), where
- *            only the storefront's own rules apply.
- * @returns The seven form schemas, built with those messages.
- */
+/** Build the form schemas against one set of error messages. */
 export function createSchemas(M: FormMessages, B: CheckoutBounds = {}) {
   // ─── Reusable field validators ──────────────────────────────────────────────
 
-  /**
-   * Layer the OE-configured length bounds on top of a field's own rules.
-   *
-   * `normalize` matches whatever transform the value undergoes before it is
-   * POSTed — the phone loses its spaces on the way out, so its length must be
-   * measured the same way OE will measure it.
-   */
+  /** Layer the OE-configured length bounds on top of a field's own rules. */
   const bounded = (schema: z.ZodString, bounds: FieldBounds | undefined, normalize: (v: string) => string = (v) => v) =>
     schema.superRefine((val, ctx) => {
-      // Apply the field's own transform first, then OE's trim when the
-      // attribute declares one — the length that matters is the one the server
-      // will measure.
+      // Apply the field's own transform first, then OE's trim when the attribute declares one — the length that matters is the one the server will measure.
       const normalized = normalize(val);
       const len = (bounds?.trim ? normalized.trim() : normalized).length;
-      // An empty optional field is the `required` validator's business, not
-      // the length bound's — otherwise a blank "instructions" trips `min`.
+      // An empty optional field is the `required` validator's business, not the length bound's — otherwise a blank "instructions" trips `min`.
       if (len === 0) return;
       if (bounds?.min != null && len < bounds.min) {
         ctx.addIssue({ code: 'custom', message: M.tooShort.replace('{min}', String(bounds.min)) });
@@ -110,13 +70,7 @@ export function createSchemas(M: FormMessages, B: CheckoutBounds = {}) {
 
   // ─── Login ──────────────────────────────────────────────────────────────────
 
-  /**
-   * Login input is normally an email or a phone, but when the playground
-   * is wired up to the real Platform Content API we also accept bare Platform
-   * identifiers (e.g. "seed-demo-user-active-1") — those are how the
-   * demo seed exposes accounts. The pattern below matches identifiers
-   * consisting of letters/digits/hyphens/underscores/dots.
-   */
+  /** Login input is normally an email or a phone, but when the playground is wired up to the real Platform Content API we also accept bare Platform identifiers (e.g. "seed-demo-user-active-1"). */
   const loginSchema = z.object({
     input: z
       .string()
@@ -149,12 +103,7 @@ export function createSchemas(M: FormMessages, B: CheckoutBounds = {}) {
     email: emailSchema,
   });
 
-  /**
-   * The code's length is provider config in OE (`systemCodeLength`), so it is
-   * passed in rather than baked in — `B.resetCodeLength` is `null` when the
-   * admin panel leaves it unset, and then any non-empty code is accepted and
-   * OE has the final say.
-   */
+  /** The code's length is provider config in OE (`systemCodeLength`), so it is passed in rather than baked in. */
   const resetCodeSchema = z.object({
     code: z
       .string()
@@ -269,13 +218,7 @@ const luhn = (num: string): boolean => {
   return sum % 10 === 0;
 };
 
-/**
- * Schemas built with the shipped English copy.
- *
- * Kept as named exports so non-React callers (and the inferred form types) work
- * unchanged. Client Components should prefer `useSchemas()`, which overlays the
- * admin panel's wording.
- */
+/** Schemas built with the shipped English copy. */
 const shipped = createSchemas(VALIDATION_MESSAGES);
 
 export const loginSchema = shipped.loginSchema;

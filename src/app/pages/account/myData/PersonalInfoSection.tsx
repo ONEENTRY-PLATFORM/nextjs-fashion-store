@@ -54,8 +54,7 @@ export function PersonalInfoSection() {
   const A = useDict('user_account_personal_aria_', PERSONAL_INFO_SECTION_ARIA);
   const schemas = useSchemas();
   const M = useFormMessages();
-  // Only these three exist as `user_data` form attributes — first name, email
-  // and phone are account properties, so their labels stay on `user_account`.
+  // Only these three exist as `user_data` form attributes — first name, email and phone are account properties, so their labels stay on `user_account`.
   const lbDob = useFormLabel('user_data', 'user_birthday', L.labelDob);
   const lbShoeSize = useFormLabel('user_data', 'user_shoes_size', L.labelShoeSize);
   const lbClothingSize = useFormLabel('user_data', 'user_clothing_size', L.labelClothingSize);

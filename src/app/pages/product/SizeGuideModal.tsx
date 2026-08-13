@@ -22,8 +22,7 @@ export function SizeGuideModal({ onClose }: { onClose: () => void }) {
   const L = useDict('size_guide_', L_FALLBACK);
   // The chart itself is editable too — one row per line, `size|us|bust|waist|hip`.
   const rows = parseSizeGuide(useT('size_guide_rows', serializeSizeGuide(SIZE_GUIDE_DATA)));
-  // The rows already come from the CMS; the header row was the one part of
-  // this table still frozen in code, because `mergeDict` skips arrays.
+  // The rows already come from the CMS; the header row was the one part of this table still frozen in code, because `mergeDict` skips arrays.
   const colHeaders = useList('size_guide_col_headers', L.colHeaders);
   useEffect(() => {
     document.body.style.overflow = 'hidden';

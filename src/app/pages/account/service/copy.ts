@@ -1,7 +1,4 @@
-/**
- * Copy shared by this feature's components, overlaid by the OneEntry
- * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
- */
+/** Copy shared by this feature's components, overlaid by the OneEntry dictionary at render time. */
 
 // ─── Service Maintenance section ────────────────────────────────────────────
 export const SERVICE_LABELS = {
@@ -35,9 +32,7 @@ export const SERVICE_LABELS = {
   costTbc: 'TBC',
   requestDetails: 'Request Details',
   howItWorks: 'How It Works',
-  // Flat, not an array of objects: `mergeDict` overlays strings only, so a
-  // nested step would stay frozen in code. The `NN` is the rendered badge and
-  // stays here — it is a number, not copy.
+  // Flat, not an array of objects: `mergeDict` overlays strings only, so a nested step would stay frozen in code.
   howStep1Title: 'Submit Request',
   howStep1Body: 'Tell us what your item needs — repair, cleaning, alteration or resoling.',
   howStep2Title: 'Drop Off',
@@ -53,11 +48,7 @@ export const SERVICE_LABELS = {
     completed: 'Completed',
     cancelled: 'Cancelled',
   } as const,
-  // Offline mirror of the OE `service_request` form's `category` listTitles —
-  // keys are the option *values* OE stores, in its authored `position` order.
-  // The live list wins at runtime (`useFormOptions`); this only covers the
-  // first paint and the CMS-unreachable path, so a key that OE does not have
-  // would put an unsubmittable option in the select.
+  // Offline mirror of the OE `service_request` form's `category` listTitles — keys are the option *values* OE stores, in its authored `position` order.
   categoryLabels: {
     repair: 'Repair',
     cleaning: 'Cleaning',

@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
-import { PRODUCT_CARD_LABELS,QUICK_VIEW_LABELS  } from '@/app/components/product/copy';
+import { PRODUCT_CARD_LABELS, QUICK_VIEW_LABELS } from '@/app/components/product/copy';
 import { type Product } from '@/app/components/product/ProductCard';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { SALE_COLOR } from '@/app/constants/colors';
@@ -24,9 +24,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
   const lAdded = useT('product-card-added', PRODUCT_CARD_LABELS.added);
   const { addItem } = useCart();
   const { toggleItem, isWishlisted } = useWishlist();
-  // `isWishlisted` returns Redux state that only lives on the client;
-  // reading it during SSR/hydration would emit a mismatch warning. Gate
-  // the heart-filled state on `mounted` the same way `ProductCard` does.
+  // `isWishlisted` returns Redux state that only lives on the client; reading it during SSR/hydration would emit a mismatch warning.
   const wishlisted = mounted && isWishlisted(product.id);
 
   useEffect(() => {
@@ -118,9 +116,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
           </button>
           <button
             onClick={() => {
-              // Real wishlist persistence — mirrors `ProductCard.handleWishlist`.
-              // Per-colour thumbnail: pick the linked variant's image, then
-              // parallel `colorImages`, then the primary product image.
+              // Real wishlist persistence.
               const colorImages = product.colors.map(
                 (c, i) =>
                   product.variants?.find((v) => v.colors.includes(c))?.image ||

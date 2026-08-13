@@ -28,10 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: entry.type === 'catalog' ? 0.9 : 0.4,
     }));
 
-  // Info pages the editor added in OE after the last deploy. They resolve at
-  // runtime via `resolveInfoPageSlug`, so the sitemap must list them too —
-  // otherwise a live, crawlable page stays invisible to search engines.
-  // Deduped against the registry, which already covers the known slugs.
+  // Info pages the editor added in OE after the last deploy.
   const registryPaths = new Set(Object.keys(PAGE_REGISTRY));
   const cmsInfoPages: MetadataRoute.Sitemap = (await loadInfoPageSlugs())
     .filter((slug) => !registryPaths.has(slug))
@@ -42,9 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     }));
 
-  // Catalog categories the editor added in OE after the last deploy. They
-  // resolve at runtime via `resolveCatalogRoute`, so — exactly like the info
-  // pages above — a live, crawlable category would otherwise stay unlisted.
+  // Catalog categories the editor added in OE after the last deploy.
   const cmsCatalogPages: MetadataRoute.Sitemap = (await loadCatalogRoutes())
     .filter((route) => !registryPaths.has(route.path))
     .map((route) => ({
@@ -54,9 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     }));
 
-  // Product pages — pulled from OE. Use the aggregated (`unique`) catalog so
-  // colour/size sibling variants don't produce duplicate URLs. `limit` is set
-  // high enough to cover the tenant's current SKU count.
+  // Product pages — pulled from OE.
   const oeCatalog = await loadProducts({ unique: true, limit: 5000 });
   const productPages: MetadataRoute.Sitemap = oeCatalog.items.map((p) => ({
     url: `${SITE_URL}/product/${p.id}`,
@@ -67,10 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const defaultLocaleEntries = [...fixedPages, ...registryPages, ...cmsInfoPages, ...cmsCatalogPages, ...productPages];
 
-  // One entry per routed locale, each carrying the full `alternates.languages`
-  // set. Without the per-locale URLs a translated page is crawlable but
-  // unlisted; without the alternates the two versions look like duplicates
-  // rather than translations of each other.
+  // One entry per routed locale, each carrying the full `alternates.languages` set.
   return defaultLocaleEntries.flatMap((entry) => {
     const bare = entry.url.startsWith(SITE_URL) ? entry.url.slice(SITE_URL.length) || '/' : entry.url;
     const languages = buildLanguageAlternates(SITE_URL, bare);

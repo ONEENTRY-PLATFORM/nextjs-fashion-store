@@ -1,4 +1,4 @@
-/** UI timing constants (milliseconds). Use these instead of magic numbers. */
+/** UI timing constants (milliseconds). */
 export const TIMINGS = {
   /** Long-press duration to show product title tooltip */
   LONG_PRESS_TOOLTIP: 500,

@@ -16,11 +16,7 @@ function generateId(): string {
 interface CartState {
   items: CartItem[];
   miniCartOpen: boolean;
-  /**
-   * Items removed by the once-per-session availability check because their
-   *  OneEntry product record is gone. Populated by CartContext's validation
-   *  effect and rendered as a top-of-page notice — dismissed by the shopper.
-   */
+  /** Items removed by the once-per-session availability check because their OneEntry product record is gone. */
   unavailableRemoved: CartItem[];
 }
 
@@ -36,16 +32,10 @@ const cartSlice = createSlice({
   reducers: {
     addItem(state, action: PayloadAction<CartItem>) {
       const item = action.payload;
-      // Match on id + size + color so the shopper can hold two different
-      // colours of the same size in the cart. Without color in the key,
-      // adding a Red S after a Blue S silently merged them into a single
-      // line whose color stayed Blue — the shopper then received Blue on
-      // delivery even though they last picked Red on the PDP.
+      // Match on id + size + color so the shopper can hold two different colours of the same size in the cart.
       const existing = state.items.find((i) => i.id === item.id && i.size === item.size && i.color === item.color);
       if (existing) {
-        // Refresh stockLimit from the newer add — the shopper may have opened
-        // a fresh PDP and the inventory could have shifted since the previous
-        // add. `undefined` in the incoming payload preserves the existing cap.
+        // Refresh stockLimit from the newer add — the shopper may have opened a fresh PDP and the inventory could have shifted since the previous add.
         if (item.stockLimit !== undefined) existing.stockLimit = item.stockLimit;
         const cap = existing.stockLimit ?? Infinity;
         existing.quantity = Math.min(existing.quantity + item.quantity, cap);

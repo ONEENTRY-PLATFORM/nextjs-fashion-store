@@ -19,10 +19,7 @@ export interface FilterGroup {
   rangeUnit?: string;
 }
 
-/**
- * Quick-filter chip label. Now a plain string — chips no longer carry a
- *  per-page predicate. Kept as a named type for stable import sites.
- */
+/** Quick-filter chip label. */
 export type ChipFilter = string;
 
 export interface BreadcrumbItem {
@@ -48,34 +45,18 @@ export interface CatalogTemplateProps {
   genderLabel: string;
 
   /* Optional */
-  /**
-   * Mock-era hint for the progress strip ("you've viewed N of TOTAL_STYLES").
-   *  Real catalog pages drive this from `total` (server-reported).
-   */
+  /** Mock-era hint for the progress strip ("you've viewed N of TOTAL_STYLES"). */
   totalStyles?: number;
-  /**
-   * Total products matching current filters (server-reported). Falls back to
-   *  `totalStyles` when omitted — useful for mock-driven story builds.
-   */
+  /** Total products matching current filters (server-reported). */
   total?: number;
   /** 1-based page index pulled from the URL on the server. */
   currentPage?: number;
-  /**
-   * Parsed filters object (from URL `searchParams`) — drives all client UI
-   *  state. Optional so storybook can render with an empty filter set.
-   */
+  /** Parsed filters object (from URL `searchParams`) — drives all client UI state. */
   currentFilters?: import('@/lib/oneentry/catalog/filters').CatalogFilters;
   productsPerPage?: number;
-  /**
-   * OE-managed trending block (server-fetched). Rendered as a product
-   *  carousel under the grid when products are present.
-   */
+  /** OE-managed trending block (server-fetched). */
   trendingBlock?: import('@/lib/oneentry/blocks/page-blocks').PageBlock | null;
-  /**
-   * All OE-attached page blocks for this catalog (`Pages.getBlocksByPageUrl`).
-   *  Rendered at the top of the main content area via `<PageBlocksRenderer>`
-   *  in admin-defined `position` order. Empty when no blocks are attached.
-   */
+  /** All OE-attached page blocks for this catalog (`Pages.getBlocksByPageUrl`). */
   pageBlocks?: import('@/lib/oneentry/blocks/page-blocks').PageBlock[];
   breadcrumbs?: BreadcrumbItem[];
   priceMax?: number;
@@ -92,11 +73,7 @@ export interface CatalogTemplateProps {
   };
 }
 
-/**
- * Sort values paired with the `CATALOG_SORT_LABELS` key that words them.
- *  The value is code-owned; the wording is admin-editable, so the component
- *  resolves `labelKey` through the dictionary rather than matching on text.
- */
+/** Sort values paired with the `CATALOG_SORT_LABELS` key that words them. */
 export const SORT_OPTIONS = [
   { labelKey: 'featured', value: 'featured' },
   { labelKey: 'priceLowToHigh', value: 'price_asc' },

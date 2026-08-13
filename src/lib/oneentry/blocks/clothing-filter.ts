@@ -5,9 +5,7 @@ import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
 
-// Local copy of the hex→name map. Importing the canonical map from
-// `src/app/utils/colorNames` indirectly pulls a client-tagged module into
-// this server-only graph and breaks Turbopack with "require is not defined".
+// Local copy of the hex→name map.
 const HEX_COLOR_NAMES: Record<string, string> = {
   '#000000': 'Black',
   '#FFFFFF': 'White',
@@ -50,9 +48,7 @@ const HEX_COLOR_NAMES: Record<string, string> = {
   '#800080': 'Purple',
 };
 
-// Structural duplicates of CatalogTemplate.types / ProductCard so this
-// server-side module doesn't transitively pull a `'use client'` module into
-// the RSC graph (which trips Turbopack with "require is not defined").
+// Structural duplicates of CatalogTemplate.types / ProductCard so this server-side module doesn't transitively pull a `'use client'` module into the RSC graph.
 export interface ClothingFilterOption {
   label: string;
   count: number;
@@ -67,9 +63,7 @@ export interface ClothingFilterGroup {
   columns?: number;
 }
 
-// Loose, structural shape — narrower than the storefront `Product` but
-// compatible with it. Avoids importing the client-component-defined type
-// into this server module.
+// Loose, structural shape — narrower than the storefront `Product` but compatible with it.
 type CountableProduct = {
   colors: string[];
   sizes?: string[];
@@ -85,9 +79,7 @@ type CountableProduct = {
   productDetails?: string[];
 };
 
-// OE now sometimes returns `localizeInfos: { title }` (flat) instead of
-// `{ en_US: { title } }` when the SDK unwraps for the requested lang. Accept
-// both shapes so future/past schema variations don't zero out the filter row.
+// OE now sometimes returns `localizeInfos: { title }` (flat) instead of `{ en_US: { title } }` when the SDK unwraps for the requested lang.
 type RawLocalize = { title?: string } & Record<string, { title?: string } | undefined>;
 
 type RawChild = {
@@ -109,19 +101,7 @@ type RawFilter = {
   items?: RawGroup[];
 };
 
-/**
- * OE filter group title → key on the storefront `Product` model. Filter
- * options on the catalog template are matched against products via this key
- * (see `filterProducts` in `data/filterUtils.ts`).
- *
- * Groups whose title isn't mapped here fall through unused — typically that
- * means the storefront product type doesn't capture that attribute yet.
- */
-/**
- * 'color' and 'size' are virtual keys interpreted specially by
- * `filterProducts` — products store colors as a hex array and sizes as a
- * string array, so the key here doesn't map directly to a Product field.
- */
+/** OE filter group title → key on the storefront `Product` model. 'color' and 'size' are virtual keys interpreted specially by `filterProducts`. */
 const FILTER_GROUP_KEY: Record<string, string> = {
   Style: 'style',
   'Fit (Rise)': 'fit',
@@ -138,21 +118,13 @@ const FILTER_GROUP_KEY: Record<string, string> = {
   Label: 'label',
   Price: 'price',
   // Shoe-specific groups shipped by OE's `women_shoes` / `men_shoes` filters.
-  // Map to the corresponding fields already present on `Product` so counting
-  // and matching work without further plumbing.
   Sole: 'soleMaterial',
   Insole: 'insoleMaterial',
   // "Discount" is surfaced as a boolean-ish filter (has salePrice or not).
-  // We keep the key stable so `filterProducts` can special-case it. Counting
-  // via the generic branch would compare against the label — for now leave
-  // it mapped and treat as a section pending a full sale-price integration.
   Discount: 'discount',
 };
 
-// Explicit name→hex for the values OE actually emits in the `clothing`
-// filter. Names that aren't covered by the canonical HEX_COLOR_NAMES
-// (Grey, Green, Blue, Dark Blue, Assorted) get a sensible default here so
-// every option in the OE filter has a swatch.
+// Explicit name→hex for the values OE actually emits in the `clothing` filter.
 const OE_COLOR_HEX: Record<string, string> = {
   Black: '#000000',
   White: '#FFFFFF',
@@ -166,8 +138,7 @@ const OE_COLOR_HEX: Record<string, string> = {
   'Dark Blue': '#1B3A5C',
   Blue: '#4169E1',
   Green: '#2E8B57',
-  // Multi-coloured fallback rendered as a conic gradient via the swatch
-  // component; the storefront's color renderer treats `multi` specially.
+  // Multi-coloured fallback rendered as a conic gradient via the swatch component; the storefront's color renderer treats `multi` specially.
   Assorted: 'multi',
 };
 
@@ -178,13 +149,7 @@ const NAME_TO_HEX: Record<string, string> = {
 
 const eqCI = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
 
-/**
- * Render-time helper: count how many products carry the given filter value.
- * Storefront `Product.colors[]` holds color *names* from OE (e.g. "Khaki",
- * not the hex), so the color comparison matches by name not by swatch.
- * `Product.label` is uppercased by the OE adapter ("SALE"/"NEW"/"BESTSELLER")
- * while the OE filter values use title-case — match case-insensitively.
- */
+/** Render-time helper: count how many products carry the given filter value. */
 function countMatches(products: CountableProduct[], key: string, label: string): number {
   if (key === 'color') {
     return products.filter((p) => p.colors.some((c) => eqCI(c, label))).length;
@@ -205,10 +170,7 @@ function countMatches(products: CountableProduct[], key: string, label: string):
 
 const FILTER_TYPE_BY_KEY: Partial<Record<string, ClothingFilterGroup['type']>> = {
   color: 'color',
-  // `size` used to map to `'size_chips'`, but CatalogTemplate has no
-  // renderer for that type — the dropdown came up empty. Falling through
-  // to the default `checkbox` branch surfaces the OE-declared sizes as
-  // regular checkboxes. Swap back once a chip-style renderer lands.
+  // `size` used to map to `'size_chips'`, but CatalogTemplate has no renderer for that type — the dropdown came up empty.
   details: 'search_checkbox',
   productDetails: 'search_checkbox',
   careInstructions: 'search_checkbox',
@@ -231,21 +193,11 @@ const FILTER_COLUMNS_BY_KEY: Record<string, number> = {
   label: 2,
 };
 
-/**
- * Map an OE clothing-filter response to `FilterGroup[]` consumed by
- * `CatalogTemplate`. The `products` arg is used purely to compute per-option
- * counts — the option list itself comes from OE.
- */
-// OE's `Filters.getFilterByMarker` normalises `localizeInfos` either as
-// `{ en_US: { title } }` (nested per-locale) or as a flat `{ title }` when
-// the SDK unwraps it for the requested `langCode`. Support both — a schema
-// change in either direction would otherwise silently zero out every filter
-// group, since a missing title is treated as "skip this row".
+/** Map an OE clothing-filter response to `FilterGroup[]` consumed by `CatalogTemplate`. The `products` arg is used purely to compute per-option counts. */
+// OE's `Filters.getFilterByMarker` normalises `localizeInfos` either as `{ en_US: { title } }` (nested per-locale) or as a flat `{ title }` when the SDK unwraps it for the requested `langCode`. Support both.
 function pickTitle(info: RawLocalize | undefined, lang: string): string {
   if (!info) return '';
-  // Per-locale first, in the language actually asked for; the default locale is
-  // the second try so an untranslated group keeps its English heading rather
-  // than disappearing — a missing title is treated as "skip this row".
+  // Per-locale first, in the language actually asked for; the default locale is the second try so an untranslated group keeps its English heading rather than disappearing.
   for (const key of [lang, DEFAULT_LOCALE]) {
     const nested = (info as Record<string, { title?: string } | undefined>)[key];
     if (nested && typeof nested.title === 'string' && nested.title.trim()) {
@@ -265,8 +217,7 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[], lang:
     if (!key) continue;
 
     if (key === 'price') {
-      // OE price filter has no children — surface as a price-range slider that
-      // the existing CatalogTemplate already knows how to render.
+      // OE price filter has no children — surface as a price-range slider that the existing CatalogTemplate already knows how to render.
       groups.push({
         label: groupTitle,
         key: 'price',
@@ -302,13 +253,7 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[], lang:
   return groups;
 }
 
-/**
- * Fetch an OE filter by marker and adapt to the storefront's FilterGroup
- * shape. Callers pass a section-specific marker like `women_clothing`,
- * `men_shoes`, `women_bags`, etc. Returns `null` when OE is unreachable
- * or the marker isn't found, so callers can fall back to a static filter
- * definition or an empty row.
- */
+/** Fetch an OE filter by marker and adapt to the storefront's FilterGroup shape. */
 export const loadCatalogFilter = cache(
   async (products: CountableProduct[], marker: string, langArg?: string): Promise<ClothingFilterGroup[] | null> => {
     if (!isOneEntryEnabled) return null;
@@ -316,9 +261,7 @@ export const loadCatalogFilter = cache(
     try {
       const result = await getApi().Filters.getFilterByMarker(marker, lang);
       if (isError(result)) return null;
-      // SDK's `IContentFilter` types the response with a rich `items[].children`
-      // tree, but for adaptFilterToGroups we only need a subset — cast to the
-      // local `RawFilter` shape rather than pull in the full interface.
+      // SDK's `IContentFilter` types the response with a rich `items[].children` tree, but for adaptFilterToGroups we only need a subset.
       return adaptFilterToGroups(result as unknown as RawFilter, products, lang);
     } catch (err) {
       logCaught(`clothing-filter.loadCatalogFilter(${marker}, ${lang})`, err);
@@ -327,10 +270,6 @@ export const loadCatalogFilter = cache(
   },
 );
 
-/**
- * @deprecated Use `loadCatalogFilter(products, marker)` with a
- * section-specific marker (`women_clothing`, `men_shoes`, …). Kept for
- * transitional callers — defaults to the `women_clothing` marker.
- */
+/** @deprecated Use `loadCatalogFilter(products, marker)`; this defaults to `women_clothing`. */
 export const loadClothingFilter = (products: CountableProduct[], lang: string = DEFAULT_LOCALE) =>
   loadCatalogFilter(products, 'women_clothing', lang);

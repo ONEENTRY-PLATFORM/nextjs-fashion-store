@@ -8,8 +8,7 @@ import type { Lang } from '@/lib/oneentry/system-text';
 import type { SignUpFieldAgree, SignUpFieldPhone, SignUpFieldString, SignUpFormSchema } from './sign-up-form-schema';
 import { EMPTY_SIGN_UP_FORM_SCHEMA } from './sign-up-form-schema';
 
-// Re-exported so existing importers keep their specifier; definitions live
-// in a client-safe module (see `sign-up-form-schema.ts`).
+// Re-exported so existing importers keep their specifier; definitions live in a client-safe module (see `sign-up-form-schema.ts`).
 export type {
   SignUpFieldAgree,
   SignUpFieldList,
@@ -25,11 +24,7 @@ type SignUpSchema = Partial<Record<string, IAttributeSchemaItem>>;
 
 const asStr = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-/**
- * `localizeInfos` arrives either flattened against the requested locale
- * (`{title}`) or language-keyed (`{en_US: {title}}`) — `IAttributeLocalizeInfo`
- * carries an index signature precisely because OE ships both.
- */
+/** `localizeInfos` arrives either flattened against the requested locale (`{title}`) or language-keyed (`{en_US: {title}}`). */
 const titleOf = (attr: Pick<IAttributeSchemaItem, 'localizeInfos'> | undefined, lang: Lang): string => {
   const li = attr?.localizeInfos;
   if (!li) return '';
@@ -38,12 +33,7 @@ const titleOf = (attr: Pick<IAttributeSchemaItem, 'localizeInfos'> | undefined, 
   return asStr(wrapped?.title);
 };
 
-/**
- * Read one `additionalFields` entry as a string.
- *
- * An entry is an {@link IAttributeSchemaItem} whose copy lives in `value`; older
- * payloads put the string directly under the marker, so both are accepted.
- */
+/** Read one `additionalFields` entry as a string. */
 const extra = (attr: IAttributeSchemaItem | undefined, key: string): string => {
   const entry = attr?.additionalFields?.[key];
   if (typeof entry === 'string') return entry;
@@ -100,9 +90,7 @@ export const loadSignUpFormSchema = cache(async (langArg?: Lang): Promise<SignUp
   try {
     const raw = await api.AttributesSets.getAttributeSetByMarker('users_sign_in_sign_up', lang);
     if (isError(raw)) return EMPTY_SIGN_UP_FORM_SCHEMA;
-    // `schema` is typed as a total `Record<string, IAttributeSchemaItem>`, but a
-    // marker the admin has not authored is simply absent — read it as partial so
-    // every lookup below stays honest about that.
+    // `schema` is typed as a total `Record<string, IAttributeSchemaItem>`, but a marker the admin has not authored is simply absent.
     const schema: SignUpSchema = (raw as IAttributeSetsEntity).schema ?? {};
     return {
       email: stringField(schema.email, lang),

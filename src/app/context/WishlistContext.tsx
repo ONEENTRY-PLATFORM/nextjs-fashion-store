@@ -17,11 +17,7 @@ export interface WishlistItem {
   price: string;
   salePrice?: string;
   image: string;
-  /**
-   * Parallel to `colors[]` — thumbnail to show per swatch. Callers set it
-   *  from the OE variant list so the favourite card can flip its image when
-   *  the shopper picks another colour inline.
-   */
+  /** Parallel to `colors[]` — thumbnail to show per swatch. */
   colorImages?: string[];
   colors: string[];
   colorStock?: boolean[];
@@ -61,18 +57,11 @@ function placeholderFromCmsId(productId: number): WishlistItem {
 export function useWishlist(): WishlistContextType {
   const dispatch = useDispatch<AppDispatch>();
   const items = useSelector((state: RootState) => state.wishlist.items);
-  // Scope the hydrate flag to the current OE user identifier — a raw `'1'`
-  // flag survived across sign-ins and stopped the merge from running for the
-  // second user, whose mobile-added items then got wiped by the sync-back
-  // effect below (empty local Redux → push([]) → OE cleared).
+  // Scope the hydrate flag to the current OE user identifier.
   const userIdentifier = useSelector((s: RootState) => s.user.data.userIdentifier);
   const { isLoggedIn, user, syncWishlist } = useAuth();
 
-  // Hydrate Redux from /me/wishlist once per (user × browser session). The
-  // sessionStorage value carries the userIdentifier that was merged, so a
-  // fresh sign-in as a different user (or the same user after a soft reload
-  // that dropped the userIdentifier) always re-hydrates. A ref keeps repeat
-  // consumers in the same render tree from firing duplicate merges.
+  // Hydrate Redux from /me/wishlist once per (user × browser session).
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!isLoggedIn || !user?.wishlistItems || !userIdentifier) return;
@@ -83,10 +72,7 @@ export function useWishlist(): WishlistContextType {
     }
     hydratedRef.current = true;
     if (typeof window !== 'undefined') sessionStorage.setItem('oe_wishlist_merged', userIdentifier);
-    // Prune first: OE is authoritative, so any local wishlist item that has a
-    // numeric productId not present in the OE list was removed on another
-    // device (e.g. the shopper deleted it from the mobile app). Non-numeric
-    // ids are left alone — those are local-only entries that OE never saw.
+    // Prune first: OE is authoritative, so any local wishlist item that has a numeric productId not present in the OE list was removed on another device.
     const oeProductIdSet = new Set(user.wishlistItems.map((i) => String(i.productId)));
     for (const local of items) {
       const cmsId = getCmsProductId(local.id);
@@ -123,9 +109,7 @@ export function useWishlist(): WishlistContextType {
           }),
         );
       }
-      // Drop placeholders whose product the catalog didn't return — they're
-      // stale OE wishlist entries (deleted product, wrong env) and would
-      // render as broken "Product #N" cards forever.
+      // Drop placeholders whose product the catalog didn't return.
       for (const productId of productIds) {
         const playgroundId = getPlaygroundProductId(productId);
         const localId = playgroundId ?? String(productId);
@@ -134,26 +118,17 @@ export function useWishlist(): WishlistContextType {
         }
       }
     });
-    // `items` is deliberately omitted: this is a one-shot merge guarded by
-    // `hydratedRef`, and it reads the local wishlist as it stands at
-    // hydration time. Listing it would re-run the effect on every mutation
-    // the merge itself dispatches.
+    // `items` is deliberately omitted: this is a one-shot merge guarded by `hydratedRef`, and it reads the local wishlist as it stands at hydration time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, user, userIdentifier, dispatch]);
   useEffect(() => {
     if (!isLoggedIn) {
       hydratedRef.current = false;
-      // Also drop the sessionStorage cache so a fresh sign-in — including the
-      // implicit re-sign-in that happens on every hard reload — re-hydrates
-      // from OE instead of trusting stale local Redux (which could be out of
-      // date with what another device pushed while this tab was quiet).
+      // Also drop the sessionStorage cache so a fresh sign-in re-hydrates from OE instead of trusting stale local Redux.
       if (typeof window !== 'undefined') sessionStorage.removeItem('oe_wishlist_merged');
     }
   }, [isLoggedIn]);
-  // Cross-user safety: if the signed-in identifier changes without going
-  // through a `!isLoggedIn` transition (edge case, but cheap to defend), the
-  // stored flag from the previous user is no longer valid — reset so the
-  // check above runs the merge again.
+  // Cross-user safety: if the signed-in identifier changes without going through a `!isLoggedIn` transition (edge case, but cheap to defend), the stored flag from the previous user is no longer valid.
   useEffect(() => {
     hydratedRef.current = false;
   }, [userIdentifier]);
@@ -162,9 +137,7 @@ export function useWishlist(): WishlistContextType {
   const lastPushedRef = useRef<string>('');
   useEffect(() => {
     if (!isLoggedIn) return;
-    // Same guard as CartContext: don't push local wishlist to OE until
-    // the hydration effect finished, or a cold sign-in with an empty
-    // local wishlist would wipe items other devices already synced.
+    // Same guard as CartContext: don't push local wishlist to OE until the hydration effect finished, or a cold sign-in with an empty local wishlist would wipe items other devices already synced.
     if (!hydratedRef.current) return;
     const oeItems = items.flatMap((it) => {
       const cmsId = getCmsProductId(it.id);

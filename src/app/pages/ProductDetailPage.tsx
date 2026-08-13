@@ -38,9 +38,7 @@ import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import type { CategoryBreadcrumb } from '@/lib/oneentry/catalog/products';
 import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
 import { getProductReviewSummary } from '@/lib/oneentry/catalog/reviews-actions';
-// PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks
-// (`saveToWishlist`, `savedToWishlist`) — anything referring to product data
-// (name/brand/price/size/colour) comes from `catalogProduct` / OneEntry.
+// PRODUCT_DEFAULTS (`PD`) now only holds admin-controllable copy fallbacks (`saveToWishlist`, `savedToWishlist`).
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { sanitizeHtml } from '@/lib/sanitize-html';
 
@@ -54,10 +52,7 @@ import { SizeGuideModal } from './product/SizeGuideModal';
 import { StarRating } from './product/StarRating';
 import { useProductPageUIState } from './product/useProductPageUIState';
 
-// UI-copy fallbacks for OE system-text keys that don't have a product-data
-// equivalent. Anything referring to a specific product (name/brand/price/size/
-// colour) is intentionally NOT here — that data must come from OneEntry, never
-// from a static dataset. Add fallbacks only for admin-controllable copy.
+// UI-copy fallbacks for OE system-text keys that don't have a product-data equivalent.
 export const PRODUCT_DEFAULTS = {
   saveToWishlist: 'Save to Wishlist',
   savedToWishlist: 'Saved to Wishlist',
@@ -65,9 +60,7 @@ export const PRODUCT_DEFAULTS = {
 
 const PD = PRODUCT_DEFAULTS;
 
-// Product detail accordion section titles. Per-item content (description body,
-// delivery rows, care list) comes from OneEntry — the Specifications accordion
-// is built dynamically from product attributes.
+// Product detail accordion section titles.
 export const PRODUCT_ACCORDION_LABELS = {
   specificationsTitle: 'Product Specifications',
   descriptionTitle: 'Product Description',
@@ -77,14 +70,9 @@ export const PRODUCT_ACCORDION_LABELS = {
 
 const PA = PRODUCT_ACCORDION_LABELS;
 
-/**
- * Product detail page copy.
- * Delivery promises, common CTAs, accordion section titles.
- */
+/** Product detail page copy. */
 
-// Quick delivery snippets, the "Incl. VAT" note and other static rows are
-// now driven by the `product-card` OE system-text set. Only the price-note
-// fallback remains here for offline development.
+// Quick delivery snippets, the "Incl.
 export const PRODUCT_PRICE_NOTE = 'Incl. VAT · Free delivery from $100';
 
 const DELIVERY_ICONS = {
@@ -93,10 +81,7 @@ const DELIVERY_ICONS = {
   shield: <Shield size={14} />,
 } as const;
 
-/**
- * Map common OE care-instruction phrases to their emoji symbol. Unknown
- *  phrases get a generic tag icon so the row still renders.
- */
+/** Map common OE care-instruction phrases to their emoji symbol. */
 const CARE_SYMBOL_MAP: Array<[RegExp, string]> = [
   [/hand\s*wash/i, '\u{1F9BA}'],
   [/machine\s*wash/i, '\u{1F9FA}'],
@@ -123,49 +108,21 @@ export function ProductDetailPage({
   reserveStores = [],
 }: {
   initialProduct?: CatalogProduct;
-  /**
-   * Breadcrumbs derived from the product's OE category path (e.g. `Women` →
-   *  `Clothing` → `Costumes`). Each carries the storefront href the route
-   *  resolved for it; a crumb without one renders as plain text.
-   */
+  /** Breadcrumbs derived from the product's OE category path (e.g. `Women` → `Clothing` → `Costumes`). */
   categoryBreadcrumbs?: CategoryBreadcrumb[];
-  /**
-   * Streamed customer-reviews block — a `<Suspense>`-wrapped async server
-   *  component that fetches `review_feedback`/`review_rating` form-data. The
-   *  page-level component just slots whatever the parent passes in.
-   */
+  /** Streamed customer-reviews block. */
   reviewsSlot?: React.ReactNode;
   /** Streamed "You May Also Like" carousel (OE `frequently_ordered_block`). */
   recommendationsSlot?: React.ReactNode;
-  /**
-   * Gender taxonomy of the current product — used to filter the
-   *  client-side "Recently Viewed" carousel so men only see men's items and
-   *  women only see women's (unisex always passes through).
-   */
+  /** Gender taxonomy of the current product. */
   currentGender?: 'W' | 'M' | 'U' | '';
-  /**
-   * Bonus points earned when purchasing this product, resolved server-side
-   *  from the OE `purchase-of-goods` discount rule. `undefined` (or `0`) hides
-   *  the "Earn X bonus points" block entirely.
-   */
+  /** Bonus points earned when purchasing this product, resolved server-side from the OE `purchase-of-goods` discount rule. */
   bonusPoints?: number;
-  /**
-   * Href for the "View all in this category" link — derived from the product's
-   *  OE `categories` path server-side. When absent (or `'/'`), used as a
-   *  passthrough to the recommendations carousel.
-   */
+  /** Href for the "View all in this category" link — derived from the product's OE `categories` path server-side. */
   categoryViewAllHref?: string;
-  /**
-   * OE-attached product blocks (`Products.getProductBlockById`). Rendered
-   *  via `<PageBlocksRenderer>` right after the streaming recommendations
-   *  slot, in admin-defined `position` order.
-   */
+  /** OE-attached product blocks (`Products.getProductBlockById`). */
   productBlocks?: PageBlock[];
-  /**
-   * Real store list for the reserve-in-store modal, mapped from the OE store
-   *  pages by the route. Empty hides the reserve CTA — offering a reservation
-   *  with no branch to reserve at is worse than not offering one.
-   */
+  /** Real store list for the reserve-in-store modal, mapped from the OE store pages by the route. */
   reserveStores?: ReserveStore[];
 } = {}) {
   const PB = useDict('product_card_breadcrumb_', PRODUCT_BREADCRUMB_LABELS);
@@ -177,9 +134,7 @@ export function ProductDetailPage({
   const lSaveToWishlist = useT('product-card-save_to_wishlist_cta', PD.saveToWishlist);
   const lSavedToWishlist = useT('product-card-saved_to_wishlist_cta', PD.savedToWishlist);
   const lPriceNote = useT('product-card-vat', PRODUCT_PRICE_NOTE);
-  // Static UI strings — wired through OE so admins can override copy without
-  // a code change. Each key falls back to the legacy hardcoded English when
-  // the system-text set doesn't contain it.
+  // Static UI strings — wired through OE so admins can override copy without a code change.
   const lBonusHeading = useT('earn_360_bonus_points_title', PRODUCT_ACTION_LABELS.bonusHeading);
   const lBonusBody = useT('earn_360_bonus_points_text', PRODUCT_ACTION_LABELS.bonusBody);
   const lColorLabel = useT('product-card-color_label', PRODUCT_ACTION_LABELS.colorLabel);
@@ -215,9 +170,7 @@ export function ProductDetailPage({
     .map((s) => s.trim())
     .filter(Boolean);
 
-  // Delivery accordion rows — backed by OE's `product_card_delivery_returns`
-  // system-text set. Each row is title + description; if the key is missing,
-  // the row is hidden via `.filter(r => r.title)` below.
+  // Delivery accordion rows — backed by OE's `product_card_delivery_returns` system-text set.
   const deliveryRows: Array<{ iconKey: 'truck' | 'store' | 'returns'; title: string; desc: string }> = [
     {
       iconKey: 'truck' as const,
@@ -248,9 +201,7 @@ export function ProductDetailPage({
 
   const productIsOOS = catalogProduct?.inStock === false;
 
-  // Route guard above already returned 404 when productId has no catalogProduct,
-  // so by this point catalogProduct is always defined. The `?.` is kept solely
-  // for the TS narrowing — runtime never falls back.
+  // Route guard above already returned 404 when productId has no catalogProduct, so by this point catalogProduct is always defined.
   const dynamicName = catalogProduct?.name ?? '';
   const dynamicBrand = catalogProduct?.brand ?? '';
   const dynamicImage = catalogProduct?.image ?? '';
@@ -264,28 +215,20 @@ export function ProductDetailPage({
     [catalogProduct, productIsOOS],
   );
 
-  // Memoised: the fallback `[]` would otherwise be a new array each render and
-  // invalidate the size-availability memo below on every pass.
+  // Memoised: the fallback `[]` would otherwise be a new array each render and invalidate the size-availability memo below on every pass.
   const productSizeOptions = useMemo(() => catalogProduct?.sizeOptions ?? [], [catalogProduct]);
   const productSpecs = catalogProduct?.specs ?? [];
-  // Reviews now stream in as a slot (`reviewsSlot`) rendered by a Suspense
-  // boundary higher up. The page-level component only needs the bundled
-  // `reviews` field on the OE catalog product for the small star-rating
-  // summary next to the title; full review cards live in the streamed block.
+  // Reviews now stream in as a slot (`reviewsSlot`) rendered by a Suspense boundary higher up.
   const productReviews = catalogProduct?.reviews ?? [];
 
-  // Special offer bundles aren't sourced from OneEntry on this tenant — the
-  // section stays empty until the admin wires a block. Removing the legacy
-  // mock keeps fake products from leaking into the page.
+  // Special offer bundles aren't sourced from OneEntry on this tenant — the section stays empty until the admin wires a block.
   const specialOffers: SpecialOffer[] = [];
   const availableOffers: SpecialOffer[] = productIsOOS ? [] : specialOffers;
 
   const searchParams = useSearchParams();
   const rawColor = searchParams?.get('color');
   const initSize = searchParams?.get('size') ?? (productSizeOptions.length === 1 ? productSizeOptions[0].label : null);
-  // Accept either hex (`#FFC0CB`) or OE colour name (`Pink`) so links coming
-  // from either the PDP (writes hex) or ProductCard/QuickView (writes OE name)
-  // both resolve to the intended swatch.
+  // Accept either hex (`#FFC0CB`) or OE colour name (`Pink`) so links coming from either the PDP (writes hex) or ProductCard/QuickView (writes OE name) both resolve to the intended swatch.
   const initColorIdx = (() => {
     if (!rawColor) return 0;
     const norm = rawColor.toLowerCase().trim();
@@ -297,10 +240,7 @@ export function ProductDetailPage({
   const [selectedSize, setSelectedSize] = useState<string | null>(initSize);
   const [sizeError, setSizeError] = useState(false);
 
-  // Refine each size's availability against the currently selected colour:
-  // OE may have `Red / 2XS` in stock but `Blue / 2XS` sold out. When the
-  // shopper picks Blue, 2XS should render as line-through even though the
-  // colour-agnostic flag from the adapter says it's globally available.
+  // Refine each size's availability against the currently selected colour: OE may have `Red / 2XS` in stock but `Blue / 2XS` sold out.
   const dynamicSizeOptions = useMemo(() => {
     const selectedHex = dynamicColors[selectedColor]?.hex;
     const variants = catalogProduct?.variants;
@@ -314,10 +254,7 @@ export function ProductDetailPage({
     });
   }, [productSizeOptions, catalogProduct?.variants, dynamicColors, selectedColor, productIsOOS]);
 
-  // Active variant follows selected colour first; when a size is also picked
-  // we look for the exact combo (some variants share a colour but differ by
-  // size / price / SKU). Falls back to the colour-first match so the shopper
-  // always sees the swatch's data reflected in the page.
+  // Active variant follows selected colour first; when a size is also picked we look for the exact combo.
   const activeVariant = useMemo(() => {
     const variants = catalogProduct?.variants;
     if (!variants || variants.length === 0) return null;
@@ -332,18 +269,7 @@ export function ProductDetailPage({
 
   const activeColorImage = activeVariant?.image || catalogProduct?.colorImages?.[selectedColor] || dynamicImage;
 
-  // Price / gallery / SKU follow the active variant when the linked product
-  // carries its own copy; otherwise we fall back to the parent product
-  // (mirrors how the shopper sees the swatch as picking a whole variant).
-  // Effective full/sale must come from the SAME source so the rendered
-  // percent isn't off by a variant. Previously `dynamicPrice` fell through
-  // `activeVariant.price ?? catalogProduct.salePrice ?? catalogProduct.price`
-  // (variant full → family sale) while `dynamicOriginalPrice` only looked at
-  // `catalogProduct.salePrice`, so an OE tenant that stored a family-level
-  // discount would render "$35 / $35 / −0%" whenever a variant reported the
-  // full price. Anchor both derivations to the same `activeVariant` (fall
-  // back to the family) and only surface the sale UI when the discount
-  // rounds to at least 1% — sub-cent OE discounts otherwise ship as `−0%`.
+  // Price / gallery / SKU follow the active variant when the linked product carries its own copy; otherwise we fall back to the parent product.
   const effectiveFull = activeVariant?.price ?? catalogProduct?.price ?? 0;
   const effectiveSale = activeVariant?.salePrice ?? catalogProduct?.salePrice;
   const hasVisibleDiscount =
@@ -357,8 +283,7 @@ export function ProductDetailPage({
     activeVariant?.images && activeVariant.images.length > 0
       ? activeVariant.images
       : (catalogProduct?.galleryImages ?? (catalogProduct ? Array(5).fill(catalogProduct.image) : []));
-  // Match on the stable `key`, not the label — spec labels are editable in the
-  // admin panel, so a renamed "SKU" row would otherwise silently stop matching.
+  // Match on the stable `key`, not the label — spec labels are editable in the admin panel, so a renamed "SKU" row would otherwise silently stop matching.
   const variantSku =
     activeVariant?.sku ??
     catalogProduct?.specs?.find((s) => s.key === 'sku')?.value ??
@@ -368,13 +293,7 @@ export function ProductDetailPage({
       ? activeVariant.descriptionHtml
       : catalogProduct?.descriptionHtml;
 
-  // OE distinguishes four availability signals:
-  //   - `in_stock`     — regular purchase
-  //   - `preorder`     — pre-launch stock, the shopper can commit to buying
-  //   - `coming_soon`  — announced but not orderable yet; swatch stays
-  //                     selectable so the shopper can see the variant, but the
-  //                     CTA turns into a status-only label
-  //   - `out_of_stock` — greyed out entirely
+  // OE distinguishes four availability signals: - `in_stock` pre-launch stock, the shopper can commit to buying - `coming_soon`.
   const activeVariantStatus = activeVariant?.statusIdentifier;
   const isPreOrder = !productIsOOS && activeVariantStatus === 'preorder';
   const isComingSoon = !productIsOOS && activeVariantStatus === 'coming_soon';
@@ -382,13 +301,7 @@ export function ProductDetailPage({
   const isFirstMount = useRef(true);
   const { toggleItem, isWishlisted, updateSelection } = useWishlist();
 
-  // Clear the picked size when the new colour doesn't stock it — otherwise
-  // the "size selected" state persists over a struck-through size (e.g. the
-  // shopper picked Pink/M, then flipped to a colour that has no M in stock).
-  // Flipping to a colour that doesn't stock the picked size must clear the
-  // selection before paint — otherwise the shopper sees a struck-through size
-  // rendered as "selected" for a frame. Adjusting during render is React's
-  // sanctioned pattern for this; an effect would be a cascading render.
+  // Clear the picked size when the new colour doesn't stock it — otherwise the "size selected" state persists over a struck-through size.
   if (selectedSize && !dynamicSizeOptions.find((opt) => opt.label === selectedSize)?.available) {
     setSelectedSize(null);
   }
@@ -402,11 +315,7 @@ export function ProductDetailPage({
     updateSelection(productId, dynamicColors[selectedColor]?.hex, selectedSize ?? undefined);
   }, [selectedColor, selectedSize, productId, isWishlisted, updateSelection, dynamicColors]);
 
-  // Reflect the current colour+size choice in the URL so a full-page reload
-  // (or a shared link) restores exactly what the shopper was looking at.
-  // `history.replaceState` sidesteps Next.js router — no re-render, no scroll,
-  // no server round-trip — while `useSearchParams()` still picks up the value
-  // on the next mount because it reads from `window.location`.
+  // Reflect the current colour+size choice in the URL so a full-page reload (or a shared link) restores exactly what the shopper was looking at.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const hex = dynamicColors[selectedColor]?.hex;
@@ -421,12 +330,7 @@ export function ProductDetailPage({
     }
   }, [selectedColor, selectedSize, dynamicColors]);
 
-  // Deep-linked shoppers hit `/product/{id}` without a `?gender` hint (search
-  // results, bookmarks, marketing emails). The header falls back to WOMEN in
-  // that case — misleading on a men's PDP. Use `router.replace` so Next.js's
-  // `useSearchParams()` in `<Header>` picks up the new value; a bare
-  // `history.replaceState` would sync the URL bar but not trigger Header
-  // to re-derive gender.
+  // Deep-linked shoppers hit `/product/{id}` without a `?gender` hint (search results, bookmarks, marketing emails).
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!currentGender || (currentGender !== 'M' && currentGender !== 'W')) return;
@@ -441,10 +345,7 @@ export function ProductDetailPage({
   const dispatch = useDispatch<AppDispatch>();
   const { isLoggedIn, user, openLoginModal } = useAuth();
   const recentlyViewed = useSelector((state: RootState) => state.recentlyViewed.items);
-  // Different OE variant IDs of the same product (Pink XL / White M / …) each
-  // push their own Recently-Viewed entry, so the trail can list the same
-  // title twice. Dedupe by name (falling back to id) — keeps the most-recent
-  // entry per unique product.
+  // Different OE variant IDs of the same product (Pink XL / White M / …) each push their own Recently-Viewed entry, so the trail can list the same title twice.
   const allRecentlyViewed = (() => {
     const filtered = recentlyViewed
       .filter((p) => p.id !== productId)
@@ -464,9 +365,6 @@ export function ProductDetailPage({
   // "You May Also Like" — streamed in by the parent via `recommendationsSlot`.
 
   // 1) Local: prepend the current product to the Redux trail for instant UX.
-  // 2) Server: when the visitor is signed in, persist the view to user.state
-  //    so the trail follows them across devices. Fire-and-forget — UI doesn't
-  //    block on the round-trip.
   useEffect(() => {
     if (!catalogProduct) return;
     dispatch(
@@ -492,9 +390,7 @@ export function ProductDetailPage({
     }
   }, [productId, catalogProduct, dispatch, isLoggedIn]);
 
-  // Hydrate the Redux trail from `user.recentlyViewedItems` on login — these
-  // are server-stored {productId, viewedAt} pairs that need catalog enrichment
-  // to render as full ProductCards. Runs once after auth bootstraps.
+  // Hydrate the Redux trail from `user.recentlyViewedItems` on login.
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!isLoggedIn || !user?.recentlyViewedItems || hydratedRef.current) return;
@@ -575,11 +471,7 @@ export function ProductDetailPage({
     };
   }, []);
 
-  // Deep-link support for `/product/{id}#reviews` — used by QuickView's
-  // "N reviews" chip so shoppers land directly on the reviews block. The
-  // reviews slot is streamed via <Suspense>, so we retry the scroll until
-  // the section actually mounts (or the retry budget expires) instead of
-  // firing once on load and missing when the section is still empty.
+  // Deep-link support for `/product/{id}#reviews` — used by QuickView's "N reviews" chip so shoppers land directly on the reviews block.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.location.hash !== '#reviews') return;
@@ -609,12 +501,7 @@ export function ProductDetailPage({
       sizeErrorTimerRef.current = setTimeout(() => setSizeError(false), 2000);
       return;
     }
-    // Snapshot the active variant's `stockqty` so the reducer can cap
-    // `updateQuantity` at OE inventory. Fall back to the family stock when a
-    // specific variant isn't resolved (e.g. product without variants). Leaves
-    // `stockLimit` undefined only when OE truly doesn't track a number for
-    // this product — which the reducer treats as uncapped (belt-and-braces
-    // still applies server-side at `previewOrder` / `createOrder`).
+    // Snapshot the active variant's `stockqty` so the reducer can cap `updateQuantity` at OE inventory.
     const variantStock = activeVariant?.stock;
     const familyStock = catalogProduct?.stock;
     const stockLimit =
@@ -641,12 +528,7 @@ export function ProductDetailPage({
     announce(fillTokens(aAnnounceAdded, { name: dynamicName }));
   };
 
-  // Small star-rating summary next to the title. The full reviews block
-  // streams in as a `<Suspense>` slot; to keep the title-row count in sync
-  // without pre-loading the full review list on the server (which used to
-  // add hundreds of ms to TTFB), fetch a lightweight `{count, avg}` summary
-  // client-side after mount. Cached server-side via `unstable_cache` in
-  // `loadProductReviews`, so this is a cheap follow-up request.
+  // Small star-rating summary next to the title.
   const [reviewSummary, setReviewSummary] = useState<{ count: number; avg: number | null } | null>(null);
   useEffect(() => {
     const numeric = Number(catalogProduct?.id);
@@ -660,8 +542,7 @@ export function ProductDetailPage({
       cancelled = true;
     };
   }, [catalogProduct?.id]);
-  // Prefer the freshly-fetched summary; fall back to whatever the initial OE
-  // catalog product carries (usually empty since reviews aren't pre-seeded).
+  // Prefer the freshly-fetched summary; fall back to whatever the initial OE catalog product carries (usually empty since reviews aren't pre-seeded).
   const displayReviewCount = reviewSummary?.count ?? productReviews.length;
   const avgRating =
     reviewSummary?.avg ??
@@ -723,8 +604,7 @@ export function ProductDetailPage({
               <ProductGallery
                 images={dynamicGallery}
                 productName={dynamicName}
-                // Variant photos and the product's own share one blur map:
-                // it is keyed by URL, so whichever set is showing resolves.
+                // Variant photos and the product's own share one blur map: it is keyed by URL, so whichever set is showing resolves.
                 imageBlurs={activeVariant?.imageBlurs ?? catalogProduct?.imageBlurs}
               />
             </div>
@@ -756,11 +636,7 @@ export function ProductDetailPage({
                 <StarRating rating={avgRating} size={15} />
                 <button
                   onClick={() => {
-                    // Reviews section is now always mounted (even for 0
-                    // reviews), so we can always scroll. All auth / purchase
-                    // gating lives inside ReviewsClient's own CTA — clicking
-                    // that button surfaces the login modal (guest) or the
-                    // "purchase required" notice (signed-in, unpurchased).
+                    // Reviews section is now always mounted (even for 0 reviews), so we can always scroll.
                     if (!reviewsRef.current) return;
                     const top = reviewsRef.current.getBoundingClientRect().top + window.scrollY - 120;
                     window.scrollTo({ top, behavior: 'smooth' });
@@ -844,11 +720,7 @@ export function ProductDetailPage({
                         c.hex === '#FFFFFF' ? 'shadow-[inset_0_0_0_1px_#ddd]' : ''
                       }`}
                       title={c.name + (!c.available ? lOutOfStockTitle : '')}
-                      // The swatch renders as a bare coloured box, so without an
-                      // explicit name a screen reader announces only "button".
-                      // `title` alone is a weak fallback that several readers
-                      // skip. Mirrors `ColorSwatchButton`, which the catalogue
-                      // cards use, so both surfaces announce colours alike.
+                      // The swatch renders as a bare coloured box, so without an explicit name a screen reader announces only "button". `title` alone is a weak fallback that several readers skip.
                       aria-label={c.name + (!c.available ? lOutOfStockTitle : '')}
                       aria-pressed={selectedColor === i}
                       data-testid="pdp-color-swatch"
@@ -892,10 +764,7 @@ export function ProductDetailPage({
                       key={`${s.label}-${i}`}
                       onClick={() => s.available && setSelectedSize(s.label)}
                       disabled={!s.available}
-                      // Specs reached for these with `button:has-text("M")`,
-                      // which is a case-insensitive *substring* match and so
-                      // also caught "Store Locations", "WOMEN", "Shoes" — 27
-                      // buttons page-wide, the first of them in the header.
+                      // Specs reached for these with `button:has-text("M")`, which is a case-insensitive *substring* match and so also caught "Store Locations", "WOMEN", "Shoes".
                       data-testid="pdp-size-chip"
                       aria-pressed={selectedSize === s.label}
                       className={`h-11 w-13 rounded-md text-xs transition-all duration-150 ${
@@ -971,11 +840,6 @@ export function ProductDetailPage({
                     data-testid="pdp-reserve-in-store"
                     onClick={() => {
                       // Auth-gate the reservation like reviews (see ReviewsClient).
-                      // The reserve form collects contact info that OE ties to
-                      // the shopper; without a login the record has no owner and
-                      // the shopper can't later look up their reservation. Guest
-                      // shoppers get bounced into the login modal; on success
-                      // they land back on the PDP with modal state intact.
                       if (!isLoggedIn) {
                         openLoginModal();
                         return;
@@ -997,8 +861,7 @@ export function ProductDetailPage({
                       price: CURRENCY.format(dynamicPrice),
                       image: activeColorImage,
                       colors: dynamicColors.map((c) => c.hex),
-                      // First variant that carries each colour is the thumbnail
-                      // for that swatch on the favourites card.
+                      // First variant that carries each colour is the thumbnail for that swatch on the favourites card.
                       colorImages: dynamicColors.map(
                         (c) =>
                           catalogProduct?.variants?.find((v) => v.colors.includes(c.hex))?.image ||

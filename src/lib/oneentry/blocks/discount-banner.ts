@@ -9,10 +9,7 @@ import type { Lang } from '@/lib/oneentry/system-text';
 
 export interface DiscountBannerFromCms {
   image: string;
-  /**
-   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one.
-   */
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
   imageBlur?: string;
   alt: string;
   badge: string;
@@ -27,12 +24,7 @@ type AttrValue<T = unknown> = { value?: T };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-/**
- * `lang` is an explicit argument, not something the cached body resolves:
- *  `unstable_cache` keys on its arguments, so passing it in is what stops two
- *  locales from sharing one cache entry — and root params are unreadable in
- *  there anyway.
- */
+/** `lang` is an explicit argument, not something the cached body resolves: `unstable_cache` keys on its arguments, so passing it in is what stops two locales from sharing one cache entry. */
 const loadDiscountBannerCached = withTiming(
   'loadDiscountBanner',
   unstable_cache(
@@ -43,9 +35,7 @@ const loadDiscountBannerCached = withTiming(
         const result = await api.Blocks.getBlockByMarker('discount_banner', lang);
         if (isError(result)) return null;
         const raw = result as unknown as {
-          // SDK normalises by locale → `attributeValues` is already a flat
-          // `Record<marker, AttrValue>`. We keep the legacy `[lang]` wrapped
-          // shape as a fallback for the rare direct-fetch path.
+          // SDK normalises by locale → `attributeValues` is already a flat `Record<marker, AttrValue>`. We keep the legacy `[lang]` wrapped shape as a fallback for the rare direct-fetch path.
           attributeValues?: Record<string, AttrValue> | Record<string, Record<string, AttrValue>>;
           statusCode?: number;
         } | null;
@@ -62,10 +52,7 @@ const loadDiscountBannerCached = withTiming(
           badge: asString(attrs.hp_b_b_lable?.value),
           discountText: asString(attrs.hp_b_b_title?.value),
           category: asString(attrs.hp_b_b_sub_title?.value),
-          // OneEntry currently ships a typo marker `ph_b_b_description` for
-          // this field (all the other markers on the block use `hp_b_b_…`).
-          // Accept EITHER so the storefront stays live if the admin later
-          // fixes the typo without a code deploy.
+          // OneEntry currently ships a typo marker `ph_b_b_description` for this field (all the other markers on the block use `hp_b_b_…`).
           description: asString(attrs.hp_b_b_description?.value ?? attrs.ph_b_b_description?.value),
           cta: asString(attrs.hp_b_b_cta_text?.value),
           href: asString(attrs.hp_b_b_cta_link?.value),
@@ -82,12 +69,7 @@ const loadDiscountBannerCached = withTiming(
   ),
 );
 
-/**
- * Homepage discount banner for the current route's locale.
- *
- * @param [langArg] - Explicit OE locale; defaults to the route's.
- * @returns Banner, or `null` when unset.
- */
+/** Homepage discount banner for the current route's locale. */
 export async function loadDiscountBanner(langArg?: Lang): Promise<DiscountBannerFromCms | null> {
   return loadDiscountBannerCached(langArg ?? (await currentCmsLocale()));
 }

@@ -4,9 +4,7 @@ import type { WishlistItem } from '@/app/context/WishlistContext';
 import { CURRENCY } from '@/app/data/currencyConfig';
 import type { WaitingItem, WishlistItem as DataWishlistItem } from '@/app/data/userData';
 
-/**
- * Convert userData.WishlistItem → WishlistContext.WishlistItem
- */
+/** Convert userData.WishlistItem → WishlistContext.WishlistItem */
 function fromDataWishlist(item: DataWishlistItem): WishlistItem {
   return {
     id: item.id,
@@ -22,9 +20,7 @@ function fromDataWishlist(item: DataWishlistItem): WishlistItem {
   };
 }
 
-/**
- * Convert userData.WaitingItem → WishlistContext.WishlistItem
- */
+/** Convert userData.WaitingItem → WishlistContext.WishlistItem */
 function fromWaitingItem(item: WaitingItem): WishlistItem {
   return {
     id: item.id,
@@ -57,10 +53,7 @@ const wishlistSlice = createSlice({
       if (idx === -1) {
         state.items.push(action.payload);
       } else {
-        // Upsert: when the new payload carries richer data than the existing
-        // (e.g. placeholder→enriched product on wishlist hydration), merge so
-        // the card finally renders image/price/brand. User-set fields like
-        // selectedColor/selectedSize are preserved.
+        // Upsert: when the new payload carries richer data than the existing (e.g. placeholder→enriched product on wishlist hydration), merge so the card finally renders image/price/brand.
         const existing = state.items[idx];
         state.items[idx] = {
           ...action.payload,
@@ -90,10 +83,7 @@ const wishlistSlice = createSlice({
     clearAll(state) {
       state.items = [];
     },
-    /**
-     * Called on login: merges server wishlist + waitingList with guest items.
-     * Server items take precedence (dedup by id); guest-only items are appended.
-     */
+    /** Called on login: merges server wishlist + waitingList with guest items. */
     mergeUserWishlist(state, action: PayloadAction<{ wishlist: DataWishlistItem[]; waitingList: WaitingItem[] }>) {
       const serverItems: WishlistItem[] = [
         ...action.payload.wishlist.map(fromDataWishlist),

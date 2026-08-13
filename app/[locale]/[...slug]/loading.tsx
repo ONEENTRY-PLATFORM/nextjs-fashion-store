@@ -1,7 +1,6 @@
 export default function SlugLoading() {
   return (
-    // Content column only — the header lives in the root layout and is not
-    // replaced during a navigation.
+    // Content column only — the header lives in the root layout and is not replaced during a navigation.
     <div className="flex-1 bg-white" style={{ fontFamily: 'Inter, sans-serif' }} data-testid="route-loading">
       <div className="mx-auto max-w-384 px-4 py-6 lg:px-8">
         {/* Breadcrumb skeleton */}

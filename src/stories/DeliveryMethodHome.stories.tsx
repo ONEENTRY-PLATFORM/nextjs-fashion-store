@@ -101,11 +101,7 @@ export const LoggedInNewAddress: Story = {
   },
 };
 
-/**
- * OE-driven copy: title, subtitle and perks replaced by the CMS via
- *  `DeliveryMethodInfoProvider`. No public prop changes needed — context
- *  replaces literals transparently.
- */
+/** OE-driven copy: title, subtitle and perks replaced by the CMS via `DeliveryMethodInfoProvider`. No public prop changes needed. */
 export const WithOECopy: Story = {
   name: 'Guest — OE-driven copy',
   decorators: [
@@ -135,11 +131,7 @@ export const Unchecked: Story = {
   args: { ...sharedArgs, checked: false },
 };
 
-/**
- * OE-driven time slots and a shortened 3-date strip supplied from the server
- *  layer — demonstrates the `timeSlots` and `deliveryDates` props that the
- *  OE `checkout_home_delivery` schedule config now feeds into the component.
- */
+/** OE-driven time slots and a shortened 3-date strip supplied from the server layer. */
 export const OEDrivenConfig: Story = {
   name: 'OE-driven slots & date strip',
   args: {

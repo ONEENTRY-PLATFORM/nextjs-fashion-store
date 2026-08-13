@@ -45,22 +45,7 @@ export const REGISTER_MODAL_LABELS = {
   loadingOptions: 'Loading sign-up options',
 } as const;
 
-/**
- * Consent / subscription checkbox.
- *
- * Wraps a visually-hidden native input instead of hanging `onClick` on a bare
- * `<span>`. The previous version was not a checkbox to anything but the eye:
- * it could not be reached or toggled by keyboard, a screen reader announced
- * the caption as plain text with no role or checked state, and — since the
- * `<label>` had no control to associate with — clicking the caption did
- * nothing, leaving only a 16 px box as the hit target. On the terms checkbox
- * that made registration impossible without a mouse.
- *
- * Mirrors the pattern the catalogue filters already use (`MobileFilterBody`).
- * Anchors inside `children` stay safe: per the HTML spec a label's activation
- * behaviour is skipped when the click targets interactive content, so opening
- * the Terms link does not silently tick the box.
- */
+/** Consent / subscription checkbox. */
 function Checkbox({
   checked,
   onChange,

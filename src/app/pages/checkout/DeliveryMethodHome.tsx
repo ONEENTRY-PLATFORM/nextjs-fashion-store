@@ -5,7 +5,10 @@ import { FormField } from '@/app/components/ui/FormField';
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { DELIVERY_PERKS, DELIVERY_TIME_SLOTS } from '@/app/data/checkoutConfig';
 import type { UserAddress } from '@/app/data/userData';
-import { DELIVERY_METHOD_HOME_LABELS as L_FALLBACK , DELIVERY_METHOD_SHARED_LABELS as SH } from '@/app/pages/checkout/copy';
+import {
+  DELIVERY_METHOD_HOME_LABELS as L_FALLBACK,
+  DELIVERY_METHOD_SHARED_LABELS as SH,
+} from '@/app/pages/checkout/copy';
 import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
@@ -45,10 +48,7 @@ interface DeliveryMethodHomeProps {
   setSelectedDate: (d: Date) => void;
   selectedSlot: string;
   setSelectedSlot: (id: string) => void;
-  /**
-   * OE-driven time slots; falls back to the hardcoded set when the parent
-   *  didn't supply anything (Storybook / bare render).
-   */
+  /** OE-driven time slots; falls back to the hardcoded set when the parent didn't supply anything. */
   timeSlots?: DeliveryTimeSlot[];
 }
 
@@ -87,8 +87,7 @@ export function DeliveryMethodHome({
   const subtitle = info?.home.subtitle ?? L.subtitle;
   const perks = info?.home.perks ?? DELIVERY_PERKS.map((p) => p.text);
 
-  // Each input asks the form for the field playing its role, so the copy — and
-  // the CMS attribute behind it — can be renamed without touching this file.
+  // Each input asks the form for the field playing its role, so the copy — and the CMS attribute behind it — can be renamed without touching this file.
   const phFullName = useRoleField(SAVED_ADDRESS_FORM, 'fullName', { placeholder: L.placeholderFullName }).placeholder;
   const phPhone = useRoleField(SAVED_ADDRESS_FORM, 'phone', { placeholder: L.placeholderPhone }).placeholder;
   const phAddressLine1 = useRoleField(SAVED_ADDRESS_FORM, 'line1', {

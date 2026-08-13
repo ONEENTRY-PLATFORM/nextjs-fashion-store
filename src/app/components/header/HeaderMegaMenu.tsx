@@ -48,17 +48,12 @@ export function HeaderMegaMenu({
           {SUB_CATEGORIES.map((cat) => {
             const key = cat.toLowerCase();
             const hasDropdown = ['shoes', 'clothing', 'bags', 'accessories'].includes(key);
-            // Carry the currently active gender onto the flat /new and /sale
-            // pages so their product list is scoped to that gender (matches the
-            // menu context the shopper is in).
+            // Carry the currently active gender onto the flat /new and /sale pages so their product list is scoped to that gender.
             const genderQs = `?gender=${activeGender}`;
             const catalogHref = hasDropdown ? getNavHref(activeGender, key) : key === 'new' ? `/new${genderQs}` : null;
             const isSale = key === 'sale';
             const isActive = activeDropdown === key || urlSubCat === key;
-            // A tab that navigates must take the dropdown down with it: the
-            // pointer stays parked on the button after the click, so no
-            // `mouseleave` ever fires and the panel would hang over the page
-            // the shopper just landed on. Tabs with nowhere to go keep it open.
+            // A tab that navigates must take the dropdown down with it: the pointer stays parked on the button after the click, so no `mouseleave` ever fires and the panel would hang over the page the shopper just landed on.
             const navHref = catalogHref ?? (isSale ? `/sale${genderQs}` : null);
             return (
               <button

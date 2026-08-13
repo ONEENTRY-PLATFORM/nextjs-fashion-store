@@ -12,8 +12,5 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/**
- * WomenCollection loads products via RTK Query (homepageApi → fakeBaseQuery → NEW_ARRIVALS).
- * Renders a draggable horizontal product carousel with women's accent (#F88A8A).
- */
+/** WomenCollection loads products via RTK Query (homepageApi → fakeBaseQuery → NEW_ARRIVALS). */
 export const Default: Story = {};

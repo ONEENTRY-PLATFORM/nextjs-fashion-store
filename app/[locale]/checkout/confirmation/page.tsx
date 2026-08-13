@@ -5,10 +5,7 @@ import { ConfirmationPage } from '@/app/pages/ConfirmationPage';
 import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadCheckoutSuccessMessage } from '@/lib/oneentry/checkout/delivery-methods';
 
-/**
- * Title/description/keywords/canonical come from the OE `confirmation` page when an
- *  editor filled them; `SEO.checkoutConfirmation` stays as the offline fallback.
- */
+/** Title/description/keywords/canonical come from the OE `confirmation` page when an editor filled them. */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('confirmation', SEO.checkoutConfirmation);
 }

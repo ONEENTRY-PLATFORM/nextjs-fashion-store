@@ -1,9 +1,6 @@
 export default function Loading() {
   return (
-    // The header is part of the root layout now and stays on screen during a
-    // navigation, so this skeleton covers the content column only — it used to
-    // paint a grey bar over the header's position, which read as the header
-    // disappearing on every route change.
+    // The header is part of the root layout now and stays on screen during a navigation, so this skeleton covers the content column only.
     <div className="flex-1 bg-white" style={{ fontFamily: 'Inter, sans-serif' }} data-testid="route-loading">
       {/* Content skeleton */}
       <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">

@@ -13,7 +13,6 @@ export const CATEGORY_SECTION_LABELS = {
 } as const;
 
 // Base delay (ms) before cards animate in — waits for the parent AnimatedSection fade-up (~650ms).
-// On back navigation sessionStorage='1' so animated=true and this is never used.
 const CARD_BASE_DELAY = 680;
 const CARD_STAGGER = 55;
 
@@ -30,17 +29,12 @@ export function CategorySection({
     label: c.label,
     chip: c.chip,
     image: c.image,
-    // Same omission the hero had: `cat.imageBlur` is read below, but the
-    // mapping never carried it across, so the tiles had no LQIP to show while
-    // the (unoptimized, full-size) photo downloaded.
+    // Same omission the hero had: `cat.imageBlur` is read below, but the mapping never carried it across, so the tiles had no LQIP to show while the (unoptimized, full-size) photo downloaded.
     imageBlur: c.imageBlur,
     href: c.href,
   }));
   const [activeFilter, setActiveFilter] = useState(chips[0] ?? '');
-  // true = already animated / back-nav → skip card entrance, show immediately
-  // Back-navigation should not replay the entrance animation. The flag is
-  // read once, lazily — the cards only render after `mounted` flips, so this
-  // never diverges from the server HTML and needs no effect round-trip.
+  // true = already animated / back-nav → skip card entrance, show immediately Back-navigation should not replay the entrance animation.
   const [animated] = useState(() => {
     if (typeof window === 'undefined') return false;
     try {

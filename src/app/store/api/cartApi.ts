@@ -1,15 +1,4 @@
-/**
- * Cart API slice (RTK Query)
- *
- * Mirrors `wishlistApi` but talks to `/users/me/cart` and includes a
- * `setCart` (PUT) mutation used by `clearCart()` — the cart REST API
- * does not expose a single-call wipe endpoint, so we PUT an empty
- * `items` list.
- *
- * Important: the Platform `addItem` endpoint accepts an absolute `qty`, not
- * a delta. Callers (CartContext) must compute the resulting total
- * client-side before dispatching.
- */
+/** Cart API slice (RTK Query) Mirrors `wishlistApi` but talks to `/users/me/cart` and includes a `setCart` (PUT) mutation used by `clearCart()`. */
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import type { RootState } from '@/app/store/index';
@@ -26,9 +15,7 @@ export function isCartApiEnabled(): boolean {
 export const cartApi = createApi({
   reducerPath: 'cartApi',
   tagTypes: ['Cart'],
-  // Cart shape changes frequently (add/remove/qty) but is highly interactive —
-  // keep in cache 60 s after unmount so the mini-cart / cart page re-open without
-  // refetching. Mutations invalidate `Cart` anyway.
+  // Cart shape changes frequently (add/remove/qty) but is highly interactive.
   keepUnusedDataFor: 60,
   refetchOnMountOrArgChange: 30,
   refetchOnFocus: true,

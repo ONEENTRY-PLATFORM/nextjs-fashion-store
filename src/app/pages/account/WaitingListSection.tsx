@@ -96,11 +96,7 @@ export function WaitingListSection() {
   const { addItem: addToCart } = useCart();
   const wishlistIds = useMemo(() => new Set(wishlistItems.map((i) => i.id)), [wishlistItems]);
 
-  // Waiting list is derived from /me/wishlist: each wishlist item is enriched
-  // with current OE stock status (out_of_stock / low_stock / back_in_stock).
-  // Nothing to wait for unless the shopper is signed in with a non-empty
-  // wishlist; that condition is derived, so signing out clears the list
-  // during render instead of from inside an effect.
+  // Waiting list is derived from /me/wishlist: each wishlist item is enriched with current OE stock status (out_of_stock / low_stock / back_in_stock).
   const hasWishlist = Boolean(isLoggedIn && user?.wishlistItems && user.wishlistItems.length > 0);
   const [loaded, setLoaded] = useState<WaitingItem[] | null>(null);
   const waitingList = useMemo(() => (hasWishlist ? (loaded ?? []) : []), [hasWishlist, loaded]);
@@ -125,8 +121,7 @@ export function WaitingListSection() {
   const addTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
-    // Captured on mount — the ref object itself never changes, and reading
-    // `.current` inside cleanup would resolve after the component unmounted.
+    // Captured on mount — the ref object itself never changes, and reading `.current` inside cleanup would resolve after the component unmounted.
     const addTimers = addTimersRef.current;
     return () => {
       if (removeTimerRef.current) clearTimeout(removeTimerRef.current);

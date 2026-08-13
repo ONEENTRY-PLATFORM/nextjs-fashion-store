@@ -9,11 +9,7 @@ interface SizeDropdownProps {
   value: string;
   onChange: (s: string) => void;
   isShoe: boolean;
-  /**
-   * Actual sizes for THIS product, loaded from OE. When provided, overrides
-   *  the hardcoded clothing/shoe fallback. Single-item arrays render as
-   *  static text (no dropdown). Empty array hides the widget entirely.
-   */
+  /** Actual sizes for THIS product, loaded from OE. */
   availableSizes?: string[];
 }
 

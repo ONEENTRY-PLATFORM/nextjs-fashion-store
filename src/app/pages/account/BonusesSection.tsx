@@ -26,10 +26,7 @@ export const BONUSES_LABELS = {
 
 const L = BONUSES_LABELS;
 
-/**
- * Built from the OE `my_bonuses` set so an editor can reword a transaction
- *  type; the local dictionary is the offline fallback.
- */
+/** Built from the OE `my_bonuses` set so an editor can reword a transaction type. */
 function useTypeLabels(): Record<string, string> {
   const accrual = useT('my_bonuses_type_accrual', L.typeAccrual);
   const reversalUsage = useT('my_bonuses_type_reversal_usage', L.typeReversalUsage);
@@ -59,9 +56,7 @@ function formatDate(iso: string | null): string {
 
 export function BonusesSection() {
   const { user, isLoggedIn } = useAuth();
-  // Result carries the session it belongs to, so signing out invalidates it
-  // during render instead of needing an effect to reset the list (a
-  // synchronous `setState` in `useEffect` — see MCP `common-mistakes`).
+  // Result carries the session it belongs to, so signing out invalidates it during render instead of needing an effect to reset the list.
   const [loaded, setLoaded] = useState<{ signedIn: boolean; items: OeBonusTransaction[] } | null>(null);
   const history = loaded?.signedIn === isLoggedIn ? loaded.items : [];
   const loading = isLoggedIn && loaded?.signedIn !== true;

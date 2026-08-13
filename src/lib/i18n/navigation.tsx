@@ -13,26 +13,9 @@ import {
   stripLocale,
 } from '@/lib/oneentry/locale';
 
-/**
- * Locale-aware navigation for Client Components.
- *
- * Every internal link has to carry the active locale, and doing that by hand at
- * ~60 call sites is a rule nobody remembers six months later. These wrappers
- * make it structural instead: import `Link` / `useRouter` from here and the
- * prefix is applied for you, so a link written without a thought still keeps
- * the shopper in their language.
- *
- * The locale is derived from `usePathname()` rather than a context, because the
- * proxy *rewrites* rather than redirects the default locale — the browser URL
- * is the source of truth for which locale is on screen (`/cart` → default,
- * `/fr/cart` → French), and no provider has to be mounted for it to work.
- */
+/** Locale-aware navigation for Client Components. */
 
-/**
- * Active locale for the current URL. `/cart` → the default, `/fr/cart` → `fr`.
- *
- * @returns Short locale code.
- */
+/** Active locale for the current URL. */
 export function useLocale(): ShortLocaleCode {
   const pathname = usePathname();
   return useMemo(() => localeFromPath(pathname ?? '/'), [pathname]);
@@ -44,17 +27,7 @@ export function usePathnameWithoutLocale(): string {
   return useMemo(() => stripLocale(pathname ?? '/'), [pathname]);
 }
 
-/**
- * `next/link` that keeps the shopper in their locale.
- *
- * External URLs, anchors and `mailto:`/`tel:` pass through untouched — see
- * `localizeHref`. Under the default locale the href is returned verbatim, so
- * markup and rendered output are unchanged on a single-locale deployment.
- *
- * @param    props      - Same props as `next/link`.
- * @param    props.href - App-relative or absolute href.
- * @returns          A locale-prefixed link.
- */
+/** `next/link` that keeps the shopper in their locale. */
 export function Link({ href, ...rest }: ComponentProps<typeof NextLink>): React.JSX.Element {
   const locale = useLocale();
   const localized = typeof href === 'string' ? localizeHref(href, locale) : href;
@@ -71,20 +44,11 @@ interface LocaleRouter {
   prefetch: (href: string) => void;
 }
 
-/**
- * `useRouter` whose `push`/`replace`/`prefetch` prefix the active locale.
- *
- * `back`, `forward` and `refresh` are passed straight through — they operate on
- * history, not on hrefs.
- *
- * @returns Locale-aware router.
- */
+/** `useRouter` whose `push`/`replace`/`prefetch` prefix the active locale. */
 export function useRouter(): LocaleRouter {
   const router = useNextRouter();
   const locale = useLocale();
-  // Present whenever `<TransitionProvider>` is mounted (i.e. in the app), so a
-  // programmatic `push` fades the page out and in exactly like a link click.
-  // `null` in Storybook and unit tests — the plain router is used there.
+  // Present whenever `<TransitionProvider>` is mounted (i.e. in the app), so a programmatic `push` fades the page out and in exactly like a link click.
   const animatedNavigate = useTransitionNavigate();
 
   const push = useCallback(
@@ -124,13 +88,7 @@ export function useRouter(): LocaleRouter {
   );
 }
 
-/**
- * Href for the same page in another locale — what the language switcher needs.
- *
- * @param pathname - Current path, prefix included or not.
- * @param target   - Locale to switch to.
- * @returns          Path under the target locale.
- */
+/** Href for the same page in another locale — what the language switcher needs. */
 export function switchLocaleHref(pathname: string, target: ShortLocaleCode): string {
   return localizeHref(stripLocale(pathname || '/'), target || DEFAULT_SHORT_LOCALE);
 }

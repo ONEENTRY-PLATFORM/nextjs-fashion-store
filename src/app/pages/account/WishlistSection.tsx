@@ -3,7 +3,7 @@ import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
-import { PRODUCT_CARD_ARIA_LABELS , PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
+import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { SALE_COLOR } from '@/app/constants/colors';

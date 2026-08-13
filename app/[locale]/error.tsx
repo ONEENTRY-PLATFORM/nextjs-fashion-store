@@ -4,9 +4,7 @@ import { useEffect } from 'react';
 
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Global Error page UI copy (app/error.tsx).
- */
+/** Global Error page UI copy (app/error.tsx). */
 export const ERROR_PAGE_LABELS = {
   heading: 'Something went wrong',
   body: "We couldn't load this page. Please try again or return to the homepage.",
@@ -34,9 +32,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
   return (
     <div
-      // `flex-1`, not `min-h-screen`: the header and footer are rendered by the
-      // root layout around this boundary, so a full-viewport minimum here would
-      // stack on top of them and push the error card off-screen.
+      // `flex-1`, not `min-h-screen`: the header and footer are rendered by the root layout around this boundary, so a full-viewport minimum here would stack on top of them and push the error card off-screen.
       className="flex flex-1 items-center justify-center bg-white px-4"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >

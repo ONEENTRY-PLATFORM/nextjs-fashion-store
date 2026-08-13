@@ -15,22 +15,13 @@ export interface SubmitServiceRequestInput {
 
 export type SubmitServiceRequestResult = { ok: true; id: number } | { ok: false; error: string };
 
-/**
- * Submit a new entry to the OE `service_request` form. Encodes each field with
- * its concrete OE form-data shape (list → array of value strings, text → array
- * of { htmlValue|plainValue, params }, date → object with fullDate /
- * formattedValue / formatString). The `order_id` attribute is `requiredValidator:
- * strict` on the OE side — pass 0 if no order context is available so the
- * request still reaches the server.
- */
+/** Submit a new entry to the OE `service_request` form. */
 export async function submitServiceRequestAction(
   input: SubmitServiceRequestInput,
 ): Promise<SubmitServiceRequestResult> {
   const api = getApiSafe();
   if (!api) return { ok: false, error: await se('oneEntryEnvNotConfigured') };
-  // The SDK singleton carries the session installed by `reDefine()`; a shopper
-  // returning after the access token expired is refreshed proactively before
-  // this request goes out, so no manual token rotation is needed here.
+  // The SDK singleton carries the session installed by `reDefine()`.
   if (!hasStoredSession()) return { ok: false, error: await se('notAuthenticated') };
   const userIdentifier = readUserIdentifier();
 
@@ -70,10 +61,7 @@ export async function submitServiceRequestAction(
   ];
 
   try {
-    // SDK's postFormsData internally wraps `formData` in { [langCode]: [...] }
-    // and typedefines `formData` as `FormDataType[]`. Our mixed shape is
-    // structurally compatible but stricter typings would fight us — cast at
-    // the boundary.
+    // SDK's postFormsData internally wraps `formData` in { [langCode]: [...] } and typedefines `formData` as `FormDataType[]`. Our mixed shape is structurally compatible but stricter typings would fight us.
     const result = await api.FormData.postFormsData(
       {
         formIdentifier: 'service_request',
@@ -88,8 +76,7 @@ export async function submitServiceRequestAction(
     if (isError(result)) {
       return { ok: false, error: result.message ?? (await se('formSubmitFailed')) };
     }
-    // Response shape: `{ formData: { id, ... } }` per SDK types, but real API
-    // sometimes returns the record flat too. Handle both.
+    // Response shape: `{ formData: { id, ... } }` per SDK types, but real API sometimes returns the record flat too.
     const raw = result as unknown as {
       id?: number;
       formData?: { id?: number };

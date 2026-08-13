@@ -17,20 +17,13 @@ export const HEADER_SEARCH_LABELS = {
 
 const HS = HEADER_SEARCH_LABELS;
 
-/**
- * Shortest query worth sending to OE — one or two characters match almost
- *  the whole catalogue and the dropdown becomes noise.
- */
+/** Shortest query worth sending to OE. */
 const MIN_QUERY_LENGTH = 2;
 
 /** Idle time before a query is sent, in ms. */
 const SEARCH_DEBOUNCE_MS = 350;
 
-/**
- * Debounced vector-search input. Wraps the existing Header input + dropdown.
- * Variants are pre-collapsed by the server action so the dropdown shows one
- * card per product.
- */
+/** Debounced vector-search input. */
 export function HeaderSearch({
   placeholder,
   ariaLabel,
@@ -47,10 +40,7 @@ export function HeaderSearch({
   const lNoResults = useT('interface_controls_no_results', HS.noResults);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  // Results are stored together with the query that produced them. Deriving
-  // `results` / `loading` from that pair means a new keystroke invalidates
-  // the old hits during render — no effect has to reset them, which is the
-  // cascading-render pattern React flags (MCP `common-mistakes`).
+  // Results are stored together with the query that produced them.
   const [hits, setHits] = useState<{ query: string; items: Product[] }>({ query: '', items: [] });
   const wrapperRef = useRef<HTMLDivElement>(null);
   const requestSeqRef = useRef(0);
@@ -91,8 +81,7 @@ export function HeaderSearch({
   const handleSelect = useCallback(
     (id: string) => {
       setOpen(false);
-      // Clearing the query is enough — `results` is derived from it, so the
-      // stale hits drop out on the same render.
+      // Clearing the query is enough — `results` is derived from it, so the stale hits drop out on the same render.
       setQuery('');
       router.push(`/product/${id}`);
     },

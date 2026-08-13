@@ -39,10 +39,7 @@ export const SALE_COLOR_OPTIONS = [
   { label: COL.pink, color: '#F88A8A' },
 ];
 
-/**
- * Sort values paired with the `SALE_SORT_LABELS` key that words them — the
- *  value is code-owned, the wording is admin-editable.
- */
+/** Sort values paired with the `SALE_SORT_LABELS` key that words them. */
 export const SALE_SORT_OPTIONS = [
   { labelKey: 'biggestDiscount', value: 'discount' },
   { labelKey: 'priceLowToHigh', value: 'price_asc' },

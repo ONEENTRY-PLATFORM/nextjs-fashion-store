@@ -1,7 +1,4 @@
-/**
- * Copy shared by this feature's components, overlaid by the OneEntry
- * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
- */
+/** Copy shared by this feature's components, overlaid by the OneEntry dictionary at render time. */
 
 /** OAuth failure banner copy, keyed by the `?googleAuthError=` code family. */
 export const OAUTH_ERROR_LABELS = {

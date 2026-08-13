@@ -10,19 +10,12 @@ import { loadNewArrivalsPage } from '@/lib/oneentry/catalog/new-arrivals-page';
 import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadProducts } from '@/lib/oneentry/catalog/products';
 
-/**
- * Title/description/keywords/canonical come from the OE `new` page when an
- *  editor filled them; `SEO.newArrivals` stays as the offline fallback.
- */
+/** Title/description/keywords/canonical come from the OE `new` page when an editor filled them. */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('new', SEO.newArrivals);
 }
 
-// CMS content changes only when an admin edits it, so this is ISR, never
-// `force-dynamic` (MCP `performance`). `force-static` makes the build fail
-// loudly if anything in the tree slips back into dynamic rendering instead of
-// silently degrading. Gender scoping (`?gender=`) is applied in the browser —
-// see `NewArrivalsPage`.
+// CMS content changes only when an admin edits it, so this is ISR, never `force-dynamic` (MCP `performance`).
 export const dynamic = 'force-static';
 export const revalidate = 60;
 
@@ -38,17 +31,12 @@ const breadcrumb = {
 export default async function Page() {
   const [products, cmsPage, pageBlocks] = await Promise.all([
     loadProducts({ tags: ['New'], limit: 200 }),
-    // Page-level attributes (top hero + footer editorial). Cached 60s so
-    // admin edits surface without redeploy.
+    // Page-level attributes (top hero + footer editorial).
     loadNewArrivalsPage(),
-    // OE-attached blocks for the `new` page. Empty when admin hasn't attached
-    // anything — safe fallback, nothing renders.
+    // OE-attached blocks for the `new` page.
     loadPageBlocksByUrl('new'),
   ]);
-  // The full feed ships to the client; `NewArrivalsPage` narrows it to the
-  // active gender from `?gender=`. The adapter already stamps `gender` with
-  // the OE attribute or, when that is blank, the category path
-  // (`/women/…` vs `/men/…`), so no extra data is needed for the scope.
+  // The full feed ships to the client.
   const initialProducts =
     products.items.length > 0
       ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: newArrivalCategoryFor(p) }))

@@ -1,8 +1,4 @@
-/**
- * Wire types for the Platform wishlist REST API (`/api/content/users/me/wishlist`).
- * Mirrors `WishlistItemDto` / `WishlistResponseDto` from
- * `cms/src/modules/user-activity/dto/wishlist.dto.ts`.
- */
+/** Wire types for the Platform wishlist REST API (`/api/content/users/me/wishlist`). */
 
 /** Single wishlist row as returned by the Platform. */
 export interface WishlistApiItem {

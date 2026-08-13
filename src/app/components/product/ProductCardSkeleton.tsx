@@ -1,7 +1,4 @@
-/**
- * Skeleton placeholder matching ProductCard dimensions.
- *  Shown on first client-side render (before JS hydration sets mounted=true).
- */
+/** Skeleton placeholder matching ProductCard dimensions. */
 export function ProductCardSkeleton() {
   return (
     <div className="flex flex-col bg-white" aria-hidden="true">

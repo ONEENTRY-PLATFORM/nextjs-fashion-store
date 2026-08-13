@@ -3,7 +3,7 @@ import { AlertTriangle, Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
-import { PRODUCT_CARD_ARIA_LABELS , PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
+import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
@@ -38,8 +38,7 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const { openQuickView } = useQuickView();
   const router = useRouter();
   const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
-  // Wishlist-specific badges live in the OE `favorites_page` set alongside the
-  // rest of the page copy; `FAVORITE_CARD_LABELS` is the offline fallback.
+  // Wishlist-specific badges live in the OE `favorites_page` set alongside the rest of the page copy; `FAVORITE_CARD_LABELS` is the offline fallback.
   const lPriceDrop = useT('favorite_card_price_drop', FCL.priceDrop);
   const lOutOfStock = useT('favorite_card_out_of_stock', FCL.outOfStock);
   const lSizeLabel = useT('favorite_card_size', FCL.sizeLabel);
@@ -69,17 +68,11 @@ export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Forward `originalPrice` so the cart line renders the same
-    // strike-through UX as the catalog / PDP for sale items. Previously
-    // dropped, so a favourited sale item added to cart showed as a plain
-    // sale price with no "was" reference.
+    // Forward `originalPrice` so the cart line renders the same strike-through UX as the catalog / PDP for sale items.
     const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^0-9.]/g, '')) || 0;
     const priceNumber = parsePrice(item.salePrice ?? item.price);
     const originalPrice = item.salePrice ? parsePrice(item.price) : undefined;
-    // Use a clean numeric id so `productsForPreview` / `syncCart` /
-    // `createOrder` all see the same OE productId — the previous
-    // `${item.id}-fav` suffix worked for React keys but dropped the item
-    // from `syncCart` (which requires a fully-numeric id).
+    // Use a clean numeric id so `productsForPreview` / `syncCart` / `createOrder` all see the same OE productId.
     const cmsId = extractCmsProductId(item.id);
     const cartId = cmsId !== null ? String(cmsId) : item.id;
     addToCart({

@@ -10,19 +10,12 @@ import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadProducts } from '@/lib/oneentry/catalog/products';
 import { loadSalePage } from '@/lib/oneentry/catalog/sale-page';
 
-/**
- * Title/description/keywords/canonical come from the OE `sale` page when an
- *  editor filled them; `SEO.sale` stays as the offline fallback.
- */
+/** Title/description/keywords/canonical come from the OE `sale` page when an editor filled them. */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('sale', SEO.sale);
 }
 
-// CMS content changes only when an admin edits it, so this is ISR, never
-// `force-dynamic` (MCP `performance`). `force-static` makes the build fail
-// loudly if anything in the tree slips back into dynamic rendering instead of
-// silently degrading. Gender scoping (`?gender=`) is applied in the browser —
-// see `SalePage`.
+// CMS content changes only when an admin edits it, so this is ISR, never `force-dynamic` (MCP `performance`).
 export const dynamic = 'force-static';
 export const revalidate = 60;
 
@@ -39,16 +32,12 @@ export default async function Page() {
   const [products, cmsPage, pageBlocks] = await Promise.all([
     loadProducts({ tags: ['Sale'], limit: 200 }),
     // Full page-level attributes (top banner + footer promo + countdown).
-    // Cached with 60s revalidate — admin edits surface without redeploy.
     loadSalePage(),
-    // OE-attached blocks for the `sale` page. Rendered via `<PageBlocksRenderer>`
-    // inside SalePage. Empty when admin hasn't attached anything.
+    // OE-attached blocks for the `sale` page.
     loadPageBlocksByUrl('sale'),
   ]);
   const saleEndsAt = cmsPage?.saleEndsAt ?? null;
-  // The full feed ships to the client; `SalePage` narrows it to the active
-  // gender from `?gender=`. The adapter already stamps `gender` with the OE
-  // attribute or, when blank, the category path (`/women/…` vs `/men/…`).
+  // The full feed ships to the client.
   const initialProducts =
     products.items.length > 0
       ? products.items.map((p) => ({ ...adaptCatalogProductToUiProduct(p), category: saleCategoryFor(p) }))

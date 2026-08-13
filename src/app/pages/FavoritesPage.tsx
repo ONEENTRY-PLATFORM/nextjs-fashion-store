@@ -21,9 +21,7 @@ import { FavoritesCarousel } from './favorites/FavoritesCarousel';
 import { FavoritesEmptyState } from './favorites/FavoritesEmptyState';
 import { RecentlyViewedSection } from './product/RecentlyViewedSection';
 
-/**
- * Favorites page UI copy.
- */
+/** Favorites page UI copy. */
 export const FAVORITES_PAGE_LABELS = {
   breadcrumbHome: 'Home',
   breadcrumbCurrent: 'Favourites',
@@ -53,10 +51,7 @@ export function FavoritesPage({
 }: {
   recommended?: Product[];
   trending?: Product[];
-  /**
-   * OE-attached blocks for the `favorites` page. Rendered above the
-   *  wishlist header via `<PageBlocksRenderer>`.
-   */
+  /** OE-attached blocks for the `favorites` page. */
   pageBlocks?: PageBlock[];
 } = {}) {
   const L = useDict('favorites_page_', FAVORITES_PAGE_LABELS);
@@ -65,9 +60,7 @@ export function FavoritesPage({
   const router = useRouter();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const mounted = useMounted();
-  // Every visible string resolves through the OE `favorites_page` set, with the
-  // local dictionary as the offline fallback — a partially wired page would let
-  // an editor change some labels while others stayed frozen in code.
+  // Every visible string resolves through the OE `favorites_page` set, with the local dictionary as the offline fallback.
   const lItems = useT('favorites_page_items', L.itemPlural);
   const lItem = useT('favorites_page_item', L.itemSingular);
   const lMoveAll = useT('favorites_page_move_all_to_bag', L.moveAllToBag);
@@ -84,9 +77,7 @@ export function FavoritesPage({
   const lRecommend = useT('favorites_page_recommended', L.recommendedHeading);
   const lTrending = useT('favorites_page_trending', L.trendingHeading);
 
-  // Live Recently-Viewed trail from Redux (shared with PDP). Dedupe by title
-  // so different variants of the same product (Pink XL / White M / …) don't
-  // each surface as separate tiles.
+  // Live Recently-Viewed trail from Redux (shared with PDP).
   const recentlyViewed = useSelector((s: RootState) => s.recentlyViewed.items);
   const recentlyViewedUnique = (() => {
     const seen = new Set<string>();
@@ -100,23 +91,14 @@ export function FavoritesPage({
     return out;
   })();
 
-  // Gender preference for the recommended / trending carousels:
-  //   1. Logged-in user with an explicit `gender` — use it.
-  //   2. Guest (or user without gender): infer from the Redux Recently-Viewed
-  //      trail — pick the majority side. Older items may have blank `gender`
-  //      (pushed before the adapter fallback existed), so we also parse the
-  //      product name (`Men ...` / `Women ...`) as a last-resort hint.
-  //   3. Nothing to go on — leave both feeds unfiltered.
+  // Gender preference for the recommended / trending carousels: 1.
   const { isLoggedIn, user } = useAuth();
   const genderOf = (p: Product): 'W' | 'M' | 'U' | '' => {
     if (p.gender === 'W' || p.gender === 'M' || p.gender === 'U') return p.gender;
     const name = (p.name || '').toLowerCase();
     if (/\bmen('s)?\b/.test(name)) return 'M';
     if (/\bwomen('s)?\b/.test(name)) return 'W';
-    // Older Redux entries persisted before the adapter carried gender don't
-    // have anything on the `Product` object — fall back to OE's file-code
-    // convention baked into image URLs: `SO-W-…`, `O-W-…`, `OE-W-…` mark
-    // women, `-M-` marks men.
+    // Older Redux entries persisted before the adapter carried gender don't have anything on the `Product` object.
     const img = (p.image || '').toLowerCase();
     const m = img.match(/\/[a-z]+-([wm])-[a-z0-9]/);
     if (m?.[1] === 'w') return 'W';
@@ -144,20 +126,12 @@ export function FavoritesPage({
     if (!g || g === 'U') return true;
     return g === preferredGender;
   };
-  // Gender-scoped filtering only kicks in after mount — `preferredGender` is
-  // computed from client-only state (Redux Recently-Viewed hydrates from
-  // localStorage, auth resolves via async bootstrap), so applying it during
-  // SSR / the first client render would swap product tiles between the two
-  // passes and trip React's hydration mismatch warning. Same shape either
-  // way so the empty-first-paint doesn't jump.
+  // Gender-scoped filtering only kicks in after mount.
   const RECOMMENDATION_PRODUCTS_SCOPED = mounted ? recommended.filter(matchesPreferredGender) : recommended;
   const TRENDING_PRODUCTS_SCOPED = mounted ? trending.filter(matchesPreferredGender) : trending;
 
   const handleMoveAllToCart = () => {
-    // Forward `originalPrice` so sale items keep the strike-through UX
-    // downstream; strip suffix from id so `syncCart` / preview see a
-    // clean numeric productId (previous `${id}-auto` id dropped the
-    // line from `getCmsProductId`-based checks).
+    // Forward `originalPrice` so sale items keep the strike-through UX downstream.
     const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^0-9.]/g, '')) || 0;
     items
       .filter((i) => i.inStock)

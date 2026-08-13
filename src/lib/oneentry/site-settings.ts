@@ -1,24 +1,4 @@
-/**
- * Site-wide settings an editor owns: brand identity, commerce terms, social
- * profiles, structured-data facts, the referral programme, the theme palette
- * and the share-image copy.
- *
- * These used to be TypeScript constants in `src/app/data/seoData.ts`, which
- * meant the numbers Google reads (free-delivery threshold, return window,
- * delivery lead time) lived in a deploy while the rules a shopper actually
- * meets at checkout lived in OneEntry — two sources that drift apart silently.
- * They now come from the OE attribute set `site_settings`, with the shipped
- * literals kept as {@link SITE_SETTINGS_FALLBACK} so Storybook, unit tests and
- * a CMS outage still render.
- *
- * The origin (`SITE_URL`) is deliberately **not** here: canonicals and
- * `robots.txt` must not be repointable from a content panel, and both are built
- * before any CMS read. It stays deployment-owned in `seoData.ts`.
- *
- * This module is pure on purpose — it takes an already-loaded dictionary rather
- * than fetching one, so it is safe to import from Client Components. The server
- * helper that pairs it with a fetch is `getSiteSettings()` in `./dictionary`.
- */
+/** Site-wide settings an editor owns: brand identity, commerce terms, social profiles, structured-data facts, the referral programme, the theme palette and the share-image copy. */
 
 import type { Dictionary } from './dictionary';
 
@@ -35,10 +15,7 @@ export interface SiteCurrencySettings {
   symbol: string;
 }
 
-/**
- * Commerce terms advertised to shoppers and crawlers. These describe the
- * offer; the money actually charged still comes from OE's own order preview.
- */
+/** Commerce terms advertised to shoppers and crawlers. */
 export interface SiteCommerceSettings {
   freeShippingThreshold: number;
   standardShippingPrice: number;
@@ -58,11 +35,7 @@ export interface SiteOrgSettings {
   availableLanguage: string;
 }
 
-/**
- * Referral programme configuration. `enabled` is derived: a zero credit means
- * there is nothing to advertise, so the account section renders as a plain
- * share-your-link tool instead of promising a reward nobody pays out.
- */
+/** Referral programme configuration. */
 export interface SiteReferralSettings {
   creditAmount: number;
   minPurchase: number;
@@ -100,7 +73,7 @@ export interface SiteSettings {
   brand: SiteBrandSettings;
   currency: SiteCurrencySettings;
   commerce: SiteCommerceSettings;
-  /** Network → profile URL. Networks the editor blanked out are absent. */
+  /** Network → profile URL. */
   socials: Record<string, string>;
   org: SiteOrgSettings;
   referral: SiteReferralSettings;
@@ -109,11 +82,7 @@ export interface SiteSettings {
   og: SiteOgSettings;
 }
 
-/**
- * The copy that ships in the bundle. Every field is what the storefront
- * rendered before the settings moved into the CMS, so an unreachable OE is
- * visually a no-op.
- */
+/** The copy that ships in the bundle. */
 export const SITE_SETTINGS_FALLBACK: SiteSettings = {
   brand: {
     siteName: 'Kekimoro',
@@ -186,11 +155,7 @@ function str(dict: Dictionary | null | undefined, key: string, fallback: string)
   return trimmed.length > 0 ? trimmed : fallback;
 }
 
-/**
- * Read a number. A field an editor filled with prose ("free!") is not a
- * number, and silently coercing it to `NaN` would print `$NaN` on the offer —
- * so anything unparseable keeps the shipped value.
- */
+/** Read a number. */
 function num(dict: Dictionary | null | undefined, key: string, fallback: number): number {
   const raw = dict?.[P + key];
   if (typeof raw !== 'string') return fallback;
@@ -209,33 +174,19 @@ function list(dict: Dictionary | null | undefined, key: string, fallback: string
   return parts.length > 0 ? parts : fallback;
 }
 
-/**
- * Read a hex colour. Anything that is not `#rgb` / `#rrggbb` is rejected: the
- * value goes straight into a CSS custom property, and a malformed one would
- * silently drop the declaration and leave the element unstyled.
- */
+/** Read a hex colour. */
 function color(dict: Dictionary | null | undefined, key: string, fallback: string): string {
   const raw = str(dict, key, fallback);
   return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : fallback;
 }
 
-/**
- * Turn a loaded dictionary into typed settings.
- *
- * Pure and total: every field falls back independently, so a set that an editor
- * has half-filled yields shipped copy for the rest rather than blanks.
- *
- * @param   dict - Flat `marker → value` map, or `null` when no CMS is reachable.
- * @returns        Fully populated settings.
- */
+/** Turn a loaded dictionary into typed settings. */
 export function parseSiteSettings(dict: Dictionary | null | undefined): SiteSettings {
   const F = SITE_SETTINGS_FALLBACK;
 
   const socials: Record<string, string> = {};
   for (const network of SOCIAL_NETWORKS) {
-    // A blank field is how an editor removes a network, so — unlike every
-    // other field here — an empty value must NOT fall back to the shipped URL.
-    // Absent from the dictionary (no CMS at all) still does.
+    // A blank field is how an editor removes a network, so — unlike every other field here — an empty value must NOT fall back to the shipped URL.
     const raw = dict?.[`${P}social_${network}`];
     const value = typeof raw === 'string' ? raw.trim() : undefined;
     if (value === undefined) {
@@ -303,23 +254,7 @@ export function parseSiteSettings(dict: Dictionary | null | undefined): SiteSett
   };
 }
 
-/**
- * The CSS custom properties the theme palette publishes.
- *
- * Returned as a plain object so the root layout can hand it to `style` on
- * `<html>` — the palette then reaches Tailwind utilities and inline styles
- * alike, with no extra request and no flash of the shipped colours before the
- * CMS ones arrive.
- *
- * Every name is `--brand-` prefixed, and deliberately so: components already
- * publish short local aliases (`--accent`, `--sale`, `--banner-bg`) scoped to
- * their own subtree, and a global with the same name would make those
- * declarations reference themselves — a cyclic `var()` resolves to
- * guaranteed-invalid and drops the colour entirely.
- *
- * @param   theme - Resolved palette.
- * @returns         `--custom-property` → colour map.
- */
+/** The CSS custom properties the theme palette publishes. */
 export function themeCssVariables(theme: SiteThemeSettings): Record<string, string> {
   return {
     '--brand-accent-women': theme.accentWomen,

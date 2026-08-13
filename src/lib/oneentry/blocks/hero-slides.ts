@@ -10,10 +10,7 @@ import type { Lang } from '@/lib/oneentry/system-text';
 export interface HeroSlideFromCms {
   id: number;
   image: string;
-  /**
-   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one.
-   */
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
   imageBlur?: string;
   eyebrow: string;
   headline: string;
@@ -59,9 +56,7 @@ export const loadHeroSlides = withTiming(
   'loadHeroSlides',
   unstable_cache(
     async (lang: Lang = DEFAULT_LOCALE): Promise<HeroSlideFromCms[]> => {
-      // `getSlides` takes no locale argument — the answer comes back in the
-      // language its instance was built with, so the locale has to be selected
-      // by picking the instance. `lang` also keys this `unstable_cache` entry.
+      // `getSlides` takes no locale argument.
       const api = getApiForLang(lang);
       if (!api) return [];
       try {

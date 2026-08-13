@@ -8,25 +8,13 @@ import { submitServiceRequestAction } from '@/lib/oneentry/catalog/service-reque
 import { useFieldPlaceholder, useFormLabel, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Offline mirror of the OE `category` option list, in the panel's authored
- * order. Only used until the form content arrives — the values must stay equal
- * to OE's `listTitles` values, because they are posted verbatim as the `list`
- * attribute value.
- */
+/** Offline mirror of the OE `category` option list, in the panel's authored order. */
 const CATEGORY_FALLBACK = (Object.keys(L_FALLBACK.categoryLabels) as ServiceCategory[]).map((value) => ({
   value,
   title: L_FALLBACK.categoryLabels[value],
 }));
 
-/**
- * Empty form state. The category defaults to the first option OE offers rather
- * than to a literal, so the select never starts on a value the form does not
- * accept.
- *
- * @param   defaultCategory - Value of the first available option.
- * @returns                   A pristine form state.
- */
+/** Empty form state. */
 const blankForm = (defaultCategory: string) => ({
   item: '',
   category: defaultCategory,
@@ -39,11 +27,7 @@ const labelClass = 'text-[10px] tracking-widest uppercase text-gray-400 font-bol
 
 export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
   const L = useDict('service_maintenance_', L_FALLBACK);
-  // Options come from the form entity itself, not from the `service_maintenance`
-  // system-text set: OE validates the posted `list` value against these
-  // `listTitles`, so a dictionary key with no matching option (or an option the
-  // dictionary never grew a key for) is a submit failure / an unreachable
-  // service, not a missing translation.
+  // Options come from the form itself, not the dictionary: OE validates the posted `list` value against these `listTitles`.
   const CATEGORIES = useFormOptions('service_request', 'category', CATEGORY_FALLBACK);
   const defaultCategory = CATEGORIES[0]?.value ?? CATEGORY_FALLBACK[0].value;
   const [form, setForm] = useState(() => blankForm(defaultCategory));
@@ -53,9 +37,7 @@ export function ServiceRequestForm({ onCancel }: { onCancel?: () => void }) {
   const [isPending, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Field labels and the submit caption belong to the form entity in OE, not
-  // to the `service_maintenance` system-text set. `SERVICE_LABELS` is the
-  // offline fallback.
+  // Field labels and the submit caption belong to the form entity in OE, not to the `service_maintenance` system-text set.
   const lbItem = useFormLabel('service_request', 'item', L.labelItem);
   const lbServiceType = useFormLabel('service_request', 'category', L.labelServiceType);
   const lbDate = useFormLabel('service_request', 'date', L.labelDate);

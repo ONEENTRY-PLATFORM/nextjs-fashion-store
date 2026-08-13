@@ -4,9 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Offline page UI copy (app/offline/page.tsx).
- */
+/** Offline page UI copy (app/offline/page.tsx). */
 export const OFFLINE_PAGE_LABELS = {
   brand: 'KEKIMORO',
   heading: 'No Internet Connection',

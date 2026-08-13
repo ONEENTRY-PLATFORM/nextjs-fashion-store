@@ -47,24 +47,7 @@ export const HEADER_ARIA = {
   mainNavigation: 'Main navigation',
 } as const;
 
-/**
- * Reads `?gender=` and hands it to the header, rendering nothing itself.
- *
- * It exists purely to keep `useSearchParams()` out of `<Header>`: the hook
- * opts its caller out of static prerendering, and Next resolves that by
- * bailing the *nearest Suspense boundary* to client-side rendering. `<Header>`
- * is mounted bare at the top of every screen, so the nearest boundary was the
- * route's own `loading.tsx` — which meant the entire page shipped as skeleton
- * HTML and only became real markup after hydration (no `<img>` in the
- * document, so the preload scanner never saw the LCP image).
- *
- * Suspended here instead, the bailout is contained to a component whose
- * fallback is `null`, and everything around it prerenders as before.
- *
- * @param props - Component props.
- * @param props.onChange - Receives the gender in the query, or `null`.
- * @returns Nothing.
- */
+/** Reads `?gender=` and hands it to the header, rendering nothing itself. */
 function GenderQuerySync({ onChange }: { onChange: (gender: Gender | null) => void }) {
   const searchParams = useSearchParams();
   const queryGender = searchParams?.get('gender');
@@ -98,13 +81,10 @@ export function Header() {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
   const pathname = usePathname();
-  // Filled in by `<GenderQuerySync>` below — see the note on that component for
-  // why the query is not read here directly.
+  // Filled in by `<GenderQuerySync>` below — see the note on that component for why the query is not read here directly.
   const [queryGender, setQueryGender] = useState<Gender | null>(null);
 
   // On category pages the gender is in the path (`/women/...`, `/men/...`).
-  // On flat pages (`/new`, `/sale`) it comes from the `?gender=` query so the
-  // shopper's context sticks across those unrouted screens.
   const urlGender: Gender = (() => {
     if (pathname.startsWith('/men')) return 'men';
     if (pathname.startsWith('/women')) return 'women';
@@ -126,11 +106,7 @@ export function Header() {
     };
   }, []);
 
-  // Navigating to a gendered route resets both switches. React's sanctioned
-  // "adjust state when a prop changes" pattern — a `setState` during render
-  // is re-run immediately without committing the stale tree, whereas doing it
-  // in an effect paints the old gender for one frame first (and is the
-  // cascading-render pattern the lint rule rejects).
+  // Navigating to a gendered route resets both switches.
   const [prevUrlGender, setPrevUrlGender] = useState<Gender>('women');
   if (urlGender !== prevUrlGender) {
     setPrevUrlGender(urlGender);
@@ -138,11 +114,7 @@ export function Header() {
     setMobileGender(urlGender);
   }
 
-  // Any completed navigation takes every open menu down with it. The mega
-  // dropdown only ever closed on `mouseleave`, so a click that routed while
-  // the pointer sat on the tab left the panel covering the page underneath;
-  // the mobile drawer had the same gap on routes reached without a tap on one
-  // of its own links. Same render-time adjustment as the gender reset above.
+  // Any completed navigation takes every open menu down with it.
   const [prevPathname, setPrevPathname] = useState(pathname);
   if (pathname !== prevPathname) {
     setPrevPathname(pathname);
@@ -180,8 +152,7 @@ export function Header() {
     hideTimer.current = setTimeout(() => setActiveDropdown(null), 150);
   }, []);
 
-  // Mega menu is sourced exclusively from the OE `header` menu — no static
-  // fallback. When OE returns nothing the dropdown simply doesn't render.
+  // Mega menu is sourced exclusively from the OE `header` menu — no static fallback.
   const cmsHeaderMenu = useHeaderMenu();
   const mega = adaptHeaderMenuToMega(cmsHeaderMenu);
   const currentDropdownData = activeDropdown && mega ? mega[activeGender][activeDropdown] : null;
@@ -204,9 +175,7 @@ export function Header() {
       default:
         return '#';
     }
-    // Menu items carry the OE `pageUrl` of the underlying category — the
-    // catalog page then filters `p.categories[]` down to that exact leaf,
-    // so clicking "Dresses & Skirts" actually shows dresses & skirts.
+    // Menu items carry the OE `pageUrl` of the underlying category.
     if (item) return `${base}?category=${encodeURIComponent(item)}`;
     return base;
   }, []);
@@ -260,9 +229,7 @@ export function Header() {
                       data-testid={`gender-tab-${g}`}
                       onClick={() => {
                         setActiveGender(g);
-                        // Stay on /new or /sale when the shopper swaps
-                        // gender — just re-scope the current page instead of
-                        // yanking them into `/women/clothing`.
+                        // Stay on /new or /sale when the shopper swaps gender — just re-scope the current page instead of yanking them into `/women/clothing`.
                         if (pathname === '/new' || pathname === '/sale') {
                           router.push(`${pathname}?gender=${g}`);
                         } else {
@@ -328,8 +295,7 @@ export function Header() {
                   <ShoppingBag size={20} />
                   {mounted && totalItems > 0 && (
                     <span
-                      // No class here contains "badge", so the specs'
-                      // `[class*="badge"]` locator never matched the counter.
+                      // No class here contains "badge", so the specs' `[class*="badge"]` locator never matched the counter.
                       data-testid="header-cart-count"
                       className="absolute -top-1 -right-1 flex size-4 items-center justify-center bg-accent text-[10px] text-white"
                     >

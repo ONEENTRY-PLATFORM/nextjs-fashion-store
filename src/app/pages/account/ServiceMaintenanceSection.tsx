@@ -25,19 +25,14 @@ const SERVICE_FILTER_KEYS: ServiceStatus[] = ['open', 'in-progress', 'ready', 'c
 
 export function ServiceMaintenanceSection() {
   const L = useDict('service_maintenance_', SERVICE_LABELS);
-  // Category names come from the same place the submit form reads its options —
-  // the OE form's `listTitles` — so a service the panel renames or adds shows
-  // its authored title here too, instead of needing a parallel dictionary key.
-  // The dictionary stays as the fallback layer for stored records whose option
-  // has since been retired from the form.
+  // Category names come from the same place the submit form reads its options so a service the panel renames or adds shows its authored title here too, instead of needing a parallel dictionary key.
   const CATEGORY_OPTIONS = useFormOptions('service_request', 'category', CATEGORY_FALLBACK);
   const CATEGORIES = useDict('service_maintenance_category_', SERVICE_LABELS.categoryLabels);
   const categoryTitle = useMemo(() => {
     const byValue = new Map(CATEGORY_OPTIONS.map((o) => [o.value, o.title]));
     return (value: ServiceCategory): string => byValue.get(value) ?? CATEGORIES[value] ?? value;
   }, [CATEGORY_OPTIONS, CATEGORIES]);
-  // `null` means "still loading" — one piece of state instead of a pair kept
-  // in sync from inside the effect (a synchronous `setState` in `useEffect`).
+  // `null` means "still loading" — one piece of state instead of a pair kept in sync from inside the effect (a synchronous `setState` in `useEffect`).
   const [services, setServices] = useState<ServiceRequest[] | null>(null);
   const loading = services === null;
   const serviceList = services ?? [];

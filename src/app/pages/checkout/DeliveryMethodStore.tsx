@@ -3,7 +3,10 @@ import { CheckCircle, ChevronDown, Clock, MapPin, Store } from 'lucide-react';
 
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { PICKUP_PERKS, type PickupStore } from '@/app/data/checkoutConfig';
-import { DELIVERY_METHOD_SHARED_LABELS as SH,DELIVERY_METHOD_STORE_LABELS as L_FALLBACK  } from '@/app/pages/checkout/copy';
+import {
+  DELIVERY_METHOD_SHARED_LABELS as SH,
+  DELIVERY_METHOD_STORE_LABELS as L_FALLBACK,
+} from '@/app/pages/checkout/copy';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
@@ -78,10 +81,7 @@ export function DeliveryMethodStore({
                 <button
                   key={s.id}
                   data-testid="store-option"
-                  // The OE page id the order's `entity` field will carry. Exposed
-                  // so a test can assert the picker offers exactly the stores an
-                  // editor ticked on the order form — the ids are the contract,
-                  // the names are CMS copy.
+                  // The OE page id the order's `entity` field will carry.
                   data-store-id={s.oeId ?? ''}
                   onClick={() => {
                     setSelectedStore(s);

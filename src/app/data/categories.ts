@@ -22,15 +22,9 @@ export interface ShopCategory {
   label: string;
   href: string;
   image: string;
-  /**
-   * Blur data URI for `next/image`'s `blurDataURL`. Present only for CMS
-   *  pictures uploaded through an OE preview template — the hard-coded
-   *  fallback categories below have none.
-   */
+  /** Blur data URI for `next/image`'s `blurDataURL`. Present only for CMS pictures uploaded through an OE preview template. */
   imageBlur?: string;
   chip: string; // which filter chip this belongs to
 }
 
-// The image table and the `?key=value` helper that built them went with
-// `SHOP_CATEGORIES` / `CATEGORY_FILTER_CHIPS`: the home category tiles come from
-// OneEntry now, so nothing here needs a hard-coded Unsplash URL any more.
+// The image table and the `?key=value` helper that built them went with `SHOP_CATEGORIES` / `CATEGORY_FILTER_CHIPS`: the home category tiles come from OneEntry now, so nothing here needs a hard-coded Unsplash URL any more.

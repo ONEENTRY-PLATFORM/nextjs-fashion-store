@@ -10,20 +10,9 @@ import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 /** Marker prefix of the OE set backing {@link LLMS_TXT_COPY}. */
 export const LLMS_TXT_PREFIX = 'llms_txt_';
 
-/**
- * `llms.txt` route copy — the description AI crawlers read.
- *
- * These are the **offline fallbacks**; the live copy comes from the OE
- * `llms_txt` set, where each key is `llms_txt_<snake_case_key>`.
- *
- * Entries that used to be template functions are plain strings with `%token%`
- * placeholders — a CMS value cannot be a template literal. Fill them with
- * {@link fillTokens}; each key documents the tokens it expects.
- *
- * @see ../utils/fillTokens
- */
+/** `llms.txt` route copy — the description AI crawlers read. */
 export const LLMS_TXT_COPY = {
-  /** Brand positioning paragraph. Tokens: `%site%`, `%currency%`, `%threshold%`, `%returnDays%`. */
+  /** Brand positioning paragraph. */
   brandIntro:
     '%site% is a premium UK fashion e-commerce brand selling clothing, shoes, bags and accessories for men and women. ' +
     'All prices are in %currency%. Free UK delivery on orders over $%threshold%. %returnDays%-day free returns.',
@@ -65,20 +54,14 @@ export const LLMS_TXT_COPY = {
 export const dynamic = 'force-static';
 
 export async function GET() {
-  // Pull the aggregated OE catalog for an accurate SKU count — variants are
-  // collapsed so a "product family" counts once, matching what the shopper sees.
+  // Pull the aggregated OE catalog for an accurate SKU count — variants are collapsed so a "product family" counts once, matching what the shopper sees.
   const oeCatalog = await loadProducts({ unique: true, limit: 5000 });
-  // Route Handlers have no `[locale]` segment, so the locale is passed
-  // explicitly; `LLMS_TXT_COPY` stays the fallback for anything unset in OE.
+  // Route Handlers have no `[locale]` segment, so the locale is passed explicitly; `LLMS_TXT_COPY` stays the fallback for anything unset in OE.
   const L = mergeDict(await getDictionary(DEFAULT_LOCALE), LLMS_TXT_PREFIX, LLMS_TXT_COPY);
-  // Brand name, delivery terms and social profiles are editor-owned. The
-  // numbers quoted here must be the same ones the product pages put in their
-  // structured data, which is exactly why they now share one source.
+  // Brand name, delivery terms and social profiles are editor-owned.
   const { brand, commerce, currency, socials } = await getSiteSettings(DEFAULT_LOCALE);
   const productCount = oeCatalog.total;
-  // Route Handlers sit outside `app/[locale]` and cannot read root params, so
-  // the locale is passed explicitly. `/llms.txt` is a single canonical document
-  // describing the storefront, so the default locale is the right one.
+  // Route Handlers sit outside `app/[locale]` and cannot read root params, so the locale is passed explicitly.
   const stores = await loadStores(DEFAULT_LOCALE);
   const storeCities = [...new Set(stores.map((s) => s.city))].join(', ');
 

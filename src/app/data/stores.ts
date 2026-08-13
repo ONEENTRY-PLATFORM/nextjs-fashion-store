@@ -2,13 +2,7 @@ import { SITE_SETTINGS_FALLBACK } from '@/lib/oneentry/site-settings';
 
 export interface Store {
   id: string;
-  /**
-   * OneEntry numeric page id. Used as the `entity` value when placing a
-   *  Store Pickup order — OE stores are represented as child pages under
-   *  `stores`, and the checkout form field expects the numeric id, not the
-   *  pageUrl slug. Only populated for stores that came from OE (mock fallback
-   *  entries leave it undefined).
-   */
+  /** OneEntry numeric page id. */
   oeId?: number;
   name: string;
   city: string;
@@ -20,35 +14,23 @@ export interface Store {
   hours: { day: string; time: string }[];
   services: string[];
   image: string;
-  /**
-   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one; the mock stores below have none.
-   */
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
   imageBlur?: string;
   mapUrl: string;
   isflagship: boolean;
   tag?: string;
 }
 
-/**
- * Shared schema.org defaults used when building LocalBusiness JSON-LD.
- *  These are payment/currency/country defaults — not per-store data, so they
- *  stay local rather than coming from OE.
- */
+/** Shared schema.org defaults used when building LocalBusiness JSON-LD. */
 export const STORE_SCHEMA_DEFAULTS = {
-  // Shipped default only — a page rendering this schema for real should
-  // overlay the editor's currency from `getSiteSettings()`.
+  // Shipped default only — a page rendering this schema for real should overlay the editor's currency from `getSiteSettings()`.
   currenciesAccepted: SITE_SETTINGS_FALLBACK.currency.code,
   paymentAccepted: 'Cash, Credit Card, Debit Card',
   priceRange: '$$',
   addressCountry: 'GB',
 } as const;
 
-/**
- * Mock store dataset — used as fallback by `loadStores()` while OE store
- *  pages are being filled in. Restored temporarily; once every OE store page
- *  has full attributes the fallback can be dropped again.
- */
+/** Mock store dataset — used as fallback by `loadStores()` while OE store pages are being filled in. */
 export const STORES: Store[] = [
   {
     id: 'oxford-street',

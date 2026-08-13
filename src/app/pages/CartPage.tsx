@@ -116,34 +116,23 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const lItemCount = useT('checkout_delivery_item_count', L.itemPlural);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // Promo section opens by default if a coupon is already applied on mount
-  // (user navigated back from checkout with an applied code).
+  // Promo section opens by default if a coupon is already applied on mount (user navigated back from checkout with an applied code).
   const [promoChecked, setPromoChecked] = useState(false);
   const [promoInput, setPromoInput] = useState('');
   const [promoBusy, setPromoBusy] = useState(false);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const mounted = useMounted();
-  // Per-item real sizes loaded from OE. Keyed by cart item id. The fetcher
-  // only queries ids that haven't been resolved yet, so navigating within the
-  // cart won't re-fetch every time.
+  // Per-item real sizes loaded from OE.
   const [sizesById, setSizesById] = useState<Record<string, string[]>>({});
   // Seed the promo input from the coupon already applied to the cart, once.
-  // Done during render so the field is filled on the first paint instead of
-  // flashing empty (and so it is not a synchronous `setState` in an effect).
   if (couponCode && !promoChecked) {
     setPromoChecked(true);
     setPromoInput(couponCode);
   }
 
-  // Load real product sizes from OE for each cart item so the Size dropdown
-  // renders the actual variants (e.g. a jewelry item shows just "One",
-  // not the hardcoded XS/S/M/L/XL/XXL). We fetch by the CMS product id
-  // (mapping ui.id → cmsId) and store the result under the cart item id
-  // that the row will look up.
+  // Load real product sizes from OE for each cart item so the Size dropdown renders the actual variants.
   useEffect(() => {
-    // Items whose id doesn't map to an OE product are filtered out up front
-    // rather than parked in `sizesById` as empty markers — that write was a
-    // synchronous `setState` inside the effect purely to stop it re-running.
+    // Items whose id doesn't map to an OE product are filtered out up front rather than parked in `sizesById` as empty markers.
     const idPairs = items.flatMap((it) => {
       if (it.id in sizesById) return [];
       const cmsId = getCmsProductId(it.id);
@@ -154,8 +143,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     let cancelled = false;
     void getProductsByIdsAction(cmsIds).then((products) => {
       if (cancelled) return;
-      // Adapter returns products keyed by ui.id (playgroundId ?? String(cmsId)),
-      // which is the same value we stored as pair.localId, so match on that.
+      // Adapter returns products keyed by ui.id (playgroundId ?? String(cmsId)), which is the same value we stored as pair.localId, so match on that.
       const byLocalId = new Map(products.map((p) => [p.id, p.sizes ?? []]));
       setSizesById((prev) => {
         const next = { ...prev };
@@ -234,11 +222,7 @@ export function CartPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
     setPromoInput('');
   };
 
-  // Client sale price is baked into `item.price` (catalog / PDP overlay),
-  // so the client `total` already reflects the sale. Prefer OE's
-  // `totalDue` when OE actually knocked something extra off — a loyalty
-  // tier discount, a valid coupon, OR the shopper burned some bonus
-  // points. Any of those three land honestly on the visible total.
+  // Client sale price is baked into `item.price` (catalog / PDP overlay), so the client `total` already reflects the sale.
   const bonusBurned = (preview?.bonusApplied ?? 0) > 0;
   const finalTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : total;
 

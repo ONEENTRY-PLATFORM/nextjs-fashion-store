@@ -12,11 +12,7 @@ import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 export const RESERVE_MODAL_LABELS = {
   title: 'Reserve in Store',
   closeLabel: 'Close',
-  // Store list comes from OneEntry (`loadStores`) via the PDP route — see
-  // `ReserveInStoreModal`. Per-branch stock badges were removed with it: OE
-  // has no branch-level inventory, so the old "In stock / Low stock" labels
-  // were promising availability the business could not honour.
-  // Top blurb under header
+  // Store list comes from OneEntry (`loadStores`) via the PDP route.
   blurbPrefix: 'Reserve your item at a nearby store — free of charge. Your reservation is held for',
   blurbHoldDuration: '48 hours',
   blurbSuffix: '. Payment is made in store.',
@@ -55,10 +51,7 @@ export const RESERVE_MODAL_LABELS = {
   errorMustAgree: 'You must agree to continue',
 } as const;
 
-/**
- * Slim store descriptor for the picker — mapped from the OE store pages by
- *  the PDP route so the modal never carries the full `Store` payload.
- */
+/** Slim store descriptor for the picker. */
 export interface ReserveStore {
   /** OE `pageUrl` slug — stable across locales, used as the React key. */
   id: string;
@@ -72,20 +65,13 @@ interface Props {
   onClose: () => void;
   preselectedSize: string | null;
   sizeOptions: SizeOption[];
-  /**
-   * Real stores from OneEntry. Per-store stock is deliberately absent: OE
-   *  exposes no branch-level inventory, and the previous hardcoded
-   *  "In stock / Low stock" badges promised availability nobody could honour.
-   */
+  /** Real stores from OneEntry. */
   stores: ReserveStore[];
 }
 
 export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, stores }: Props) {
   const L = useDict('reserve_in_store_', RESERVE_MODAL_LABELS);
-  // Field labels come from the OE `reserve_in_store` form's own attribute
-  // titles; `RESERVE_MODAL_LABELS` (system-text `reserve_in_store`) stays the
-  // offline fallback. Placeholders have no `additionalFields` on this form, so
-  // they keep coming from the set.
+  // Field labels come from the OE `reserve_in_store` form's own attribute titles.
   const lbFirstName = useFormLabel('reserve_in_store', 'first_name', L.labelFirstName);
   const phFirstName = useFieldPlaceholder('reserve_in_store', 'first_name', L.placeholderFirstName);
   const phLastName = useFieldPlaceholder('reserve_in_store', 'last_name', L.placeholderLastName);
@@ -155,8 +141,7 @@ export function ReserveInStoreModal({ onClose, preselectedSize, sizeOptions, sto
         { marker: 'email', value: email.trim(), type: 'string' },
         { marker: 'pickup_date', value: pickupDate, type: 'string' },
         { marker: 'agreed_terms', value: String(agreed), type: 'string' },
-        // Prefer the numeric OE page id so the admin sees a resolvable store
-        // reference; the slug is the fallback when the id is absent.
+        // Prefer the numeric OE page id so the admin sees a resolvable store reference; the slug is the fallback when the id is absent.
         {
           marker: 'reserve_in_store_form_select_store',
           value: String(store?.oeId ?? selectedStore ?? ''),

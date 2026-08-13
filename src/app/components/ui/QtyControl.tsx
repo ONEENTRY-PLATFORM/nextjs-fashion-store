@@ -15,13 +15,9 @@ interface QtyControlProps {
   value: number;
   onMinus: () => void;
   onPlus: () => void;
-  /** 'sm' = 28px buttons (MiniCart), 'md' = 32px buttons (CartPage). Default: 'md' */
+  /** 'sm' = 28px buttons (MiniCart), 'md' = 32px buttons (CartPage). */
   size?: 'sm' | 'md';
-  /**
-   * Optional inventory ceiling from `CartItem.stockLimit`. When set,
-   *  the `+` button is disabled at `value >= max` so the shopper can't push
-   *  past OE's `stockqty` for that variant. `undefined` = no cap (legacy).
-   */
+  /** Optional inventory ceiling from `CartItem.stockLimit`. When set, the `+` button is disabled at `value >= max` so the shopper can't push past OE's `stockqty` for that variant. */
   max?: number;
 }
 

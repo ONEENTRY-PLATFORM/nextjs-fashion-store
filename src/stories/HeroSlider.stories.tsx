@@ -12,9 +12,5 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/**
- * HeroSlider loads slides via RTK Query (homepageApi).
- * The query uses fakeBaseQuery and returns HERO_SLIDES mock data,
- * so it works out-of-the-box with the Redux store decorator.
- */
+/** HeroSlider loads slides via RTK Query (homepageApi). */
 export const Default: Story = {};

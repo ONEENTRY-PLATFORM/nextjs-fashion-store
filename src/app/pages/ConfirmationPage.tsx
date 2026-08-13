@@ -30,10 +30,7 @@ export const CONFIRMATION_INFO_CARDS: ConfirmationInfoCard[] = [
   },
 ];
 
-/**
- * Post-purchase Confirmation page copy. Includes the three "what happens next"
- * info cards — those are pure content and are exactly what marketing edits.
- */
+/** Post-purchase Confirmation page copy. */
 
 interface ConfirmationInfoCard {
   iconKey: 'mail' | 'package' | 'check';
@@ -71,11 +68,7 @@ function randomOrderId() {
 }
 
 interface ConfirmationPageProps {
-  /**
-   * Order-success line authored in the OE admin panel
-   *  (`checkout_home_delivery.localizeInfos.successMessage`). When present it
-   *  overrides the literal heading; `null` falls back to `L.heading`.
-   */
+  /** Order-success line authored in the OE admin panel (`checkout_home_delivery.localizeInfos.successMessage`). */
   successMessage?: string | null;
 }
 
@@ -85,10 +78,7 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
   const router = useRouter();
   const { items, total, clearCart } = useCart();
   const [orderId, setOrderId] = useState<string | null>(null);
-  // Snapshot of the actually-charged amount stashed by `PaymentPage.
-  // handlePlaceOrder` right before it clears the cart. Without it, `total`
-  // reads 0 (cart empty by the time we get here) and the "Total Paid"
-  // line renders $0 / the loyalty-points hint uses $0 as the base.
+  // Snapshot of the actually-charged amount stashed by PaymentPage.
   const [paidTotal, setPaidTotal] = useState<number | null>(null);
 
   const lHeading = useT('checkout_confirmed_titel', successMessage || L.heading);
@@ -113,23 +103,16 @@ export function ConfirmationPage({ successMessage }: ConfirmationPageProps = {})
   ];
 
   const mounted = useMounted();
-  // The handoff keys are consumed on read, so this effect must run its read
-  // exactly once per mounted component. Under React Strict Mode the effect
-  // fires twice: the first pass took the real order id and deleted it, the
+  // The handoff keys are consumed on read, so this effect must run its read exactly once per mounted component.
   // second found an empty slot and replaced it with a random `OE-XXXXXXXX` —
   // the receipt showed a fake number and `$0` worth of loyalty points.
   const handoffRead = useRef(false);
   useEffect(() => {
-    // Deferred one microtask: reading (and consuming) the sessionStorage
-    // handoff can only happen in the browser, but writing the result
-    // synchronously inside the effect would trigger a cascading render pass.
+    // Deferred one microtask: reading (and consuming) the sessionStorage handoff can only happen in the browser, but writing the result synchronously inside the effect would trigger a cascading render pass.
     queueMicrotask(() => {
       if (handoffRead.current) return;
       handoffRead.current = true;
-      // Prefer the real OE order id stashed by PaymentPage. Random fallback is
-      // only for edge cases (opened /confirmation directly, sessionStorage
-      // cleared by Stripe round-trip on some browsers) so we still render
-      // *something* instead of "null".
+      // Prefer the real OE order id stashed by PaymentPage.
       let realId: string | null = null;
       try {
         realId = sessionStorage.getItem('oe_last_order_id');

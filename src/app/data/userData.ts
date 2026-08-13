@@ -1,15 +1,6 @@
-// User data shape contracts consumed by account UI, cart/wishlist sync, and
-// Redux slices. Real user data flows in from OneEntry via `AuthContext` +
-// server actions in `src/lib/oneentry/auth/actions.ts` — this file no longer
-// carries a `USER_DATASET` fixture. If you need a mock user for a test, build
-// one inline in the test file (the fields below are all straight strings /
-// numbers / arrays; no helper is warranted).
+// User data shape contracts consumed by account UI, cart/wishlist sync, and Redux slices.
 
-/**
- * Loyalty tier label. `Member` is the entry-level bucket assigned to every
- *  signed-in shopper who hasn't yet cleared the LTV bar of any paid tier —
- *  no discount, no bonuses, just the standard account experience.
- */
+/** Loyalty tier label. */
 export type LoyaltyStatus = 'Member' | 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
 export type Gender = 'female' | 'male';
 
@@ -64,13 +55,7 @@ interface BonusTransaction {
   sign: 1 | -1;
 }
 
-/**
- * Order status label. `Delivered`/`Processing`/`Cancelled` are the three
- *  canonical buckets kept as a UI shorthand. OE tenants can define their own
- *  markers (`shipped`, `in_progress`, `paid`, …) — those flow through as raw
- *  strings so we render the real status instead of forcing everything into
- *  "Processing".
- */
+/** Order status label. */
 type OrderStatus = 'Delivered' | 'Processing' | 'Cancelled' | string;
 
 interface UserOrderItem {
@@ -80,10 +65,7 @@ interface UserOrderItem {
   qty: number;
   price: number;
   img: string;
-  /**
-   * OE productId — populated for orders sourced from OneEntry. Enables
-   *  Reorder → cart.
-   */
+  /** OE productId — populated for orders sourced from OneEntry. */
   productId?: number;
 }
 
@@ -100,10 +82,7 @@ export interface UserOrder {
   estimatedDelivery?: string;
   /** OE numeric order id — needed for cancel / update calls. */
   oeId?: number;
-  /**
-   * OE storage marker (`home`, `store_pickup`, `locker`, …). Used to route
-   *  the update call and to derive the cancelled-status marker.
-   */
+  /** OE storage marker (`home`, `store_pickup`, `locker`, …). */
   oeStorage?: string;
 }
 
@@ -135,11 +114,7 @@ export interface HistoryOrder {
   orderNo: string;
   date: string;
   status: HistoryOrderStatus;
-  /**
-   * Optional admin-panel display name from OE `statusLocalizeInfos.title`
-   *  (e.g. "Home Paid", "Home Shipped"). When present, the badge shows this
-   *  verbatim instead of the coarse UI-bucket label.
-   */
+  /** Optional admin-panel display name from OE `statusLocalizeInfos.title` (e.g. "Home Paid", "Home Shipped"). */
   statusTitle?: string;
   total: number;
   itemCount: number;
@@ -208,11 +183,7 @@ export interface UserDataset {
     dataProcessing: boolean;
     crossBorder: boolean;
   };
-  /**
-   * JWT access token, populated after a successful Platform login. `null`
-   * means the shopper is unauthenticated and RTK Query slices should be
-   * skipped.
-   */
+  /** JWT access token, populated after a successful Platform login. */
   authToken?: string | null;
   /** JWT refresh token; reserved for future refresh-on-401 flow. */
   refreshToken?: string | null;

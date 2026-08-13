@@ -17,16 +17,7 @@ type RawItem = {
 };
 type RawChipsFilter = { items?: RawItem[] };
 
-/**
- * One quick-filter chip loaded from OE. Two shapes:
- *  - `type: 'page'`      → chip narrows the catalog to the OE category `url`
- *    (`outerwear`, `boots`, `belts`, …). Applied server-side by setting
- *    `filters.category`.
- *  - `type: 'attribute'` → chip carries an attribute `marker`+`value` pair
- *    (`material_14` / `"Leather"`, `details_4` / `"Closure/Hardware: Zip"`).
- *    Applied server-side by pushing the value into the matching
- *    `CatalogFilters` list field (materials / productDetails / …).
- */
+/** One quick-filter chip loaded from OE. */
 export interface FilterChip {
   label: string;
   type: 'page' | 'attribute';
@@ -40,9 +31,7 @@ export interface FilterChip {
 
 function pickTitle(info: RawLocalize | undefined, lang: string, fallback = ''): string {
   if (!info) return fallback;
-  // Per-locale first, in the language actually asked for; the default locale is
-  // the second try so an untranslated chip keeps its English wording instead of
-  // falling through to its raw `value`.
+  // Per-locale first, in the language actually asked for.
   for (const key of [lang, DEFAULT_LOCALE]) {
     const nested = (info as Record<string, { title?: string } | undefined>)[key];
     if (nested && typeof nested.title === 'string' && nested.title.trim()) {
@@ -54,16 +43,7 @@ function pickTitle(info: RawLocalize | undefined, lang: string, fallback = ''): 
   return fallback;
 }
 
-/**
- * Fetch the OE `filter_chips_<catalog>` filter and adapt to a flat list of
- * chip descriptors ordered by `position`. Marker mirrors `catalogKey` with
- * hyphens swapped for underscores (`men-bags` → `filter_chips_men_bags`).
- * Returns `null` when OE is disabled, unreachable, or the marker isn't found.
- *
- * Chip items in OE come in two flavours:
- *  - `type: 'page'`      — chip narrows the grid to that category `url`.
- *  - `type: 'attribute'` — chip applies the `marker`+`value` attribute filter.
- */
+/** Fetch the OE `filter_chips_<catalog>` filter and adapt to a flat list of chip descriptors ordered by `position`. Marker mirrors `catalogKey` with hyphens swapped for underscores. */
 export const loadFilterChips = cache(
   withTiming('loadFilterChips', async (catalogKey: string, langArg?: string): Promise<FilterChip[] | null> => {
     if (!isOneEntryEnabled) return null;
@@ -98,17 +78,7 @@ export const loadFilterChips = cache(
   }),
 );
 
-/**
- * Given the shopper-clicked chip label and the loaded descriptor list,
- * return a partial `CatalogFilters` patch that applies the chip's filter
- * effect. For `type: 'page'` chips, sets `category`. For `type: 'attribute'`
- * chips, appends the value into the list field matching the attribute
- * marker prefix (e.g. `material_*` → `materials`).
- *
- * Returns `null` when no matching chip descriptor is found — the caller
- * should keep the filters unchanged in that case (the chip label is still
- * echoed back to the UI so the shopper sees the pressed state).
- */
+/** Given the shopper-clicked chip label and the loaded descriptor list, return a partial `CatalogFilters` patch that applies the chip's filter effect. */
 export function chipToFilterPatch(
   chipLabel: string,
   chips: FilterChip[] | null | undefined,
@@ -128,14 +98,7 @@ export function chipToFilterPatch(
   return null;
 }
 
-/**
- * Map an OE attribute marker (e.g. `material_14`, `details_4`) onto the
- * `CatalogFilters` list-field key that `matchesCatalogFilters` reads. Both
- * bag-specific (`material_14` / `details_4`) and clothing-specific
- * (`material_15` / `details_5`) markers collapse onto the same storefront
- * field because the product normalizer stores them under a single canonical
- * name (`p.materials`, `p.productDetails`).
- */
+/** Map an OE attribute marker (e.g. `material_14`, `details_4`) onto the `CatalogFilters` list-field key that `matchesCatalogFilters` reads. */
 function attributeMarkerToFilterField(marker: string): string | null {
   const root = marker.replace(/_\d+$/, '');
   const map: Record<string, string> = {

@@ -19,7 +19,7 @@ import {
   type SaleCategory,
 } from '@/app/data/saleConfig';
 import { useMounted } from '@/app/hooks/useMounted';
-import { SALE_DISCOUNT_LABELS as DL , SALE_PAGE_LABELS , SALE_SORT_LABELS } from '@/app/pages/sale/copy';
+import { SALE_DISCOUNT_LABELS as DL, SALE_PAGE_LABELS, SALE_SORT_LABELS } from '@/app/pages/sale/copy';
 import {
   clearFilters,
   setFilters,
@@ -53,8 +53,7 @@ const CAT_FALLBACK = SALE_CATEGORY_LABELS;
 
 const SALE_KEY = 'sale';
 
-// Stable empty defaults — a fresh `[]` / `{}` per render would invalidate every
-// memo that depends on the derived filter arrays.
+// Stable empty defaults — a fresh `[]` / `{}` per render would invalidate every memo that depends on the derived filter arrays.
 const EMPTY_FILTERS: Record<string, string[]> = {};
 const EMPTY_VALUES: string[] = [];
 
@@ -64,12 +63,7 @@ const priceNum = (s?: string) => {
   const n = Number.parseFloat(s.replace(/[^0-9.]/g, ''));
   return Number.isFinite(n) ? n : 0;
 };
-/**
- * Discount buckets, keyed by a code the admin panel cannot rename.
- *  The rendered label comes from `SALE_DISCOUNT_LABELS` (OE-overlaid), so
- *  matching on it would break the filter the moment an editor rewords a
- *  bucket — hence the key/label split.
- */
+/** Discount buckets, keyed by a code the admin panel cannot rename. */
 const DISCOUNT_BUCKET_KEYS = ['d10_20', 'd20_30', 'd30_40', 'd40_50', 'd50plus'] as const;
 type DiscountBucketKey = (typeof DISCOUNT_BUCKET_KEYS)[number];
 const DISCOUNT_BUCKET_RANGES: Record<DiscountBucketKey, [number, number]> = {
@@ -105,13 +99,10 @@ export function SalePage({
   cmsPage?: SalePageFromCms | null;
 } = {}) {
   const L = useDict('sale_page_', SALE_PAGE_LABELS);
-  // Gender scope comes from `?gender=` (set by the header switch). Reading it
-  // here rather than in the page keeps `/sale` statically renderable — the
-  // consumer sits inside a `<Suspense>` boundary declared by the route.
+  // Gender scope comes from `?gender=` (set by the header switch).
   const searchParams = useSearchParams();
   const gender = genderFilterFromQuery(searchParams.get('gender'));
-  // Countdown target: OE-driven `page_sale_top_banner_timer` first, then the
-  // hardcoded fallback so the banner still runs if the admin hasn't set it.
+  // Countdown target: OE-driven `page_sale_top_banner_timer` first, then the hardcoded fallback so the banner still runs if the admin hasn't set it.
   const countdown = useCountdown(saleEndsAt ?? SALE_END_DATE);
   const saleEndsAtDate = saleEndsAt ?? SALE_END_DATE;
   const lView = useT('sale_page_view', L.viewLabel);
@@ -130,9 +121,7 @@ export function SalePage({
   const currentPage = catalogState?.currentPage ?? 1;
   const viewCols = (catalogState?.viewCols ?? 4) as 3 | 4;
 
-  // Derived filter state
-  // Category ids drive the filter; only the wording is editable, so renaming a
-  // category in the admin panel cannot orphan the products in that bucket.
+  // Derived filter state Category ids drive the filter.
   const CAT = useDict('sale_page_category_', CAT_FALLBACK);
   const DISC = useDict('sale_page_discount_', DL);
   const SORT = useDict('sale_page_sort_', SALE_SORT_LABELS);
@@ -141,8 +130,7 @@ export function SalePage({
     [SORT],
   );
   const activeCategory = (selectedFilters['category']?.[0] ?? 'all') as SaleCategory;
-  // Memoised so the derived arrays keep a stable identity between renders —
-  // they feed the `filtered` / `activeChips` memos below.
+  // Memoised so the derived arrays keep a stable identity between renders — they feed the `filtered` / `activeChips` memos below.
   const selDiscount = useMemo(() => selectedFilters['discount'] ?? EMPTY_VALUES, [selectedFilters]);
   const selSize = useMemo(() => selectedFilters['size'] ?? EMPTY_VALUES, [selectedFilters]);
   const selColor = useMemo(() => selectedFilters['color'] ?? EMPTY_VALUES, [selectedFilters]);
@@ -252,8 +240,7 @@ export function SalePage({
   const colorOptions = useMemo(() => {
     const seen = new Set<string>();
     categoryScoped.forEach((p) => p.colors?.forEach((c) => seen.add(c)));
-    // Keep any pre-configured swatches whose hex actually appears; append
-    // remaining unmapped hexes with the hex string itself as their label.
+    // Keep any pre-configured swatches whose hex actually appears; append remaining unmapped hexes with the hex string itself as their label.
     const mapped = SALE_COLOR_OPTIONS.filter((o) => seen.has(o.color));
     const knownHexes = new Set(SALE_COLOR_OPTIONS.map((o) => o.color));
     const extras = [...seen].filter((h) => !knownHexes.has(h)).map((h) => ({ label: h, color: h }));
@@ -267,10 +254,7 @@ export function SalePage({
     return [...seen].sort((a, b) => a.localeCompare(b));
   }, [categoryScoped]);
 
-  // ColorPillDropdown emits the swatch label (e.g. "Black"); products store
-  // raw hex in `p.colors`. Build a hex→label lookup once so the matcher can
-  // translate before comparing. Falls through to the hex itself when the
-  // color has no friendly label.
+  // ColorPillDropdown emits the swatch label (e.g. "Black").
   const hexToLabel = useMemo(() => {
     const map: Record<string, string> = {};
     for (const opt of colorOptions) map[opt.color] = opt.label;
@@ -364,9 +348,7 @@ export function SalePage({
 
   /* ── Pagination derived from real filtered length ── */
   const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
-  // Clamp `currentPage` if the shopper's saved page is now out of range
-  // (e.g. after applying filters that shrink the list). Prefer the last
-  // valid page over falling through to an empty grid.
+  // Clamp `currentPage` if the shopper's saved page is now out of range (e.g. after applying filters that shrink the list).
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
   useEffect(() => {
     if (safePage !== currentPage) {
@@ -412,10 +394,7 @@ export function SalePage({
                 lift the pill filters into the outer, unclipped flex row. */}
             <div className="scrollbar-hide flex min-w-0 items-center gap-0 overflow-x-auto">
               {SALE_CATEGORIES.filter((cat) => {
-                // Hide the opposite gender's category tabs so the shopper's
-                // filter navigation reflects the URL scope (`?gender=women`
-                // → only Women's tabs, plus gender-neutral Bags / Accessories
-                // and the "All" umbrella). No `gender` = show everything.
+                // Hide the opposite gender's category tabs so the shopper's filter navigation reflects the URL scope.
                 if (!gender) return true;
                 if (gender === 'W' && (cat === 'menClothing' || cat === 'menShoes')) return false;
                 if (gender === 'M' && (cat === 'womenClothing' || cat === 'womenShoes')) return false;

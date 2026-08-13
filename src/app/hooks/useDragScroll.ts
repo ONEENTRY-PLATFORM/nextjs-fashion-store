@@ -9,19 +9,7 @@ export interface DragScrollHandlers {
   onMouseLeave: () => void;
 }
 
-/**
- * Adds desktop "drag to scroll" behaviour to a horizontally scrollable
- * container.
- *
- * The element ref is supplied by the caller rather than returned from here:
- * a hook that hands back a ref inside an object forces every consumer to
- * reach into that object during render, which React flags as accessing a ref
- * during render. Owning the ref locally keeps the consumer's JSX
- * (`ref={scrollerRef}`) the only place it is touched.
- *
- * @param ref - The scrollable element.
- * @returns Handlers to spread onto that element.
- */
+/** Adds desktop "drag to scroll" behaviour to a horizontally scrollable container. */
 export function useDragScroll(ref: RefObject<HTMLDivElement | null>): DragScrollHandlers {
   const dragging = useRef(false);
   const startX = useRef(0);

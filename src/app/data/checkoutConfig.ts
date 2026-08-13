@@ -1,17 +1,8 @@
 /* ── Checkout configuration data ── */
 
-// Coupons were previously mocked here; live coupons now flow through OE
-// `previewOrder` / `Discounts.getDiscountByMarker` (see CartContext.applyCoupon).
+// Coupons were previously mocked here; live coupons now flow through OE `previewOrder` / `Discounts.getDiscountByMarker` (see CartContext.applyCoupon).
 
-/**
- * Shape of a pickup store as consumed by the delivery-step store picker.
- *  `oeId` is the numeric OE page id; populated when the entry originates from
- *  OneEntry so `createOrder` can attach the pickup to the real store record.
- *  The literal fallback entries below leave it undefined — a guest checkout
- *  that lands on those will attempt to send the string `id` to OE and fail,
- *  which is fine because the fallback is a dev-only safety net when OE has
- *  no stores. In practice the loader always returns OE data.
- */
+/** Shape of a pickup store as consumed by the delivery-step store picker. */
 export interface PickupStore {
   id: string;
   oeId?: number;
@@ -41,14 +32,7 @@ export const PICKUP_STORES: PickupStore[] = [
   },
 ];
 
-/**
- * One parcel-locker pick-up point.
- *
- * Lockers are OE pages, the same as pickup stores: the order form references
- * one by its page id through an `entity` field. The list used to be positional
- * — the picker submitted the selected index — which meant reordering the list
- * silently re-pointed every in-flight order at a different locker.
- */
+/** One parcel-locker pick-up point. */
 export interface ParcelLocker {
   /** OE page id; `null` only in the local fallback, which cannot be ordered against. */
   oeId: number | null;
@@ -56,11 +40,7 @@ export interface ParcelLocker {
   name: string;
 }
 
-/**
- * Dev/test fallback, rendered when OE hands down no lockers at all (Storybook,
- * bare unit tests). Carries no page ids, so an order built from it would be
- * rejected — which is the honest outcome: there is no locker behind it.
- */
+/** Dev/test fallback, rendered when OE hands down no lockers at all (Storybook, bare unit tests). */
 export const PARCEL_LOCKERS: ParcelLocker[] = [
   { oeId: null, name: 'Paddington Station — Platform 8 Locker Hub' },
   { oeId: null, name: 'Victoria Coach Station — Main Hall' },

@@ -3,7 +3,7 @@ import { ChevronDown, Heart, X } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-import { PRODUCT_ACTION_LABELS , PRODUCT_REVIEWS_LABELS , QUICK_VIEW_LABELS } from '@/app/components/product/copy';
+import { PRODUCT_ACTION_LABELS, PRODUCT_REVIEWS_LABELS, QUICK_VIEW_LABELS } from '@/app/components/product/copy';
 import { SIZE_DROPDOWN_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_WOMEN, BUY_GREEN, BUY_GREEN_HOVER, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
@@ -50,14 +50,9 @@ export function QuickViewModal() {
     return () => document.removeEventListener('keydown', onKey);
   }, [showSizeGuide]);
 
-  // Reset the picker when the modal opens (or swaps product). Done during
-  // render via React's "adjust state when a prop changes" pattern so the
-  // first painted frame already shows the new product's defaults; an effect
-  // would flash the previous product's selection for one frame and is the
-  // cascading-render pattern the lint rule rejects.
+  // Reset the picker when the modal opens (or swaps product).
   const openKey = isOpen ? `${product?.id ?? ''}:${initialColorIndex ?? ''}` : null;
-  // Starts at `null` ("closed"), so a modal that is already open on the
-  // first render still gets its defaults applied.
+  // Starts at `null` ("closed"), so a modal that is already open on the first render still gets its defaults applied.
   const [prevOpenKey, setPrevOpenKey] = useState<string | null>(null);
   if (openKey !== prevOpenKey) {
     setPrevOpenKey(openKey);
@@ -80,10 +75,7 @@ export function QuickViewModal() {
     };
   }, [isOpen]);
 
-  // Fetch the real review summary (count + avg) when the modal opens for a
-  // new product. Reset first so a stale summary from the previous product
-  // doesn't briefly flash. `product.id` is a string on the UI Product shape;
-  // OE reviews key on the numeric product id.
+  // Fetch the real review summary (count + avg) when the modal opens for a new product.
   useEffect(() => {
     if (!isOpen || !product) return;
     const productId = Number(product.id);
@@ -103,9 +95,7 @@ export function QuickViewModal() {
 
   if (!isOpen || !product) return null;
 
-  // Find the linked variant matching the current color + (optional) size. When
-  // no exact match is available we fall back to a colors-only match so the
-  // shopper always sees the picked colour reflected in image + price.
+  // Find the linked variant matching the current color + (optional) size.
   const activeVariant =
     product.variants?.find((v) => {
       const colorHex = selectedColor !== null ? product.colors[selectedColor] : undefined;
@@ -119,11 +109,7 @@ export function QuickViewModal() {
       : undefined);
 
   const activePrice = activeVariant?.price ?? product.price;
-  // Prefer the variant's own sale — otherwise the strike-through pair
-  // would mix variant.price ("was") with family salePrice ("now") for a
-  // completely different variant. Adapter only forwards
-  // `variant.salePrice` when `variant.salePrice < variant.price`, so
-  // falling through to family salePrice is a display-only trade-off.
+  // Prefer the variant's own sale.
   const activeSalePrice = activeVariant?.salePrice ?? product.salePrice;
   // Prefer the variant's own gallery so the picked colour matches the images.
   const productImages = activeVariant?.images?.length
@@ -132,23 +118,12 @@ export function QuickViewModal() {
       ? product.galleryImages
       : [product.image];
 
-  // Badges are opt-in: only render when the underlying data actually supports
-  // them. `label` comes from OE's Label attribute (adapter forwards it as-is);
-  // `LOW IN STOCK` shows only when we have a numeric stock < 5 for the picked
-  // variant (or the product itself). Tenants that track availability via
-  // `statusIdentifier` leave `stock` undefined and get no low-stock badge —
-  // matching PDP behaviour where we don't invent a threshold from thin air.
+  // Badges are opt-in: only render when the underlying data actually supports them.
   const activeStock = activeVariant?.stock ?? product.stock;
   const showLowStock = typeof activeStock === 'number' && activeStock > 0 && activeStock < 5;
   const showLabelBadge = !!product.label;
 
-  // Resolve the OE availability status for the row above the price. Prefer
-  // the active variant's own status (colour-specific `preorder` etc.) and
-  // fall back to the product-level flag. Mirrors PDP's stock-copy tree:
-  //   out_of_stock → "Out of Stock"  (grey)
-  //   coming_soon  → "Coming soon"   (grey)
-  //   preorder     → "Pre-order"     (amber)
-  //   else         → "In Stock"      (green)
+  // Resolve the OE availability status for the row above the price.
   const productIsOOS = product.inStock === false;
   const stockStatus = activeVariant?.statusIdentifier ?? product.statusIdentifier;
   const isComingSoon = !productIsOOS && stockStatus === 'coming_soon';
@@ -166,8 +141,7 @@ export function QuickViewModal() {
   const wishlisted = isWishlisted(product.id);
 
   const handleWishlist = () => {
-    // Per-colour thumbnail: prefer the variant image, then the parallel
-    // colorImages array, then the parent image.
+    // Per-colour thumbnail: prefer the variant image, then the parallel colorImages array, then the parent image.
     const colorImages = product.colors.map(
       (c, i) => product.variants?.find((v) => v.colors.includes(c))?.image || product.colorImages?.[i] || product.image,
     );
@@ -191,8 +165,7 @@ export function QuickViewModal() {
 
   const handleViewFullDetails = () => {
     closeQuickView();
-    // Preserve both colour and size on the PDP URL so the shopper lands
-    // exactly on the variant they were previewing here.
+    // Preserve both colour and size on the PDP URL so the shopper lands exactly on the variant they were previewing here.
     const params = new URLSearchParams();
     const hex = selectedColor !== null ? product.colors[selectedColor] : undefined;
     if (hex) params.set('color', hex);
@@ -207,20 +180,13 @@ export function QuickViewModal() {
 
   const sizes = product.sizes || [...SIZE_DROPDOWN_LABELS.clothingSizes];
 
-  // "N reviews" — jump to the existing reviews block on the PDP. No auth
-  // needed to read reviews, so we always navigate.
+  // "N reviews" — jump to the existing reviews block on the PDP.
   const goToReviews = () => {
     closeQuickView();
     router.push(`/product/${product.id}#reviews`);
   };
 
-  // "Be the first to review" — writing is gated twice:
-  //   1. Session required — unauthed shoppers get the login modal (which
-  //      also offers register).
-  //   2. Delivered order for THIS product — reviews should only come from
-  //      real customers, so signed-in shoppers who never received the item
-  //      see an inline notice under the rating row instead of the write
-  //      modal.
+  // "Be the first to review" — writing is gated twice: 1.
   const startWriteReview = () => {
     if (!isLoggedIn) {
       closeQuickView();
@@ -236,8 +202,7 @@ export function QuickViewModal() {
     setShowWriteReview(true);
   };
 
-  // Rebuilt from the flat `sectionNTitle` / `sectionNContent` keys so every
-  // string routes through the dictionary.
+  // Rebuilt from the flat `sectionNTitle` / `sectionNContent` keys so every string routes through the dictionary.
   const sections = [1, 2, 3, 4].map((n) => ({
     title: L[`section${n}Title` as keyof typeof L] as string,
     content: L[`section${n}Content` as keyof typeof L] as string,
@@ -464,10 +429,7 @@ export function QuickViewModal() {
                       }`}
                       style={{ backgroundColor: color }}
                       aria-label={`${L.colorAriaPrefix} ${idx + 1}${isColorOOS ? ` ${L.colorOutOfStockAria}` : ''}`}
-                      // Specs used to select these through `aria-label*="Color"`,
-                      // which works only while `colorAriaPrefix` stays the
-                      // English "Color" — an OE label override would silently
-                      // empty the locator instead of failing.
+                      // Specs used to select these through `aria-label*="Color"`, which works only while `colorAriaPrefix` stays the English "Color".
                       data-testid="color-swatch"
                     >
                       {isColorOOS && (
@@ -507,9 +469,7 @@ export function QuickViewModal() {
                       (currentColorHex ? v.colors.includes(currentColorHex) : true) &&
                       v.inStock !== false,
                   );
-                  // When the product ships variant metadata, drive per-size
-                  // availability off it. Otherwise fall back to the global
-                  // stock flag so legacy products still render sensibly.
+                  // When the product ships variant metadata, drive per-size availability off it.
                   const isSizeOOS =
                     product.variants && product.variants.length > 0 ? !variantForSize : product.inStock === false;
                   return (
@@ -553,17 +513,12 @@ export function QuickViewModal() {
                   onClick={() => {
                     const hasColors = product.colors && product.colors.length > 0;
                     const colorErr = Boolean(hasColors) && selectedColor === null;
-                    // Compared inline (not via a `sizeErr` const) so TS narrows
-                    // `selectedSize` to a string for the `addItem` payload.
+                    // Compared inline (not via a `sizeErr` const) so TS narrows `selectedSize` to a string for the `addItem` payload.
                     if (colorErr || selectedSize === null) {
                       setErrors({ color: colorErr, size: selectedSize === null });
                       return;
                     }
-                    // Use the variant-aware sale price so the cart stores
-                    // the same number the price block above shows.
-                    // `originalPrice` is only set when there's a
-                    // strike-through UX pair — variant's own strike takes
-                    // precedence over the family strike.
+                    // Use the variant-aware sale price so the cart stores the same number the price block above shows.
                     const cartPrice = parseFloat((activeSalePrice ?? activePrice).match(/[\d.]+/)?.[0] ?? '0') || 0;
                     const originalPriceSource = activeVariant?.salePrice ? activeVariant.price : product.price;
                     const originalPriceRaw = activeSalePrice
@@ -584,10 +539,7 @@ export function QuickViewModal() {
                       ...(stockLimit !== undefined && { stockLimit }),
                     });
                     closeQuickView();
-                    // Used to jump straight to /checkout/delivery, but with
-                    // guest checkout disabled that path is blocked by a
-                    // sign-in modal. Instead just show the mini cart so the
-                    // shopper can keep browsing or proceed when ready.
+                    // Used to jump straight to /checkout/delivery, but with guest checkout disabled that path is blocked by a sign-in modal.
                     openMiniCart();
                   }}
                   className={`flex-1 py-4 text-sm font-medium tracking-wider text-white uppercase transition-colors ${

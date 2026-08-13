@@ -26,24 +26,7 @@ import { sectionChromeFromBlock } from '@/lib/oneentry/blocks/section-chrome';
 import { GenericCommonBlock } from './GenericCommonBlock';
 import { GenericSliderBlock } from './GenericSliderBlock';
 
-/**
- * Renders `<RecentlyViewedSection>` seeded from the Redux `recentlyViewed`
- *  trail (same source of truth as HomePage / PDP / Favorites). Deduped by
- *  product name/id so different variants of the same item (Pink XL / White M)
- *  don't each surface as a separate tile. Hidden entirely when the trail is
- *  empty — a brand-new visitor hasn't viewed anything yet.
- */
-/**
- * Client-side loader for `cart_complement_block` products. OE's
- *  `Blocks.getCartComplement` resolves cross-sell against the caller's real
- *  session (user access token or guest `x-guest-id`) — impossible from the
- *  shared server singleton, which carries only the app token. So we call
- *  it on mount via a server action that reads the access cookie and
- *  forwards the client's `oe_guest_id` (from localStorage). Empty result →
- *  hides the block entirely.
- *
- * @returns <NewArrivals></NewArrivals>
- */
+/** Renders `<RecentlyViewedSection>` seeded from the Redux `recentlyViewed` trail. Client-side loader for `cart_complement_block` products. */
 function CartComplementBlockSlot({ marker, title }: { marker: string; title: string }) {
   const [products, setProducts] = useState<Product[] | null>(null);
   const { isLoggedIn } = useAuth();
@@ -84,12 +67,7 @@ function RecentlyViewedBlockSlot() {
   return <RecentlyViewedSection products={unique} accentColor={ACCENT_WOMEN} />;
 }
 
-/**
- * Fade-and-lift-in section — matches HomePage's original animation so
- *  blocks look identical regardless of where they're rendered.
- *
- * @returns <div className={className}>{children}</div>
- */
+/** Fade-and-lift-in section. */
 function AnimatedSection({
   children,
   className = '',
@@ -139,20 +117,7 @@ function AnimatedSection({
   );
 }
 
-/**
- * Render a list of OE-attached blocks in admin-defined order (already sorted
- * by `position` upstream in `loadPageBlocksByUrl` / `loadPageBlocksById` /
- * `loadProductBlocks`). Maps each block's `marker` to a storefront component;
- * unknown markers with resolved products render through `NewArrivals` (safe
- * generic layout), unknown markers with no products render nothing.
- *
- * `initialHeroSlides` / `initialPromoItems` / `initialDiscountBanner` /
- * `initialCategorySection` are the homepage's dedicated pre-fetched payloads.
- * When rendering on non-homepage routes, leave them undefined — the child
- * components will fetch client-side on mount.
- *
- * @returns <div>{rendered blocks}</div>
- */
+/** Render a list of OE-attached blocks in admin-defined order. */
 export function PageBlocksRenderer({
   blocks,
   initialHeroSlides,
@@ -171,7 +136,6 @@ export function PageBlocksRenderer({
       {blocks.map((block, idx) => {
         const key = `${block.marker}-${idx}`;
         // Hero, when placed as the first block, sits flush against the top.
-        // Every other block gets the standard vertical rhythm.
         const wrapperCls = block.marker === 'hero_slider' ? '' : 'mt-8 md:mt-12 lg:mt-16';
         switch (block.marker) {
           case 'hero_slider':
@@ -223,15 +187,7 @@ export function PageBlocksRenderer({
               </AnimatedSection>
             );
           default:
-            // OE block type `recently_viewed_block` (admin marker is
-            // usually `recently_viewed`, but we route by `type` so custom
-            // markers still work). Data comes from Redux (client-side
-            // trail), so we hide the section entirely when the visitor
-            // hasn't viewed anything yet. Not wrapped in AnimatedSection
-            // because these blocks often sit below the initial viewport
-            // (e.g. bottom of checkout pages) — the observer wouldn't
-            // fire until the user scrolled to it, leaving an empty gap
-            // in the layout for the first ~1500px of scroll.
+            // OE block type `recently_viewed_block` (admin marker is usually `recently_viewed`, but we route by `type` so custom markers still work).
             if (block.type === 'recently_viewed_block') {
               return (
                 <div key={key} className={wrapperCls}>
@@ -239,10 +195,7 @@ export function PageBlocksRenderer({
                 </div>
               );
             }
-            // `cart_complement_block` needs the caller's OE context
-            // (access token or guest id) to resolve — `<CartComplementBlockSlot>`
-            // does that client-side. Hides itself when the response
-            // is empty, so no header noise on the storefront.
+            // `cart_complement_block` needs the caller's OE context (access token or guest id) to resolve — `<CartComplementBlockSlot>` does that client-side.
             if (block.type === 'cart_complement_block') {
               return (
                 <div key={key} className={wrapperCls}>
@@ -250,11 +203,7 @@ export function PageBlocksRenderer({
                 </div>
               );
             }
-            // Generic banner for OE `common_block` type — reads
-            // `attributeValues` heuristically (image / eyebrow / title /
-            // subtitle / description / CTA). Lets admins attach any new
-            // `common_block` marker to any page and have it render
-            // without code changes.
+            // Generic banner for OE `common_block` type — reads `attributeValues` heuristically (image / eyebrow / title / subtitle / description / CTA).
             if (block.type === 'common_block') {
               return (
                 <div key={key} className={wrapperCls}>
@@ -262,11 +211,7 @@ export function PageBlocksRenderer({
                 </div>
               );
             }
-            // Generic carousel for OE `slider_block` type — reads each
-            // slide's `attributeValues` heuristically. Homepage keeps
-            // `hero_slider` marker with its dedicated `<HeroSlider>`
-            // (auto-advance + gender toggle); other slider markers hit
-            // this branch.
+            // Generic carousel for OE `slider_block` type — reads each slide's `attributeValues` heuristically.
             if (block.type === 'slider_block') {
               return (
                 <div key={key} className={wrapperCls}>
@@ -282,9 +227,6 @@ export function PageBlocksRenderer({
               );
             }
             // Block has a title but no products and no dedicated component.
-            // Render the header only so admins still see the block was
-            // accepted by the storefront instead of silently dropped —
-            // matches OE's "block is on the page" mental model.
             if (block.title) {
               return (
                 <section key={key} className={`${wrapperCls} px-4 py-6 lg:px-8`}>

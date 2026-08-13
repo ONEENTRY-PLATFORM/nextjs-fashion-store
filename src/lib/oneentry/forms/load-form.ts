@@ -1,13 +1,4 @@
-/**
- * Fetch and decode an OE form, for an explicitly named locale.
- *
- * Split out of `placeholders.ts` because that module resolves the current
- * locale through `next/root-params`, which is Server-Component-only: importing
- * it from anything a Client Component can reach — a `'use server'` action file,
- * say — fails the whole route with "Invalid import". Callers that already know
- * their locale (Server Actions writing to the canonical slot, cached loaders
- * keyed on `lang`) import this file instead.
- */
+/** Fetch and decode an OE form, for an explicitly named locale. */
 import type { IAttributeValidators, IListTitle } from 'oneentry/dist/attribute-sets/attributeSetsInterfaces';
 import type { IFormAttribute } from 'oneentry/dist/forms/formsInterfaces';
 import { cache } from 'react';
@@ -19,13 +10,7 @@ import type { Lang } from '@/lib/oneentry/system-text';
 import type { FieldLimits, FormContent, FormFieldOption } from './form-content';
 import { EMPTY_FORM_CONTENT, NO_FIELD_LIMITS } from './form-content';
 
-/**
- * Envelope of `Forms.getFormByMarker`, with the form-level localization widened.
- *
- * Only `localizeInfos` diverges from `IFormsEntity`: the SDK types it as a
- * per-locale map, while OE also returns it already flattened against the
- * requested language. Everything below it is the SDK's own {@link IFormAttribute}.
- */
+/** Envelope of `Forms.getFormByMarker`, with the form-level localization widened. */
 type RawLocalize = { title?: unknown } & Record<string, unknown>;
 type RawForm =
   | {
@@ -36,11 +21,7 @@ type RawForm =
   | undefined;
 
 const TTL_MS = 5 * 60 * 1000;
-// LRU cap on the process-wide in-memory cache. Form markers × lang combos are
-// finite in practice (~10–20 forms per tenant), but a buggy caller that
-// synthesises new marker strings (path typos, template loops) could otherwise
-// grow the Map unbounded and slowly leak memory. Insertion-order-based
-// eviction gives LRU-on-write semantics via the delete/set pair below.
+// LRU cap on the process-wide in-memory cache.
 const FORM_CACHE_MAX_ENTRIES = 200;
 const formCache = new Map<string, { at: number; value: FormContent }>();
 const inflight = new Map<string, Promise<FormContent>>();
@@ -56,22 +37,13 @@ function touchFormCache(key: string, entry: { at: number; value: FormContent }) 
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-/**
- * OE writes the string-length bounds as either a number or a numeric string
- * (`"10"`), and uses `0` to mean "no bound" — a literal 0 would otherwise read
- * as "must be empty" and reject every value.
- */
+/** OE writes the string-length bounds as either a number or a numeric string (`"10"`), and uses `0` to mean "no bound". */
 function asBound(v: unknown): number | null {
   const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/**
- * Decode an attribute's `validators` block into the limits the UI enforces.
- *
- * `trimValidator` is read through {@link IAttributeValidators}' index signature —
- * OE ships it, the SDK's named members stop at the four it documents.
- */
+/** Decode an attribute's `validators` block into the limits the UI enforces. */
 function readLimits(validators: IAttributeValidators | undefined): FieldLimits {
   if (!validators || typeof validators !== 'object') return NO_FIELD_LIMITS;
   const si = validators.stringInspectionValidator;
@@ -91,13 +63,7 @@ function refField(value: unknown, key: 'id' | 'depth' | 'parentId'): number | nu
   return typeof n === 'number' ? n : null;
 }
 
-/**
- * Decode one `listTitles` entry.
- *
- * A `list` option's `value` is the string that gets submitted. An `entity`
- * option's is an object pointing at an OE page, in which case the page id
- * doubles as the submitted value.
- */
+/** Decode one `listTitles` entry. */
 function readOption(raw: IListTitle): FormFieldOption & { position: number } {
   const entityId = refField(raw?.value, 'id');
   return {
@@ -111,13 +77,7 @@ function readOption(raw: IListTitle): FormFieldOption & { position: number } {
   };
 }
 
-/**
- * Pick the attribute's placeholder out of its `additionalFields`.
- *
- * Admins name the field per attribute — `placeholder_city`,
- * `placeholder_address_line_1`, or a bare `placeholder` — so the prefix is the
- * only stable part. Ties are broken by marker order to stay deterministic.
- */
+/** Pick the attribute's placeholder out of its `additionalFields`. Admins name the field per attribute so the prefix is the only stable part. */
 function readPlaceholder(fields: Record<string, string>): string {
   const marker = Object.keys(fields)
     .filter((k) => k.toLowerCase().startsWith('placeholder'))
@@ -125,10 +85,7 @@ function readPlaceholder(fields: Record<string, string>): string {
   return marker ? fields[marker] : '';
 }
 
-/**
- * OE returns `localizeInfos` either language-keyed (`{en_US: {title}}`) or
- * already flattened against the requested locale (`{title}`). Accept both.
- */
+/** OE returns `localizeInfos` either language-keyed (`{en_US: {title}}`) or already flattened against the requested locale. */
 function localized(info: RawLocalize | null | undefined, lang: Lang): Record<string, unknown> {
   if (!info || typeof info !== 'object') return {};
   const langKeyed = info[lang];
@@ -142,9 +99,7 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
   try {
     const raw = await api.Forms.getFormByMarker(marker, lang);
     if (isError(raw)) return EMPTY_FORM_CONTENT;
-    // The SDK's `IFormsEntity` narrows `localizeInfos` to a per-locale shape
-    // that doesn't overlap our permissive reader (OE also returns the already
-    // flattened form), so route the cast through `unknown`.
+    // The SDK's `IFormsEntity` narrows `localizeInfos` to a per-locale shape that doesn't overlap our permissive reader (OE also returns the already flattened form), so route the cast through `unknown`.
     const form = raw as unknown as RawForm;
     if (!form) return EMPTY_FORM_CONTENT;
 
@@ -181,8 +136,7 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
         marker: attrMarker,
         type: asString(attr.type),
         position: typeof attr.position === 'number' ? attr.position : 0,
-        // Absent means visible: OE only ever sends `false` to hide a field, and
-        // an older payload without the flag must not blank the whole form.
+        // Absent means visible: OE only ever sends `false` to hide a field, and an older payload without the flag must not blank the whole form.
         isVisible: attr.isVisible !== false,
         title: asString(localized(attr.localizeInfos, lang).title),
         placeholder: readPlaceholder(fields),
@@ -201,17 +155,7 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
   }
 }
 
-/**
- * Load a form's authored content for one locale.
- *
- * Cached per `marker|lang` for 5 minutes; concurrent callers share one inflight
- * request. Never throws — a missing or erroring form resolves to
- * {@link EMPTY_FORM_CONTENT} so screens fall back to their local copy.
- *
- * @param marker - OE form marker.
- * @param lang   - OE locale to read the form in.
- * @returns The decoded form.
- */
+/** Load a form's authored content for one locale. */
 export const loadFormContentForLang = cache(async (marker: string, lang: Lang): Promise<FormContent> => {
   const key = `${marker}|${lang}`;
   const now = Date.now();

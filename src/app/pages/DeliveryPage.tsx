@@ -6,10 +6,7 @@ import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
 import { CheckoutStepper } from '@/app/components/checkout/CheckoutStepper';
 import { useCart } from '@/app/context/CartContext';
 
-// Render Order Summary client-only — its content reads from the Redux cart
-// slice which hydrates from localStorage after mount. SSR rendering it
-// would produce an empty (or stale) snapshot that conflicts with the
-// post-hydration client tree.
+// Render Order Summary client-only — its content reads from the Redux cart slice which hydrates from localStorage after mount.
 const DeliveryOrderSummary = dynamic(
   () => import('./checkout/DeliveryOrderSummary').then((m) => m.DeliveryOrderSummary),
   { ssr: false },
@@ -48,14 +45,7 @@ export const DELIVERY_PAGE_LABELS = {
 
 type DeliveryMethod = 'home' | 'store' | 'locker';
 
-/**
- * Client-only fallback: when the server layer didn't hand a date strip
- *  down (e.g. Storybook / bare unit test render), synthesise the same
- *  "tomorrow, skip Sundays, 7 dates" shape the OE loader would produce
- *  from its own fallback config. Kept in sync with `FALLBACK` in
- *  `delivery-schedule.ts` — do NOT re-derive from OE here, this branch
- *  only fires when there is no server layer at all.
- */
+/** Client-only fallback: when the server layer didn't hand a date strip down (e.g. Storybook / bare unit test render), synthesise the same "tomorrow, skip Sundays, 7 dates" shape the OE loader would produce from its own fallback config. */
 function getDeliveryDates(count = 7): Date[] {
   const dates: Date[] = [];
   const d = new Date();
@@ -69,35 +59,15 @@ function getDeliveryDates(count = 7): Date[] {
 }
 
 interface DeliveryPageProps {
-  /**
-   * Pickup stores loaded from OE by the server layer. When OE has none the
-   *  server passes the hardcoded `PICKUP_STORES` fallback so the picker still
-   *  renders.
-   */
+  /** Pickup stores loaded from OE by the server layer. */
   pickupStores?: PickupStore[];
-  /**
-   * Parcel lockers loaded from OE by the server layer, each carrying the page
-   *  id the order references. Empty (or omitted, e.g. Storybook / bare unit
-   *  tests) keeps the local `PARCEL_LOCKERS` fallback so the picker still
-   *  renders.
-   */
+  /** Parcel lockers loaded from OE by the server layer, each carrying the page id the order references. */
   parcelLockers?: ParcelLocker[];
-  /**
-   * ISO-serialised date strip for the authed variant — built server-side
-   *  from `checkout_home_delivery`'s schedule config. When omitted —
-   *  Storybook / bare unit tests — the component regenerates it from the
-   *  same 7-days/skip-Sun defaults.
-   */
+  /** ISO-serialised date strip for the authed variant. */
   deliveryDatesIsoAuthed?: string[];
-  /**
-   * ISO-serialised date strip for the guest variant — built from
-   *  `checkout_home_delivery_guest`'s schedule config. Same fallback.
-   */
+  /** ISO-serialised date strip for the guest variant — built from `checkout_home_delivery_guest`'s schedule config. */
   deliveryDatesIsoGuest?: string[];
-  /**
-   * Slots from `checkout_home_delivery.delivery_slot`. Fallback:
-   *  `DELIVERY_TIME_SLOTS`.
-   */
+  /** Slots from `checkout_home_delivery.delivery_slot`. Fallback: `DELIVERY_TIME_SLOTS`. */
   deliverySlotsAuthed?: DeliveryTimeSlot[];
   /** Slots from `checkout_home_delivery_guest.delivery_slot_guest`. */
   deliverySlotsGuest?: DeliveryTimeSlot[];
@@ -117,12 +87,10 @@ export function DeliveryPage({
   const DH = useDict('checkout_delivery_', DELIVERY_METHOD_HOME_LABELS);
   const L = useDict('checkout_delivery_page_', DELIVERY_PAGE_LABELS);
   const router = useRouter();
-  // Same source the radio cards render from — it also carries each option's
-  // submitted value, which the order needs at the payment step.
+  // Same source the radio cards render from — it also carries each option's submitted value, which the order needs at the payment step.
   const methodInfo = useDeliveryMethodInfo();
   const { isLoggedIn, openLoginModal, openRegisterModal, user, updateAddresses } = useAuth();
-  // Fall back to the literal list if the server layer didn't hand any down —
-  // keeps Storybook and unit tests that render <DeliveryPage /> bare working.
+  // Fall back to the literal list if the server layer didn't hand any down — keeps Storybook and unit tests that render <DeliveryPage /> bare working.
   const stores: PickupStore[] = pickupStores && pickupStores.length > 0 ? pickupStores : PICKUP_STORES;
   const lockers: ParcelLocker[] = parcelLockers && parcelLockers.length > 0 ? parcelLockers : PARCEL_LOCKERS;
   const {
@@ -147,10 +115,7 @@ export function DeliveryPage({
   const [method, setMethod] = useState<DeliveryMethod>('home');
   const [selectedStore, setSelectedStore] = useState<PickupStore>(stores[0]);
   const [selectedLocker, setSelectedLocker] = useState(lockers[0]);
-  // OE enforces per-field length limits on the form the order lands in, and
-  // rejects the whole order when one is missed — with a message that names the
-  // raw attribute marker. Mirror those limits into the Zod schemas so the
-  // shopper sees the problem under the input, on the step that owns it.
+  // OE enforces per-field length limits on the form the order lands in, and rejects the whole order when one is missed.
   const guestHomeForm = useFormContent('checkout_home_delivery_guest');
   const savedAddressForm = useFormContent('user_addresses');
   const storeGuestForm = useFormContent('checkout_store_pickup_guest');
@@ -174,12 +139,7 @@ export function DeliveryPage({
   const [storeDropOpen, setStoreDropOpen] = useState(false);
   const [lockerDropOpen, setLockerDropOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
-  // Pick the OE schedule for the current auth state. Guests hit the
-  // `_guest`-suffixed form on OE (`checkout_home_delivery_guest`); authed
-  // users get the plain form. Server-side both strips are precomputed and
-  // handed down as ISO arrays so the flip is a pure prop swap — no client
-  // data fetching. Falls back to the client's `getDeliveryDates(7)` when
-  // no strip was supplied at all (Storybook, bare unit test).
+  // Pick the OE schedule for the current auth state.
   const activeDatesIso = isLoggedIn ? deliveryDatesIsoAuthed : deliveryDatesIsoGuest;
   const activeSlots = isLoggedIn ? deliverySlotsAuthed : deliverySlotsGuest;
   const deliveryDates = useMemo<Date[]>(
@@ -192,19 +152,12 @@ export function DeliveryPage({
   const [selectedSlot, setSelectedSlot] = useState<string>(timeSlots[0].id);
   const [showGuestModal, setShowGuestModal] = useState(false);
 
-  // Coupon UI is a thin wrapper over CartContext — same code powers the
-  // cart, delivery, and payment summaries. Local state only tracks the input
-  // buffer and the busy flag while `applyCoupon` awaits `previewOrder`.
+  // Coupon UI is a thin wrapper over CartContext — same code powers the cart, delivery, and payment summaries.
   const [couponInput, setCouponInput] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const couponStatus: 'idle' | 'success' | 'error' = couponCode ? 'success' : couponError ? 'error' : 'idle';
 
-  // Client `total` already reflects the sale price (line items use
-  // `item.price` with the strike-through UX). Prefer OE's `totalDue`
-  // when OE actually applied an EXTRA reduction — a loyalty tier, a
-  // coupon, OR the shopper spent bonus points. All three land honestly
-  // on the visible total; ignoring `bonusApplied` here would leave the
-  // Total row bigger than what OE actually charges.
+  // Client `total` already reflects the sale price (line items use `item.price` with the strike-through UX).
   const bonusBurned = (preview?.bonusApplied ?? 0) > 0;
   const finalTotal = personalDiscount > 0 || couponDiscount > 0 || bonusBurned ? totalDue : total;
 
@@ -235,14 +188,10 @@ export function DeliveryPage({
   const [newAddrConfirmed, setNewAddrConfirmed] = useState(false);
 
   // Guest contact data for store / locker pickup (only used when !isLoggedIn).
-  // We keep a SHARED state across both methods so switching back and forth
-  // preserves what the guest already typed.
   const [guestContact, setGuestContact] = useState<GuestContactFormState>({ fullName: '', email: '', phone: '' });
   const [guestContactErrors, setGuestContactErrors] = useState<Record<string, string>>({});
 
-  // Preselect the shopper's first saved address as soon as the account data
-  // lands. Done during render (React's "adjust state when a prop changes")
-  // so the radio is already checked on the first paint.
+  // Preselect the shopper's first saved address as soon as the account data lands.
   const defaultAddressId = isLoggedIn ? (savedAddresses[0]?.id ?? null) : null;
   const [prevDefaultAddressId, setPrevDefaultAddressId] = useState<string | null>(null);
   if (defaultAddressId !== prevDefaultAddressId) {
@@ -250,10 +199,7 @@ export function DeliveryPage({
     if (defaultAddressId) setSelectedAddressId(defaultAddressId);
   }
 
-  // Route-level guard: deep-linking `/checkout/delivery` with an empty
-  // cart used to render the whole address form (and a $0 total). Bounce
-  // back to the cart page as soon as the client knows the cart is
-  // empty. Mirrors the PaymentPage guard.
+  // Route-level guard: deep-linking `/checkout/delivery` with an empty cart used to render the whole address form (and a $0 total).
   const mounted = useMounted();
   useEffect(() => {
     if (!mounted) return;
@@ -307,8 +253,7 @@ export function DeliveryPage({
         }
       }
     } else if (!isLoggedIn) {
-      // Guest selecting Store Pickup / Parcel Locker: must provide contact data
-      // so we can notify them when the order is ready.
+      // Guest selecting Store Pickup / Parcel Locker: must provide contact data so we can notify them when the order is ready.
       const result = schemas.guestContactSchema.safeParse(guestContact);
       if (!result.success) {
         const errors: Record<string, string> = {};
@@ -322,7 +267,6 @@ export function DeliveryPage({
       setGuestContactErrors({});
     }
     // Persist delivery payload so PaymentPage can build the OE order body.
-    // The shape mirrors what createOrderAction expects for each storage type.
     const storageByMethod: Record<DeliveryMethod, 'home' | 'store_pickup' | 'locker'> = {
       home: 'home',
       store: 'store_pickup',
@@ -362,19 +306,12 @@ export function DeliveryPage({
       guestContact: !isLoggedIn ? guestContact : null,
       homeAddress,
       // OE expects the numeric page id for the store `entity` form field.
-      // Fall back to `.id` only when the store record has no `oeId` (i.e. the
-      // hardcoded PICKUP_STORES fallback fired) — OE will reject it, which is
-      // the correct outcome because there's no matching store in the tenant.
       storeId: method === 'store' ? (selectedStore.oeId ?? selectedStore.id) : null,
-      // The locker's OE page id. It used to be this list's index, which made
-      // the array order part of the wire contract — reordering the lockers in
-      // the admin panel silently re-pointed the order at a different one.
+      // The locker's OE page id.
       lockerId: method === 'locker' ? selectedLocker.oeId : null,
       deliveryDate: selectedDate.toISOString(),
       deliverySlot: selectedSlot,
-      // The `delivery_method` option value as authored in OE. Resolved here,
-      // where the picker's copy is already loaded, so the payment step submits
-      // the editor's own value instead of a literal compiled into the bundle.
+      // The `delivery_method` option value as authored in OE.
       deliveryMethodValue: methodInfo ? methodInfo[method].value : '',
       couponCode: couponCode,
     };
@@ -386,11 +323,7 @@ export function DeliveryPage({
     router.push('/checkout/payment');
   };
 
-  // The guest-checkout prompt tracks auth state directly — again adjusted
-  // during render rather than mirrored from an effect.
-  // `true` seeds "was signed in", so an anonymous first render immediately
-  // raises the guest-checkout prompt — exactly what the old on-mount effect
-  // did, minus the extra render pass.
+  // The guest-checkout prompt tracks auth state directly — again adjusted during render rather than mirrored from an effect.
   const [prevIsLoggedIn, setPrevIsLoggedIn] = useState(true);
   if (isLoggedIn !== prevIsLoggedIn) {
     setPrevIsLoggedIn(isLoggedIn);

@@ -17,11 +17,7 @@ const STATUS_MAP: Record<string, ServiceStatus> = {
   cancelled: 'cancelled',
 };
 
-// Keys are the OE `category` listTitles values; the map exists to absorb
-// historical spellings rather than to translate — every current option maps to
-// itself. `restoration` is a retired UI-only category that never existed in the
-// form, kept so records written before the two lists were reconciled still
-// render instead of falling through to a blank label.
+// Keys are the OE `category` listTitles values; the map exists to absorb historical spellings rather than to translate.
 const CATEGORY_MAP: Record<string, ServiceCategory> = {
   repair: 'repair',
   cleaning: 'cleaning',
@@ -31,13 +27,7 @@ const CATEGORY_MAP: Record<string, ServiceCategory> = {
   other: 'other',
 };
 
-/**
- * One `service_request` record.
- *
- * Only the envelope is declared here: `IFormByMarkerDataEntity` has no
- * `createdDate` / `status` (OE returns both alongside the documented `time` /
- * `statusIdentifier`), while `formData` is the SDK's own {@link FormDataType}.
- */
+/** One `service_request` record. */
 type FormDataRecord = {
   id: number;
   createdDate?: string;
@@ -49,16 +39,7 @@ type FormDataRecord = {
 
 const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
 
-/**
- * Read the service-maintenance requests the current user has submitted via the
- * OE `service_request` form (formModuleConfigId=4). Returns the same shape the
- * legacy `SERVICE_REQUESTS` mock used, so `ServiceMaintenanceSection` can swap
- * in this server action with no UI changes.
- *
- * Fields the OE form doesn't currently capture (cost, estimatedReady, ref
- * number, photo) fall back to sensible defaults — the admin can flesh them
- * out in the OE form definition later without breaking the page.
- */
+/** Read the service-maintenance requests the current user has submitted via the OE `service_request` form. */
 export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
   const api = getApiSafe();
   if (!api) return [];
@@ -66,10 +47,7 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
   if (!userIdentifier) return [];
 
   try {
-    // The SDK singleton carries the shopper's own token after `reDefine()`,
-    // so OE sees an authenticated read — important because a tenant may
-    // tighten the form-data read policy to require it, in which case the
-    // app-token-only path would silently return `[]`.
+    // The SDK singleton carries the shopper's own token after `reDefine()`, so OE sees an authenticated read.
     const result = await api.FormData.getFormsDataByMarker(
       'service_request',
       SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,

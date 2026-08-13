@@ -17,14 +17,7 @@ const SPEC_LABEL_KEYS: Record<ProductSpecKey, string> = {
   sku: 'product_specs_sku',
 };
 
-/**
- * Read the PDP Specifications row labels from the admin panel.
- *
- * Pass the result to `adaptCatalogProductToPdpProduct` — the adapter itself
- * stays synchronous so tests and non-OE callers keep working. Keys the admin
- * left empty fall back to {@link PRODUCT_SPEC_FALLBACK_LABELS}, and an OE
- * outage yields the fallbacks wholesale rather than blank rows.
- */
+/** Read the PDP Specifications row labels from the admin panel. */
 export async function loadProductSpecLabels(langArg?: Lang): Promise<Record<ProductSpecKey, string>> {
   const lang = langArg ?? (await currentCmsLocale());
   const schema = await getSystemSet(SPEC_LABELS_MARKER, lang);

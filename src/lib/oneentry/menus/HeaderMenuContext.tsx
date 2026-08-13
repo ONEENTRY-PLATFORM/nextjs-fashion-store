@@ -9,10 +9,7 @@ export function HeaderMenuProvider({ data, children }: { data: MenuPageNode[]; c
   return <Ctx.Provider value={data}>{children}</Ctx.Provider>;
 }
 
-/**
- * Returns the raw OE header menu tree. Consumers usually go through the
- *  adapter (`adaptHeaderMenuToMega`) instead of parsing this directly.
- */
+/** Returns the raw OE header menu tree. */
 export function useHeaderMenu(): MenuPageNode[] {
   return useContext(Ctx) ?? [];
 }

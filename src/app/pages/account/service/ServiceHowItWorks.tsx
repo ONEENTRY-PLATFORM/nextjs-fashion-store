@@ -5,8 +5,7 @@ import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 export function ServiceHowItWorks() {
   const L = useDict('service_maintenance_', L_FALLBACK);
-  // Rebuilt from the flat `howStepNTitle` / `howStepNBody` keys so every
-  // string passes through the dictionary; the badge is the index.
+  // Rebuilt from the flat `howStepNTitle` / `howStepNBody` keys so every string passes through the dictionary; the badge is the index.
   const steps = [1, 2, 3, 4].map((n) => ({
     step: String(n).padStart(2, '0'),
     title: L[`howStep${n}Title` as keyof typeof L] as string,

@@ -1,19 +1,4 @@
-/**
- * Server Action error copy, authored in the admin panel.
- *
- * These strings are thrown or returned by Server Actions and surface in the UI
- * through `e.message` / `res.error`, so a shopper can see them — they are the
- * last copy in the storefront that could reach the browser untranslated.
- *
- * The constants below stay in code as offline fallbacks: an OE outage is
- * exactly when an error message has to render, so it can never depend on a
- * successful CMS read. {@link se} overlays the admin value when there is one.
- *
- * Reads go through `getSystemSet`, which memoises per marker for five minutes,
- * so calling `se()` on an error path costs nothing after the first hit.
- *
- * @see .claude/temp/HARDCODED_TEXTS.md — the migration this closes
- */
+/** Server Action error copy, authored in the admin panel. */
 import { DEFAULT_LOCALE } from './locale';
 import { type Lang, t } from './system-text';
 
@@ -94,14 +79,7 @@ const MARKERS: Record<ServerErrorKey, string> = {
   passwordResetFailed: 'server_errors_password_reset_failed',
 };
 
-/**
- * Resolve one Server Action error message from the admin panel.
- *
- * @param   key    Message identifier.
- * @param   [lang] OE locale; defaults to {@link DEFAULT_LOCALE}, matching how
- *                 the rest of the auth actions address OE.
- * @returns The admin value, or the offline fallback when OE has no value.
- */
+/** Resolve one Server Action error message from the admin panel. */
 export async function se(key: ServerErrorKey, lang: Lang = DEFAULT_LOCALE): Promise<string> {
   return t(SERVER_ERRORS_MARKER, MARKERS[key], SERVER_ERROR_FALLBACKS[key], lang);
 }

@@ -10,10 +10,7 @@ import type { Lang } from '@/lib/oneentry/system-text';
 export interface HomepageCollectionItem {
   id: number;
   image: string;
-  /**
-   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one.
-   */
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
   imageBlur?: string;
   title: string;
   subtitle: string;

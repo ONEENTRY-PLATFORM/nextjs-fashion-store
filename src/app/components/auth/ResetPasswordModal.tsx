@@ -14,14 +14,7 @@ import {
 } from '@/lib/oneentry/auth/password-reset';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Password-recovery copy.
- *
- * Three steps, because that is what OneEntry's flow actually is: ask for the
- * address, type the code it mails back, choose the new password. Nothing here
- * promises a link — there is none. Keys resolve as `sign_in_reset_<key>` in the
- * CMS `sign_in` set, so an editor rewords the whole flow without a deploy.
- */
+/** Password-recovery copy. */
 export const PASSWORD_RESET_LABELS = {
   title: 'Reset Password',
   stepEmailHeading: 'Enter your email',
@@ -31,11 +24,7 @@ export const PASSWORD_RESET_LABELS = {
   sendCode: 'Send code',
   sending: 'Sending…',
   stepCodeHeading: 'Enter the code',
-  /**
-   * `%email%` is replaced with the address the code went to. The placeholder is
-   * `%…%`, not `{…}`: OE casts attribute values to JSON in Postgres, so a value
-   * containing a brace makes the public read of the *whole set* fail.
-   */
+  /** `%email%` is replaced with the address the code went to. */
   stepCodeHint: 'We sent a code to %email%.',
   codeLabel: 'Code',
   codePlaceholder: 'Code from the email',
@@ -63,37 +52,14 @@ export const PASSWORD_RESET_LABELS = {
 /** The three things the shopper does, in the order OneEntry requires them. */
 type Step = 'email' | 'code' | 'password';
 
-/**
- * Password recovery, the way OneEntry actually implements it.
- *
- * There is no reset link to click: OE mails a one-time code, verifies it, and
- * only then accepts a new password (`AuthProvider.changePassword` with
- * `type: 2`). The three steps below map one-to-one onto those calls — see
- * `lib/oneentry/auth/password-reset.ts`.
- *
- * This wrapper only decides whether the flow exists. Mounting the body on open
- * (rather than hiding it) is what resets the flow: a second visit must never
- * inherit a spent code, and on a shared device it must not inherit the previous
- * shopper's address either.
- *
- * @returns The modal, or `null` while it is closed.
- */
+/** Password recovery, the way OneEntry actually implements it. */
 export function ResetPasswordModal() {
   const { resetPasswordModalOpen } = useAuth();
   if (!resetPasswordModalOpen) return null;
   return <ResetPasswordFlow />;
 }
 
-/**
- * The open modal: three steps, their state, and the OE calls behind them.
- *
- * The code's length and lifetime are provider config in the admin panel, so
- * both are read on mount: the countdown ticks down the real TTL, and "send a
- * new code" only unlocks once OE would actually mint another one (asking
- * earlier answers `User already has a code`).
- *
- * @returns The modal body.
- */
+/** The open modal: three steps, their state, and the OE calls behind them. */
 function ResetPasswordFlow() {
   const L = useDict('sign_in_reset_', PASSWORD_RESET_LABELS);
   const { closeResetPasswordModal, resetPasswordEmail, openLoginModal, login } = useAuth();
@@ -122,8 +88,7 @@ function ResetPasswordFlow() {
     };
   }, []);
 
-  // Provider config (code length + TTL). A tenant with no e-mail provider has
-  // no recovery flow at all, which the body reports instead of the steps.
+  // Provider config (code length + TTL).
   useEffect(() => {
     let cancelled = false;
     void getPasswordResetPolicy().then((p) => {
@@ -136,8 +101,7 @@ function ResetPasswordFlow() {
     };
   }, []);
 
-  // Countdown on the outstanding code. One interval, cleared as soon as it
-  // reaches zero — the button it gates re-renders from `secondsLeft` alone.
+  // Countdown on the outstanding code.
   useEffect(() => {
     if (secondsLeft <= 0) return;
     const id = setInterval(() => setSecondsLeft((s) => (s <= 1 ? 0 : s - 1)), 1000);
@@ -195,26 +159,19 @@ function ResetPasswordFlow() {
       setError(res.error ?? '');
       return;
     }
-    // The shopper just proved ownership of the address and picked the
-    // password — signing them in here saves a pointless second form.
+    // The shopper just proved ownership of the address and picked the password — signing them in here saves a pointless second form.
     setNotice(L.success);
     const signedIn = await login(email.trim(), password);
     setLoading(false);
     if (!signedIn) {
-      // Password changed but sign-in failed (network, expired session): send
-      // them to the sign-in form rather than leaving a dead-end success note.
+      // Password changed but sign-in failed (network, expired session): send them to the sign-in form rather than leaving a dead-end success note.
       setNotice('');
       openLoginModal();
     }
   }, [code, confirmPassword, email, L.success, login, openLoginModal, password, schemas]);
 
   const unavailable = policyLoaded && policy === null;
-  /**
-   * A TTL the admin panel never configured leaves the code's lifetime unknown.
-   * Treating "no countdown" as "expired" would disable the Continue button the
-   * moment the code arrives — so expiry is only ever asserted when OE told us
-   * how long the code lives.
-   */
+  /** A TTL the admin panel never configured leaves the code's lifetime unknown. */
   const ttlKnown = policy?.codeTtlSec != null;
   const codeExpired = step === 'code' && ttlKnown && secondsLeft === 0;
 

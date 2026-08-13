@@ -1,8 +1,4 @@
-/**
- * Wire types for the Platform cart REST API (`/api/content/users/me/cart`).
- * Mirrors `CartItemDto` / `CartResponseDto` from
- * `cms/src/modules/user-activity/dto/cart.dto.ts`.
- */
+/** Wire types for the Platform cart REST API (`/api/content/users/me/cart`). */
 
 /** Single cart row as returned by the Platform (qty is absolute, not delta). */
 export interface CartApiItem {

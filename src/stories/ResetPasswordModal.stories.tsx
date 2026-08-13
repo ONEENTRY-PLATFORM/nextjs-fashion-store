@@ -14,10 +14,7 @@ function OpenResetPasswordModal() {
   return <ResetPasswordModal />;
 }
 
-/**
- * Same, opened the way `LoginModal` opens it: with the address the shopper had
- * already typed into the sign-in field.
- */
+/** Same, opened the way `LoginModal` opens it: with the address the shopper had already typed into the sign-in field. */
 function OpenResetPasswordModalPrefilled() {
   const { openResetPasswordModal } = useAuth();
   useEffect(() => {

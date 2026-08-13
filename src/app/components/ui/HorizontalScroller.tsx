@@ -8,19 +8,12 @@ import { useT } from '@/lib/oneentry/labels/DictContext';
 
 interface HorizontalScrollerProps {
   children: React.ReactNode;
-  /** Step in % of container width for arrow clicks. Default 0.75 = 75%. */
+  /** Step in % of container width for arrow clicks. */
   scrollFraction?: number;
   className?: string;
 }
 
-/**
- * Horizontal scrolling container with:
- *   • drag-to-scroll on desktop
- *   • left / right arrow buttons that hide at the ends
- * Used by WomenCollection / MenCollection / NewArrivals carousels.
- *
- * @returns The scroller with its arrow controls.
- */
+/** Horizontal scrolling container with: • drag-to-scroll on desktop • left / right arrow buttons that hide at the ends Used by WomenCollection / MenCollection / NewArrivals carousels. */
 export function HorizontalScroller({ children, scrollFraction = 0.75, className = '' }: HorizontalScrollerProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const drag = useDragScroll(scrollerRef);
@@ -34,10 +27,7 @@ export function HorizontalScroller({ children, scrollFraction = 0.75, className 
     setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
   }, []);
 
-  // Callback ref: the first measurement happens when the node attaches, in
-  // the commit phase. Doing it in an effect instead would be a synchronous
-  // `setState` inside `useEffect` — the cascading-render pattern React flags
-  // (MCP `common-mistakes`).
+  // Callback ref: the first measurement happens when the node attaches, in the commit phase.
   const attachScroller = useCallback(
     (el: HTMLDivElement | null) => {
       scrollerRef.current = el;
@@ -46,9 +36,7 @@ export function HorizontalScroller({ children, scrollFraction = 0.75, className 
     [measure],
   );
 
-  // Viewport changes can reveal or hide the overflow without any scrolling,
-  // so re-measure on resize. Registering a listener is not a state write, so
-  // this effect stays clean.
+  // Viewport changes can reveal or hide the overflow without any scrolling, so re-measure on resize.
   useEffect(() => {
     const onResize = () => measure(scrollerRef.current);
     window.addEventListener('resize', onResize);

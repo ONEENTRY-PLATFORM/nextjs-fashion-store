@@ -9,10 +9,7 @@ import { INFO_SECTION_BLOCK_PREFIX, infoSectionsFromBlocks } from '@/lib/oneentr
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Feature cards — OE keys `info_card_{n}_title` / `info_card_{n}_desc`.
- * `iconKey` is deliberately code-only: it selects a component, not copy.
- */
+/** Feature cards — OE keys `info_card_{n}_title` / `info_card_{n}_desc`. `iconKey` is deliberately code-only: it selects a component, not copy. */
 export const INFO_PAGE_FEATURE_CARDS = [
   {
     iconKey: 'edit' as const,
@@ -44,18 +41,7 @@ export const INFO_PAGE_STATS = [
   { value: '24 / 7', label: 'Customer Support' },
 ] as const;
 
-/**
- * Structural fallbacks for the info pages.
- *
- * Live content comes from OneEntry — editorial sections from the
- * `info_section_*` blocks, page chrome from the `info_page` system-text set.
- * What remains here is only what a plain string cannot express: repeated
- * shapes (sections, stats, feature cards) rendered by a `.map()`.
- *
- * One-off strings are NOT kept here: their fallback is passed inline at the
- * `use*T` call site, so the OE key and its offline value sit side by side and
- * cannot drift apart.
- */
+/** Structural fallbacks for the info pages. */
 
 /** Editorial sections — mirrors the OE `info_section_*` blocks. */
 export const INFO_PAGE_SECTIONS = [
@@ -114,14 +100,7 @@ interface InfoSection {
   imageRight: boolean;
 }
 
-/**
- * Adapt OE section blocks to the layout's shape.
- *
- * Content extraction lives in `blocks/info-sections.ts` so the FAQ
- * structured-data builder describes exactly the sections rendered here.
- * `imageRight` is presentation only — the layout alternates sides, which keeps
- * the zig-zag intact no matter how many sections the tenant adds or reorders.
- */
+/** Adapt OE section blocks to the layout's shape. */
 function sectionsFromBlocks(blocks: PageBlock[] | undefined): InfoSection[] {
   return infoSectionsFromBlocks(blocks).map((s, i) => ({
     ...s,
@@ -147,13 +126,10 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const SECTIONS: readonly InfoSection[] =
     cmsSections.length > 0 ? cmsSections : INFO_PAGE_SECTIONS.map((s, i) => ({ ...s, imageRight: i % 2 === 1 }));
 
-  // Section blocks are rendered by the bespoke layout above, so keep them out
-  // of the generic renderer at the bottom — otherwise they'd appear twice.
+  // Section blocks are rendered by the bespoke layout above, so keep them out of the generic renderer at the bottom — otherwise they'd appear twice.
   const otherBlocks = (pageBlocks ?? []).filter((b) => !b.marker?.startsWith(INFO_SECTION_BLOCK_PREFIX));
 
-  // Page chrome copy from the OE `info_page` set; the local dataset is the
-  // offline fallback. Icon choice for the feature cards stays in code — it
-  // selects a component, it is not copy.
+  // Page chrome copy from the OE `info_page` set; the local dataset is the offline fallback.
   const heroHeading = useT('info_hero_heading', 'About Kekimoro');
   const heroSubtitle = useT(
     'info_hero_subtitle',
@@ -176,8 +152,7 @@ export function InfoPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
   const ctaSdkLabel = useT('info_cta_sdk_label', 'View SDK Docs');
   const ctaSdkHref = useT('info_cta_sdk_href', 'https://js-sdk.oneentry.cloud/docs/index/');
 
-  // Four stats and four cards are a fixed layout slot, so each key is read with
-  // its own top-level hook call — a loop would break the rules of hooks.
+  // Four stats and four cards are a fixed layout slot, so each key is read with its own top-level hook call — a loop would break the rules of hooks.
   const stat1Value = useT('info_stat_1_value', INFO_PAGE_STATS[0]?.value ?? '');
   const stat1Label = useT('info_stat_1_label', INFO_PAGE_STATS[0]?.label ?? '');
   const stat2Value = useT('info_stat_2_value', INFO_PAGE_STATS[1]?.value ?? '');

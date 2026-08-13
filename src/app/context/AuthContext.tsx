@@ -43,24 +43,16 @@ export interface User {
   gender: Gender;
   shoeSize: string;
   clothingSize: string;
-  // Loyalty fields below have no OneEntry source in this tenant — kept as
-  // mock defaults so the existing UI can render. When OE adds a loyalty
-  // attribute set we'll pull these from /me too.
+  // Loyalty fields below have no OneEntry source in this tenant — kept as mock defaults so the existing UI can render.
   cardNumber: string;
   discount: number;
   bonuses: number;
   status: LoyaltyStatus;
   totalPurchases: number;
   nextLevelAmount: number;
-  /**
-   * Cap on the personal discount value (in currency). Set only when OE
-   *  Discounts returned a `maxAmount` for the active tier.
-   */
+  /** Cap on the personal discount value (in currency). */
   discountMaxAmount?: number;
-  /**
-   * OE `applicability` (`TO_ORDER` / `TO_PRODUCT`). Present only when a
-   *  personal discount is active.
-   */
+  /** OE `applicability` (`TO_ORDER` / `TO_PRODUCT`). */
   discountApplicability?: string;
   /** LTV required to keep the current tier (OE `USER_LTV` condition). */
   ltvThreshold?: number;
@@ -76,43 +68,26 @@ export interface User {
 interface AuthContextType {
   isLoggedIn: boolean;
   user: User | null;
-  /**
-   * `false` until the bootstrap /me call finishes (regardless of outcome).
-   *  Consumers that need "logged out for sure" state must gate on this so
-   *  the initial render doesn't flash a sign-in screen before the cookie
-   *  session is resolved.
-   */
+  /** `false` until the bootstrap /me call finishes (regardless of outcome). */
   authReady: boolean;
   loginModalOpen: boolean;
   registerModalOpen: boolean;
   openLoginModal: () => void;
   closeLoginModal: () => void;
-  /**
-   * Human-readable error surfaced to the LoginModal when a login attempt
-   *  (typically the Google OAuth callback) failed via redirect. Null when
-   *  no error is pending. Consumers clear it by calling `setAuthError(null)`.
-   */
+  /** Human-readable error surfaced to the LoginModal when a login attempt (typically the Google OAuth callback) failed via redirect. */
   authError: string | null;
   setAuthError: (msg: string | null) => void;
   openRegisterModal: () => void;
   closeRegisterModal: () => void;
   /** Password-recovery modal (OE's code flow — see `auth/password-reset.ts`). */
   resetPasswordModalOpen: boolean;
-  /**
-   * Open the recovery modal, carrying over whatever the shopper already typed
-   *  in the sign-in field so they don't retype their address.
-   */
+  /** Open the recovery modal, carrying over whatever the shopper already typed in the sign-in field so they don't retype their address. */
   openResetPasswordModal: (prefillEmail?: string) => void;
   closeResetPasswordModal: () => void;
   /** Address to prefill the recovery modal's first step with; `''` when none. */
   resetPasswordEmail: string;
   login: (emailOrPhone: string, password: string) => Promise<boolean>;
-  /**
-   * Start the Google OAuth authorization-code flow — user is redirected to
-   *  Google; on return, our /auth/callback/google route exchanges the code
-   *  via OE and sets the session. `returnTo` is the local path to bounce
-   *  back to after auth (defaults to current pathname).
-   */
+  /** Start the Google OAuth authorization-code flow. */
   startGoogleOAuth: (returnTo?: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
@@ -148,9 +123,7 @@ const DEFAULT_SUBSCRIPTIONS = {
 };
 const DEFAULT_CONSENT = { dataProcessing: false, crossBorder: false };
 
-/**
- * Nice-cased tier label (`bronze` → `Bronze`). Handles the empty case.
- */
+/** Nice-cased tier label (`bronze` → `Bronze`). */
 function toTierLabel(marker: string): LoyaltyStatus {
   const cleaned = marker.trim().toLowerCase();
   if (!cleaned) return 'Member';
@@ -158,14 +131,7 @@ function toTierLabel(marker: string): LoyaltyStatus {
   return label === 'Bronze' || label === 'Silver' || label === 'Gold' || label === 'Platinum' ? label : 'Member';
 }
 
-/**
- * Lifetime value = sum of orders that actually generated revenue for the
- *  merchant — i.e. paid / completed / delivered. Orders still in flight
- *  (new / processing / pending) don't count until money changes hands,
- *  and cancelled / refunded / returned obviously don't either. Matching is
- *  by substring since OE merchants namespace status markers per storage
- *  (`home_paid`, `pickup_delivered`, `home_new`, `home_cancelled`, …).
- */
+/** Lifetime value = sum of orders that actually generated revenue for the merchant. */
 function computeLtv(orders: OeUser['orders'] | undefined): number {
   if (!orders) return 0;
   const REVENUE = /paid|complete|deliver|done|closed|finish/i;
@@ -182,24 +148,7 @@ function computeLtv(orders: OeUser['orders'] | undefined): number {
   return Math.round(total * 100) / 100;
 }
 
-/**
- * Pick the highest LTV-gated tier the shopper actually qualifies for.
- *
- *  We deliberately IGNORE tiers without a `USER_LTV` condition — a merchant
- *  who omitted the LTV rule gates the tier by user-group only, and we don't
- *  have the user's group ids on the client, so we can't tell whether they
- *  qualify. Handing such a tier out by default (as previously) is how a
- *  brand-new shopper with LTV=$0 ended up Platinum.
- *
- *  Returns `null` when the shopper hasn't cleared even the lowest bar.
- */
-/**
- * Pick the highest tier the shopper's LTV clears. Cart-amount-gated rungs
- *  (silver/gold/… with `MIN_CART_AMOUNT`) are intentionally excluded from
- *  the STATUS display — those apply per-order and don't confer a permanent
- *  identity. `previewOrderAction` evaluates them separately at cart time
- *  (see the fallback loop there).
- */
+/** Pick the highest LTV-gated tier the shopper actually qualifies for. Pick the highest tier the shopper's LTV clears. */
 function pickActiveTier(tiers: OeLoyaltyTier[], ltv: number): OeLoyaltyTier | null {
   const gated = tiers.filter((t) => typeof t.ltvThreshold === 'number');
   if (gated.length === 0) return null;
@@ -209,13 +158,7 @@ function pickActiveTier(tiers: OeLoyaltyTier[], ltv: number): OeLoyaltyTier | nu
   return null;
 }
 
-/**
- * Hardcoded fallback ladder used ONLY when a merchant hasn't yet shipped
- *  the higher tiers in OE. As soon as a tier lands in OE with a real
- *  `USER_LTV` condition, that value takes precedence. Mirrors what the
- *  storefront advertises in `L.perks` so the progress bar always has a
- *  visible target.
- */
+/** Hardcoded fallback ladder used ONLY when a merchant hasn't yet shipped the higher tiers in OE. */
 const FALLBACK_TIER_LTV: Record<Exclude<LoyaltyStatus, 'Member'>, number> = {
   Bronze: 100,
   Silver: 500,
@@ -223,14 +166,7 @@ const FALLBACK_TIER_LTV: Record<Exclude<LoyaltyStatus, 'Member'>, number> = {
   Platinum: 2000,
 };
 
-/**
- * Next-tier threshold for the loyalty progress bar. Reads OE first; when
- *  the merchant hasn't wired the next rung yet, falls back to
- *  `FALLBACK_TIER_LTV` so the shopper still sees a concrete target
- *  (industry practice — H&M / Sephora / Nike all keep the ladder visible
- *  even before the higher tiers unlock). Returns `0` only after the top
- *  hardcoded rung.
- */
+/** Next-tier threshold for the loyalty progress bar. */
 function nextTierThreshold(tiers: OeLoyaltyTier[], activeStatus: LoyaltyStatus): number {
   const gated = tiers.filter((t) => typeof t.ltvThreshold === 'number');
   if (activeStatus === 'Member') {
@@ -240,11 +176,7 @@ function nextTierThreshold(tiers: OeLoyaltyTier[], activeStatus: LoyaltyStatus):
   const idx = TIER_LADDER.indexOf(activeStatus);
   if (idx < 0 || idx === TIER_LADDER.length - 1) return 0;
   const nextName = TIER_LADDER[idx + 1];
-  // Prefer OE's real threshold when the tier actually exists. When the
-  // next rung is cart-amount-gated instead of LTV-gated we still surface
-  // the number so the progress bar has a concrete target — treating the
-  // MIN_CART_AMOUNT gate as "spend N in a single order" is close enough
-  // to the LTV mental model for the bar copy.
+  // Prefer OE's real threshold when the tier actually exists.
   const oe = tiers.find((t) => t.tier.toLowerCase() === nextName.toLowerCase());
   if (oe && typeof oe.ltvThreshold === 'number') return oe.ltvThreshold;
   if (oe && typeof oe.minCartAmount === 'number') return oe.minCartAmount;
@@ -275,9 +207,7 @@ function mergeOeUser(oeUser: OeUser | null): User {
       recentlyViewedItems: [],
     };
   }
-  // Loyalty from OE. `oeUser.loyalty` now carries the full ladder — pick the
-  // rung the shopper actually qualifies for based on their computed LTV,
-  // never blindly the first marker OE returned.
+  // Loyalty from OE.
   const loyalty = oeUser.loyalty;
   const ltv = computeLtv(oeUser.orders);
   const activeTier = loyalty ? pickActiveTier(loyalty.tiers, ltv) : null;
@@ -329,15 +259,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
   const [resetPasswordEmail, setResetPasswordEmail] = useState('');
 
-  // StrictMode runs effects twice in dev. `reDefine` + `/me` is idempotent
-  // (the SDK single-flights its internal refresh), but the guard still avoids
-  // a duplicate request pair and a `setState` race on the first paint.
+  // StrictMode runs effects twice in dev.
   const bootstrappedRef = useRef(false);
 
-  // Session bootstrap (MCP `tokens`): install the stored refresh token on the
-  // SDK singleton, then read `/me`. `reDefine` does not refresh by itself —
-  // the SDK mints an access token proactively before the first user-auth
-  // request, so this is a clean `POST /refresh 200 → 200` with no stray 401.
+  // Session bootstrap (MCP `tokens`): install the stored refresh token on the SDK singleton, then read `/me`. `reDefine` does not refresh by itself.
   useEffect(() => {
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
@@ -345,10 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const bootstrap = async () => {
-      // Anonymous fingerprint for guest cart / wishlist / activity. Installed
-      // once here so every module on the instance sends the same
-      // `x-guest-id`; the SDK drops the header automatically once the shopper
-      // is authenticated.
+      // Anonymous fingerprint for guest cart / wishlist / activity.
       const guestId = getOrCreateGuestId();
       const api = getApiSafe();
       if (api && guestId) api.Users.setGuestId(guestId);
@@ -387,8 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const closeLoginModal = useCallback(() => {
     setLoginModalOpen(false);
-    // A user-triggered close discards any pending auth error so the next
-    // open (e.g. from a fresh login CTA) doesn't inherit the old banner.
+    // A user-triggered close discards any pending auth error so the next open (e.g. from a fresh login CTA) doesn't inherit the old banner.
     setAuthError(null);
   }, []);
 
@@ -400,8 +321,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const closeRegisterModal = useCallback(() => setRegisterModalOpen(false), []);
 
   const openResetPasswordModal = useCallback((prefillEmail?: string) => {
-    // Only an address is worth carrying over — a phone or a bare identifier
-    // would land in a field the recovery flow validates as an e-mail.
+    // Only an address is worth carrying over — a phone or a bare identifier would land in a field the recovery flow validates as an e-mail.
     setResetPasswordEmail(prefillEmail?.includes('@') ? prefillEmail.trim() : '');
     setLoginModalOpen(false);
     setRegisterModalOpen(false);
@@ -412,9 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (emailOrPhone: string, password: string): Promise<boolean> => {
-      // Social provider buttons are a stub until OAuth is wired up — they
-      // simply mark the session "logged in" with an empty user so the UI can
-      // navigate; no fake profile is injected.
+      // Social provider buttons are a stub until OAuth is wired up.
       if (password === 'social') {
         setUser(mergeOeUser(null));
         setIsLoggedIn(true);
@@ -434,8 +352,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(mergeOeUser(result.user));
         setIsLoggedIn(true);
         setLoginModalOpen(false);
-        // The recovery flow signs the shopper in on its last step — close it
-        // here too, so a successful reset doesn't leave the modal standing.
+        // The recovery flow signs the shopper in on its last step — close it here too, so a successful reset doesn't leave the modal standing.
         setResetPasswordModalOpen(false);
         return true;
       }
@@ -446,10 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const startGoogleOAuth = useCallback(async (returnTo?: string): Promise<void> => {
-    // Full-page redirect flow per MCP `auth-provider` rule. The callback
-    // route (/auth/callback/google) exchanges `?code=` server-side via
-    // AuthProvider.oauth('google', { code, redirect_uri }) and sets session
-    // cookies before bouncing to `returnTo`.
+    // Full-page redirect flow per MCP `auth-provider` rule.
     const { startGoogleOAuth: kickOff } = await import('@/lib/google-auth');
     await kickOff(returnTo);
   }, []);
@@ -479,22 +393,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoggedIn(false);
     setUser(null);
     dispatch(clearAuth());
-    // Clear shopper-scoped local state so nothing leaks into the next
-    // session on this browser. Without this, user A's cart / wishlist /
-    // recently-viewed persist through `oe_store` localStorage and — worse
-    // — get pushed UP into user B's OE account by `syncCart` /
-    // `syncWishlist` when B signs in on the same device. Everything
-    // authoritative already lives on OE, so wiping local state costs
-    // nothing on re-login (it hydrates from `/me/cart`, `/me/wishlist`,
-    // `user.recentlyViewedItems`).
+    // Clear shopper-scoped local state so nothing leaks into the next session on this browser.
     dispatch(cartActions.clearCart());
     dispatch(wishlistActions.clearAll());
     dispatch(recentlyViewedActions.hydrate([]));
     if (typeof window !== 'undefined') {
       try {
-        // Cart/wishlist hydration guards — see `CartContext` /
-        // `WishlistContext` sessionStorage flags. Without clearing them
-        // the next sign-in on the same tab would skip the merge step.
+        // Cart/wishlist hydration guards — see `CartContext` / `WishlistContext` sessionStorage flags.
         sessionStorage.removeItem('oe_cart_merged');
         sessionStorage.removeItem('oe_wishlist_merged');
         sessionStorage.removeItem('oe_checkout_payload');
@@ -503,10 +408,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         /* private mode / quota — silent no-op */
       }
-      // Drop the anonymous fingerprint too — otherwise post-logout guest
-      // activity (browsing, add-to-cart, orders placed as guest) keeps
-      // aggregating under the just-signed-out user's `oe_guest_id` and
-      // OE sees the two sessions as the same visitor.
+      // Drop the anonymous fingerprint too.
       clearGuestId();
     }
     void signOutAction();

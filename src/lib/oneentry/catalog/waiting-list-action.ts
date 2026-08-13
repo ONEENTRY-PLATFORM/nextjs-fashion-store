@@ -1,10 +1,4 @@
-/**
- * Waiting list = the shopper's OE wishlist, annotated with live stock status.
- *
- * The wishlist read is shopper-scoped (`Users.getWishlist`), so it runs in the
- * browser off the session the SDK singleton already carries; the catalogue
- * enrichment stays on the server behind a cached Server Action.
- */
+/** Waiting list = the shopper's OE wishlist, annotated with live stock status. */
 import type { WaitingItem, WaitingStockStatus } from '@/app/data/userData';
 import { getWishlistAction } from '@/lib/oneentry/auth/actions';
 
@@ -17,14 +11,7 @@ const stockToStatus = (p: CatalogProduct): WaitingStockStatus => {
   return 'back_in_stock';
 };
 
-/**
- * Derive the user's waiting list from /me/wishlist. Each wishlist item is
- * enriched with current stock status from the OE catalog. The traditional
- * "waiting list" semantics (out-of-stock items the user wants to be
- * notified about) are inferred — out_of_stock + low_stock items qualify.
- *
- * @returns Wishlist entries with stock status.
- */
+/** Derive the user's waiting list from /me/wishlist. */
 export async function getWaitingListAction(): Promise<WaitingItem[]> {
   const wishlist = await getWishlistAction();
   if (wishlist.length === 0) return [];

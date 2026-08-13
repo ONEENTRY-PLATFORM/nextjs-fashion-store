@@ -15,11 +15,7 @@ type Story = StoryObj<typeof meta>;
 /** OE image attribute shape — array with downloadLink. */
 const BANNER_IMAGE = [{ downloadLink: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1600&q=80' }];
 
-/**
- * Full banner matching the `discount_banner` attribute set naming convention:
- * hp_b_b_lable, hp_b_b_title, hp_b_b_sub_title, hp_b_b_description,
- * hp_b_b_pic, hp_b_b_cta_text, hp_b_b_cta_link.
- */
+/** Full banner matching the `discount_banner` attribute set naming convention: hp_b_b_lable, hp_b_b_title, hp_b_b_sub_title, hp_b_b_description, hp_b_b_pic, hp_b_b_cta_text, hp_b_b_cta_link. */
 export const FullBanner: Story = {
   args: {
     title: 'Fallback Title',
@@ -38,10 +34,7 @@ export const FullBanner: Story = {
   },
 };
 
-/**
- * Text-only variant — no image. Content panel stretches full width and is
- * centred. Useful for editorial or campaign blocks without photography.
- */
+/** Text-only variant — no image. */
 export const TextOnly: Story = {
   args: {
     title: 'Fallback Title',
@@ -57,10 +50,7 @@ export const TextOnly: Story = {
   },
 };
 
-/**
- * Minimal headline — only the title attribute is provided.
- * Verifies the component renders without crashing when most attrs are absent.
- */
+/** Minimal headline — only the title attribute is provided. */
 export const MinimalHeadline: Story = {
   args: {
     title: 'Fallback Title',
@@ -71,10 +61,7 @@ export const MinimalHeadline: Story = {
   },
 };
 
-/**
- * Empty — no attributes set, no fallback headline resolved.
- * The component returns null, so nothing is visible in the canvas.
- */
+/** Empty — no attributes set, no fallback headline resolved. */
 export const Empty: Story = {
   args: {
     title: '',

@@ -10,18 +10,10 @@ import { useList, useT } from '@/lib/oneentry/labels/DictContext';
 import { localizeHref, SHORT_LOCALES, toShortCode } from '@/lib/oneentry/locale';
 import { useCmsLocales } from '@/lib/oneentry/LocalesContext';
 
-/**
- * Where the shopper's region preference is kept. Storage rather than a cookie:
- * nothing server-rendered depends on it, so it must not travel on every request.
- */
+/** Where the shopper's region preference is kept. */
 const REGION_STORAGE_KEY = 'oe_region';
 
-/**
- * Read the remembered region, tolerating storage being unavailable
- * (private mode, blocked cookies).
- *
- * @returns The stored region, or `null` when there is none.
- */
+/** Read the remembered region, tolerating storage being unavailable (private mode, blocked cookies). */
 function readStoredRegion(): string | null {
   try {
     return window.localStorage.getItem(REGION_STORAGE_KEY);
@@ -32,8 +24,7 @@ function readStoredRegion(): string | null {
 
 export function HeaderTopBar() {
   const router = useRouter();
-  // Switching locale is the one navigation that must NOT be locale-prefixed by
-  // the wrapper: it builds the target prefix itself.
+  // Switching locale is the one navigation that must NOT be locale-prefixed by the wrapper: it builds the target prefix itself.
   const rawRouter = useNextRouter();
   const activeLocale = useLocale();
   const barePath = usePathnameWithoutLocale();
@@ -43,24 +34,13 @@ export function HeaderTopBar() {
   // Copy from the OE `header` set; local constants are the offline fallback.
   const lRegion = useT('header_default_region', 'Europe');
   const regions = useList('header_regions', HEADER_REGIONS);
-  // The shopper's pick, remembered across visits. Picking a region used to do
-  // literally nothing — the handler only closed the dropdown — which reads as
-  // a broken control.
-  //
-  // `useMounted` rather than an effect that seeds state: the stored value must
-  // not reach the first client render, or it would disagree with the server
-  // HTML built from the CMS default. Reading it during the post-mount render
-  // keeps hydration byte-identical and avoids a cascading setState.
+  // The shopper's pick, remembered across visits.
   const mounted = useMounted();
   const [picked, setPicked] = useState<string | null>(null);
   const stored = mounted && picked === null ? readStoredRegion() : picked;
   const activeRegion = stored && regions.includes(stored) ? stored : lRegion;
 
-  /**
-   * Remember the picked region and close the menu.
-   *
-   * @param next - The region the shopper chose.
-   */
+  /** Remember the picked region and close the menu. */
   const chooseRegion = (next: string) => {
     setPicked(next);
     setCityOpen(false);
@@ -73,13 +53,7 @@ export function HeaderTopBar() {
   const lPhone = useT('header_support_phone', SUPPORT_PHONE);
   const lStores = useT('header_store_locations', 'Store Locations');
 
-  // Languages are the project's active locales, not a curated list — adding a
-  // locale in the admin panel surfaces it here with no code change.
-  //
-  // Narrowed to the locales the storefront actually *routes* (the build-time
-  // snapshot in `locales.generated.ts`): a language activated in the CMS after
-  // the last build has no URL yet, and a switcher entry that leads nowhere is
-  // worse than not offering it.
+  // Languages are the project's active locales, not a curated list — adding a locale in the admin panel surfaces it here with no code change.
   const cmsLocales = useCmsLocales();
   const locales = cmsLocales.filter((l) => SHORT_LOCALES.includes(toShortCode(l.code)));
   const activeLanguage =
@@ -165,11 +139,7 @@ export function HeaderTopBar() {
                         onClick={() => {
                           setLangOpen(false);
                           if (isActive) return;
-                          // Same page, other language: keep the shopper where
-                          // they are instead of dumping them on the homepage.
-                          // Built from the *bare* path and pushed on the raw
-                          // router, because `localizeHref` has already applied
-                          // the target prefix here.
+                          // Same page, other language: keep the shopper where they are instead of dumping them on the homepage.
                           rawRouter.push(localizeHref(barePath, short));
                         }}
                         title={l.nativeName || l.name}

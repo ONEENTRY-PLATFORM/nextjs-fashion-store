@@ -1,9 +1,6 @@
 import type { PageBlock } from './page-blocks';
 
-/**
- * Marker prefix of the OE `common_block`s that carry the editorial sections
- *  of an info page (`info_section_story`, `info_section_returns`, …).
- */
+/** Marker prefix of the OE `common_block`s that carry the editorial sections of an info page. */
 export const INFO_SECTION_BLOCK_PREFIX = 'info_section_';
 
 /** One editorial section as authored in the OE admin panel. */
@@ -26,12 +23,7 @@ const attrString = (block: PageBlock, marker: string): string => {
   return typeof v === 'string' ? v : '';
 };
 
-/**
- * Adapt OE section blocks to the info-page layout shape, sorted by the
- * admin-defined position. Shared by `<InfoPage>` (which renders them) and by
- * the FAQ structured-data builder (which must describe the same content) —
- * keeping one extractor is what guarantees the two cannot drift apart.
- */
+/** Adapt OE section blocks to the info-page layout shape, sorted by the admin-defined position. */
 export function infoSectionsFromBlocks(blocks: PageBlock[] | undefined): InfoSectionContent[] {
   if (!blocks?.length) return [];
   return blocks
@@ -46,27 +38,14 @@ export function infoSectionsFromBlocks(blocks: PageBlock[] | undefined): InfoSec
     .filter((s) => s.heading.length > 0 || s.body.length > 0);
 }
 
-/**
- * Question/answer pairs for `FAQPage` structured data, taken from the
- * sections the page actually renders.
- *
- * A section counts as a Q&A when its heading reads as a question and it has
- * body copy to answer it. Google requires FAQ markup to mirror content that
- * is visible on the page, so anything not rendered — including any local
- * fallback copy — must never reach the schema. When the CMS has no
- * question-shaped sections the caller is expected to emit no `FAQPage` node
- * at all rather than an empty or invented one.
- */
+/** Question/answer pairs for `FAQPage` structured data, taken from the sections the page actually renders. */
 export function faqItemsFromBlocks(blocks: PageBlock[] | undefined): FaqItem[] {
   return infoSectionsFromBlocks(blocks)
     .map((s) => ({ question: s.heading.trim(), answer: s.body.trim() }))
     .filter((qa) => qa.question.endsWith('?') && qa.answer.length > 0);
 }
 
-/**
- * `FAQPage` JSON-LD for the given pairs. Callers must skip rendering it
- *  entirely when `items` is empty — an empty `mainEntity` is invalid.
- */
+/** `FAQPage` JSON-LD for the given pairs. */
 export function buildFaqSchema(items: FaqItem[]) {
   return {
     '@context': 'https://schema.org',

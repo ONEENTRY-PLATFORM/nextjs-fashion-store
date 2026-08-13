@@ -3,16 +3,7 @@
 import { CURRENCY } from '@/app/data/currencyConfig';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Shared UI widget labels — used across multiple components.
- *
- * Every string here is the **offline fallback** for an OneEntry attribute; the
- * live copy comes from the dictionary via `useT(marker, FALLBACK)`. Strings
- * carrying a runtime value use `%token%` placeholders resolved by
- * {@link ../utils/fillTokens.fillTokens} rather than template literals — an
- * admin-authored string cannot interpolate, and `{}` breaks OneEntry's public
- * read of the whole set.
- */
+/** Shared UI widget labels — used across multiple components. */
 export const PRICE_RANGE_LABELS = {
   minPrice: 'Min price',
   maxPrice: 'Max price',

@@ -12,9 +12,5 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/**
- * CategorySection loads data via RTK Query (catalogConfigApi → fakeBaseQuery → SHOP_CATEGORIES).
- * Works out-of-the-box with the global Redux store decorator.
- * Shows 6-column category grid with filter chips.
- */
+/** CategorySection loads data via RTK Query (catalogConfigApi → fakeBaseQuery → SHOP_CATEGORIES). */
 export const Default: Story = {};

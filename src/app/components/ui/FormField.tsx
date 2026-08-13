@@ -11,11 +11,7 @@ interface FormFieldProps {
   value?: string;
   onChange?: (v: string) => void;
   error?: string;
-  /**
-   * Stable hook for E2E locators. Labels and placeholders are CMS copy and
-   * change per locale, so specs must not target them. The error paragraph gets
-   * `<testId>-error` so a spec can assert the validation message too.
-   */
+  /** Stable hook for E2E locators. */
   testId?: string;
 }
 

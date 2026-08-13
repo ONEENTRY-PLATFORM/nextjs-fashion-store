@@ -1,28 +1,11 @@
-/**
- * Products for a `cart_complement_block` (marker `catalog_cross_sell` and
- * friends). OE resolves the cross-sell against the caller's own cart /
- * activity history, so the request must carry the visitor's context — a
- * bearer token for signed-in shoppers, `x-guest-id` for anonymous ones.
- *
- * That makes it a browser call (MCP `server-actions`): the SDK singleton here
- * already holds the session, and the response is per-visitor so it must never
- * be cached. Only the follow-up catalogue read is cached — that part is public
- * and stays on the server behind `getProductsByIdsAction`.
- */
+/** Products for a `cart_complement_block` (marker `catalog_cross_sell` and friends). Browser call: the response is per-visitor and must never be cached. */
 import type { Product } from '@/app/components/product/ProductCard';
 import { getProductsByIdsAction } from '@/lib/oneentry/catalog/products-action';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 
 import { getApiSafe, hasStoredSession, isError } from '..';
 
-/**
- * Load the cross-sell products OE recommends for the current visitor.
- *
- * @param marker    - Block marker configured in OE.
- * @param [guestId] - Anonymous visitor id, for guests.
- * @param [lang]    - OE locale code.
- * @returns UI-ready products, `[]` when nothing applies.
- */
+/** Load the cross-sell products OE recommends for the current visitor. */
 export async function loadCartComplementProductsAction(
   marker: string,
   guestId?: string,

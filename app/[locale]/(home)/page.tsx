@@ -15,40 +15,15 @@ import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getSiteSettings } from '@/lib/oneentry/dictionary';
 import type { SiteSettings } from '@/lib/oneentry/site-settings';
 
-/**
- * Title/description/keywords/canonical come from the OE `home` page when an
- *  editor filled them; `SEO.home` stays as the offline fallback.
- */
+/** Title/description/keywords/canonical come from the OE `home` page when an editor filled them. */
 export async function generateMetadata(): Promise<Metadata> {
   return withCmsSeo('home', SEO.home);
 }
 
-// ISR route: homepage HTML is cached for 5 min, then a background
-// revalidation refreshes it. Individual SDK reads are memoised in
-// `unstable_cache` within `loadHeroSlides` / `loadHomepageCollections` /
-// `loadDiscountBanner` / `loadCategorySection` / `loadStores` /
-// `loadBlockWithProducts` — those honour `ISR_HOME_TTL_SEC` env for
-// per-loader TTL tuning (see `src/lib/isr.ts`).
-//
-// This value MUST be a literal (or a locally-defined const of a literal).
-// Next.js statically analyses route segment config at build time and
-// rejects imported / re-exported / computed values with "Invalid segment
-// configuration export detected".
+// ISR route: homepage HTML is cached for 5 min, then a background revalidation refreshes it.
 export const revalidate = 300;
 
-/**
- * `Organization` JSON-LD for the storefront.
- *
- * Every fact a crawler reads here — brand name, socials, accepted currency,
- * delivery country, free-delivery threshold, return window — is editor-owned,
- * so the rich result cannot drift away from what the shop actually offers.
- * `ORG_SCHEMA_COPY` keeps only the wording that is not a fact (`contactType`,
- * the "Collections" suffix, the shipping sentence template).
- *
- * @param   flagship - The store whose address and phone represent the brand.
- * @param   settings - Resolved CMS settings.
- * @returns            A schema.org Organization node.
- */
+/** `Organization` JSON-LD for the storefront. */
 function buildOrganizationSchema(flagship: Store | undefined, settings: SiteSettings) {
   const { brand, commerce, currency, org, socials } = settings;
   return {
@@ -99,13 +74,7 @@ function buildOrganizationSchema(flagship: Store | undefined, settings: SiteSett
   };
 }
 
-/**
- * `WebSite` JSON-LD. A function rather than a constant so the brand name comes
- * from the CMS read the page already performs.
- *
- * @param   siteName - Editor-owned brand name.
- * @returns            A schema.org WebSite node.
- */
+/** `WebSite` JSON-LD. */
 function buildWebsiteSchema(siteName: string) {
   return {
     '@context': 'https://schema.org',
@@ -124,9 +93,7 @@ function buildWebsiteSchema(siteName: string) {
 }
 
 export default async function Page() {
-  // The slider loaders wrap their body in `unstable_cache`, where root params
-  // are unreadable — so they cannot resolve the route locale themselves and it
-  // has to be passed in. It also keys their cache entry per language.
+  // The slider loaders wrap their body in `unstable_cache`, where root params are unreadable.
   const lang = await currentCmsLocale();
   const [heroSlides, promoItems, discountBanner, categorySection, pageBlocks, stores, siteSettings] = await Promise.all(
     [
@@ -134,10 +101,7 @@ export default async function Page() {
       loadHomepageCollections(lang),
       loadDiscountBanner(lang),
       loadCategorySection(lang),
-      // Drive the homepage's middle sections from whatever blocks the admin has
-      // attached to the OE Home page (id=1). Each marker is resolved to a block
-      // detail + product list, ordered by `position`. Adding/removing blocks in
-      // OE admin reshuffles the page without code changes.
+      // Drive the homepage's middle sections from whatever blocks the admin has attached to the OE Home page (id=1).
       loadPageBlocksById(HOME_PAGE_ID),
       loadStores(),
       getSiteSettings(lang),
@@ -146,11 +110,7 @@ export default async function Page() {
   const flagship = stores.find((s) => s.isflagship) ?? stores[0];
   const organizationSchema = buildOrganizationSchema(flagship, siteSettings);
 
-  // Temporary marker order override — OE admin currently has blocks in a
-  // different sequence; remove this re-sort once the order is fixed in OE.
-  // Note: `homepage_new_arrivals` and `homepage_best_sellers` map to the
-  // Women's / Men's collection carousels respectively, so both render
-  // before the Sale block.
+  // Temporary marker order override — OE admin currently has blocks in a different sequence; remove this re-sort once the order is fixed in OE.
   const HOMEPAGE_MARKER_ORDER = [
     'hero_slider',
     'category_section',

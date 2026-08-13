@@ -40,20 +40,14 @@ const TAG_TO_LABEL: Record<string, string> = {
   Bestseller: 'BESTSELLER',
 };
 
-/**
- * Map an OneEntry product to the storefront `Product` shape used by
- * ProductCard / CatalogTemplate. UI-only fields (clothingType, fit, collar
- * etc.) come from the mock catalog and aren't on OE products — those stay
- * undefined and the corresponding filter groups simply count zero.
- */
+/** Map an OneEntry product to the storefront `Product` shape used by ProductCard / CatalogTemplate. */
 export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
   const formatPrice = (n: number): string => CURRENCY.format(n);
   const label = TAG_TO_LABEL[p.tag] ?? p.tag;
   const variantHasStock = (v: { stock: number; statusIdentifier: string }) =>
     v.stock > 0 || v.statusIdentifier !== 'out_of_stock';
   const inStock = p.statusIdentifier !== 'out_of_stock';
-  // Slim variant descriptors — carry only the fields ProductCard / QuickView
-  // need to swap when the shopper flips through colors or sizes.
+  // Slim variant descriptors — carry only the fields ProductCard / QuickView need to swap when the shopper flips through colors or sizes.
   const variants = p.variants?.map((v) => ({
     id: String(v.id),
     colors: v.colors,
@@ -65,16 +59,11 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     images: v.images,
     imageBlurs: v.imageBlurs,
     inStock: variantHasStock(v),
-    // Forward numeric stock so QuickView's Add-to-Cart can seed the cart
-    // item's `stockLimit`. Zero + status-only tracking leaves `stock`
-    // undefined (cart falls back to product-level stock or leaves the item
-    // uncapped, matching PDP behaviour).
+    // Forward numeric stock so QuickView's Add-to-Cart can seed the cart item's `stockLimit`. Zero + status-only tracking leaves `stock` undefined.
     ...(v.stock > 0 && { stock: v.stock }),
     ...(v.statusIdentifier && { statusIdentifier: v.statusIdentifier }),
   }));
-  // Per-swatch availability: a colour is buyable when at least one linked
-  // variant carrying it has stock. Without this every swatch is clickable and
-  // the shopper only learns a colour is sold out after opening the PDP.
+  // Per-swatch availability: a colour is buyable when at least one linked variant carrying it has stock.
   const srcVariants = Array.isArray(p.variants) ? p.variants : [];
   const colorStock =
     srcVariants.length > 0
@@ -104,16 +93,12 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     insulation: p.insulation || undefined,
     productDetails: p.productDetails.length > 0 ? p.productDetails : undefined,
     careInstructions: p.careInstructions.length > 0 ? p.careInstructions : undefined,
-    // Fall back to the category path (`/women/...` vs `/men/...`) when the
-    // OE `gender` attribute is left blank — otherwise "unisex-by-omission"
-    // items slip into the opposite gender's carousels/filters.
+    // Fall back to the category path (`/women/...` vs `/men/...`) when the OE `gender` attribute is left blank.
     gender: p.gender || genderFromCategoryPath(p.categories[0]) || undefined,
     ...(variants && variants.length > 0 && { variants }),
-    // Forward product-level stock — QuickView uses it as a fallback for
-    // `stockLimit` when the product has no variants (single-SKU items).
+    // Forward product-level stock — QuickView uses it as a fallback for `stockLimit` when the product has no variants (single-SKU items).
     ...(p.stock > 0 && { stock: p.stock }),
-    // OE status flag so QuickView/PDP can render Coming Soon / Pre-order
-    // copy instead of just In Stock / Out of Stock.
+    // OE status flag so QuickView/PDP can render Coming Soon / Pre-order copy instead of just In Stock / Out of Stock.
     ...(p.statusIdentifier && { statusIdentifier: p.statusIdentifier }),
   };
 }
@@ -125,19 +110,11 @@ function genderFromCategoryPath(path: string | undefined): 'W' | 'M' | '' {
   return '';
 }
 
-/**
- * Sale-page bucket ids.
- *
- * Ids, not display labels: the bucket is a filter value that has to survive an
- * editor renaming the category in the admin panel. The matching copy lives in
- * `SALE_CATEGORY_LABELS` (OE set `sale_page`), keyed by exactly these ids.
- */
+/** Sale-page bucket ids. */
 export type SaleCategoryId =
   'womenClothing' | 'menClothing' | 'womenShoes' | 'menShoes' | 'bags' | 'accessories' | 'other';
 
-/**
- * Infer the Sale-page bucket from an OneEntry category path.
- */
+/** Infer the Sale-page bucket from an OneEntry category path. */
 export function saleCategoryFor(p: CatalogProduct): SaleCategoryId {
   const path = (p.categories[0] ?? '').toLowerCase();
   if (path.startsWith('/women/women_clothing')) return 'womenClothing';
@@ -152,9 +129,7 @@ export function saleCategoryFor(p: CatalogProduct): SaleCategoryId {
 /** New-Arrivals bucket ids — see the note on `SaleCategoryId`. */
 export type NewArrivalCategoryId = 'clothing' | 'shoes' | 'accessories';
 
-/**
- * Infer the New-Arrivals bucket from an OneEntry category path.
- */
+/** Infer the New-Arrivals bucket from an OneEntry category path. */
 export function newArrivalCategoryFor(p: CatalogProduct): NewArrivalCategoryId {
   const path = (p.categories[0] ?? '').toLowerCase();
   if (path.includes('_shoes')) return 'shoes';
@@ -162,27 +137,16 @@ export function newArrivalCategoryFor(p: CatalogProduct): NewArrivalCategoryId {
   return 'clothing';
 }
 
-/**
- * Map an OneEntry product to the rich PDP CatalogProduct shape used by
- * ProductDetailPage. Fields the storefront supports but OE doesn't store
- * (reviews, sizeOptions.available per-size, colorStock, recommendedId,
- * specialOffersId) stay undefined and the UI uses its DEFAULT_* fallbacks.
- */
+/** Map an OneEntry product to the rich PDP CatalogProduct shape used by ProductDetailPage. */
 export function adaptCatalogProductToPdpProduct(
   p: CatalogProduct,
   specLabels?: Partial<Record<ProductSpecKey, string>>,
 ): PdpCatalogProduct {
   const specs = buildProductSpecs(p, specLabels);
-  // Per-colour / per-size availability derived from the variant family. A
-  // colour is available if at least one linked variant carrying it has
-  // stock. Per-size availability is refined client-side by PDP based on the
-  // currently selected colour — here we compute the colour-agnostic default.
+  // Per-colour / per-size availability derived from the variant family.
   const srcVariants = Array.isArray(p.variants) ? p.variants : [];
   const hasVariants = srcVariants.length > 0;
-  // Many OE tenants track availability through `statusIdentifier` alone and
-  // never write to the numeric `stock` field. Treat a variant as buyable
-  // whenever either the count is positive OR the status flag isn't
-  // explicitly `out_of_stock`.
+  // Many OE tenants track availability through `statusIdentifier` alone and never write to the numeric `stock` field.
   const variantHasStock = (v: { stock: number; statusIdentifier: string }) =>
     v.stock > 0 || v.statusIdentifier !== 'out_of_stock';
   const colorStock = hasVariants
@@ -191,25 +155,17 @@ export function adaptCatalogProductToPdpProduct(
   const sizeAvailability = hasVariants
     ? new Map(p.sizes.map((s) => [s, srcVariants.some((v) => v.sizes.includes(s) && variantHasStock(v))]))
     : null;
-  // Slim variant list for PDP so it can recompute size availability per the
-  // currently selected colour. `hex` mapping happens here so the client
-  // matches against the same colour representation the swatches render.
+  // Slim variant list for PDP so it can recompute size availability per the currently selected colour.
   const pdpVariants = hasVariants
     ? srcVariants.map((v) => ({
         id: String(v.id),
         colors: v.colors.map(colorToHex),
         sizes: v.sizes,
         inStock: variantHasStock(v),
-        // Only forward numeric stock when OE tracks it (> 0). Zero + a
-        // truthy `statusIdentifier !== 'out_of_stock'` means "tenant tracks
-        // availability via status, not qty" — leaving `stock` undefined
-        // signals the cart to fall back to the family stock or leave the
-        // item uncapped (server `previewOrder` still validates).
+        // Only forward numeric stock when OE tracks it (> 0).
         ...(v.stock > 0 && { stock: v.stock }),
         price: v.price,
-        // Per-variant discounted price from `applyProductDiscount`. Only
-        // forward when strictly below the original — the UI conditions its
-        // strike-through on `salePrice` being present.
+        // Per-variant discounted price from `applyProductDiscount`. Only forward when strictly below the original.
         ...(v.salePrice !== undefined && v.salePrice < v.price && { salePrice: v.salePrice }),
         sku: v.sku,
         image: v.preview,
@@ -224,22 +180,15 @@ export function adaptCatalogProductToPdpProduct(
     name: p.title,
     brand: p.brand,
     price: p.price,
-    // Discounted price snapshot from `applyProductDiscount` (OE Discounts
-    // module). Only forward when strictly below the original — PDP renders
-    // the strike-through conditionally on `salePrice` being present.
+    // Discounted price snapshot from `applyProductDiscount` (OE Discounts module).
     ...(p.salePrice !== undefined && p.salePrice < p.price && { salePrice: p.salePrice }),
     image: p.preview,
     colors: p.colors.map(colorToHex),
     colorImages: p.images.length >= p.colors.length ? p.images.slice(0, p.colors.length) : undefined,
     colorStock,
-    // OE tenants often track availability through `statusIdentifier` alone
-    // and leave the numeric stock field at 0. Accept either signal so a
-    // status-only product doesn't render as universally out-of-stock.
+    // OE tenants often track availability through `statusIdentifier` alone and leave the numeric stock field at 0.
     inStock: p.stock > 0 || p.statusIdentifier !== 'out_of_stock',
-    // Only forward numeric stock when OE tracks it (> 0). Used as a
-    // fallback for `CartItem.stockLimit` when the shopper adds a product
-    // that has no variant-level stock. Zero + status-only tracking leaves
-    // `stock` undefined so the cart doesn't cap at 0.
+    // Only forward numeric stock when OE tracks it (> 0).
     ...(p.stock > 0 && { stock: p.stock }),
     galleryImages: p.images.length > 0 ? p.images : undefined,
     imageBlurs: p.imageBlurs,
@@ -247,28 +196,19 @@ export function adaptCatalogProductToPdpProduct(
       label: s,
       available: sizeAvailability ? (sizeAvailability.get(s) ?? true) : true,
     })),
-    // The detail accordion expects an array of short bullets — `productDetails`
-    // already comes from the OE `details_5` list. The long description is
-    // separately surfaced as `descriptionHtml` so the PDP can render its full
-    // body.
+    // The detail accordion expects an array of short bullets — `productDetails` already comes from the OE `details_5` list.
     productDetails: p.productDetails.length > 0 ? p.productDetails : undefined,
     descriptionHtml: p.descriptionHtml || undefined,
     careInstructions: p.careInstructions.length > 0 ? p.careInstructions : undefined,
     specs: specs.length > 0 ? specs : undefined,
     material: p.materials[0],
-    // Stamp gender (OE attr → category-path fallback) so PDP can pass it to
-    // Recently-Viewed → gender-aware carousels don't have to guess later.
+    // Stamp gender (OE attr → category-path fallback) so PDP can pass it to Recently-Viewed → gender-aware carousels don't have to guess later.
     gender: p.gender || genderFromCategoryPath(p.categories[0]) || undefined,
     variants: pdpVariants,
   };
 }
 
-/**
- * Stable identifiers for the Specifications rows. The row *label* is editable
- *  in the admin panel (`product_specs` set), so anything that needs to find a
- *  specific row — the PDP's SKU lookup, for one — must match on `key`, never
- *  on the rendered label.
- */
+/** Stable identifiers for the Specifications rows. */
 export type ProductSpecKey = 'composition' | 'lining' | 'fit' | 'style' | 'season' | 'brandOrigin' | 'sku';
 
 /** Offline defaults, kept in sync with the `product_specs` OE set. */
@@ -282,16 +222,7 @@ export const PRODUCT_SPEC_FALLBACK_LABELS: Record<ProductSpecKey, string> = {
   sku: 'SKU',
 };
 
-/**
- * Build a per-product Specifications list from OE attributes. Skips empty or
- *  whitespace-only values so empty fields don't leak into the PDP.
- *
- * @param p      The adapted catalog product to read attribute values from.
- * @param labels Admin-panel overrides from the `product_specs` set, loaded by
- *               {@link loadProductSpecLabels}. Omit to render the defaults —
- *               the adapter stays synchronous so callers that have no OE
- *               access (tests, previews) keep working.
- */
+/** Build a per-product Specifications list from OE attributes. */
 function buildProductSpecs(
   p: CatalogProduct,
   labels?: Partial<Record<ProductSpecKey, string>>,
@@ -314,20 +245,9 @@ function buildProductSpecs(
     .filter((row) => row.value.length > 0);
 }
 
-/**
- * Map a catalog slug (e.g. "women-clothing") to its OneEntry category path.
- */
+/** Map a catalog slug (e.g. "women-clothing") to its OneEntry category path. */
 export function catalogKeyToCategoryPath(catalogKey: string): string | null {
-  // Derived, not looked up: OE names a category page `{parent}_{leaf}`
-  // (`women_clothing` under `women`), and the storefront key is that same url
-  // with hyphens. A table here meant a category added in the admin panel had no
-  // product query until someone shipped a ninth line — see
-  // `catalog-routes.ts`, which discovers the tree instead. A CMS-resolved route
-  // carries its own `categoryPath` and does not come through here at all.
-  // Shape-checked rather than membership-checked: OE page urls are lowercase
-  // `a-z0-9` segments, so anything else (an uppercase key, a stray path, an
-  // empty string) is a caller mistake and must not be turned into a plausible
-  // looking category path that quietly returns zero products.
+  // Derived, not looked up: OE names a category page `{parent}_{leaf}` (`women_clothing` under `women`), and the storefront key is that same url with hyphens.
   const key = (catalogKey ?? '').trim();
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(key)) return null;
   return `/${key.slice(0, key.indexOf('-'))}/${key.replace(/-/g, '_')}`;

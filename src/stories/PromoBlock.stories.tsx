@@ -32,17 +32,10 @@ const MOCK_PROMO_ITEMS: HomepageCollectionItem[] = [
   },
 ];
 
-/**
- * Default story — no `initialItems` passed.
- * The component returns null in this case (data comes from OneEntry at runtime).
- * Use `WithItems` to see the actual UI.
- */
+/** Default story — no `initialItems` passed. */
 export const Default: Story = {};
 
-/**
- * Filled state: two promo cards rendered side by side.
- * This is the typical runtime appearance once OneEntry data is loaded.
- */
+/** Filled state: two promo cards rendered side by side. */
 export const WithItems: Story = {
   args: {
     initialItems: MOCK_PROMO_ITEMS,

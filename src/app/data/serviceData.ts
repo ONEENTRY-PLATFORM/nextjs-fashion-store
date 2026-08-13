@@ -1,24 +1,9 @@
-// ── Service maintenance types ──────────────────────────────────────────────
-// Types for the "Service Maintenance" section. Data now comes from OneEntry
-// via `getServiceRequestsAction` (src/lib/oneentry/catalog/service-requests-action.ts).
+// ── Service maintenance types ────────────────────────────────────────────── Types for the "Service Maintenance" section.
 
-// Request status:
-//   'open'        — request received, awaiting technician assessment
-//   'in-progress' — item is currently being worked on by a specialist
-//   'ready'       — work completed, ready for collection at the store
-//   'completed'   — customer collected the item, request closed
-//   'cancelled'   — request cancelled (by customer or store)
+// Request status: 'open' item is currently being worked on by a specialist 'ready'.
 export type ServiceStatus = 'open' | 'in-progress' | 'ready' | 'completed' | 'cancelled';
 
-// Service category. The union mirrors the `listTitles` values of the OE
-// `service_request` form's `category` attribute — the select posts these
-// verbatim as a `list` value, so an entry that OE does not know is rejected on
-// submit. Keep it in sync with the panel (`/inspect-api forms`):
-//   'repair'           — repair (replacing zips, buttons, seams)
-//   'cleaning'         — dry-cleaning or specialist washing
-//   'alteration'       — fit adjustments (take in, shorten, let out)
-//   'sole-replacement' — resoling footwear
-//   'other'            — other services
+// Service category.
 export type ServiceCategory = 'repair' | 'cleaning' | 'alteration' | 'sole-replacement' | 'other';
 
 export interface ServiceRequest {

@@ -1,12 +1,4 @@
-/**
- * uiSlice — global UI state
- *
- * Replaces QuickViewContext (local useState) and consolidates other transient UI flags
- * that benefit from being in the global store (e.g. mobile menu open state).
- *
- * Note: QuickViewContext in context/QuickViewContext.tsx will remain as a thin wrapper
- * around these actions so existing components don't need to change their imports.
- */
+/** uiSlice — global UI state Replaces QuickViewContext (local useState) and consolidates other transient UI flags that benefit from being in the global store. */
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 import type { Product } from '@/app/components/product/ProductCard';

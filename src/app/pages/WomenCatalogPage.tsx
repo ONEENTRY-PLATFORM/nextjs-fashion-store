@@ -30,8 +30,7 @@ export function WomenCatalogPage({
   trendingBlock?: PageBlock | null;
   pageBlocks?: PageBlock[];
 } = {}) {
-  // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
-  // offline fallback.
+  // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the offline fallback.
   const lTitle = useT('catalog_page_clothing', CL.clothing);
   const lGender = useT('catalog_page_women', CL.women);
   const lCrumbHome = useT('catalog_page_breadcrumb_home', CL.breadcrumbHome);

@@ -9,21 +9,7 @@ import { useT } from '@/lib/oneentry/labels/DictContext';
 
 const PRODUCTS_PER_PAGE = 16;
 
-/**
- * Catalog page for a category that exists in OneEntry but has no bespoke
- * component in the code.
- *
- * The eight categories that shipped each have their own thin wrapper
- * (`WomenShoesPage`, `MenBagsPage`, …) whose only job is to pick an accent
- * colour, a title and a breadcrumb trail. A ninth category created in the admin
- * panel has none of that, and used to 404. This renders the same
- * `CatalogTemplate` from what the CMS actually knows: the page's own title, its
- * parent's title, and the taxonomy position.
- *
- * The accent follows the parent segment, which is the one piece of styling the
- * wrappers vary; an unrecognised parent gets the women accent, matching the
- * default `ProductCard` uses everywhere else.
- */
+/** Catalog page for a category that exists in OneEntry but has no bespoke component in the code. */
 export function CmsCatalogPage({
   catalogKey,
   gender,

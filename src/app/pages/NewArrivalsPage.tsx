@@ -82,8 +82,7 @@ export function NewArrivalsPage({
   const sortBy = catalogState?.sortBy ?? 'newest';
   const viewCols = (catalogState?.viewCols ?? 4) as 3 | 4;
 
-  // Category ids drive the filter; the wording comes from the OE `sale`-style
-  // set, so renaming "Clothing" in the admin panel cannot break matching.
+  // Category ids drive the filter; the wording comes from the OE `sale`-style set, so renaming "Clothing" in the admin panel cannot break matching.
   const NACL = useDict('new_arrivals_page_category_', NACL_FALLBACK);
   const activeCategory = (selectedFilters['category']?.[0] ?? 'all') as NewArrivalCategory;
   const setActiveCategory = (cat: NewArrivalCategory) => {
@@ -92,9 +91,7 @@ export function NewArrivalsPage({
     );
   };
 
-  // Gender scope comes from `?gender=` (set by the header switch). Reading it
-  // here rather than in the page keeps `/new` statically renderable — the
-  // consumer sits inside a `<Suspense>` boundary declared by the route.
+  // Gender scope comes from `?gender=` (set by the header switch).
   const searchParams = useSearchParams();
   const genderFilter = genderFilterFromQuery(searchParams.get('gender'));
   const ALL_PRODUCTS: NewProduct[] = useMemo(
@@ -133,8 +130,7 @@ export function NewArrivalsPage({
     return 0; // newest / popularity keep insertion order
   });
 
-  // Sort keys stay in code (they are OE query values); only their wording is
-  // editable — `new_arrivals_page_sort_<key>`.
+  // Sort keys stay in code (they are OE query values); only their wording is editable — `new_arrivals_page_sort_<key>`.
   const sortLabels = useDict('new_arrivals_page_sort_', NEW_ARRIVALS_SORT_LABELS);
   const sortOptions = useMemo(
     () => NEW_ARRIVALS_SORT_OPTIONS.map((o) => ({ value: o.value, label: sortLabels[o.labelKey] })),

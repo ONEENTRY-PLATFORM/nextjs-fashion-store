@@ -8,15 +8,9 @@ interface RadioCardProps {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
-  /**
-   * Right-hand badge. Optional so the card stays generic; checkout passes
-   *  the CMS-managed "FREE" copy. Omit to render no badge.
-   */
+  /** Right-hand badge. */
   badge?: string;
-  /**
-   * Stable handle for tests. The card's own title and subtitle are CMS copy —
-   *  they differ per locale and per tenant, so they cannot be selected on.
-   */
+  /** Stable handle for tests. */
   testId?: string;
   children?: React.ReactNode;
 }

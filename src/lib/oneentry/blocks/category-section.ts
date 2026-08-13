@@ -12,10 +12,7 @@ export interface CategoryItemFromCms {
   label: string;
   chip: string;
   image: string;
-  /**
-   * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-   *  through an OE preview template have one.
-   */
+  /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
   imageBlur?: string;
   href: string;
 }
@@ -29,8 +26,7 @@ type RawSlide = {
   id: number;
   parentId: number | null;
   position?: number;
-  // SDK Blocks.getSlides() returns attributeValues flat (already normalized for the requested lang),
-  // not nested under a language key like Pages/Products do.
+  // SDK Blocks.getSlides() returns attributeValues flat (already normalized for the requested lang), not nested under a language key like Pages/Products do.
   attributeValues?: Record<string, unknown>;
 };
 

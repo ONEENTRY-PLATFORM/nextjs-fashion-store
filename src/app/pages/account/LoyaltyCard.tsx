@@ -20,13 +20,8 @@ export const LOYALTY_CARD_LABELS = {
   highestTier: 'You have reached the highest tier',
   perks: {
     // Entry-level for shoppers who haven't yet unlocked a paid tier.
-    // Intentionally soft — no discount, just the account basics.
     Member: ['Save items to your wishlist', 'Order history at your fingertips', 'Personalised recommendations'],
-    // First bullet on paid tiers is `perkPlaceholder` on purpose — the
-    // LoyaltyCard swaps it for `${pct}% off every order` at render time,
-    // reading the real percentage from OE (`Discounts.marker.<tier>`).
-    // Hardcoding "5% off" here made every Bronze member look 5% regardless
-    // of what the merchant actually configured.
+    // First bullet on paid tiers is `perkPlaceholder` on purpose.
     Bronze: ['Discount on every order', 'Free standard returns', 'Early access to sales'],
     Silver: ['Discount on every order', 'Free returns & exchanges', 'Priority customer support'],
     Gold: ['Discount on every order', 'Free express delivery', 'Dedicated personal stylist'],
@@ -46,11 +41,7 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
   const lBonuses = useT('my_data_top_banner_bonuses', L.bonuses);
   const lPurchases = useT('my_data_top_banner_purchases', L.purchasesPrefix);
   const lNextLevel = useT('my_data_top_banner_next_level_at', L.nextLevelPrefix);
-  // Show the next-tier target whenever there's a positive threshold to
-  // aim at, even if the shopper is already past it (edge case where LTV
-  // caught up mid-session). AuthContext computes the target via OE first,
-  // fallback ladder second — so a Bronze shopper always sees "$X more to
-  // Silver" even before Silver exists in OE.
+  // Show the next-tier target whenever there's a positive threshold to aim at, even if the shopper is already past it.
   const hasNextTier = user.nextLevelAmount > 0;
   const remainingToNext = Math.max(0, user.nextLevelAmount - user.totalPurchases);
   const progress = hasNextTier ? Math.min((user.totalPurchases / user.nextLevelAmount) * 100, 100) : 100;
@@ -65,15 +56,12 @@ export function LoyaltyCard({ user }: { user: NonNullable<ReturnType<typeof useA
   const nextTierIdx = L.tierOrder.indexOf(user.status as (typeof L.tierOrder)[number]) + 1;
   const nextTierName =
     hasNextTier && nextTierIdx > 0 && nextTierIdx < L.tierOrder.length ? L.tierOrder[nextTierIdx] : null;
-  // Perks are a `tier → string[]` map: two levels of structure, so `mergeDict`
-  // leaves both alone. Each tier gets one comma-separated marker instead,
-  // resolved for the tier actually on screen.
+  // Perks are a `tier → string[]` map: two levels of structure, so `mergeDict` leaves both alone.
   const tier = L.perks[user.status] ? user.status : 'Member';
   const codedPerks = L.perks[tier] ?? L.perks.Member ?? L.perks.Silver;
   const rawPerks = useList(`user_account_loyalty_perks_${snakeKey(tier)}`, codedPerks);
   const perks = rawPerks.map((p) => (p === L.perkPlaceholder ? L.perkDiscountTpl(user.discount) : p));
-  // No discount block for Member — hide the "0%" card so the top-right column
-  // doesn't scream "you get nothing"; just show bonuses which stay meaningful.
+  // No discount block for Member — hide the "0%" card so the top-right column doesn't scream "you get nothing"; just show bonuses which stay meaningful.
   const showDiscount = user.status !== 'Member' && user.discount > 0;
 
   return (

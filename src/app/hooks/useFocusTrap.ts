@@ -10,11 +10,7 @@ const FOCUSABLE = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
-/**
- * Traps Tab/Shift+Tab focus inside `containerRef` while `active` is true.
- * Also handles Escape key via `onEscape`.
- * Returns focus to the previously focused element when deactivated.
- */
+/** Traps Tab/Shift+Tab focus inside `containerRef` while `active` is true. */
 export function useFocusTrap(active: boolean, onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<Element | null>(null);

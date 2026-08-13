@@ -11,14 +11,11 @@ interface ColorSwatchButtonProps {
   outOfStock?: boolean;
   onClick: (e: React.MouseEvent) => void;
   label: string;
-  /** Tailwind size classes for the swatch box. Default "w-4 h-4". */
+  /** Tailwind size classes for the swatch box. */
   sizeClass?: string;
 }
 
-/**
- * 16×16 (default) color chip button with a diagonal strike
- * for the out-of-stock variant.
- */
+/** 16×16 (default) color chip button with a diagonal strike for the out-of-stock variant. */
 export function ColorSwatchButton({
   color,
   active,
@@ -38,9 +35,7 @@ export function ColorSwatchButton({
       title={outOfStock ? CVL.outOfStockLower : label}
       aria-label={label}
       aria-pressed={active}
-      // Stable hook for the Playwright suite. The specs used to select these by
-      // `aria-label*="Color"`, which never matched anything — the label is the
-      // colour *name* ("Black"), so every swatch assertion was silently skipped.
+      // Stable hook for the Playwright suite.
       data-testid="color-swatch"
       tabIndex={outOfStock ? -1 : 0}
       disabled={outOfStock}

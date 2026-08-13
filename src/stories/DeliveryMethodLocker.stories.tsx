@@ -54,10 +54,7 @@ export const Unchecked: Story = {
   args: { ...sharedArgs, checked: false },
 };
 
-/**
- * OE-driven copy: title, subtitle and pinHint replaced by the CMS via
- *  `DeliveryMethodInfoProvider`. No public prop changes needed.
- */
+/** OE-driven copy: title, subtitle and pinHint replaced by the CMS via `DeliveryMethodInfoProvider`. No public prop changes needed. */
 export const WithOECopy: Story = {
   name: 'OE-driven copy',
   decorators: [

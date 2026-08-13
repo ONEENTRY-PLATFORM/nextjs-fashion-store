@@ -1,26 +1,4 @@
-/**
- * OneEntry loader profiling.
- *
- * Wraps async loaders in a thin timer + records every call into an in-memory
- * ring buffer so an ops HTTP endpoint (`GET /api/perf-dump`) can hand out an
- * aggregated snapshot after a load test. Off by default — no measurable
- * overhead in production. Toggle via `.env`:
- *
- *   OE_PROFILE=1          — enable timing capture. Wrapped loaders log every
- *                           call as `[OE-timing] <name> ok <ms>ms`
- *                           (failures as `FAIL <ms>ms`) AND push into the
- *                           ring buffer available via `/api/perf-dump`.
- *   OE_PROFILE_SLOW_MS=N  — only log to stdout when a call is slower than N ms
- *                           (default 0 = log all). Filtering only affects
- *                           stdout — every call is still captured in the
- *                           in-memory buffer for the HTTP dump.
- *   PERF_DUMP_TOKEN=…     — required token for `/api/perf-dump` (see route).
- *
- * Wrapping strategy: `withTiming` sits *outside* `unstable_cache` / `cache`,
- * so the reported time is what the caller actually waits. A cache hit shows
- * up as a fast reading (~ 1 ms), a miss shows the real network round-trip —
- * that split is the whole point of profiling.
- */
+/** OneEntry loader profiling. */
 
 const enabled = process.env.OE_PROFILE === '1';
 const slowThresholdMs = (() => {
@@ -30,10 +8,7 @@ const slowThresholdMs = (() => {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 })();
 
-/**
- * True when `OE_PROFILE=1` — export for callers that want to skip work
- *  they only need for profiling (e.g. building a rich label).
- */
+/** True when `OE_PROFILE=1` — export for callers that want to skip work they only need for profiling. */
 export const OE_PROFILE_ENABLED = enabled;
 
 /** Single timing record kept in the ring buffer. */
@@ -48,18 +23,10 @@ export interface TimingRecord {
   ts: number;
 }
 
-// Ring buffer sized for ~10 minutes of load at ~3 loader calls per second
-// per Node process — comfortably fits a k6 5-minute run without evicting
-// early samples that would skew p95.
+// Ring buffer sized for ~10 minutes of load at ~3 loader calls per second per Node process.
 const RING_CAPACITY = 5000;
 
-// Ring-buffer state is pinned to `globalThis` so every server bundle Next.js
-// emits for this file shares one instance. Without this, route handlers
-// (`app/api/perf-dump/route.ts`) and SSR pages each get their own compiled
-// copy of `profiling.ts` with private module scope — `withTiming` records
-// into the SSR chunk's ring, `/api/perf-dump` reads from the route chunk's
-// ring, and dumps stay empty even under heavy load. Also survives HMR in
-// `next dev` (module reload doesn't touch `globalThis`).
+// Ring-buffer state is pinned to `globalThis` so every server bundle Next.js emits for this file shares one instance.
 interface RingState {
   buffer: (TimingRecord | undefined)[];
   head: number;
@@ -77,10 +44,7 @@ function getRing(): RingState {
   return state;
 }
 
-/**
- * Push a timing record into the ring buffer. Overwrites oldest entries
- *  once the buffer is full. Used internally by `withTiming`.
- */
+/** Push a timing record into the ring buffer. */
 function recordTiming(name: string, durationMs: number, ok: boolean): void {
   const ring = getRing();
   ring.buffer[ring.head] = { name, durationMs, ok, ts: Date.now() };
@@ -100,7 +64,7 @@ export function readTimings(): TimingRecord[] {
   return out;
 }
 
-/** Drop every buffered timing. Useful before a fresh load-test run. */
+/** Drop every buffered timing. */
 export function clearTimings(): void {
   const ring = getRing();
   for (let i = 0; i < RING_CAPACITY; i++) ring.buffer[i] = undefined;
@@ -127,11 +91,7 @@ function percentile(sorted: number[], p: number): number {
   return sorted[idx];
 }
 
-/**
- * Group the buffer by `name` and compute p50/p95/p99. Result is sorted
- *  by p95 descending — slowest loaders first, which is what you almost
- *  always want to look at after a load test.
- */
+/** Group the buffer by `name` and compute p50/p95/p99. */
 export function aggregateTimings(): TimingAggregate[] {
   const byName = new Map<string, TimingRecord[]>();
   for (const r of readTimings()) {
@@ -159,17 +119,7 @@ export function aggregateTimings(): TimingAggregate[] {
   return out;
 }
 
-/**
- * Wrap an async loader so each call emits a `[OE-timing]` log line and
- * records the timing into the ring buffer. No-op when profiling is
- * disabled — the original function is returned unchanged, so there's zero
- * call-site overhead in production.
- *
- * @example
- *   export const loadStores = withTiming('loadStores', cache(async (lang) => {
- *     ...
- *   }));
- */
+/** Wrap an async loader so each call emits a `[OE-timing]` log line and records the timing into the ring buffer. */
 export function withTiming<A extends unknown[], R>(
   name: string,
   fn: (...args: A) => Promise<R>,

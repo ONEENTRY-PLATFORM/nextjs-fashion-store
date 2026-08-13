@@ -6,30 +6,14 @@ import { Link } from '@/lib/i18n/navigation';
 import { getImageUrl } from '@/lib/oneentry';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 
-/**
- * Generic banner-style renderer for OE `common_block` type. Reads
- * `attributeValues` heuristically — admin picks attribute names per
- * `attributeSetIdentifier`, but they follow common patterns
- * (`*_lable/label/eyebrow`, `*_title`, `*_sub_title/subtitle`,
- * `*_description/text/body`, `*_pic/image/photo`, `*_cta_text/button`,
- * `*_cta_link/href/link`). Whatever pattern the admin uses, this component
- * finds it and renders a banner. Hides itself when neither an image nor a
- * headline is present so unconfigured blocks don't leak into the layout.
- *
- * Not a hero — a mid-page banner (similar shape to `<DiscountBanner>` but
- * unopinionated about attribute naming). Homepage keeps `<DiscountBanner>` /
- * `<HeroSlider>` for marker-specific hardcoded flows.
- */
+/** Generic banner-style renderer for OE `common_block` type. */
 
 type AttrValue = { value?: unknown } | undefined;
 type Attrs = Record<string, AttrValue>;
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-/**
- * Find the first attribute value whose key matches any of `patterns`.
- *  Attribute value may itself be `{ value: T }` per OE shape — we unwrap.
- */
+/** Find the first attribute value whose key matches any of `patterns`. Attribute value may itself be `{ value: T }` per OE shape. */
 function pickAttr<T = unknown>(attrs: Attrs, patterns: RegExp[]): T | undefined {
   for (const key of Object.keys(attrs)) {
     if (patterns.some((p) => p.test(key))) {
@@ -39,11 +23,7 @@ function pickAttr<T = unknown>(attrs: Attrs, patterns: RegExp[]): T | undefined 
   return undefined;
 }
 
-/**
- * OE `attributeValues` may arrive either flat (SDK-normalised for the
- *  requested lang) or wrapped under `{ [lang]: {...} }` (raw fetch path).
- *  Handle both — mirrors `discount-banner.ts` fallback logic.
- */
+/** OE `attributeValues` may arrive either flat (SDK-normalised for the requested lang) or wrapped under `{ [lang]: {...} }`. */
 function flattenAttrs(av: unknown, lang: string): Attrs {
   if (!av || typeof av !== 'object') return {};
   const wrapped = (av as Record<string, Record<string, AttrValue>>)[lang];

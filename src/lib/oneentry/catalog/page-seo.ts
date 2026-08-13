@@ -7,32 +7,7 @@ import type { Lang } from '@/lib/oneentry/system-text';
 
 import { loadPageByUrl } from './pages';
 
-/**
- * hreflang alternates for a route, derived from its canonical URL.
- *
- * Next merges page metadata over the layout's **per top-level key**, so a page
- * that declares `alternates: { canonical }` replaces the layout's `alternates`
- * wholesale and silently drops `languages`. Every route therefore has to carry
- * its own language map — which is why this is applied here rather than left to
- * the root layout.
- *
- * @param canonical - The route's canonical URL.
- * @returns hreflang map, or `undefined`.
- */
-/**
- * Reduce a canonical to a site-relative path.
- *
- * Accepts a bare path (`/cart`), a URL on this origin, **and** a URL on some
- * other origin — the last one on purpose. Every OE page is a page of this
- * storefront, so an absolute canonical typed into the admin panel names this
- * page whatever host it carries; when the deployment moved to a new domain,
- * those stale absolute values matched no origin, hreflang silently vanished
- * from every route and each page pointed its canonical at a host that no longer
- * answers. Keeping only the path makes the value survive a domain change.
- *
- * @param   href - Raw canonical from the CMS or the coded fallback.
- * @returns        A path starting with `/`, or `null` when unusable.
- */
+/** hreflang alternates for a route, derived from its canonical URL. Reduce a canonical to a site-relative path. */
 function toSitePath(href: string): string | null {
   const raw = href.trim();
   if (!raw) return null;
@@ -51,8 +26,7 @@ function toSitePath(href: string): string | null {
 
 function languagesFor(canonical: NonNullable<Metadata['alternates']>['canonical']): Record<string, string> | undefined {
   if (!canonical) return undefined;
-  // `canonical` may be a bare string/URL or an `AlternateLinkDescriptor`
-  // (`{ url, title }`) — Next accepts both, so unwrap before parsing.
+  // `canonical` may be a bare string/URL or an `AlternateLinkDescriptor` (`{ url, title }`) — Next accepts both, so unwrap before parsing.
   const raw = typeof canonical === 'object' && 'url' in canonical ? canonical.url : canonical;
   if (!raw) return undefined;
   const href = typeof raw === 'string' ? raw : raw.toString();
@@ -61,38 +35,13 @@ function languagesFor(canonical: NonNullable<Metadata['alternates']>['canonical'
   return buildLanguageAlternates(SITE_URL, path);
 }
 
-/**
- * Overlay the SEO an editor typed on the OneEntry page onto the route's local
- * metadata.
- *
- * Every storefront route carries a fallback `Metadata` object in
- * `src/app/data/seoData.ts`; this helper lets the admin panel win per field.
- * A blank attribute in OE is treated as "not set", so a half-filled page keeps
- * the coded copy for the rest — the same rule `[...slug]/page.tsx` already used
- * for info pages, lifted here so every route shares one implementation.
- *
- * `openGraph` / `twitter` inherit the overridden title and description when the
- * fallback declared them, otherwise a CMS edit would fix the `<title>` while
- * social cards kept advertising the old wording.
- *
- * @param pageUrl OE page url (`cart`, `home`, `delivery_method`, …) — NOT the
- *                storefront route.
- * @param fallback The route's local metadata.
- */
+/** Overlay the SEO an editor typed on the OneEntry page onto the route's local metadata. */
 export async function withCmsSeo(pageUrl: string, fallback: Metadata, langArg?: Lang): Promise<Metadata> {
   const lang = langArg ?? (await currentCmsLocale());
   const short = toShortCode(lang);
   const page = await loadPageByUrl(pageUrl, lang);
 
-  /**
-   * Move a canonical URL onto the locale being rendered.
-   *
-   * Both sources of a canonical are locale-blind: the coded fallbacks in
-   * `seoData.ts` are written unprefixed, and the OE `canonical` attribute is one
-   * value shared by every translation of the page. Left alone, `/de/cart` would
-   * name `/cart` as its canonical — which asks Google to drop the German page
-   * from the index entirely.
-   */
+  /** Move a canonical URL onto the locale being rendered. */
   const localizeCanonical = (raw: string): string => {
     const path = toSitePath(raw);
     if (!path) return raw;
@@ -100,10 +49,7 @@ export async function withCmsSeo(pageUrl: string, fallback: Metadata, langArg?: 
     return `${SITE_URL}${localized === '/' ? '' : localized}`;
   };
 
-  /**
-   * Attach hreflang to whatever canonical ends up winning, and pin both the
-   * canonical and `og:url` to the current locale.
-   */
+  /** Attach hreflang to whatever canonical ends up winning, and pin both the canonical and `og:url` to the current locale. */
   const withLanguages = (meta: Metadata, canonical?: string): Metadata => {
     const target = canonical ?? meta.alternates?.canonical;
     const languages = languagesFor(target);
@@ -111,9 +57,7 @@ export async function withCmsSeo(pageUrl: string, fallback: Metadata, langArg?: 
     const localized = raw ? localizeCanonical(raw) : undefined;
     return {
       ...meta,
-      // The root layout also sets `og:locale`, but Next replaces `openGraph`
-      // wholesale when a page declares its own — so a page-level object has to
-      // carry the locale itself or the tag disappears from every route.
+      // The root layout also sets `og:locale`, but Next replaces `openGraph` wholesale when a page declares its own.
       ...(meta.openGraph
         ? { openGraph: { ...meta.openGraph, locale: lang, ...(localized ? { url: localized } : {}) } }
         : {}),

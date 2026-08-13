@@ -142,10 +142,7 @@ export function HeaderMobileDrawer({
   );
 }
 
-/**
- * One drawer footer link. Extracted so `useHeaderT` is a top-level hook call
- *  rather than one inside a `.map()` callback.
- */
+/** One drawer footer link. */
 function MobileFooterLinkRow({ link, onClose }: { link: (typeof MOBILE_FOOTER_LINKS)[number]; onClose: () => void }) {
   const label = useT(link.labelKey, link.fallbackLabel);
   return (

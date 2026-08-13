@@ -1,11 +1,4 @@
-/**
- * Sign-up form shapes shared by the server loader and Client Components.
- *
- * Split out of `sign-up-form.ts` so `SignUpFormSchemaContext` can import the
- * type and the empty default without dragging in the loader — which reaches
- * for `next/root-params`, a Server-Component-only module that the build
- * refuses to place in a client bundle.
- */
+/** Sign-up form shapes shared by the server loader and Client Components. */
 
 export interface SignUpFieldString {
   title: string;

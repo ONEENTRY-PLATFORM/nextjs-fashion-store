@@ -11,11 +11,7 @@ interface RecentlyViewedItem extends Product {
 }
 
 interface RecentlyViewedState {
-  /**
-   * Circular buffer of viewed products.
-   * Index 0 = most recently viewed.
-   * When full (100 items), the oldest entry (index LIMITS.RECENTLY_VIEWED_MAX-1) is evicted first.
-   */
+  /** Circular buffer of viewed products. */
   items: RecentlyViewedItem[];
 }
 
@@ -48,11 +44,7 @@ const recentlyViewedSlice = createSlice({
         state.items.splice(LIMITS.RECENTLY_VIEWED_MAX, state.items.length - LIMITS.RECENTLY_VIEWED_MAX);
       }
     },
-    /**
-     * Replace the trail with whatever came from the server. Used after the
-     *  AuthContext bootstraps and enriches the server's `{productId, viewedAt}`
-     *  pairs with full Product details from the catalog.
-     */
+    /** Replace the trail with whatever came from the server. */
     hydrate(state, action: PayloadAction<RecentlyViewedItem[]>) {
       state.items = action.payload.slice(0, LIMITS.RECENTLY_VIEWED_MAX);
     },

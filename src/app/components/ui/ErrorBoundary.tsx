@@ -9,18 +9,7 @@ export const ERROR_BOUNDARY_LABELS = {
   unexpectedError: 'An unexpected error occurred.',
 } as const;
 
-/**
- * The default fallback UI.
- *
- * Split out of the class because the copy comes from the CMS dictionary and a
- * class component cannot call `useDict`. The boundary itself has to stay a
- * class — `getDerivedStateFromError` has no hook equivalent.
- *
- * @param          props         - Fallback props.
- * @param          [props.message] - The caught error's message.
- * @param      props.onRetry - Clears the error state.
- * @returns               The rendered fallback.
- */
+/** The default fallback UI. */
 function ErrorFallback({ message, onRetry }: { message?: string; onRetry: () => void }) {
   const L = useDict('error_boundary_', ERROR_BOUNDARY_LABELS);
   return (

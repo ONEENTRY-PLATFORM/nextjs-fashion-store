@@ -10,20 +10,12 @@ import userReducer from './userSlice';
 import wishlistReducer from './wishlistSlice';
 
 const STORAGE_KEY = 'oe_store';
-/**
- * Increment when Redux state shape changes.
- * Add a migration function in MIGRATIONS below for each version bump.
- */
+/** Increment when Redux state shape changes. */
 const STORAGE_VERSION = 5;
 
 type PersistedRaw = Record<string, unknown> & { __version?: number };
 
-/**
- * Migration functions: key = target version, value = transform applied to the
- * raw persisted object to bring it up to that version.
- * v1→v2: userAddresses moved out of user.data into top-level key
- * v2→v3: recentlyViewed items gain viewedAt timestamp
- */
+/** Migration functions: key = target version, value = transform applied to the raw persisted object to bring it up to that version. */
 const MIGRATIONS: Record<number, (data: PersistedRaw) => PersistedRaw> = {
   2: (data) => {
     // No-op: v1 data without __version just gets a fresh start (handled below)
@@ -41,14 +33,9 @@ const MIGRATIONS: Record<number, (data: PersistedRaw) => PersistedRaw> = {
     }
     return data;
   },
-  // v3→v4: defensive bump. Auth-token fields are added on user.data but
-  // they are explicitly NOT persisted (token never hits localStorage),
-  // so no state shape change is needed here — kept for traceability.
+  // v3→v4: defensive bump.
   4: (data) => data,
-  // v4→v5: drop the legacy `userAddresses` key entirely. Real addresses
-  // now come from OE via AuthContext (`user.addresses`); the persisted
-  // copy only ever held the demo `Jane Smith` seed for guests, which was
-  // never a valid data source.
+  // v4→v5: drop the legacy `userAddresses` key entirely.
   5: (data) => {
     delete (data as Record<string, unknown>).userAddresses;
     return data;
@@ -82,10 +69,7 @@ function loadFromStorage() {
     const { catalog: _catalog, __version: _v, user: _legacyUser, cart: persistedCart, ...rest } = migrated;
     const result: Record<string, unknown> = { ...rest };
     if (persistedCart && typeof persistedCart === 'object') {
-      // Drop any ephemeral UI flags (older builds persisted miniCartOpen,
-      // which would re-open the mini-cart on every page load). Same for
-      // `unavailableRemoved` — the notice is a one-shot per session, not a
-      // sticky state that should survive reload.
+      // Drop any ephemeral UI flags (older builds persisted miniCartOpen, which would re-open the mini-cart on every page load).
       const {
         miniCartOpen: _miniCartOpen,
         unavailableRemoved: _unavailableRemoved,
@@ -116,10 +100,7 @@ export function loadCatalogFromStorage() {
 
 function saveToStorage(state: RootState) {
   try {
-    // miniCartOpen is ephemeral UI state — keep it out of localStorage so it
-    // can't leak across navigations and cause a hydration mismatch on the next
-    // page load. Same rationale for `unavailableRemoved`: it's a one-shot
-    // notice, not a preference to persist.
+    // miniCartOpen is ephemeral UI state.
     const { miniCartOpen: _miniCartOpen, unavailableRemoved: _unavailableRemoved, ...persistedCart } = state.cart;
     localStorage.setItem(
       STORAGE_KEY,

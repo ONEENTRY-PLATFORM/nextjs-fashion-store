@@ -7,22 +7,11 @@ import { useRouter } from '@/lib/i18n/navigation';
 import { completeGoogleSignIn } from '@/lib/oneentry/auth/actions';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Redeems Google's `?code=` for a OneEntry session and installs it in this
- * browser, then bounces to the path saved when the flow started.
- *
- * Runs client-side on purpose: `AuthProvider.oauth` binds the refresh token to
- * the `x-device-metadata` fingerprint of the issuing request, so the exchange
- * has to be stamped with the browser's fingerprint (captured here, forwarded
- * to the Server Action that holds the CSRF cookie). A server-issued token
- * would be refused by the proactive `/refresh` from this browser and the
- * shopper would be silently signed out.
- */
+/** Redeems Google's `?code=` for a OneEntry session and installs it in this browser, then bounces to the path saved when the flow started. */
 export function GoogleCallbackClient() {
   const router = useRouter();
   const params = useSearchParams();
-  // StrictMode runs effects twice in dev; the authorization code is one-shot,
-  // so a second exchange would fail and bounce the shopper to an error page.
+  // StrictMode runs effects twice in dev; the authorization code is one-shot, so a second exchange would fail and bounce the shopper to an error page.
   const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const lMissingCode = useT('sign_in_google_missing_code', OAE.missingCode);

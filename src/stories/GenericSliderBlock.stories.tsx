@@ -62,10 +62,7 @@ function makePositionalSlide(
 
 // ─── Stories ─────────────────────────────────────────────────────────────────
 
-/**
- * Three slides using `hp_b_b_*` semantic attribute names.
- * Prev / next arrow buttons and dot pagination are visible and interactive.
- */
+/** Three slides using `hp_b_b_*` semantic attribute names. */
 export const MultipleSlides: Story = {
   args: {
     title: 'Seasonal Lookbook',
@@ -101,10 +98,7 @@ export const MultipleSlides: Story = {
   },
 };
 
-/**
- * Single slide — arrows and dot pagination are hidden per component logic
- * (`slides.length > 1` guard).
- */
+/** Single slide — arrows and dot pagination are hidden per component logic (`slides.length > 1` guard). */
 export const SingleSlide: Story = {
   args: {
     title: 'Hero Banner',
@@ -122,11 +116,7 @@ export const SingleSlide: Story = {
   },
 };
 
-/**
- * Two slides using positional `string_id1`–`string_id6` + `image_id4` keys.
- * Verifies that the positional-fallback path in `normalizeSlide` resolves
- * correctly when no semantic attribute names are present.
- */
+/** Two slides using positional `string_id1`–`string_id6` + `image_id4` keys. */
 export const PositionalNaming: Story = {
   args: {
     title: 'Positional Fallback Demo',
@@ -153,10 +143,7 @@ export const PositionalNaming: Story = {
   },
 };
 
-/**
- * Empty slides array — component returns null.
- * The canvas will be blank; this verifies the null-guard is in place.
- */
+/** Empty slides array — component returns null. */
 export const Empty: Story = {
   args: {
     title: 'Empty Slider',

@@ -29,8 +29,7 @@ const L_FALLBACK = ACCOUNT_DELETION_LABELS;
 
 export function AccountDeletionSection() {
   const L = useDict('user_account_deletion_', L_FALLBACK);
-  // An array is structure to `mergeDict`, so the consequences of deleting an
-  // account were the one part of this warning an editor could not touch.
+  // An array is structure to `mergeDict`, so the consequences of deleting an account were the one part of this warning an editor could not touch.
   const warningPoints = useList('user_account_deletion_warning_points', L.warningPoints);
   const { logout } = useAuth();
   const router = useRouter();

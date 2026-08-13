@@ -3,38 +3,10 @@ import type { Metadata } from 'next';
 import { SITE_SETTINGS_FALLBACK } from '@/lib/oneentry/site-settings';
 
 // ─── Site-wide defaults ────────────────────────────────────────────────────
-// The brand name below is the **offline fallback**, re-exported from the one
-// place that owns the shipped defaults so the two cannot drift. Live values
-// come from the OE `site_settings` set — metadata builders and JSON-LD read it
-// through `getSiteSettings()`. The per-page `SEO` objects further down are
-// build-time literals, so they interpolate the fallback; `withCmsSeo` overlays
-// the editor's `meta_*` on top of them at request time.
-//
-// `SITE_DESCRIPTION`, `TWITTER_HANDLE`, `ORG_SOCIALS`, `CURRENCY`,
-// `FREE_SHIPPING_THRESHOLD`, `RETURN_WINDOW_DAYS`, `DELIVERY_*`,
-// `PWA_MANIFEST_COPY` and `OG_IMAGE_COPY` used to live here as well. They are
-// now fields of `SITE_SETTINGS_FALLBACK` and were removed rather than
-// re-exported: a second name for the same value is how the numbers Google
-// reads drifted away from the ones checkout enforces in the first place.
+// The brand name below is the **offline fallback**, re-exported from the one place that owns the shipped defaults so the two cannot drift.
 export const SITE_NAME = SITE_SETTINGS_FALLBACK.brand.siteName;
 
-/**
- * The origin every canonical, `hreflang`, sitemap entry, `robots.txt` `host`
- * and OG URL is built from.
- *
- * Deployment-owned, **not** admin-owned: an editor must not be able to point
- * the whole site's canonicals at another domain from the CMS, and the value is
- * needed by `robots.ts` / `sitemap.ts`, which run before any CMS read. It is
- * read from `NEXT_PUBLIC_SITE_URL`, falling back to Vercel's own production
- * host, and only then to the literal below.
- *
- * Only `NEXT_PUBLIC_*` vars are consulted on purpose: the constant is imported
- * by modules that end up in the client bundle, and a server-only var would
- * resolve to `undefined` there and produce two different canonicals for the
- * same page. `NEXT_PUBLIC_VERCEL_URL` is deliberately *not* consulted either —
- * it names the individual deployment (a hashed preview host), and a canonical
- * pointing at one would compete with the production page in the index.
- */
+/** The origin every canonical, `hreflang`, sitemap entry, `robots.txt` `host` and OG URL is built from. */
 export const SITE_URL = ((): string => {
   const clean = (v: string) => v.trim().replace(/\/+$/, '');
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;

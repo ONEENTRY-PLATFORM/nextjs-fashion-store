@@ -1,10 +1,5 @@
 'use client';
-/**
- * ShoesCatalog — thin wrapper over CatalogTemplate.
- *
- * Computes genderLabel / breadcrumbs / scrollbarClass from the props.
- * All rendering logic lives in CatalogTemplate.
- */
+/** ShoesCatalog — thin wrapper over CatalogTemplate. */
 import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { ACCENT_MEN } from '@/app/constants/colors';
@@ -36,10 +31,7 @@ export interface ShoesCatalogProps {
   /** Parsed filters object (from URL `searchParams`). */
   currentFilters?: CatalogFilters;
   trendingBlock?: PageBlock | null;
-  /**
-   * All OE-attached page blocks (`Pages.getBlocksByPageUrl`). Forwarded
-   *  to CatalogTemplate → PageBlocksRenderer.
-   */
+  /** All OE-attached page blocks (`Pages.getBlocksByPageUrl`). */
   pageBlocks?: PageBlock[];
   /** Override catalog title (default: "SHOES") */
   catalogTitle?: string;
@@ -66,9 +58,7 @@ export function ShoesCatalog({
   catalogTitle,
   breadcrumbCategory,
 }: ShoesCatalogProps) {
-  // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the
-  // offline fallback. Wrappers (e.g. `AccessoriesCatalog`) may still override
-  // the title/breadcrumb explicitly — an explicit prop wins over the set.
+  // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the offline fallback.
   const lShoes = useT('catalog_page_shoes', CL.shoes);
   const lCrumbShoes = useT('catalog_page_breadcrumb_shoes', CL.breadcrumbShoes);
   const lWomen = useT('catalog_page_women', CL.women);

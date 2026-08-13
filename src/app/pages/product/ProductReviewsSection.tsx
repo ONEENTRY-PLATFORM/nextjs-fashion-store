@@ -24,11 +24,7 @@ interface ProductReviewsSectionProps {
   showAllReviews: boolean;
   setShowAllReviews: (v: boolean) => void;
   setShowReviewModal: (v: boolean) => void;
-  /**
-   * Optional inline notice shown under the "Write a Review" button — used
-   *  when the shopper is signed in but never actually received the product,
-   *  so we block the write flow and explain why. `null` hides the row.
-   */
+  /** Optional inline notice shown under the "Write a Review" button. */
   purchaseNotice?: string | null;
 }
 

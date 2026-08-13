@@ -23,12 +23,7 @@ export const QUICK_VIEW_COLUMNS = ['size', 'chest', 'waist', 'hips'] as const;
 
 export type QuickViewSizeRow = Record<(typeof QUICK_VIEW_COLUMNS)[number], string>;
 
-/**
- * Measurements, not copy — the same kind of data as {@link SIZE_GUIDE_DATA},
- * which is why it lives here and not with the Quick View modal's wording. The
- * fill script seeds `size_guide_quick_view_rows` from it, and cannot import a
- * client component to reach it.
- */
+/** Measurements, not copy. */
 export const QUICK_VIEW_SIZE_DATA: readonly QuickViewSizeRow[] = [
   { size: 'XS', chest: '80–84', waist: '60–64', hips: '86–90' },
   { size: 'S', chest: '84–88', waist: '64–68', hips: '90–94' },
@@ -38,22 +33,7 @@ export const QUICK_VIEW_SIZE_DATA: readonly QuickViewSizeRow[] = [
   { size: 'XXL', chest: '100–104', waist: '80–84', hips: '106–110' },
 ];
 
-/**
- * Parse a CMS-authored measurement table.
- *
- * One row per line, columns separated by `|`, in the order given by `columns`:
- *
- *     XS|0-2|31-32"|24-25"|33-34"
- *     S|4-6|33-34"|26-27"|35-36"
- *
- * A pipe-separated string rather than JSON on purpose: OneEntry drops a whole
- * attribute set from its public read when any value contains `{` or `}`, so a
- * JSON table would take the rest of the set down with it.
- *
- * A malformed line is dropped, and an input that yields no usable row falls
- * back to `fallback` — a shopper is better served by slightly stale
- * measurements than by an empty size guide.
- */
+/** Parse a CMS-authored measurement table. */
 export function parseSizeTable<T extends Record<string, string>>(
   raw: string | undefined | null,
   columns: readonly (keyof T & string)[],
@@ -70,9 +50,7 @@ export function parseSizeTable<T extends Record<string, string>>(
   return rows.length > 0 ? rows : fallback;
 }
 
-/**
- * Serialise a table back to the editable form — used to seed the CMS value.
- */
+/** Serialise a table back to the editable form — used to seed the CMS value. */
 export function serializeSizeTable<T extends Record<string, string>>(
   rows: readonly T[],
   columns: readonly (keyof T & string)[],
@@ -80,9 +58,7 @@ export function serializeSizeTable<T extends Record<string, string>>(
   return rows.map((r) => columns.map((c) => r[c]).join('|')).join('\n');
 }
 
-/**
- * The PDP size guide (inches, with US sizes).
- */
+/** The PDP size guide (inches, with US sizes). */
 export const parseSizeGuide = (raw: string | undefined | null): readonly SizeRow[] =>
   parseSizeTable<SizeRow>(raw, SIZE_GUIDE_COLUMNS, SIZE_GUIDE_DATA);
 

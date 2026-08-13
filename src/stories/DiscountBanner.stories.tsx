@@ -12,8 +12,5 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/**
- * DiscountBanner loads data via RTK Query (homepageApi → fakeBaseQuery → DISCOUNT_BANNER).
- * Works out-of-the-box with the global Redux store decorator.
- */
+/** DiscountBanner loads data via RTK Query (homepageApi → fakeBaseQuery → DISCOUNT_BANNER). */
 export const Default: Story = {};

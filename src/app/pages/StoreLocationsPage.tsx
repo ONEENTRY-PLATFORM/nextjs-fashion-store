@@ -13,9 +13,7 @@ import { useDict, useList, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { StoreCard } from './stores/StoreCard';
 
-/**
- * Stores page + StoreCard UI copy.
- */
+/** Stores page + StoreCard UI copy. */
 export const STORE_LOCATIONS_LABELS = {
   // Hero
   heroEyebrow: 'Visit Us In Store',
@@ -60,7 +58,7 @@ export const STORE_LOCATIONS_LABELS = {
 type StoreLocationsPageProps = {
   initialStores?: Store[];
   cmsPage?: StoreLocationsPageFromCms | null;
-  /** OE-attached blocks for the `stores` page. Rendered above the hero. */
+  /** OE-attached blocks for the `stores` page. */
   pageBlocks?: PageBlock[];
 };
 
@@ -90,11 +88,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
   const lFooterText = useT('store_location_footer_text', L.shopOnlineCopy);
   const lFooterLink = useT('store_location_footer_link', L.shopOnlineCta);
   const lBookStyling = useT('store_location_footer_banner_cta', L.flagshipBookStyling);
-  // The services strip is a `{icon, label}` array, and `useDict` passes
-  // non-string entries through untouched — they are structure, not copy. So the
-  // labels travel as a comma-separated marker of their own (the same shape
-  // `header_regions` uses) while the emoji stay in code: they are decoration
-  // keyed by position, not wording an editor should have to retype.
+  // The services strip is a `{icon, label}` array, and `useDict` passes non-string entries through untouched — they are structure, not copy.
   const serviceLabels = useList(
     'store_pages_services',
     STORE_LOCATIONS_LABELS.services.map((s) => s.label),

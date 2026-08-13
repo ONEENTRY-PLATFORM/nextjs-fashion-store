@@ -31,11 +31,7 @@ import { SiteSettingsProvider } from '@/lib/oneentry/SiteSettingsContext';
 import { PageViewTracker } from './PageViewTracker';
 import { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar';
 
-/**
- * No-op placeholder kept for backwards compatibility. Real wishlist
- * hydration happens in `WishlistContext` from /me/wishlist via
- * `useAuth().user.wishlistItems`.
- */
+/** No-op placeholder kept for backwards compatibility. */
 function WishlistSyncEffect() {
   const { isLoggedIn } = useAuth();
   void isLoggedIn;
@@ -43,20 +39,7 @@ function WishlistSyncEffect() {
   return null;
 }
 
-/**
- * Surface the `?googleAuthError=…` param the OAuth callback route sets on
- *  failure (see `app/auth/callback/google/route.ts:22-38`). Without this
- *  the shopper lands back on `/` with the login modal already closed and
- *  no explanation for why sign-in didn't take. We re-open the modal so
- *  they can retry, and strip the query param so a hard refresh doesn't
- *  loop the modal open.
- */
-/**
- * Map the `?googleAuthError=…` query into a friendly banner shown on
- *  the LoginModal. OE's callback route surfaces codes like
- *  `access_denied` / `token_exchange_failed` — translate the common ones
- *  and default to the raw code when we don't have a matching phrase.
- */
+/** Surface the `?googleAuthError=…` param the OAuth callback route sets on failure. Map the `?googleAuthError=…` query into a friendly banner shown on the LoginModal. */
 function humaniseGoogleAuthError(
   code: string,
   copy: { accessDenied: string; token: string; state: string; generic: string },
@@ -110,10 +93,7 @@ export function Providers({
   cmsLocales = [],
 }: {
   children: React.ReactNode;
-  /**
-   * The whole CMS dictionary, flat `marker → value`. Loaded once in the root
-   *  layout; every screen reads it through `useT` / `useDict` / `useList`.
-   */
+  /** The whole CMS dictionary, flat `marker → value`. Loaded once in the root layout. */
   dict?: Dictionary;
   /** `footer` menu — the legal row under the copyright line. */
   footerMenu?: MenuPageNode[];
@@ -121,45 +101,22 @@ export function Providers({
   footerColumnsMenu?: MenuPageNode[];
   headerMenu?: MenuPageNode[];
   signUpFormSchema?: SignUpFormSchema;
-  /**
-   * OE form content keyed by marker — layout-wide forms only: the footer
-   *  newsletter, plus the two review forms (`WriteReviewModal` opens from the
-   *  header's `QuickViewModal`, so it can surface on any route). Route-scoped
-   *  forms mount their own `FormPlaceholdersProvider` closer to the page, which
-   *  merges with this map rather than replacing it.
-   */
+  /** OE form content keyed by marker — layout-wide forms only: the footer newsletter, plus the two review forms. */
   forms?: Record<string, FormContent>;
   /** Active project locales — drives the header language switcher. */
   cmsLocales?: CmsLocale[];
 }) {
-  // Lazy `useState` initializer rather than the write-a-ref-during-render
-  // idiom: the initializer runs exactly once and is render-safe, whereas
-  // touching `ref.current` during render is flagged (React must be free to
-  // re-run render without side effects).
+  // Lazy `useState` initializer rather than the write-a-ref-during-render idiom: the initializer runs exactly once and is render-safe, whereas touching `ref.current` during render is flagged.
   const [store] = useState<AppStore>(() => makeStore());
 
-  // Settings are derived from the same dictionary the labels use, so they cost
-  // no extra request. `configureCurrency` runs here rather than in an effect on
-  // purpose: the plain price formatters in `currencyConfig` are called during
-  // the render of components below this one, and an effect fires after that
-  // render — the first paint would use the shipped symbol and then swap, which
-  // is a visible flicker on every price on the page. The call is idempotent and
-  // derived purely from props, so re-running render re-runs it harmlessly.
+  // Settings are derived from the same dictionary the labels use, so they cost no extra request.
   const siteSettings = useMemo(() => {
     const parsed = parseSiteSettings(dict);
     configureCurrency(parsed.currency);
     return parsed;
   }, [dict]);
 
-  // Tell the browser SDK which locale the shopper is on. Without this the
-  // instance stays on its constructor default and every user-scoped call
-  // (orders, profile, discounts) answers in English on `/de` — the URL was the
-  // only thing that knew the locale, and the SDK never saw it.
-  //
-  // Called during render for the same reason `configureCurrency` above is: the
-  // value is read by code that runs below this component, and an effect fires
-  // after that. Idempotent and derived purely from the URL, so re-rendering
-  // re-runs it harmlessly.
+  // Tell the browser SDK which locale the shopper is on; without it every user-scoped call keeps the constructor default.
   const shortLocale = useLocale();
   useMemo(() => setLang(toCmsLocale(shortLocale)), [shortLocale]);
 

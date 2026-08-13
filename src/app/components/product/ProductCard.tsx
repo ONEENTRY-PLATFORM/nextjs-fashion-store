@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
-import { PRODUCT_CARD_ARIA_LABELS , PRODUCT_CARD_LABELS,QUICK_VIEW_LABELS  } from '@/app/components/product/copy';
+import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS, QUICK_VIEW_LABELS } from '@/app/components/product/copy';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
 import { SIZE_DROPDOWN_LABELS } from '@/app/components/ui/copy';
@@ -49,15 +49,11 @@ export interface Product {
   image: string;
   label?: string;
   colors: string[];
-  /** Per-color images (same index as colors). Falls back to product.image if missing. */
+  /** Per-color images (same index as colors). */
   colorImages?: string[];
-  /**
-   * Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by
-   *  URL so it stays correct however `colorImages` is sliced or reordered.
-   *  Absent for images that predate OE preview templates.
-   */
+  /** Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by URL so it stays correct however `colorImages` is sliced or reordered. */
   imageBlurs?: Record<string, string>;
-  /** Per-color stock status (same index as colors). undefined = in stock. */
+  /** Per-color stock status (same index as colors). */
   colorStock?: boolean[];
   sizes?: string[];
   badge?: string;
@@ -101,15 +97,9 @@ export interface Product {
   outerMaterial?: string;
   /** Clothing product details (array, e.g. ['Print', 'Embroidery']) */
   productDetails?: string[];
-  /**
-   * Insulation filler — surfaced from OE `insulation_17` and consumed by the
-   *  Insulation filter group on catalog pages.
-   */
+  /** Insulation filler — surfaced from OE `insulation_17` and consumed by the Insulation filter group on catalog pages. */
   insulation?: string;
-  /**
-   * Care instructions — surfaced from OE `careinstructions_18` and consumed
-   *  by the Care Instructions filter group on catalog pages.
-   */
+  /** Care instructions — surfaced from OE `careinstructions_18` and consumed by the Care Instructions filter group on catalog pages. */
   careInstructions?: string[];
   /** Shoe measurements */
   heelHeight?: number;
@@ -128,30 +118,13 @@ export interface Product {
   recommendedId?: string;
   /** ID of the special-offers group to show on the detail page */
   specialOffersId?: string;
-  /**
-   * Gender taxonomy: 'W' (women), 'M' (men), 'U' (unisex). Empty when OE
-   *  doesn't tag the product. Used by Recently Viewed / You May Also Like /
-   *  trending carousels to keep recommendations gender-consistent.
-   */
+  /** Gender taxonomy: 'W' (women), 'M' (men), 'U' (unisex). */
   gender?: 'W' | 'M' | 'U' | '';
-  /**
-   * All linked variants in the same title-group. When present, clicking a
-   *  color / size swatch in the card or QuickView swaps the displayed image,
-   *  price, SKU, and stock to the matching variant.
-   */
+  /** All linked variants in the same title-group. */
   variants?: ProductVariant[];
-  /**
-   * Product-level numeric stock — used as a fallback for `CartItem.stockLimit`
-   *  when a variant-less product is added from QuickView. Undefined when the
-   *  tenant tracks availability via `statusIdentifier` alone.
-   */
+  /** Product-level numeric stock. */
   stock?: number;
-  /**
-   * OE availability status (`in_stock` | `out_of_stock` | `coming_soon` |
-   *  `preorder` | ...). Forwarded from the OE product record so the storefront
-   *  can render richer stock copy (Coming Soon / Pre-order) rather than the
-   *  binary `inStock` boolean.
-   */
+  /** OE availability status (`in_stock` | `out_of_stock` | `coming_soon` | `preorder` | ...). */
   statusIdentifier?: string;
 }
 
@@ -165,16 +138,9 @@ export interface ProductVariant {
   image: string;
   images: string[];
   inStock: boolean;
-  /**
-   * Numeric stock forwarded from OE when the tenant tracks quantities.
-   *  Used by QuickView's Add-to-Cart to seed `CartItem.stockLimit`.
-   */
+  /** Numeric stock forwarded from OE when the tenant tracks quantities. */
   stock?: number;
-  /**
-   * OE variant availability status — mirrors `Product.statusIdentifier` but
-   *  keyed per variant so a Pre-order colour + In Stock colour of the same
-   *  title-group render distinct copy.
-   */
+  /** OE variant availability status. */
   statusIdentifier?: string;
 }
 
@@ -191,40 +157,18 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const { toggleItem, isWishlisted } = useWishlist();
   const { addItem: addToCart } = useCart();
   const { openQuickView, isOpen: isQuickViewOpen } = useQuickView();
-  // CTA labels: `add_to_cart_cta` lives in the `product-card` set, while the
-  // post-click "Added" copy and "Quick View" labels live in the dedicated
-  // `product_card_actions` set on OE.
+  // CTA labels: `add_to_cart_cta` lives in the `product-card` set, while the post-click "Added" copy and "Quick View" labels live in the dedicated `product_card_actions` set on OE.
   const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
   const lAdded = useT('added', PRODUCT_CARD_LABELS.added);
   const lQuickView = useT('quick_view', CVL.quickView);
   const aAddToWishlist = useT('product-card-aria_add_to_wishlist', PRODUCT_CARD_ARIA_LABELS.addToWishlist);
   const mounted = useMounted();
   const wishlisted = mounted && isWishlisted(product.id);
-  // JS-controlled hover state instead of Tailwind `group-hover:` for the
-  // image zoom + action-strip reveal. CSS `:hover` is pointer-based: when
-  // the shopper opens the QuickView modal (which covers the card) and then
-  // closes it without moving the mouse, the browser fires no `mouseleave` /
-  // `mouseenter` on the underlying card even though the pointer target
-  // changed from modal-overlay back to the card. Result was the card left
-  // in a `:hover` state (image scaled 105 %) until any mouse movement —
-  // visually looked like the image "stayed pushed up". The QuickView-open
-  // effect below force-resets `isHovered` so the card renders clean
-  // regardless of pointer position.
+  // JS-controlled hover state instead of Tailwind `group-hover:` for the image zoom + action-strip reveal.
   const [isHovered, setIsHovered] = useState(false);
-  // Short cooldown that blocks the hover-scale from re-applying immediately
-  // after the QuickView modal closes. Chrome re-fires `mouseenter` on the
-  // card when the modal is removed from the DOM and the pointer's target
-  // silently changes back to the card, even though the pointer never moved —
-  // which snaps `isHovered` back to `true` faster than any `useEffect`
-  // reset can beat. During this cooldown, scale is force-suppressed so the
-  // card returns to its resting size; once the shopper actually moves the
-  // mouse (any direction), the flag clears and hover behaviour resumes
-  // normally.
+  // Short cooldown that blocks the hover-scale from re-applying immediately after the QuickView modal closes.
   const [suppressHoverScale, setSuppressHoverScale] = useState(false);
-  // Opening the modal must suppress hover *before* the next paint, so the
-  // switch happens during render (React's sanctioned "adjust state when a
-  // prop changes" pattern) rather than in an effect, which would show one
-  // scaled frame first and is the cascading-render pattern the lint rejects.
+  // Suppressed during render, not in an effect: an effect would show one scaled frame first.
   const [prevQuickViewOpen, setPrevQuickViewOpen] = useState(false);
   if (isQuickViewOpen !== prevQuickViewOpen) {
     setPrevQuickViewOpen(isQuickViewOpen);
@@ -235,11 +179,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   }
   useEffect(() => {
     if (isQuickViewOpen) return;
-    // Modal closed: keep suppression active until the shopper actually
-    // moves the pointer (any direction). No timer fallback — a stationary
-    // mouse means the shopper's attention hasn't returned to the card, so
-    // leaving it un-scaled matches user intent. Any real interaction
-    // (pointermove or pointerdown anywhere) lifts the flag.
+    // Modal closed: keep suppression active until the shopper actually moves the pointer (any direction).
     const onInteract = () => setSuppressHoverScale(false);
     document.addEventListener('pointermove', onInteract, { once: true });
     document.addEventListener('pointerdown', onInteract, { once: true });
@@ -252,9 +192,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const [selectedColor, setSelectedColor] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
-  // Pick the variant whose color matches the current swatch, and — if a size
-  // is chosen — also matches that size. Falls back to a colors-only match, so
-  // clicking a color always finds *some* linked variant when one exists.
+  // Pick the variant whose color matches the current swatch, and — if a size is chosen — also matches that size.
   const activeVariant =
     product.variants?.find((v) => {
       const colorHex = product.colors?.[selectedColor];
@@ -264,38 +202,22 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
       return selectedSize ? v.sizes.includes(selectedSize) : true;
     }) ?? product.variants?.find((v) => v.colors.includes(product.colors?.[selectedColor] ?? ''));
 
-  // Per-color image & stock — guard against out-of-bounds index. Also coerce
-  // any empty-string sources to the placeholder fallback below; an empty `src`
-  // on <img> triggers a Next.js console error and reloads the document URL.
+  // Per-color image & stock — guard against out-of-bounds index.
   const safeColorIdx = selectedColor < (product.colors?.length ?? 0) ? selectedColor : 0;
   const variantImage = activeVariant?.image;
   const candidateImage = variantImage || product.colorImages?.[safeColorIdx] || product.image;
   const activeImage = candidateImage || '/icons/ui/bag-placeholder.svg';
-  /**
-   * LQIP for whichever image ended up active. Keyed by URL, so swapping colour
-   *  or variant picks up the right one without any index bookkeeping.
-   */
+  /** LQIP for whichever image ended up active. */
   const activeBlur = product.imageBlurs?.[activeImage];
   const activePrice = activeVariant?.price ?? product.price;
-  // Prefer the picked variant's own sale price when it has one — otherwise
-  // the card would show a strike-through pair mixing variant.price
-  // ($40, "was") with the family salePrice ($30, "now") for a completely
-  // different variant. Adapter only forwards `variant.salePrice` when
-  // `variant.salePrice < variant.price` (see `adapt.ts:171`), so falling
-  // through to family salePrice is only a display trade-off, not a
-  // correctness one.
+  // Prefer the picked variant's own sale price when it has one.
   const activeSalePrice = activeVariant?.salePrice ?? product.salePrice;
   const activeSku = activeVariant?.sku || product.id;
-  // When OE returns no picture for the product we skip Next/Image entirely
-  // and render the placeholder directly — Next/Image with `fill` on a small
-  // local SVG doesn't reliably fire onLoad, leaving the card stuck in the
-  // animate-pulse state.
+  // When OE returns no picture for the product we skip Next/Image entirely and render the placeholder directly.
   const hasRealImage = Boolean(candidateImage);
   const activeColorOOS = product.colorStock ? product.colorStock[safeColorIdx] === false : false;
   const outOfStock = product.inStock === false || activeColorOOS;
-  // Load state is stored together with the src it belongs to, so switching
-  // colour variants invalidates it during render — no effect has to reset it
-  // (that would be a synchronous `setState` in `useEffect`).
+  // Load state is stored together with the src it belongs to, so switching colour variants invalidates it during render — no effect has to reset it.
   const [imgState, setImgState] = useState<{ src: string; loaded: boolean; error: boolean }>({
     src: activeImage,
     loaded: false,
@@ -304,13 +226,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const imgLoaded = imgState.src === activeImage && imgState.loaded;
   const imgError = imgState.src === activeImage && imgState.error;
   const imgRef = useRef<HTMLImageElement | null>(null);
-  // `<img>` `onLoad` doesn't fire when the browser served the image straight
-  // from HTTP cache before React attached the event listener (very common
-  // after route navigation) — the wrapper would stay at `opacity-0` and the
-  // card would render as an empty container even though the bytes are already
-  // decoded and painted. A callback ref runs on attach (and re-runs whenever
-  // `activeImage` changes, since its identity does), so `complete +
-  // naturalWidth` is checked at exactly the right moment.
+  // `<img>` `onLoad` doesn't fire when the browser served the image straight from HTTP cache before React attached the event listener (very common after route navigation).
   const attachImg = useCallback(
     (el: HTMLImageElement | null) => {
       imgRef.current = el;
@@ -339,14 +255,9 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Parse the display-formatted price (e.g. "$35") into a number for cart
-    // math. When there's a sale price, keep the original as `originalPrice`.
+    // Parse the display-formatted price (e.g. "$35") into a number for cart math.
     const parsePrice = (s?: string) => parseFloat(String(s ?? '').replace(/[^\d.]/g, '')) || 0;
-    // Prefer variant.salePrice → variant.price → family salePrice → family
-    // price so the cart stores the SAME number the price block above
-    // shows. `originalPrice` is only set when there's a strike-through UX
-    // pair — that means we're either using variant's own sale or the
-    // family sale; either way the strike shows the corresponding "was".
+    // Prefer variant.salePrice → variant.price → family salePrice → family price so the cart stores the SAME number the price block above shows.
     const priceNumber = parsePrice(activeSalePrice ?? activePrice);
     const originalPriceNumber = activeSalePrice
       ? parsePrice(activeVariant?.salePrice ? activeVariant.price : product.price)
@@ -372,10 +283,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Per-colour thumbnail: prefer the linked variant's image, then the
-    // parallel `colorImages` array, then the current active image as a last
-    // resort. Without this the favourites card is stuck showing the picture
-    // of whichever colour was open when the shopper hit the heart icon.
+    // Per-colour thumbnail: prefer the linked variant's image, then the parallel `colorImages` array, then the current active image as a last resort.
     const colorImages = product.colors.map(
       (c, i) => product.variants?.find((v) => v.colors.includes(c))?.image || product.colorImages?.[i] || activeImage,
     );
@@ -415,11 +323,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
     tooltipHideTimerRef.current = setTimeout(() => setShowTooltip(false), TIMINGS.TOOLTIP_HIDE);
   }, []);
 
-  // Carry the shopper's picked colour/size into the PDP URL so it opens on
-  // the same variant they were previewing on the card. Also carry `gender`
-  // so the header's WOMEN/MEN toggle stays highlighted on the product page —
-  // PDP paths (`/product/{id}`) don't include gender segment, so without
-  // this hint the header falls back to its default (WOMEN).
+  // Carry the shopper's picked colour/size into the PDP URL so it opens on the same variant they were previewing on the card.
   const cardHref = (() => {
     const params = new URLSearchParams();
     const hex = product.colors?.[safeColorIdx];
@@ -442,8 +346,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
       <div
         suppressHydrationWarning
         className={`relative aspect-3/4 overflow-hidden bg-[#f2f1ef] ${
-          // With an LQIP there is already something to look at, so the grey
-          // pulse would only fight the blur-up.
+          // With an LQIP there is already something to look at, so the grey pulse would only fight the blur-up.
           hasRealImage && !imgLoaded && !imgError && !activeBlur ? 'animate-pulse' : ''
         }`}
       >
@@ -456,8 +359,7 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
         ) : (
           <div
             className={`absolute inset-0 transition-opacity duration-500 ${
-              // Without an LQIP the cell stays blank until `onLoad`; with one the
-              // blur itself is the placeholder, so it must be visible from paint.
+              // Without an LQIP the cell stays blank until `onLoad`; with one the blur itself is the placeholder, so it must be visible from paint.
               imgLoaded || activeBlur ? 'opacity-100' : 'opacity-0'
             }`}
           >

@@ -8,13 +8,7 @@ import type { Lang } from '@/lib/oneentry/system-text';
 
 export interface FormField {
   marker: string;
-  /**
-   * Scalar (`string`) for text-ish fields, `string[]` when the OE attribute
-   *  is `type: 'list'` (multi-select). Type is `unknown`-widened on the wire
-   *  because OE's `postFormsData` accepts both shapes — see the `sign-up`
-   *  action which sends `type: 'list', value: [input.gender]` for the same
-   *  reason.
-   */
+  /** Scalar (`string`) for text-ish fields, `string[]` when the OE attribute is `type: 'list'` (multi-select). */
   value: string | string[];
   type?: string;
 }
@@ -22,19 +16,9 @@ export interface FormField {
 export type SubmitFormResult = { ok: true } | { ok: false; error: string };
 
 export interface SubmitFormBinding {
-  /**
-   * The `moduleFormConfigs[].id` from the OE page where the form is
-   *  registered. OE's `postFormsData` rejects the submission with
-   *  "Incorrect formIdentifier for provided config" when this doesn't
-   *  match one of the form's real module bindings — the default `0` only
-   *  works for forms that have no page binding at all. Find the ID via
-   *  `Pages.getPageByUrl(<page>)` → `page.moduleFormConfigs[N].id`.
-   */
+  /** The `moduleFormConfigs[].id` from the OE page where the form is registered. */
   moduleConfigId?: number;
-  /**
-   * The `entityIdentifiers[0].id` from the same `moduleFormConfigs` entry
-   *  (usually the page's `pageUrl`, e.g. `'subscribe'`).
-   */
+  /** The `entityIdentifiers[0].id` from the same `moduleFormConfigs` entry. */
   moduleEntityIdentifier?: string;
 }
 
@@ -56,8 +40,7 @@ export async function submitForm(
         status: 'sent',
         formData: fields.map((f) => ({
           marker: f.marker,
-          // SDK types `value` as `string`; OE actually accepts `string[]` when
-          // the attribute is `list`. Widening here to match the runtime shape.
+          // SDK types `value` as `string`; OE actually accepts `string[]` when the attribute is `list`. Widening here to match the runtime shape.
           value: f.value as unknown as string,
           type: (f.type ?? 'string') as 'string',
         })),
@@ -65,11 +48,7 @@ export async function submitForm(
       lang,
     );
     if (isError(result)) return { ok: false, error: result.message ?? `HTTP ${result.statusCode}` };
-    // Invalidate the read-side cache for the affected surface so the
-    // newly-posted submission surfaces immediately instead of hiding
-    // behind the loader's 5-minute TTL. `oe-reviews` covers the
-    // `loadProductReviews` chain; `oe-forms` covers form-data readers
-    // used by `service-requests-action`, waiting-list etc.
+    // Invalidate the read-side cache for the affected surface so the newly-posted submission surfaces immediately instead of hiding behind the loader's 5-minute TTL.
     try {
       if (marker === 'review_rating' || marker === 'review_feedback') {
         revalidateTag('oe-reviews', 'max');

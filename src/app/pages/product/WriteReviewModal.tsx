@@ -13,11 +13,7 @@ export const WRITE_REVIEW_DYNAMIC_ARIA = {
 } as const;
 
 // ─── WriteReviewModal ───────────────────────────────────────────────────────
-// Fields mirror the OE `review_feedback` (id 8) + `review_rating` (id 7)
-// forms currently deployed on the tenant:
-//   feedback → body (text) + occasions (list) + add_media (groupOfImages)
-//   rating   → rating (integer)
-// Legacy headline/name/email fields were removed from OE and dropped here.
+// Fields mirror the OE `review_feedback` (id 8) + `review_rating` (id 7) forms deployed on the tenant.
 export const WRITE_REVIEW_LABELS = {
   title: 'Share your thoughts',
   closeLabel: 'Close',
@@ -37,9 +33,7 @@ export const WRITE_REVIEW_LABELS = {
   occasionHint: 'Choose 1',
   requiredFieldsNote: '* required fields',
   ctaSend: 'Send',
-  // Value ↔ display label for the OE `occasions` `list` field. Values must
-  // match the OE `listTitles` markers exactly (`everyday`, `work`, `party`,
-  // `travel`, `sport`) — display labels are storefront copy.
+  // Value ↔ display label for the OE `occasions` `list` field.
   occasions: [
     { value: 'everyday', label: 'Everyday' },
     { value: 'work', label: 'Work' },
@@ -56,9 +50,7 @@ const RATE_LABELS_FALLBACK = WRITE_REVIEW_LABELS.rateLabels.filter(Boolean);
 
 export function WriteReviewModal({ onClose, productId }: { onClose: () => void; productId?: number }) {
   const L = useDict('customer_reviews_write_', WRITE_REVIEW_LABELS);
-  // Star captions. Stored without the leading blank the code used to carry
-  // for 1-based indexing — `useList` drops empty entries, and a CSV that
-  // starts with a comma is a trap for whoever edits it in the panel.
+  // Star captions.
   const rateLabels = useList('customer_reviews_write_rate_labels', RATE_LABELS_FALLBACK);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -70,9 +62,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
   const [isPending, startTransition] = useTransition();
   const aStarSuffix = useT('customer_reviews_star_suffix', WRITE_REVIEW_DYNAMIC_ARIA.starSuffix);
 
-  // Review copy belongs to the OE forms, not to a system-text set: the label,
-  // the option list and the result messages are all authored on the form
-  // itself (`review_feedback` / `review_rating`).
+  // Review copy belongs to the OE forms, not to a system-text set: the label, the option list and the result messages are all authored on the form itself.
   const lTitle = useFormMessage('review_feedback', 'titleForSite', L.title);
   const lSuccess = useFormMessage('review_feedback', 'successMessage', L.submittedHeading);
   const lFailure = useFormMessage('review_feedback', 'unsuccessMessage', L.requiredFieldsNote);
@@ -107,13 +97,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
     }
     setSubmitError('');
     startTransition(async () => {
-      // Bind both submissions to the same product-scoped module config
-      // ids the READER uses (`reviews.ts::FEEDBACK_MODULE_CONFIG=13`,
-      // `RATING_MODULE_CONFIG=12`) with `moduleEntityIdentifier` set to
-      // the numeric product id — without these bindings OE stores the
-      // submission with `formModuleConfigId=0` and the reader (which
-      // filters on `configId + entityIdentifier=productId`) never sees
-      // it. Result before the fix: reviews vanished into limbo.
+      // Bind both submissions to the same product-scoped module config ids the READER uses (`reviews.ts::FEEDBACK_MODULE_CONFIG=13`, `RATING_MODULE_CONFIG=12`) with `moduleEntityIdentifier` set to the numeric product id.
       const productBinding =
         productId !== undefined ? { moduleConfigId: 12, moduleEntityIdentifier: String(productId) } : undefined;
       const feedbackBinding =
@@ -127,11 +111,7 @@ export function WriteReviewModal({ onClose, productId }: { onClose: () => void; 
         setSubmitError(ratingRes.error);
         return;
       }
-      // OE `review_feedback` (id 8) — fields the tenant currently ships:
-      //   body (text), occasions (list), add_media (groupOfImages)
-      // `add_media` needs binary uploads that the storefront doesn't wire
-      // yet — sending an empty payload keeps the form valid while the file
-      // pipeline is a follow-up.
+      // OE `review_feedback` (id 8) sending an empty payload keeps the form valid while the file pipeline is a follow-up.
       const feedbackRes = await submitForm(
         'review_feedback',
         [

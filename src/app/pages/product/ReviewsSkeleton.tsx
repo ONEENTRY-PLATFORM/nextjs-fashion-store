@@ -1,9 +1,4 @@
-/**
- * Skeleton placeholder rendered while `ReviewsAsync` is fetching OE
- * `review_feedback` + `review_rating` form-data. Mirrors the real reviews
- * section layout (heading, rating column, 3 review-card stubs) so the page
- * doesn't shift when the streamed content lands.
- */
+/** Skeleton placeholder rendered while `ReviewsAsync` is fetching OE `review_feedback` + `review_rating` form-data. */
 export function ReviewsSkeleton() {
   return (
     <div className="mx-auto max-w-7xl border-t border-[#e5e7eb] px-4 py-12 lg:px-8">

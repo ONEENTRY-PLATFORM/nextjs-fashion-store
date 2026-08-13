@@ -1,7 +1,4 @@
-/**
- * Copy shared by this feature's components, overlaid by the OneEntry
- * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
- */
+/** Copy shared by this feature's components, overlaid by the OneEntry dictionary at render time. */
 
 export const NEW_ARRIVALS_SORT_LABELS = {
   newestFirst: 'Newest First',

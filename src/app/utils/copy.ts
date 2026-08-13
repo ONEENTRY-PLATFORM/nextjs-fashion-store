@@ -1,20 +1,6 @@
-/**
- * Copy shared by this feature's components, overlaid by the OneEntry
- * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
- */
+/** Copy shared by this feature's components, overlaid by the OneEntry dictionary at render time. */
 
-/**
- * Form messages — every zod schema error string, plus the generic save-failure
- * feedback shared by the account forms.
- *
- * These are the **offline fallbacks**. The live copy comes from the OE
- * `form_messages` set: each key maps to `form_messages_<snake_case_key>`, which
- * is exactly the convention `useDict` implements, so `useFormMessages()`
- * overlays the whole object in one call.
- *
- * @see ../utils/useFormMessages — the hook
- * @see ../utils/schemas — `createSchemas`, which takes this shape
- */
+/** Form messages — every zod schema error string, plus the generic save-failure feedback shared by the account forms. */
 export const VALIDATION_MESSAGES = {
   // Common fields
   emailRequired: 'Email is required',
@@ -37,16 +23,12 @@ export const VALIDATION_MESSAGES = {
   acceptTerms: 'You must accept the terms',
   // Password recovery — the one-time code OE mails out
   resetCodeRequired: 'Enter the code from the email',
-  // `%length%`, not `{length}` — a brace in an attribute value makes OE's public
-  // read of the whole `form_messages` set fail, so this key could never be
-  // authored in the admin panel with the older `{…}` convention.
+  // `%length%`, not `{length}`.
   resetCodeTooShort: 'The code is %length% characters long',
   // Address
   address1Required: 'Address line 1 is required',
   cityRequired: 'City is required',
-  // Length bounds mirrored from the OE form validators. `{min}` / `{max}` are
-  // substituted with the number the admin panel configured for that field —
-  // OE rejects the order otherwise, and its own message names the raw marker.
+  // Length bounds mirrored from the OE form validators.
   tooShort: 'Must be at least {min} characters',
   tooLong: 'Must be {max} characters or less',
   // Payment
@@ -61,13 +43,9 @@ export const VALIDATION_MESSAGES = {
   nameOnCardRequired: 'Name on card is required',
   // Promo
   promoRequired: 'Enter a promo code',
-  // Not a zod message: shown when a form submits cleanly but the server
-  // refuses the write and returns no reason of its own.
+  // Not a zod message: shown when a form submits cleanly but the server refuses the write and returns no reason of its own.
   saveFailed: 'Save failed',
 } as const;
 
-/**
- * Shape of {@link VALIDATION_MESSAGES}, widened to plain strings so a CMS
- *  overlay (which cannot be a literal type) still satisfies it.
- */
+/** Shape of {@link VALIDATION_MESSAGES}, widened to plain strings so a CMS overlay (which cannot be a literal type) still satisfies it. */
 export type ValidationMessages = Record<keyof typeof VALIDATION_MESSAGES, string>;

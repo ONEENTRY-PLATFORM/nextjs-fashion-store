@@ -1,7 +1,4 @@
-/**
- * Returns '#000' or '#fff' — whichever has better contrast
- * against the given background hex color.
- */
+/** Returns '#000' or '#fff' — whichever has better contrast against the given background hex color. */
 export function strikeColor(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);

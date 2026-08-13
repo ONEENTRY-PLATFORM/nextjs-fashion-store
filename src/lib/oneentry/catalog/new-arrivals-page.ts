@@ -10,10 +10,7 @@ export interface NewArrivalsPageFromCms {
     heading: string;
     subheading: string;
     image: string;
-    /**
-     * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-     *  through an OE preview template have one.
-     */
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
     imageBlur?: string;
   };
   footer: {
@@ -21,10 +18,7 @@ export interface NewArrivalsPageFromCms {
     heading: string;
     body: string;
     image: string;
-    /**
-     * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-     *  through an OE preview template have one.
-     */
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
     imageBlur?: string;
   };
 }
@@ -67,25 +61,13 @@ async function fetchNewArrivalsPage(lang: Lang): Promise<NewArrivalsPageFromCms 
   }
 }
 
-/**
- * Cached loader — refresh every 60s so admin edits to the New Arrivals
- *  banners surface without a manual redeploy.
- *
- *  `lang` is a required argument rather than something the cached body reads
- *  for itself: `unstable_cache` keys on its arguments, so passing it in is
- *  what keeps one locale's banners out of another's cache entry.
- */
+/** Cached loader — refresh every 60s so admin edits to the New Arrivals banners surface without a manual redeploy. */
 const loadNewArrivalsPageCached = unstable_cache((lang: Lang) => fetchNewArrivalsPage(lang), ['oe-new-arrivals-page'], {
   revalidate: 60,
   tags: ['oe-page'],
 });
 
-/**
- * New Arrivals page attributes for the current route's locale.
- *
- * @param [langArg] - Explicit OE locale; defaults to the route's.
- * @returns Page attributes, or `null`.
- */
+/** New Arrivals page attributes for the current route's locale. */
 export async function loadNewArrivalsPage(langArg?: Lang): Promise<Awaited<ReturnType<typeof fetchNewArrivalsPage>>> {
   return loadNewArrivalsPageCached(langArg ?? (await currentCmsLocale()));
 }

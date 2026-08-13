@@ -1,22 +1,9 @@
 import { ProductCardSkeleton } from '@/app/components/product/ProductCardSkeleton';
 
-/**
- * Vertical rhythm between homepage blocks — mirrors `wrapperCls` in
- * `PageBlocksRenderer` so the skeleton's sections land where the real ones do.
- * The hero is the exception: as the first block it sits flush against the top.
- */
+/** Vertical rhythm between homepage blocks. */
 const SECTION_GAP = 'mt-8 md:mt-12 lg:mt-16';
 
-/**
- * Placeholder for one of the product carousels (`homepage_new_arrivals`,
- * `homepage_sale`, `homepage_best_sellers`) — a left-aligned eyebrow +
- * heading with a "view all" link on the right, then a row of cards on the
- * same `w-1/2 md:w-1/3 lg:w-1/5` track `<HorizontalScroller>` lays out.
- *
- * @param   root0       - Props.
- * @param   root0.cards - How many card placeholders to paint (5 fill a wide row).
- * @returns               The carousel skeleton section.
- */
+/** Placeholder for one of the product carousels (`homepage_new_arrivals`, `homepage_sale`, `homepage_best_sellers`). */
 function CarouselSkeleton({ cards = 5 }: { cards?: number }) {
   return (
     <section className={SECTION_GAP} data-testid="home-carousel-skeleton" aria-hidden="true">
@@ -38,22 +25,7 @@ function CarouselSkeleton({ cards = 5 }: { cards?: number }) {
   );
 }
 
-/**
- * Homepage-shaped loading placeholder.
- *
- * The segment-wide fallback (`app/[locale]/loading.tsx`) paints a catalog
- * grid, which is nothing like the homepage: hero → category tiles → carousel →
- * two promo photos → carousels → discount banner. Showing it on `/` made the
- * swap to the real page read as a layout jump, so the homepage got its own
- * fallback (`app/[locale]/(home)/loading.tsx`) built on this component.
- *
- * Block order follows `HOMEPAGE_MARKER_ORDER` in `app/[locale]/(home)/page.tsx`;
- * the section geometry is copied from the components each block renders
- * (`HeroSlider`, `CategorySection`, `WomenCollection`, `PromoBlock`,
- * `DiscountBanner`). Keep them in step — that agreement is the whole point.
- *
- * @returns The homepage skeleton.
- */
+/** Homepage-shaped loading placeholder. */
 export function HomeSkeleton() {
   return (
     <div data-testid="home-loading">

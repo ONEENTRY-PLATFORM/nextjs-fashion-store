@@ -73,12 +73,7 @@ export function AddressesSection() {
   const lSave = useT('user_addresses_system_save_cta', L.save);
   const lCancel = useT('user_addresses_system_cancel_cta', L.cancel);
 
-  // Labels come from the form's own attribute titles — the field copy belongs
-  // to the form entity in OE, not to a system-text set. `ADDRESSES_LABELS`
-  // stays the offline fallback.
-  // Label and placeholder of each input come from the attribute an editor
-  // tagged with that role, so both the copy and the marker behind it can change
-  // in the admin panel without a deploy.
+  // Labels come from the form's own attribute titles — the field copy belongs to the form entity in OE, not to a system-text set.
   const fLabel = useRoleField(SAVED_ADDRESS_FORM, 'label', { label: L.labelLabel, placeholder: L.placeholderLabel });
   const fFullName = useRoleField(SAVED_ADDRESS_FORM, 'fullName', {
     label: L.labelFullName,

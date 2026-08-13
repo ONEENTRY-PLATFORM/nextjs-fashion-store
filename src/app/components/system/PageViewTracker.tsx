@@ -4,10 +4,7 @@ import { useEffect } from 'react';
 
 import { trackActivity } from '@/app/utils/track-activity';
 
-// Fires a `page_view` on every client-side route change. Product and catalog
-// pages already emit dedicated `product_view` / `category_view` events, so we
-// skip them here to keep the analytics counts clean. Path is carried in meta
-// so the back office can group by URL.
+// Fires a `page_view` on every client-side route change.
 export function PageViewTracker() {
   const pathname = usePathname();
   useEffect(() => {

@@ -1,23 +1,6 @@
-/**
- * Allow-list sanitizer for rich text authored in the OneEntry admin.
- *
- * Three places render CMS HTML through `dangerouslySetInnerHTML` (product
- * description, sale hero). The markup comes from the OE rich-text editor, so
- * the threat model is a malicious or compromised admin account — narrow, but
- * an injected `<img onerror>` would run with full access to the shopper's
- * session, which now lives in `localStorage`.
- *
- * Isomorphic on purpose: both call sites are Client Components, but Next.js
- * still renders them on the server, so sanitising only in the browser would
- * ship the raw payload in the initial HTML and fire before hydration. That
- * rules out DOM-based sanitisers, hence this tokenizer.
- *
- * It is deliberately conservative — it rebuilds output from an allow-list
- * rather than trying to strip known-bad patterns, so anything unanticipated
- * is dropped instead of passed through.
- */
+/** Allow-list sanitizer for rich text authored in the OneEntry admin. */
 
-/** Tags kept in the output. Anything else loses its markup but keeps its text. */
+/** Tags kept in the output. */
 const ALLOWED_TAGS = new Set([
   'p',
   'br',
@@ -63,12 +46,7 @@ const ALLOWED_TAGS = new Set([
   'caption',
 ]);
 
-/**
- * Tags dropped **together with their content**. Text inside them is never
- * plain prose, and several (`template`, `noscript`, `svg`, `math`) switch the
- * parser into a different content mode, which is the classic way to smuggle
- * markup past a naive filter.
- */
+/** Tags dropped together with their content — several switch the parser into another content mode, the classic way to smuggle markup past a filter. */
 const DROP_WITH_CONTENT = new Set([
   'script',
   'style',
@@ -104,12 +82,7 @@ const DROP_WITH_CONTENT = new Set([
 /** Attributes accepted on every allowed tag. */
 const GLOBAL_ATTRS = new Set(['title', 'dir', 'lang']);
 
-/**
- * Per-tag attributes. `class` and `style` are intentionally absent: neither
- * executes script, but on a Tailwind storefront an injected
- * `class="fixed inset-0 z-50"` (or a `style` overlay) is a ready-made
- * click-jacking surface.
- */
+/** Per-tag attributes. */
 const TAG_ATTRS: Record<string, Set<string>> = {
   a: new Set(['href', 'target', 'rel']),
   img: new Set(['src', 'alt', 'width', 'height', 'loading']),
@@ -124,59 +97,29 @@ const URL_ATTRS = new Set(['href', 'src']);
 /** Tags that never have a closing partner. */
 const VOID_TAGS = new Set(['br', 'hr', 'img']);
 
-/**
- * Matches an HTML comment or a single tag. The attribute part tolerates `>`
- * inside quoted values, which a naive `<[^>]*>` would truncate — leaving the
- * rest of the attribute list to leak out as text.
- */
+/** Matches an HTML comment or a single tag. */
 const TOKEN_RE = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\/?([a-zA-Z][a-zA-Z0-9:-]*)((?:"[^"]*"|'[^']*'|[^"'>])*)>/g;
 
 /** Matches one `name`, `name=value`, `name="value"` or `name='value'` pair. */
 const ATTR_RE = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'`=<>]+)))?/g;
 
-/**
- * Escape the characters that could re-open markup once the result is handed
- * back to `innerHTML`. Only `<` and `"` are touched — re-encoding `&` would
- * double-escape the entities the editor already produced.
- *
- * @param value - Raw text or attribute value.
- * @returns Text that cannot break out of its context.
- */
+/** Escape the characters that could re-open markup once the result is handed back to `innerHTML`. Only `<` and `"` are touched. */
 function escapeText(value: string): string {
   return value.replace(/</g, '&lt;').replace(/"/g, '&quot;');
 }
 
-/**
- * Whether a URL attribute value is safe to keep.
- *
- * Browsers ignore control characters and resolve HTML entities *before*
- * dispatching a URL scheme, so `java&#09;script:` and `&#106;avascript:` both
- * execute. Both are normalised away before the scheme is checked.
- *
- * @param value - Raw attribute value.
- * @returns `true` when the scheme is safe to render.
- */
+/** Whether a URL attribute value is safe to keep. */
 function isSafeUrl(value: string): boolean {
   const decoded = value
     .replace(/&#x([0-9a-f]+);?/gi, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/&#(\d+);?/g, (_m, dec: string) => String.fromCharCode(Number(dec)))
     .replace(/&(tab|newline|colon|NewLine|Tab);/gi, (_m, name: string) => (name.toLowerCase() === 'colon' ? ':' : ''));
-  // Strip everything the URL parser treats as insignificant noise (NUL,
-  // tab, newline, form feed, spaces) — `java\tscript:` is a working payload.
+  // Strip everything the URL parser treats as insignificant noise (NUL, tab, newline, form feed, spaces) — `java\tscript:` is a working payload.
   const cleaned = decoded.replace(/[\u0000-\u0020]+/g, '').toLowerCase();
   return !/^(javascript|vbscript|livescript|mocha|data|blob|file|about):/.test(cleaned);
 }
 
-/**
- * Rebuild the attribute list of an allowed tag, keeping only what the
- * allow-list permits. `on*` handlers can never match — they are not on any
- * list — but they are rejected explicitly so the intent survives a future
- * edit to the tables above.
- *
- * @param tag     - Lower-cased tag name.
- * @param rawAttrs - Everything between the tag name and `>`.
- * @returns A serialised attribute string, empty or leading-space-prefixed.
- */
+/** Rebuild the attribute list of an allowed tag, keeping only what the allow-list permits. */
 function sanitizeAttributes(tag: string, rawAttrs: string): string {
   const permitted = TAG_ATTRS[tag];
   const kept = new Map<string, string>();
@@ -192,28 +135,20 @@ function sanitizeAttributes(tag: string, rawAttrs: string): string {
     if (URL_ATTRS.has(name) && !isSafeUrl(value)) continue;
     // Only `_blank` is meaningful on this content; anything else is noise.
     if (name === 'target' && value !== '_blank') continue;
-    // A repeated attribute is resolved by browsers in favour of the first
-    // occurrence — mirror that, so `href="ok" href="javascript:…"` cannot be
-    // used to make the checked value lose to the unchecked one.
+    // A repeated attribute is resolved by browsers in favour of the first occurrence.
     if (kept.has(name)) continue;
 
     kept.set(name, value);
   }
 
-  // `target="_blank"` without `rel` lets the opened page reach back through
-  // `window.opener`, so the author's own `rel` is replaced, not merged.
+  // `target="_blank"` without `rel` lets the opened page reach back through `window.opener`, so the author's own `rel` is replaced, not merged.
   if (kept.get('target') === '_blank') kept.set('rel', 'noopener noreferrer');
 
   const out = [...kept].map(([name, value]) => `${name}="${escapeText(value)}"`);
   return out.length > 0 ? ` ${out.join(' ')}` : '';
 }
 
-/**
- * Sanitize CMS-authored HTML for `dangerouslySetInnerHTML`.
- *
- * @param html - Raw HTML from OneEntry.
- * @returns Markup limited to the allow-list above; `''` when empty.
- */
+/** Sanitize CMS-authored HTML for `dangerouslySetInnerHTML`. */
 export function sanitizeHtml(html: string | null | undefined): string {
   if (!html || typeof html !== 'string') return '';
 

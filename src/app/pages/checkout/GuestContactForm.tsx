@@ -31,11 +31,7 @@ interface GuestContactFormProps {
   onChange: (next: GuestContactFormState) => void;
   /** Optional intro line so admin can tweak wording per method. */
   helperText?: string;
-  /**
-   * CMS form these inputs are bound to — the order form of the chosen pickup
-   *  method, whose contact attributes carry the limits the order is judged by.
-   *  Defaults to the saved-address form for callers that predate the prop.
-   */
+  /** CMS form these inputs are bound to. */
   formMarker?: string;
 }
 
@@ -48,8 +44,7 @@ export function GuestContactForm({
 }: GuestContactFormProps) {
   const L = useDict('checkout_delivery_guest_', L_FALLBACK);
   const patch = (partial: Partial<GuestContactFormState>) => onChange({ ...form, ...partial });
-  // Asked for by role, so an attribute rename in the admin panel does not blank
-  // the inputs.
+  // Asked for by role, so an attribute rename in the admin panel does not blank the inputs.
   const phFullName = useRoleField(formMarker, 'fullName', { placeholder: L.placeholderFullName }).placeholder;
   const phPhone = useRoleField(formMarker, 'phone', { placeholder: L.placeholderPhone }).placeholder;
   return (

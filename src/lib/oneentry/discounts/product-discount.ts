@@ -1,28 +1,4 @@
-/**
- * Product-price discounts sourced from the OneEntry Discounts module.
- *
- * Historically the storefront read a per-product `sale_price` attribute
- * off each OE product record. That works for a hand-authored sale but
- * doesn't scale when merchants want to run a broad "20% off outerwear"
- * campaign — every product would need touching. Since Discounts already
- * models the merchant intent (`PRODUCT` / `CATEGORY` conditions,
- * `PERCENT` / `FIXED_AMOUNT` values, dated windows), we now derive
- * `product.salePrice` from that module instead.
- *
- * Scope (this module — `applicability: TO_PRODUCT`):
- *   - `type: DISCOUNT`, active date window, `PRODUCT` or `CATEGORY`
- *     conditions. Best-for-shopper rule wins (lowest resulting price;
- *     rules do NOT stack).
- *
- * Out of scope (still handled elsewhere):
- *   - `TO_ORDER` rules — applied at checkout by `previewOrder`.
- *   - `BONUS` / `PERSONAL_DISCOUNT` — loyalty ladder & purchase-of-goods
- *     bonus lives in `discounts/purchase-bonus.ts` and `auth/actions.ts`.
- *   - Coupons — validated by `CartContext.applyCoupon` via OE.
- *   - Cart / user conditions (`PRODUCT_IN_CART`, `MIN_CART_AMOUNT`,
- *     `USER_LTV`, etc.) — evaluated during `previewOrder` where the
- *     cart and user context are known.
- */
+/** Product-price discounts sourced from the OneEntry Discounts module. */
 import { unstable_cache } from 'next/cache';
 
 import { REVALIDATE_CATALOG } from '@/lib/isr';
@@ -30,19 +6,12 @@ import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { withTiming } from '@/lib/oneentry/profiling';
 
-/**
- * Local shape — SDK types `condition.value` as `string`, but real OE
- *  payloads deliver `{ ids: [...] }` / `{ id: N }` / raw arrays. Keep the
- *  union permissive and parse defensively below.
- */
+/** Local shape — SDK types `condition.value` as `string`, but real OE payloads deliver `{ ids: [...] }` / `{ id: N }` / raw arrays. */
 interface RawCondition {
   type?: string;
   conditionType?: string;
   value?: unknown;
-  /**
-   * OE `ATTRIBUTE` conditions carry the attribute marker id here rather
-   *  than in `value`. Example: `[{ id: 'discount_12', isNested: false }]`.
-   */
+  /** OE `ATTRIBUTE` conditions carry the attribute marker id here rather than in `value`. Example: `[{ id: 'discount_12', isNested: false }]`. */
   entityIds?: Array<{ id?: string; isNested?: boolean }> | null;
 }
 
@@ -62,10 +31,7 @@ export interface RawProductDiscount {
   endDate?: string;
   discountValue?: RawDiscountValue;
   conditions?: RawCondition[];
-  /**
-   * OE `conditionLogic`: 'AND' | 'OR'. Defaults to 'OR' when absent —
-   *  matches how the admin panel typically renders "at least one" rules.
-   */
+  /** OE `conditionLogic`: 'AND' | 'OR'. Defaults to 'OR' when absent. */
   conditionLogic?: string;
 }
 
@@ -75,10 +41,7 @@ function condType(c: RawCondition): string {
   return (c.type ?? c.conditionType ?? '').toUpperCase();
 }
 
-/**
- * Pull numeric ids out of a condition value regardless of shape:
- *  scalar, array, or `{ ids: [...] }` / `{ id: N }`.
- */
+/** Pull numeric ids out of a condition value regardless of shape: scalar, array, or `{ ids: [...] }` / `{ id: N }`. */
 function extractIds(value: unknown): number[] {
   if (value == null) return [];
   if (typeof value === 'number') return Number.isFinite(value) ? [value] : [];
@@ -95,9 +58,7 @@ function extractIds(value: unknown): number[] {
   return [];
 }
 
-/**
- * Pull category needles (ids, markers, or paths) out of a condition value.
- */
+/** Pull category needles (ids, markers, or paths) out of a condition value. */
 function extractCategoryNeedles(value: unknown): string[] {
   if (value == null) return [];
   if (typeof value === 'string' || typeof value === 'number') return [String(value)];
@@ -118,12 +79,7 @@ function categoryMatches(needle: string, productCategories: string[]): boolean {
 
 // ─── ATTRIBUTE-condition operators ──────────────────────────────────────────
 
-/**
- * Extract the attribute marker id (`discount_12`) from a condition's
- *  `entityIds`. OE always packs a single id per condition — arrays with
- *  more than one entry are unheard of in real payloads, but we take the
- *  first to be defensive.
- */
+/** Extract the attribute marker id (`discount_12`) from a condition's `entityIds`. OE always packs a single id per condition. */
 function extractAttributeMarker(entityIds: RawCondition['entityIds']): string | null {
   if (!Array.isArray(entityIds) || entityIds.length === 0) return null;
   const first = entityIds[0];
@@ -131,11 +87,7 @@ function extractAttributeMarker(entityIds: RawCondition['entityIds']): string | 
   return id || null;
 }
 
-/**
- * `ATTRIBUTE.value` is `{ value: '10', condition: 'eq' }` in the OE admin
- *  output, but the SDK loosely types it as `string`. Normalize to a
- *  `{ operator, value }` pair we can compare against.
- */
+/** `ATTRIBUTE.value` is `{ value: '10', condition: 'eq' }` in the OE admin output, but the SDK loosely types it as `string`. Normalize to a `{ operator, value }` pair we can compare against. */
 function parseAttributeConditionValue(value: unknown): { operator: string; value: string | null } {
   if (value == null) return { operator: 'eq', value: null };
   if (typeof value === 'string' || typeof value === 'number') {
@@ -151,19 +103,14 @@ function parseAttributeConditionValue(value: unknown): { operator: string; value
   return { operator: 'eq', value: null };
 }
 
-/**
- * Compare a product's attribute value to a rule's expected value under
- *  the given OE operator. Kept lowercase-string based to match how OE
- *  encodes both sides of the comparison in this tenant.
- */
+/** Compare a product's attribute value to a rule's expected value under the given OE operator. */
 function attributeOperatorMatches(
   operator: string,
   productValue: string | undefined,
   expected: string | null,
 ): boolean {
   const op = operator.toLowerCase();
-  // `exs` — attribute exists (any value). Used by BONUS rules elsewhere
-  // but included here so a `DISCOUNT` rule with `exs` also resolves.
+  // `exs` — attribute exists (any value).
   if (op === 'exs' || op === 'exists') return productValue != null && productValue !== '';
   if (op === 'nex' || op === 'not_exists' || op === 'nexs') return !productValue;
   if (productValue == null || productValue === '') return false;
@@ -216,11 +163,7 @@ function isDiscountType(rule: RawProductDiscount): boolean {
 
 // ─── Loader ─────────────────────────────────────────────────────────────────
 
-/**
- * Page through `getAllDiscounts` — OE caps a single page at 200. Real
- *  tenants usually have < 30 discounts total; the loop is defensive so we
- *  don't silently drop rules if the merchant configures many campaigns.
- */
+/** Page through `getAllDiscounts` — OE caps a single page at 200. */
 async function fetchAllProductDiscounts(lang: string): Promise<RawProductDiscount[]> {
   if (!isOneEntryEnabled) return [];
   const items: RawProductDiscount[] = [];
@@ -240,12 +183,7 @@ async function fetchAllProductDiscounts(lang: string): Promise<RawProductDiscoun
   return items;
 }
 
-/**
- * Cross-request cache of the trimmed rule set. Filters to
- *  `type=DISCOUNT`, `applicability=TO_PRODUCT`, currently-active window,
- *  and either PRODUCT or CATEGORY conditions (the ones that gate a
- *  storefront salePrice — cart/user conditions live in `previewOrder`).
- */
+/** Cross-request cache of the trimmed rule set. */
 const loadProductDiscountsCached = unstable_cache(
   async (lang: string): Promise<RawProductDiscount[]> => {
     const all = await fetchAllProductDiscounts(lang);
@@ -255,8 +193,7 @@ const loadProductDiscountsCached = unstable_cache(
       if (!isToProduct(r)) return false;
       if (!isActive(r, now)) return false;
       const conds = r.conditions ?? [];
-      // Rule must gate on a product-scoped condition — otherwise we can't
-      // decide which products it applies to at load time.
+      // Rule must gate on a product-scoped condition — otherwise we can't decide which products it applies to at load time.
       return conds.some((c) => {
         const t = condType(c);
         return t === 'PRODUCT' || t === 'CATEGORY' || t === 'ATTRIBUTE';
@@ -277,12 +214,7 @@ interface ProductForDiscount {
   id: number;
   price: number;
   categories: string[];
-  /**
-   * Attribute values keyed by full OE marker (e.g. `discount_12: '10'`).
-   *  Populated by `normalize()` in `catalog/products.ts`. Optional so
-   *  older callers can omit it — rules that only use `PRODUCT` /
-   *  `CATEGORY` conditions still evaluate correctly.
-   */
+  /** Attribute values keyed by full OE marker (e.g. `discount_12: '10'`). */
   discountAttributes?: Record<string, string>;
 }
 
@@ -305,8 +237,7 @@ function ruleAppliesTo(rule: RawProductDiscount, p: ProductForDiscount): boolean
   const presentKinds = [productConds.length > 0, categoryConds.length > 0, attributeConds.length > 0].filter(
     Boolean,
   ).length;
-  // Multi-kind rule → honour `conditionLogic`. Single-kind rule → any hit
-  // in that kind is enough (default OR semantics degenerate to `some`).
+  // Multi-kind rule → honour `conditionLogic`. Single-kind rule → any hit in that kind is enough (default OR semantics degenerate to `some`).
   if (presentKinds > 1) {
     const logic = (rule.conditionLogic ?? 'OR').toUpperCase();
     const hits = [
@@ -339,15 +270,7 @@ function computeDiscountedPrice(price: number, dv: RawDiscountValue): number | u
   return Math.round(discounted * 100) / 100; // two decimals
 }
 
-/**
- * Return the salePrice for a product under the loaded rule set, or
- * `undefined` when nothing applies. Best-for-shopper (lowest resulting
- * price) wins; rules do not stack. The returned price is guaranteed
- * strictly less than `product.price` — if a rule matched but produced a
- * value at or above the original, we treat it as "no meaningful
- * discount" and return `undefined` so the UI doesn't render a
- * strike-through with the same number.
- */
+/** Return the salePrice for a product under the loaded rule set, or `undefined` when nothing applies. */
 export function applyProductDiscount(product: ProductForDiscount, rules: RawProductDiscount[]): number | undefined {
   let best: number | undefined;
   for (const rule of rules) {

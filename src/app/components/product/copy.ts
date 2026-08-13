@@ -1,7 +1,4 @@
-/**
- * Copy shared by this feature's components, overlaid by the OneEntry
- * dictionary at render time — see `src/lib/oneentry/labels/dict.ts`.
- */
+/** Copy shared by this feature's components, overlaid by the OneEntry dictionary at render time. */
 
 export const PRODUCT_CARD_LABELS = {
   addToCart: 'Add to Cart',
@@ -14,9 +11,7 @@ export const PRODUCT_CARD_ARIA_LABELS = {
   removeFromFavourites: 'Remove from favourites',
 } as const;
 
-/**
- * Quick View modal — fast preview from listing.
- */
+/** Quick View modal — fast preview from listing. */
 export const QUICK_VIEW_LABELS = {
   closeLabel: 'Close',
   defaultBrand: 'Kekimoro',
@@ -38,8 +33,7 @@ export const QUICK_VIEW_LABELS = {
   wishlistAdd: 'Add to wishlist',
   wishlistRemove: 'Remove from wishlist',
   thumbnailAltPrefix: 'View',
-  // Flat, so `mergeDict` can overlay each string: an array of objects is
-  // structure to it and would keep this placeholder copy on screen forever.
+  // Flat, so `mergeDict` can overlay each string: an array of objects is structure to it and would keep this placeholder copy on screen forever.
   section1Title: 'Description',
   section1Content:
     'Elevate your wardrobe with this stunning piece. Crafted from premium materials with attention to detail, ' +
@@ -86,10 +80,7 @@ export const PRODUCT_ACTION_LABELS = {
   articleLabel: 'Article:',
   defaultSku: '2024-156-1',
   defaultArticle: 'OF-KW-156-BRG',
-  // `%count%`, not `{count}` — OneEntry casts attribute values to JSON, so a
-  // value containing braces makes the public read of the WHOLE system-text set
-  // fail with `500 invalid input syntax for type json`. Keeping the fallback in
-  // the same shape as the OE value avoids two placeholder dialects.
+  // `%count%`, not `{count}`.
   bonusHeading: 'Earn %count% bonus points',
   bonusBody: 'Redeemable on your next order. Join Kekimoro Rewards for free.',
   colorLabel: 'Color:',

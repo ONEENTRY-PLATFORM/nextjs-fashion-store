@@ -18,11 +18,7 @@ const asNumber = (v: unknown): number => (typeof v === 'number' ? v : 0);
 const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
   type Localize = Record<string, unknown> & { title?: unknown };
   const localize = (raw.localizeInfos ?? {}) as Localize;
-  // Like `attributeValues` below, `localizeInfos` arrives either keyed by
-  // locale (`{ en_US: { title } }`) or already unwrapped (`{ title }`) — the
-  // SDK flattens it when `langCode` is passed. Only the keyed shape was
-  // handled, so `Object.values(localize)[0]` picked up the *title string*
-  // and read `.title` off it: every page's title came out empty.
+  // Like `attributeValues` below, `localizeInfos` arrives either keyed by locale (`{ en_US: { title } }`) or already unwrapped (`{ title }`).
   const perLocale = localize[lang];
   const langInfo = (
     perLocale && typeof perLocale === 'object'
@@ -31,12 +27,7 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
         ? localize
         : (Object.values(localize).find((v) => v && typeof v === 'object') ?? {})
   ) as { title?: unknown };
-  // OE returns `attributeValues` either wrapped per-locale
-  // (`{ en_US: { marker: {...} } }`) or flat (`{ marker: {...} }`) depending
-  // on how the SDK unwrapped the response for `langCode`. Support both —
-  // the flat form is detected by a value that is itself an object with a
-  // `type`/`value` field (an attribute payload) rather than a locale-code
-  // wrapper (whose values would be objects keyed by attribute markers).
+  // OE returns `attributeValues` either wrapped per-locale (`{ en_US: { marker: {...} } }`) or flat (`{ marker: {...} }`) depending on how the SDK unwrapped the response for `langCode`. Support both.
   const rawAttrs = (raw.attributeValues ?? {}) as Record<string, unknown>;
   const localeSlice = rawAttrs[lang];
   const attrs: Record<string, unknown> =

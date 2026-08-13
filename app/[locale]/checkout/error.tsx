@@ -4,10 +4,7 @@ import { useEffect } from 'react';
 
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Shown when the checkout segment throws. Overlaid by `checkout_error_*` in the
- * OE `system_pages` set, alongside the 404 / offline / generic-error copy.
- */
+/** Shown when the checkout segment throws. */
 export const CHECKOUT_ERROR_LABELS = {
   heading: 'Checkout unavailable',
   body: 'There was a problem loading the checkout. Your cart has not been charged.',

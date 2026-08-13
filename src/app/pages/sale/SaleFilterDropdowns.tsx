@@ -11,10 +11,7 @@ import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 
-/**
- * An option is either a plain value (label == value) or a value whose
- *  rendered wording is admin-editable and therefore kept apart from it.
- */
+/** An option is either a plain value (label == value) or a value whose rendered wording is admin-editable and therefore kept apart from it. */
 export type PillOption = string | { label: string; value: string };
 
 export interface PillDropdownProps {
@@ -111,10 +108,7 @@ export interface ColorPillDropdownProps {
   selected: string[];
   onToggle: (val: string) => void;
   onClear: () => void;
-  /**
-   * Optional list of `{label, color}` swatches derived from the visible
-   *  products. When omitted, falls back to the static SALE_COLOR_OPTIONS.
-   */
+  /** Optional list of `{label, color}` swatches derived from the visible products. */
   options?: readonly { label: string; color: string }[];
 }
 

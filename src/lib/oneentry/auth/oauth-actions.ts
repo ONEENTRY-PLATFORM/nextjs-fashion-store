@@ -1,19 +1,5 @@
 'use server';
-/**
- * Google OAuth — the only part of the auth flow that legitimately runs on the
- * server (MCP `auth-provider`, "OAuth providers"):
- *
- *  • the CSRF `state` must live in an httpOnly cookie the browser cannot read;
- *  • the `code → tokens` exchange goes through OE, which holds the Google
- *    `client_secret`.
- *
- * The exchange stamps the **browser's** device fingerprint via
- * `deviceMetadata` on a throw-away instance. Without it OE would bind the
- * refresh token to this Node process's fingerprint, the browser's proactive
- * `/refresh` would get a `400`, and the shopper would be silently logged out
- * on their next visit. `setDeviceMetadata()` on the shared singleton is not an
- * option — its state is shared by every concurrent visitor.
- */
+/** Google OAuth — the only part of the auth flow that legitimately runs on the server (MCP `auth-provider`, "OAuth providers"): • the CSRF `state` must live in an httpOnly cookie the browser cannot read. */
 import { cookies } from 'next/headers';
 
 import { createRequestApi, getApiSafe, isError } from '@/lib/oneentry/index';
@@ -31,12 +17,7 @@ interface CookieJar {
   get(name: string): { value: string } | undefined;
 }
 
-/**
- * Build the absolute OAuth redirect URI for a given browser origin.
- *
- * @param origin - Browser origin, e.g. `https://shop.example`.
- * @returns Absolute callback URL registered with Google.
- */
+/** Build the absolute OAuth redirect URI for a given browser origin. */
 function absoluteCallbackUri(origin: string): string {
   return `${origin.replace(/\/$/, '')}${GOOGLE_CALLBACK_PATH}`;
 }
@@ -50,15 +31,7 @@ export interface GoogleOAuthStartError {
   error: string;
 }
 
-/**
- * Start the authorization-code flow: read `config.oauthAuthUrl` from the OE
- * provider (never hardcode Google's endpoint), build the authorize URL, and
- * park the CSRF `state` + the post-login return path in httpOnly cookies.
- *
- * @param origin     - Browser origin, used to build `redirect_uri`.
- * @param [returnTo] - Local path to bounce back to after sign-in.
- * @returns URL to redirect to.
- */
+/** Start the authorization-code flow: read `config.oauthAuthUrl` from the OE provider (never hardcode Google's endpoint), build the authorize URL, and park the CSRF `state` + the post-login return path in httpOnly cookies. */
 export async function getGoogleAuthUrlAction(
   origin: string,
   returnTo?: string,
@@ -130,17 +103,7 @@ export type GoogleExchangeResult =
     }
   | { ok: false; error: string };
 
-/**
- * Exchange Google's `?code=` for an OE session.
- *
- * OE expects `{ code, redirect_uri }` — `client_id` / `client_secret` are
- * configured tenant-side. The tokens are handed back to the caller instead of
- * being written into a cookie: the browser owns the session (MCP `tokens`),
- * and `oauth()` — unlike `auth()` — does not place them in SDK state itself.
- *
- * @param ctx - Code, CSRF state, origin, fingerprint.
- * @returns Tokens + return path, or an error.
- */
+/** Exchange Google's `?code=` for an OE session. */
 export async function exchangeGoogleCodeAction(ctx: GoogleCallbackContext): Promise<GoogleExchangeResult> {
   if (!ctx.code) return { ok: false, error: await se('googleMissingCode') };
 
@@ -155,8 +118,7 @@ export async function exchangeGoogleCodeAction(ctx: GoogleCallbackContext): Prom
     return { ok: false, error: await se('oauthStateMismatch') };
   }
 
-  // Per-request instance carrying the browser's fingerprint — never the
-  // shared singleton (its state is visible to every concurrent visitor).
+  // Per-request instance carrying the browser's fingerprint — never the shared singleton (its state is visible to every concurrent visitor).
   const api = createRequestApi({ deviceMetadata: ctx.deviceMetadata });
   if (!api) return { ok: false, error: await se('oneEntryNotConfigured') };
 

@@ -1,12 +1,6 @@
 'use client';
 
-/**
- * CatalogTemplate — universal catalog engine.
- *
- * Receives configuration via props; all logic for filtering,
- * sorting, pagination and rendering lives here.
- * Each catalog page becomes ~30-50 lines of configuration.
- */
+/** CatalogTemplate — universal catalog engine. */
 import { ChevronDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from 'react';
@@ -36,7 +30,11 @@ export type {
   FilterGroup,
   FilterOption,
 } from './CatalogTemplate.types';
-import { CATALOG_SORT_LABELS , CATALOG_VIEW_LABELS as CVL_FALLBACK , COMMON_EMPTY_STATES } from '@/app/components/catalog/copy';
+import {
+  CATALOG_SORT_LABELS,
+  CATALOG_VIEW_LABELS as CVL_FALLBACK,
+  COMMON_EMPTY_STATES,
+} from '@/app/components/catalog/copy';
 import { CatalogAccentContext } from '@/app/context/CatalogAccentContext';
 import { setListMode as dispatchSetListMode, setViewCols as dispatchSetViewCols } from '@/app/store/catalogSlice';
 import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
@@ -97,13 +95,9 @@ export function CatalogTemplate({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  // Server-rendered filters arrive via props (parsed there), but we always
-  // re-derive from `useSearchParams` so client-side `router.replace` keeps
-  // the UI in sync without waiting for the server round-trip.
+  // Server-rendered filters arrive via props (parsed there), but we always re-derive from `useSearchParams` so client-side `router.replace` keeps the UI in sync without waiting for the server round-trip.
   const currentFilters = useMemo<CatalogFilters>(() => {
-    // Pull dynamic values out of useSearchParams; merge with server-parsed
-    // defaults so unsupported keys (e.g. sort) still flow through. We use
-    // the same parser here as on the server.
+    // Pull dynamic values out of useSearchParams; merge with server-parsed defaults so unsupported keys (e.g. sort) still flow through.
     const sp: Record<string, string> = {};
     searchParams.forEach((v, k) => {
       sp[k] = v;
@@ -177,11 +171,7 @@ export function CatalogTemplate({
     if (sp.chip) {
       inlineFilters.chip = sp.chip;
     } else {
-      // Slug-based URLs like `/women/clothing/category/outerwear` carry the
-      // chosen sub-category in the path instead of the query. Extract it and
-      // prettify (`winter-outfits` → `Winter Outfits`) so the chip highlights
-      // and product-list filters exactly as if the shopper had clicked the
-      // matching QUICK_CHIP.
+      // Slug-based URLs like `/women/clothing/category/outerwear` carry the chosen sub-category in the path instead of the query.
       const parts = pathname.split('/').filter(Boolean);
       const idx = parts.lastIndexOf('category');
       if (idx >= 0 && idx < parts.length - 1) {
@@ -195,11 +185,7 @@ export function CatalogTemplate({
     return inlineFilters;
   }, [searchParams, currentFiltersProp, pathname]);
 
-  // Optimistic mirror of `currentFilters`. The UI (checkboxes, chips, sort
-  // pill, price slider) renders from this snapshot so a click flips the
-  // visual state immediately, before the URL-driven server round-trip
-  // resolves. React swaps it back to `currentFilters` automatically once
-  // the transition that wrapped the optimistic update commits.
+  // Optimistic mirror of `currentFilters`. The UI (checkboxes, chips, sort pill, price slider) renders from this snapshot so a click flips the visual state immediately, before the URL-driven server round-trip resolves.
   const [optimisticFilters, applyOptimisticFilters] = useOptimistic<CatalogFilters, CatalogFilters>(
     currentFilters,
     (_prev, next) => next,
@@ -232,8 +218,7 @@ export function CatalogTemplate({
   const filterBarRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
 
-  // Fire a single category_view per catalog mount so analytics get an event
-  // for every browsing session, regardless of auth state.
+  // Fire a single category_view per catalog mount so analytics get an event for every browsing session, regardless of auth state.
   useEffect(() => {
     trackActivity({ type: 'category_view', meta: { catalogKey } });
   }, [catalogKey]);
@@ -243,10 +228,7 @@ export function CatalogTemplate({
 
   /* ── URL navigation helpers ─────────────────────────────────────────── */
 
-  /**
-   * Push a new filter snapshot to the URL. Keeps non-filter params intact
-   *  (utm_, etc.) so they don't get wiped when the user clicks a checkbox.
-   */
+  /** Push a new filter snapshot to the URL. */
   const pushFilters = useCallback(
     (next: CatalogFilters) => {
       const baseQs = serializeCatalogSearchParams(next);
@@ -279,9 +261,7 @@ export function CatalogTemplate({
       all.forEach((v, k) => merged.append(k, v));
       const qs = merged.toString();
       startTransition(() => {
-        // Flip the UI immediately so checkbox / chip / sort responds before
-        // the server round-trip completes. `useOptimistic` requires the
-        // dispatch to live inside a transition.
+        // Flip the UI immediately so checkbox / chip / sort responds before the server round-trip completes.
         applyOptimisticFilters(next);
         router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
       });
@@ -328,9 +308,7 @@ export function CatalogTemplate({
     pushFilters(next);
   };
 
-  // Debounced price-range update so dragging the slider doesn't fire a
-  // navigation per pixel. 200 ms feels responsive and avoids re-rendering
-  // the server tree under each mouse move.
+  // Debounced price-range update so dragging the slider doesn't fire a navigation per pixel.
   const pricePushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setPriceRange = useCallback(
     (v: [number, number]) => {
@@ -377,9 +355,7 @@ export function CatalogTemplate({
   const gridCols = listMode ? '' : viewCols === 4 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3';
 
   const hasPriceRange = FILTER_GROUPS.some((g) => g.type === 'price_range');
-  // Drop filter groups whose key doesn't map to an OE attribute (productDetails,
-  // careInstructions, insulation, and the mock-shoes-only keys). The user can
-  // still see supported groups; unsupported groups would just be no-ops.
+  // Drop filter groups whose key doesn't map to an OE attribute (productDetails, careInstructions, insulation, and the mock-shoes-only keys).
   const supportedGroups = useMemo(
     () =>
       FILTER_GROUPS.filter((g) => g.type === 'section' || g.type === 'price_range' || isFilterGroupSupported(g.key)),
@@ -410,12 +386,7 @@ export function CatalogTemplate({
             {breadcrumbs &&
               breadcrumbs.length > 0 &&
               (() => {
-                // Determine the terminal sub-category from two sources:
-                //   1) `activeChip` — chosen via chip filter on the current page.
-                //   2) A `/category/<slug>` suffix on `pathname` — used by OE
-                //      hosting / deep-links to land straight on a sub-category.
-                // Chip wins when both are set (it's the truest "user picked"
-                // signal). Otherwise slug is prettified into a display label.
+                // Determine the terminal sub-category from two sources: 1) `activeChip` — chosen via chip filter on the current page.
                 const pathParts = pathname.split('/').filter(Boolean);
                 const catIdx = pathParts.lastIndexOf('category');
                 const slugSubcategory = catIdx >= 0 && catIdx < pathParts.length - 1 ? pathParts[catIdx + 1] : '';
@@ -426,9 +397,7 @@ export function CatalogTemplate({
                     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
                     .join(' ');
                 const terminalLabel = activeChip || (slugSubcategory ? prettify(slugSubcategory) : '');
-                // Parent link points to the catalog page without the trailing
-                // `/category/<slug>` when we arrived via slug-based URL. Falls
-                // back to the last breadcrumb's own href, then to `pathname`.
+                // Parent link points to the catalog page without the trailing `/category/<slug>` when we arrived via slug-based URL.
                 const parentHref =
                   catIdx >= 0
                     ? '/' + pathParts.slice(0, catIdx).join('/')

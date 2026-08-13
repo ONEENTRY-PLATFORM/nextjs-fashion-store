@@ -5,9 +5,7 @@ import type { PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
 import { OptionCard } from './PaymentPage.parts';
 
-// Pick an icon based on OE `identifier` — hand-picked substrings so cash /
-// wallets / card methods each get a recognisable glyph. Unknown identifiers
-// fall back to a generic wallet.
+// Pick an icon based on OE `identifier` — hand-picked substrings so cash / wallets / card methods each get a recognisable glyph.
 function iconFor(identifier: string): React.ReactNode {
   const id = identifier.toLowerCase();
   if (id.includes('cash')) return <Banknote size={20} />;
@@ -27,9 +25,7 @@ interface PaymentMethodsListProps {
   redirectHint: string;
 }
 
-// Renders payment options split into "pay on delivery" (custom accounts) and
-// "online prepayment" (stripe accounts). Sections that end up empty are
-// omitted, and the OR divider is only shown when both are present.
+// Renders payment options split into "pay on delivery" (custom accounts) and "online prepayment" (stripe accounts).
 export function PaymentMethodsList({
   accounts,
   selected,

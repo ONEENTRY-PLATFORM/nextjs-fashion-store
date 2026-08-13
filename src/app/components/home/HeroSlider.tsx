@@ -55,8 +55,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
   const slides: HeroSlide[] = (initialSlides ?? []).map((s) => ({
     id: s.id,
     image: s.image,
-    // Was dropped by this mapping, so `s.imageBlur` below always read
-    // `undefined` and the hero rendered with no LQIP even when the CMS had one.
+    // Was dropped by this mapping, so `s.imageBlur` below always read `undefined` and the hero rendered with no LQIP even when the CMS had one.
     imageBlur: s.imageBlur,
     eyebrow: s.eyebrow,
     headline: s.headline,
@@ -71,11 +70,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
   const [paused, setPaused] = useState(false);
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const regionId = useId();
-  // Slides 2 and 3 are full-bleed photos of the same weight as the first one,
-  // and they sit *inside* the viewport at `opacity-0` — which means the browser
-  // fetches them eagerly no matter what `loading` says. On a mobile connection
-  // that puts ~1.3 MB in front of the LCP image. Their `<img>` is therefore
-  // withheld until the main thread goes idle; the visible slide is unaffected.
+  // Slides 2 and 3 are full-bleed photos of the same weight as the first one, and they sit *inside* the viewport at `opacity-0`.
   const [preloadPending, setPreloadPending] = useState(true);
 
   const aCarouselRole = useT('interface_controls_carousel_role', CAROUSEL_LABELS.carouselRole);
@@ -93,11 +88,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
     };
   }, []);
 
-  // `requestIdleCallback` rather than a timer: it fires once the hero has
-  // painted and the hydration work has drained, which is exactly when the
-  // remaining slides stop competing for bandwidth. The `timeout` caps the wait
-  // on a busy main thread, and the `setTimeout` branch covers browsers without
-  // the API. Both are well inside the first auto-advance (see TIMINGS).
+  // `requestIdleCallback` rather than a timer: it fires once the hero has painted and the hydration work has drained, which is exactly when the remaining slides stop competing for bandwidth.
   useEffect(() => {
     if (typeof window.requestIdleCallback !== 'function') {
       const timer = setTimeout(() => setPreloadPending(false), TIMINGS.HERO_SLIDE_TRANSITION);
@@ -131,8 +122,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
     return () => clearInterval(timer);
   }, [next, paused, slides.length]);
 
-  // Bail out only after every hook has run — hooks must be called in the same
-  // order on every render (MCP: `react-hooks/rules-of-hooks` is an error).
+  // Bail out only after every hook has run — hooks must be called in the same order on every render (MCP: `react-hooks/rules-of-hooks` is an error).
   if (slides.length === 0) return null;
   const slide = slides[current];
 

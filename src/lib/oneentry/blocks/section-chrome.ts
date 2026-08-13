@@ -1,15 +1,6 @@
 import type { PageBlock } from './page-blocks';
 
-/**
- * Header copy around an OE product block: the small eyebrow above the title,
- * an optional subtitle, and the "View all" link.
- *
- * The block already carries its heading (`block.title`); everything else used
- * to live in `data/sectionTitles.ts`, which meant an editor could rename the
- * carousel but not its eyebrow or its link target. Markers are probed in a
- * few spellings because tenants author these attributes by hand — same
- * heuristic approach `GenericCommonBlock` uses for `common_block`.
- */
+/** Header copy around an OE product block: the small eyebrow above the title, an optional subtitle, and the "View all" link. */
 export interface SectionChrome {
   eyebrow?: string;
   subtitle?: string;

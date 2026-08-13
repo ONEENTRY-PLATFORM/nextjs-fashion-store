@@ -1,21 +1,8 @@
 'use server';
-/**
- * ISR invalidation triggered from the browser after an order lands.
- *
- * `revalidateTag` only exists on the server, and the checkout flow now runs
- * client-side (MCP `server-actions`: `Orders` is a user-authorised module, so
- * it is called from the Client Component that owns the session). This tiny
- * Server Action is the bridge — it touches no shopper data, only cache tags.
- */
+/** ISR invalidation triggered from the browser after an order lands. */
 import { revalidateTag } from 'next/cache';
 
-/**
- * Drop the cached surfaces an order placement can invalidate: product
- * listings (stock / status moved) and discount rules (single-use coupons and
- * usage-capped tiers may have just consumed a slot).
- *
- * @returns Resolves once both tags are invalidated.
- */
+/** Drop the cached surfaces an order placement can invalidate: product listings (stock / status moved) and discount rules. */
 export async function revalidateAfterOrderAction(): Promise<void> {
   try {
     revalidateTag('oe-products', 'max');

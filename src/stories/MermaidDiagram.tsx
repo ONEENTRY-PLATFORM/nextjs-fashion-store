@@ -16,8 +16,7 @@ export function MermaidDiagram({ chart }: Props) {
       const { default: mermaid } = await import('mermaid');
       if (cancelled || !ref.current) return;
 
-      // Wait for fonts to load — otherwise Mermaid measures text
-      // with the fallback font and clipPath ends up too narrow
+      // Wait for fonts to load — otherwise Mermaid measures text with the fallback font and clipPath ends up too narrow
       await document.fonts.ready;
       if (cancelled || !ref.current) return;
 
@@ -53,8 +52,7 @@ export function MermaidDiagram({ chart }: Props) {
       const svgEl = ref.current.querySelector('svg');
       if (!svgEl) return;
 
-      // Expand clipPath rectangles so text isn't clipped
-      // (80px margin in width, 40px in height)
+      // Expand clipPath rectangles so text isn't clipped (80px margin in width, 40px in height)
       svgEl.querySelectorAll('clipPath rect').forEach((el) => {
         const w = parseFloat(el.getAttribute('width') || '0');
         const h = parseFloat(el.getAttribute('height') || '0');

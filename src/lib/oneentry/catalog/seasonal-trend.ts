@@ -5,11 +5,7 @@ import { logCaught } from '@/lib/oneentry/log';
 
 import type { CatalogFilters } from './filters';
 
-/**
- * `CatalogFilters` keys that hold multi-value lists — SEASONAL TRENDS
- *  redirects narrow the grid via one of these when `st_type-of-trends`
- *  names an attribute rather than the literal `"category"`.
- */
+/** `CatalogFilters` keys that hold multi-value lists. */
 type CatalogListField =
   | 'colors'
   | 'sizes'
@@ -25,15 +21,7 @@ type CatalogListField =
   | 'careInstructions'
   | 'insulations';
 
-/**
- * Map an OE attribute marker (or its human-friendly synonym) to the
- *  `CatalogFilters` key that drives storefront filtering. The suffix numbers
- *  (`color_9`, `material_15`, …) come straight from the tenant's clothing
- *  attribute set — copies of the constants in `filters.ts::LIST_FIELD_TO_OE_MARKER`
- *  so this module works standalone without depending on filter-body plumbing.
- *  Both the short name (`material`) and the OE marker (`material_15`) are
- *  accepted so merchants can put either into the `st_type-of-trends` field.
- */
+/** Map an OE attribute marker (or its human-friendly synonym) to the `CatalogFilters` key that drives storefront filtering. */
 const ATTR_ALIAS_TO_FILTER: Record<string, CatalogListField> = {
   color: 'colors',
   color_9: 'colors',
@@ -75,13 +63,7 @@ const ATTR_ALIAS_TO_FILTER: Record<string, CatalogListField> = {
   insulations: 'insulations',
 };
 
-/**
- * Read an attribute value from OE's normalized `attributeValues` map. OE
- * sometimes wraps the value in `{ type, value, ... }`, sometimes returns a
- * bare scalar — accept both. The `markers` list lets callers pass hyphen and
- * underscore variants (`st_type-of-trends` vs `st_type_of_trends`) so we
- * don't break if the tenant renamed one.
- */
+/** Read an attribute value from OE's normalized `attributeValues` map. */
 function readAttr(attrs: Record<string, unknown>, markers: string[]): string {
   for (const m of markers) {
     const raw = attrs[m];
@@ -104,29 +86,12 @@ function readAttr(attrs: Record<string, unknown>, markers: string[]): string {
 export type SeasonalTrend =
   { kind: 'category'; value: string } | { kind: 'attribute'; field: CatalogListField; value: string };
 
-/**
- * Resolve a SEASONAL TRENDS page into the filter it should apply to the
- * catalog grid. Reads OE attributes:
- *
- *   • `st_type-of-trends` — either the literal `"category"` or the name of
- *     an OE attribute (`material`, `style`, `brand`, or the numbered marker
- *     `material_15` etc.).
- *   • `st_trends` — the value to match. For `type=category` this is a
- *     category `pageUrl` segment (matched against `p.categories[]`); for
- *     an attribute type it's the option value (e.g. `"Suede"`).
- *
- * Returns `null` when the page has no SEASONAL TRENDS metadata — callers
- * fall back to the default `?category=` behaviour (match by pageUrl segment).
- */
+/** Resolve a SEASONAL TRENDS page into the filter it should apply to the catalog grid. */
 export async function resolveSeasonalTrend(pageUrl: string, langArg?: string): Promise<SeasonalTrend | null> {
   const api = getApiSafe();
   if (!api) return null;
   const lang = langArg ?? (await currentCmsLocale());
-  // Fetch OE directly instead of going through the request-cached
-  // `loadPageByUrl` — in Next.js dev, HMR of the cached wrapper can retain
-  // stale results (empty `attributeValues` from before the merchant filled
-  // in SEASONAL TRENDS metadata) across requests. Direct call keeps this
-  // adapter honest at the cost of one extra fetch per page load.
+  // Fetch OE directly instead of going through the request-cached `loadPageByUrl`.
   let result: unknown;
   try {
     result = await api.Pages.getPageByUrl(pageUrl, lang);
@@ -137,8 +102,7 @@ export async function resolveSeasonalTrend(pageUrl: string, langArg?: string): P
   if (!result || isError(result)) return null;
   const raw = result as { attributeValues?: Record<string, unknown> | Record<string, Record<string, unknown>> };
   const rawAttrs = (raw.attributeValues ?? {}) as Record<string, unknown>;
-  // `_normalizeData` in the SDK usually unwraps the per-locale wrapper, but
-  // some tenants still return `{ en_US: { attr: {...} } }`. Support both.
+  // `_normalizeData` in the SDK usually unwraps the per-locale wrapper, but some tenants still return `{ en_US: { attr: {...} } }`. Support both.
   const localeSlice = rawAttrs[lang] ?? rawAttrs[DEFAULT_LOCALE];
   const attrs: Record<string, unknown> =
     localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice)
@@ -154,11 +118,7 @@ export async function resolveSeasonalTrend(pageUrl: string, langArg?: string): P
   return { kind: 'attribute', field, value };
 }
 
-/**
- * Apply a resolved SEASONAL TRENDS descriptor to a `CatalogFilters` object.
- * Returns a new object — the input isn't mutated so callers can safely
- * re-use it (e.g. to seed the client's initial filter state).
- */
+/** Apply a resolved SEASONAL TRENDS descriptor to a `CatalogFilters` object. */
 export function applySeasonalTrend(filters: CatalogFilters, trend: SeasonalTrend): CatalogFilters {
   if (trend.kind === 'category') {
     return { ...filters, category: trend.value };
@@ -166,8 +126,7 @@ export function applySeasonalTrend(filters: CatalogFilters, trend: SeasonalTrend
   const existing = (filters[trend.field] as string[] | undefined) ?? [];
   return {
     ...filters,
-    // Drop the pageUrl-based category filter — the shopper is on a
-    // SEASONAL TRENDS page whose subject is an attribute, not a taxonomy leaf.
+    // Drop the pageUrl-based category filter — the shopper is on a SEASONAL TRENDS page whose subject is an attribute, not a taxonomy leaf.
     category: undefined,
     [trend.field]: existing.includes(trend.value) ? existing : [...existing, trend.value],
   };

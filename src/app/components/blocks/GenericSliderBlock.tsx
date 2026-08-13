@@ -8,18 +8,7 @@ import { Link } from '@/lib/i18n/navigation';
 import { getImageUrl } from '@/lib/oneentry';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Generic renderer for OE `slider_block` type. Reads each slide's
- * `attributeValues` heuristically (patterns for `*image*`, `*headline/title*`,
- * `*eyebrow/label*`, `*subtext/description/body*`, `*cta_text/button*`,
- * `*cta_link/href/link*`) — lets admins attach any slider marker without
- * hardcoding attribute names.
- *
- * Simple carousel: prev / next arrows + dot pagination. Auto-advance is
- * intentionally omitted for the generic case (avoid surprise motion on
- * pages that weren't hero-designed). Homepage keeps `<HeroSlider>` for the
- * hero-specific flow (auto-advance, gender toggle, full-height layout).
- */
+/** Generic renderer for OE `slider_block` type. */
 
 type AttrValue = { value?: unknown } | undefined;
 type Attrs = Record<string, AttrValue>;
@@ -35,11 +24,7 @@ function pickAttr<T = unknown>(attrs: Attrs, patterns: RegExp[]): T | undefined 
   return undefined;
 }
 
-/**
- * Some tenants scope every attribute string index numerically
- *  (`string_id1`..`string_id6`, `image_id4`) with no semantic name. Fall
- *  back to positional guess only after the pattern search fails.
- */
+/** Some tenants scope every attribute string index numerically (`string_id1`..`string_id6`, `image_id4`) with no semantic name. */
 function pickPositional(attrs: Attrs, prefix: string, index: number): unknown {
   return attrs[`${prefix}${index}`]?.value;
 }
@@ -80,9 +65,7 @@ export function GenericSliderBlock({
   const lNextSlide = useT('interface_controls_next_slide', CAROUSEL_LABELS.nextSlide);
 
   if (slides.length === 0) return null;
-  // Slides can shrink (admin drops one) while `index` still points past the
-  // end — clamp during render instead of correcting it from an effect, which
-  // would be a synchronous `setState` and an extra render pass.
+  // Slides can shrink (admin drops one) while `index` still points past the end.
   const current = slides[Math.min(index, slides.length - 1)];
   const prev = () => setIndex((i) => (i - 1 + slides.length) % slides.length);
   const next = () => setIndex((i) => (i + 1) % slides.length);

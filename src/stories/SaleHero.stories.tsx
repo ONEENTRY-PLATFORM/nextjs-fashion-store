@@ -57,10 +57,7 @@ export const CmsPopulated: Story = {
   },
 };
 
-/**
- * CMS provided but `contentHtml` is empty → falls back to `contentPlain`
- *  parsed line-by-line into the original title / discount / subtitle slots.
- */
+/** CMS provided but `contentHtml` is empty → falls back to `contentPlain` parsed line-by-line into the original title / discount / subtitle slots. */
 export const CmsNoHtml: Story = {
   name: 'CMS — no contentHtml (plainValue fallback)',
   args: {
@@ -72,11 +69,7 @@ export const CmsNoHtml: Story = {
   },
 };
 
-/**
- * Both `contentHtml` and `contentPlain` are empty → deepest fallback:
- *  all four visual slots are filled by static `L.*` labels
- *  (SEASON / SALE / UP TO 50% OFF / heroSubtitle).
- */
+/** Both `contentHtml` and `contentPlain` are empty → deepest fallback: all four visual slots are filled by static `L.*` labels. */
 export const CmsNoHtmlNoPlain: Story = {
   name: 'CMS — no contentHtml, no contentPlain (static labels fallback)',
   args: {

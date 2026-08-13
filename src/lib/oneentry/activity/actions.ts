@@ -1,12 +1,4 @@
-/**
- * Visitor activity tracking (`UserActivity.trackUserActivity`).
- *
- * `UserActivity` is a session-scoped module: signed-in shoppers authenticate
- * with their bearer token, guests with `x-guest-id`. Per the MCP
- * `server-actions` rule both belong in the browser — the SDK singleton there
- * already carries whichever context applies, and a Server Action would have to
- * smuggle the session across the wire on every page view.
- */
+/** Visitor activity tracking (`UserActivity.trackUserActivity`). */
 import { getApiSafe, hasStoredSession, isError } from '@/lib/oneentry/index';
 import { se } from '@/lib/oneentry/server-errors';
 
@@ -31,18 +23,7 @@ export interface TrackActivityInput {
   meta?: Record<string, unknown>;
 }
 
-/**
- * Record one activity event for the current visitor. Fire-and-forget on the
- * caller side: it reports `ok`/`error` but never throws.
- *
- * When the shopper is signed in the SDK sends the bearer token and OE drops
- * `x-guest-id` entirely; otherwise the anonymous id is installed on the
- * instance so the guest trail keeps aggregating under one record.
- *
- * @param input     - Event type and its subject.
- * @param             [guestId] - Anonymous visitor id for guests.
- * @returns Outcome.
- */
+/** Record one activity event for the current visitor. */
 export async function trackActivityAction(
   input: TrackActivityInput,
   guestId?: string,

@@ -19,15 +19,10 @@ export function ProductGallery({
 }: {
   images: string[];
   productName: string;
-  /**
-   * Blur data URI per image URL. Keyed by URL so the thumbnail strip and the
-   *  main frame can each look up their own without tracking indices.
-   */
+  /** Blur data URI per image URL. */
   imageBlurs?: Record<string, string>;
 }) {
-  // OE products occasionally come back with empty image URLs (placeholder
-  // entries while admin is filling in pictures). next/image throws when
-  // `src=""`, so drop empties up front.
+  // OE products occasionally come back with empty image URLs (placeholder entries while admin is filling in pictures).
   const safeImages = images.filter((src): src is string => typeof src === 'string' && src.length > 0);
   const [selected, setSelected] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
@@ -44,12 +39,7 @@ export function ProductGallery({
     setZoomPos({ x, y });
   }, []);
 
-  // No usable pictures on the variant AND no fallback wired up upstream —
-  // render the same bag placeholder the catalog card uses, in the same
-  // aspect ratio, so the PDP doesn't leave a blank column where the gallery
-  // should be. Matches the shopper's mental model ("I saw this tile in the
-  // catalog with a placeholder, PDP looks the same"). No thumbnails/controls
-  // because there's nothing to switch between.
+  // No usable pictures on the variant AND no fallback wired up upstream.
   if (safeImages.length === 0) {
     return (
       <div className="flex w-full flex-col gap-3 lg:flex-row">
@@ -110,8 +100,7 @@ export function ProductGallery({
               src={safeImages[safeSelected]}
               blur={imageBlurs?.[safeImages[safeSelected]]}
               alt={`${productName} – photo ${safeSelected + 1}`}
-              // No class here contains "gallery", so the specs'
-              // `[class*="gallery"] img` locator matched nothing.
+              // No class here contains "gallery", so the specs' `[class*="gallery"] img` locator matched nothing.
               data-testid="pdp-gallery-main-image"
               fill
               sizes="(max-width: 1024px) 100vw, 58vw"

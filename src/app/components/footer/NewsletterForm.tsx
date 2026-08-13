@@ -5,14 +5,7 @@ import { useFieldPlaceholder, useFormLabel, useFormMessage } from '@/lib/oneentr
 import { submitForm } from '@/lib/oneentry/forms/submit';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-/**
- * Offline fallback for the footer newsletter. The live copy comes from the OE
- * `subscribe_new_drops` form (field label/placeholder + the form's
- * success/failure messages) — see `docs/HARDCODED_TEXTS.md` §4.3.
- *
- * `notConfigured` deliberately has no OE counterpart: it is shown exactly when
- * OneEntry has no such form, so it could never be read from there.
- */
+/** Offline fallback for the footer newsletter. */
 export const NEWSLETTER_FORM_LABELS = {
   placeholder: 'Your email address',
   submit: 'Subscribe',
@@ -32,10 +25,7 @@ export function NewsletterForm() {
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  // Every visible string is authored on the OE form itself: the field label and
-  // placeholder on the `subscribe_new_drops_email` attribute, the CTA on the
-  // `…_button` attribute, and both result messages on the form record. Local
-  // constants are only the offline fallback.
+  // Every visible string is authored on the OE form itself: the field label and placeholder on the `subscribe_new_drops_email` attribute, the CTA on the `…_button` attribute, and both result messages on the form record.
   const placeholder = useFieldPlaceholder(FORM, 'subscribe_new_drops_email', L.placeholder);
   const submitLabel = useFormLabel(FORM, 'subscribe_new_drops_button', L.submit);
   const successMessage = useFormMessage(FORM, 'successMessage', L.success);
@@ -45,11 +35,7 @@ export function NewsletterForm() {
     e.preventDefault();
     if (!email.trim()) return;
     startTransition(async () => {
-      // OE needs both `formModuleConfigId` (the id from the page's
-      // `moduleFormConfigs`) and `moduleEntityIdentifier` (the page's
-      // `pageUrl`) — without them OE rejects with "Incorrect formIdentifier
-      // for provided config". Look these up with `Pages.getPageByUrl('subscribe')`
-      // → `page.moduleFormConfigs[0]` if they ever change in OE admin.
+      // OE needs both `formModuleConfigId` (the id from the page's `moduleFormConfigs`) and `moduleEntityIdentifier` (the page's `pageUrl`).
       const result = await submitForm(
         FORM,
         [{ marker: 'subscribe_new_drops_email', value: email.trim(), type: 'string' }],
@@ -61,9 +47,7 @@ export function NewsletterForm() {
         setError('');
       } else {
         setStatus('error');
-        // OE returns "Incorrect formIdentifier for provided config" when the
-        // form isn't set up in the admin panel. That one stays in code on
-        // purpose: it fires precisely when OE has no form to read copy from.
+        // OE returns "Incorrect formIdentifier for provided config" when the form isn't set up in the admin panel.
         const friendly = /formidentifier|form identifier/i.test(result.error) ? L.notConfigured : result.error;
         setError(friendly);
       }

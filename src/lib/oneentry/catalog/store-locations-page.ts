@@ -10,10 +10,7 @@ export interface StoreLocationsPageFromCms {
     title: string;
     text: string;
     image: string;
-    /**
-     * Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded
-     *  through an OE preview template have one.
-     */
+    /** Blur data URI for `next/image`'s `blurDataURL`. Only files uploaded through an OE preview template have one. */
     imageBlur?: string;
   };
   flagshipCallout: {
@@ -37,13 +34,7 @@ export const loadStoreLocationsPage = cache(async (langArg?: Lang): Promise<Stor
   const lang = langArg ?? (await currentCmsLocale());
   if (!isOneEntryEnabled) return null;
   try {
-    // Prefer `getPageByUrl('stores', lang)` — the SDK-supported entry
-    // point. If OE returns 404 for this specific page in the tenant, fall
-    // back to iterating `getPages()` and finding the entry by pageUrl.
-    // Note: `getPages()` is documented to strip `attributeValues` in some
-    // SDK versions; if that becomes the case, this loader will return
-    // empty text/image fields — the storefront currently degrades to
-    // static labels for stores hero when this happens.
+    // Prefer `getPageByUrl('stores', lang)` — the SDK-supported entry point.
     let page: RawPage | null = null;
     const single = await getApi().Pages.getPageByUrl('stores', lang);
     if (!isError(single)) {
@@ -56,8 +47,7 @@ export const loadStoreLocationsPage = cache(async (langArg?: Lang): Promise<Stor
     }
     if (!page) return null;
 
-    // `attributeValues` may be flat `{ marker: {value} }` or wrapped
-    // `{ en_US: { marker: {value} } }` depending on the endpoint used.
+    // `attributeValues` may be flat `{ marker: {value} }` or wrapped `{ en_US: { marker: {value} } }` depending on the endpoint used.
     const av = page.attributeValues ?? {};
     const wrapped = (av as Record<string, Record<string, RawAttr>>)[lang];
     const attrs: Record<string, RawAttr> =

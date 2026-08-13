@@ -107,15 +107,10 @@ export function AccountPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sectionLoading, setSectionLoading] = useState(false);
 
-  // Track the URL `?tab=` query so in-page navigations (e.g. clicking
-  // "Full History" from an expanded order row) switch sections. Previously
-  // an on-mount-only effect meant `router.push('/account?tab=history')`
-  // updated the URL bar but the section stayed on `my-orders`.
+  // Track the URL `?tab=` query so in-page navigations (e.g. clicking "Full History" from an expanded order row) switch sections.
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get('tab') ?? null;
-  // Sync the section with `?tab=` during render — React's "adjust state when
-  // a prop changes" pattern. In an effect the previous section would paint
-  // for one frame after every in-page navigation.
+  // Sync the section with `?tab=` during render — React's "adjust state when a prop changes" pattern.
   const [prevTabParam, setPrevTabParam] = useState<string | null>(null);
   if (tabParam !== prevTabParam) {
     setPrevTabParam(tabParam);
@@ -130,9 +125,7 @@ export function AccountPage() {
     router.replace(`/account?tab=${key}`, { scroll: false });
   };
 
-  // Show the section skeleton for a beat on every switch. The "start"
-  // transition happens during render (keyed on the section) so the skeleton
-  // is visible in the very first frame of the new section.
+  // Show the section skeleton for a beat on every switch.
   const [loadingSection, setLoadingSection] = useState<Section | null>(activeSection);
   if (loadingSection !== activeSection && !sectionLoading) {
     setLoadingSection(activeSection);
@@ -144,9 +137,7 @@ export function AccountPage() {
     return () => clearTimeout(t);
   }, [sectionLoading, activeSection]);
 
-  // Auth bootstrap in progress — render the full account layout with a
-  // sidebar-nav shell and a section skeleton so a reload doesn't flash the
-  // sign-in prompt for anyone with a valid cookie session.
+  // Auth bootstrap in progress.
   if (!authReady) {
     const skeleton = (() => {
       switch (activeSection) {
