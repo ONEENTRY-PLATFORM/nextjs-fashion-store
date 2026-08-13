@@ -23,6 +23,11 @@ const WARM_PATHS = [
   '/sale',
   '/new',
   '/account',
+  // Cheap to render but landed on first by the header specs, which then paid
+  // the compile inside a `beforeEach` and reported it as a header failure.
+  '/cart',
+  '/favorites',
+  '/stores',
   ...SHORT_LOCALES.filter((l) => l !== DEFAULT_SHORT_LOCALE).map((l) => `/${l}/account`),
 ];
 

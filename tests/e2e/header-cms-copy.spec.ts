@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { waitForHeaderHydration } from './helpers';
+
 /**
  * The header top bar reads its copy from the OneEntry `header` system-text set,
  * and its language switcher from the project's active locales
@@ -10,11 +12,12 @@ import { expect, test } from '@playwright/test';
  */
 test.describe('Header copy from CMS', () => {
   test.beforeEach(async ({ page }) => {
-    // `domcontentloaded`: the homepage pulls remote hero imagery, and waiting
-    // for every subresource times out the dev server before the header (which
-    // is server-rendered) is inspectable.
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Not the homepage: the header is identical on every route, and `/` is by
+    // far the most expensive one to render on a dev server (measured at 76 s
+    // against 1.3 s for `/favorites`), which timed this hook out.
+    await page.goto('/favorites', { waitUntil: 'domcontentloaded' });
     await page.locator('[data-testid="header-top-bar"]').waitFor({ state: 'attached', timeout: 60_000 });
+    await waitForHeaderHydration(page);
   });
 
   test('region and support copy resolve to non-empty values', async ({ page }) => {

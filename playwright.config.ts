@@ -26,7 +26,10 @@ export default defineConfig({
   // Was declared twice before — the second literal silently won, so CI ran
   // with 1 retry instead of the intended 2.
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 1 : undefined,
+  // Locally the suite runs against `next dev`, which compiles per route and is
+  // the bottleneck — the default (one worker per core pair) just queues six
+  // browsers behind one compiler and turns slow renders into failures.
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
   // Per-test budget, sized to hold two or three navigations at the
   // `navigationTimeout` below — most specs open `/`, clear storage, reload, and

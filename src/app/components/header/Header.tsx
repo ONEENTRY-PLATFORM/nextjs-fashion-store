@@ -175,6 +175,9 @@ export function Header() {
 
       <header
         data-testid="site-header"
+        // Lets a test wait for hydration: until React has mounted, a click on a
+        // server-rendered header button is swallowed and opens nothing.
+        data-hydrated={mounted ? 'true' : undefined}
         className="sticky top-0 z-50 bg-white"
         style={
           {

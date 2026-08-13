@@ -66,6 +66,14 @@ export async function clickAccountIcon(page: Page) {
 export async function login(page: Page) {
   await clickAccountIcon(page);
   const dialog = page.locator('[role="dialog"]');
+  // A click that lands before hydration is swallowed: the button is painted by
+  // the server render, but its handler is not attached yet, so no amount of
+  // waiting afterwards produces a modal. Retry the click once instead.
+  try {
+    await dialog.waitFor({ state: 'visible', timeout: 10_000 });
+  } catch {
+    await clickAccountIcon(page);
+  }
   // Same budget as the header button above, for the same reason: the modal is
   // a lazily-loaded chunk, so its first open on a route the dev server has not
   // built yet includes a compile. Observed overrunning 15 s on a cold `/de`.
@@ -213,4 +221,16 @@ export async function seedCart(page: Page) {
     store.__version = 3;
     localStorage.setItem('oe_store', JSON.stringify(store));
   });
+}
+
+/**
+ * Wait until the header has hydrated.
+ *
+ * Every header control is painted by the server render, so a click that lands
+ * before React attaches its handler is silently dropped — the dropdown never
+ * opens and the assertion times out looking healthy. `data-hydrated` is set by
+ * the header's own `useMounted`.
+ */
+export async function waitForHeaderHydration(page: Page) {
+  await page.locator('[data-testid="site-header"][data-hydrated="true"]').waitFor({ state: 'attached', timeout: 60_000 });
 }

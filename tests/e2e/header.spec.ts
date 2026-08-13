@@ -1,15 +1,20 @@
 import { expect, test } from '@playwright/test';
 
-import { login } from './helpers';
+import { login, waitForHeaderHydration } from './helpers';
 
 test.describe('Header — Desktop', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // `/cart`, not `/`: the header is identical on every route, and the
+    // homepage is by far the slowest to render on a dev server (~76 s vs ~6 s).
+    // It also must not be a route these tests navigate *to* (`/`, `/favorites`,
+    // `/stores`, `/account`).
+    await page.goto('/cart', { waitUntil: 'domcontentloaded' });
+    await waitForHeaderHydration(page);
   });
 
   test('logo navigates to homepage', async ({ page }) => {
     await page.goto('/women/clothing');
-    // Logo alt text is 'KEKIMORO' (see src/app/data/headerConfig.ts LOGO_ALT).
+    // Logo alt text is 'KEKIMORO' (see src/app/components/header/copy.ts HEADER_COPY.logoAlt).
     await page
       .getByRole('link', { name: /kekimoro/i })
       .first()
@@ -178,15 +183,30 @@ test.describe('Header — Mobile', () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // `/cart`, not `/`: the header is identical on every route, and the
+    // homepage is by far the slowest to render on a dev server (~76 s vs ~6 s).
+    // It also must not be a route these tests navigate *to* (`/`, `/favorites`,
+    // `/stores`, `/account`).
+    await page.goto('/cart', { waitUntil: 'domcontentloaded' });
+    await waitForHeaderHydration(page);
   });
 
   test('hamburger menu opens mobile drawer', async ({ page }) => {
     const hamburger = page.locator('button[aria-label="Open menu"]');
     await hamburger.waitFor({ state: 'visible', timeout: 10_000 });
     await hamburger.click();
-    // Drawer shows categories
-    await expect(page.locator('text=SHOES').first()).toBeVisible({ timeout: 5000 });
+    // By test id, not by text: the drawer renders `Shoes` and CSS uppercases
+    // it, so `text=SHOES` only ever matched the hidden desktop nav.
+    const firstCategory = page.locator('[data-testid="mobile-nav-shoes"]');
+    // The button is server-rendered, so a click can land before hydration
+    // attaches its handler — that click is swallowed and no wait will produce a
+    // drawer. Click again rather than stretching the timeout.
+    try {
+      await firstCategory.waitFor({ state: 'visible', timeout: 5000 });
+    } catch {
+      await hamburger.click();
+    }
+    await expect(firstCategory).toBeVisible({ timeout: 15_000 });
   });
 
   test('mobile drawer categories expand', async ({ page }) => {

@@ -84,6 +84,7 @@ export function HeaderMobileDrawer({
             return (
               <div key={cat} className="border-b border-gray-100">
                 <button
+                  data-testid={`mobile-nav-${key}`}
                   onClick={() =>
                     hasDropdown ? setMobileExpandedCat(mobileExpandedCat === key ? null : key) : undefined
                   }
