@@ -2,13 +2,20 @@
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useRef } from 'react';
 
-import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
-import { HORIZONTAL_SCROLLER_LABELS } from '@/app/components/ui/copy';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { useCart } from '@/app/context/CartContext';
 import { extractCmsProductId } from '@/app/data/cms-product-id-map';
 import { hexToColorName } from '@/app/utils/colorNames';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const FAVORITES_CAROUSEL_VIEW_LABELS = {
+  quickAdd: 'Quick Add',
+} as const;
+
+export const FAVORITES_CAROUSEL_SCROLL_LABELS = {
+  scrollLeft: 'Scroll left',
+  scrollRight: 'Scroll right',
+} as const;
 
 export interface CarouselProduct {
   id: string;
@@ -23,11 +30,11 @@ export interface CarouselProduct {
 }
 
 export function FavoritesCarousel({ title, products }: { title: string; products: CarouselProduct[] }) {
-  const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);
+  const CVL = useDict('interface_controls_view_', FAVORITES_CAROUSEL_VIEW_LABELS);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { addItem, openMiniCart } = useCart();
-  const aScrollLeft = useT('interface_controls_scroll_left', HORIZONTAL_SCROLLER_LABELS.scrollLeft);
-  const aScrollRight = useT('interface_controls_scroll_right', HORIZONTAL_SCROLLER_LABELS.scrollRight);
+  const aScrollLeft = useT('interface_controls_scroll_left', FAVORITES_CAROUSEL_SCROLL_LABELS.scrollLeft);
+  const aScrollRight = useT('interface_controls_scroll_right', FAVORITES_CAROUSEL_SCROLL_LABELS.scrollRight);
   const scroll = (dir: 'left' | 'right') => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' });

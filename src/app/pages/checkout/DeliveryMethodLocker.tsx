@@ -3,14 +3,25 @@ import { ChevronDown, Package } from 'lucide-react';
 
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { PARCEL_LOCKERS, type ParcelLocker } from '@/app/data/checkoutConfig';
-import {
-  DELIVERY_METHOD_LOCKER_LABELS as L_FALLBACK,
-  DELIVERY_METHOD_SHARED_LABELS as SH,
-} from '@/app/pages/checkout/copy';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { type GuestContactFormState } from './GuestContactForm';
+
+export const DELIVERY_METHOD_LOCKER_LABELS = {
+  title: 'Parcel Locker / Pickup Point',
+  subtitle: '3–5 business days · Collect at your convenience',
+  selectPoint: 'Select Pickup Point',
+  pinHint: "You'll receive a PIN code by SMS when your parcel arrives.",
+} as const;
+
+/** Badge rendered on every delivery-method card. */
+export const DELIVERY_METHOD_SHARED_LABELS = {
+  freeBadge: 'FREE',
+} as const;
+
+const L_FALLBACK = DELIVERY_METHOD_LOCKER_LABELS;
+const SH = DELIVERY_METHOD_SHARED_LABELS;
 
 interface DeliveryMethodLockerProps {
   checked: boolean;

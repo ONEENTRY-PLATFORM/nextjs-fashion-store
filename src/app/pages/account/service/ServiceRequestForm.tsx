@@ -3,10 +3,31 @@ import { Check } from 'lucide-react';
 import React, { useEffect, useRef, useState, useTransition } from 'react';
 
 import type { ServiceCategory } from '@/app/data/serviceData';
-import { SERVICE_LABELS as L_FALLBACK } from '@/app/pages/account/service/copy';
 import { submitServiceRequestAction } from '@/lib/oneentry/catalog/service-request-submit-action';
 import { useFieldPlaceholder, useFormLabel, useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const SERVICE_REQUEST_FORM_LABELS = {
+  formHeading: 'Submit a Service Request',
+  successMessage: "Request submitted! We'll be in touch shortly.",
+  labelItem: 'Item Name *',
+  placeholderItem: 'e.g. Tailored Trench Coat',
+  labelServiceType: 'Service Type *',
+  labelDate: 'Preferred Drop-off Date',
+  labelDescription: 'Description *',
+  placeholderDescription: 'Describe the issue or alteration needed…',
+  submitButton: 'Submit Request',
+  // Offline mirror of the OE `service_request` form's `category` listTitles — keys are the option *values* OE stores, in its authored `position` order.
+  categoryLabels: {
+    repair: 'Repair',
+    cleaning: 'Cleaning',
+    alteration: 'Alteration',
+    'sole-replacement': 'Sole replacement',
+    other: 'Other',
+  } as const,
+} as const;
+
+const L_FALLBACK = SERVICE_REQUEST_FORM_LABELS;
 
 /** Offline mirror of the OE `category` option list, in the panel's authored order. */
 const CATEGORY_FALLBACK = (Object.keys(L_FALLBACK.categoryLabels) as ServiceCategory[]).map((value) => ({

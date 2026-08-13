@@ -4,10 +4,23 @@ import { Link as LinkIcon, Trash2 } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { QtyControl } from '@/app/components/ui/QtyControl';
 import type { CartItem } from '@/app/context/CartContext';
-import { CART_LINE_LABELS, CART_ROW_LABELS } from '@/app/pages/cart/copy';
 import { hexToColorName } from '@/app/utils/colorNames';
 import { fmt } from '@/app/utils/formatPrice';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const CART_LINE_LABELS = {
+  colorPrefix: 'Color:',
+  skuPrefix: 'SKU:',
+} as const;
+
+export const CART_ROW_LABELS = {
+  bundleLabel: 'Special Offer Bundle',
+  bundleRemoveable: '· Items can only be removed together',
+  bundleRemove: 'Remove Bundle',
+  bundleQuantityNote: 'Quantity applies to entire bundle',
+  bundleTotal: 'Bundle total',
+  bundleSavePrefix: 'Save',
+} as const;
 
 interface CartBundleRowProps {
   bundleId: string;

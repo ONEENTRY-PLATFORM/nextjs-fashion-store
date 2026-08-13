@@ -2,8 +2,6 @@
 import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
-import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { SALE_COLOR } from '@/app/constants/colors';
@@ -27,6 +25,19 @@ export const WISHLIST_LABELS = {
   emptyCta: 'Browse Collection',
   emptyCtaHref: '/women/clothing',
   saleBadge: 'SALE',
+} as const;
+
+export const WISHLIST_CARD_LABELS = {
+  addToCart: 'Add to Cart',
+  added: 'Added!',
+  removeFromWishlist: 'Remove from wishlist',
+} as const;
+
+export const WISHLIST_VIEW_LABELS = {
+  quickView: 'Quick View',
+  /** `%index%` — 1-based swatch position. */
+  colorSwatch: 'Color %index%',
+  colorSwatchOutOfStockSuffix: ' (out of stock)',
 } as const;
 
 export function WishlistSection() {
@@ -55,10 +66,10 @@ export function WishlistSection() {
 }
 
 export function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove: () => void }) {
-  const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);
+  const CVL = useDict('interface_controls_view_', WISHLIST_VIEW_LABELS);
   const WL = useDict('user_account_wishlist_', WISHLIST_LABELS);
   const router = useRouter();
-  const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
+  const lAddToCart = useT('product-card_add_to_cart_cta', WISHLIST_CARD_LABELS.addToCart);
   const { addItem: addToCart } = useCart();
   const initColorIdx = item.selectedColor ? Math.max(0, item.colors.indexOf(item.selectedColor)) : 0;
   const [isHovered, setIsHovered] = useState(false);
@@ -115,8 +126,8 @@ export function WishlistCard({ item, onRemove }: { item: WishlistItem; onRemove:
   };
 
   const lSaleBadge = useT('user_account_wishlist_sale_badge', WL.saleBadge);
-  const lAdded = useT('product-card-added', PRODUCT_CARD_LABELS.added);
-  const aRemove = useT('product-card-aria_remove_from_wishlist', PRODUCT_CARD_ARIA_LABELS.removeFromWishlist);
+  const lAdded = useT('product-card-added', WISHLIST_CARD_LABELS.added);
+  const aRemove = useT('product-card-aria_remove_from_wishlist', WISHLIST_CARD_LABELS.removeFromWishlist);
   const aQuickView = useT('user_account_wishlist_quick_view_prefix', WISHLIST_DYNAMIC_ARIA.quickViewPrefix);
   const lQuickView = useT('interface_controls_view_quick_view', CVL.quickView);
 

@@ -2,9 +2,15 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { HORIZONTAL_SCROLLER_LABELS as L } from '@/app/components/ui/copy';
 import { useDragScroll } from '@/app/hooks/useDragScroll';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+export const HORIZONTAL_SCROLLER_LABELS = {
+  scrollLeft: 'Scroll left',
+  scrollRight: 'Scroll right',
+} as const;
+
+const L = HORIZONTAL_SCROLLER_LABELS;
 
 interface HorizontalScrollerProps {
   children: React.ReactNode;

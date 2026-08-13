@@ -10,7 +10,6 @@ import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { extractCmsProductId } from '@/app/data/cms-product-id-map';
 import { useMounted } from '@/app/hooks/useMounted';
-import { CART_LINE_LABELS } from '@/app/pages/cart/copy';
 import { fmt } from '@/app/utils/formatPrice';
 import { getOrCreateGuestId } from '@/app/utils/guest-id';
 import { trackActivity } from '@/app/utils/track-activity';
@@ -25,6 +24,11 @@ import { useDict } from '@/lib/oneentry/labels/DictContext';
 import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
+
+export const CART_LINE_LABELS = {
+  sizeLabel: 'Size',
+  qtyLabel: 'Qty',
+} as const;
 
 export const ORDER_SUMMARY_LABELS = {
   heading: 'Order Summary',

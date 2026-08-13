@@ -1,6 +1,5 @@
 'use client';
 /** ShoesCatalog — thin wrapper over CatalogTemplate. */
-import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { ACCENT_MEN } from '@/app/constants/colors';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
@@ -11,6 +10,13 @@ import { CatalogTemplate, type CatalogTemplateProps } from './CatalogTemplate';
 
 /* ── Re-export types used by page files and AccessoriesCatalog ── */
 export type { BreadcrumbItem, CrossSellCategory, FilterGroup, FilterOption } from './CatalogTemplate';
+
+export const SHOES_CATALOG_LABELS = {
+  shoes: 'SHOES',
+  women: 'WOMEN',
+  men: 'MEN',
+  breadcrumbShoes: 'Shoes',
+} as const;
 
 export interface ShoesCatalogProps {
   catalogKey: string;
@@ -59,10 +65,10 @@ export function ShoesCatalog({
   breadcrumbCategory,
 }: ShoesCatalogProps) {
   // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the offline fallback.
-  const lShoes = useT('catalog_page_shoes', CL.shoes);
-  const lCrumbShoes = useT('catalog_page_breadcrumb_shoes', CL.breadcrumbShoes);
-  const lWomen = useT('catalog_page_women', CL.women);
-  const lMen = useT('catalog_page_men', CL.men);
+  const lShoes = useT('catalog_page_shoes', SHOES_CATALOG_LABELS.shoes);
+  const lCrumbShoes = useT('catalog_page_breadcrumb_shoes', SHOES_CATALOG_LABELS.breadcrumbShoes);
+  const lWomen = useT('catalog_page_women', SHOES_CATALOG_LABELS.women);
+  const lMen = useT('catalog_page_men', SHOES_CATALOG_LABELS.men);
   const title = catalogTitle ?? lShoes;
   const crumbCategory = breadcrumbCategory ?? lCrumbShoes;
   const genderLabel = gender === 'women' ? lWomen : lMen;

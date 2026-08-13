@@ -1,6 +1,5 @@
 'use client';
 import { CatalogTemplate, type FilterGroup } from '@/app/components/catalog/CatalogTemplate';
-import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
@@ -8,6 +7,13 @@ import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 const PRODUCTS_PER_PAGE = 16;
+
+export const WOMEN_CATALOG_PAGE_LABELS = {
+  clothing: 'CLOTHING',
+  women: 'WOMEN',
+  breadcrumbHome: 'Home',
+  breadcrumbClothing: 'Clothing',
+} as const;
 
 export function WomenCatalogPage({
   initialProducts,
@@ -30,11 +36,11 @@ export function WomenCatalogPage({
   trendingBlock?: PageBlock | null;
   pageBlocks?: PageBlock[];
 } = {}) {
-  // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the offline fallback.
-  const lTitle = useT('catalog_page_clothing', CL.clothing);
-  const lGender = useT('catalog_page_women', CL.women);
-  const lCrumbHome = useT('catalog_page_breadcrumb_home', CL.breadcrumbHome);
-  const lCrumbCat = useT('catalog_page_breadcrumb_clothing', CL.breadcrumbClothing);
+  // Catalog chrome resolves through the OE `catalog_page` set; the local labels are the offline fallback.
+  const lTitle = useT('catalog_page_clothing', WOMEN_CATALOG_PAGE_LABELS.clothing);
+  const lGender = useT('catalog_page_women', WOMEN_CATALOG_PAGE_LABELS.women);
+  const lCrumbHome = useT('catalog_page_breadcrumb_home', WOMEN_CATALOG_PAGE_LABELS.breadcrumbHome);
+  const lCrumbCat = useT('catalog_page_breadcrumb_clothing', WOMEN_CATALOG_PAGE_LABELS.breadcrumbClothing);
   return (
     <CatalogTemplate
       catalogKey="women-clothing"

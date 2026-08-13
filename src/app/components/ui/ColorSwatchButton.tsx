@@ -1,9 +1,12 @@
 'use client';
 import React from 'react';
 
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/components/catalog/copy';
 import { strikeColor } from '@/app/utils/colorUtils';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const COLOR_SWATCH_BUTTON_LABELS = {
+  outOfStockLower: 'Out of stock',
+} as const;
 
 interface ColorSwatchButtonProps {
   color: string;
@@ -24,7 +27,7 @@ export function ColorSwatchButton({
   label,
   sizeClass = 'w-4 h-4',
 }: ColorSwatchButtonProps) {
-  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
+  const CVL = useDict('interface_controls_view_', COLOR_SWATCH_BUTTON_LABELS);
   return (
     <button
       onClick={onClick}

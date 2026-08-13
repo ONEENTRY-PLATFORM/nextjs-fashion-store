@@ -2,8 +2,22 @@
 import { ExternalLink, Package, X } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { HISTORY_LABELS as L_FALLBACK } from '@/app/pages/account/history/copy';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const TRACKING_MODAL_LABELS = {
+  trackPrefix: 'Order',
+  trackHeading: 'Track Your Parcel',
+  trackCarrierLabel: 'Carrier',
+  trackCarrierName: 'Royal Mail Tracked',
+  trackingNumber: 'Tracking Number',
+  copy: 'Copy',
+  trackInstructions:
+    'To track your parcel, visit the Royal Mail website and enter your tracking number, ' +
+    'or click the button below to open the tracking page directly.',
+  trackCta: 'Track on Royal Mail',
+} as const;
+
+const L_FALLBACK = TRACKING_MODAL_LABELS;
 
 interface TrackingModalProps {
   trackingNo: string;

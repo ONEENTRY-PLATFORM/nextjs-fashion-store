@@ -3,14 +3,32 @@ import { ChevronDown, MapPin, Phone, User, X } from 'lucide-react';
 import Image from 'next/image';
 
 import { type Gender, SUB_CATEGORIES } from '@/app/data/categories';
-import { GENDER_NAV_HREFS } from '@/app/data/headerConfig';
+import { ACCOUNT_HREF, GENDER_NAV_HREFS, STORE_LOCATIONS_HREF } from '@/app/data/headerConfig';
 import logoImage from '@/assets/kekimoro-logo-black.png';
 import { Link, useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { adaptHeaderMenuToMega } from '@/lib/oneentry/menus/adapt-header';
 import { useHeaderMenu } from '@/lib/oneentry/menus/HeaderMenuContext';
 
-import { HEADER_COPY, MOBILE_FOOTER_LINKS } from './copy';
+/** Drawer copy, overlaid from the OE `header` set as `header_<snake_case_key>`. */
+export const HEADER_COPY = {
+  logoAlt: 'KEKIMORO',
+  supportPhone: '+44 20 7946 0958',
+  storeLocations: 'Store Locations',
+  myAccount: 'My Account',
+  ariaCloseMenu: 'Close menu',
+} as const;
+
+/** Drawer footer links — copy from {@link HEADER_COPY}, routing from `headerConfig`. */
+export const MOBILE_FOOTER_LINKS = [
+  { labelKey: 'header_my_account', fallbackLabel: HEADER_COPY.myAccount, href: ACCOUNT_HREF, iconType: 'user' },
+  {
+    labelKey: 'header_store_locations',
+    fallbackLabel: HEADER_COPY.storeLocations,
+    href: STORE_LOCATIONS_HREF,
+    iconType: 'map-pin',
+  },
+] as const;
 
 interface HeaderMobileDrawerProps {
   isOpen: boolean;

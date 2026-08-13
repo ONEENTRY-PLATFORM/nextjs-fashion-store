@@ -5,7 +5,6 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Provider } from 'react-redux';
 
 import { CartUnavailableNotice } from '@/app/components/cart/CartUnavailableNotice';
-import { OAUTH_ERROR_LABELS } from '@/app/components/system/copy';
 import { ErrorBoundary } from '@/app/components/ui/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/app/context/AuthContext';
 import { configureCurrency } from '@/app/data/currencyConfig';
@@ -38,6 +37,14 @@ function WishlistSyncEffect() {
 
   return null;
 }
+
+/** OAuth failure banner copy, keyed by the `?googleAuthError=` code family. */
+export const OAUTH_ERROR_LABELS = {
+  accessDenied: 'Google sign-in was cancelled. Please try again.',
+  token: "We couldn't verify your Google account. Please try again.",
+  state: 'Sign-in session expired. Please try again.',
+  generic: "We couldn't complete Google sign-in. Please try again.",
+} as const;
 
 /** Surface the `?googleAuthError=…` param the OAuth callback route sets on failure. Map the `?googleAuthError=…` query into a friendly banner shown on the LoginModal. */
 function humaniseGoogleAuthError(

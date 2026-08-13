@@ -10,7 +10,15 @@ import { useDict, useList } from '@/lib/oneentry/labels/DictContext';
 import { localizeHref, SHORT_LOCALES, toShortCode } from '@/lib/oneentry/locale';
 import { useCmsLocales } from '@/lib/oneentry/LocalesContext';
 
-import { HEADER_COPY, HEADER_REGIONS } from './copy';
+/** Top-bar copy, overlaid from the OE `header` set as `header_<snake_case_key>`. */
+export const HEADER_COPY = {
+  supportPhone: '+44 20 7946 0958',
+  defaultRegion: 'Europe',
+  storeLocations: 'Store Locations',
+} as const;
+
+/** Rendered by a `.map()`, so it stays a list and is read with `useList`. */
+export const HEADER_REGIONS = ['Europe', 'United Kingdom', 'United States', 'Australia'];
 
 /** Where the shopper's region preference is kept. */
 const REGION_STORAGE_KEY = 'oe_region';

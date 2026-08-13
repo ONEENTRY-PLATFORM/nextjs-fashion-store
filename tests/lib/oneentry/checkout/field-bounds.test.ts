@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { VALIDATION_MESSAGES } from '@/app/utils/copy';
-import { createSchemas } from '@/app/utils/schemas';
+import { createSchemas,VALIDATION_MESSAGES  } from '@/app/utils/schemas';
 import { buildCheckoutBounds } from '@/lib/oneentry/checkout/field-bounds';
 import type { FormContent } from '@/lib/oneentry/forms/form-content';
 

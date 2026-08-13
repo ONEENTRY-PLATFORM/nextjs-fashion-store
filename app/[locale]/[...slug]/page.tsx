@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
-import { CATALOG_PAGE_LABELS } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { JsonLd } from '@/app/components/system/JsonLd';
 import { INFO_PAGE_META } from '@/app/data/infoPages';
@@ -37,6 +36,11 @@ import { loadPageByUrl } from '@/lib/oneentry/catalog/pages';
 import { loadFilteredProducts, loadProducts } from '@/lib/oneentry/catalog/products';
 import { applySeasonalTrend, resolveSeasonalTrend } from '@/lib/oneentry/catalog/seasonal-trend';
 import { getDictionary, getSiteSettings, translate } from '@/lib/oneentry/dictionary';
+
+export const CATALOG_ROUTE_LABELS = {
+  // Heading of the trending carousel when OE has no `catalog_trend_blocks` block (or the block carries no title of its own).
+  trendingFallbackTitle: "We Think You'll Love",
+} as const;
 
 /* ─── Map catalogKey → component ─── */
 type CatalogProps = {
@@ -319,7 +323,7 @@ export default async function Page({ params, searchParams }: Props) {
     const trendingFallbackTitle = translate(
       await getDictionary(),
       'catalog_page_trending_title',
-      CATALOG_PAGE_LABELS.trendingFallbackTitle,
+      CATALOG_ROUTE_LABELS.trendingFallbackTitle,
     );
     let trendingBlock = await loadBlockWithProducts('catalog_trend_blocks', { categoryPath });
     if (trendingBlock && catalogGender) {

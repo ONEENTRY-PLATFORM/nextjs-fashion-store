@@ -17,9 +17,9 @@ import {
   SALE_END_DATE,
   SALE_SORT_OPTIONS,
   type SaleCategory,
+  type SaleSortLabelKey,
 } from '@/app/data/saleConfig';
 import { useMounted } from '@/app/hooks/useMounted';
-import { SALE_DISCOUNT_LABELS as DL, SALE_PAGE_LABELS, SALE_SORT_LABELS } from '@/app/pages/sale/copy';
 import {
   clearFilters,
   setFilters,
@@ -50,6 +50,64 @@ export const SALE_CATEGORY_LABELS = {
 } as const;
 
 const CAT_FALLBACK = SALE_CATEGORY_LABELS;
+
+/** Sort option wording; `SALE_SORT_OPTIONS[].labelKey` indexes into this. */
+export const SALE_SORT_LABELS = {
+  biggestDiscount: 'Biggest Discount',
+  priceLowToHigh: 'Price: Low to High',
+  priceHighToLow: 'Price: High to Low',
+  popularity: 'Popularity',
+  newArrivals: 'New Arrivals',
+} as const satisfies Record<SaleSortLabelKey, string>;
+
+/** Sale page chrome (filter bar, results count, promo block, recommendations). */
+export const SALE_PAGE_LABELS = {
+  // Breadcrumb
+  breadcrumbHome: 'Home',
+  breadcrumbCurrent: 'Sale',
+  // Filter group labels
+  filterDiscount: 'Discount',
+  filterSize: 'Size',
+  filterBrand: 'Brand',
+  filterCategoryHeading: 'Category',
+  filterDiscountHeading: 'Discount',
+  filterSizeHeading: 'Size',
+  filterColorHeading: 'Color',
+  filterBrandHeading: 'Brand',
+  // Bar controls
+  clearAll: 'Clear all',
+  filtersCta: 'Filters',
+  viewLabel: 'View:',
+  view3ColAria: '3-column view',
+  view4ColAria: '4-column view',
+  sortFallback: 'Sort',
+  sortMobileCta: 'Sort',
+  // Results
+  itemsOnSaleSuffix: 'items on sale',
+  // Pagination
+  prevPageAria: 'Previous page',
+  nextPageAria: 'Next page',
+  // Mid promo block
+  promoLimitedTime: 'LIMITED TIME',
+  promoHeading: "Women's Collection — Extra 10% Off",
+  promoBody: 'Use code EXTRA10 at checkout. Limited time only.',
+  promoCta: 'SHOP NOW',
+  promoHref: '/women/clothing',
+  promoImageAlt: 'Extra savings',
+  // Recommendations
+  recsEyebrow: 'You May Also Like',
+  recsHeading: 'TRENDING NOW',
+} as const;
+
+export const SALE_DISCOUNT_LABELS = {
+  d10_20: '10% – 20%',
+  d20_30: '20% – 30%',
+  d30_40: '30% – 40%',
+  d40_50: '40% – 50%',
+  d50plus: '50% and more',
+} as const;
+
+const DL = SALE_DISCOUNT_LABELS;
 
 const SALE_KEY = 'sale';
 

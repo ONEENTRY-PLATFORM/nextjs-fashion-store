@@ -1,17 +1,22 @@
 'use client';
 import Image from 'next/image';
 
-import { COMMON_EMPTY_STATES as L } from '@/app/components/catalog/copy';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+export const NO_FILTER_RESULTS_LABELS = {
+  noResultsFound: 'No results found',
+  noFilterResultsBody: 'No items match your current filters. Try broadening your search or removing some filters.',
+  clearAllFilters: 'Clear all filters',
+} as const;
 
 interface NoFilterResultsProps {
   onClearAll: () => void;
 }
 
 export function NoFilterResults({ onClearAll }: NoFilterResultsProps) {
-  const lHeading = useT('interface_controls_no_results_found', L.noResultsFound);
-  const lBody = useT('interface_controls_no_results_body', L.noFilterResultsBody);
-  const lClear = useT('interface_controls_clear_all_filters', L.clearAllFilters);
+  const lHeading = useT('interface_controls_no_results_found', NO_FILTER_RESULTS_LABELS.noResultsFound);
+  const lBody = useT('interface_controls_no_results_body', NO_FILTER_RESULTS_LABELS.noFilterResultsBody);
+  const lClear = useT('interface_controls_clear_all_filters', NO_FILTER_RESULTS_LABELS.clearAllFilters);
   return (
     <div className="flex flex-col items-center justify-center px-6 py-24 text-center">
       {/* Icon */}

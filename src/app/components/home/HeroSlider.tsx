@@ -6,7 +6,6 @@ import type { HeroSlideFromCms } from '@/lib/oneentry/blocks/hero-slides';
 
 type HeroSlide = HeroSlideFromCms;
 import CmsImage from '@/app/components/ui/CmsImage';
-import { CAROUSEL_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_MEN, ACCENT_WOMEN } from '@/app/constants/colors';
 import { TIMINGS } from '@/app/constants/timings';
 import { fillTokens } from '@/app/utils/fillTokens';
@@ -16,6 +15,15 @@ export const HERO_SLIDER_DYNAMIC_ARIA = {
   /** `%index%` / `%total%` / `%headline%` — slide position and its headline. */
   slideDescription: '%index% of %total%: %headline%',
   slidePrefix: 'Slide',
+} as const;
+
+export const HERO_SLIDER_CAROUSEL_LABELS = {
+  previousSlide: 'Previous slide',
+  nextSlide: 'Next slide',
+  slides: 'Slides',
+  featuredCollections: 'Featured collections',
+  carouselRole: 'carousel',
+  slideRole: 'slide',
 } as const;
 
 // ─── Gradient per alignment direction ────────────────────────────────────────
@@ -73,12 +81,12 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
   // Slides 2 and 3 are full-bleed photos of the same weight as the first one, and they sit *inside* the viewport at `opacity-0`.
   const [preloadPending, setPreloadPending] = useState(true);
 
-  const aCarouselRole = useT('interface_controls_carousel_role', CAROUSEL_LABELS.carouselRole);
-  const aFeatured = useT('interface_controls_featured_collections', CAROUSEL_LABELS.featuredCollections);
-  const aSlideRole = useT('interface_controls_slide_role', CAROUSEL_LABELS.slideRole);
-  const aPreviousSlide = useT('interface_controls_previous_slide', CAROUSEL_LABELS.previousSlide);
-  const aNextSlide = useT('interface_controls_next_slide', CAROUSEL_LABELS.nextSlide);
-  const aSlides = useT('interface_controls_slides', CAROUSEL_LABELS.slides);
+  const aCarouselRole = useT('interface_controls_carousel_role', HERO_SLIDER_CAROUSEL_LABELS.carouselRole);
+  const aFeatured = useT('interface_controls_featured_collections', HERO_SLIDER_CAROUSEL_LABELS.featuredCollections);
+  const aSlideRole = useT('interface_controls_slide_role', HERO_SLIDER_CAROUSEL_LABELS.slideRole);
+  const aPreviousSlide = useT('interface_controls_previous_slide', HERO_SLIDER_CAROUSEL_LABELS.previousSlide);
+  const aNextSlide = useT('interface_controls_next_slide', HERO_SLIDER_CAROUSEL_LABELS.nextSlide);
+  const aSlides = useT('interface_controls_slides', HERO_SLIDER_CAROUSEL_LABELS.slides);
   const aSlidePrefix = useT('interface_controls_slide_prefix', HERO_SLIDER_DYNAMIC_ARIA.slidePrefix);
   const aSlideDescription = useT('interface_controls_slide_description', HERO_SLIDER_DYNAMIC_ARIA.slideDescription);
 

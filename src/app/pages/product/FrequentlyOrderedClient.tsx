@@ -1,9 +1,15 @@
 'use client';
 import type { Product } from '@/app/components/product/ProductCard';
-import { PRODUCT_BREADCRUMB_LABELS as PB } from '@/app/pages/product/copy';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import { RecommendationsCarousel } from './RecommendationsCarousel';
+
+export const FREQUENTLY_ORDERED_LABELS = {
+  youMayAlsoLike: 'You May Also Like',
+  viewAll: 'View All',
+} as const;
+
+const PB = FREQUENTLY_ORDERED_LABELS;
 
 /** Client wrapper for the "You May Also Like" carousel. */
 export function FrequentlyOrderedClient({

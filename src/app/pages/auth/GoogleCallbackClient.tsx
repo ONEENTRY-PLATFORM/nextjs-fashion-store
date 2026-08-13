@@ -2,10 +2,18 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-import { OAUTH_ERROR_LABELS as OAE } from '@/app/components/system/copy';
 import { useRouter } from '@/lib/i18n/navigation';
 import { completeGoogleSignIn } from '@/lib/oneentry/auth/actions';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+/** OAuth callback copy, keyed by the failure the redemption hit. */
+export const OAUTH_ERROR_LABELS = {
+  generic: "We couldn't complete Google sign-in. Please try again.",
+  missingCode: 'Missing code or state from Google',
+  signingIn: 'Signing you in…',
+} as const;
+
+const OAE = OAUTH_ERROR_LABELS;
 
 /** Redeems Google's `?code=` for a OneEntry session and installs it in this browser, then bounces to the path saved when the flow started. */
 export function GoogleCallbackClient() {

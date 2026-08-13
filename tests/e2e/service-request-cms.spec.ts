@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { SERVICE_LABELS } from '@/app/pages/account/service/copy';
+import { SERVICE_REQUEST_FORM_LABELS } from '@/app/pages/account/service/ServiceRequestForm';
 
 import { clearState, login } from './helpers';
 
@@ -17,8 +17,8 @@ import { clearState, login } from './helpers';
  * values are exactly the ones the form is willing to store.
  */
 
-/** Option values authored on the OE form; mirrored offline in SERVICE_LABELS. */
-const EXPECTED_VALUES = Object.keys(SERVICE_LABELS.categoryLabels);
+/** Option values authored on the OE form; mirrored offline in `SERVICE_REQUEST_FORM_LABELS`. */
+const EXPECTED_VALUES = Object.keys(SERVICE_REQUEST_FORM_LABELS.categoryLabels);
 
 test.describe('Service request — categories from the OE form', () => {
   test.beforeEach(async ({ page }) => {

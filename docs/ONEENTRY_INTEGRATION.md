@@ -293,7 +293,7 @@ Twelve CMS-managed label sets. Each pair is `{name}-labels.ts` (loader) + `{name
 
 Each label loader uses `system-text.ts::getSystemSet(marker, lang)` → 5 min TTL + React request cache.
 
-Keys read from `catalog_page` (all optional, each falls back to `components/catalog/copy.ts`): `catalog_page_women`, `catalog_page_men`, `catalog_page_clothing`, `catalog_page_shoes`, `catalog_page_bags`, `catalog_page_accessories`, `catalog_page_breadcrumb_home`, `catalog_page_breadcrumb_women`, `catalog_page_breadcrumb_men`, `catalog_page_breadcrumb_clothing`, `catalog_page_breadcrumb_shoes`, `catalog_page_breadcrumb_bags`, `catalog_page_breadcrumb_accessories`.
+Keys read from `catalog_page` (all optional, each falling back to the constant declared in the page or component that renders it — `WOMEN_CATALOG_PAGE_LABELS`, `SHOES_CATALOG_LABELS`, `ACCESSORIES_CATALOG_LABELS`, …): `catalog_page_women`, `catalog_page_men`, `catalog_page_clothing`, `catalog_page_shoes`, `catalog_page_bags`, `catalog_page_accessories`, `catalog_page_breadcrumb_home`, `catalog_page_breadcrumb_women`, `catalog_page_breadcrumb_men`, `catalog_page_breadcrumb_clothing`, `catalog_page_breadcrumb_shoes`, `catalog_page_breadcrumb_bags`, `catalog_page_breadcrumb_accessories`.
 
 Keys read from `footer` (fallback: `data/footerConfig.ts`): `footer_company_description`, `footer_support_phone`, `footer_copyright`, `footer_support_{1..4}_title`, `footer_support_{1..4}_desc`, `footer_social_tiktok`, `footer_social_facebook`, `footer_social_instagram`, `footer_social_youtube`, `footer_social_pinterest`.
 

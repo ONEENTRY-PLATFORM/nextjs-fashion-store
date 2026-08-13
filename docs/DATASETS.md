@@ -43,8 +43,8 @@ Pickup stores and parcel lockers now come from OneEntry — `loadStores()` for t
 
 | File              | Exports                                                                                                                                                                                                               | Consumers                        |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `headerConfig.ts` | Nav hrefs, gender accent colours, language-switcher fallback label. Copy moved to `components/header/copy.ts` |
-| `footerConfig.ts` | Footer link groups (`FOOTER_LINKS`), legal links (`BOTTOM_LINKS`), payment-scheme names — all fallbacks; the OE menus are the primary source. Copy moved to `components/footer/copy.ts` |
+| `headerConfig.ts` | Nav hrefs, gender accent colours, language-switcher fallback label. Copy lives in `Header.tsx`, `HeaderTopBar.tsx` and `HeaderMobileDrawer.tsx` |
+| `footerConfig.ts` | Footer link groups (`FOOTER_LINKS`), legal links (`BOTTOM_LINKS`), payment-scheme names — all fallbacks; the OE menus are the primary source. Copy lives in `Footer.tsx` |
 | `categories.ts` | Gender / subcategory types and `SUB_CATEGORIES`; the taxonomy itself comes from the OE menu |
 
 `categories.ts` is a **fallback** — primary source is the OneEntry `Menus` API via `src/lib/oneentry/menus/`.
@@ -55,13 +55,12 @@ The single OE `footer` menu drives both halves of the footer navigation, split b
 
 | File                   | Exports                                                                                                                           | Consumers                               |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `components/home/copy.ts` | `SECTION_TITLES` — eyebrow / title / subtitle / view-all for homepage carousels (moved out of `data/`)                                                               | `HomePage` sections                     |
 | `promoBlocks.ts`       | `PromoItem` type only — `PROMO_ITEMS` array removed; live data comes from OneEntry `homepage-collections` via prop `initialItems` | `PromoBlock` (type reference)           |
 | `newArrivalsConfig.ts` | New Arrivals sort options + category filters                                                                                      | `NewArrivalsPage`, `NewArrivalsHero`    |
 | `saleConfig.ts`        | Sale end date + category filters                                                                                                  | `SalePage`, `SaleHero`, `SaleCountdown` |
 | `sizeGuide.ts`         | Women's clothing size chart                                                                                                       | `SizeGuideModal`, `QuickViewSizeGuide`  |
 
-Most homepage content is fetched from OneEntry Blocks (see [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) §5.1) — these files carry static layout / labels / config that is not (yet) CMS-driven.
+Most homepage content is fetched from OneEntry Blocks (see [ONEENTRY_INTEGRATION.md](./ONEENTRY_INTEGRATION.md) §5.1) — these files carry static layout / labels / config that is not (yet) CMS-driven. The homepage carousels' own eyebrow / title / view-all defaults live in the three components that render them (`WOMEN_COLLECTION_SECTION`, `MEN_COLLECTION_SECTION`, `NEW_ARRIVALS_SECTION`).
 
 ## 7. Product page & catalog data
 
@@ -83,17 +82,16 @@ The concrete product arrays that lived in this folder (`women-clothing.ts`, `men
 
 `accountLabels` · `authLabels` · `cartLabels` · `catalogPageLabels` · `checkoutLabels` · `commonLabels` · `confirmationLabels` · `errorPageLabels` · `favoritesLabels` · `infoPageLabels` · `llmsTextLabels` · `newArrivalsLabels` · `notFoundLabels` · `offlinePageLabels` · `productPageLabels` · `salePageLabels` · `sectionTitles` · `storesLabels` · `validationMessages`
 
-Where a constant went:
+Where a constant went: **into the file that reads it — every time.** The fifteen shared `copy.ts` files that used to sit beside a feature are gone too; a phrase two components both render is now declared in both of them.
 
 | Readers | New home | Example |
 | --- | --- | --- |
 | One component | That component's file | `ACCOUNT_DELETION_LABELS` → [AccountDeletionSection.tsx](../src/app/pages/account/myData/AccountDeletionSection.tsx) |
-| Several, one feature | `copy.ts` beside them | `CART_ROW_LABELS`, `CART_LINE_LABELS` → [pages/cart/copy.ts](../src/app/pages/cart/copy.ts) |
-| Components and pages | `copy.ts` under `components/` | `PRODUCT_CARD_LABELS` → [components/product/copy.ts](../src/app/components/product/copy.ts) |
+| Several components | One constant per reader, duplicated | `CART_ROW_LABELS` → both [CartItemRow.tsx](../src/app/pages/cart/CartItemRow.tsx) and [CartBundleRow.tsx](../src/app/pages/cart/CartBundleRow.tsx), each holding only the keys it renders |
 
-Fifteen `copy.ts` files exist in total: under `components/` — `catalog`, `product`, `ui`, `home`, `system`, `header`, `footer`; under `pages/` — `cart`, `checkout`, `sale`, `new`, `product`, `account/history`, `account/service`; plus `utils/copy.ts` for the form validation messages.
+Duplication is intended: a reader owns the wording it shows, and the marker — not the import graph — is what keeps two copies in sync, because both resolve through the same OE key at render time. Keep duplicated fallbacks byte-identical; a diverging default would show a different phrase only when the CMS is unreachable.
 
-`paymentMethodsConfig.ts` went the same way — `PAYMENT_PAGE_LABELS` now lives in [PaymentPage.tsx](../src/app/pages/PaymentPage.tsx) and is read as one `useDict('checkout_payment_', …)` instead of 26 `useT` calls. `headerConfig.ts` and `footerConfig.ts` kept only their routing and structure (hrefs, payment-scheme names, accent colours); their wording moved to `components/header/copy.ts` and `components/footer/copy.ts`.
+`paymentMethodsConfig.ts` went the same way — `PAYMENT_PAGE_LABELS` now lives in [PaymentPage.tsx](../src/app/pages/PaymentPage.tsx) and is read as one `useDict('checkout_payment_', …)` instead of 26 `useT` calls. `headerConfig.ts` and `footerConfig.ts` kept only their routing and structure (hrefs, payment-scheme names, accent colours); their wording moved into `Header.tsx` / `HeaderTopBar.tsx` / `HeaderMobileDrawer.tsx` and `Footer.tsx`.
 
 The rules, and what is deliberately *not* copy, are in [I18N.md §3](./I18N.md). The marker list is derived from the call sites by [`dict-extract.mjs`](../.claude/temp/dict-extract.mjs) — no hand-written registry.
 
@@ -151,7 +149,7 @@ If a component still imports from one of these paths, that's an unfinished migra
 | Footer branding (blurb / phone / copyright / support cards / social hrefs)                            | OE `footer` system-text set via `useFooterT`                                                                                                                                   | ✅ live (`footerConfig.ts` is the fallback)                                                                                                                         |
 | Payment method icon list (`PAYMENT_METHOD_NAMES`)                                                     | `footerConfig.ts`                                                                                                                                                              | ❌ static by design — the names key the SVG assets in `public/icons/payment/`                                                                                       |
 | Header branding config                                                                                | OE `header` system-text set via `useHeaderT`                                                                                                                                   | ✅ live (`headerConfig.ts` is the fallback)                                                                                                                         |
-| Catalog chrome (gender / category titles, breadcrumbs)                                                | OE `catalog_page` set via `useCatalogPageT`                                                                                                                                    | ✅ live (`components/catalog/copy.ts` is the fallback)                                                                                                                    |
+| Catalog chrome (gender / category titles, breadcrumbs)                                                | OE `catalog_page` set via `useCatalogPageT`                                                                                                                                    | ✅ live (each catalog page/component holds its own fallback)                                                                                                                    |
 | Homepage section chrome (eyebrow / subtitle / view-all link)                                          | The OE block's own `attributeValues` via `blocks/section-chrome.ts`                                                                                                            | ✅ live (`sectionTitles.ts` is the fallback)                                                                                                                        |
 | Info page routing                                                                                     | OE page lookup (`resolveInfoPageSlug`) with the static `INFO_SLUGS` registry as the fast path                                                                                  | ✅ live — a page created in OE resolves without a deploy                                                                                                            |
 | Reserve-in-store branches                                                                             | `loadStores()` (OE `stores` page tree)                                                                                                                                         | ✅ live — per-branch stock badges removed, OE has no branch inventory                                                                                               |

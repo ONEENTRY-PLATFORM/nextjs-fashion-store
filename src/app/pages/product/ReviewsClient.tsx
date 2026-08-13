@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 
-import { PRODUCT_REVIEWS_LABELS as L_FALLBACK } from '@/app/components/product/copy';
 import type { ProductReview } from '@/app/components/product/ProductCard';
 import { useAuth } from '@/app/context/AuthContext';
 import { canReviewProduct } from '@/app/utils/review-eligibility';
@@ -10,9 +9,13 @@ import { useDict } from '@/lib/oneentry/labels/DictContext';
 import { ProductReviewsSection } from './ProductReviewsSection';
 import { WriteReviewModal } from './WriteReviewModal';
 
+export const REVIEWS_CLIENT_LABELS = {
+  purchaseRequired: 'Only shoppers who have received this product can leave a review.',
+} as const;
+
 /** Client wrapper around `ProductReviewsSection`. Owns the show-all and write-review modal toggles so the streamed reviews block stays a self-contained island. */
 export function ReviewsClient({ productId, reviews }: { productId: number; reviews: ProductReview[] }) {
-  const L = useDict('customer_reviews_', L_FALLBACK);
+  const L = useDict('customer_reviews_', REVIEWS_CLIENT_LABELS);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showPurchaseNotice, setShowPurchaseNotice] = useState(false);

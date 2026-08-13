@@ -1,7 +1,6 @@
 'use client';
 /** AccessoriesCatalog — thin wrapper over ShoesCatalog. */
 
-import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import {
@@ -15,9 +14,14 @@ import {
 export type { CrossSellCategory, FilterGroup, FilterOption };
 export type AccessoriesCatalogProps = ShoesCatalogProps;
 
+export const ACCESSORIES_CATALOG_LABELS = {
+  accessories: 'ACCESSORIES',
+  breadcrumbAccessories: 'Accessories',
+} as const;
+
 export function AccessoriesCatalog(props: AccessoriesCatalogProps) {
   // Title and breadcrumb resolve through the OE `catalog_page` set; the local constants stay as the offline fallback.
-  const title = useT('catalog_page_accessories', CL.accessories);
-  const crumb = useT('catalog_page_breadcrumb_accessories', CL.breadcrumbAccessories);
+  const title = useT('catalog_page_accessories', ACCESSORIES_CATALOG_LABELS.accessories);
+  const crumb = useT('catalog_page_breadcrumb_accessories', ACCESSORIES_CATALOG_LABELS.breadcrumbAccessories);
   return <ShoesCatalog {...props} catalogTitle={title} breadcrumbCategory={crumb} />;
 }

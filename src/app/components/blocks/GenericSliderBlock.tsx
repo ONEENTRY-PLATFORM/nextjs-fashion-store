@@ -3,10 +3,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 
-import { CAROUSEL_LABELS } from '@/app/components/ui/copy';
 import { Link } from '@/lib/i18n/navigation';
 import { getImageUrl } from '@/lib/oneentry';
 import { useT } from '@/lib/oneentry/labels/DictContext';
+
+export const GENERIC_SLIDER_LABELS = {
+  previousSlide: 'Previous slide',
+  nextSlide: 'Next slide',
+} as const;
 
 /** Generic renderer for OE `slider_block` type. */
 
@@ -61,8 +65,8 @@ export function GenericSliderBlock({
 }) {
   const slides = (rawSlides ?? []).map(normalizeSlide).filter((s) => s.image || s.headline);
   const [index, setIndex] = useState(0);
-  const lPrevSlide = useT('interface_controls_previous_slide', CAROUSEL_LABELS.previousSlide);
-  const lNextSlide = useT('interface_controls_next_slide', CAROUSEL_LABELS.nextSlide);
+  const lPrevSlide = useT('interface_controls_previous_slide', GENERIC_SLIDER_LABELS.previousSlide);
+  const lNextSlide = useT('interface_controls_next_slide', GENERIC_SLIDER_LABELS.nextSlide);
 
   if (slides.length === 0) return null;
   // Slides can shrink (admin drops one) while `index` still points past the end.

@@ -2,12 +2,17 @@
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/components/catalog/copy';
 import { BANNER_BG } from '@/app/constants/colors';
 import { Link } from '@/lib/i18n/navigation';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 import { type CrossSellCategory } from './CatalogTemplate';
+
+export const CATALOG_CROSS_SELL_LABELS = {
+  shopNowArrow: 'Shop now →',
+  viewAll: 'View All',
+  viewAllPrefix: 'View All',
+} as const;
 
 interface CatalogCrossSellProps {
   crossSell: {
@@ -19,7 +24,7 @@ interface CatalogCrossSellProps {
 }
 
 export function CatalogCrossSell({ crossSell }: CatalogCrossSellProps) {
-  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
+  const CVL = useDict('interface_controls_view_', CATALOG_CROSS_SELL_LABELS);
   return (
     <div className="border-t border-gray-100 bg-white" style={{ '--banner-bg': BANNER_BG } as React.CSSProperties}>
       <div className="flex items-end justify-between bg-(--banner-bg) px-4 pt-12 pb-6 lg:px-8">

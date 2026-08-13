@@ -1,7 +1,6 @@
 import { Check, ThumbsUp } from 'lucide-react';
 import { useState } from 'react';
 
-import { PRODUCT_REVIEWS_LABELS } from '@/app/components/product/copy';
 import type { ProductReview } from '@/app/data/productCatalog';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
@@ -11,10 +10,17 @@ export const REVIEW_CARD_LABELS = {
   verifiedPurchase: 'Verified purchase',
 } as const;
 
+export const REVIEW_CARD_REVIEWS_LABELS = {
+  sizePrefix: 'Size:',
+  helpfulPrefix: 'Helpful',
+  helpfulMarkedAria: 'Marked as helpful',
+  helpfulMarkAria: 'Mark as helpful',
+} as const;
+
 const RC = REVIEW_CARD_LABELS;
 
 export function ReviewCard({ review }: { review: ProductReview }) {
-  const L = useDict('customer_reviews_', PRODUCT_REVIEWS_LABELS);
+  const L = useDict('customer_reviews_', REVIEW_CARD_REVIEWS_LABELS);
   const [helpful, setHelpful] = useState(review.helpful);
   const [voted, setVoted] = useState(false);
   const lVerified = useT('verified-purchase', RC.verifiedPurchase);

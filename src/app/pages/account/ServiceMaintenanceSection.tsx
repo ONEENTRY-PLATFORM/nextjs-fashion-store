@@ -9,13 +9,50 @@ import { getServiceRequestsAction } from '@/lib/oneentry/catalog/service-request
 import { useFormOptions } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
+export const SERVICE_LABELS = {
+  title: 'Service Maintenance',
+  eyebrow: 'Care & Repair',
+  bannerHeading: 'Your Requests',
+  statActive: 'Active',
+  statCompleted: 'Completed',
+  statTotalSpent: 'Total Spent',
+  newRequest: 'New Request',
+  cancel: 'Cancel',
+  filterAll: 'All',
+  emptyFiltered: 'No requests match this filter.',
+  progressLabel: 'Progress',
+  fieldDroppedOff: 'Dropped Off',
+  fieldEstReady: 'Est. Ready',
+  fieldServiceType: 'Service Type',
+  fieldCost: 'Cost',
+  fieldRef: 'Ref',
+  fieldType: 'Type',
+  fieldItem: 'Item',
+  costTbc: 'TBC',
+  requestDetails: 'Request Details',
+  loadingAria: 'Loading service requests',
+  statuses: {
+    open: 'Open',
+    'in-progress': 'In Progress',
+    ready: 'Ready',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  } as const,
+  // Offline mirror of the OE `service_request` form's `category` listTitles — keys are the option *values* OE stores, in its authored `position` order.
+  categoryLabels: {
+    repair: 'Repair',
+    cleaning: 'Cleaning',
+    alteration: 'Alteration',
+    'sole-replacement': 'Sole replacement',
+    other: 'Other',
+  } as const,
+} as const;
+
 /** Offline mirror of the OE `category` listTitles — see `ServiceRequestForm`. */
 const CATEGORY_FALLBACK = (Object.keys(SERVICE_LABELS.categoryLabels) as ServiceCategory[]).map((value) => ({
   value,
   title: SERVICE_LABELS.categoryLabels[value],
 }));
-
-import { SERVICE_LABELS } from '@/app/pages/account/service/copy';
 
 import { ServiceHowItWorks } from './service/ServiceHowItWorks';
 import { ServiceRequestForm } from './service/ServiceRequestForm';

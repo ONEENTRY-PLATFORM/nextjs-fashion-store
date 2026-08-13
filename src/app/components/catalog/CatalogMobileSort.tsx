@@ -1,16 +1,24 @@
 'use client';
 import { X } from 'lucide-react';
 
-import { CATALOG_SORT_LABELS } from '@/app/components/catalog/copy';
 import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
-import { SORT_OPTIONS } from './CatalogTemplate.types';
+import { SORT_OPTIONS, type SortLabelKey } from './CatalogTemplate.types';
 
 export const CATALOG_MOBILE_SORT_LABELS = {
   heading: 'SORT BY',
   closeSort: 'Close sort',
 } as const;
+
+/** Sort option wording; `SORT_OPTIONS[].labelKey` indexes into this. */
+export const CATALOG_MOBILE_SORT_OPTION_LABELS = {
+  featured: 'Featured',
+  priceLowToHigh: 'Price: Low to High',
+  priceHighToLow: 'Price: High to Low',
+  popularity: 'Popularity',
+  newArrivals: 'New Arrivals',
+} as const satisfies Record<SortLabelKey, string>;
 
 interface CatalogMobileSortProps {
   isOpen: boolean;
@@ -21,7 +29,7 @@ interface CatalogMobileSortProps {
 
 export function CatalogMobileSort({ isOpen, onClose, sortBy, onSortChange }: CatalogMobileSortProps) {
   const L = useDict('interface_controls_mobile_sort_', CATALOG_MOBILE_SORT_LABELS);
-  const CSL = useDict('interface_controls_sort_option_', CATALOG_SORT_LABELS);
+  const CSL = useDict('interface_controls_sort_option_', CATALOG_MOBILE_SORT_OPTION_LABELS);
   const accentColor = useCatalogAccent();
   const lHeading = useT('interface_controls_sort_heading', L.heading);
   const lCloseSort = useT('interface_controls_sort_close', L.closeSort);

@@ -7,13 +7,45 @@ import { BANNER_BG, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { type HistoryOrder, type HistoryOrderStatus } from '@/app/data/userData';
-import { HISTORY_LABELS } from '@/app/pages/account/history/copy';
 import { useAppSelector } from '@/app/store/hooks';
 import type { OeOrder } from '@/lib/oneentry/auth/actions';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { TrackingModal } from './history/TrackingModal';
 import { ACCENT, fmt, SectionTitle } from './shared';
+
+export const HISTORY_LABELS = {
+  title: 'Purchase History',
+  eyebrow: 'Transaction Record',
+  bannerHeading: 'Your Orders',
+  totalOrders: 'Total Orders',
+  delivered: 'Delivered',
+  totalSpent: 'Total Spent',
+  filterAll: 'All',
+  emptyText: 'No orders match this filter.',
+  rowOrder: 'Order',
+  rowDate: 'Date',
+  rowItems: 'Items',
+  rowTotal: 'Total',
+  itemSingular: 'item',
+  itemPlural: 'items',
+  reorder: 'Reorder',
+  reorderDone: 'Done',
+  orderTotal: 'Order Total',
+  itemSize: 'Size',
+  itemColourPrefix: 'Colour:',
+  itemQtyPrefix: 'Qty:',
+  trackingPrefix: 'Tracking:',
+  viewBtn: 'View',
+  trackTitleTpl: (trackingNo: string) => `Track: ${trackingNo}`,
+  statuses: {
+    delivered: 'Delivered',
+    shipped: 'Shipped',
+    processing: 'Processing',
+    cancelled: 'Cancelled',
+    returned: 'Returned',
+  } as const,
+} as const;
 
 const HISTORY_FILTERS: HistoryOrderStatus[] = ['delivered', 'shipped', 'processing', 'cancelled', 'returned'];
 

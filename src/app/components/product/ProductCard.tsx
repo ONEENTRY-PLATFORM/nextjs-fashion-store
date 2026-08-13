@@ -4,11 +4,8 @@ import Image from 'next/image';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
-import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS, QUICK_VIEW_LABELS } from '@/app/components/product/copy';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
-import { SIZE_DROPDOWN_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_WOMEN } from '@/app/constants/colors';
 import { TIMINGS } from '@/app/constants/timings';
 import { useCart } from '@/app/context/CartContext';
@@ -20,6 +17,27 @@ import { hexToColorName as colorName } from '@/app/utils/colorNames';
 import { stripTrailingZeros } from '@/app/utils/formatPrice';
 import { Link } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const PRODUCT_CARD_LABELS = {
+  addToCart: 'Add to Cart',
+  added: 'Added!',
+} as const;
+
+export const PRODUCT_CARD_ARIA_LABELS = {
+  addToWishlist: 'Add to wishlist',
+} as const;
+
+export const PRODUCT_CARD_VIEW_LABELS = {
+  quickView: 'Quick View',
+  outOfStock: 'Out of Stock',
+  colorSwatchOutOfStockSuffix: ' (out of stock)',
+} as const;
+
+/** Seeds for products that arrive without a brand or a size list — data, not copy. */
+export const PRODUCT_CARD_DEFAULTS = {
+  defaultBrand: 'Kekimoro',
+  clothingSizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const,
+} as const;
 
 export interface ProductSpec {
   /** Stable row identifier — match on this, never on the editable `label`. */
@@ -151,7 +169,7 @@ interface ProductCardProps {
 }
 
 function ProductCardInner({ product, accentColor: accentProp, priority = false }: ProductCardProps) {
-  const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);
+  const CVL = useDict('interface_controls_view_', PRODUCT_CARD_VIEW_LABELS);
   const contextAccent = useCatalogAccent();
   const accentColor = accentProp ?? contextAccent ?? ACCENT_WOMEN;
   const { toggleItem, isWishlisted } = useWishlist();
@@ -290,14 +308,14 @@ function ProductCardInner({ product, accentColor: accentProp, priority = false }
     toggleItem({
       id: product.id,
       name: product.name,
-      brand: product.brand ?? QUICK_VIEW_LABELS.defaultBrand,
+      brand: product.brand ?? PRODUCT_CARD_DEFAULTS.defaultBrand,
       price: product.price,
       salePrice: product.salePrice,
       image: activeImage,
       colors: product.colors,
       colorImages,
       colorStock: product.colorStock,
-      sizes: product.sizes ?? [...SIZE_DROPDOWN_LABELS.clothingSizes].slice(0, 5),
+      sizes: product.sizes ?? [...PRODUCT_CARD_DEFAULTS.clothingSizes].slice(0, 5),
       badge: product.badge ?? product.label,
       inStock: product.inStock !== false,
       selectedColor: product.colors[selectedColor],

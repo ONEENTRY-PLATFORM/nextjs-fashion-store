@@ -2,7 +2,6 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
-import { PRODUCT_CARD_LABELS, QUICK_VIEW_LABELS } from '@/app/components/product/copy';
 import { type Product } from '@/app/components/product/ProductCard';
 import CmsImage from '@/app/components/ui/CmsImage';
 import { SALE_COLOR } from '@/app/constants/colors';
@@ -14,14 +13,22 @@ import { hexToColorName } from '@/app/utils/colorNames';
 import { stripTrailingZeros } from '@/app/utils/formatPrice';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
+export const CATALOG_LIST_CARD_LABELS = {
+  addToCart: 'Add to Cart',
+  added: 'Added!',
+} as const;
+
+/** Brand shown for products that arrive without one — data, not copy. */
+export const CATALOG_LIST_CARD_DEFAULT_BRAND = 'Kekimoro';
+
 /* ─── List-view card (only when showListMode=true) ─── */
 export function CatalogListProductCard({ product, accent }: { product: Product; accent: string }) {
   const [addedToCart, setAddedToCart] = useState(false);
   const [cartHovered, setCartHovered] = useState(false);
   const mounted = useMounted();
   const addedToCartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
-  const lAdded = useT('product-card-added', PRODUCT_CARD_LABELS.added);
+  const lAddToCart = useT('product-card_add_to_cart_cta', CATALOG_LIST_CARD_LABELS.addToCart);
+  const lAdded = useT('product-card-added', CATALOG_LIST_CARD_LABELS.added);
   const { addItem } = useCart();
   const { toggleItem, isWishlisted } = useWishlist();
   // `isWishlisted` returns Redux state that only lives on the client; reading it during SSR/hydration would emit a mismatch warning.
@@ -126,7 +133,7 @@ export function CatalogListProductCard({ product, accent }: { product: Product; 
               toggleItem({
                 id: product.id,
                 name: product.name,
-                brand: product.brand ?? QUICK_VIEW_LABELS.defaultBrand,
+                brand: product.brand ?? CATALOG_LIST_CARD_DEFAULT_BRAND,
                 price: product.price,
                 salePrice: product.salePrice,
                 image: product.image,

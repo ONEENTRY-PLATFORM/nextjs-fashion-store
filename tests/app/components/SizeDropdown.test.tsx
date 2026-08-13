@@ -2,8 +2,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SIZE_DROPDOWN_LABELS as L } from '@/app/components/ui/copy';
-import { SizeDropdown } from '@/app/components/ui/SizeDropdown';
+import { SIZE_DROPDOWN_LABELS as L , SizeDropdown } from '@/app/components/ui/SizeDropdown';
+
 
 
 describe('SizeDropdown', () => {

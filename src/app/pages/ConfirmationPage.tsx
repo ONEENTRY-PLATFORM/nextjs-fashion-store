@@ -7,10 +7,14 @@ import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
 import { useCart } from '@/app/context/CartContext';
 import { useMounted } from '@/app/hooks/useMounted';
-import { CART_LINE_LABELS } from '@/app/pages/cart/copy';
 import { fmt } from '@/app/utils/formatPrice';
 import { useRouter } from '@/lib/i18n/navigation';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const CART_LINE_LABELS = {
+  sizeLabel: 'Size',
+  qtyLabel: 'Qty',
+} as const;
 
 export const CONFIRMATION_INFO_CARDS: ConfirmationInfoCard[] = [
   {

@@ -2,8 +2,14 @@
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 
-import { SIZE_DROPDOWN_LABELS } from '@/app/components/ui/copy';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const SIZE_DROPDOWN_LABELS = {
+  sizeLabel: 'Size:',
+  clothingSizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const,
+  shoeSizes: ['36', '37', '38', '39', '40', '41', '42'] as const,
+  oneSize: 'One Size',
+} as const;
 
 interface SizeDropdownProps {
   value: string;

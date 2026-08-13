@@ -1,5 +1,7 @@
-import { type CATALOG_SORT_LABELS } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
+
+/** Every sort key a catalog must be able to word; the wording itself lives with the component that renders it. */
+export type SortLabelKey = 'featured' | 'priceLowToHigh' | 'priceHighToLow' | 'popularity' | 'newArrivals';
 
 export interface FilterOption {
   label: string;
@@ -73,14 +75,14 @@ export interface CatalogTemplateProps {
   };
 }
 
-/** Sort values paired with the `CATALOG_SORT_LABELS` key that words them. */
+/** Sort values paired with the label key that words them. */
 export const SORT_OPTIONS = [
   { labelKey: 'featured', value: 'featured' },
   { labelKey: 'priceLowToHigh', value: 'price_asc' },
   { labelKey: 'priceHighToLow', value: 'price_desc' },
   { labelKey: 'popularity', value: 'popularity' },
   { labelKey: 'newArrivals', value: 'new' },
-] as const satisfies readonly { labelKey: keyof typeof CATALOG_SORT_LABELS; value: string }[];
+] as const satisfies readonly { labelKey: SortLabelKey; value: string }[];
 
 export function getPageNumbers(current: number, total: number): (number | '...')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);

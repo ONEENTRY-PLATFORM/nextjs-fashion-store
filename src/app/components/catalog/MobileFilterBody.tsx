@@ -3,12 +3,17 @@ import { Search, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
 
-import { COMMON_EMPTY_STATES } from '@/app/components/catalog/copy';
 import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
 import { fillTokens } from '@/app/utils/fillTokens';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 import type { MobileFilterGroup } from './MobileFilterPanel';
+
+export const FILTER_BODY_LABELS = {
+  noResults: 'No results',
+  /** `%group%` — the filter group's label, lower-cased by the caller. */
+  searchInGroup: 'Search %group%…',
+} as const;
 
 /* ─── 18 × 18 px touch checkbox ─────────────────────────── */
 export function CheckboxUI({ checked }: { checked: boolean }) {
@@ -32,8 +37,8 @@ interface FilterBodyProps {
 /* ─── Accordion content for each filter type ─────────────── */
 export function FilterBody({ group, selectedFilters, onToggleFilter }: FilterBodyProps) {
   const [search, setSearch] = useState('');
-  const lSearchInGroup = useT('interface_controls_search_in_group', COMMON_EMPTY_STATES.searchInGroup);
-  const lNoResults = useT('interface_controls_no_results', COMMON_EMPTY_STATES.noResults);
+  const lSearchInGroup = useT('interface_controls_search_in_group', FILTER_BODY_LABELS.searchInGroup);
+  const lNoResults = useT('interface_controls_no_results', FILTER_BODY_LABELS.noResults);
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = selectedFilters[group.key] ?? [];
 

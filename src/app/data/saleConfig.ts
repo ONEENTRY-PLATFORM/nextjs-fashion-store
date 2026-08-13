@@ -1,4 +1,5 @@
-import { type SALE_SORT_LABELS as SL } from '@/app/pages/sale/copy';
+/** Every sort key the sale page must be able to word; the wording lives with the component that renders it. */
+export type SaleSortLabelKey = 'biggestDiscount' | 'priceLowToHigh' | 'priceHighToLow' | 'popularity' | 'newArrivals';
 
 export const SALE_COLOR_LABELS = {
   black: 'Black',
@@ -39,11 +40,11 @@ export const SALE_COLOR_OPTIONS = [
   { label: COL.pink, color: '#F88A8A' },
 ];
 
-/** Sort values paired with the `SALE_SORT_LABELS` key that words them. */
+/** Sort values paired with the label key that words them. */
 export const SALE_SORT_OPTIONS = [
   { labelKey: 'biggestDiscount', value: 'discount' },
   { labelKey: 'priceLowToHigh', value: 'price_asc' },
   { labelKey: 'priceHighToLow', value: 'price_desc' },
   { labelKey: 'popularity', value: 'popularity' },
   { labelKey: 'newArrivals', value: 'new' },
-] as const satisfies readonly { labelKey: keyof typeof SL; value: string }[];
+] as const satisfies readonly { labelKey: SaleSortLabelKey; value: string }[];

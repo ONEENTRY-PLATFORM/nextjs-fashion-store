@@ -2,14 +2,18 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
 
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
-import { CAROUSEL_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
+export const RECOMMENDATIONS_CAROUSEL_LABELS = {
+  previous: 'Previous',
+  next: 'Next',
+} as const;
+
 export function RecommendationsCarousel({ products }: { products: Product[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const aPrevious = useT('interface_controls_carousel_previous', CAROUSEL_LABELS.previous);
-  const aNext = useT('interface_controls_carousel_next', CAROUSEL_LABELS.next);
+  const aPrevious = useT('interface_controls_carousel_previous', RECOMMENDATIONS_CAROUSEL_LABELS.previous);
+  const aNext = useT('interface_controls_carousel_next', RECOMMENDATIONS_CAROUSEL_LABELS.next);
 
   const scroll = (dir: 'left' | 'right') => {
     if (!scrollRef.current) return;

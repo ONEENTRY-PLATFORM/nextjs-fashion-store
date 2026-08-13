@@ -3,8 +3,6 @@ import { ChevronDown, Heart, X } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-import { PRODUCT_ACTION_LABELS, PRODUCT_REVIEWS_LABELS, QUICK_VIEW_LABELS } from '@/app/components/product/copy';
-import { SIZE_DROPDOWN_LABELS } from '@/app/components/ui/copy';
 import { ACCENT_WOMEN, BUY_GREEN, BUY_GREEN_HOVER, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
@@ -20,9 +18,56 @@ import { useDict } from '@/lib/oneentry/labels/DictContext';
 
 import { QuickViewSizeGuide } from './QuickViewSizeGuide';
 
+export const QUICK_VIEW_LABELS = {
+  closeLabel: 'Close',
+  defaultBrand: 'Kekimoro',
+  reviewsSuffix: 'reviews',
+  badgeLowStock: 'LOW IN STOCK',
+  colorLabel: 'Color:',
+  colorSelected: 'Selected',
+  colorNotSelected: 'Not selected',
+  colorAriaPrefix: 'Color',
+  colorOutOfStockAria: '(out of stock)',
+  colorError: 'Please select a colour',
+  sizeLabel: 'Select Size',
+  sizeError: '— Please select a size',
+  sizeGuideCta: 'Size Guide',
+  viewFullDetails: 'View Full Details',
+  wishlistAdd: 'Add to wishlist',
+  wishlistRemove: 'Remove from wishlist',
+  thumbnailAltPrefix: 'View',
+  // Flat, so `mergeDict` can overlay each string: an array of objects is structure to it and would keep this placeholder copy on screen forever.
+  section1Title: 'Description',
+  section1Content:
+    'Elevate your wardrobe with this stunning piece. Crafted from premium materials with attention to detail, ' +
+    'this item combines style and comfort for any occasion.',
+  section2Title: 'Size & Fit',
+  section2Content: `Model is 5'9" and wears a size S. True to size fit. For a relaxed fit, we recommend sizing up.`,
+  section3Title: 'Details',
+  section3Content: '100% Premium Cotton. Machine wash cold. Imported. Style #OE2024',
+  section4Title: 'Delivery & Returns',
+  section4Content:
+    'Free standard shipping on orders over $75. Express shipping available. Free returns within 30 days.',
+} as const;
+
+export const QUICK_VIEW_REVIEWS_LABELS = {
+  purchaseRequired: 'Only shoppers who have received this product can leave a review.',
+} as const;
+
+export const QUICK_VIEW_ACTION_LABELS = {
+  addToCart: 'Add to Cart',
+  outOfStock: 'Out of Stock',
+  inStock: 'In Stock',
+  preOrder: 'Pre-order',
+  comingSoon: 'Coming soon',
+} as const;
+
+/** Size list for products that arrive without one — data, not copy. */
+export const QUICK_VIEW_DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
+
 export function QuickViewModal() {
-  const PR = useDict('customer_reviews_', PRODUCT_REVIEWS_LABELS);
-  const PA = useDict('product_card_actions_', PRODUCT_ACTION_LABELS);
+  const PR = useDict('customer_reviews_', QUICK_VIEW_REVIEWS_LABELS);
+  const PA = useDict('product_card_actions_', QUICK_VIEW_ACTION_LABELS);
   const L = useDict('quick_view_', QUICK_VIEW_LABELS);
   const { isOpen, product, initialColorIndex, closeQuickView } = useQuickView();
   const { addItem, openMiniCart } = useCart();
@@ -155,7 +200,7 @@ export function QuickViewModal() {
       colors: product.colors,
       colorImages,
       colorStock: product.colorStock,
-      sizes: product.sizes ?? [...SIZE_DROPDOWN_LABELS.clothingSizes].slice(0, 5),
+      sizes: product.sizes ?? [...QUICK_VIEW_DEFAULT_SIZES].slice(0, 5),
       badge: product.badge ?? product.label,
       inStock: product.inStock !== false,
       selectedColor: selectedColor !== null ? product.colors[selectedColor] : undefined,
@@ -178,7 +223,7 @@ export function QuickViewModal() {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  const sizes = product.sizes || [...SIZE_DROPDOWN_LABELS.clothingSizes];
+  const sizes = product.sizes || [...QUICK_VIEW_DEFAULT_SIZES];
 
   // "N reviews" — jump to the existing reviews block on the PDP.
   const goToReviews = () => {

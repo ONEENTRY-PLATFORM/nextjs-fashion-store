@@ -2,12 +2,33 @@
 import { ChevronRight, Tag } from 'lucide-react';
 
 import CmsImage from '@/app/components/ui/CmsImage';
-import { SALE_PAGE_LABELS as L } from '@/app/pages/sale/copy';
 import type { SalePageFromCms } from '@/lib/oneentry/catalog/sale-page';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { sanitizeHtml } from '@/lib/sanitize-html';
 
 import { CountdownUnit } from './SaleCountdown';
+
+/** Hero copy, overlaid from the OE `sale_page` set as `sale_page_<snake_case_key>`. */
+export const SALE_HERO_LABELS = {
+  heroImageAlt: 'Season Sale',
+  heroEyebrow: 'LIMITED TIME OFFER',
+  heroTitleLine1: 'SEASON',
+  heroTitleLine2: 'SALE',
+  heroUpTo: 'UP TO',
+  heroPercent: '50%',
+  heroOff: 'OFF',
+  heroSubtitle: 'Major markdowns across clothing, shoes, bags, and accessories.',
+  heroShopSale: 'SHOP SALE',
+  heroShopSaleHref: '#sale-grid',
+  countdownLabel: 'Sale ends in',
+  countdownDays: 'days',
+  countdownHours: 'hours',
+  countdownMinutes: 'min',
+  countdownSeconds: 'sec',
+  countdownEndsAt: 'Ends March 15, 2026 at midnight',
+} as const;
+
+const L = SALE_HERO_LABELS;
 
 interface SaleHeroProps {
   countdown: { days: number; hours: number; minutes: number; seconds: number };
@@ -49,7 +70,7 @@ export function parseHeroPlain(plain: string) {
 }
 
 export function SaleHero({ countdown, endsAt, cms }: SaleHeroProps) {
-  // Whole-object overlay: every string in `SALE_PAGE_LABELS` is editable as `sale_page_<snake_case_key>`. `parseHeroPlain` keeps reading the static object because it runs outside React.
+  // Whole-object overlay: every string in `SALE_HERO_LABELS` is editable as `sale_page_<snake_case_key>`. `parseHeroPlain` keeps reading the static object because it runs outside React.
   const SP = useDict('sale_page_', L);
   const lEndsPrefix = useT('sale_page_countdown_ends_prefix', 'Ends');
   const lDays = useT('sale_page_top_banner_days', SP.countdownDays);

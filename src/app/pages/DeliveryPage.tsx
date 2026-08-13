@@ -21,7 +21,6 @@ import {
   type PickupStore,
 } from '@/app/data/checkoutConfig';
 import { useMounted } from '@/app/hooks/useMounted';
-import { DELIVERY_METHOD_HOME_LABELS } from '@/app/pages/checkout/copy';
 import { useSchemas } from '@/app/utils/useFormMessages';
 import { useRouter } from '@/lib/i18n/navigation';
 import type { OeAddress } from '@/lib/oneentry/auth/actions';
@@ -41,6 +40,11 @@ export const DELIVERY_PAGE_LABELS = {
   pageTitle: 'Delivery Method',
   backToCart: '← Back to Cart',
   continueToPayment: 'Continue to Payment',
+} as const;
+
+/** Heading of the new-address panel, overlaid from the OE `checkout_delivery` set. */
+export const DELIVERY_PAGE_ADDRESS_LABELS = {
+  newAddressHeading: 'New Address',
 } as const;
 
 type DeliveryMethod = 'home' | 'store' | 'locker';
@@ -84,7 +88,7 @@ export function DeliveryPage({
   deliverySlotsGuest,
   pageBlocks,
 }: DeliveryPageProps = {}) {
-  const DH = useDict('checkout_delivery_', DELIVERY_METHOD_HOME_LABELS);
+  const DH = useDict('checkout_delivery_', DELIVERY_PAGE_ADDRESS_LABELS);
   const L = useDict('checkout_delivery_page_', DELIVERY_PAGE_LABELS);
   const router = useRouter();
   // Same source the radio cards render from — it also carries each option's submitted value, which the order needs at the payment step.

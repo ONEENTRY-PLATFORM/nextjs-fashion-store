@@ -3,14 +3,24 @@ import { CheckCircle, ChevronDown, Clock, MapPin, Store } from 'lucide-react';
 
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { PICKUP_PERKS, type PickupStore } from '@/app/data/checkoutConfig';
-import {
-  DELIVERY_METHOD_SHARED_LABELS as SH,
-  DELIVERY_METHOD_STORE_LABELS as L_FALLBACK,
-} from '@/app/pages/checkout/copy';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { type GuestContactFormState } from './GuestContactForm';
+
+export const DELIVERY_METHOD_STORE_LABELS = {
+  title: 'Store Pickup',
+  subtitle: 'Ready within 2 hours · Try in store',
+  selectStore: 'Select Store',
+} as const;
+
+/** Badge rendered on every delivery-method card. */
+export const DELIVERY_METHOD_SHARED_LABELS = {
+  freeBadge: 'FREE',
+} as const;
+
+const L_FALLBACK = DELIVERY_METHOD_STORE_LABELS;
+const SH = DELIVERY_METHOD_SHARED_LABELS;
 
 interface DeliveryMethodStoreProps {
   checked: boolean;

@@ -2,12 +2,21 @@
 import { Star } from 'lucide-react';
 import React from 'react';
 
-import { PRODUCT_REVIEWS_LABELS } from '@/app/components/product/copy';
 import type { ProductReview } from '@/app/components/product/ProductCard';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { ReviewCard } from './ReviewCard';
 import { StarRating } from './StarRating';
+
+export const PRODUCT_REVIEWS_LABELS = {
+  heading: 'Customer Reviews',
+  reviewsCountSuffix: 'reviews',
+  writeReview: 'Write a Review',
+  showAllPrefix: 'Show all',
+  showAllSuffix: 'reviews',
+  emptyHeading: 'No reviews yet',
+  emptyBody: 'Be the first to share your thoughts about this product.',
+} as const;
 
 interface RatingCount {
   stars: number;

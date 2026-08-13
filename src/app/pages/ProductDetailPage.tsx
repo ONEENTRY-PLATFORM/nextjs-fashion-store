@@ -17,7 +17,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { PageBlocksRenderer } from '@/app/components/blocks/PageBlocksRenderer';
-import { PRODUCT_ACTION_LABELS } from '@/app/components/product/copy';
 import { ACCENT_WOMEN as ACCENT, SALE_COLOR } from '@/app/constants/colors';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
@@ -26,7 +25,6 @@ import { CURRENCY } from '@/app/data/currencyConfig';
 import { type CatalogProduct, hexToColorName } from '@/app/data/productCatalog';
 import { type SpecialOffer } from '@/app/data/specialOffers';
 import { useAnnounce } from '@/app/hooks/useAnnounce';
-import { PRODUCT_BREADCRUMB_LABELS } from '@/app/pages/product/copy';
 import type { AppDispatch, RootState } from '@/app/store';
 import { recentlyViewedActions } from '@/app/store/recentlyViewedSlice';
 import { strikeColor } from '@/app/utils/colorUtils';
@@ -69,6 +67,42 @@ export const PRODUCT_ACCORDION_LABELS = {
 } as const;
 
 const PA = PRODUCT_ACCORDION_LABELS;
+
+export const PRODUCT_BREADCRUMB_LABELS = {
+  // `Home` is the only static segment; the rest are derived from each product's OE category path at runtime.
+  home: 'Home',
+  back: 'Back',
+} as const;
+
+// Buy-box copy: CTA, stock states, size/colour pickers, SKU row and the bonus block.
+export const PRODUCT_ACTION_LABELS = {
+  addToCart: 'Add to Cart',
+  addedToCart: 'Added to Cart!',
+  /** `%name%` — the product name, announced to screen readers on add. */
+  announceAddedToCart: '%name% added to cart',
+  outOfStock: 'Out of Stock',
+  reserveInStore: 'Reserve in Store',
+  inStock: 'In Stock',
+  preOrder: 'Pre-order',
+  preOrderButton: 'Pre-order',
+  comingSoon: 'Coming soon',
+  reviewsSuffix: 'reviews',
+  skuLabel: 'SKU:',
+  articleLabel: 'Article:',
+  defaultSku: '2024-156-1',
+  defaultArticle: 'OF-KW-156-BRG',
+  // `%count%`, not `{count}`.
+  bonusHeading: 'Earn %count% bonus points',
+  bonusBody: 'Redeemable on your next order. Join Kekimoro Rewards for free.',
+  colorLabel: 'Color:',
+  outOfStockTitle: ' — Out of stock',
+  sizeLabel: 'Size',
+  sizeError: 'Please select a size',
+  sizeGuide: 'Size Guide',
+  storeAvailableIn: 'Available in store in',
+  storeStockSuffix: '· S, M in stock today',
+  defaultCities: ['London', 'Paris', 'Berlin', 'Madrid', 'Rome'] as const,
+} as const;
 
 /** Product detail page copy. */
 

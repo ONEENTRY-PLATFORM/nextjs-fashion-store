@@ -6,8 +6,15 @@ import { useEffect, useRef, useState } from 'react';
 import { ColorSwatch } from '@/app/components/ui/ColorSwatch';
 import { SALE_COLOR as SALE_RED } from '@/app/constants/colors';
 import { SALE_COLOR_OPTIONS } from '@/app/data/saleConfig';
-import { SALE_PAGE_LABELS } from '@/app/pages/sale/copy';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+/** Dropdown chrome, overlaid from the OE `sale_page` set as `sale_page_<snake_case_key>`. */
+export const SALE_PAGE_LABELS = {
+  clearOne: 'Clear',
+  colourFilter: 'Colour',
+  /** Rendered as "3 selected" — only the count is dynamic. */
+  selectedSuffix: 'selected',
+} as const;
 
 const CheckMark = () => <Image src="/icons/ui/check.svg" alt="" width={8} height={8} unoptimized />;
 

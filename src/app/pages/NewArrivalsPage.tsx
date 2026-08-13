@@ -15,7 +15,6 @@ import {
   type NewArrivalCategory,
 } from '@/app/data/newArrivalsConfig';
 import { useMounted } from '@/app/hooks/useMounted';
-import { NEW_ARRIVALS_SORT_LABELS } from '@/app/pages/new/copy';
 import { setFilters, setSort, setViewCols as dispatchSetViewCols } from '@/app/store/catalogSlice';
 import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
 import { genderFilterFromQuery, matchesGender } from '@/app/utils/gender-filter';
@@ -25,6 +24,15 @@ import type { NewArrivalsPageFromCms } from '@/lib/oneentry/catalog/new-arrivals
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
 import { NewArrivalsHero } from './new/NewArrivalsHero';
+
+/** Sort option wording; `NEW_ARRIVALS_SORT_OPTIONS[].labelKey` indexes into this. */
+export const NEW_ARRIVALS_SORT_LABELS = {
+  newestFirst: 'Newest First',
+  priceLowToHigh: 'Price: Low to High',
+  priceHighToLow: 'Price: High to Low',
+  popularity: 'Popularity',
+  brandAZ: 'Brand A–Z',
+} as const;
 
 export const NEW_ARRIVALS_PAGE_LABELS = {
   // Breadcrumb

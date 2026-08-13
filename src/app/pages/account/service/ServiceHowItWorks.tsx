@@ -1,7 +1,21 @@
 'use client';
 
-import { SERVICE_LABELS as L_FALLBACK } from '@/app/pages/account/service/copy';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+
+export const SERVICE_HOW_IT_WORKS_LABELS = {
+  howItWorks: 'How It Works',
+  // Flat, not an array of objects: `mergeDict` overlays strings only, so a nested step would stay frozen in code.
+  howStep1Title: 'Submit Request',
+  howStep1Body: 'Tell us what your item needs — repair, cleaning, alteration or resoling.',
+  howStep2Title: 'Drop Off',
+  howStep2Body: 'Bring your item to any Kekimoro store with your confirmation reference.',
+  howStep3Title: 'We Get to Work',
+  howStep3Body: 'Our specialist technicians assess and complete your service request.',
+  howStep4Title: 'Collect',
+  howStep4Body: "You'll be notified when ready. Collect in-store or request delivery.",
+} as const;
+
+const L_FALLBACK = SERVICE_HOW_IT_WORKS_LABELS;
 
 export function ServiceHowItWorks() {
   const L = useDict('service_maintenance_', L_FALLBACK);

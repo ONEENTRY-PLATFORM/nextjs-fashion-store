@@ -17,7 +17,13 @@ import { CatalogCrossSell } from './CatalogCrossSell';
 import { CatalogListProductCard } from './CatalogListProductCard';
 import { CatalogMobileSort } from './CatalogMobileSort';
 import { CheckboxUI, ColsIcon, SortOptionBtn } from './CatalogTemplate.parts';
-import { type CatalogTemplateProps, type FilterGroup, getPageNumbers, SORT_OPTIONS } from './CatalogTemplate.types';
+import {
+  type CatalogTemplateProps,
+  type FilterGroup,
+  getPageNumbers,
+  SORT_OPTIONS,
+  type SortLabelKey,
+} from './CatalogTemplate.types';
 import { MobileFilterPanel } from './MobileFilterPanel';
 import { NoFilterResults } from './NoFilterResults';
 import { PriceRangeSlider } from './PriceRangeSlider';
@@ -30,11 +36,6 @@ export type {
   FilterGroup,
   FilterOption,
 } from './CatalogTemplate.types';
-import {
-  CATALOG_SORT_LABELS,
-  CATALOG_VIEW_LABELS as CVL_FALLBACK,
-  COMMON_EMPTY_STATES,
-} from '@/app/components/catalog/copy';
 import { CatalogAccentContext } from '@/app/context/CatalogAccentContext';
 import { setListMode as dispatchSetListMode, setViewCols as dispatchSetViewCols } from '@/app/store/catalogSlice';
 import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
@@ -53,6 +54,37 @@ export const CATALOG_PAGINATION_LABELS = {
   /** `%current%` / `%total%` — the 1-based page number and page count. */
   pageOf: 'Page %current% of %total%',
 } as const;
+
+export const CATALOG_TEMPLATE_LABELS = {
+  view3ColAria: '3-column view',
+  view4ColAria: '4-column view',
+  viewPrefix: 'View:',
+  activePrefix: 'Active:',
+  pageOf: 'Page',
+  pageOfMid: 'of',
+  filtersHeading: 'FILTERS',
+  sortHeading: 'SORT',
+  clearAll: 'Clear All',
+  clearAllLower: 'Clear all',
+  youveViewedPrefix: "You've viewed ",
+  youveViewedMid: ' of ',
+  youveViewedSuffix: ' products',
+} as const;
+
+export const CATALOG_TEMPLATE_EMPTY_STATES = {
+  noResultsFound: 'No results found',
+  /** `%group%` — the filter group's label, lower-cased by the caller. */
+  searchInGroup: 'Search %group%…',
+} as const;
+
+/** Sort option wording; `SORT_OPTIONS[].labelKey` indexes into this. */
+export const CATALOG_TEMPLATE_SORT_LABELS = {
+  featured: 'Featured',
+  priceLowToHigh: 'Price: Low to High',
+  priceHighToLow: 'Price: High to Low',
+  popularity: 'Popularity',
+  newArrivals: 'New Arrivals',
+} as const satisfies Record<SortLabelKey, string>;
 
 export function CatalogTemplate({
   catalogKey,
@@ -76,11 +108,11 @@ export function CatalogTemplate({
   scrollbarClass = 'scrollbar-pink',
   crossSell,
 }: CatalogTemplateProps) {
-  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
-  const lNoResultsFound = useT('interface_controls_no_results_found', COMMON_EMPTY_STATES.noResultsFound);
-  const lSearchInGroup = useT('interface_controls_search_in_group', COMMON_EMPTY_STATES.searchInGroup);
+  const CVL = useDict('interface_controls_view_', CATALOG_TEMPLATE_LABELS);
+  const lNoResultsFound = useT('interface_controls_no_results_found', CATALOG_TEMPLATE_EMPTY_STATES.noResultsFound);
+  const lSearchInGroup = useT('interface_controls_search_in_group', CATALOG_TEMPLATE_EMPTY_STATES.searchInGroup);
   const lPageOf = useT('interface_controls_page_of', CATALOG_PAGINATION_LABELS.pageOf);
-  const CSL = useDict('interface_controls_sort_option_', CATALOG_SORT_LABELS);
+  const CSL = useDict('interface_controls_sort_option_', CATALOG_TEMPLATE_SORT_LABELS);
   const sortOptions = useMemo(() => SORT_OPTIONS.map((o) => ({ value: o.value, label: CSL[o.labelKey] })), [CSL]);
   /* ── Local UI state ── */
   const [sortOpen, setSortOpen] = useState(false);

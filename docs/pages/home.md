@@ -69,7 +69,7 @@ validators for all attributes
 
 Horizontal scroll carousel.
 
-- **Heading (H2)**: `SECTION_TITLES.bestSellers.title` = `"Best Sellers"`
+- **Heading (H2)**: `MEN_COLLECTION_SECTION.title` = `"Best Sellers"` (declared in [MenCollection.tsx](../../src/app/components/home/MenCollection.tsx))
 - **Eyebrow**: `"Collection"`
 - **View All** link → `/men/clothing?chip=Best+Sellers`
 - **Product card** (ProductCard, ×~12): image + alt = `name`, brand, name, price/sale price, badges (`BESTSELLER`/`NEW`/`SALE`), color swatches, sizes

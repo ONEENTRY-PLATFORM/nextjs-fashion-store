@@ -2,17 +2,15 @@
 
 import { useMemo } from 'react';
 
-import type { ValidationMessages } from '@/app/utils/copy';
-import { VALIDATION_MESSAGES } from '@/app/utils/copy';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
 
-import { type CheckoutBounds, createSchemas } from './schemas';
+import { type CheckoutBounds, createSchemas, type FormMessages, VALIDATION_MESSAGES } from './schemas';
 
 /** Marker prefix of the OE `form_messages` set. */
 const PREFIX = 'form_messages_';
 
 /** The form error copy for the current locale, admin values overlaid. */
-export function useFormMessages(): ValidationMessages {
+export function useFormMessages(): FormMessages {
   return useDict(PREFIX, VALIDATION_MESSAGES);
 }
 

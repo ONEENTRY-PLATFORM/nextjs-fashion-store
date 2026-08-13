@@ -1,17 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// parseHeroPlain reads SALE_PAGE_LABELS at import time — mock before importing.
-vi.mock('@/app/data/salePageLabels', () => ({
-  SALE_PAGE_LABELS: {
-    heroTitleLine1: 'SEASON',
-    heroTitleLine2: 'SALE',
-    heroUpTo: 'UP TO',
-    heroPercent: '50%',
-    heroOff: 'OFF',
-    heroSubtitle: 'Major markdowns across clothing, shoes, bags, and accessories.',
-  },
-}));
-
 // SaleHero imports next/image and lucide-react — stub them so vitest doesn't
 // try to resolve the Next.js image pipeline or ESM-only icon packages.
 vi.mock('next/image', () => ({ default: () => null }));

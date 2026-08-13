@@ -137,7 +137,7 @@ The OE tenant reuses the same canonical attribute *name* across attribute sets b
 
 ## 5. Sort options
 
-Declared per-catalog in `src/app/pages/sale/copy.ts` / `newArrivalsConfig.ts` / catalog config sections. Standard set:
+Declared per-catalog in [SalePage.tsx](../src/app/pages/SalePage.tsx) / `newArrivalsConfig.ts` / catalog config sections. Standard set:
 
 | UI label | `sortKey` sent to OE |
 | --- | --- |

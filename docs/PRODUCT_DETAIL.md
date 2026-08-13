@@ -262,7 +262,7 @@ When `reviews.length > 0` it renders:
 
 When `productReviews.length === 0`, the right-hand column of `ProductReviewsSection` (`src/app/pages/product/ProductReviewsSection.tsx`) renders a dashed-border card containing:
 
-- Heading: `L.emptyHeading` ("No reviews yet") from `PRODUCT_REVIEWS_LABELS` (`src/app/components/product/copy.ts`).
+- Heading: `L.emptyHeading` ("No reviews yet") from `PRODUCT_REVIEWS_LABELS` ([ProductReviewsSection.tsx](../src/app/pages/product/ProductReviewsSection.tsx)).
 - Body copy: `L.emptyBody` ("Be the first to share your thoughts about this product.").
 
 The empty-state card has no button of its own. The left-column bordered "Write a Review" CTA (auth-gated via `ReviewsClient.requestWriteReview`) is the sole entry point for submitting a review when the list is empty.
@@ -276,7 +276,7 @@ The "Write a Review" CTA inside the reviews section (the left-column button) rou
 | Shopper state | Behaviour |
 | --- | --- |
 | `isLoggedIn === false` | Calls `openLoginModal()` — shows the login modal. |
-| Signed in, but `canReviewProduct(orders, productId) === false` | Sets the `purchaseNotice` state to `PRODUCT_REVIEWS_LABELS.purchaseRequired`. The notice text is forwarded to `<ProductReviewsSection>` via the `purchaseNotice` prop and rendered as a small amber paragraph under the left-column CTA. The notice auto-dismisses after 4 s. |
+| Signed in, but `canReviewProduct(orders, productId) === false` | Sets the `purchaseNotice` state to `REVIEWS_CLIENT_LABELS.purchaseRequired` ([ReviewsClient.tsx](../src/app/pages/product/ReviewsClient.tsx)). The notice text is forwarded to `<ProductReviewsSection>` via the `purchaseNotice` prop and rendered as a small amber paragraph under the left-column CTA. The notice auto-dismisses after 4 s. |
 | Signed in AND has a qualifying delivered order | Calls `setShowReviewModal(true)` — opens `<WriteReviewModal>`. |
 
 `canReviewProduct(orders, productId)` is defined in `src/app/utils/review-eligibility.ts`. It returns `true` when the shopper has at least one order whose `statusIdentifier` matches the regex `/deliver|complete|done|closed|finish|received|arrived/i` AND whose `products[]` list contains the given `productId`. The substring-match pattern follows the convention of `bucketOeStatus` / `computeLtv` so namespaced status markers (e.g. `home_done`, `pickup_delivered`) still resolve correctly.

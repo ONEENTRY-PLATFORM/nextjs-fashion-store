@@ -2,13 +2,19 @@
 
 import { ChevronRight } from 'lucide-react';
 
-import { CATALOG_VIEW_LABELS as CVL } from '@/app/components/catalog/copy';
-import { SECTION_TITLES } from '@/app/components/home/copy';
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
 import { HorizontalScroller } from '@/app/components/ui/HorizontalScroller';
 import { ACCENT_WOMEN } from '@/app/constants/colors';
 import { Link } from '@/lib/i18n/navigation';
 import type { SectionChrome } from '@/lib/oneentry/blocks/section-chrome';
+
+/** Section chrome used when the OE block carries none of its own. `viewAllHref` is routing, not copy. */
+export const NEW_ARRIVALS_SECTION = {
+  title: 'Sale',
+  subtitle: 'Best prices – shop the sale now',
+  viewAllHref: '/sale',
+  viewAllLabel: 'View All',
+} as const;
 
 /** `chrome` carries the OE block's own subtitle / view-all link. */
 export function NewArrivals({
@@ -17,10 +23,10 @@ export function NewArrivals({
   chrome,
 }: { products?: Product[]; title?: string; chrome?: SectionChrome } = {}) {
   if (products.length === 0) return null;
-  const heading = title?.trim() || SECTION_TITLES.sale.title;
-  const subtitle = chrome?.subtitle ?? SECTION_TITLES.sale.subtitle;
-  const viewAllHref = chrome?.viewAllHref ?? SECTION_TITLES.sale.viewAllHref;
-  const viewAllLabel = chrome?.viewAllLabel ?? CVL.viewAll;
+  const heading = title?.trim() || NEW_ARRIVALS_SECTION.title;
+  const subtitle = chrome?.subtitle ?? NEW_ARRIVALS_SECTION.subtitle;
+  const viewAllHref = chrome?.viewAllHref ?? NEW_ARRIVALS_SECTION.viewAllHref;
+  const viewAllLabel = chrome?.viewAllLabel ?? NEW_ARRIVALS_SECTION.viewAllLabel;
 
   return (
     <section className="w-full">

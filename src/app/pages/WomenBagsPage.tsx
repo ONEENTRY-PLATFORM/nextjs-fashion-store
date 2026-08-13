@@ -1,6 +1,5 @@
 'use client';
 import { CatalogTemplate, type FilterGroup } from '@/app/components/catalog/CatalogTemplate';
-import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
@@ -8,6 +7,14 @@ import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 const PRODUCTS_PER_PAGE = 16;
+
+export const WOMEN_BAGS_PAGE_LABELS = {
+  bags: 'BAGS',
+  women: 'WOMEN',
+  breadcrumbHome: 'Home',
+  breadcrumbWomen: 'Women',
+  breadcrumbBags: 'Bags',
+} as const;
 
 export function WomenBagsPage({
   initialProducts,
@@ -31,11 +38,11 @@ export function WomenBagsPage({
   pageBlocks?: PageBlock[];
 } = {}) {
   // Catalog chrome resolves through the OE `catalog_page` set; `CL` is the offline fallback.
-  const lTitle = useT('catalog_page_bags', CL.bags);
-  const lGender = useT('catalog_page_women', CL.women);
-  const lCrumbHome = useT('catalog_page_breadcrumb_home', CL.breadcrumbHome);
-  const lCrumbWomen = useT('catalog_page_breadcrumb_women', CL.breadcrumbWomen);
-  const lCrumbCat = useT('catalog_page_breadcrumb_bags', CL.breadcrumbBags);
+  const lTitle = useT('catalog_page_bags', WOMEN_BAGS_PAGE_LABELS.bags);
+  const lGender = useT('catalog_page_women', WOMEN_BAGS_PAGE_LABELS.women);
+  const lCrumbHome = useT('catalog_page_breadcrumb_home', WOMEN_BAGS_PAGE_LABELS.breadcrumbHome);
+  const lCrumbWomen = useT('catalog_page_breadcrumb_women', WOMEN_BAGS_PAGE_LABELS.breadcrumbWomen);
+  const lCrumbCat = useT('catalog_page_breadcrumb_bags', WOMEN_BAGS_PAGE_LABELS.breadcrumbBags);
   return (
     <CatalogTemplate
       pageBlocks={pageBlocks}

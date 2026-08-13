@@ -1,6 +1,5 @@
 'use client';
 import { CatalogTemplate, type FilterGroup } from '@/app/components/catalog/CatalogTemplate';
-import { CATALOG_PAGE_LABELS as CL } from '@/app/components/catalog/copy';
 import type { Product } from '@/app/components/product/ProductCard';
 import { ACCENT_MEN, ACCENT_WOMEN } from '@/app/constants/colors';
 import type { PageBlock } from '@/lib/oneentry/blocks/page-blocks';
@@ -8,6 +7,10 @@ import type { CatalogFilters } from '@/lib/oneentry/catalog/filters';
 import { useT } from '@/lib/oneentry/labels/DictContext';
 
 const PRODUCTS_PER_PAGE = 16;
+
+export const CMS_CATALOG_PAGE_LABELS = {
+  breadcrumbHome: 'Home',
+} as const;
 
 /** Catalog page for a category that exists in OneEntry but has no bespoke component in the code. */
 export function CmsCatalogPage({
@@ -45,7 +48,7 @@ export function CmsCatalogPage({
 }) {
   const isMen = gender === 'men';
   const accent = isMen ? ACCENT_MEN : ACCENT_WOMEN;
-  const lCrumbHome = useT('catalog_page_breadcrumb_home', CL.breadcrumbHome);
+  const lCrumbHome = useT('catalog_page_breadcrumb_home', CMS_CATALOG_PAGE_LABELS.breadcrumbHome);
   return (
     <CatalogTemplate
       pageBlocks={pageBlocks}

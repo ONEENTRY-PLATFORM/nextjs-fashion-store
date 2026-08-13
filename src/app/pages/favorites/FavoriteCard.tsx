@@ -2,8 +2,6 @@
 import { AlertTriangle, Eye, Heart, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { CATALOG_VIEW_LABELS } from '@/app/components/catalog/copy';
-import { PRODUCT_CARD_ARIA_LABELS, PRODUCT_CARD_LABELS } from '@/app/components/product/copy';
 import { ColorSwatchButton } from '@/app/components/ui/ColorSwatchButton';
 import { ImageWithFallback } from '@/app/components/ui/ImageWithFallback';
 import { ACCENT_WOMEN as ACCENT } from '@/app/constants/colors';
@@ -23,28 +21,34 @@ export const FAVORITE_CARD_LABELS = {
   removeFromFavourites: 'Remove from favourites',
   addToCart: 'Add to Cart',
   addedToCart: 'Added!',
-  quickView: 'Quick View',
   sizeLabel: 'Size',
+} as const;
+
+export const FAVORITE_CARD_VIEW_LABELS = {
+  quickView: 'Quick View',
+  /** `%index%` — 1-based swatch position. */
+  colorSwatch: 'Color %index%',
+  colorSwatchOutOfStockSuffix: ' (out of stock)',
 } as const;
 
 const FCL = FAVORITE_CARD_LABELS;
 
 export function FavoriteCard({ item: rawItem }: { item: WishlistItem }) {
-  const CVL = useDict('interface_controls_view_', CATALOG_VIEW_LABELS);
+  const CVL = useDict('interface_controls_view_', FAVORITE_CARD_VIEW_LABELS);
   const item = rawItem;
 
   const { removeItem, updateSelection } = useWishlist();
   const { addItem: addToCart } = useCart();
   const { openQuickView } = useQuickView();
   const router = useRouter();
-  const lAddToCart = useT('product-card_add_to_cart_cta', PRODUCT_CARD_LABELS.addToCart);
+  const lAddToCart = useT('product-card_add_to_cart_cta', FCL.addToCart);
   // Wishlist-specific badges live in the OE `favorites_page` set alongside the rest of the page copy; `FAVORITE_CARD_LABELS` is the offline fallback.
   const lPriceDrop = useT('favorite_card_price_drop', FCL.priceDrop);
   const lOutOfStock = useT('favorite_card_out_of_stock', FCL.outOfStock);
   const lSizeLabel = useT('favorite_card_size', FCL.sizeLabel);
-  const lAdded = useT('product-card-added', PRODUCT_CARD_LABELS.added);
+  const lAdded = useT('product-card-added', FCL.addedToCart);
   const lQuickView = useT('interface_controls_view_quick_view', CVL.quickView);
-  const aRemove = useT('product-card-aria_remove_from_favourites', PRODUCT_CARD_ARIA_LABELS.removeFromFavourites);
+  const aRemove = useT('product-card-aria_remove_from_favourites', FCL.removeFromFavourites);
   const initColorIdx = item.selectedColor ? Math.max(0, item.colors.indexOf(item.selectedColor)) : 0;
   const [selectedColor, setSelectedColor] = useState(initColorIdx);
   const [addedToCart, setAddedToCart] = useState(false);

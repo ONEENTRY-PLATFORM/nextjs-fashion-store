@@ -2,13 +2,19 @@
 
 import { ChevronRight } from 'lucide-react';
 
-import { CATALOG_VIEW_LABELS as CVL } from '@/app/components/catalog/copy';
-import { SECTION_TITLES } from '@/app/components/home/copy';
 import { type Product, ProductCard } from '@/app/components/product/ProductCard';
 import { HorizontalScroller } from '@/app/components/ui/HorizontalScroller';
 import { ACCENT_WOMEN as WOMEN_COLOR } from '@/app/constants/colors';
 import { Link } from '@/lib/i18n/navigation';
 import type { SectionChrome } from '@/lib/oneentry/blocks/section-chrome';
+
+/** Section chrome used when the OE block carries none of its own. `viewAllHref` is routing, not copy. */
+export const WOMEN_COLLECTION_SECTION = {
+  eyebrow: 'Collection',
+  title: 'New Arrivals',
+  viewAllHref: '/new',
+  viewAllLabel: 'View All',
+} as const;
 
 /** `chrome` carries the OE block's own eyebrow / view-all link. */
 export function WomenCollection({
@@ -17,10 +23,10 @@ export function WomenCollection({
   chrome,
 }: { products?: Product[]; title?: string; chrome?: SectionChrome } = {}) {
   if (products.length === 0) return null;
-  const heading = title?.trim() || SECTION_TITLES.newArrivals.title;
-  const eyebrow = chrome?.eyebrow ?? SECTION_TITLES.newArrivals.eyebrow;
-  const viewAllHref = chrome?.viewAllHref ?? SECTION_TITLES.newArrivals.viewAllHref;
-  const viewAllLabel = chrome?.viewAllLabel ?? CVL.viewAll;
+  const heading = title?.trim() || WOMEN_COLLECTION_SECTION.title;
+  const eyebrow = chrome?.eyebrow ?? WOMEN_COLLECTION_SECTION.eyebrow;
+  const viewAllHref = chrome?.viewAllHref ?? WOMEN_COLLECTION_SECTION.viewAllHref;
+  const viewAllLabel = chrome?.viewAllLabel ?? WOMEN_COLLECTION_SECTION.viewAllLabel;
 
   return (
     <section className="w-full font-sans" style={{ '--accent': WOMEN_COLOR } as React.CSSProperties}>

@@ -1,11 +1,6 @@
 import { unstable_cache } from 'next/cache';
 
 import { DELIVERY_PERKS, type ParcelLocker, PICKUP_PERKS } from '@/app/data/checkoutConfig';
-import {
-  DELIVERY_METHOD_HOME_LABELS,
-  DELIVERY_METHOD_LOCKER_LABELS,
-  DELIVERY_METHOD_STORE_LABELS,
-} from '@/app/pages/checkout/copy';
 import { REVALIDATE_STORES } from '@/lib/isr';
 import { CHECKOUT_ORDER_FORMS, type CheckoutMethod } from '@/lib/oneentry/checkout/forms';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
@@ -23,6 +18,22 @@ export interface DeliveryMethodInfo {
   store: { title: string; subtitle: string; value: string; perks: string[] };
   locker: { title: string; subtitle: string; value: string; pinHint: string };
 }
+
+export const DELIVERY_METHOD_HOME_LABELS = {
+  title: 'Home / Office Delivery',
+  subtitle: '2–5 business days · Standard shipping',
+} as const;
+
+export const DELIVERY_METHOD_STORE_LABELS = {
+  title: 'Store Pickup',
+  subtitle: 'Ready within 2 hours · Try in store',
+} as const;
+
+export const DELIVERY_METHOD_LOCKER_LABELS = {
+  title: 'Parcel Locker / Pickup Point',
+  subtitle: '3–5 business days · Collect at your convenience',
+  pinHint: "You'll receive a PIN code by SMS when your parcel arrives.",
+} as const;
 
 /** Fallback copy — used verbatim when OE is unavailable or the form was edited without one of the fields. */
 const FALLBACK: DeliveryMethodInfo = {

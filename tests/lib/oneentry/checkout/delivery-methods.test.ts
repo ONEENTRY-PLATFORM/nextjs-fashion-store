@@ -25,7 +25,11 @@ const importFresh = async () => {
 // ── Fallback constants (mirror checkoutLabels / checkoutConfig) ────────────────
 // We import them statically once; the mock above keeps their module untouched.
 import { DELIVERY_PERKS, PICKUP_PERKS } from '@/app/data/checkoutConfig';
-import { DELIVERY_METHOD_HOME_LABELS , DELIVERY_METHOD_LOCKER_LABELS , DELIVERY_METHOD_STORE_LABELS } from '@/app/pages/checkout/copy';
+import {
+  DELIVERY_METHOD_HOME_LABELS,
+  DELIVERY_METHOD_LOCKER_LABELS,
+  DELIVERY_METHOD_STORE_LABELS,
+} from '@/lib/oneentry/checkout/delivery-methods';
 
 
 

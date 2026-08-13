@@ -2,7 +2,6 @@
 import { ChevronDown, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { CATALOG_VIEW_LABELS as CVL_FALLBACK } from '@/app/components/catalog/copy';
 import { useCatalogAccent } from '@/app/context/CatalogAccentContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 
@@ -11,6 +10,11 @@ import { FilterBody } from './MobileFilterBody';
 export const MOBILE_FILTER_ARIA = {
   productFilters: 'Product Filters',
   closeFilters: 'Close filters',
+} as const;
+
+export const MOBILE_FILTER_PANEL_LABELS = {
+  filtersHeading: 'FILTERS',
+  clearAll: 'Clear All',
 } as const;
 
 /* ─── Types ──────────────────────────────────────────────── */
@@ -94,7 +98,7 @@ export function MobileFilterPanel({
   onToggleFilter,
   onClearAll,
 }: Props) {
-  const CVL = useDict('interface_controls_view_', CVL_FALLBACK);
+  const CVL = useDict('interface_controls_view_', MOBILE_FILTER_PANEL_LABELS);
   const aProductFilters = useT('interface_controls_mobile_filters_aria', MOBILE_FILTER_ARIA.productFilters);
   const aCloseFilters = useT('interface_controls_close_filters', MOBILE_FILTER_ARIA.closeFilters);
   const accentColor = useCatalogAccent();

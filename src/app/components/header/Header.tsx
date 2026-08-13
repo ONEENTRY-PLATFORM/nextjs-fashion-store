@@ -10,11 +10,25 @@ import { useCart } from '@/app/context/CartContext';
 import { useWishlist } from '@/app/context/WishlistContext';
 import logoImage from '@/assets/kekimoro-logo-black.png';
 
-import { HEADER_COPY } from './copy';
 import { HeaderMegaMenu } from './HeaderMegaMenu';
 import { HeaderMobileDrawer } from './HeaderMobileDrawer';
 import { HeaderSearch } from './HeaderSearch';
 import { HeaderTopBar } from './HeaderTopBar';
+
+/** Header copy, overlaid from the OE `header` set as `header_<snake_case_key>`. */
+export const HEADER_COPY = {
+  logoAlt: 'KEKIMORO',
+  search: 'Search',
+  searchPlaceholderMobile: 'Search...',
+  ariaOpenMenu: 'Open menu',
+  ariaMainNavigation: 'Main navigation',
+  ariaToggleSearch: 'Toggle search',
+  ariaSearchDesktop: 'Search products',
+  ariaSearchMobile: 'Search products',
+  ariaAccount: 'My account',
+  ariaWishlist: 'Wishlist',
+  ariaBag: 'Shopping bag',
+} as const;
 
 const MiniCart = dynamic(() => import('@/app/components/cart/MiniCart').then((m) => ({ default: m.MiniCart })));
 const LoginModal = dynamic(() => import('@/app/components/auth/LoginModal').then((m) => ({ default: m.LoginModal })));

@@ -5,15 +5,44 @@ import { FormField } from '@/app/components/ui/FormField';
 import { RadioCard } from '@/app/components/ui/RadioCard';
 import { DELIVERY_PERKS, DELIVERY_TIME_SLOTS } from '@/app/data/checkoutConfig';
 import type { UserAddress } from '@/app/data/userData';
-import {
-  DELIVERY_METHOD_HOME_LABELS as L_FALLBACK,
-  DELIVERY_METHOD_SHARED_LABELS as SH,
-} from '@/app/pages/checkout/copy';
 import type { DeliveryTimeSlot } from '@/lib/oneentry/checkout/delivery-schedule';
 import { useDeliveryMethodInfo } from '@/lib/oneentry/checkout/DeliveryMethodInfoContext';
 import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
 import { useRoleField } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
+
+export const DELIVERY_METHOD_HOME_LABELS = {
+  title: 'Home / Office Delivery',
+  subtitle: '2–5 business days · Standard shipping',
+  useDifferentAddress: 'Use a different address',
+  useDifferentAddressHint: 'Enter a new delivery address',
+  saveToProfile: 'Save this address to my profile',
+  confirmAddress: 'Confirm Address',
+  editAddress: 'Edit',
+  deliveryDate: 'Delivery Date',
+  deliveryTime: 'Delivery Time',
+  // Address form
+  labelFullName: 'Full Name',
+  labelPhone: 'Phone',
+  labelAddressLine1: 'Address Line 1',
+  labelCity: 'City',
+  labelPostalCode: 'Postal Code',
+  labelInstructions: 'Special Instructions (optional)',
+  placeholderFullName: 'Jane Smith',
+  placeholderPhone: '+44 20 0000 0000',
+  placeholderAddressLine1: 'Street name and number',
+  placeholderCity: 'London',
+  placeholderPostalCode: 'SW1A 1AA',
+  placeholderInstructions: 'Gate code, floor, etc.',
+} as const;
+
+/** Badge rendered on every delivery-method card. */
+export const DELIVERY_METHOD_SHARED_LABELS = {
+  freeBadge: 'FREE',
+} as const;
+
+const L_FALLBACK = DELIVERY_METHOD_HOME_LABELS;
+const SH = DELIVERY_METHOD_SHARED_LABELS;
 
 export interface NewAddressForm {
   fullName: string;
