@@ -3,12 +3,14 @@ import { ChevronDown, MapPin, Phone, User, X } from 'lucide-react';
 import Image from 'next/image';
 
 import { type Gender, SUB_CATEGORIES } from '@/app/data/categories';
-import { GENDER_NAV_HREFS, LOGO_ALT, MOBILE_FOOTER_LINKS, SUPPORT_PHONE } from '@/app/data/headerConfig';
+import { GENDER_NAV_HREFS } from '@/app/data/headerConfig';
 import logoImage from '@/assets/kekimoro-logo-black.png';
 import { Link, useRouter } from '@/lib/i18n/navigation';
-import { useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { adaptHeaderMenuToMega } from '@/lib/oneentry/menus/adapt-header';
 import { useHeaderMenu } from '@/lib/oneentry/menus/HeaderMenuContext';
+
+import { HEADER_COPY, MOBILE_FOOTER_LINKS } from './copy';
 
 interface HeaderMobileDrawerProps {
   isOpen: boolean;
@@ -34,9 +36,7 @@ export function HeaderMobileDrawer({
   getNavHref,
 }: HeaderMobileDrawerProps) {
   // Header copy from the OE `header` set; constants are the offline fallback.
-  const lLogoAlt = useT('header_logo_alt', LOGO_ALT);
-  const lPhone = useT('header_support_phone', SUPPORT_PHONE);
-  const aCloseMenu = useT('header_aria_close_menu', 'Close menu');
+  const L = useDict('header_', HEADER_COPY);
 
   const router = useRouter();
   const cmsHeaderMenu = useHeaderMenu();
@@ -49,8 +49,8 @@ export function HeaderMobileDrawer({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="absolute inset-y-0 left-0 flex w-80 flex-col overflow-y-auto bg-white">
         <div className="flex items-center justify-between border-b border-gray-200 p-4">
-          <Image src={logoImage} alt={lLogoAlt} width={128} height={28} className="object-contain" priority />
-          <button onClick={onClose} className="p-1" aria-label={aCloseMenu}>
+          <Image src={logoImage} alt={L.logoAlt} width={128} height={28} className="object-contain" priority />
+          <button onClick={onClose} className="p-1" aria-label={L.ariaCloseMenu}>
             <X size={22} />
           </button>
         </div>
@@ -133,8 +133,8 @@ export function HeaderMobileDrawer({
           {MOBILE_FOOTER_LINKS.map((link) => (
             <MobileFooterLinkRow key={link.href} link={link} onClose={onClose} />
           ))}
-          <a href={`tel:${lPhone.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm">
-            <Phone size={16} /> {lPhone}
+          <a href={`tel:${L.supportPhone.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm">
+            <Phone size={16} /> {L.supportPhone}
           </a>
         </div>
       </div>

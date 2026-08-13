@@ -48,21 +48,6 @@ export const PAYMENT_METHOD_NAMES = [
   'Klarna',
 ];
 
-export const SOCIAL_LINKS = [
-  { name: 'TikTok', href: 'https://www.tiktok.com/@oneentryfashion' },
-  { name: 'Facebook', href: 'https://www.facebook.com/oneentryfashion' },
-  { name: 'Instagram', href: 'https://www.instagram.com/oneentryfashion' },
-  { name: 'YouTube', href: 'https://www.youtube.com/@oneentryfashion' },
-  { name: 'Pinterest', href: 'https://www.pinterest.com/oneentryfashion' },
-];
-
-export const SUPPORT_ITEMS = [
-  { iconKey: 'question', title: 'HELP CENTER', desc: 'Find answers online anytime' },
-  { iconKey: 'phone', title: 'TEXT US', desc: '24/7 Support' },
-  { iconKey: 'chat', title: 'LIVE CHAT', desc: '24/7 Support Chat' },
-  { iconKey: 'email', title: 'EMAIL US', desc: 'Submit via our inquiry form' },
-];
-
 interface BottomLink {
   label: string;
   href: string;
@@ -75,9 +60,3 @@ export const BOTTOM_LINKS: BottomLink[] = [
   { label: 'Privacy Policy', href: '/info/privacy-policy' },
   { label: 'Promo Terms', href: '/info/promo-terms' },
 ];
-
-export const COMPANY_INFO = {
-  description: 'Premium fashion for men and women. Curated collections with fast worldwide delivery.',
-  phone: '+44 20 7946 0958',
-  copyright: '© 2026 KEKIMORO. All rights reserved.',
-};

@@ -73,6 +73,16 @@ export default defineConfig({
       storybookTest({
         configDir: path.join(dirname, '.storybook')
       })],
+      // `.png` first, before the `@` rule: Vite applies the first match only.
+      // `@storybook/nextjs-vite` turns a static image import into a
+      // `virtual:next-image:` module whose generated code loses the backslashes
+      // of a Windows path, which killed every story reaching Header / Footer.
+      resolve: {
+        alias: [
+          { find: /^.*\.png$/, replacement: path.resolve(dirname, 'tests/mocks/static-image.ts') },
+          { find: '@', replacement: path.resolve(dirname, 'src') }
+        ]
+      },
       test: {
         name: 'storybook',
         sequence: { groupOrder: 1 },

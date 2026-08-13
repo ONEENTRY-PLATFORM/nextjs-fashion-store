@@ -8,42 +8,17 @@ import {
 import Image from 'next/image';
 import React from 'react';
 
-import {
-  BOTTOM_LINKS,
-  COMPANY_INFO,
-  FOOTER_LINKS,
-  type FooterLink,
-  PAYMENT_METHOD_NAMES,
-  SOCIAL_LINKS,
-  SUPPORT_ITEMS,
-} from '@/app/data/footerConfig';
-import { LOGO_ALT } from '@/app/data/headerConfig';
+import { HEADER_COPY } from '@/app/components/header/copy';
+import { BOTTOM_LINKS, FOOTER_LINKS, type FooterLink, PAYMENT_METHOD_NAMES } from '@/app/data/footerConfig';
 import { fillTokens } from '@/app/utils/fillTokens';
 import logoImage from '@/assets/kekimoro-logo-white.png';
 import { Link } from '@/lib/i18n/navigation';
-import { useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useT } from '@/lib/oneentry/labels/DictContext';
 import { footerBottomLinksFromMenu, type FooterColumn, footerColumnsFromMenu } from '@/lib/oneentry/menus/adapt-footer';
 import { useFooterColumnsMenu, useFooterMenu } from '@/lib/oneentry/menus/FooterMenuContext';
 
+import { FOOTER_COPY, SOCIAL_NETWORKS } from './copy';
 import { NewsletterForm } from './NewsletterForm';
-
-export const FOOTER_DYNAMIC_ARIA = {
-  /** `%network%` — the social network's display name. */
-  followOn: 'Follow us on %network%',
-} as const;
-
-export const FOOTER_ARIA = {
-  legalLinks: 'Legal links',
-} as const;
-
-export const FOOTER_LABELS = {
-  acceptedPaymentMethods: 'Accepted Payment Methods',
-  followUs: 'Follow Us',
-  customerSupport: 'Customer Support:',
-  newsletterHeading: 'Subscribe to new drops',
-} as const;
-
-const FL = FOOTER_LABELS;
 
 const PAYMENT_ICON_SRC: Record<string, string> = {
   Visa: '/icons/payment/visa.svg',
@@ -65,47 +40,27 @@ const SOCIAL_ICON_SRC: Record<string, string> = {
 };
 
 export function Footer() {
-  const lLogoAlt = useT('header_logo_alt', LOGO_ALT);
-  const aLegalLinks = useT('footer_aria_legal_links', FOOTER_ARIA.legalLinks);
-  const aFollowOn = useT('footer_aria_follow_on', FOOTER_DYNAMIC_ARIA.followOn);
+  const L = useDict('footer_', FOOTER_COPY);
+  // `header_logo_alt` is shared with the header, so it keeps its own marker.
+  const lLogoAlt = useT('header_logo_alt', HEADER_COPY.logoAlt);
   const cmsColumnsMenu = useFooterColumnsMenu();
   const cmsLegalMenu = useFooterMenu();
 
-  // Branding copy from the OE `footer` set — the fields marketing changes without a release.
-  const lCustomerSupport = useT('footer_customer_support', FL.customerSupport);
-  const lNewsletterHead = useT('footer_newsletter_heading', FL.newsletterHeading);
-  const lPaymentMethods = useT('footer_accepted_payment_methods', FL.acceptedPaymentMethods);
-  const lFollowUs = useT('footer_follow_us', FL.followUs);
-  const lDescription = useT('footer_company_description', COMPANY_INFO.description);
-  const lPhone = useT('footer_support_phone', COMPANY_INFO.phone);
-  const lCopyright = useT('footer_copyright', COMPANY_INFO.copyright);
+  // Widened to `string`: the overlay carries the literal types of the shipped
+  // copy, which makes TS read the right side of `title || desc` as unreachable.
+  const supportItems = (
+    [
+      { title: L.support1Title, desc: L.support1Desc },
+      { title: L.support2Title, desc: L.support2Desc },
+      { title: L.support3Title, desc: L.support3Desc },
+      { title: L.support4Title, desc: L.support4Desc },
+    ] as { title: string; desc: string }[]
+  ).filter((item) => item.title || item.desc);
 
-  // Four support cards are a fixed layout slot, so each key is read with its own top-level hook call — a loop would break the rules of hooks.
-  const support1Title = useT('footer_support_1_title', SUPPORT_ITEMS[0]?.title ?? '');
-  const support1Desc = useT('footer_support_1_desc', SUPPORT_ITEMS[0]?.desc ?? '');
-  const support2Title = useT('footer_support_2_title', SUPPORT_ITEMS[1]?.title ?? '');
-  const support2Desc = useT('footer_support_2_desc', SUPPORT_ITEMS[1]?.desc ?? '');
-  const support3Title = useT('footer_support_3_title', SUPPORT_ITEMS[2]?.title ?? '');
-  const support3Desc = useT('footer_support_3_desc', SUPPORT_ITEMS[2]?.desc ?? '');
-  const support4Title = useT('footer_support_4_title', SUPPORT_ITEMS[3]?.title ?? '');
-  const support4Desc = useT('footer_support_4_desc', SUPPORT_ITEMS[3]?.desc ?? '');
-  const supportItems = [
-    { title: support1Title, desc: support1Desc },
-    { title: support2Title, desc: support2Desc },
-    { title: support3Title, desc: support3Desc },
-    { title: support4Title, desc: support4Desc },
-  ].filter((item) => item.title || item.desc);
-
-  // Social profile URLs: the network name keys the icon asset and stays in code, only the destination is CMS-editable.
-  const tiktokHref = useT('footer_social_tiktok', SOCIAL_LINKS[0]?.href ?? '');
-  const facebookHref = useT('footer_social_facebook', SOCIAL_LINKS[1]?.href ?? '');
-  const instagramHref = useT('footer_social_instagram', SOCIAL_LINKS[2]?.href ?? '');
-  const youtubeHref = useT('footer_social_youtube', SOCIAL_LINKS[3]?.href ?? '');
-  const pinterestHref = useT('footer_social_pinterest', SOCIAL_LINKS[4]?.href ?? '');
-  const socialLinks = SOCIAL_LINKS.map((s, i) => ({
-    name: s.name,
-    href: [tiktokHref, facebookHref, instagramHref, youtubeHref, pinterestHref][i] ?? s.href,
-  })).filter((s) => s.href.length > 0);
+  const socialHrefs = [L.socialTiktok, L.socialFacebook, L.socialInstagram, L.socialYoutube, L.socialPinterest];
+  const socialLinks = SOCIAL_NETWORKS.map((name, i) => ({ name, href: socialHrefs[i] ?? '' })).filter(
+    (s) => s.href.length > 0,
+  );
 
   // The two halves of the footer navigation come from two different OE menus: `bottom_menu` carries the link columns, `footer` the legal bottom bar.
   const cmsColumns = footerColumnsFromMenu(cmsColumnsMenu);
@@ -157,18 +112,18 @@ export function Footer() {
           <div className="col-span-2 lg:col-span-2">
             <Image src={logoImage} alt={lLogoAlt} width={183} height={40} className="mb-4 object-contain" />
             <p className="mb-4 max-w-xs text-xs leading-relaxed text-white/50" data-testid="footer-company-description">
-              {lDescription}
+              {L.companyDescription}
             </p>
-            <p className="mb-2 text-xs text-white/40">{lCustomerSupport}</p>
+            <p className="mb-2 text-xs text-white/40">{L.customerSupport}</p>
             <a
-              href={`tel:${lPhone.replace(/\s/g, '')}`}
+              href={`tel:${L.supportPhone.replace(/\s/g, '')}`}
               className="text-sm font-medium transition-colors hover:text-white/70"
               data-testid="footer-support-phone"
             >
-              {lPhone}
+              {L.supportPhone}
             </a>
             <p className="mt-4 text-xs text-white/30" data-testid="footer-copyright">
-              {lCopyright}
+              {L.copyright}
             </p>
           </div>
 
@@ -202,7 +157,7 @@ export function Footer() {
       {/* Newsletter */}
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
-          <p className="mb-4 text-center text-xs tracking-widest text-white/40 uppercase">{lNewsletterHead}</p>
+          <p className="mb-4 text-center text-xs tracking-widest text-white/40 uppercase">{L.newsletterHeading}</p>
           <NewsletterForm />
         </div>
       </div>
@@ -210,7 +165,7 @@ export function Footer() {
       {/* Payment Methods */}
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
-          <p className="mb-4 text-center text-xs tracking-widest text-white/40 uppercase">{lPaymentMethods}</p>
+          <p className="mb-4 text-center text-xs tracking-widest text-white/40 uppercase">{L.acceptedPaymentMethods}</p>
           <div className="flex flex-wrap justify-center gap-3">
             {PAYMENT_METHOD_NAMES.map((name) => {
               const src = PAYMENT_ICON_SRC[name];
@@ -234,7 +189,7 @@ export function Footer() {
       {/* Social Media */}
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
-          <p className="mb-4 text-center text-xs tracking-widest text-white/40 uppercase">{lFollowUs}</p>
+          <p className="mb-4 text-center text-xs tracking-widest text-white/40 uppercase">{L.followUs}</p>
           <div className="flex flex-wrap justify-center gap-4">
             {socialLinks.map(({ name, href }) => {
               const src = SOCIAL_ICON_SRC[name];
@@ -242,7 +197,7 @@ export function Footer() {
                 <a
                   key={name}
                   href={href}
-                  aria-label={fillTokens(aFollowOn, { network: name })}
+                  aria-label={fillTokens(L.ariaFollowOn, { network: name })}
                   rel="noopener noreferrer"
                   target="_blank"
                   className="group flex size-9 items-center justify-center bg-white/10 transition-all duration-200 hover:bg-white active:bg-gray-200"
@@ -267,7 +222,7 @@ export function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-white/10">
         <nav
-          aria-label={aLegalLinks}
+          aria-label={L.ariaLegalLinks}
           className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 p-4 lg:px-8"
           data-testid="footer-bottom-bar"
         >

@@ -10,6 +10,7 @@ import { useCart } from '@/app/context/CartContext';
 import { useWishlist } from '@/app/context/WishlistContext';
 import logoImage from '@/assets/kekimoro-logo-black.png';
 
+import { HEADER_COPY } from './copy';
 import { HeaderMegaMenu } from './HeaderMegaMenu';
 import { HeaderMobileDrawer } from './HeaderMobileDrawer';
 import { HeaderSearch } from './HeaderSearch';
@@ -28,18 +29,10 @@ const QuickViewModal = dynamic(() =>
 );
 
 import { type Gender, type SubCat } from '@/app/data/categories';
-import {
-  ACCOUNT_HREF,
-  GENDER_NAV_HREFS,
-  LOGO_ALT,
-  MEN_COLOR,
-  SEARCH_PLACEHOLDER,
-  WISHLIST_HREF,
-  WOMEN_COLOR,
-} from '@/app/data/headerConfig';
+import { ACCOUNT_HREF, GENDER_NAV_HREFS, MEN_COLOR, WISHLIST_HREF, WOMEN_COLOR } from '@/app/data/headerConfig';
 import { useMounted } from '@/app/hooks/useMounted';
 import { Link, useRouter } from '@/lib/i18n/navigation';
-import { useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict } from '@/lib/oneentry/labels/DictContext';
 import { adaptHeaderMenuToMega } from '@/lib/oneentry/menus/adapt-header';
 import { useHeaderMenu } from '@/lib/oneentry/menus/HeaderMenuContext';
 
@@ -58,18 +51,7 @@ function GenderQuerySync({ onChange }: { onChange: (gender: Gender | null) => vo
 }
 
 export function Header() {
-  const lSearch = useT('search', SEARCH_PLACEHOLDER);
-  // Header copy from the OE `header` set — local constants are the fallback.
-  const lLogoAlt = useT('header_logo_alt', LOGO_ALT);
-  const lSearchMobile = useT('header_search_placeholder_mobile', 'Search...');
-  const aOpenMenu = useT('header_aria_open_menu', 'Open menu');
-  const aMainNav = useT('header_aria_main_navigation', HEADER_ARIA.mainNavigation);
-  const aToggleSearch = useT('header_aria_toggle_search', 'Toggle search');
-  const aSearchDesk = useT('header_aria_search_desktop', 'Search products');
-  const aSearchMob = useT('header_aria_search_mobile', 'Search products');
-  const aAccount = useT('header_aria_account', 'My account');
-  const aWishlist = useT('header_aria_wishlist', 'Wishlist');
-  const aBag = useT('header_aria_bag', 'Shopping bag');
+  const L = useDict('header_', HEADER_COPY);
   const [activeGender, setActiveGender] = useState<Gender>('women');
   const [activeDropdown, setActiveDropdown] = useState<SubCat>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -212,16 +194,16 @@ export function Header() {
                 <button
                   onClick={() => setMobileOpen(true)}
                   className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 lg:hidden"
-                  aria-label={aOpenMenu}
+                  aria-label={L.ariaOpenMenu}
                 >
                   <Menu size={22} />
                 </button>
                 <Link href="/" className="shrink-0" data-testid="header-logo">
-                  <Image src={logoImage} alt={lLogoAlt} width={146} height={32} className="object-contain" priority />
+                  <Image src={logoImage} alt={L.logoAlt} width={146} height={32} className="object-contain" priority />
                 </Link>
               </div>
 
-              <nav aria-label={aMainNav} className="mx-8 hidden flex-1 items-center justify-center lg:flex">
+              <nav aria-label={L.ariaMainNavigation} className="mx-8 hidden flex-1 items-center justify-center lg:flex">
                 <div className="flex items-center gap-6">
                   {(['women', 'men'] as Gender[]).map((g) => (
                     <button
@@ -255,19 +237,19 @@ export function Header() {
 
               <div className="flex items-center">
                 <div className="relative hidden w-64 lg:flex">
-                  <HeaderSearch placeholder={lSearch} ariaLabel={aSearchDesk} variant="desktop" />
+                  <HeaderSearch placeholder={L.search} ariaLabel={L.ariaSearchDesktop} variant="desktop" />
                 </div>
                 <button
                   onClick={() => setSearchOpen(!searchOpen)}
                   className="flex size-10 items-center justify-center transition-opacity hover:opacity-70 md:hidden"
-                  aria-label={aToggleSearch}
+                  aria-label={L.ariaToggleSearch}
                 >
                   <Search size={20} />
                 </button>
                 <button
                   className="hidden min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70 md:flex"
                   onClick={() => (isLoggedIn ? router.push(ACCOUNT_HREF) : openLoginModal())}
-                  aria-label={aAccount}
+                  aria-label={L.ariaAccount}
                   data-testid="header-account"
                 >
                   <User size={20} />
@@ -275,7 +257,7 @@ export function Header() {
                 <button
                   className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
                   onClick={() => router.push(WISHLIST_HREF)}
-                  aria-label={aWishlist}
+                  aria-label={L.ariaWishlist}
                 >
                   <Heart size={20} />
                   {mounted && wishlistCount > 0 && (
@@ -290,7 +272,7 @@ export function Header() {
                 <button
                   className="relative flex min-h-10 min-w-10 items-center justify-center transition-opacity hover:opacity-70"
                   onClick={openMiniCart}
-                  aria-label={aBag}
+                  aria-label={L.ariaBag}
                 >
                   <ShoppingBag size={20} />
                   {mounted && totalItems > 0 && (
@@ -308,7 +290,12 @@ export function Header() {
 
             {searchOpen && (
               <div className="pb-4 md:hidden">
-                <HeaderSearch placeholder={lSearchMobile} ariaLabel={aSearchMob} autoFocus variant="mobile" />
+                <HeaderSearch
+                  placeholder={L.searchPlaceholderMobile}
+                  ariaLabel={L.ariaSearchMobile}
+                  autoFocus
+                  variant="mobile"
+                />
               </div>
             )}
           </div>

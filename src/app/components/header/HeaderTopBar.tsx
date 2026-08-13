@@ -3,12 +3,14 @@ import { ChevronDownIcon, GlobeAltIcon, MapPinIcon, PhoneIcon } from '@heroicons
 import { useRouter as useNextRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { FALLBACK_LANGUAGE_LABEL, HEADER_REGIONS, STORE_LOCATIONS_HREF, SUPPORT_PHONE } from '@/app/data/headerConfig';
+import { FALLBACK_LANGUAGE_LABEL, STORE_LOCATIONS_HREF } from '@/app/data/headerConfig';
 import { useMounted } from '@/app/hooks/useMounted';
 import { useLocale, usePathnameWithoutLocale, useRouter } from '@/lib/i18n/navigation';
-import { useList, useT } from '@/lib/oneentry/labels/DictContext';
+import { useDict, useList } from '@/lib/oneentry/labels/DictContext';
 import { localizeHref, SHORT_LOCALES, toShortCode } from '@/lib/oneentry/locale';
 import { useCmsLocales } from '@/lib/oneentry/LocalesContext';
+
+import { HEADER_COPY, HEADER_REGIONS } from './copy';
 
 /** Where the shopper's region preference is kept. */
 const REGION_STORAGE_KEY = 'oe_region';
@@ -32,13 +34,13 @@ export function HeaderTopBar() {
   const [langOpen, setLangOpen] = useState(false);
 
   // Copy from the OE `header` set; local constants are the offline fallback.
-  const lRegion = useT('header_default_region', 'Europe');
+  const L = useDict('header_', HEADER_COPY);
   const regions = useList('header_regions', HEADER_REGIONS);
   // The shopper's pick, remembered across visits.
   const mounted = useMounted();
   const [picked, setPicked] = useState<string | null>(null);
   const stored = mounted && picked === null ? readStoredRegion() : picked;
-  const activeRegion = stored && regions.includes(stored) ? stored : lRegion;
+  const activeRegion = stored && regions.includes(stored) ? stored : L.defaultRegion;
 
   /** Remember the picked region and close the menu. */
   const chooseRegion = (next: string) => {
@@ -50,8 +52,6 @@ export function HeaderTopBar() {
       // Nothing to do — the choice simply won't survive a reload.
     }
   };
-  const lPhone = useT('header_support_phone', SUPPORT_PHONE);
-  const lStores = useT('header_store_locations', 'Store Locations');
 
   // Languages are the project's active locales, not a curated list — adding a locale in the admin panel surfaces it here with no code change.
   const cmsLocales = useCmsLocales();
@@ -161,7 +161,7 @@ export function HeaderTopBar() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-1.5">
             <PhoneIcon className="size-4" />
-            <span>{lPhone}</span>
+            <span>{L.supportPhone}</span>
           </div>
           <button
             className="flex items-center gap-1.5 transition-opacity hover:opacity-80 focus-visible:outline-none"
@@ -169,7 +169,7 @@ export function HeaderTopBar() {
             data-testid="header-store-locations"
           >
             <MapPinIcon className="size-4" />
-            <span>{lStores}</span>
+            <span>{L.storeLocations}</span>
           </button>
         </div>
       </div>
