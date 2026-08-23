@@ -1,5 +1,7 @@
+import type { IAttributeValues, ILocalizeInfo, IPagesEntity } from 'oneentry/types';
 import { cache } from 'react';
 
+import { attributesForLang, type MaybeLocalizedAttributes } from '@/lib/oneentry/attributes';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApiSafe, isError } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -9,16 +11,23 @@ export interface CmsPage {
   identifier: string;
   pageUrl: string;
   title: string;
-  attributeValues: Record<string, unknown>;
+  attributeValues: IAttributeValues;
 }
+
+/** `IPagesEntity` as it arrives here: fields can be missing, `localizeInfos` / `attributeValues` come flat or per-locale, and an unknown url answers `200` with a `statusCode` body rather than the `IError` the signature promises. */
+type RawPage = Partial<Omit<IPagesEntity, 'localizeInfos' | 'attributeValues'>> & {
+  identifier?: string;
+  localizeInfos?: Partial<ILocalizeInfo> | Record<string, Partial<ILocalizeInfo>>;
+  attributeValues?: MaybeLocalizedAttributes;
+  statusCode?: number;
+};
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 const asNumber = (v: unknown): number => (typeof v === 'number' ? v : 0);
 
-const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
-  type Localize = Record<string, unknown> & { title?: unknown };
-  const localize = (raw.localizeInfos ?? {}) as Localize;
-  // Like `attributeValues` below, `localizeInfos` arrives either keyed by locale (`{ en_US: { title } }`) or already unwrapped (`{ title }`).
+const normalize = (raw: RawPage, lang: Lang): CmsPage => {
+  const localize = (raw.localizeInfos ?? {}) as Record<string, unknown> & { title?: unknown };
+  // Like `attributeValues`, `localizeInfos` arrives either keyed by locale (`{ en_US: { title } }`) or already unwrapped (`{ title }`).
   const perLocale = localize[lang];
   const langInfo = (
     perLocale && typeof perLocale === 'object'
@@ -26,20 +35,13 @@ const normalize = (raw: Record<string, unknown>, lang: Lang): CmsPage => {
       : typeof localize.title === 'string'
         ? localize
         : (Object.values(localize).find((v) => v && typeof v === 'object') ?? {})
-  ) as { title?: unknown };
-  // OE returns `attributeValues` either wrapped per-locale (`{ en_US: { marker: {...} } }`) or flat (`{ marker: {...} }`) depending on how the SDK unwrapped the response for `langCode`. Support both.
-  const rawAttrs = (raw.attributeValues ?? {}) as Record<string, unknown>;
-  const localeSlice = rawAttrs[lang];
-  const attrs: Record<string, unknown> =
-    localeSlice && typeof localeSlice === 'object' && !Array.isArray(localeSlice)
-      ? (localeSlice as Record<string, unknown>)
-      : rawAttrs;
+  ) as Partial<ILocalizeInfo>;
   return {
     id: asNumber(raw.id),
     identifier: asString(raw.identifier),
     pageUrl: asString(raw.pageUrl),
     title: asString(langInfo.title),
-    attributeValues: attrs,
+    attributeValues: attributesForLang(raw.attributeValues, lang),
   };
 };
 
@@ -50,7 +52,7 @@ export const loadPageByUrl = cache(async (pageUrl: string, langArg?: Lang): Prom
   try {
     const result = await api.Pages.getPageByUrl(pageUrl, lang);
     if (isError(result)) return null;
-    const raw = result as unknown as Record<string, unknown> | null;
+    const raw: RawPage | null = result;
     if (!raw || raw.statusCode) return null;
     return normalize(raw, lang);
   } catch {

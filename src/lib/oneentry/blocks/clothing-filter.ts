@@ -1,8 +1,10 @@
+import type { IContentFilter, IContentFilterItem } from 'oneentry/types';
 import { cache } from 'react';
 
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { localizedTitle, type MaybeLocalizedInfo } from '@/lib/oneentry/localize';
 import { logCaught } from '@/lib/oneentry/log';
 
 // Local copy of the hex→name map.
@@ -79,26 +81,15 @@ type CountableProduct = {
   productDetails?: string[];
 };
 
-// OE now sometimes returns `localizeInfos: { title }` (flat) instead of `{ en_US: { title } }` when the SDK unwraps for the requested lang.
-type RawLocalize = { title?: string } & Record<string, { title?: string } | undefined>;
-
-type RawChild = {
-  type: string;
-  marker?: string;
-  value?: string;
-  localizeInfos?: RawLocalize;
+// OE now sometimes returns `localizeInfos: { title }` (flat) instead of `{ en_US: { title } }` when the SDK unwraps for the requested lang — that map is the one shape `IContentFilterItem` does not describe.
+type RawFilterItem = Omit<IContentFilterItem, 'localizeInfos' | 'children'> & {
+  localizeInfos?: MaybeLocalizedInfo;
+  children?: RawFilterItem[];
 };
 
-type RawGroup = {
-  type: string;
-  localizeInfos?: RawLocalize;
-  position?: number;
-  children?: RawChild[];
-};
-
-type RawFilter = {
-  localizeInfos?: RawLocalize;
-  items?: RawGroup[];
+type RawFilter = Omit<IContentFilter, 'localizeInfos' | 'items'> & {
+  localizeInfos?: MaybeLocalizedInfo;
+  items?: RawFilterItem[];
 };
 
 /** OE filter group title → key on the storefront `Product` model. 'color' and 'size' are virtual keys interpreted specially by `filterProducts`. */
@@ -194,24 +185,10 @@ const FILTER_COLUMNS_BY_KEY: Record<string, number> = {
 };
 
 /** Map an OE clothing-filter response to `FilterGroup[]` consumed by `CatalogTemplate`. The `products` arg is used purely to compute per-option counts. */
-// OE's `Filters.getFilterByMarker` normalises `localizeInfos` either as `{ en_US: { title } }` (nested per-locale) or as a flat `{ title }` when the SDK unwraps it for the requested `langCode`. Support both.
-function pickTitle(info: RawLocalize | undefined, lang: string): string {
-  if (!info) return '';
-  // Per-locale first, in the language actually asked for; the default locale is the second try so an untranslated group keeps its English heading rather than disappearing.
-  for (const key of [lang, DEFAULT_LOCALE]) {
-    const nested = (info as Record<string, { title?: string } | undefined>)[key];
-    if (nested && typeof nested.title === 'string' && nested.title.trim()) {
-      return nested.title.trim();
-    }
-  }
-  const flat = (info as { title?: string }).title;
-  return typeof flat === 'string' ? flat.trim() : '';
-}
-
 function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[], lang: string): ClothingFilterGroup[] {
   const groups: ClothingFilterGroup[] = [];
   for (const g of raw.items ?? []) {
-    const groupTitle = pickTitle(g.localizeInfos, lang);
+    const groupTitle = localizedTitle(g.localizeInfos, lang);
     if (!groupTitle) continue;
     const key = FILTER_GROUP_KEY[groupTitle];
     if (!key) continue;
@@ -229,7 +206,9 @@ function adaptFilterToGroups(raw: RawFilter, products: CountableProduct[], lang:
 
     const options: ClothingFilterOption[] = [];
     for (const c of g.children ?? []) {
-      const rawLabel = pickTitle(c.localizeInfos, lang) || (c.value ?? '');
+      // `IContentFilterItem.value` is `string | string[] | null`: a range node answers with every value in the range, and only its first is a usable option label.
+      const fallback = Array.isArray(c.value) ? (c.value[0] ?? '') : (c.value ?? '');
+      const rawLabel = localizedTitle(c.localizeInfos, lang, fallback);
       const label = rawLabel.trim();
       if (!label) continue;
       const count = countMatches(products, key, label);
@@ -261,8 +240,7 @@ export const loadCatalogFilter = cache(
     try {
       const result = await getApi().Filters.getFilterByMarker(marker, lang);
       if (isError(result)) return null;
-      // SDK's `IContentFilter` types the response with a rich `items[].children` tree, but for adaptFilterToGroups we only need a subset.
-      return adaptFilterToGroups(result as unknown as RawFilter, products, lang);
+      return adaptFilterToGroups(result, products, lang);
     } catch (err) {
       logCaught(`clothing-filter.loadCatalogFilter(${marker}, ${lang})`, err);
       return null;

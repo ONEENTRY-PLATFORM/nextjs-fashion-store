@@ -1,5 +1,5 @@
 /** Fetch and decode an OE form, for an explicitly named locale. */
-import type { IAttributeValidators, IFormAttribute, IListTitle } from 'oneentry/types';
+import type { IAttributeValidators, IFormLocalizeInfo, IFormsEntity, IListTitle } from 'oneentry/types';
 import { cache } from 'react';
 
 import { getApiSafe, isError } from '@/lib/oneentry/index';
@@ -9,15 +9,9 @@ import type { Lang } from '@/lib/oneentry/system-text';
 import type { FieldLimits, FormContent, FormFieldOption } from './form-content';
 import { EMPTY_FORM_CONTENT, NO_FIELD_LIMITS } from './form-content';
 
-/** Envelope of `Forms.getFormByMarker`, with the form-level localization widened. */
-type RawLocalize = { title?: unknown } & Record<string, unknown>;
-type RawForm =
-  | {
-      localizeInfos?: RawLocalize | null;
-      attributes?: IFormAttribute[];
-    }
-  | null
-  | undefined;
+/** Envelope of `Forms.getFormByMarker`, with the form-level localization widened: `IFormLocalizeInfo` describes only the already-flattened shape, and OE also answers with the per-locale map. */
+type RawLocalize = Partial<IFormLocalizeInfo> & Record<string, unknown>;
+type RawForm = (Partial<Omit<IFormsEntity, 'localizeInfos'>> & { localizeInfos?: RawLocalize | null }) | null;
 
 const TTL_MS = 5 * 60 * 1000;
 // LRU cap on the process-wide in-memory cache.
@@ -98,7 +92,7 @@ async function fetchFormContent(marker: string, lang: Lang): Promise<FormContent
   try {
     const raw = await api.Forms.getFormByMarker(marker, lang);
     if (isError(raw)) return EMPTY_FORM_CONTENT;
-    // The SDK's `IFormsEntity` narrows `localizeInfos` to a per-locale shape that doesn't overlap our permissive reader (OE also returns the already flattened form), so route the cast through `unknown`.
+    // An interface has no implicit index signature, so the per-locale reader cannot accept `IFormLocalizeInfo` without this hop.
     const form = raw as unknown as RawForm;
     if (!form) return EMPTY_FORM_CONTENT;
 

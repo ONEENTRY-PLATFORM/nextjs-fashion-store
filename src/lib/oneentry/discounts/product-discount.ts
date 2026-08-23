@@ -1,38 +1,28 @@
 /** Product-price discounts sourced from the OneEntry Discounts module. */
 import { unstable_cache } from 'next/cache';
+import type { IDiscountCondition, IDiscountsEntity, IDiscountsResponse, IDiscountValue } from 'oneentry/types';
 
 import { REVALIDATE_PRODUCT } from '@/lib/isr';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { withTiming } from '@/lib/oneentry/profiling';
 
-/** Local shape — SDK types `condition.value` as `string`, but real OE payloads deliver `{ ids: [...] }` / `{ id: N }` / raw arrays. */
+/**
+ * Not derived from `IDiscountCondition`: that declares `value: string`, while real OE payloads
+ * deliver `{ ids: [...] }` / `{ id: N }` / raw arrays, and it does not name `entityIds` at all.
+ * Only the `type` union is worth borrowing — `conditionType` is the older spelling of the same field.
+ */
 interface RawCondition {
-  type?: string;
+  type?: IDiscountCondition['type'] | string;
   conditionType?: string;
   value?: unknown;
   /** OE `ATTRIBUTE` conditions carry the attribute marker id here rather than in `value`. Example: `[{ id: 'discount_12', isNested: false }]`. */
   entityIds?: Array<{ id?: string; isNested?: boolean }> | null;
 }
 
-interface RawDiscountValue {
-  value?: number;
-  discountType?: string;
-  applicability?: string;
-  maxAmount?: number | null;
-}
-
-/** Slim shape of the discount payload we actually consume. */
-export interface RawProductDiscount {
-  id?: number;
-  identifier?: string;
-  type?: string;
-  startDate?: string;
-  endDate?: string;
-  discountValue?: RawDiscountValue;
+/** Slim shape of the discount payload we actually consume: `IDiscountsEntity` with every field optional and the two the API contradicts replaced. */
+export interface RawProductDiscount extends Omit<Partial<IDiscountsEntity>, 'conditions'> {
   conditions?: RawCondition[];
-  /** OE `conditionLogic`: 'AND' | 'OR'. Defaults to 'OR' when absent. */
-  conditionLogic?: string;
 }
 
 // ─── Condition-value parsers ────────────────────────────────────────────────
@@ -172,7 +162,7 @@ async function fetchAllProductDiscounts(lang: string): Promise<RawProductDiscoun
     try {
       const result = await getApi().Discounts.getAllDiscounts(lang, offset, PAGE, 'DISCOUNT');
       if (isError(result)) break;
-      const resp = result as unknown as { items?: RawProductDiscount[]; total?: number };
+      const resp: Omit<IDiscountsResponse, 'items'> & { items?: RawProductDiscount[] } = result;
       const chunk = resp.items ?? [];
       items.push(...chunk);
       if (chunk.length < PAGE) break;
@@ -250,7 +240,7 @@ function ruleAppliesTo(rule: RawProductDiscount, p: ProductForDiscount): boolean
   return productHit || categoryHit || attrHit;
 }
 
-function computeDiscountedPrice(price: number, dv: RawDiscountValue): number | undefined {
+function computeDiscountedPrice(price: number, dv: Partial<IDiscountValue>): number | undefined {
   const dtype = (dv.discountType ?? '').toUpperCase();
   const rawValue = Number(dv.value ?? 0);
   if (!Number.isFinite(rawValue) || rawValue <= 0) return undefined;

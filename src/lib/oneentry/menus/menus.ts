@@ -1,3 +1,4 @@
+import type { ILocalizeInfo, IMenusEntity, IMenusPages } from 'oneentry/types';
 import { cache } from 'react';
 
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
@@ -22,23 +23,20 @@ export interface CmsMenu {
 }
 
 /** Localization fields OE can carry on a page/menu node. */
-type LocalizedFields = { title?: string; menuTitle?: string };
+type LocalizedFields = Partial<ILocalizeInfo>;
 
-/** The SDK's `Menus.getMenusByMarker` docs promise a "normalized" payload: `localizeInfos` is unwrapped to a single locale, so it's `{ title, menuTitle }` directly. */
+/** The SDK's `Menus.getMenusByMarker` docs promise a "normalized" payload: `localizeInfos` is unwrapped to a single locale, so it's `{ title, menuTitle }` directly. In practice OE also answers with the per-locale map, hence the union. */
 type RawLocalize = LocalizedFields | Record<string, LocalizedFields>;
 
-type RawNode = {
+/** `IMenusPages` with every field optional — the wire payload omits plenty — and the two shapes it does not describe: the per-locale `localizeInfos` map, and `children` always arriving as an array. */
+type RawNode = Partial<Omit<IMenusPages, 'localizeInfos' | 'children'>> & {
   id: number;
-  pageUrl?: string;
-  parentId?: number | null;
-  position?: number;
   localizeInfos?: RawLocalize;
   children?: RawNode[];
 };
 
-type RawMenu = {
-  id: number;
-  identifier: string;
+/** `statusCode` is not on `IMenusEntity`: an unknown marker answers `200` with an error body rather than the `IError` the signature promises. */
+type RawMenu = Omit<IMenusEntity, 'localizeInfos' | 'pages'> & {
   localizeInfos?: RawLocalize;
   pages?: RawNode[];
   statusCode?: number;
@@ -76,6 +74,7 @@ export const loadMenu = cache(async (marker: string, langArg?: Lang): Promise<Cm
   try {
     const result = await api.Menus.getMenusByMarker(marker, lang);
     if (isError(result)) return null;
+    // `IMenusPages.id` is `number | null` (a custom item has none) while every node this module keeps carries one, so the hop through `unknown` stays.
     const raw = result as unknown as RawMenu | null;
     if (!raw || raw.statusCode) return null;
     const info = pickLocalized(raw.localizeInfos, lang);

@@ -1,6 +1,8 @@
 import { unstable_cache } from 'next/cache';
+import type { IBlockEntity } from 'oneentry/types';
 
 import { REVALIDATE_BLOCK } from '@/lib/isr';
+import { attributesForLang } from '@/lib/oneentry/attributes';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApiSafe, getImage, isError } from '@/lib/oneentry/index';
 import { logCaught } from '@/lib/oneentry/log';
@@ -20,8 +22,6 @@ export interface DiscountBannerFromCms {
   href: string;
 }
 
-type AttrValue<T = unknown> = { value?: T };
-
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 /** `lang` is an explicit argument, not something the cached body resolves: `unstable_cache` keys on its arguments, so passing it in is what stops two locales from sharing one cache entry. */
@@ -34,16 +34,11 @@ const loadDiscountBannerCached = withTiming(
       try {
         const result = await api.Blocks.getBlockByMarker('discount_banner', lang);
         if (isError(result)) return null;
-        const raw = result as unknown as {
-          // SDK normalises by locale → `attributeValues` is already a flat `Record<marker, AttrValue>`. We keep the legacy `[lang]` wrapped shape as a fallback for the rare direct-fetch path.
-          attributeValues?: Record<string, AttrValue> | Record<string, Record<string, AttrValue>>;
-          statusCode?: number;
-        } | null;
+        // An unknown marker answers `200` with a `statusCode` body rather than the `IError` the signature promises.
+        const raw: (Partial<IBlockEntity> & { statusCode?: number }) | null = result;
         if (!raw || raw.statusCode) return null;
-        const av = raw.attributeValues ?? {};
-        const wrapped = (av as Record<string, Record<string, AttrValue>>)[lang];
-        const attrs: Record<string, AttrValue> =
-          wrapped && typeof wrapped === 'object' ? wrapped : (av as Record<string, AttrValue>);
+        // SDK normalises by locale → `attributeValues` is already flat. The legacy `[lang]`-wrapped shape stays handled for the rare direct-fetch path.
+        const attrs = attributesForLang(raw.attributeValues, lang);
         const picture = getImage(attrs.hp_b_b_pic?.value);
         const banner: DiscountBannerFromCms = {
           image: picture.url,

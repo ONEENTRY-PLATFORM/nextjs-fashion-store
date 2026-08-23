@@ -1,4 +1,13 @@
 import { unstable_cache } from 'next/cache';
+import type {
+  IAttributeValues,
+  IBlockSlideItem,
+  ILocalizeInfo,
+  IPositionBlock,
+  IProductBlock,
+  IProductsEntity,
+  IProductsResponse,
+} from 'oneentry/types';
 import { cache } from 'react';
 
 import type { Product } from '@/app/components/product/ProductCard';
@@ -10,12 +19,14 @@ import { getApi, getApiForLang, isError, isOneEntryEnabled } from '@/lib/oneentr
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { withTiming } from '@/lib/oneentry/profiling';
 
+/** OE answers `localizeInfos` either already picked for the requested locale or as a per-locale map, depending on the endpoint; only the first is what `IBlockEntity` declares. */
+type BlockLocalizeInfos = Partial<ILocalizeInfo> | Record<string, Partial<ILocalizeInfo>>;
+
 /** Block heading in the rendering locale. */
-function blockTitle(
-  info: ({ title?: string } & Record<string, { title?: string } | undefined>) | undefined,
-  lang: string,
-): string {
-  const raw = info?.[lang]?.title ?? info?.[DEFAULT_LOCALE]?.title ?? info?.title ?? '';
+function blockTitle(info: BlockLocalizeInfos | undefined, lang: string): string {
+  const byLang = info as Record<string, Partial<ILocalizeInfo> | undefined> | undefined;
+  const flat = info as Partial<ILocalizeInfo> | undefined;
+  const raw = byLang?.[lang]?.title ?? byLang?.[DEFAULT_LOCALE]?.title ?? flat?.title ?? '';
   return raw.toString().trim();
 }
 
@@ -29,9 +40,9 @@ export interface PageBlock {
   /** For product-list blocks (`trending_block`, `similar_products_block`, `product_block`) the resolved products. */
   products: Product[];
   /** Raw `attributeValues` from OE. */
-  attributeValues?: Record<string, unknown>;
+  attributeValues?: IAttributeValues;
   /** For `slider_block` type. */
-  slides?: Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
+  slides?: IBlockSlideItem[];
 }
 
 const PRODUCT_BLOCK_TYPES = new Set([
@@ -46,16 +57,7 @@ const getCachedBlock = unstable_cache(
   async (marker: string, lang: string, limit: number) => {
     const result = await getApi().Blocks.getBlockByMarker(marker, lang, 0, limit);
     if (isError(result)) return null;
-    // The SDK typing doesn't expose the enriched `similarProducts`/`products` arrays as raw items with ids.
-    return result as unknown as {
-      type?: string;
-      position?: number;
-      quantity?: number;
-      localizeInfos?: { title?: string } & Record<string, { title?: string } | undefined>;
-      similarProducts?: { items?: Array<{ id?: number }> };
-      products?: Array<{ id?: number }>;
-      attributeValues?: Record<string, unknown>;
-    };
+    return result;
   },
   ['oe-block-by-marker'],
   { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
@@ -66,13 +68,9 @@ const getCachedSlides = unstable_cache(
   async (marker: string, lang: string) => {
     // `getSlides` takes no locale argument — the answer comes back in the language the instance was built with, so the locale picks the instance.
     const result = await getApiForLang(lang)?.Blocks.getSlides(marker);
-    if (!result) return [] as Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
-    if (isError(result)) return [] as Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
-    const arr = Array.isArray(result)
-      ? result
-      : ((result as unknown as { items?: Array<{ id?: number; attributeValues?: Record<string, unknown> }> })?.items ??
-        []);
-    return arr;
+    if (!result || isError(result)) return [] as IBlockSlideItem[];
+    // Declared as `{ items }`; some tenants answer with the bare array.
+    return Array.isArray(result) ? (result as IBlockSlideItem[]) : (result.items ?? []);
   },
   ['oe-block-slides'],
   { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
@@ -81,12 +79,9 @@ const getCachedSlides = unstable_cache(
 const getCachedTrending = unstable_cache(
   async (marker: string, lang: string) => {
     const result = await getApi().Blocks.getTrending(marker, lang);
-    if (isError(result)) return [] as Array<{ id?: number }>;
-    // SDK returns either an array or `{ items }` depending on shape.
-    const arr = Array.isArray(result)
-      ? result
-      : ((result as unknown as { items?: Array<{ id?: number }> })?.items ?? []);
-    return arr as Array<{ id?: number }>;
+    if (isError(result)) return [] as IProductsEntity[];
+    // Declared as `{ items }`; some tenants answer with the bare array.
+    return Array.isArray(result) ? (result as IProductsEntity[]) : (result.items ?? []);
   },
   ['oe-block-trending'],
   { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
@@ -96,8 +91,7 @@ const getCachedFrequentlyOrdered = unstable_cache(
   async (marker: string, productId: number, lang: string) => {
     const result = await getApi().Blocks.getFrequentlyOrderedProducts(productId, marker, lang);
     if (isError(result)) return null;
-    // The SDK types `items` with a rich shape, but for our use we only need `id`. Narrow to that shape.
-    return result as unknown as { items?: Array<{ id?: number }> };
+    return result;
   },
   ['oe-block-frequently-ordered'],
   // Product-scoped like the PDP that streams it, so it no longer sets the whole page's expiry.
@@ -106,7 +100,7 @@ const getCachedFrequentlyOrdered = unstable_cache(
 
 // Process-wide in-flight de-duplication for `getCachedFrequentlyOrdered`. `unstable_cache` handles cross-request caching (hits are ~free), but under concurrent load we still saw p95 ≈ 19 s on this loader in perf-dump.
 interface FreqOrderedState {
-  inflight: Map<string, Promise<{ items?: Array<{ id?: number }> } | null>>;
+  inflight: Map<string, Promise<IProductsResponse | null>>;
 }
 const FREQ_ORDERED_KEY = '__oneentryFrequentlyOrderedInflight__';
 type GlobalWithFreqOrdered = typeof globalThis & { [FREQ_ORDERED_KEY]?: FreqOrderedState };
@@ -123,7 +117,7 @@ async function getFrequentlyOrderedDedup(
   marker: string,
   productId: number,
   lang: string,
-): Promise<{ items?: Array<{ id?: number }> } | null> {
+): Promise<IProductsResponse | null> {
   const inflight = getFreqOrderedInflight();
   const key = `${marker}::${productId}::${lang}`;
   const existing = inflight.get(key);
@@ -139,10 +133,7 @@ const getCachedPageById = unstable_cache(
   async (pageId: number, lang: string) => {
     const result = await getApi().Pages.getPageById(pageId, lang);
     if (isError(result)) return null;
-    // The SDK typing may lag behind what OE actually ships for the `blocks` field — treat it as an unknown-shaped list.
-    return result as unknown as {
-      blocks?: unknown;
-    };
+    return result;
   },
   ['oe-page-by-id'],
   { revalidate: REVALIDATE_BLOCK, tags: ['oe-page'] },
@@ -251,10 +242,10 @@ export const HOME_PAGE_ID = 1;
 const getCachedBlocksByPageUrl = unstable_cache(
   async (pageUrl: string, lang: string) => {
     const result = await getApi().Pages.getBlocksByPageUrl(pageUrl, lang);
-    if (isError(result)) return [];
+    if (isError(result)) return [] as IPositionBlock[];
     // Same array-or-`{items}` tolerance the product paths above already apply.
-    const items = Array.isArray(result) ? result : ((result as unknown as { items?: unknown })?.items ?? []);
-    return (Array.isArray(items) ? items : []) as Array<{ identifier?: string; position?: number }>;
+    const items = Array.isArray(result) ? result : ((result as { items?: unknown })?.items ?? []);
+    return (Array.isArray(items) ? items : []) as IPositionBlock[];
   },
   ['oe-page-blocks-by-url'],
   { revalidate: REVALIDATE_BLOCK, tags: ['oe-page', 'oe-block'] },
@@ -283,8 +274,8 @@ export const loadPageBlocksByUrl = withTiming(
 const getCachedProductBlocks = unstable_cache(
   async (productId: number) => {
     const result = await getApi().Products.getProductBlockById(productId);
-    if (isError(result)) return [];
-    return (result as unknown as Array<{ identifier?: string; position?: number }>).slice();
+    if (isError(result)) return [] as IProductBlock[];
+    return result.slice();
   },
   ['oe-product-blocks'],
   // Product-scoped, so it follows the PDP window rather than the homepage one — on the homepage

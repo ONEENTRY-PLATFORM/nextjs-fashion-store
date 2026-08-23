@@ -1,5 +1,7 @@
+import type { IPagesEntity } from 'oneentry/types';
 import { cache } from 'react';
 
+import { attributesForLang } from '@/lib/oneentry/attributes';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, getImage, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -21,13 +23,6 @@ export interface StoreLocationsPageFromCms {
   };
 }
 
-type RawAttr = { value?: unknown };
-type RawPage = {
-  pageUrl?: string;
-  localizeInfos?: Record<string, { title?: string; menuTitle?: string }>;
-  attributeValues?: Record<string, Record<string, RawAttr>> | Record<string, RawAttr>;
-};
-
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export const loadStoreLocationsPage = cache(async (langArg?: Lang): Promise<StoreLocationsPageFromCms | null> => {
@@ -35,23 +30,18 @@ export const loadStoreLocationsPage = cache(async (langArg?: Lang): Promise<Stor
   if (!isOneEntryEnabled) return null;
   try {
     // Prefer `getPageByUrl('stores', lang)` — the SDK-supported entry point.
-    let page: RawPage | null = null;
+    let page: IPagesEntity | null = null;
     const single = await getApi().Pages.getPageByUrl('stores', lang);
     if (!isError(single)) {
-      page = single as unknown as RawPage;
+      page = single;
     } else {
       const list = await getApi().Pages.getPages(lang);
       if (isError(list)) return null;
-      const arr = list as unknown as RawPage[];
-      page = arr.find((p) => p.pageUrl === 'stores') ?? null;
+      page = list.find((p) => p.pageUrl === 'stores') ?? null;
     }
     if (!page) return null;
 
-    // `attributeValues` may be flat `{ marker: {value} }` or wrapped `{ en_US: { marker: {value} } }` depending on the endpoint used.
-    const av = page.attributeValues ?? {};
-    const wrapped = (av as Record<string, Record<string, RawAttr>>)[lang];
-    const attrs: Record<string, RawAttr> =
-      wrapped && typeof wrapped === 'object' ? wrapped : (av as Record<string, RawAttr>);
+    const attrs = attributesForLang(page.attributeValues, lang);
     const v = (k: string): string => asString(attrs[k]?.value);
     return {
       hero: {

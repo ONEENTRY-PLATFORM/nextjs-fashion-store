@@ -1,6 +1,7 @@
 'use client';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
+import type { IAttributeValues, IBlockSlideItem } from 'oneentry/types';
 import { useState } from 'react';
 
 import { Link } from '@/lib/i18n/navigation';
@@ -14,12 +15,9 @@ export const GENERIC_SLIDER_LABELS = {
 
 /** Generic renderer for OE `slider_block` type. */
 
-type AttrValue = { value?: unknown } | undefined;
-type Attrs = Record<string, AttrValue>;
-
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-function pickAttr<T = unknown>(attrs: Attrs, patterns: RegExp[]): T | undefined {
+function pickAttr<T = unknown>(attrs: IAttributeValues, patterns: RegExp[]): T | undefined {
   for (const key of Object.keys(attrs)) {
     if (patterns.some((p) => p.test(key))) {
       return attrs[key]?.value as T | undefined;
@@ -29,7 +27,7 @@ function pickAttr<T = unknown>(attrs: Attrs, patterns: RegExp[]): T | undefined 
 }
 
 /** Some tenants scope every attribute string index numerically (`string_id1`..`string_id6`, `image_id4`) with no semantic name. */
-function pickPositional(attrs: Attrs, prefix: string, index: number): unknown {
+function pickPositional(attrs: IAttributeValues, prefix: string, index: number): unknown {
   return attrs[`${prefix}${index}`]?.value;
 }
 
@@ -42,8 +40,11 @@ interface Slide {
   href: string;
 }
 
-function normalizeSlide(raw: { attributeValues?: Record<string, unknown> }): Slide {
-  const attrs = (raw.attributeValues ?? {}) as Attrs;
+/** What the renderer actually consumes out of an `IBlockSlideItem`; the loader hands over the full entity, Storybook only the attributes. */
+type SlideInput = Pick<IBlockSlideItem, 'attributeValues'> & { id?: number | null };
+
+function normalizeSlide(raw: SlideInput): Slide {
+  const attrs = raw.attributeValues ?? {};
   return {
     image: getImageUrl(pickAttr(attrs, [/image|_pic$|photo|_bg$/i])),
     headline: asString(pickAttr(attrs, [/headline|(^|_)title$/i]) ?? pickPositional(attrs, 'string_id', 1)),
@@ -56,13 +57,7 @@ function normalizeSlide(raw: { attributeValues?: Record<string, unknown> }): Sli
   };
 }
 
-export function GenericSliderBlock({
-  slides: rawSlides,
-  title,
-}: {
-  slides?: Array<{ id?: number; attributeValues?: Record<string, unknown> }>;
-  title?: string;
-}) {
+export function GenericSliderBlock({ slides: rawSlides, title }: { slides?: SlideInput[]; title?: string }) {
   const slides = (rawSlides ?? []).map(normalizeSlide).filter((s) => s.image || s.headline);
   const [index, setIndex] = useState(0);
   const lPrevSlide = useT('interface_controls_previous_slide', GENERIC_SLIDER_LABELS.previousSlide);

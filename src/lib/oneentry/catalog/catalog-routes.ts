@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import type { ILocalizeInfo, IPagesEntity } from 'oneentry/types';
 import { cache } from 'react';
 
 import { REVALIDATE_STRUCTURE } from '@/lib/isr';
@@ -24,12 +25,9 @@ export interface CmsCatalogRoute {
   parentTitle: string;
 }
 
-/** Shape of the fields this module reads off an OE page node. */
-type RawPage = {
-  pageUrl?: string;
-  type?: string;
-  position?: number;
-  localizeInfos?: { title?: string } | null;
+/** `IPagesEntity` as this module needs it: every field optional (a tree node comes back partially filled), plus the bare `title` older payloads carry alongside `localizeInfos`. */
+type RawPage = Partial<Omit<IPagesEntity, 'localizeInfos'>> & {
+  localizeInfos?: Partial<ILocalizeInfo> | null;
   title?: string;
 };
 

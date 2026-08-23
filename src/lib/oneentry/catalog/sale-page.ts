@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 
 import { REVALIDATE_CATALOG } from '@/lib/isr';
+import { attributesForLang } from '@/lib/oneentry/attributes';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, getImage, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -34,11 +35,6 @@ export interface SalePageFromCms {
   saleEndsAt: number | null;
 }
 
-type RawAttr = { value?: unknown };
-type RawPage = {
-  attributeValues?: Record<string, Record<string, RawAttr>> | Record<string, RawAttr>;
-};
-
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 const extractHtml = (v: unknown): string => {
   if (!Array.isArray(v) || v.length === 0) return '';
@@ -66,12 +62,7 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
   try {
     const result = await getApi().Pages.getPageByUrl('sale', lang);
     if (isError(result)) return null;
-    const page = result as unknown as RawPage;
-    const av = page.attributeValues ?? {};
-    // Handle both wrapped (`{ en_US: {...} }`) and flat (`{ marker: {...} }`).
-    const wrapped = (av as Record<string, Record<string, RawAttr>>)[lang];
-    const attrs: Record<string, RawAttr> =
-      wrapped && typeof wrapped === 'object' ? wrapped : (av as Record<string, RawAttr>);
+    const attrs = attributesForLang(result.attributeValues, lang);
     const s = (k: string): string => asString(attrs[k]?.value);
     return {
       hero: {

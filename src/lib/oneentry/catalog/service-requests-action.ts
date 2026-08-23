@@ -1,4 +1,4 @@
-import type { FormDataType } from 'oneentry/types';
+import type { IFormByMarkerDataEntity } from 'oneentry/types';
 
 import type { ServiceCategory, ServiceRequest, ServiceStatus } from '@/app/data/serviceData';
 import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
@@ -27,14 +27,10 @@ const CATEGORY_MAP: Record<string, ServiceCategory> = {
   other: 'other',
 };
 
-/** One `service_request` record. */
-type FormDataRecord = {
-  id: number;
+/** One `service_request` record: what the SDK declares, plus the two fields the endpoint returns but `IFormByMarkerDataEntity` does not name. */
+type FormDataRecord = IFormByMarkerDataEntity & {
   createdDate?: string;
-  time?: string;
   statusIdentifier?: string;
-  status?: string;
-  formData?: FormDataType[];
 };
 
 const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
@@ -58,7 +54,7 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
       30,
     );
     if (isError(result)) return [];
-    const items = (result.items ?? []) as unknown as FormDataRecord[];
+    const items: FormDataRecord[] = result.items ?? [];
 
     return items.map((r): ServiceRequest => {
       const get = (m: string): unknown => formDataValue(r.formData, m);

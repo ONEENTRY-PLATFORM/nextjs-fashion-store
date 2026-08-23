@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import type { IPagesEntity } from 'oneentry/types';
 import { cache } from 'react';
 
 import { REVALIDATE_STRUCTURE } from '@/lib/isr';
@@ -7,13 +8,6 @@ import { getApiSafe, isError } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
 
 import { loadPageByUrl } from './pages';
-
-/** OE page tree node under the `info` parent. */
-type RawPage = {
-  id: number;
-  pageUrl?: string;
-  position?: number;
-};
 
 /** Normalise a catch-all route path to an info-page slug candidate. */
 export function infoSlugCandidate(path: string): string | null {
@@ -43,9 +37,10 @@ const loadInfoPageSlugsCached = unstable_cache(
     try {
       const result = await api.Pages.getChildPagesByParentUrl('info', lang);
       if (isError(result)) return [];
+      // Declared as a bare array; the endpoint answers with an `{ items }` container on some tenants.
       const items = (
-        Array.isArray(result) ? result : ((result as { items?: RawPage[] } | null)?.items ?? [])
-      ) as RawPage[];
+        Array.isArray(result) ? result : ((result as { items?: IPagesEntity[] } | null)?.items ?? [])
+      ) as IPagesEntity[];
       return items
         .slice()
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))

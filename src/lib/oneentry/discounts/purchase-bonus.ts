@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import type { IDiscountCondition, IDiscountsEntity } from 'oneentry/types';
 
 import { REVALIDATE_PRODUCT } from '@/lib/isr';
 import type { CatalogProduct } from '@/lib/oneentry/catalog/products';
@@ -9,25 +10,15 @@ import { withTiming } from '@/lib/oneentry/profiling';
 /** OE `Discounts.getDiscountByMarker` marker for the "bonus per purchase" rule that the tenant admin manages from the OE admin panel. */
 const PURCHASE_BONUS_MARKER = 'purchase-of-goods';
 
-/** SDK typings say `IDiscountCondition.value` is a string, but real payloads return objects (e.g. `{ ids: [...] }`, `{ amount: 100 }`). */
+/** Not derived from `IDiscountCondition`: that declares `value: string`, while real payloads return objects (e.g. `{ ids: [...] }`, `{ amount: 100 }`). Only the `type` union is worth borrowing. */
 type RawCondition = {
-  type?: string;
+  type?: IDiscountCondition['type'] | string;
   conditionType?: string;
   value?: unknown;
 };
 
-type RawDiscountValue = {
-  value?: number;
-  discountType?: string;
-  applicability?: string;
-  maxAmount?: number | null;
-};
-
-type RawBonusRule = {
-  identifier?: string;
-  startDate?: string;
-  endDate?: string;
-  discountValue?: RawDiscountValue;
+/** `IDiscountsEntity` with every field optional and `conditions` replaced by the shape the API really sends. */
+type RawBonusRule = Omit<Partial<IDiscountsEntity>, 'conditions'> & {
   conditions?: RawCondition[];
 };
 
@@ -76,7 +67,7 @@ const loadPurchaseBonusRuleCached = unstable_cache(
   async (): Promise<RawBonusRule | null> => {
     const result = await getApi().Discounts.getDiscountByMarker(PURCHASE_BONUS_MARKER, DEFAULT_LOCALE);
     if (isError(result)) return null;
-    return result as unknown as RawBonusRule;
+    return result as RawBonusRule;
   },
   ['oe-discount-purchase-of-goods'],
   { revalidate: REVALIDATE_PRODUCT, tags: ['oe-discounts'] },

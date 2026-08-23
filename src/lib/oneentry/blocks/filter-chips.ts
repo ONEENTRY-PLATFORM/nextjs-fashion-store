@@ -1,21 +1,18 @@
+import type { IContentFilter, IContentFilterItem } from 'oneentry/types';
 import { cache } from 'react';
 
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
-import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { localizedTitle, type MaybeLocalizedInfo } from '@/lib/oneentry/localize';
 import { logCaught } from '@/lib/oneentry/log';
 import { withTiming } from '@/lib/oneentry/profiling';
 
-type RawLocalize = { title?: string } & Record<string, { title?: string } | undefined>;
-type RawItem = {
-  type?: string;
-  marker?: string | null;
-  url?: string | null;
-  value?: string | null;
-  position?: number;
-  localizeInfos?: RawLocalize;
-};
-type RawChipsFilter = { items?: RawItem[] };
+/** `IContentFilterItem` with the per-locale `localizeInfos` map OE also answers with. */
+type RawItem = Omit<IContentFilterItem, 'localizeInfos'> & { localizeInfos?: MaybeLocalizedInfo };
+type RawChipsFilter = Omit<IContentFilter, 'items'> & { items?: RawItem[] };
+
+/** `IContentFilterItem.value` is `string | string[] | null`: a range node answers with every value in the range. Chips only ever address single-value nodes, so collapse to the first. */
+const singleValue = (v: IContentFilterItem['value']): string => (Array.isArray(v) ? (v[0] ?? '') : (v ?? ''));
 
 /** One quick-filter chip loaded from OE. */
 export interface FilterChip {
@@ -29,20 +26,6 @@ export interface FilterChip {
   value?: string;
 }
 
-function pickTitle(info: RawLocalize | undefined, lang: string, fallback = ''): string {
-  if (!info) return fallback;
-  // Per-locale first, in the language actually asked for.
-  for (const key of [lang, DEFAULT_LOCALE]) {
-    const nested = (info as Record<string, { title?: string } | undefined>)[key];
-    if (nested && typeof nested.title === 'string' && nested.title.trim()) {
-      return nested.title.trim();
-    }
-  }
-  const flat = (info as { title?: string }).title;
-  if (typeof flat === 'string' && flat.trim()) return flat.trim();
-  return fallback;
-}
-
 /** Fetch the OE `filter_chips_<catalog>` filter and adapt to a flat list of chip descriptors ordered by `position`. Marker mirrors `catalogKey` with hyphens swapped for underscores. */
 export const loadFilterChips = cache(
   withTiming('loadFilterChips', async (catalogKey: string, langArg?: string): Promise<FilterChip[] | null> => {
@@ -52,21 +35,22 @@ export const loadFilterChips = cache(
     try {
       const result = await getApi().Filters.getFilterByMarker(marker, lang);
       if (isError(result)) return null;
-      const raw = result as unknown as RawChipsFilter;
+      const raw: RawChipsFilter = result;
       const items = [...(raw.items ?? [])].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
       const chips: FilterChip[] = [];
       for (const item of items) {
-        const label = pickTitle(item.localizeInfos, lang, item.value ?? '');
+        const value = singleValue(item.value);
+        const label = localizedTitle(item.localizeInfos, lang, value);
         if (!label) continue;
         const rawType = item.type ?? '';
         if (rawType === 'page' && item.url) {
           chips.push({ label, type: 'page', url: item.url });
-        } else if (rawType === 'attribute' && item.marker && item.value) {
+        } else if (rawType === 'attribute' && item.marker && value) {
           chips.push({
             label,
             type: 'attribute',
             marker: item.marker,
-            value: item.value,
+            value,
           });
         }
       }

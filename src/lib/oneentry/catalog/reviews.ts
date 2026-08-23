@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import type { FormDataType } from 'oneentry/types';
+import type { FormDataType, IFormByMarkerDataEntity, IFormsByMarkerDataEntity } from 'oneentry/types';
 import { cache } from 'react';
 
 import type { ProductReview } from '@/app/data/productCatalog';
@@ -12,18 +12,12 @@ import { withTiming } from '@/lib/oneentry/profiling';
 
 import { loadProductById } from './products';
 
-interface RawFormDataItem {
-  id: number;
-  time?: string;
-  userIdentifier?: string;
-  // OE historically shipped review form-data as `{ en_US: [...] }` (a language-wrapped bag) but currently returns the flat `FormDataType[]` shape that matches the SDK typings.
+// OE historically shipped review form-data as `{ en_US: [...] }` (a language-wrapped bag) but currently returns the flat `FormDataType[]` shape the SDK declares. Both are still handled.
+type RawFormDataItem = Omit<IFormByMarkerDataEntity, 'formData'> & {
   formData?: FormDataType[] | { en_US?: FormDataType[] };
-}
+};
 
-interface RawFormDataResp {
-  items?: RawFormDataItem[];
-  total?: number;
-}
+type RawFormDataResp = Omit<IFormsByMarkerDataEntity, 'items'> & { items?: RawFormDataItem[] };
 
 const FEEDBACK_MARKER = 'review_feedback';
 const FEEDBACK_MODULE_CONFIG = 13;
@@ -45,8 +39,7 @@ const cachedFetchFormData = unstable_cache(
         limit,
       );
       if (isError(result)) return [];
-      // Cast through `unknown` to the local `RawFormDataResp`: the SDK types `formData` as `FormDataType[]`, but the review endpoints have toggled between that flat shape and a wrapped `{ en_US: [...] }` bag depending on OE version.
-      const data = result as unknown as RawFormDataResp;
+      const data: RawFormDataResp = result;
       return Array.isArray(data.items) ? data.items : [];
     } catch (err) {
       logCaught(`reviews.cachedFetchFormData(${marker}, ${productId})`, err);
@@ -82,7 +75,8 @@ function pickSize(reviewId: number, sizes: string[]): string {
   return sizes[reviewId % sizes.length];
 }
 
-function fmtDate(iso: string | undefined): string {
+// `IFormByMarkerDataEntity.time` is `Date | string` — `new Date()` swallows either.
+function fmtDate(iso: Date | string | undefined): string {
   if (!iso) return '';
   try {
     return new Date(iso).toLocaleDateString('en-GB', {

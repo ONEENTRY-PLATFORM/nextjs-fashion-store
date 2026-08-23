@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import type { ILocalizeInfo, IPagesEntity, ITimeIntervalGroup } from 'oneentry/types';
 
 import type { Store } from '@/app/data/stores';
 import { STORES as MOCK_STORES } from '@/app/data/stores';
@@ -8,24 +9,19 @@ import { getApiSafe, getImage, isError } from '@/lib/oneentry/index';
 import { withTiming } from '@/lib/oneentry/profiling';
 import { type Lang, t } from '@/lib/oneentry/system-text';
 
-type RawAttrValue = { value?: unknown };
-type RawPage = {
-  id: number;
-  pageUrl?: string;
-  parentId?: number | null;
-  position?: number;
-  localizeInfos?: Record<string, { title?: string; menuTitle?: string }> | { title?: string; menuTitle?: string };
-  attributeValues?: Record<string, RawAttrValue>;
+/** `IPagesEntity` types `localizeInfos` as already picked for the requested locale; OE also answers with the per-locale map on some paths, which is what `extractTitle` still handles. */
+type StorePage = Omit<IPagesEntity, 'localizeInfos'> & {
+  localizeInfos?: ILocalizeInfo | Record<string, ILocalizeInfo>;
 };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-const extractTitle = (raw: RawPage, lang: Lang): string => {
+const extractTitle = (raw: StorePage, lang: Lang): string => {
   const li = raw.localizeInfos ?? {};
   // SDK may return localizeInfos flat (already picked for lang) or wrapped by lang.
-  const flat = li as { title?: string; menuTitle?: string };
+  const flat = li as ILocalizeInfo;
   if (typeof flat.title === 'string') return flat.title;
-  const wrapped = (li as Record<string, { title?: string }>)[lang];
+  const wrapped = (li as Record<string, ILocalizeInfo>)[lang];
   return asString(wrapped?.title);
 };
 
@@ -51,18 +47,18 @@ const extractServices = (rawValue: unknown): string[] => {
 const padHM = (n: number): string => String(n).padStart(2, '0');
 
 const formatHours = (rawValue: unknown, dayLabel: string): { day: string; time: string }[] => {
-  // OneEntry stores opening hours as a timeInterval with recurring windows.
+  // OneEntry stores opening hours as a timeInterval: groups → schedules → `[from, to]` pairs of `{ hours, minutes }`.
+  // Deliberately not `isTimeIntervalAttribute`: that guard needs the attribute's `type`, and this reads the bare `value`.
   if (!Array.isArray(rawValue) || rawValue.length === 0) return [];
+  const groups = rawValue as ITimeIntervalGroup[];
   const out: { day: string; time: string }[] = [];
-  for (const entry of rawValue) {
-    const values = (entry as { values?: unknown[] }).values;
-    if (!Array.isArray(values)) continue;
-    for (const v of values) {
-      const times = (v as { times?: unknown[] }).times;
-      if (!Array.isArray(times)) continue;
-      for (const t of times) {
-        if (!Array.isArray(t) || t.length < 2) continue;
-        const [from, to] = t as Array<{ hours?: number; minutes?: number }>;
+  for (const group of groups) {
+    if (!Array.isArray(group?.values)) continue;
+    for (const schedule of group.values) {
+      if (!Array.isArray(schedule?.times)) continue;
+      for (const pair of schedule.times) {
+        if (!Array.isArray(pair) || pair.length < 2) continue;
+        const [from, to] = pair;
         if (typeof from?.hours !== 'number' || typeof to?.hours !== 'number') continue;
         out.push({
           day: dayLabel,
@@ -84,7 +80,7 @@ const extractLabel = (rawValue: unknown): { title: string; value: string } => {
   };
 };
 
-const normalize = (raw: RawPage, lang: Lang, dayLabel: string, mockFallback?: Store): Store => {
+const normalize = (raw: StorePage, lang: Lang, dayLabel: string, mockFallback?: Store): Store => {
   const attrs = raw.attributeValues ?? {};
   const v = (k: string): string => asString(attrs[k]?.value);
   const rawAddress = v('page_store_address');
@@ -127,9 +123,10 @@ const loadStoresCached = withTiming(
       try {
         const result = await api.Pages.getChildPagesByParentUrl('stores', lang);
         if (isError(result)) return MOCK_STORES;
+        // Declared as a bare array; the endpoint answers with an `{ items }` container on some tenants.
         const items = (
-          Array.isArray(result) ? result : ((result as { items?: RawPage[] } | null)?.items ?? [])
-        ) as RawPage[];
+          Array.isArray(result) ? result : ((result as { items?: IPagesEntity[] } | null)?.items ?? [])
+        ) as StorePage[];
         const sorted = items.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         if (sorted.length === 0) return MOCK_STORES;
         return sorted.map((raw, idx) => normalize(raw, lang, dayLabel, MOCK_STORES[idx]));

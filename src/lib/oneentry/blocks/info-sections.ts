@@ -18,8 +18,7 @@ export interface FaqItem {
 }
 
 const attrString = (block: PageBlock, marker: string): string => {
-  const av = block.attributeValues as Record<string, { value?: unknown }> | undefined;
-  const v = av?.[marker]?.value;
+  const v = block.attributeValues?.[marker]?.value;
   return typeof v === 'string' ? v : '';
 };
 

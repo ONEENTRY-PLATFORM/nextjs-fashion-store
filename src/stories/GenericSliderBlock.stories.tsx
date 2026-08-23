@@ -25,13 +25,14 @@ function makeSemanticSlide(
 ) {
   return {
     id,
+    // `type` is part of every attribute OE returns (`IAttributeValue`), so the fixtures carry it too.
     attributeValues: {
-      hp_b_b_pic: { value: [{ downloadLink: pic }] },
-      hp_b_b_lable: { value: lable },
-      hp_b_b_title: { value: title },
-      hp_b_b_description: { value: description },
-      hp_b_b_cta_text: { value: cta_text },
-      hp_b_b_cta_link: { value: cta_link },
+      hp_b_b_pic: { type: 'image', value: [{ downloadLink: pic }] },
+      hp_b_b_lable: { type: 'string', value: lable },
+      hp_b_b_title: { type: 'string', value: title },
+      hp_b_b_description: { type: 'string', value: description },
+      hp_b_b_cta_text: { type: 'string', value: cta_text },
+      hp_b_b_cta_link: { type: 'string', value: cta_link },
     },
   };
 }
@@ -50,12 +51,12 @@ function makePositionalSlide(
   return {
     id,
     attributeValues: {
-      string_id1: { value: headline },
-      string_id2: { value: eyebrow },
-      string_id3: { value: subtext },
-      image_id4: { value: [{ downloadLink: imageUrl }] },
-      string_id5: { value: cta },
-      string_id6: { value: href },
+      string_id1: { type: 'string', value: headline },
+      string_id2: { type: 'string', value: eyebrow },
+      string_id3: { type: 'string', value: subtext },
+      image_id4: { type: 'image', value: [{ downloadLink: imageUrl }] },
+      string_id5: { type: 'string', value: cta },
+      string_id6: { type: 'string', value: href },
     },
   };
 }

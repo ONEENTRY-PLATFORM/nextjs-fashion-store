@@ -1,7 +1,9 @@
 import { unstable_cache } from 'next/cache';
+import type { IAttributeValue, IAttributeValues, ILocalizeInfo, IProductsEntity } from 'oneentry/types';
 import { cache } from 'react';
 
 import { REVALIDATE_PRODUCT } from '@/lib/isr';
+import { attributesForLang } from '@/lib/oneentry/attributes';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { applyProductDiscount, loadProductDiscounts } from '@/lib/oneentry/discounts/product-discount';
 import { blurByUrl, getApi, getApiSafe, getImages, isError, type OeImage } from '@/lib/oneentry/index';
@@ -152,21 +154,14 @@ export interface LoadProductsResult {
   fromCms: boolean;
 }
 
-type RawAttr = {
-  type?: string;
-  value?: unknown;
-};
-
-type RawProduct = {
-  id?: number;
-  sku?: string;
-  price?: number;
-  categories?: string[];
-  statusIdentifier?: string;
-  localizeInfos?: Record<string, { title?: string }> | { title?: string };
-  attributeValues?: Record<string, Record<string, RawAttr>> | Record<string, RawAttr>;
-  /** OneEntry admin lets a merchant link products together as siblings (colour or size variants of the same model). */
-  relatedIds?: number[];
+/**
+ * `IProductsEntity` as it actually arrives. Two deviations from the declared type, both load-bearing:
+ * every field can be missing on a partially-filled record, and `localizeInfos` / `attributeValues`
+ * come either already picked for the requested locale (what the SDK declares) or wrapped per locale.
+ */
+type RawProduct = Partial<Omit<IProductsEntity, 'localizeInfos' | 'attributeValues'>> & {
+  localizeInfos?: Partial<ILocalizeInfo> | Record<string, Partial<ILocalizeInfo>>;
+  attributeValues?: IAttributeValues | Record<string, IAttributeValues>;
 };
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -179,7 +174,7 @@ const asNumber = (v: unknown): number => {
   return 0;
 };
 
-const listValues = (attr: RawAttr | undefined): string[] => {
+const listValues = (attr: IAttributeValue | undefined): string[] => {
   if (!attr) return [];
   const v = attr.value;
   if (!Array.isArray(v)) return [];
@@ -192,7 +187,7 @@ const listValues = (attr: RawAttr | undefined): string[] => {
     .filter((s) => s.length > 0);
 };
 
-const stringValue = (attr: RawAttr | undefined): string => {
+const stringValue = (attr: IAttributeValue | undefined): string => {
   if (!attr) return '';
   if (typeof attr.value === 'string') return attr.value;
   // OE marker `type: integer` / `type: float` ships `value` as a raw number (not a string).
@@ -205,7 +200,7 @@ const stringValue = (attr: RawAttr | undefined): string => {
 };
 
 /** Same shape as `stringValue` but prefers `htmlValue` so we can surface rich text content from the OE editor. */
-const richTextValue = (attr: RawAttr | undefined): string => {
+const richTextValue = (attr: IAttributeValue | undefined): string => {
   if (!attr) return '';
   if (Array.isArray(attr.value)) {
     const first = attr.value[0] as
@@ -221,15 +216,10 @@ const richTextValue = (attr: RawAttr | undefined): string => {
 };
 
 /** Gallery URLs for an OE `groupOfImages` / multi-file attribute. */
-const imagesValue = (attr: RawAttr | undefined): OeImage[] => getImages(attr?.value);
+const imagesValue = (attr: IAttributeValue | undefined): OeImage[] => getImages(attr?.value);
 
-const pickAttributes = (raw: RawProduct, lang: Lang): Record<string, RawAttr> => {
-  const attrs = raw.attributeValues ?? {};
-  // OE list endpoint returns `attributeValues: { en_US: {...} }`; some other endpoints return the inner object flat.
-  const wrapped = attrs as Record<string, Record<string, RawAttr>>;
-  if (wrapped[lang] && typeof wrapped[lang] === 'object') return wrapped[lang];
-  return attrs as Record<string, RawAttr>;
-};
+// OE list endpoint returns `attributeValues: { en_US: {...} }`; some other endpoints return the inner object flat.
+const pickAttributes = (raw: RawProduct, lang: Lang): IAttributeValues => attributesForLang(raw.attributeValues, lang);
 
 const titleOf = (raw: RawProduct, lang: Lang): string => {
   const li = raw.localizeInfos ?? {};
@@ -251,7 +241,7 @@ const GENDER_MAP: Record<string, CatalogProduct['gender']> = {
 };
 
 /** Attribute markers in OE carry a numeric suffix (`brand_6`, `brand_7`) that differs per attribute set. */
-const findAttr = (attrs: Record<string, RawAttr>, prefixes: string[]): RawAttr | undefined => {
+const findAttr = (attrs: IAttributeValues, prefixes: string[]): IAttributeValue | undefined => {
   for (const prefix of prefixes) {
     if (attrs[prefix]) return attrs[prefix];
   }
@@ -338,11 +328,6 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
   };
 };
 
-interface ListResponse {
-  total?: number;
-  items?: RawProduct[];
-}
-
 /** Pull every product variant in one POST and cache it for the request. */
 // Process-wide TTL cache.
 const FULL_CATALOG_TTL_MS = 5 * 60 * 1000;
@@ -354,13 +339,9 @@ async function fetchFullCatalog(lang: Lang): Promise<CatalogProduct[] | null> {
   if (!api) return null;
   // Bypass `unstable_cache` here.
   try {
-    const result = await getApi().Products.getProducts(
-      [] as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[0],
-      lang,
-      { offset: 0, limit: 2000 } as unknown as Parameters<ReturnType<typeof getApi>['Products']['getProducts']>[2],
-    );
+    const result = await getApi().Products.getProducts([], lang, { offset: 0, limit: 2000 });
     if (!result || isError(result)) return null;
-    const items = (result as unknown as ListResponse).items ?? [];
+    const items: RawProduct[] = result.items ?? [];
     const normalized = items.map((r) => normalize(r, lang));
     // Optimistically compute a client-side `salePrice` from the OE Discounts rules — this is what powers the catalog / PDP strike-through UX.
     const rules = await loadProductDiscounts();
@@ -512,7 +493,7 @@ const cachedGetProductById = (id: number) =>
       if (!api) return null;
       const result = await getApi().Products.getProductById(id, lang);
       if (isError(result)) return null;
-      return result as unknown as RawProduct;
+      return result;
     },
     ['oe-product-by-id', String(id)],
     { revalidate: REVALIDATE_PRODUCT, tags: [PRODUCTS_TAG, productTag(id)] },
@@ -526,8 +507,8 @@ const cachedGetRelated = (id: number) =>
       if (!api) return [];
       const result = await getApi().Products.getRelatedProductsById(id, lang);
       if (isError(result)) return [];
-      const arr = Array.isArray(result) ? result : ((result as unknown as { items?: RawProduct[] })?.items ?? []);
-      return (arr as RawProduct[]) ?? [];
+      // Declared as `{ items }`; some tenants answer with the bare array.
+      return Array.isArray(result) ? (result as RawProduct[]) : (result.items ?? []);
     },
     ['oe-related-products', String(id)],
     { revalidate: REVALIDATE_PRODUCT, tags: [PRODUCTS_TAG, productTag(id)] },
@@ -544,9 +525,9 @@ const cachedGetByIds = (ids: number[]) => {
       if (!api || !idsCsv) return [];
       const result = await getApi().Products.getProductsByIds(idsCsv, lang);
       if (isError(result)) return [];
-      // OE has repeatedly toggled other list endpoints between flat and `{items, total}`.
-      if (Array.isArray(result)) return result as RawProduct[];
-      const wrapped = (result as unknown as { items?: unknown })?.items;
+      // OE has repeatedly toggled other list endpoints between flat and `{items, total}`; this one is declared flat.
+      if (Array.isArray(result)) return result;
+      const wrapped = (result as { items?: unknown }).items;
       return Array.isArray(wrapped) ? (wrapped as RawProduct[]) : [];
     },
     ['oe-products-by-ids', idsCsv],

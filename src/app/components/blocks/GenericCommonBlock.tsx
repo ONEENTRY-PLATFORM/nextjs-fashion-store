@@ -1,34 +1,25 @@
 'use client';
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
+import type { IAttributeValues } from 'oneentry/types';
 
 import { Link } from '@/lib/i18n/navigation';
 import { getImageUrl } from '@/lib/oneentry';
+import { attributesForLang } from '@/lib/oneentry/attributes';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 
 /** Generic banner-style renderer for OE `common_block` type. */
 
-type AttrValue = { value?: unknown } | undefined;
-type Attrs = Record<string, AttrValue>;
-
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 /** Find the first attribute value whose key matches any of `patterns`. Attribute value may itself be `{ value: T }` per OE shape. */
-function pickAttr<T = unknown>(attrs: Attrs, patterns: RegExp[]): T | undefined {
+function pickAttr<T = unknown>(attrs: IAttributeValues, patterns: RegExp[]): T | undefined {
   for (const key of Object.keys(attrs)) {
     if (patterns.some((p) => p.test(key))) {
       return attrs[key]?.value as T | undefined;
     }
   }
   return undefined;
-}
-
-/** OE `attributeValues` may arrive either flat (SDK-normalised for the requested lang) or wrapped under `{ [lang]: {...} }`. */
-function flattenAttrs(av: unknown, lang: string): Attrs {
-  if (!av || typeof av !== 'object') return {};
-  const wrapped = (av as Record<string, Record<string, AttrValue>>)[lang];
-  if (wrapped && typeof wrapped === 'object') return wrapped;
-  return av as Attrs;
 }
 
 export function GenericCommonBlock({
@@ -40,7 +31,7 @@ export function GenericCommonBlock({
   title: string;
   lang?: string;
 }) {
-  const attrs = flattenAttrs(attributeValues, lang);
+  const attrs = attributesForLang(attributeValues, lang);
 
   const label = asString(pickAttr(attrs, [/lable$|label$|eyebrow/i]));
   const title = asString(pickAttr(attrs, [/(^|_)title$/i])) || blockTitle;

@@ -1,5 +1,7 @@
-/** Raw picture shape used by OneEntry across a couple of endpoints. `previewLink` is loosely typed: template uploads ship an object there, which must never reach an `<img src>`. */
-export type RawPicture = { downloadLink?: string; previewLink?: unknown };
+import type { IPicture } from 'oneentry/types';
+
+/** `IPicture` as it really arrives: fields can be missing, and `previewLink` is not always a string — a template upload ships an object there, which must never reach an `<img src>`. */
+export type RawPicture = Partial<Omit<IPicture, 'previewLink'>> & { previewLink?: unknown };
 
 /** Extract a single image URL from OneEntry's `previewImage` payload. */
 export function pickImage(v: RawPicture | RawPicture[] | null | undefined): string {

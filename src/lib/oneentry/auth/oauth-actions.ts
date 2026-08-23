@@ -1,6 +1,7 @@
 'use server';
 /** Google OAuth — the only part of the auth flow that legitimately runs on the server (MCP `auth-provider`, "OAuth providers"): • the CSRF `state` must live in an httpOnly cookie the browser cannot read. */
 import { cookies } from 'next/headers';
+import type { IOauthData } from 'oneentry/types';
 
 import { createRequestApi, getApiSafe, isError } from '@/lib/oneentry/index';
 import { se } from '@/lib/oneentry/server-errors';
@@ -123,11 +124,12 @@ export async function exchangeGoogleCodeAction(ctx: GoogleCallbackContext): Prom
   if (!api) return { ok: false, error: await se('oneEntryNotConfigured') };
 
   try {
-    const body = { code: ctx.code, redirect_uri: absoluteCallbackUri(ctx.origin) };
-    const result = await api.AuthProvider.oauth(
-      GOOGLE_AUTH_MARKER,
-      body as unknown as Parameters<typeof api.AuthProvider.oauth>[1],
-    );
+    // OE resolves `client_id` / `client_secret` / `grant_type` from the provider config, so what goes on the wire is a subset of `IOauthData`.
+    const body: Pick<IOauthData, 'code' | 'redirect_uri'> = {
+      code: ctx.code,
+      redirect_uri: absoluteCallbackUri(ctx.origin),
+    };
+    const result = await api.AuthProvider.oauth(GOOGLE_AUTH_MARKER, body as IOauthData);
     if (isError(result)) {
       return { ok: false, error: result.message ?? (await se('googleRejected')) };
     }

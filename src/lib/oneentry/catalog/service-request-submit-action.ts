@@ -1,3 +1,5 @@
+import type { FormDataType, IBodyPostFormData, IPostFormResponse } from 'oneentry/types';
+
 import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
 import { getApiSafe, hasStoredSession, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
@@ -31,7 +33,8 @@ export async function submitServiceRequestAction(
   const mm = isoDate.slice(5, 7);
   const dd = isoDate.slice(8, 10);
 
-  const formDataArray: unknown[] = [
+  // `FormDataType`'s per-type members plus its catch-all `Record<string, unknown>` cover every envelope below.
+  const formDataArray: FormDataType[] = [
     { marker: 'item', type: 'string', value: input.item },
     { marker: 'category', type: 'list', value: [input.category] },
     ...(input.description.trim().length >= 5
@@ -61,26 +64,21 @@ export async function submitServiceRequestAction(
   ];
 
   try {
-    // SDK's postFormsData internally wraps `formData` in { [langCode]: [...] } and typedefines `formData` as `FormDataType[]`. Our mixed shape is structurally compatible but stricter typings would fight us.
-    const result = await api.FormData.postFormsData(
-      {
-        formIdentifier: 'service_request',
-        formModuleConfigId: SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
-        moduleEntityIdentifier: userIdentifier,
-        replayTo: null,
-        status: 'sent',
-        formData: formDataArray as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
-      },
-      DEFAULT_LOCALE,
-    );
+    // `postFormsData` internally wraps `formData` in `{ [langCode]: [...] }`.
+    const body: IBodyPostFormData = {
+      formIdentifier: 'service_request',
+      formModuleConfigId: SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
+      moduleEntityIdentifier: userIdentifier,
+      replayTo: null,
+      status: 'sent',
+      formData: formDataArray,
+    };
+    const result = await api.FormData.postFormsData(body, DEFAULT_LOCALE);
     if (isError(result)) {
       return { ok: false, error: result.message ?? (await se('formSubmitFailed')) };
     }
-    // Response shape: `{ formData: { id, ... } }` per SDK types, but real API sometimes returns the record flat too.
-    const raw = result as unknown as {
-      id?: number;
-      formData?: { id?: number };
-    };
+    // `IPostFormResponse` declares `{ formData: { id, … } }`; the real API sometimes returns the record flat instead.
+    const raw = result as Partial<IPostFormResponse> & { id?: number };
     const id = raw.formData?.id ?? raw.id ?? 0;
     return { ok: true, id };
   } catch (err) {

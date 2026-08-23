@@ -1,5 +1,31 @@
 /** Shopper-scoped OneEntry calls (profile, orders, cart, wishlist, checkout). */
-import type { FormDataType, IAuthFormData, IOrderProductData, IOrdersFormData } from 'oneentry/types';
+import type {
+  FormDataType,
+  IAuthFormData,
+  IAuthProvidersEntity,
+  IBaseOrdersEntity,
+  IBonusBalanceEntity,
+  ICartItem,
+  ICartResponse,
+  ICreateOrderPreview,
+  IDiscountsEntity,
+  IDiscountValue,
+  IFormByMarkerDataEntity,
+  IFormsByMarkerDataEntity,
+  IOrderByMarkerEntity,
+  IOrderData,
+  IOrderDiscountBonus,
+  IOrderDiscountConfig,
+  IOrderDiscountSettings,
+  IOrderProductData,
+  IOrderProducts,
+  IOrdersByMarkerEntity,
+  IOrdersFormData,
+  IUserBody,
+  IUserEntity,
+  IWishlistItem,
+  IWishlistResponse,
+} from 'oneentry/types';
 
 import { getProductPreviewsAction } from '@/lib/oneentry/catalog/product-previews-action';
 import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
@@ -18,6 +44,7 @@ import {
   storeSession,
 } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { localizedTitle, type MaybeLocalizedInfo } from '@/lib/oneentry/localize';
 import { isOnlinePaymentAccount, type PaymentAccountType } from '@/lib/oneentry/payments/account-type';
 import { se } from '@/lib/oneentry/server-errors';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -83,15 +110,9 @@ export interface OeConsent {
   crossBorder: boolean;
 }
 
-export interface OeCartItem {
-  productId: number;
-  qty: number;
-  addedAt?: string;
-}
-export interface OeWishlistItem {
-  productId: number;
-  addedAt?: string;
-}
+/** Aliased to the SDK's own cart/wishlist item types so a change on the OE side lands here instead of drifting silently. */
+export type OeCartItem = ICartItem;
+export type OeWishlistItem = IWishlistItem;
 
 export interface OeOrderProduct {
   id: number;
@@ -198,24 +219,14 @@ const USER_ORDER_STORAGE_MARKERS = ['home', 'store_pickup', 'locker'] as const;
 async function fetchUserOrders(): Promise<OeOrder[]> {
   const api = getApiSafe();
   if (!api) return [];
-  type RawProduct = {
-    id?: number;
-    title?: string;
-    quantity?: number;
-    price?: number;
-    sku?: string | null;
+  /** `IOrderProducts` with `previewImage` widened: it also arrives as an array, and its `previewLink` is not always a string. */
+  type RawProduct = Partial<Omit<IOrderProducts, 'previewImage'>> & {
     previewImage?: RawPicture | RawPicture[] | null;
   };
-  type RawOrder = {
-    id?: number;
-    statusIdentifier?: string;
-    /** OE ships the status display name per-locale here. */
-    statusLocalizeInfos?: { title?: string } | Record<string, { title?: string }>;
-    totalSum?: string;
-    currency?: string;
-    createdDate?: string;
+  /** `IOrderByMarkerEntity` as it ships: fields can be missing, and `statusLocalizeInfos` arrives flat or wrapped per locale. */
+  type RawOrder = Partial<Omit<IOrderByMarkerEntity, 'statusLocalizeInfos' | 'products'>> & {
+    statusLocalizeInfos?: MaybeLocalizedInfo;
     products?: RawProduct[];
-    formData?: IOrdersFormData[];
   };
   const all: OeOrder[] = [];
   await Promise.all(
@@ -223,8 +234,7 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
       try {
         const result = await api.Orders.getAllOrdersByMarker(marker, getLang(), 0, 100);
         if (isError(result)) return;
-        // SDK's `IOrderByMarkerEntity` types are stricter than what actually ships.
-        const data = result as unknown as { items?: RawOrder[]; total?: number };
+        const data: Omit<IOrdersByMarkerEntity, 'items'> & { items?: RawOrder[] } = result;
         for (const o of data.items ?? []) {
           const formDataMap: Record<string, unknown> = {};
           for (const f of o.formData ?? []) {
@@ -311,21 +321,18 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
     api.Discounts.getBonusBalance(),
   ]);
 
-  // SDK typings claim `IDiscountCondition.value` is a string, but the real API returns `{ amount: 100 }` for USER_LTV.
-  type RawDiscount = {
-    identifier?: string;
-    localizeInfos?: { en_US?: { title?: string }; title?: string } & Record<string, { title?: string }>;
-    discountValue?: { value?: number; maxAmount?: number | null; discountType?: string; applicability?: string };
+  /** `IDiscountsEntity` with the two fields the API contradicts: `IDiscountCondition.value` is declared a string but USER_LTV returns `{ amount: 100 }`, and `localizeInfos` arrives flat or wrapped per locale. */
+  type RawDiscount = Omit<Partial<IDiscountsEntity>, 'conditions' | 'localizeInfos'> & {
+    localizeInfos?: MaybeLocalizedInfo;
     conditions?: Array<{ conditionType?: string; type?: string; value?: { amount?: number } | string }>;
-    userGroups?: Array<{ id?: number }> | Record<string, unknown> | null;
   };
 
   const tiers: OeLoyaltyTier[] = rawTiers
     .filter((r) => !isError(r))
-    .map((r) => r as unknown as RawDiscount)
+    .map((r) => r as RawDiscount)
     .filter((r) => !!r.identifier)
     .map((r): OeLoyaltyTier => {
-      const dv = r.discountValue ?? {};
+      const dv: Partial<IDiscountValue> = r.discountValue ?? {};
       const isPercent =
         (dv.discountType ?? '').toUpperCase() === 'PERCENTAGE' || (dv.discountType ?? '').toUpperCase() === 'PERCENT';
       const readAmount = (cond: { value?: unknown } | undefined): number | null => {
@@ -349,7 +356,8 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
       const groupsRaw = Array.isArray(r.userGroups) ? r.userGroups : [];
       return {
         tier: r.identifier ?? '',
-        tierTitle: r.localizeInfos?.en_US?.title ?? r.localizeInfos?.title ?? '',
+        // `DEFAULT_LOCALE` is `en_US`, which is the locale this lookup always read; the helper adds the flat-shape fallback it already had.
+        tierTitle: localizedTitle(r.localizeInfos, DEFAULT_LOCALE),
         discountPct: isPercent ? Number(dv.value ?? 0) : 0,
         discountMaxAmount: dv.maxAmount ?? null,
         applicability: dv.applicability ?? '',
@@ -365,10 +373,10 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
       return at - bt;
     });
 
-  // SDK returns bonus balance as either `{ balance }` or `[{ balance }, ...]` depending on how the tenant sliced things.
+  // Declared as a single `IBonusBalanceEntity`; the endpoint answers with an array of them depending on how the tenant sliced things.
   let balance = 0;
   if (!isError(bonusResult)) {
-    const raw = bonusResult as unknown as { balance?: number | string } | Array<{ balance?: number | string }>;
+    const raw = bonusResult as Partial<IBonusBalanceEntity> | Array<Partial<IBonusBalanceEntity>>;
     const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
     balance = list.reduce((sum, b) => sum + Number(b?.balance ?? 0), 0);
   }
@@ -381,14 +389,11 @@ async function fetchLoyalty(): Promise<OeLoyalty | null> {
 }
 
 async function fetchMe(): Promise<OeUser | null> {
-  type RawMe = {
-    id?: number;
-    identifier?: string;
+  /** `IUserEntity` as it ships: fields can be missing, `formData` arrives flat or wrapped per locale, and `state` is typed here rather than left as `Record<string, unknown>`. */
+  type RawMe = Partial<Omit<IUserEntity, 'formData' | 'state'>> & {
     formData?: FormDataType[] | Record<string, FormDataType[]>;
     state?: OeUserState;
   };
-  type RawCart = { items?: OeCartItem[]; total?: number };
-  type RawWishlist = { items?: OeWishlistItem[]; total?: number };
 
   const api = getApiSafe();
   if (!api) return null;
@@ -405,9 +410,9 @@ async function fetchMe(): Promise<OeUser | null> {
   ]);
   if (isError(meResult)) return null;
   // SDK `IUserEntity.formData` is strictly `FormDataType[]` but OE's raw /me response may ship either a flat array or `{ en_US: [...] }` depending on locale slicing.
-  const data = meResult as unknown as RawMe;
-  const cart = isError(cartResult) ? null : (cartResult as unknown as RawCart);
-  const wishlist = isError(wishlistResult) ? null : (wishlistResult as unknown as RawWishlist);
+  const data = meResult as RawMe;
+  const cart: ICartResponse | null = isError(cartResult) ? null : cartResult;
+  const wishlist: IWishlistResponse | null = isError(wishlistResult) ? null : wishlistResult;
 
   // formData may be flat array or { lang: array }
   const arr = Array.isArray(data.formData) ? data.formData : (data.formData?.en_US ?? []);
@@ -473,8 +478,7 @@ async function readStateFromMe(): Promise<OeUserState> {
   const result = await api.Users.getUser(getLang());
   if (isError(result)) return {};
   // SDK `IUserEntity.state` is `Record<string, unknown>`; our narrower OeUserState is structurally compatible for the read path.
-  const raw = result as unknown as { state?: OeUserState };
-  return raw.state ?? {};
+  return (result.state ?? {}) as OeUserState;
 }
 
 // ── Form-data helpers (SDK-backed under user accessToken) ────────────────────
@@ -501,7 +505,8 @@ async function formDataGetByMarker(
     );
     if (isError(result)) return null;
     // SDK typing narrows formData; the raw response tolerates both wrapped and flat variants and our RawFormRecord shape reflects that.
-    return result as unknown as { items?: RawFormRecord[]; total?: number };
+    const data: Omit<IFormsByMarkerDataEntity, 'items'> & { items?: RawFormRecord[] } = result;
+    return data;
   } catch {
     return null;
   }
@@ -538,7 +543,7 @@ async function formDataPost<T>(body: {
     const result = await api.FormData.postFormsData(
       {
         ...body,
-        formData: flat as unknown as Parameters<typeof api.FormData.postFormsData>[0]['formData'],
+        formData: flat as FormDataType[],
       },
       DEFAULT_LOCALE,
     );
@@ -577,13 +582,10 @@ async function formDataDelete(id: number): Promise<boolean> {
   }
 }
 
-interface RawFormRecord {
-  id: number;
-  formIdentifier?: string;
-  time?: string;
-  /** OE returns either a flat array or `{ en_US: [...] }` depending on endpoint. */
+/** `IFormByMarkerDataEntity` with the one shape it does not describe: `formData` arrives either as a flat array or as `{ en_US: [...] }` depending on the endpoint. */
+type RawFormRecord = Omit<IFormByMarkerDataEntity, 'formData'> & {
   formData?: FormDataType[] | Record<string, FormDataType[]>;
-}
+};
 
 const formDataArray = (rec: RawFormRecord, lang: string = DEFAULT_LOCALE): FormDataType[] => {
   const fd = rec.formData;
@@ -862,24 +864,30 @@ async function upsertSubsRecord(userIdentifier: string, subs: OeSubscriptions): 
   return result.ok;
 }
 
-async function putUser(body: Record<string, unknown>): Promise<boolean> {
+/**
+ * `IUserBody`, with the two shapes the call sites here actually pass: `formData` sometimes still
+ * wrapped as `{ en_US: [...] }` (unwrapped below — the SDK takes only a single `IAuthFormData` or
+ * an array), and `state` as the narrower `OeUserState`, which is a `Record<string, unknown>` in all
+ * but the index signature TypeScript wants.
+ */
+type PutUserBody = Omit<IUserBody, 'formData' | 'state'> & {
+  formData?: IUserBody['formData'] | Record<string, IAuthFormData[]> | SignInFormData[];
+  state?: OeUserState | Record<string, unknown>;
+};
+
+async function putUser(body: PutUserBody): Promise<boolean> {
   const api = getApiSafe();
   if (!api) return false;
-  // The SDK's `updateUser` takes `IUserBody` which itself allows `formData` as either a single `IAuthFormData` or an array.
-  const normalized: Record<string, unknown> = { ...body };
-  // If caller passed formData already wrapped as `{ en_US: [...] }`, unwrap so we can hand a flat array to the SDK.
-  if (
-    normalized.formData &&
-    !Array.isArray(normalized.formData) &&
-    typeof normalized.formData === 'object' &&
-    DEFAULT_LOCALE in (normalized.formData as Record<string, unknown>)
-  ) {
-    normalized.formData = (normalized.formData as Record<string, unknown>)[DEFAULT_LOCALE];
-  }
-  const result = await api.Users.updateUser(
-    normalized as unknown as Parameters<typeof api.Users.updateUser>[0],
-    DEFAULT_LOCALE,
-  );
+  const { formData: fd, state, ...rest } = body;
+  // A single `IAuthFormData` is not an array either, but it has no locale key, so it falls through untouched.
+  const wrapped = fd && !Array.isArray(fd) && DEFAULT_LOCALE in fd ? (fd as Record<string, IAuthFormData[]>) : null;
+  const normalized: IUserBody = {
+    ...rest,
+    ...(state ? { state: state as Record<string, unknown> } : {}),
+    // `SignInFormData` widens `IAuthFormData.value` to `string | string[]`: OE accepts an array for multi-value markers, the SDK type does not say so.
+    ...(fd ? { formData: (wrapped ? wrapped[DEFAULT_LOCALE] : fd) as IAuthFormData[] } : {}),
+  };
+  const result = await api.Users.updateUser(normalized, DEFAULT_LOCALE);
   return result === true;
 }
 void DEFAULT_SUBSCRIPTIONS;
@@ -902,14 +910,10 @@ export interface AuthProviderInfo {
   codeTtlSec: number | null;
 }
 
-interface RawAuthProvider {
-  identifier?: string;
-  type?: string;
-  formIdentifier?: string;
-  isCheckCode?: boolean;
-  /** The SDK types both counters as `string`; the live API answers with numbers. */
-  config?: { systemCodeLength?: number | string | null; systemCodeTlsSec?: number | string | null };
-  localizeInfos?: Record<string, { title?: string } | undefined> | { title?: string };
+/** `IAuthProvidersEntity` as it ships: fields can be missing, `localizeInfos` arrives flat or wrapped per locale, and the code counters come back as numbers although the config declares them strings. */
+interface RawAuthProvider extends Partial<Omit<IAuthProvidersEntity, 'config' | 'localizeInfos'>> {
+  config?: Partial<Record<keyof IAuthProvidersEntity['config'], number | string | null>>;
+  localizeInfos?: MaybeLocalizedInfo;
 }
 
 /** Coerce one of OE's numeric-ish config counters to a usable number. */
@@ -1029,7 +1033,8 @@ export async function signUpAction(input: SignUpInput): Promise<AuthResult> {
         { marker: 'email', value: email },
         { marker: 'password', value: input.password },
       ],
-      formData: formData as unknown as Parameters<typeof api.AuthProvider.signUp>[1]['formData'],
+      // `SignInFormData` widens `IAuthFormData.value` to `string | string[]`: OE accepts an array for multi-value markers, the SDK type does not say so.
+      formData: formData as IAuthFormData[],
       notificationData: {
         email,
         phonePush: input.phone.trim() ? [input.phone.trim()] : [],
@@ -1103,12 +1108,9 @@ export async function cancelOrderAction(
     // 1.
     const existing = await api.Orders.getOrderByMarkerAndId(storage, orderId, DEFAULT_LOCALE);
     if (isError(existing)) return { ok: false, error: existing.message ?? `HTTP ${existing.statusCode}` };
-    const cur = existing as unknown as {
-      formIdentifier?: string;
-      paymentAccountIdentifier?: string;
-      formData?: unknown;
-      // Read and write shapes differ: `getOrderByMarkerAndId` returns `{ id, … }`, the update expects `{ productId, quantity }`.
-      products?: Array<{ id?: number; productId?: number; quantity?: number }>;
+    // Read and write shapes differ: the read returns products as `IOrderProducts` (`{ id, … }`), the update expects `{ productId, quantity }`. `currency`, `couponCode` and `bonusAmount` round-trip through the order but are not on `IOrderByMarkerEntity`.
+    const cur = existing as Partial<Omit<IOrderByMarkerEntity, 'products'>> & {
+      products?: Array<Partial<IOrderProducts> & { productId?: number }>;
       currency?: string;
       couponCode?: string;
       bonusAmount?: number;
@@ -1135,8 +1137,8 @@ export async function cancelOrderAction(
     }
     if (!cancelledMarker) cancelledMarker = `${storage}_cancelled`;
 
-    // 3.
-    const body: Record<string, unknown> = {
+    // 3. `currency` and `statusIdentifier` are accepted by the endpoint but absent from `IOrderData`.
+    const body: IOrderData & { currency?: string; statusIdentifier?: string } = {
       formIdentifier: cur.formIdentifier ?? '',
       paymentAccountIdentifier: cur.paymentAccountIdentifier ?? '',
       formData: cur.formData ?? [],
@@ -1147,12 +1149,7 @@ export async function cancelOrderAction(
     if (cur.couponCode) body.couponCode = cur.couponCode;
     if (typeof cur.bonusAmount === 'number') body.bonusAmount = cur.bonusAmount;
 
-    const result = await api.Orders.updateOrderByMarkerAndId(
-      storage,
-      orderId,
-      body as unknown as Parameters<typeof api.Orders.updateOrderByMarkerAndId>[2],
-      DEFAULT_LOCALE,
-    );
+    const result = await api.Orders.updateOrderByMarkerAndId(storage, orderId, body, DEFAULT_LOCALE);
     if (isError(result)) return { ok: false, error: result.message ?? `HTTP ${result.statusCode}` };
     return { ok: true };
   } catch (err) {
@@ -1559,7 +1556,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       ...(signedIn ? { additionalDiscountsMarkers: [...TIER_MARKERS] } : {}),
       ...(input.couponCode ? { couponCode: input.couponCode } : {}),
       ...(typeof input.bonusAmount === 'number' && input.bonusAmount > 0 ? { bonusAmount: input.bonusAmount } : {}),
-    } as unknown as Parameters<typeof api.Orders.previewOrder>[0];
+    } satisfies ICreateOrderPreview;
     const result = await api.Orders.previewOrder(body, getLang());
     if (isError(result)) {
       const message = result.message ?? 'previewOrder failed';
@@ -1569,30 +1566,26 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       ).filter((n) => Number.isFinite(n));
       return { ok: false, error: message, missingProductIds };
     }
-    const obj = result as unknown as Record<string, unknown>;
-    const totalSum = Number(obj.totalSum ?? 0);
-    let totalSumWithDiscount = Number(obj.totalSumWithDiscount ?? totalSum);
-    const bonusApplied = Number(obj.bonusApplied ?? 0);
-    let totalDue = Number(obj.totalDue ?? Math.max(0, totalSumWithDiscount - bonusApplied));
+    const totalSum = Number(result.totalSum ?? 0);
+    let totalSumWithDiscount = Number(result.totalSumWithDiscount ?? totalSum);
+    const bonusApplied = Number(result.bonusApplied ?? 0);
+    let totalDue = Number(result.totalDue ?? Math.max(0, totalSumWithDiscount - bonusApplied));
     let discountAmount = Math.max(0, totalSum - totalSumWithDiscount);
-    // OE's response for a coupon is `discountConfig.coupon = { code, valid, applied, ... }`. `valid` means the code exists in the admin panel.
-    const rawDiscountConfig = (obj.discountConfig ?? {}) as {
-      coupon?: {
-        code?: string;
-        valid?: boolean;
-        applied?: boolean;
-        discountId?: number;
-        discountIdentifier?: string;
-      } | null;
-    };
-    const rawCoupon = rawDiscountConfig.coupon ?? null;
+    // `IOrderDiscountConfig.coupon` is declared `unknown`; OE fills it with `{ code, valid, applied, … }`, where `valid` means the code exists in the admin panel.
+    const rawCoupon = (result.discountConfig?.coupon ?? null) as {
+      code?: string;
+      valid?: boolean;
+      applied?: boolean;
+      discountId?: number;
+      discountIdentifier?: string;
+    } | null;
     const couponApplied = input.couponCode != null && rawCoupon?.applied === true;
     // OE tells us `valid` separately — `valid && !applied` = conditions aren't met.
     const couponValidButNotApplied =
       input.couponCode != null && rawCoupon?.valid === true && rawCoupon?.applied !== true;
 
     // Extract free-gift lines from `orderPreview[]` (each item with `isGift: true`).
-    const rawOrderPreview = Array.isArray(obj.orderPreview) ? (obj.orderPreview as Array<Record<string, unknown>>) : [];
+    const rawOrderPreview = Array.isArray(result.orderPreview) ? result.orderPreview : [];
     const giftItems: PreviewGiftItem[] = rawOrderPreview
       .filter((it) => it?.isGift === true)
       .map((it) => ({
@@ -1610,11 +1603,9 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
         // Use the app-token singleton for the config lookup.
         const cfg = await api.Discounts.getDiscountByMarker(rawCoupon.discountIdentifier, getLang());
         if (!isError(cfg)) {
-          const cfgObj = cfg as unknown as {
-            // OE returns `conditionType` on the wire but the SDK typing (`IDiscountCondition.type`) uses a different key — support both so we survive either shape.
+          // `IDiscountCondition` declares `type` and `value: string`; OE also sends `conditionType`, and the value is often an object. `gifts` is a `Record` in the SDK but arrives as a list.
+          const cfgObj = cfg as Omit<Partial<IDiscountsEntity>, 'conditions' | 'gifts'> & {
             conditions?: Array<{ type?: string; conditionType?: string; value?: unknown }>;
-            endDate?: string | null;
-            discountValue?: { value?: number | null } | null;
             gifts?: Array<unknown> | null;
           };
           // Gift-only coupon = discount awards a gift, not a price reduction.
@@ -1717,20 +1708,9 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
     }
 
     // Pull bonus constraints from OE's response so the UI can clamp the "use N bonuses" input and hide the field when the cart doesn't qualify.
-    const dc = (obj.discountConfig ?? {}) as {
-      bonus?: {
-        availableBalance?: number;
-        maxBonusDiscount?: number;
-        minBonusAmount?: number | null;
-        minOrderAmountForBonus?: number | null;
-      };
-      settings?: {
-        minBonusAmount?: number | null;
-        minOrderAmountForBonus?: number | null;
-      };
-    };
-    const bonusCfg = dc.bonus ?? {};
-    const bonusSettings = dc.settings ?? {};
+    const dc: Partial<IOrderDiscountConfig> = result.discountConfig ?? {};
+    const bonusCfg: Partial<IOrderDiscountBonus> = dc.bonus ?? {};
+    const bonusSettings: Partial<IOrderDiscountSettings> = dc.settings ?? {};
     const bonus: PreviewBonusConfig = {
       availableBalance: Number(bonusCfg.availableBalance ?? 0),
       maxAmount: Number(bonusCfg.maxBonusDiscount ?? 0),
@@ -1755,7 +1735,7 @@ export async function previewOrderAction(input: PreviewOrderInput): Promise<Prev
       bonusApplied,
       totalDue,
       discountAmount,
-      currency: String(obj.currency ?? input.currency ?? 'USD'),
+      currency: String(result.currency ?? input.currency ?? 'USD'),
       bonus,
       couponApplied,
       couponValidButNotApplied,
@@ -1813,8 +1793,8 @@ export async function createOrderAction(
   }
 
   try {
-    // SDK expects `IOrderData` = { formIdentifier, paymentAccountIdentifier, formData: IOrdersFormData | IOrdersFormData[], products, couponCode?, additionalDiscountsMarkers?, bonusAmount?
-    const body: Record<string, unknown> = {
+    // `currency` is accepted by the endpoint but absent from `IOrderData`.
+    const body: IOrderData & { currency?: string } = {
       formIdentifier,
       paymentAccountIdentifier: input.paymentAccount,
       formData: input.formData ?? [],
@@ -1826,16 +1806,12 @@ export async function createOrderAction(
     // Mirror `previewOrderAction` — pass tier markers so OE has a chance to apply the shopper's `PERSONAL_DISCOUNT` at order-creation time.
     body.additionalDiscountsMarkers = [...TIER_MARKERS];
     // Pinned like the other writes: `langCode` decides which locale slot the order's form data lands in, and an order filed under `de_DE` would be invisible to every read in this file (all of which pin the canonical slot).
-    const result = await api.Orders.createOrder(
-      storageMarker,
-      body as unknown as Parameters<typeof api.Orders.createOrder>[1],
-      DEFAULT_LOCALE,
-    );
+    const result = await api.Orders.createOrder(storageMarker, body, DEFAULT_LOCALE);
     if (isError(result)) {
       return { ok: false, error: result.message ?? 'createOrder failed' };
     }
-    // SDK returns `IBaseOrdersEntity` which doesn't include `paymentUrl` in typings — the real API adds it on legacy provider configs.
-    const raw = result as unknown as { id?: number; paymentUrl?: string | null };
+    // `IBaseOrdersEntity` has no `paymentUrl` — the real API adds it on legacy provider configs.
+    const raw = result as IBaseOrdersEntity & { paymentUrl?: string | null };
     const orderId = typeof raw.id === 'number' ? raw.id : Number(raw.id ?? 0);
     let paymentUrl = typeof raw.paymentUrl === 'string' ? raw.paymentUrl : null;
     let paymentSessionError: string | undefined;
@@ -1855,8 +1831,7 @@ export async function createOrderAction(
           paymentSessionError = sessionResult.message ?? 'createSession failed';
           console.error('[createOrderAction] payment session creation failed:', paymentSessionError);
         } else {
-          const raw = sessionResult as unknown as { paymentUrl?: unknown };
-          if (typeof raw.paymentUrl === 'string') paymentUrl = raw.paymentUrl;
+          if (typeof sessionResult.paymentUrl === 'string') paymentUrl = sessionResult.paymentUrl;
         }
       } catch (err) {
         paymentSessionError = err instanceof Error ? err.message : await se('network');

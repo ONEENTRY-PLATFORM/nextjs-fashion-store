@@ -19,4 +19,3 @@ export { ACCENT_MEN as MEN_COLOR, ACCENT_WOMEN as WOMEN_COLOR } from '@/app/cons
 
 /** Shown when the CMS returns no locales at all, so the switcher is never blank. */
 export const FALLBACK_LANGUAGE_LABEL = 'EN';
-

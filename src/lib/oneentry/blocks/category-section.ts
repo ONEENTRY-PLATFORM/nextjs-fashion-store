@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import type { IBlockSlideItem, IBlockSlidesResponse } from 'oneentry/types';
 
 import { REVALIDATE_BLOCK } from '@/lib/isr';
 import { getApiForLang, getImage, isError } from '@/lib/oneentry/index';
@@ -22,15 +23,9 @@ export interface CategorySectionFromCms {
   categories: CategoryItemFromCms[];
 }
 
-type RawSlide = {
-  id: number;
-  parentId: number | null;
-  position?: number;
-  // SDK Blocks.getSlides() returns attributeValues flat (already normalized for the requested lang), not nested under a language key like Pages/Products do.
-  attributeValues?: Record<string, unknown>;
-};
-
-type RawSlides = { items?: RawSlide[]; total?: number } | RawSlide[] | null | undefined;
+// `IBlockSlideItem.attributeValues` is flat (already normalized for the requested lang), not nested under a language key like Pages/Products do.
+// `getSlides` is declared as `{ items }`; some tenants answer with the bare array.
+type RawSlides = IBlockSlidesResponse | IBlockSlideItem[] | null | undefined;
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
@@ -66,7 +61,8 @@ export const loadCategorySection = withTiming(
         }
         const categories: CategoryItemFromCms[] = [];
         for (const it of items) {
-          if (it.parentId === null) continue;
+          // `== null` rather than `=== null`: the SDK declares `parentId` optional, and a missing one is no more a child than an explicit `null`.
+          if (it.parentId == null) continue;
           const chip = chipById.get(it.parentId);
           if (!chip) continue;
           const v = it.attributeValues ?? {};

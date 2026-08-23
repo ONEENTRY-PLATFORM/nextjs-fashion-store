@@ -43,9 +43,6 @@ const MARKERS = {
 
 export type DeliveryScheduleVariant = keyof typeof MARKERS;
 
-/** The attribute-schema row `getAttributesByMarker` returns: an `IAttributeValue` that also names its marker. */
-type MarkedAttribute = IAttributeValue & { marker?: unknown };
-
 const pad = (n: number): string => (n < 10 ? `0${n}` : String(n));
 
 /** Bucket the slot's start hour into a short prose subtitle so the picker keeps the "Morning / Afternoon / Evening" chip it always had. */
@@ -80,11 +77,10 @@ async function loadScheduleFor(variant: DeliveryScheduleVariant, lang: Lang): Pr
   try {
     const result = await getApi().AttributesSets.getAttributesByMarker(spec.asetMarker, lang);
     if (isError(result) || !Array.isArray(result)) return FALLBACK;
-    // SDK types the response as `IAttributeSetsEntity[]`, but the payload is a per-attribute schema list carrying the storefront-shaped `value` field.
-    const attrs = result as unknown as MarkedAttribute[];
 
-    const dateAttr = attrs.find((a) => typeof a === 'object' && a !== null && a.marker === spec.dateAttr);
-    // The SDK's guard is the `type === 'timeInterval'` check, and it types `value` as the schedule groups.
+    // `IAttributesSetsEntity` declares `value` optional (a schema row need not carry one); the SDK's guard is typed for entity attribute values, where it is required. Same runtime shape, so widen rather than re-describe it.
+    const dateAttr = result.find((a) => a?.marker === spec.dateAttr) as IAttributeValue | undefined;
+    // The guard *is* the `type === 'timeInterval'` check, and it types `value` as the schedule groups.
     if (!isTimeIntervalAttribute(dateAttr)) return FALLBACK;
 
     // The admin editor stores at least one `values[]` row inside the outer `value[]` wrapper.

@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import type { IBlockSlideItem, IBlockSlidesResponse } from 'oneentry/types';
 
 import { REVALIDATE_BLOCK } from '@/lib/isr';
 import { getApiForLang, getImage, isError } from '@/lib/oneentry/index';
@@ -21,21 +22,15 @@ export interface HeroSlideFromCms {
   gender: 'women' | 'men';
 }
 
-type RawSlide = {
-  id: number;
-  position?: number;
-  visible?: boolean;
-  attributeValues?: Record<string, unknown>;
-};
-
-type RawSlidesResponse = { items?: RawSlide[]; total?: number } | RawSlide[] | null | undefined;
+/** `getSlides` is declared as `{ items }`; some tenants answer with the bare array. */
+type RawSlidesResponse = IBlockSlidesResponse | IBlockSlideItem[] | null | undefined;
 
 const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 const ALIGN_BY_POSITION: Array<'left' | 'right' | 'center'> = ['left', 'right', 'center'];
 const GENDER_BY_POSITION: Array<'women' | 'men'> = ['women', 'men', 'women'];
 
-const normalize = (raw: RawSlide, idx: number): HeroSlideFromCms => {
+const normalize = (raw: IBlockSlideItem, idx: number): HeroSlideFromCms => {
   const v = raw.attributeValues ?? {};
   const picture = getImage(v?.['image_id4']);
   return {
