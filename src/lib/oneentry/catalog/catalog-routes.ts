@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
-import { REVALIDATE_CATALOG } from '@/lib/isr';
+import { REVALIDATE_STRUCTURE } from '@/lib/isr';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApiSafe, isError } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -103,7 +103,7 @@ const loadCatalogRoutesCached = unstable_cache(
     }
   },
   ['oe-catalog-routes'],
-  { revalidate: REVALIDATE_CATALOG, tags: ['oe-pages'] },
+  { revalidate: REVALIDATE_STRUCTURE, tags: ['oe-pages'] },
 );
 
 /** Every CMS-published catalog route, for the current (or given) locale. */

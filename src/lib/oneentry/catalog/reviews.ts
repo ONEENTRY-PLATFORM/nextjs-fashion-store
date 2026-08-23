@@ -3,7 +3,7 @@ import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces'
 import { cache } from 'react';
 
 import type { ProductReview } from '@/app/data/productCatalog';
-import { REVALIDATE_HOME } from '@/lib/isr';
+import { REVALIDATE_PRODUCT } from '@/lib/isr';
 import { formDataValue } from '@/lib/oneentry/forms/form-data-entry';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
@@ -54,7 +54,9 @@ const cachedFetchFormData = unstable_cache(
     }
   },
   ['oe-review-formdata'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-reviews'] },
+  // Reviews only ever render on a PDP, so they follow the PDP window: on the homepage window this
+  // was one of the two caches holding every product page at 5 minutes.
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-reviews'] },
 );
 
 function value(it: RawFormDataItem, marker: string): unknown {

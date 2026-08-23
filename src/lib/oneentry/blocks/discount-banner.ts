@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 
-import { REVALIDATE_HOME } from '@/lib/isr';
+import { REVALIDATE_BLOCK } from '@/lib/isr';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApiSafe, getImage, isError } from '@/lib/oneentry/index';
 import { logCaught } from '@/lib/oneentry/log';
@@ -65,7 +65,7 @@ const loadDiscountBannerCached = withTiming(
       }
     },
     ['oe-discount-banner'],
-    { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+    { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
   ),
 );
 

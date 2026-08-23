@@ -67,6 +67,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Inlined at build time. `sitemap.xml` is itself an ISR route, so a `new Date()` inside it moved
+  // `lastModified` on every regeneration — telling crawlers the whole catalog had just changed,
+  // every half hour, which is exactly the re-crawl that bills ISR writes. This moves on deploy only.
+  env: { BUILD_TIME: new Date().toISOString() },
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,

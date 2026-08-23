@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 
+import { REVALIDATE_CATALOG } from '@/lib/isr';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, getImage, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -61,9 +62,9 @@ async function fetchNewArrivalsPage(lang: Lang): Promise<NewArrivalsPageFromCms 
   }
 }
 
-/** Cached loader — refresh every 60s so admin edits to the New Arrivals banners surface without a manual redeploy. */
+/** Cached loader — admin edits to the New Arrivals banners surface without a manual redeploy. Shares `REVALIDATE_CATALOG`; see the note in `sale-page.ts` on why a hardcoded 60 s here overrides the route's own window. */
 const loadNewArrivalsPageCached = unstable_cache((lang: Lang) => fetchNewArrivalsPage(lang), ['oe-new-arrivals-page'], {
-  revalidate: 60,
+  revalidate: REVALIDATE_CATALOG,
   tags: ['oe-page'],
 });
 

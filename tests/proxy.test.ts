@@ -113,3 +113,42 @@ describe('proxy — multiple locales', () => {
     expect(res.headers.get('x-middleware-rewrite')).toContain('/en/product/42');
   });
 });
+
+/**
+ * Product ids are integers, and the route behind them streams — its `notFound()` lands after the
+ * 200 is on the wire, and the render is stored as an ISR entry regardless. So an id that cannot
+ * exist is answered here instead, where nothing renders and nothing is cached.
+ */
+describe('proxy — product id guard', () => {
+  it('answers 404 for a non-numeric product id', async () => {
+    const { proxy } = await importProxy(['en_US', 'de_DE']);
+    const res = proxy(makeRequest('/product/not-a-real-id'));
+
+    expect(res.status).toBe(404);
+    expect(res.headers.get('x-middleware-rewrite')).toBeNull();
+  });
+
+  it('answers 404 for a non-numeric id under a locale prefix', async () => {
+    const { proxy } = await importProxy(['en_US', 'de_DE']);
+    expect(proxy(makeRequest('/de/product/wat')).status).toBe(404);
+  });
+
+  it('answers 404 for a trailing segment after the id', async () => {
+    const { proxy } = await importProxy(['en_US', 'de_DE']);
+    expect(proxy(makeRequest('/product/42/reviews')).status).toBe(404);
+  });
+
+  it('lets a numeric id through', async () => {
+    const { proxy } = await importProxy(['en_US', 'de_DE']);
+    const res = proxy(makeRequest('/product/10071'));
+
+    expect(res.status).not.toBe(404);
+    expect(res.headers.get('x-middleware-rewrite')).toContain('/en/product/10071');
+  });
+
+  it('leaves a query string on a numeric id alone', async () => {
+    const { proxy } = await importProxy(['en_US', 'de_DE']);
+    const res = proxy(makeRequest('/product/10071', '?color=red'));
+    expect(res.status).not.toBe(404);
+  });
+});

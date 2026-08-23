@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 
-import { REVALIDATE_HOME } from '@/lib/isr';
+import { REVALIDATE_BLOCK } from '@/lib/isr';
 import { getApiForLang, getImage, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
@@ -92,6 +92,6 @@ export const loadCategorySection = withTiming(
       }
     },
     ['oe-category-section'],
-    { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+    { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
   ),
 );

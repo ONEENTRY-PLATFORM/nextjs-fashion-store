@@ -13,8 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Everything on this page is public CMS content — the shopper's own wishlist hydrates client-side from OE.
+// Nothing here is per-shopper or time-critical, so the window is 10 min rather than the old 60 s.
 export const dynamic = 'force-static';
-export const revalidate = 60;
+export const revalidate = 600;
 
 export default async function Page() {
   const [recommended, trending, pageBlocks] = await Promise.all([

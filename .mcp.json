@@ -10,9 +10,9 @@
     },
     "oneentry-mcp-platform": {
       "command": "npx",
-      "args": ["-y", "@oneentry/mcp-platform-server@0.1.0"],
+      "args": ["-y", "@oneentry/mcp-platform-server@latest"],
       "env": {
-        "ONEENTRY_CMS_BASE_URL": "${NEXT_PUBLIC_ONEENTRY_URL}/api/admin",
+        "ONEENTRY_CMS_BASE_URL": "${NEXT_PUBLIC_ONEENTRY_URL:-}/api/admin",
         "ONEENTRY_CMS_LOGIN": "${OE_ADMIN_LOGIN:-}",
         "ONEENTRY_CMS_PASSWORD": "${OE_ADMIN_PASSWORD:-}",
         "ONEENTRY_MCP_ALLOW": "destructive",

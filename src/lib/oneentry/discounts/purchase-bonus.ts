@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 
-import { REVALIDATE_CATALOG } from '@/lib/isr';
+import { REVALIDATE_PRODUCT } from '@/lib/isr';
 import type { CatalogProduct } from '@/lib/oneentry/catalog/products';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
@@ -79,7 +79,7 @@ const loadPurchaseBonusRuleCached = unstable_cache(
     return result as unknown as RawBonusRule;
   },
   ['oe-discount-purchase-of-goods'],
-  { revalidate: REVALIDATE_CATALOG, tags: ['oe-discounts'] },
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-discounts'] },
 );
 
 /** Compute the bonus points a shopper earns when buying `oeProduct` under the `purchase-of-goods` rule. */

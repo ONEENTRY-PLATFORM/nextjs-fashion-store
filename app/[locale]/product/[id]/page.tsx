@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { JsonLd } from '@/app/components/system/JsonLd';
@@ -100,8 +101,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// ISR route: PDP HTML is cached for 2 min, then background revalidation refreshes it.
-export const revalidate = 120;
+// ISR route: PDP HTML is cached for 30 min, then background revalidation refreshes it.
+//
+// It used to be 120 s, which on Vercel is a self-inflicted bill: `robots.ts` invites a dozen AI
+// crawlers onto `/product/`, `sitemap.ts` hands them every product in both locales, and each
+// re-crawl past the window rewrites the HTML *and* the RSC payload — ~20 k ISR Write Units a day.
+// Price and stock changes that cannot wait for the window already have a faster path: the
+// `oe-products` tag, dropped on order placement (`revalidate-action.ts`).
+export const revalidate = 1800;
 
 // Next.js 16: routes with a dynamic segment (`[id]`) that don't declare `generateStaticParams` are treated as fully dynamic.
 export async function generateStaticParams() {
@@ -110,18 +117,22 @@ export async function generateStaticParams() {
 
 export default async function Page({ params }: Props) {
   const { id } = await params;
+  // A non-numeric `id` can never resolve, so it is rejected before a single OE round-trip. This
+  // guard is what bounds the ISR key space: the route used to answer 200 for *any* `id` — the
+  // client component's own `notFound()` fires too late — so `/product/<anything>` earned itself a
+  // permanent cache entry, and a crawler walking made-up ids could mint them without limit.
   const numericId = /^\d+$/.test(id) ? Number(id) : null;
+  if (numericId === null) notFound();
+  // PDP copy now travels with the root layout's dictionary, so this is just the product load.
+  const oeProductRaw = await loadProductById(numericId);
+  if (!oeProductRaw) notFound();
   // Brand, currency and the delivery / returns terms published as structured data are editor-owned — the same values the metadata above quotes.
   const { brand: siteBrand, commerce, currency } = await getSiteSettings();
-  // PDP copy now travels with the root layout's dictionary, so this is just the product load.
-  const oeProductRaw = numericId !== null ? await loadProductById(numericId) : null;
   // Purchase-bonus badge: shown only when the OE `purchase-of-goods` rule applies to this product.
-  const purchaseBonus = oeProductRaw ? await loadPurchaseBonusForProduct(oeProductRaw) : null;
+  const purchaseBonus = await loadPurchaseBonusForProduct(oeProductRaw);
   // Reviews used to be pre-seeded here with a sync `loadProductReviews(50)` for the sub-title stars + "(N reviews)" hint, but that added a whole OE form-data round-trip to TTFB.
-  const specLabels = oeProductRaw ? await loadProductSpecLabels() : null;
-  const oeProduct: PdpCatalogProduct | null = oeProductRaw
-    ? adaptCatalogProductToPdpProduct(oeProductRaw, specLabels ?? undefined)
-    : null;
+  const specLabels = await loadProductSpecLabels();
+  const oeProduct: PdpCatalogProduct = adaptCatalogProductToPdpProduct(oeProductRaw, specLabels ?? undefined);
   const product = oeProduct;
   // Build the breadcrumb chain from the product's OE category path so each product lands on its actual taxonomy rather than a hardcoded one.
   const productCategory = oeProductRaw?.categories?.[0];
@@ -268,25 +279,23 @@ export default async function Page({ params }: Props) {
     if (p.startsWith('/men')) return 'M';
     return '';
   })();
-  const reviewsSlot =
-    numericId !== null ? (
-      <Suspense fallback={<ReviewsSkeleton />}>
-        <ReviewsAsync productId={numericId} />
-      </Suspense>
-    ) : null;
-  const recommendationsSlot =
-    numericId !== null ? (
-      <Suspense fallback={<RecommendationsSkeleton />}>
-        <FrequentlyOrderedAsync
-          productId={numericId}
-          categoryViewAllHref={categoryViewAllHref}
-          productGender={effectiveGender}
-        />
-      </Suspense>
-    ) : null;
+  const reviewsSlot = (
+    <Suspense fallback={<ReviewsSkeleton />}>
+      <ReviewsAsync productId={numericId} />
+    </Suspense>
+  );
+  const recommendationsSlot = (
+    <Suspense fallback={<RecommendationsSkeleton />}>
+      <FrequentlyOrderedAsync
+        productId={numericId}
+        categoryViewAllHref={categoryViewAllHref}
+        productGender={effectiveGender}
+      />
+    </Suspense>
+  );
 
   // OE-attached product blocks (`Products.getProductBlockById`).
-  const productBlocks = numericId !== null ? await loadProductBlocks(numericId) : [];
+  const productBlocks = await loadProductBlocks(numericId);
 
   // Reserve-in-store picker: real branches from the OE `stores` page tree, slimmed to what the modal renders.
   const reserveStores = (await loadStores()).map((s) => ({

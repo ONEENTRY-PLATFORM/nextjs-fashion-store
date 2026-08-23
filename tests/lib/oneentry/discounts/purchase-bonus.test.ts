@@ -19,8 +19,8 @@ vi.mock('next/cache', () => ({
   unstable_cache: (fn: any) => fn,
 }));
 
-// isr constants — value doesn't matter in unit tests.
-vi.mock('@/lib/isr', () => ({ REVALIDATE_CATALOG: 300 }));
+// isr constants — values don't matter in unit tests.
+vi.mock('@/lib/isr', () => ({ REVALIDATE_CATALOG: 300, REVALIDATE_PRODUCT: 300 }));
 
 // ---- helpers -----------------------------------------------------------------
 const importFresh = async () => {

@@ -16,8 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // CMS content changes only when an admin edits it, so this is ISR, never `force-dynamic` (MCP `performance`).
+// 10 min, not the 60 s this used to run: an editor's change is not worth 1440 ISR rewrites a day.
 export const dynamic = 'force-static';
-export const revalidate = 60;
+export const revalidate = 600;
 
 const breadcrumb = {
   '@context': 'https://schema.org',

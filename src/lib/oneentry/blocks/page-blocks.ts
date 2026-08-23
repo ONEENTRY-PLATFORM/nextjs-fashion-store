@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
 import type { Product } from '@/app/components/product/ProductCard';
-import { REVALIDATE_HOME } from '@/lib/isr';
+import { REVALIDATE_BLOCK, REVALIDATE_PRODUCT } from '@/lib/isr';
 import { adaptCatalogProductToUiProduct } from '@/lib/oneentry/catalog/adapt';
 import { loadProducts, type LoadProductsOptions } from '@/lib/oneentry/catalog/products';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
@@ -58,7 +58,7 @@ const getCachedBlock = unstable_cache(
     };
   },
   ['oe-block-by-marker'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+  { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
 );
 
 // Trending blocks aren't populated via `getBlockByMarker`.
@@ -75,7 +75,7 @@ const getCachedSlides = unstable_cache(
     return arr;
   },
   ['oe-block-slides'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+  { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
 );
 
 const getCachedTrending = unstable_cache(
@@ -89,7 +89,7 @@ const getCachedTrending = unstable_cache(
     return arr as Array<{ id?: number }>;
   },
   ['oe-block-trending'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+  { revalidate: REVALIDATE_BLOCK, tags: ['oe-block'] },
 );
 
 const getCachedFrequentlyOrdered = unstable_cache(
@@ -100,7 +100,8 @@ const getCachedFrequentlyOrdered = unstable_cache(
     return result as unknown as { items?: Array<{ id?: number }> };
   },
   ['oe-block-frequently-ordered'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-block'] },
+  // Product-scoped like the PDP that streams it, so it no longer sets the whole page's expiry.
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-block'] },
 );
 
 // Process-wide in-flight de-duplication for `getCachedFrequentlyOrdered`. `unstable_cache` handles cross-request caching (hits are ~free), but under concurrent load we still saw p95 ≈ 19 s on this loader in perf-dump.
@@ -144,7 +145,7 @@ const getCachedPageById = unstable_cache(
     };
   },
   ['oe-page-by-id'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-page'] },
+  { revalidate: REVALIDATE_BLOCK, tags: ['oe-page'] },
 );
 
 /** Resolve a single block by marker, including the product list for product-list-typed blocks. */
@@ -256,7 +257,7 @@ const getCachedBlocksByPageUrl = unstable_cache(
     return (Array.isArray(items) ? items : []) as Array<{ identifier?: string; position?: number }>;
   },
   ['oe-page-blocks-by-url'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-page', 'oe-block'] },
+  { revalidate: REVALIDATE_BLOCK, tags: ['oe-page', 'oe-block'] },
 );
 
 export const loadPageBlocksByUrl = withTiming(
@@ -286,7 +287,9 @@ const getCachedProductBlocks = unstable_cache(
     return (result as unknown as Array<{ identifier?: string; position?: number }>).slice();
   },
   ['oe-product-blocks'],
-  { revalidate: REVALIDATE_HOME, tags: ['oe-product', 'oe-block'] },
+  // Product-scoped, so it follows the PDP window rather than the homepage one — on the homepage
+  // window it was the shortest cache the PDP read, and therefore the one setting its expiry.
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-product', 'oe-block'] },
 );
 
 export const loadProductBlocks = withTiming(

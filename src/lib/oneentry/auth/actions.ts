@@ -1841,9 +1841,9 @@ export async function createOrderAction(
     let paymentUrl = typeof raw.paymentUrl === 'string' ? raw.paymentUrl : null;
     let paymentSessionError: string | undefined;
 
-    // Order placed — invalidate every ISR / `unstable_cache` surface that may have gone stale as a result.
+    // Order placed — drop the cached products whose stock just moved. Scoped to this order's items on purpose: see `revalidate-action.ts`.
     try {
-      await revalidateAfterOrderAction();
+      await revalidateAfterOrderAction(input.products.map((p) => p.productId));
     } catch {
       /* cache invalidation is best-effort — the order still landed */
     }

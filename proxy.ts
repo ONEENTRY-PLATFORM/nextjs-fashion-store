@@ -36,9 +36,36 @@ import {
  * @param   {NextRequest}  request - Incoming request.
  * @returns {NextResponse}         Rewrite, redirect, or pass-through.
  */
+/**
+ * `/product/<id>` where `<id>` is not a positive integer.
+ *
+ * Rejected here rather than in the route, because the route cannot reject it cheaply: it streams
+ * (there is a `loading.tsx` above it), so its `notFound()` lands after the 200 has gone out and
+ * Vercel stores the render as an ISR entry all the same. A `/product/` path has one shape, and an
+ * id-shaped guard at the edge means a crawler inventing ids cannot mint cache entries with them.
+ */
+const BOGUS_PRODUCT_PATH = /^(?:\/[a-z]{2})?\/product\/(?!\d+$).+$/i;
+
+/**
+ * Body for the edge-level 404. Deliberately minimal and not editor-owned: no CMS read is possible
+ * at the edge, and this answers URLs no storefront link points at. Shoppers who mistype reach the
+ * real, CMS-driven not-found page through every other route; this one is for id-fuzzing crawlers.
+ */
+const EDGE_NOT_FOUND_BODY =
+  '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>404 — Not Found</title>' +
+  '<meta name="robots" content="noindex,nofollow"></head>' +
+  '<body><h1 data-testid="not-found-heading">404 — Not Found</h1><p><a href="/">Home</a></p></body></html>';
+
 export function proxy(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl;
   const firstSegment = pathname.split('/')[1] ?? '';
+
+  if (BOGUS_PRODUCT_PATH.test(pathname)) {
+    return new NextResponse(EDGE_NOT_FOUND_BODY, {
+      status: 404,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    }) as NextResponse;
+  }
 
   // `/en/...` → `/...` — collapse the redundant default prefix.
   if (IS_MULTI_LOCALE && firstSegment === DEFAULT_SHORT_LOCALE) {

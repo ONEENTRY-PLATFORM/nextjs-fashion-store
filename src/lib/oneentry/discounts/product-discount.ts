@@ -1,7 +1,7 @@
 /** Product-price discounts sourced from the OneEntry Discounts module. */
 import { unstable_cache } from 'next/cache';
 
-import { REVALIDATE_CATALOG } from '@/lib/isr';
+import { REVALIDATE_PRODUCT } from '@/lib/isr';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { withTiming } from '@/lib/oneentry/profiling';
@@ -201,7 +201,7 @@ const loadProductDiscountsCached = unstable_cache(
     });
   },
   ['oe-product-discounts'],
-  { revalidate: REVALIDATE_CATALOG, tags: ['oe-discounts'] },
+  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-discounts'] },
 );
 
 export const loadProductDiscounts = withTiming('loadProductDiscounts', async (): Promise<RawProductDiscount[]> =>

@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 
-import { REVALIDATE_CATALOG } from '@/lib/isr';
+import { REVALIDATE_STRUCTURE } from '@/lib/isr';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApiSafe, isError } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -56,7 +56,7 @@ const loadInfoPageSlugsCached = unstable_cache(
     }
   },
   ['oe-info-page-slugs'],
-  { revalidate: REVALIDATE_CATALOG, tags: ['oe-pages'] },
+  { revalidate: REVALIDATE_STRUCTURE, tags: ['oe-pages'] },
 );
 
 /** Info-page slugs published under the `info` parent, for the route's locale. */

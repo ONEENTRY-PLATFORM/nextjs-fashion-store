@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 
+import { REVALIDATE_CATALOG } from '@/lib/isr';
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';
 import { getApi, getImage, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -99,9 +100,15 @@ async function fetchSalePage(lang: Lang): Promise<SalePageFromCms | null> {
   }
 }
 
-/** Cached loader — refresh every 60s so admin edits to the sale banner surface without a manual redeploy, but hot page loads still hit cache. */
+/**
+ * Cached loader — admin edits to the sale banner surface without a manual redeploy.
+ *
+ * Shares `REVALIDATE_CATALOG` rather than its own 60 s: the page's segment `revalidate` is only
+ * ever as long as the shortest cache it reads, so a hardcoded minute here quietly kept `/sale`
+ * regenerating every minute in both locales no matter what the route declared.
+ */
 const loadSalePageCached = unstable_cache((lang: Lang) => fetchSalePage(lang), ['oe-sale-page'], {
-  revalidate: 60,
+  revalidate: REVALIDATE_CATALOG,
   tags: ['oe-page'],
 });
 

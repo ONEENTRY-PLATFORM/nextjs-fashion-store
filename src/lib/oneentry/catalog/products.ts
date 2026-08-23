@@ -11,6 +11,7 @@ import { withTiming } from '@/lib/oneentry/profiling';
 import type { Lang } from '@/lib/oneentry/system-text';
 
 import type { CatalogFilters } from './filters';
+import { PRODUCTS_TAG, productTag } from './product-tags';
 
 /** Normalized OneEntry product for the storefront. */
 export interface CatalogProduct {
@@ -503,53 +504,64 @@ export const loadProducts = withTiming(
 );
 
 // Targeted single-product fetch — replaces a full 2000-item catalog dump (~30 MB) with a single OE call that returns the requested product only.
-const cachedGetProductById = unstable_cache(
-  async (id: number, lang: string): Promise<RawProduct | null> => {
-    const api = getApiSafe();
-    if (!api) return null;
-    const result = await getApi().Products.getProductById(id, lang);
-    if (isError(result)) return null;
-    return result as unknown as RawProduct;
-  },
-  ['oe-product-by-id'],
-  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
-);
+// `unstable_cache` freezes its tags at construction, so the per-product tag needs one instance per id; the cache itself still keys on `keyParts`.
+const cachedGetProductById = (id: number) =>
+  unstable_cache(
+    async (lang: string): Promise<RawProduct | null> => {
+      const api = getApiSafe();
+      if (!api) return null;
+      const result = await getApi().Products.getProductById(id, lang);
+      if (isError(result)) return null;
+      return result as unknown as RawProduct;
+    },
+    ['oe-product-by-id', String(id)],
+    { revalidate: REVALIDATE_PRODUCT, tags: [PRODUCTS_TAG, productTag(id)] },
+  );
 
 // Related products via OE's dedicated endpoint (linked in admin panel).
-const cachedGetRelated = unstable_cache(
-  async (id: number, lang: string): Promise<RawProduct[]> => {
-    const api = getApiSafe();
-    if (!api) return [];
-    const result = await getApi().Products.getRelatedProductsById(id, lang);
-    if (isError(result)) return [];
-    const arr = Array.isArray(result) ? result : ((result as unknown as { items?: RawProduct[] })?.items ?? []);
-    return (arr as RawProduct[]) ?? [];
-  },
-  ['oe-related-products'],
-  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
-);
+const cachedGetRelated = (id: number) =>
+  unstable_cache(
+    async (lang: string): Promise<RawProduct[]> => {
+      const api = getApiSafe();
+      if (!api) return [];
+      const result = await getApi().Products.getRelatedProductsById(id, lang);
+      if (isError(result)) return [];
+      const arr = Array.isArray(result) ? result : ((result as unknown as { items?: RawProduct[] })?.items ?? []);
+      return (arr as RawProduct[]) ?? [];
+    },
+    ['oe-related-products', String(id)],
+    { revalidate: REVALIDATE_PRODUCT, tags: [PRODUCTS_TAG, productTag(id)] },
+  );
 
 // Batch fetch by ids — used to resolve explicit `relatedIds` the admin set on the product itself (separate from OE's `getRelatedProductsById`).
-const cachedGetByIds = unstable_cache(
-  async (idsCsv: string, lang: string): Promise<RawProduct[]> => {
-    const api = getApiSafe();
-    if (!api || !idsCsv) return [];
-    const result = await getApi().Products.getProductsByIds(idsCsv, lang);
-    if (isError(result)) return [];
-    // OE has repeatedly toggled other list endpoints between flat and `{items, total}`.
-    if (Array.isArray(result)) return result as RawProduct[];
-    const wrapped = (result as unknown as { items?: unknown })?.items;
-    return Array.isArray(wrapped) ? (wrapped as RawProduct[]) : [];
-  },
-  ['oe-products-by-ids'],
-  { revalidate: REVALIDATE_PRODUCT, tags: ['oe-products'] },
-);
+// Next caps a cache entry at 128 tags, and a wishlist read can ask for more ids than that, so past the cap the entry keeps only the blanket tag.
+const MAX_PRODUCT_TAGS = 64;
+const cachedGetByIds = (ids: number[]) => {
+  const idsCsv = ids.join(',');
+  return unstable_cache(
+    async (lang: string): Promise<RawProduct[]> => {
+      const api = getApiSafe();
+      if (!api || !idsCsv) return [];
+      const result = await getApi().Products.getProductsByIds(idsCsv, lang);
+      if (isError(result)) return [];
+      // OE has repeatedly toggled other list endpoints between flat and `{items, total}`.
+      if (Array.isArray(result)) return result as RawProduct[];
+      const wrapped = (result as unknown as { items?: unknown })?.items;
+      return Array.isArray(wrapped) ? (wrapped as RawProduct[]) : [];
+    },
+    ['oe-products-by-ids', idsCsv],
+    {
+      revalidate: REVALIDATE_PRODUCT,
+      tags: [PRODUCTS_TAG, ...(ids.length <= MAX_PRODUCT_TAGS ? ids.map(productTag) : [])],
+    },
+  );
+};
 
 export const loadProductById = withTiming(
   'loadProductById',
   cache(async (id: number, langArg?: Lang): Promise<CatalogProduct | null> => {
     const lang = langArg ?? (await currentCmsLocale());
-    const raw = await cachedGetProductById(id, lang);
+    const raw = await cachedGetProductById(id)(lang);
     if (!raw) return null;
     const target = normalize(raw, lang);
 
@@ -562,7 +574,7 @@ export const loadProductById = withTiming(
       family.push(p);
     };
 
-    const relatedRaws = await cachedGetRelated(id, lang);
+    const relatedRaws = await cachedGetRelated(id)(lang);
     for (const r of relatedRaws) {
       if (!r) continue;
       push(normalize(r, lang));
@@ -571,7 +583,7 @@ export const loadProductById = withTiming(
     if (target.relatedIds.length > 0) {
       const missing = target.relatedIds.filter((rid) => !seen.has(rid));
       if (missing.length > 0) {
-        const byIdsRaws = await cachedGetByIds(missing.join(','), lang);
+        const byIdsRaws = await cachedGetByIds(missing)(lang);
         for (const r of byIdsRaws) {
           if (!r) continue;
           push(normalize(r, lang));
@@ -635,7 +647,7 @@ export const loadProductsByIds = withTiming(
     const validIds = ids.filter((n) => Number.isFinite(n) && n > 0);
     if (validIds.length === 0) return [];
     // OE's batch endpoint is much cheaper than pulling the whole catalog just to filter it.
-    const raws = await cachedGetByIds(validIds.join(','), lang);
+    const raws = await cachedGetByIds(validIds)(lang);
     return raws.map((r) => normalize(r, lang));
   }),
 );
