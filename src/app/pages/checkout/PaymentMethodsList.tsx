@@ -1,6 +1,7 @@
 'use client';
 import { Banknote, CreditCard, Lock, QrCode, Smartphone, Wallet } from 'lucide-react';
 
+import { isOnlinePaymentAccount } from '@/lib/oneentry/payments/account-type';
 import type { PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
 import { OptionCard } from './PaymentPage.parts';
@@ -25,7 +26,7 @@ interface PaymentMethodsListProps {
   redirectHint: string;
 }
 
-// Renders payment options split into "pay on delivery" (custom accounts) and "online prepayment" (stripe accounts).
+// Renders payment options split into "pay on delivery" (custom accounts) and "online prepayment" (every hosted-checkout provider).
 export function PaymentMethodsList({
   accounts,
   selected,
@@ -35,8 +36,8 @@ export function PaymentMethodsList({
   dividerLabel,
   redirectHint,
 }: PaymentMethodsListProps) {
-  const offline = accounts.filter((a) => a.type === 'custom');
-  const online = accounts.filter((a) => a.type === 'stripe');
+  const online = accounts.filter((a) => isOnlinePaymentAccount(a.type));
+  const offline = accounts.filter((a) => !isOnlinePaymentAccount(a.type));
 
   const renderCard = (acc: PaymentAccount) => (
     <OptionCard
@@ -48,7 +49,7 @@ export function PaymentMethodsList({
       title={acc.title}
       subtitle={acc.description || undefined}
     >
-      {acc.type === 'stripe' && (
+      {isOnlinePaymentAccount(acc.type) && (
         <div className="flex items-start gap-3 border border-[#e5e7eb] bg-[#fafafa] px-4 py-3 pt-4">
           <Lock size={16} className="mt-0.5 shrink-0 text-green-600" />
           <p className="text-xs leading-relaxed text-gray-600">{redirectHint}</p>

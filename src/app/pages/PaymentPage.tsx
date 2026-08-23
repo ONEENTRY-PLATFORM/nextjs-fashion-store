@@ -21,6 +21,7 @@ import { buildOrderFieldLabels, explainOrderError } from '@/lib/oneentry/checkou
 import { buildOrderFormData, type CheckoutHandoffPayload } from '@/lib/oneentry/checkout/order-form-data';
 import { useAllFormContent } from '@/lib/oneentry/forms/FormPlaceholdersContext';
 import { useDict } from '@/lib/oneentry/labels/DictContext';
+import { isOnlinePaymentAccount } from '@/lib/oneentry/payments/account-type';
 import { getPaymentAccountsAction, type PaymentAccount } from '@/lib/oneentry/payments/accounts';
 
 import { PaymentMethodsList } from './checkout/PaymentMethodsList';
@@ -325,10 +326,10 @@ export function PaymentPage({ pageBlocks }: { pageBlocks?: PageBlock[] } = {}) {
       window.location.href = res.paymentUrl;
       return;
     }
-    // Stripe was expected but no paymentUrl came back — surface the OE-side error instead of silently pushing to the confirmation page.
-    if (selectedAccount.type === 'stripe') {
+    // A hosted-checkout redirect was expected but no paymentUrl came back — surface the OE-side error instead of silently pushing to the confirmation page.
+    if (isOnlinePaymentAccount(selectedAccount.type)) {
       setSubmitError(
-        res.paymentSessionError ? `Stripe session could not be created: ${res.paymentSessionError}` : L.errorStripe,
+        res.paymentSessionError ? `Payment session could not be created: ${res.paymentSessionError}` : L.errorStripe,
       );
       return;
     }

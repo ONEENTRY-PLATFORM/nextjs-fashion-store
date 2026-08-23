@@ -1,11 +1,12 @@
 'use server';
 import { getApiSafe, isError } from '@/lib/oneentry/index';
 import { logCaught } from '@/lib/oneentry/log';
+import type { PaymentAccountType } from '@/lib/oneentry/payments/account-type';
 
 export interface PaymentAccount {
   id: number;
   identifier: string;
-  type: 'stripe' | 'custom';
+  type: PaymentAccountType;
   title: string;
   description: string;
   isVisible: boolean;

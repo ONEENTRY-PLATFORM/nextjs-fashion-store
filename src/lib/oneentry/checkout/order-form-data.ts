@@ -1,5 +1,5 @@
 /** Turn the delivery step's handoff payload into the order's `formData`. Field markers are looked up by attribute type in the CMS form, never hardcoded. */
-import type { IOrdersFormData } from 'oneentry/dist/orders/ordersInterfaces';
+import type { IOrdersFormData } from 'oneentry/types';
 
 import { fieldByRole, type FieldRole, soleFieldOfType } from '@/lib/oneentry/forms/field-lookup';
 import type { FormContent } from '@/lib/oneentry/forms/form-content';

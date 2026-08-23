@@ -77,7 +77,7 @@ Notes:
 
 ```ts
 import { defineOneEntry } from 'oneentry';
-import type { IError } from 'oneentry/dist/base/utils';
+import type { IError } from 'oneentry/types';
 
 const PROJECT_URL = process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY_URL ?? '';
 const token = process.env.ONEENTRY_TOKEN ?? '';
@@ -220,7 +220,7 @@ Server Actions for domain-specific forms (`service_request`, `checkout_home_deli
 
 ### 4.6 Payments (`src/lib/oneentry/payments/accounts.ts`)
 
-`getPaymentAccountsAction()` returns visible `PaymentAccount[]` (`{id, identifier, type: 'stripe'|'custom', title, description}`) from `Payments.getAccounts()`. Consumed by `PaymentPage`.
+`getPaymentAccountsAction()` returns visible `PaymentAccount[]` (`{id, identifier, type, title, description}`) from `Payments.getAccounts()`, where `type` is the SDK's `IAccountsEntity['type']`. Consumed by `PaymentPage`.
 
 ---
 

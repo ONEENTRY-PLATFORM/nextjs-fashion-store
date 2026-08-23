@@ -1,5 +1,5 @@
 import { defineOneEntry } from 'oneentry';
-import type { IError } from 'oneentry/dist/base/utils';
+import type { IError } from 'oneentry/types';
 
 /** Canonical OneEntry SDK entry point (MCP `sdk-init` / `tokens` rules). */
 const PROJECT_URL = process.env.NEXT_PUBLIC_ONEENTRY_URL ?? process.env.ONEENTRY_URL ?? '';
@@ -281,7 +281,7 @@ export function getImageUrls(value: unknown): string[] {
   return getImages(value).map((img) => img.url);
 }
 
-/** Alias for the SDK's `IError`. Re-exported so app code can `import { OeError } from '@/lib/oneentry'` without reaching into `oneentry/dist/base/utils`. */
+/** Alias for the SDK's `IError`. Re-exported so app code can `import { OeError } from '@/lib/oneentry'` without a second SDK import. */
 export type OeError = IError;
 
 /** Type-guard for the SDK's `IError`. Narrows to `IError` on true. */

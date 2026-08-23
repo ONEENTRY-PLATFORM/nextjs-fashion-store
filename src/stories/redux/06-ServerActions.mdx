@@ -136,7 +136,7 @@ Order-domain form submissions (`checkout_home_delivery` + `_guest` variants, sig
     <tr><th>Action</th><th>Effect</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>getPaymentAccountsAction()</code></td><td>Returns visible <code>PaymentAccount[]</code> — <code>{"{id, identifier, type: 'stripe'|'custom', title, description}"}</code>. Consumed by <code>PaymentPage</code>.</td></tr>
+    <tr><td><code>getPaymentAccountsAction()</code></td><td>Returns visible <code>PaymentAccount[]</code> — <code>{"{id, identifier, type, title, description}"}</code>, where <code>type</code> is the SDK's <code>IAccountsEntity['type']</code>. Consumed by <code>PaymentPage</code>.</td></tr>
   </tbody>
 </table>
 

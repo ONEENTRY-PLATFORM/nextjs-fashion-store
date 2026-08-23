@@ -120,7 +120,7 @@ The project uses **dual roots**: `app/` (Next.js routes) and `src/app/` (impleme
 | `src/lib/oneentry/forms/` | `placeholders.ts` (CMS-managed form copy loader), `FormPlaceholdersContext.tsx`, `submit.ts` (Server Action for arbitrary form-data POSTs). |
 | `src/lib/oneentry/labels/` | 12 label sets — each pair `{name}-labels.ts` (loader) + `{name}-types.ts` (typed dict): `product-card`, `sign-in`, `create-account`, `checkout`, `your-bag`, `pdp`, `favorites-page`, `new-arrivals-page`, `sale-page`, `stores`, `account`, `interface-controls`. Each has a matching client-side React context provider consumed under `<Providers>`. |
 | `src/lib/oneentry/menus/` | `menus.ts` (`getMenusByMarker`), `adapt-header.ts` + `adapt-footer.ts` (OE menu tree → storefront mega-menu shape), `HeaderMenuContext.tsx`, `FooterMenuContext.tsx`. |
-| `src/lib/oneentry/payments/accounts.ts` | `getPaymentAccountsAction` — reads visible payment accounts from `Payments.getAccounts` (Stripe / custom types). |
+| `src/lib/oneentry/payments/accounts.ts` | `getPaymentAccountsAction` — reads visible payment accounts from `Payments.getAccounts`; the provider union comes from the SDK (`payments/account-type.ts`). |
 
 ### `src/` (non-`app`)
 

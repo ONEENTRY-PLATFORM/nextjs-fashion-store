@@ -227,12 +227,15 @@ On mount, calls `getPaymentAccountsAction()` (Server Action → `getApi().Paymen
 interface PaymentAccount {
   id: number;
   identifier: string;
-  type: 'stripe' | 'custom';
+  // `IAccountsEntity['type']` from the SDK — 'stripe' | 'yookassa' | 'midtrans' | 'xendit' | 'custom'.
+  type: PaymentAccountType;
   title: string;
   description: string;
   // isVisible: filtered server-side
 }
 ```
+
+`type` is not spelled out locally on purpose: OE keeps adding payment providers, and a hardcoded union both fails the build on the next SDK bump and — worse — makes `PaymentMethodsList` drop the unknown account from the picker without a word. The split is written as "`custom` pays offline, everything else is hosted checkout" (`isOnlinePaymentAccount` in `src/lib/oneentry/payments/account-type.ts`), so a new provider lands in the online section by default.
 
 Rendered in two groups:
 
@@ -364,11 +367,11 @@ Previously the attribute was a bare `integer` with an empty `listTitles`: the na
 
 `PARCEL_LOCKERS` remains as a Storybook / bare-unit-test fallback, with `oeId: null` on every entry — an order built from it has no page to reference and OE rejects it, which is the honest outcome.
 
-### 3.4 Stripe redirect
+### 3.4 Hosted-checkout redirect
 
-For `account.type === 'stripe'`:
+For any `account.type` other than `custom` (Stripe being the one configured in this project):
 
-1. `createOrderAction` first checks whether OE already surfaced a `paymentUrl` on the created order (legacy providers do). If not, and the selected `paymentAccountType === 'stripe'`, it calls the SDK `api.Payments.createSession(orderId, 'session', false)`. That resolves to `POST /api/content/payments/sessions` server-side; note the SDK signature does **not** forward `successUrl` / `cancelUrl` — the merchant's default URLs configured in OE admin are used.
+1. `createOrderAction` first checks whether OE already surfaced a `paymentUrl` on the created order (legacy providers do). If not, and the selected `paymentAccountType` is a hosted-checkout one, it calls the SDK `api.Payments.createSession(orderId, 'session', false)`. That resolves to `POST /api/content/payments/sessions` server-side; note the SDK signature does **not** forward `successUrl` / `cancelUrl` — the merchant's default URLs configured in OE admin are used.
 2. Response: `{ paymentUrl: string }` (typed loosely in the SDK; the storefront unwraps it via `raw.paymentUrl`).
 3. Before redirecting, `PaymentPage.handlePlaceOrder` fires `clearCart()` unconditionally (see §4.2 — cart is emptied at order creation, not on Confirmation mount). It also saves `String(res.orderId)` to `sessionStorage['oe_last_order_id']` and removes `sessionStorage['oe_checkout_payload']`.
 4. Client `window.location.href = paymentUrl`. Stripe hosted checkout takes over. On success, Stripe redirects to the storefront `successUrl` (`/checkout/confirmation`), where `ConfirmationPage` reads `sessionStorage['oe_last_order_id']` to display the real OE order id (see §4.1). Note: the Stripe round-trip may clear `sessionStorage` on some browsers — in that case `ConfirmationPage` falls back to the random display id.

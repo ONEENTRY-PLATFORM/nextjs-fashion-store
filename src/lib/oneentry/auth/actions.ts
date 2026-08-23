@@ -1,7 +1,5 @@
 /** Shopper-scoped OneEntry calls (profile, orders, cart, wishlist, checkout). */
-import type { IAuthFormData } from 'oneentry/dist/auth-provider/authProvidersInterfaces';
-import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces';
-import type { IOrderProductData, IOrdersFormData } from 'oneentry/dist/orders/ordersInterfaces';
+import type { FormDataType, IAuthFormData, IOrderProductData, IOrdersFormData } from 'oneentry/types';
 
 import { getProductPreviewsAction } from '@/lib/oneentry/catalog/product-previews-action';
 import { SAVED_ADDRESS_FORM } from '@/lib/oneentry/checkout/forms';
@@ -20,6 +18,7 @@ import {
   storeSession,
 } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
+import { isOnlinePaymentAccount, type PaymentAccountType } from '@/lib/oneentry/payments/account-type';
 import { se } from '@/lib/oneentry/server-errors';
 import type { Lang } from '@/lib/oneentry/system-text';
 
@@ -1773,8 +1772,8 @@ export interface CreateOrderInput {
   /** Logical delivery method — actual storage marker is derived. */
   storage: CheckoutMethod;
   paymentAccount: string;
-  /** Payment account type from OE (`stripe` vs `custom`). */
-  paymentAccountType?: 'stripe' | 'custom';
+  /** Payment account type from OE — `custom` pays offline, every other provider goes through a hosted checkout. */
+  paymentAccountType?: PaymentAccountType;
   products: IOrderProductData[];
   formData?: IOrdersFormData[];
   currency?: string;
@@ -1848,20 +1847,20 @@ export async function createOrderAction(
       /* cache invalidation is best-effort — the order still landed */
     }
 
-    if (!paymentUrl && orderId && input.paymentAccountType === 'stripe') {
-      // Stripe-backed accounts: mint a Checkout session via SDK.
+    if (!paymentUrl && orderId && input.paymentAccountType && isOnlinePaymentAccount(input.paymentAccountType)) {
+      // Hosted-checkout accounts (stripe, yookassa, midtrans, xendit …): mint a payment session via SDK.
       try {
         const sessionResult = await api.Payments.createSession(orderId, 'session', false);
         if (isError(sessionResult)) {
           paymentSessionError = sessionResult.message ?? 'createSession failed';
-          console.error('[createOrderAction] Stripe session creation failed:', paymentSessionError);
+          console.error('[createOrderAction] payment session creation failed:', paymentSessionError);
         } else {
           const raw = sessionResult as unknown as { paymentUrl?: unknown };
           if (typeof raw.paymentUrl === 'string') paymentUrl = raw.paymentUrl;
         }
       } catch (err) {
         paymentSessionError = err instanceof Error ? err.message : await se('network');
-        console.error('[createOrderAction] Stripe session network error:', paymentSessionError);
+        console.error('[createOrderAction] payment session network error:', paymentSessionError);
       }
     }
     return { ok: true, orderId, paymentUrl, paymentSessionError };

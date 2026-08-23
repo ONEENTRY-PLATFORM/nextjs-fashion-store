@@ -1,6 +1,5 @@
 /** Fetch and decode an OE form, for an explicitly named locale. */
-import type { IAttributeValidators, IListTitle } from 'oneentry/dist/attribute-sets/attributeSetsInterfaces';
-import type { IFormAttribute } from 'oneentry/dist/forms/formsInterfaces';
+import type { IAttributeValidators, IFormAttribute, IListTitle } from 'oneentry/types';
 import { cache } from 'react';
 
 import { getApiSafe, isError } from '@/lib/oneentry/index';

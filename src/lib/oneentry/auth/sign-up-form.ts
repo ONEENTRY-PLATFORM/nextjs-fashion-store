@@ -1,4 +1,4 @@
-import type { IAttributeSchemaItem, IAttributeSetsEntity } from 'oneentry/dist/attribute-sets/attributeSetsInterfaces';
+import type { IAttributeSchemaItem, IAttributeSetsEntity } from 'oneentry/types';
 import { cache } from 'react';
 
 import { currentCmsLocale } from '@/lib/oneentry/current-locale';

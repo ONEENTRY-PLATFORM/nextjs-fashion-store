@@ -1,5 +1,5 @@
 /** Narrowing helpers for OE form-data records. */
-import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces';
+import type { FormDataType } from 'oneentry/types';
 
 /** A form-data entry known to carry the marker that identifies its field. */
 export type MarkedFormDataEntry = FormDataType & { marker: string; type?: string; value: unknown };

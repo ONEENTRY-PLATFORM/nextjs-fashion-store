@@ -1,4 +1,4 @@
-import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces';
+import type { FormDataType } from 'oneentry/types';
 
 import type { ServiceCategory, ServiceRequest, ServiceStatus } from '@/app/data/serviceData';
 import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';

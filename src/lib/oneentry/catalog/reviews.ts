@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import type { FormDataType } from 'oneentry/dist/forms-data/formsDataInterfaces';
+import type { FormDataType } from 'oneentry/types';
 import { cache } from 'react';
 
 import type { ProductReview } from '@/app/data/productCatalog';

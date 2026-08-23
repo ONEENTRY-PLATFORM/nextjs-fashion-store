@@ -1,4 +1,6 @@
 import { unstable_cache } from 'next/cache';
+import { isTimeIntervalAttribute } from 'oneentry';
+import type { IAttributeValue, ITimeIntervalPoint } from 'oneentry/types';
 
 import { DELIVERY_TIME_SLOTS } from '@/app/data/checkoutConfig';
 import { REVALIDATE_STORES } from '@/lib/isr';
@@ -41,19 +43,8 @@ const MARKERS = {
 
 export type DeliveryScheduleVariant = keyof typeof MARKERS;
 
-type RawHM = { hours?: number; minutes?: number };
-type RawIntervalValue = {
-  dates?: string[];
-  times?: Array<[RawHM, RawHM]>;
-  inEveryWeek?: boolean;
-  inEveryMonth?: boolean;
-  inEveryYears?: boolean;
-};
-type RawAttrSchema = {
-  marker?: unknown;
-  type?: unknown;
-  value?: Array<{ values?: RawIntervalValue[] }>;
-};
+/** The attribute-schema row `getAttributesByMarker` returns: an `IAttributeValue` that also names its marker. */
+type MarkedAttribute = IAttributeValue & { marker?: unknown };
 
 const pad = (n: number): string => (n < 10 ? `0${n}` : String(n));
 
@@ -90,19 +81,18 @@ async function loadScheduleFor(variant: DeliveryScheduleVariant, lang: Lang): Pr
     const result = await getApi().AttributesSets.getAttributesByMarker(spec.asetMarker, lang);
     if (isError(result) || !Array.isArray(result)) return FALLBACK;
     // SDK types the response as `IAttributeSetsEntity[]`, but the payload is a per-attribute schema list carrying the storefront-shaped `value` field.
-    const attrs = result as unknown as RawAttrSchema[];
+    const attrs = result as unknown as MarkedAttribute[];
 
-    const dateAttr = attrs.find(
-      (a) => typeof a === 'object' && a !== null && a.marker === spec.dateAttr && a.type === 'timeInterval',
-    );
-    if (!dateAttr) return FALLBACK;
+    const dateAttr = attrs.find((a) => typeof a === 'object' && a !== null && a.marker === spec.dateAttr);
+    // The SDK's guard is the `type === 'timeInterval'` check, and it types `value` as the schedule groups.
+    if (!isTimeIntervalAttribute(dateAttr)) return FALLBACK;
 
     // The admin editor stores at least one `values[]` row inside the outer `value[]` wrapper.
     const row = dateAttr.value?.[0]?.values?.[0];
     if (!row) return FALLBACK;
 
     // Time slots — each `times[i]` is `[startHM, endHM]`. Sort by start time so the picker renders morning → evening even if the admin reordered rows.
-    const times: Array<[RawHM, RawHM]> = Array.isArray(row.times) ? row.times : [];
+    const times: ITimeIntervalPoint[][] = Array.isArray(row.times) ? row.times : [];
     const slots: DeliveryTimeSlot[] = times
       .map((pair): DeliveryTimeSlot | null => {
         if (!Array.isArray(pair) || pair.length < 2) return null;
