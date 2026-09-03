@@ -33,6 +33,7 @@ import { fieldByRole, type FieldRole, markerForRole, soleFieldOfType } from '@/l
 import type { FormContent } from '@/lib/oneentry/forms/form-content';
 import { formDataValue, hasMarker } from '@/lib/oneentry/forms/form-data-entry';
 import { loadFormContentForLang } from '@/lib/oneentry/forms/load-form';
+import { loadFormModuleConfigId } from '@/lib/oneentry/forms/module-config';
 import {
   clearTokens,
   getApiSafe,
@@ -91,9 +92,34 @@ export interface OeAddress {
   full: string;
 }
 
-const USER_ADDRESSES_MODULE_CONFIG_ID = 24;
-const USER_DATA_MODULE_CONFIG_ID = 3;
-const SUBSCRIPTION_MGMT_MODULE_CONFIG_ID = 32;
+const USER_DATA_FORM = 'user_data';
+const SUBSCRIPTION_MGMT_FORM = 'subscription_management';
+
+// Module-config ids are resolved from the CMS; these literals are only the
+// fallback for when it is unreachable. Hardcoding them as the sole source is
+// silent breakage: the id changes when a form is recreated in the admin panel,
+// the code still compiles, and profile addresses / user data / subscriptions
+// simply stop reading and writing.
+const USER_ADDRESSES_MODULE_CONFIG_FALLBACK = 24;
+const USER_DATA_MODULE_CONFIG_FALLBACK = 3;
+const SUBSCRIPTION_MGMT_MODULE_CONFIG_FALLBACK = 32;
+
+const userAddressesModuleConfigId = (): Promise<number> =>
+  loadFormModuleConfigId(
+    SAVED_ADDRESS_FORM,
+    DEFAULT_LOCALE as Lang,
+    USER_ADDRESSES_MODULE_CONFIG_FALLBACK,
+  );
+
+const userDataModuleConfigId = (): Promise<number> =>
+  loadFormModuleConfigId(USER_DATA_FORM, DEFAULT_LOCALE as Lang, USER_DATA_MODULE_CONFIG_FALLBACK);
+
+const subscriptionMgmtModuleConfigId = (): Promise<number> =>
+  loadFormModuleConfigId(
+    SUBSCRIPTION_MGMT_FORM,
+    DEFAULT_LOCALE as Lang,
+    SUBSCRIPTION_MGMT_MODULE_CONFIG_FALLBACK,
+  );
 
 export interface OeSubscriptions {
   emailNewsletter: boolean;
@@ -650,8 +676,9 @@ function addressToFormData(address: OeAddress, form: FormContent): FormDataType[
 }
 
 async function fetchUserAddresses(): Promise<OeAddress[]> {
+  const configId = await userAddressesModuleConfigId();
   const [result, form] = await Promise.all([
-    formDataGetByMarker(SAVED_ADDRESS_FORM, USER_ADDRESSES_MODULE_CONFIG_ID, {}, 100),
+    formDataGetByMarker(SAVED_ADDRESS_FORM, configId, {}, 100),
     savedAddressForm(),
   ]);
   return (result?.items ?? []).map((rec) => recordToAddress(rec, form));
@@ -664,7 +691,7 @@ async function postUserAddress(
   type PostResponse = RawFormRecord & { formData?: RawFormRecord; actionMessage?: string };
   const res = await formDataPost<PostResponse>({
     formIdentifier: SAVED_ADDRESS_FORM,
-    formModuleConfigId: USER_ADDRESSES_MODULE_CONFIG_ID,
+    formModuleConfigId: await userAddressesModuleConfigId(),
     moduleEntityIdentifier: userIdentifier,
     replayTo: null,
     status: 'sent',
@@ -704,7 +731,7 @@ interface UserDataExtras {
 }
 
 async function fetchUserDataRecord(): Promise<{ recordId: number | null; extras: UserDataExtras }> {
-  const result = await formDataGetByMarker('user_data', USER_DATA_MODULE_CONFIG_ID, {}, 10);
+  const result = await formDataGetByMarker(USER_DATA_FORM, await userDataModuleConfigId(), {}, 10);
   const rec = result?.items?.[0];
   if (!rec) return { recordId: null, extras: {} };
   return {
@@ -763,8 +790,8 @@ async function upsertUserDataRecord(userIdentifier: string, patch: UserDataExtra
   const postData = userDataToFormData(patchWithoutDob);
   type PostResponse = RawFormRecord & { formData?: RawFormRecord };
   const created = await formDataPost<PostResponse>({
-    formIdentifier: 'user_data',
-    formModuleConfigId: USER_DATA_MODULE_CONFIG_ID,
+    formIdentifier: USER_DATA_FORM,
+    formModuleConfigId: await userDataModuleConfigId(),
     moduleEntityIdentifier: userIdentifier,
     replayTo: null,
     status: 'sent',
@@ -798,7 +825,12 @@ interface SubsExtras {
 }
 
 async function fetchSubsRecord(): Promise<{ recordId: number | null; extras: SubsExtras }> {
-  const result = await formDataGetByMarker('subscription_management', SUBSCRIPTION_MGMT_MODULE_CONFIG_ID, {}, 10);
+  const result = await formDataGetByMarker(
+    SUBSCRIPTION_MGMT_FORM,
+    await subscriptionMgmtModuleConfigId(),
+    {},
+    10,
+  );
   const rec = result?.items?.[0];
   if (!rec) return { recordId: null, extras: {} };
   const b = (m: string) => fieldValue(rec, m) === 'true';
@@ -854,8 +886,8 @@ async function upsertSubsRecord(userIdentifier: string, subs: OeSubscriptions): 
     return result !== null;
   }
   const result = await formDataPost<RawFormRecord>({
-    formIdentifier: 'subscription_management',
-    formModuleConfigId: SUBSCRIPTION_MGMT_MODULE_CONFIG_ID,
+    formIdentifier: SUBSCRIPTION_MGMT_FORM,
+    formModuleConfigId: await subscriptionMgmtModuleConfigId(),
     moduleEntityIdentifier: userIdentifier,
     replayTo: null,
     status: 'sent',

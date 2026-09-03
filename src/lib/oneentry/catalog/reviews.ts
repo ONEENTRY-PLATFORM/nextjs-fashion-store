@@ -5,6 +5,7 @@ import { cache } from 'react';
 import type { ProductReview } from '@/app/data/productCatalog';
 import { REVALIDATE_PRODUCT } from '@/lib/isr';
 import { formDataValue } from '@/lib/oneentry/forms/form-data-entry';
+import { loadFormModuleConfigId } from '@/lib/oneentry/forms/module-config';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
@@ -20,9 +21,13 @@ type RawFormDataItem = Omit<IFormByMarkerDataEntity, 'formData'> & {
 type RawFormDataResp = Omit<IFormsByMarkerDataEntity, 'items'> & { items?: RawFormDataItem[] };
 
 const FEEDBACK_MARKER = 'review_feedback';
-const FEEDBACK_MODULE_CONFIG = 13;
 const RATING_MARKER = 'review_rating';
-const RATING_MODULE_CONFIG = 12;
+
+// Resolved from the CMS at read time; these literals are only the fallback for
+// when it is unreachable. A hardcoded id keeps compiling after the form is
+// recreated in the admin panel — reviews then submit fine and never show up.
+const FEEDBACK_MODULE_CONFIG_FALLBACK = 13;
+const RATING_MODULE_CONFIG_FALLBACK = 12;
 
 // Cross-request cache of the raw OE form-data reads that back reviews.
 const cachedFetchFormData = unstable_cache(
@@ -94,11 +99,16 @@ export const loadProductReviews = withTiming(
   'loadProductReviews',
   cache(async (productId: number, limit = 100): Promise<ProductReview[]> => {
     if (!Number.isFinite(productId) || productId <= 0) return [];
-    // Reviews live in OE form-data (2 markers × 1 config × id).
+    // Reviews live in OE form-data (2 markers × 1 config × id). Both config ids
+    // come from the forms themselves — see the fallback constants above.
+    const [feedbackConfig, ratingConfig] = await Promise.all([
+      loadFormModuleConfigId(FEEDBACK_MARKER, DEFAULT_LOCALE, FEEDBACK_MODULE_CONFIG_FALLBACK),
+      loadFormModuleConfigId(RATING_MARKER, DEFAULT_LOCALE, RATING_MODULE_CONFIG_FALLBACK),
+    ]);
     const raced = await Promise.race([
       Promise.all([
-        cachedFetchFormData(FEEDBACK_MARKER, FEEDBACK_MODULE_CONFIG, productId, limit),
-        cachedFetchFormData(RATING_MARKER, RATING_MODULE_CONFIG, productId, limit),
+        cachedFetchFormData(FEEDBACK_MARKER, feedbackConfig, productId, limit),
+        cachedFetchFormData(RATING_MARKER, ratingConfig, productId, limit),
         loadProductById(productId),
       ]),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),

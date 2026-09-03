@@ -1,11 +1,17 @@
 import type { FormDataType, IBodyPostFormData, IPostFormResponse } from 'oneentry/types';
 
 import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
+import { loadFormModuleConfigId } from '@/lib/oneentry/forms/module-config';
 import { getApiSafe, hasStoredSession, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { se } from '@/lib/oneentry/server-errors';
 
-const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
+const SERVICE_REQUEST_FORM = 'service_request';
+
+// Fallback only — the id is resolved from the form itself, because a literal
+// keeps compiling after the form is recreated in the admin panel and the write
+// then fails with `400 Incorrect formIdentifier for provided config`.
+const SERVICE_REQUEST_MODULE_CONFIG_FALLBACK = 4;
 
 export interface SubmitServiceRequestInput {
   item: string;
@@ -66,8 +72,12 @@ export async function submitServiceRequestAction(
   try {
     // `postFormsData` internally wraps `formData` in `{ [langCode]: [...] }`.
     const body: IBodyPostFormData = {
-      formIdentifier: 'service_request',
-      formModuleConfigId: SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
+      formIdentifier: SERVICE_REQUEST_FORM,
+      formModuleConfigId: await loadFormModuleConfigId(
+        SERVICE_REQUEST_FORM,
+        DEFAULT_LOCALE,
+        SERVICE_REQUEST_MODULE_CONFIG_FALLBACK,
+      ),
       moduleEntityIdentifier: userIdentifier,
       replayTo: null,
       status: 'sent',

@@ -3,6 +3,7 @@ import type { IFormByMarkerDataEntity } from 'oneentry/types';
 import type { ServiceCategory, ServiceRequest, ServiceStatus } from '@/app/data/serviceData';
 import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
 import { formDataValue } from '@/lib/oneentry/forms/form-data-entry';
+import { loadFormModuleConfigId } from '@/lib/oneentry/forms/module-config';
 import { getApiSafe, isError } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { logCaught } from '@/lib/oneentry/log';
@@ -33,7 +34,11 @@ type FormDataRecord = IFormByMarkerDataEntity & {
   statusIdentifier?: string;
 };
 
-const SERVICE_REQUEST_FORM_MODULE_CONFIG_ID = 4;
+const SERVICE_REQUEST_FORM = 'service_request';
+
+// Fallback only — see the resolver call below. A hardcoded id silently stops
+// matching the records the write side submits once the form is recreated.
+const SERVICE_REQUEST_MODULE_CONFIG_FALLBACK = 4;
 
 /** Read the service-maintenance requests the current user has submitted via the OE `service_request` form. */
 export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
@@ -45,8 +50,12 @@ export async function getServiceRequestsAction(): Promise<ServiceRequest[]> {
   try {
     // The SDK singleton carries the shopper's own token after `reDefine()`, so OE sees an authenticated read.
     const result = await api.FormData.getFormsDataByMarker(
-      'service_request',
-      SERVICE_REQUEST_FORM_MODULE_CONFIG_ID,
+      SERVICE_REQUEST_FORM,
+      await loadFormModuleConfigId(
+        SERVICE_REQUEST_FORM,
+        DEFAULT_LOCALE,
+        SERVICE_REQUEST_MODULE_CONFIG_FALLBACK,
+      ),
       { userIdentifier },
       0,
       DEFAULT_LOCALE,
