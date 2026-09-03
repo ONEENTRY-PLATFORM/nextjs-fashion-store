@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── SDK mock ──────────────────────────────────────────────────────────────────
 const getFormsDataByMarker = vi.fn();
-const fakeApi = { FormData: { getFormsDataByMarker } };
+// `isModerate` is only delivered through the products API, so the moderation
+// probe reads it off a product — hence `Products` on the fake api.
+const getProducts = vi.fn();
+const fakeApi = { FormData: { getFormsDataByMarker }, Products: { getProducts } };
 
 vi.mock('@/lib/oneentry/index', async (importActual) => ({
   ...(await importActual<typeof import('@/lib/oneentry/index')>()),
@@ -30,6 +33,9 @@ const importFresh = async () => {
 beforeEach(() => {
   getFormsDataByMarker.mockReset();
   loadProductById.mockReset();
+  getProducts.mockReset();
+  // Default: no configs to read, so nothing is treated as premoderated.
+  getProducts.mockResolvedValue({ items: [] });
 });
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
@@ -174,6 +180,63 @@ describe('loadProductReviews — 2 s timeout ceiling', () => {
     expect(reviews).toEqual([]);
 
     vi.useRealTimers();
+  });
+});
+
+// ── premoderation ─────────────────────────────────────────────────────────────
+describe('loadProductReviews — premoderation', () => {
+  /*
+    The flag is read per module-config, not once for the feature: on the live
+    project the feedback config is premoderated and the rating config is not.
+    A single shared rule would either publish unmoderated feedback or hide every
+    rating, so both directions are pinned here.
+  */
+  it('hides unapproved feedback when its config is premoderated', async () => {
+    // Config ids fall back to 13 (feedback) / 12 (rating): the fake api has no
+    // `Forms`, so the resolver cannot read them from the form.
+    getProducts.mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          moduleFormConfigs: [
+            { id: 13, isModerate: true },
+            { id: 12, isModerate: false },
+          ],
+        },
+      ],
+    });
+    getFormsDataByMarker
+      .mockResolvedValueOnce({
+        items: [
+          { ...makeFlatFeedback(1, { user: 'user-1' }), status: 'sent' },
+          { ...makeFlatFeedback(2, { user: 'user-2' }), status: 'approved' },
+        ],
+      })
+      .mockResolvedValueOnce({ items: [] });
+    loadProductById.mockResolvedValue(fakeProduct);
+
+    const { loadProductReviews } = await importFresh();
+    const reviews = await loadProductReviews(1);
+
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0]?.id).toBe(2);
+  });
+
+  it('keeps records of an unmoderated config, which never reach "approved"', async () => {
+    getProducts.mockResolvedValue({
+      items: [{ id: 1, moduleFormConfigs: [{ id: 13, isModerate: false }] }],
+    });
+    getFormsDataByMarker
+      .mockResolvedValueOnce({
+        items: [{ ...makeFlatFeedback(1, { user: 'user-1' }), status: 'sent' }],
+      })
+      .mockResolvedValueOnce({ items: [] });
+    loadProductById.mockResolvedValue(fakeProduct);
+
+    const { loadProductReviews } = await importFresh();
+    const reviews = await loadProductReviews(1);
+
+    expect(reviews).toHaveLength(1);
   });
 });
 

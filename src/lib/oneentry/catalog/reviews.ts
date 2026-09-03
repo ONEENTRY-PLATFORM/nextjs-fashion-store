@@ -5,6 +5,7 @@ import { cache } from 'react';
 import type { ProductReview } from '@/app/data/productCatalog';
 import { REVALIDATE_PRODUCT } from '@/lib/isr';
 import { formDataValue } from '@/lib/oneentry/forms/form-data-entry';
+import { isConfigModerated } from '@/lib/oneentry/forms/moderation';
 import { loadFormModuleConfigId } from '@/lib/oneentry/forms/module-config';
 import { getApi, isError, isOneEntryEnabled } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
@@ -105,6 +106,13 @@ export const loadProductReviews = withTiming(
       loadFormModuleConfigId(FEEDBACK_MARKER, DEFAULT_LOCALE, FEEDBACK_MODULE_CONFIG_FALLBACK),
       loadFormModuleConfigId(RATING_MARKER, DEFAULT_LOCALE, RATING_MODULE_CONFIG_FALLBACK),
     ]);
+    // Read per config, not assumed: on the live project the feedback config is
+    // premoderated and the rating config is not, so one shared rule would be
+    // wrong for one of them either way.
+    const [feedbackModerated, ratingModerated] = await Promise.all([
+      isConfigModerated(feedbackConfig),
+      isConfigModerated(ratingConfig),
+    ]);
     const raced = await Promise.race([
       Promise.all([
         cachedFetchFormData(FEEDBACK_MARKER, feedbackConfig, productId, limit),
@@ -114,7 +122,19 @@ export const loadProductReviews = withTiming(
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
     ]);
     if (raced === null) return [];
-    const [feedbacks, ratings, product] = raced;
+    const [rawFeedbacks, rawRatings, product] = raced;
+
+    /**
+     * A premoderated config must only show approved records: submissions land as
+     * `sent` and wait in the admin queue, and rendering them straight away makes
+     * the moderation switch do nothing. An unmoderated config never reaches
+     * `approved`, so filtering it the same way would hide every record instead.
+     */
+    const published = (records: RawFormDataItem[], moderated: boolean): RawFormDataItem[] =>
+      moderated ? records.filter((record) => record.status === 'approved') : records;
+
+    const feedbacks = published(rawFeedbacks, feedbackModerated);
+    const ratings = published(rawRatings, ratingModerated);
     // Earlier seed iterations left behind feedback records with no body (just headline + occasions).
     const withBody = feedbacks.filter((fb) => textValue(value(fb, 'body')).length > 0);
     if (withBody.length === 0) return [];
