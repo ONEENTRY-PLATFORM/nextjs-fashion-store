@@ -46,6 +46,7 @@ import {
 } from '@/lib/oneentry/index';
 import { DEFAULT_LOCALE } from '@/lib/oneentry/locale';
 import { localizedTitle, type MaybeLocalizedInfo } from '@/lib/oneentry/localize';
+import { logCaught } from '@/lib/oneentry/log';
 import { isOnlinePaymentAccount, type PaymentAccountType } from '@/lib/oneentry/payments/account-type';
 import { se } from '@/lib/oneentry/server-errors';
 import type { Lang } from '@/lib/oneentry/system-text';
@@ -239,8 +240,30 @@ const DEFAULT_SUBSCRIPTIONS: OeSubscriptions = {
   loyaltyUpdates: false,
 };
 
-// User-scoped order storages (non-guest). Probed via Orders.getAllOrdersStorage.
-const USER_ORDER_STORAGE_MARKERS = ['home', 'store_pickup', 'locker'] as const;
+// Fallback list of user-scoped order storages, used only when the storage list
+// cannot be read. Hardcoding it as the sole source means a storage added in the
+// admin panel never shows up in order history, and renaming one silently drops
+// that whole branch of orders.
+const USER_ORDER_STORAGE_MARKERS_FALLBACK = ['home', 'store_pickup', 'locker'] as const;
+
+// Page size per storage request, and a safety stop for the walk: `total` comes
+// from the API, so a runaway value must not turn one profile render into an
+// unbounded request loop.
+const ORDERS_PAGE_SIZE = 100;
+const MAX_ORDERS_PER_STORAGE = 1000;
+
+/** Order-storage markers the shopper has, straight from OE, with the literal list as fallback. */
+async function userOrderStorageMarkers(api: NonNullable<ReturnType<typeof getApiSafe>>): Promise<string[]> {
+  try {
+    const storages = await api.Orders.getAllOrdersStorage(getLang());
+    if (isError(storages) || !Array.isArray(storages)) return [...USER_ORDER_STORAGE_MARKERS_FALLBACK];
+    const markers = storages.map((s) => s.identifier).filter((m): m is string => Boolean(m));
+    return markers.length > 0 ? markers : [...USER_ORDER_STORAGE_MARKERS_FALLBACK];
+  } catch (err) {
+    logCaught('actions.userOrderStorageMarkers', err);
+    return [...USER_ORDER_STORAGE_MARKERS_FALLBACK];
+  }
+}
 
 async function fetchUserOrders(): Promise<OeOrder[]> {
   const api = getApiSafe();
@@ -255,13 +278,30 @@ async function fetchUserOrders(): Promise<OeOrder[]> {
     products?: RawProduct[];
   };
   const all: OeOrder[] = [];
+  const markers = await userOrderStorageMarkers(api);
   await Promise.all(
-    USER_ORDER_STORAGE_MARKERS.map(async (marker) => {
+    markers.map(async (marker) => {
       try {
-        const result = await api.Orders.getAllOrdersByMarker(marker, getLang(), 0, 100);
-        if (isError(result)) return;
-        const data: Omit<IOrdersByMarkerEntity, 'items'> & { items?: RawOrder[] } = result;
-        for (const o of data.items ?? []) {
+        // Read each storage to the end: one 100-item page dropped every order
+        // past the 100th, invisible in both the UI and the logs.
+        const items: RawOrder[] = [];
+        let offset = 0;
+        while (items.length < MAX_ORDERS_PER_STORAGE) {
+          const result = await api.Orders.getAllOrdersByMarker(
+            marker,
+            getLang(),
+            offset,
+            ORDERS_PAGE_SIZE
+          );
+          if (isError(result)) break;
+          const data: Omit<IOrdersByMarkerEntity, 'items'> & { items?: RawOrder[] } = result;
+          const page = data.items ?? [];
+          items.push(...page);
+          if (page.length === 0) break;
+          offset += ORDERS_PAGE_SIZE;
+          if (offset >= (data.total ?? 0)) break;
+        }
+        for (const o of items) {
           const formDataMap: Record<string, unknown> = {};
           for (const f of o.formData ?? []) {
             if (f.marker) formDataMap[f.marker] = f.value;
