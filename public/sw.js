@@ -29,6 +29,13 @@ self.addEventListener('fetch', event => {
 
   const isDev = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
 
+  // Never touch the CMS. Today this is redundant — API calls are not navigations
+  // and fall through the `request.mode` check below — but that is an accident of
+  // the current branches, not a rule. The moment a caching branch is added for,
+  // say, CDN images, an unguarded worker starts caching cart and account
+  // responses by URL and serving one shopper's data to the next.
+  if (url.hostname.endsWith('.oneentry.cloud')) return;
+
   // Cache-first for immutable Next.js static assets (production only — chunks have content hash)
   // Skip in dev: Turbopack chunks change content without changing filename
   if (!isDev && url.pathname.startsWith('/_next/static/')) {

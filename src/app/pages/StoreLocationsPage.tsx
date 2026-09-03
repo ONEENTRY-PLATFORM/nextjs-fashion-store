@@ -133,7 +133,7 @@ export function StoreLocationsPage({ initialStores, cmsPage, pageBlocks }: Store
           className="object-cover object-center"
         />
         {/* Dark overlay for text legibility */}
-        <div className="absolute inset-0 bg-black/[0.52]" />
+        <div className="absolute inset-0 bg-black/52" />
 
         <div className="relative z-10 px-4">
           <p className="mb-3 text-xs font-semibold tracking-[0.3em] text-accent uppercase">{heroEyebrow}</p>

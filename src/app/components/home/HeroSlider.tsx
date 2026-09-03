@@ -191,7 +191,7 @@ export function HeroSlider({ initialSlides }: { initialSlides?: HeroSlideFromCms
         className={`absolute inset-0 flex items-end px-12 pb-16 md:px-20 ${ALIGN_OUTER[slide.align]} transition-opacity duration-400 ease-in-out ${isTransitioning ? 'opacity-0' : 'opacity-100'} `}
       >
         {/* Inner container — max-w 512px */}
-        <div className={`flex w-full max-w-128 flex-col ${ALIGN_TEXT[slide.align]}`}>
+        <div className={`flex w-full max-w-lg flex-col ${ALIGN_TEXT[slide.align]}`}>
           {/* Eyebrow label
               12px / leading-4 / tracking-[0.3em] / weight 500 / uppercase
               color rgba(255,255,255,0.80) / mb-3 (≈12px) */}

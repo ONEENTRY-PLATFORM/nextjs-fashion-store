@@ -48,7 +48,7 @@ export function StoreCard({ store }: { store: Store }) {
   return (
     <div className="flex flex-col bg-white font-sans outline-1 outline-black">
       {/* Image */}
-      <div className="relative aspect-16/9 overflow-hidden bg-gray-100">
+      <div className="relative aspect-video overflow-hidden bg-gray-100">
         {store.image && (
           <CmsImage
             src={store.image}

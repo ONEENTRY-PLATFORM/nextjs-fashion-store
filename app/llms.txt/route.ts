@@ -51,7 +51,13 @@ export const LLMS_TXT_COPY = {
   rateLimitNote: 'Rate limiting: standard crawl delays apply per robots.txt.',
 } as const;
 
-export const dynamic = 'force-static';
+/*
+  ISR, one hour. `force-static` used to be set here *without* a `revalidate`,
+  which caches the Route Handler whole at build time: the SKU count, the store
+  list and the section list stayed frozen at whatever they were when the deploy
+  ran, and the loaders' own TTLs could not change that.
+*/
+export const revalidate = 3600;
 
 export async function GET() {
   // Pull the aggregated OE catalog for an accurate SKU count — variants are collapsed so a "product family" counts once, matching what the shopper sees.
@@ -126,7 +132,14 @@ ${L.rateLimitNote}
   return new Response(content, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
+      /*
+        The window was inverted: `max-age=86400` with `stale-while-revalidate=3600`
+        told shared caches to serve a day-old copy while allowing only an hour of
+        background refresh, so ISR revalidation never reached the client. The
+        browser now revalidates every time, the CDN holds it for the same hour as
+        `revalidate`, and staleness is tolerated for a day *while* refreshing.
+      */
+      'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
     },
   });
 }

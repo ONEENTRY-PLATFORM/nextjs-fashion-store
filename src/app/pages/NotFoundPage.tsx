@@ -42,7 +42,7 @@ export function NotFoundPage() {
         {/* Large 404 */}
         <div className="relative mb-6 select-none">
           <span
-            className="text-[180px] leading-none font-bold tracking-tighter text-black/[0.04] sm:text-[240px]"
+            className="text-[180px] leading-none font-bold tracking-tighter text-black/4 sm:text-[240px]"
             aria-hidden="true"
           >
             {L.largeNumberAria}

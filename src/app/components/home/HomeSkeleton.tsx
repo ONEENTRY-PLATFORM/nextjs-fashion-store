@@ -36,7 +36,7 @@ export function HomeSkeleton() {
         aria-hidden="true"
       >
         <div className="absolute inset-0 flex items-end px-12 pb-16 md:px-20">
-          <div className="flex w-full max-w-128 flex-col">
+          <div className="flex w-full max-w-lg flex-col">
             {/* eyebrow / headline / subtext / CTA */}
             <div className="mb-3 h-4 w-32 rounded bg-gray-200" />
             <div className="mb-4 h-12 w-full rounded bg-gray-200 md:h-16" />
