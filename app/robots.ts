@@ -1,8 +1,25 @@
 import type { MetadataRoute } from 'next';
 
 import { SITE_URL } from '@/app/data/seoData';
+import { localizeHref, SHORT_LOCALES } from '@/lib/oneentry/locale';
 
-const PRIVATE_PATHS = ['/cart', '/favorites', '/account', '/checkout/', '/api/'];
+/** Private routes as authored, i.e. in the unprefixed default locale. */
+const PRIVATE_ROUTES = ['/cart', '/favorites', '/account', '/checkout/'];
+
+/*
+  Every routed locale gets its own copy. Locale prefixes are as-needed — the
+  default renders bare, the rest are prefixed — so the bare list alone left
+  `/de/cart`, `/de/favorites`, `/de/account` and `/de/checkout/` crawlable.
+
+  Derived rather than written out, because `SHORT_LOCALES` comes from
+  `locales.generated.ts`, which is regenerated from the CMS on every build:
+  a locale added in the admin panel must not silently reopen these paths.
+  `/api/` stays bare — it is not locale-routed.
+*/
+const PRIVATE_PATHS = [
+  ...new Set(SHORT_LOCALES.flatMap((short) => PRIVATE_ROUTES.map((route) => localizeHref(route, short)))),
+  '/api/',
+];
 
 export default function robots(): MetadataRoute.Robots {
   return {

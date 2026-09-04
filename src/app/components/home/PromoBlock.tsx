@@ -53,7 +53,15 @@ function PromoCard({ item, priority = false }: { item: PromoItem; priority?: boo
   );
 }
 
-export function PromoBlock({ initialItems }: { initialItems?: HomepageCollectionItem[] } = {}) {
+/*
+  `priority` comes from the caller: block order is admin-defined, so only the
+  renderer knows whether this block leads the page. Previously the first card
+  preloaded itself wherever the block landed.
+*/
+export function PromoBlock({
+  initialItems,
+  priority = false,
+}: { initialItems?: HomepageCollectionItem[]; priority?: boolean } = {}) {
   const items: PromoItem[] = (initialItems ?? []).map((it) => ({
     id: String(it.id),
     title: it.title,
@@ -87,7 +95,7 @@ export function PromoBlock({ initialItems }: { initialItems?: HomepageCollection
     <section className="w-full font-sans">
       <div className="grid grid-cols-1 gap-0 sm:grid-cols-2">
         {items.map((item, i) => (
-          <PromoCard key={item.id} item={item} priority={i === 0} />
+          <PromoCard key={item.id} item={item} priority={priority && i === 0} />
         ))}
       </div>
     </section>

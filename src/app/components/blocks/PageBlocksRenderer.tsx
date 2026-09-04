@@ -156,13 +156,13 @@ export function PageBlocksRenderer({
           case 'promo_block':
             return (
               <AnimatedSection key={key} className={wrapperCls}>
-                <PromoBlock initialItems={initialPromoItems} />
+                <PromoBlock initialItems={initialPromoItems} priority={idx === 0} />
               </AnimatedSection>
             );
           case 'discount_banner':
             return (
               <AnimatedSection key={key} className={wrapperCls}>
-                <DiscountBanner initialBanner={initialDiscountBanner} />
+                <DiscountBanner initialBanner={initialDiscountBanner} priority={idx === 0} />
               </AnimatedSection>
             );
           case 'men_collection':

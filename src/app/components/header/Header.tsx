@@ -7,6 +7,7 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
+import { useQuickView } from '@/app/context/QuickViewContext';
 import { useWishlist } from '@/app/context/WishlistContext';
 import logoImage from '@/assets/kekimoro-logo-black.png';
 
@@ -120,9 +121,10 @@ export function Header() {
     setSearchOpen(false);
   }
 
-  const { totalItems, openMiniCart } = useCart();
-  const { isLoggedIn, openLoginModal } = useAuth();
+  const { totalItems, openMiniCart, miniCartOpen } = useCart();
+  const { isLoggedIn, openLoginModal, loginModalOpen, registerModalOpen, resetPasswordModalOpen } = useAuth();
   const { count: wishlistCount } = useWishlist();
+  const { isOpen: quickViewOpen } = useQuickView();
 
   const accentColor = activeGender === 'women' ? WOMEN_COLOR : MEN_COLOR;
 
@@ -216,7 +218,20 @@ export function Header() {
                   <Menu size={22} />
                 </button>
                 <Link href="/" className="shrink-0" data-testid="header-logo">
-                  <Image src={logoImage} alt={L.logoAlt} width={146} height={32} className="object-contain" priority />
+                  {/*
+                    `eager`, not `priority`. The header sits in the root layout,
+                    so `priority` here issued a high-priority preload for a
+                    146×32 logo on *every* route, competing with each page's
+                    actual LCP image. `eager` still opts it out of lazy loading.
+                  */}
+                  <Image
+                    src={logoImage}
+                    alt={L.logoAlt}
+                    width={146}
+                    height={32}
+                    className="object-contain"
+                    loading="eager"
+                  />
                 </Link>
               </div>
 
@@ -347,11 +362,19 @@ export function Header() {
           getNavHref={getNavHref}
         />
 
-        <MiniCart />
-        <LoginModal />
-        <RegisterModal />
-        <ResetPasswordModal />
-        <QuickViewModal />
+        {/*
+          Mounted only while open. Each of these already returned `null` when
+          closed, but `next/dynamic` fetches a component's chunk as soon as it
+          is *rendered* — so all five chunks downloaded on every route, the
+          header living in the root layout. Gating on the open flag is
+          behaviourally identical (no exit animation depends on staying mounted)
+          and defers each chunk to the interaction that needs it.
+        */}
+        {miniCartOpen && <MiniCart />}
+        {loginModalOpen && <LoginModal />}
+        {registerModalOpen && <RegisterModal />}
+        {resetPasswordModalOpen && <ResetPasswordModal />}
+        {quickViewOpen && <QuickViewModal />}
       </header>
     </>
   );

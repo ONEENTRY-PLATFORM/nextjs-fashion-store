@@ -67,7 +67,12 @@ export function HeaderMobileDrawer({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="absolute inset-y-0 left-0 flex w-80 flex-col overflow-y-auto bg-white">
         <div className="flex items-center justify-between border-b border-gray-200 p-4">
-          <Image src={logoImage} alt={L.logoAlt} width={128} height={28} className="object-contain" priority />
+          {/*
+            No `priority`: the drawer renders only once opened, so this is never
+            an LCP candidate, and it is the same asset the header already
+            fetched. `eager` keeps it from being lazy-deferred inside the panel.
+          */}
+          <Image src={logoImage} alt={L.logoAlt} width={128} height={28} className="object-contain" loading="eager" />
           <button onClick={onClose} className="p-1" aria-label={L.ariaCloseMenu}>
             <X size={22} />
           </button>

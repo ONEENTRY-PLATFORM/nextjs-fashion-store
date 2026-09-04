@@ -7,7 +7,16 @@ import { useMounted } from '@/app/hooks/useMounted';
 import { Link } from '@/lib/i18n/navigation';
 import type { DiscountBannerFromCms } from '@/lib/oneentry/blocks/discount-banner';
 
-export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBannerFromCms | null } = {}) {
+/*
+  `priority` is decided by the caller, not by this component. Blocks are ordered
+  in the admin panel, so no block can know on its own whether it is the LCP
+  candidate; claiming `priority` unconditionally preloaded a below-the-fold
+  banner in competition with the real hero image.
+*/
+export function DiscountBanner({
+  initialBanner,
+  priority = false,
+}: { initialBanner?: DiscountBannerFromCms | null; priority?: boolean } = {}) {
   const [hovered, setHovered] = useState(false);
   const mounted = useMounted();
 
@@ -31,7 +40,7 @@ export function DiscountBanner({ initialBanner }: { initialBanner?: DiscountBann
         alt={banner.alt}
         fill
         sizes="100vw"
-        priority
+        priority={priority}
         className={`object-cover object-[center_30%] transition-transform duration-700 ${hovered ? 'scale-1.03' : 'scale-100'}`}
       />
       {/* Dark Overlay */}
