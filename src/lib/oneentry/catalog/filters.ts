@@ -55,6 +55,45 @@ const LIST_FIELD_TO_KEY: Record<string, string> = Object.fromEntries(
   Object.entries(LIST_KEYS).map(([urlKey, field]) => [field as string, urlKey]),
 );
 
+/*
+  URL keys that make a catalog listing a filtered variant of itself rather than a page in its own
+  right. Used to keep those variants out of the search index: the fifteen list facets combine into an
+  unbounded number of URLs carrying no unique content, and this route renders dynamically, so each one
+  is a fresh server render.
+
+  Two of the keys `parseCatalogSearchParams` reads are deliberately absent:
+
+  - `chip` — a mega-menu leaf deep-link (`/women/clothing/category/outerwear`) *redirects* to
+    `/women/clothing?chip=Outerwear`, so this query URL is the leaf's actual address. De-indexing it
+    would drop the whole leaf category out of the index.
+  - `category` — feeds the seasonal-trend resolution and may likewise be a navigation destination
+    rather than a filter. Left indexable as the conservative call: keeping a page indexable is the
+    reversible direction, dropping one is not.
+*/
+export const FACET_URL_KEYS: readonly string[] = [
+  ...Object.keys(LIST_KEYS),
+  'minPrice',
+  'maxPrice',
+  'inStock',
+  'sort',
+  'page',
+];
+
+/**
+ * Whether the inbound `searchParams` describe a filtered/sorted/paginated catalog view rather than the
+ * bare listing. `page=1` counts as the bare listing; so do empty values, which the filter UI leaves
+ * behind when a control is cleared.
+ */
+export function isFilteredCatalogView(sp: RawSearchParams): boolean {
+  if (!sp) return false;
+  return FACET_URL_KEYS.some((key) => {
+    const value = sp[key];
+    if (value == null || value === '') return false;
+    if (key === 'page') return Number(firstString(value)) > 1;
+    return Array.isArray(value) ? value.length > 0 : true;
+  });
+}
+
 const firstString = (v: string | string[] | undefined): string | undefined => {
   if (Array.isArray(v)) return v[0];
   return v;

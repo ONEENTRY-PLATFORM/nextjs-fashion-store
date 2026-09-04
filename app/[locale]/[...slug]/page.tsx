@@ -29,7 +29,11 @@ import { buildFaqSchema, faqItemsFromBlocks } from '@/lib/oneentry/blocks/info-s
 import { loadBlockWithProducts, loadPageBlocksByUrl, type PageBlock } from '@/lib/oneentry/blocks/page-blocks';
 import { adaptCatalogProductToUiProduct, catalogKeyToCategoryPath } from '@/lib/oneentry/catalog/adapt';
 import { type CmsCatalogRoute, resolveCatalogRoute } from '@/lib/oneentry/catalog/catalog-routes';
-import { type CatalogFilters, parseCatalogSearchParams } from '@/lib/oneentry/catalog/filters';
+import {
+  type CatalogFilters,
+  isFilteredCatalogView,
+  parseCatalogSearchParams,
+} from '@/lib/oneentry/catalog/filters';
 import { resolveInfoPageSlug } from '@/lib/oneentry/catalog/info-pages';
 import { withCmsSeo } from '@/lib/oneentry/catalog/page-seo';
 import { loadPageByUrl } from '@/lib/oneentry/catalog/pages';
@@ -93,7 +97,7 @@ const PRODUCTS_PER_PAGE = 16;
 export const revalidate = 60;
 
 /* ─── generateMetadata ─── */
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
   const path = slug.join('/');
   // A path missing from the static registry may still be an info page the editor created in OE after the last deploy — ask the CMS before giving up.
@@ -147,7 +151,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   // Catalog pages have an OE page of their own — the same one the block loader reads, under the `catalogKey` with hyphens swapped for underscores.
   if (entry.type === 'catalog') {
-    return withCmsSeo(entry.catalogKey.replace(/-/g, '_'), buildPageMetadata(entry));
+    const meta = withCmsSeo(entry.catalogKey.replace(/-/g, '_'), buildPageMetadata(entry));
+    /*
+      Filtered variants are kept out of the index. Nothing in `robots.ts` blocks these URLs, so this
+      `noindex` is actually read — unlike the sibling restaurant project, where the same URLs are
+      disallowed outright and the directive can never be fetched. `follow` stays true: the links out
+      of a filtered listing lead to real product pages, and pagination is how a crawler walks past the
+      first screen. The canonical `buildPageMetadata` already emits points at the bare listing.
+    */
+    if (isFilteredCatalogView(await searchParams)) {
+      return { ...meta, robots: { index: false, follow: true, googleBot: { index: false, follow: true } } };
+    }
+    return meta;
   }
 
   return buildPageMetadata(entry);
