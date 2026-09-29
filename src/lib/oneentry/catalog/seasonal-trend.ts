@@ -84,7 +84,12 @@ function readAttr(attrs: Record<string, unknown>, markers: string[]): string {
 }
 
 export type SeasonalTrend =
-  { kind: 'category'; value: string } | { kind: 'attribute'; field: CatalogListField; value: string };
+  | { kind: 'category'; value: string }
+  // `values`, not `value`: `st_trends` holds a comma-separated list ("Casual, Classic"), and a
+  // merchant is free to name several. Taken whole the string matched no product and the page
+  // rendered "NO RESULTS FOUND"; the entries are OR-ed by the catalog filter, which is what a
+  // trends page means.
+  | { kind: 'attribute'; field: CatalogListField; values: string[] };
 
 /** Resolve a SEASONAL TRENDS page into the filter it should apply to the catalog grid. */
 export async function resolveSeasonalTrend(pageUrl: string, langArg?: string): Promise<SeasonalTrend | null> {
@@ -115,7 +120,9 @@ export async function resolveSeasonalTrend(pageUrl: string, langArg?: string): P
   if (type === 'category') return { kind: 'category', value };
   const field = ATTR_ALIAS_TO_FILTER[type] ?? ATTR_ALIAS_TO_FILTER[type.replace(/_\d+$/, '')];
   if (!field) return null;
-  return { kind: 'attribute', field, value };
+  const values = [...new Set(value.split(',').map((v) => v.trim()).filter(Boolean))];
+  if (values.length === 0) return null;
+  return { kind: 'attribute', field, values };
 }
 
 /** Apply a resolved SEASONAL TRENDS descriptor to a `CatalogFilters` object. */
@@ -124,10 +131,14 @@ export function applySeasonalTrend(filters: CatalogFilters, trend: SeasonalTrend
     return { ...filters, category: trend.value };
   }
   const existing = (filters[trend.field] as string[] | undefined) ?? [];
+  const merged = [...existing];
+  for (const v of trend.values) {
+    if (!merged.some((e) => e.toLowerCase() === v.toLowerCase())) merged.push(v);
+  }
   return {
     ...filters,
     // Drop the pageUrl-based category filter — the shopper is on a SEASONAL TRENDS page whose subject is an attribute, not a taxonomy leaf.
     category: undefined,
-    [trend.field]: existing.includes(trend.value) ? existing : [...existing, trend.value],
+    [trend.field]: merged,
   };
 }

@@ -21,6 +21,17 @@ beforeEach(() => {
 });
 
 describe('applySeasonalTrend', () => {
+  it('OR-s every entry of a comma-separated st_trends value', async () => {
+    // `st_trends` on the live stand reads "Casual, Classic" / "Cozy, Sporty, Cozy". Taken whole
+    // the string matched no product, so every SEASONAL TRENDS page in the mega menu was empty.
+    const { applySeasonalTrend } = await importFresh();
+    const next = applySeasonalTrend(
+      {},
+      { kind: 'attribute', field: 'styles', values: ['Casual', 'Classic'] },
+    );
+    expect(next.styles).toEqual(['Casual', 'Classic']);
+  });
+
   it('sets category filter for a category-kind trend and preserves other fields', async () => {
     const { applySeasonalTrend } = await importFresh();
     const filters: CatalogFilters = { minPrice: 10, colors: ['Red'] };
@@ -40,7 +51,7 @@ describe('applySeasonalTrend', () => {
     const next = applySeasonalTrend(filters, {
       kind: 'attribute',
       field: 'materials',
-      value: 'Suede',
+      values: ['Suede'],
     });
     expect(next.materials).toEqual(['Wool', 'Suede']);
     expect(next.category).toBeUndefined();
@@ -55,7 +66,7 @@ describe('applySeasonalTrend', () => {
     const next = applySeasonalTrend(filters, {
       kind: 'attribute',
       field: 'styles',
-      value: 'Casual',
+      values: ['Casual'],
     });
     expect(next.styles).toEqual(['Casual', 'Sport']);
   });
@@ -66,7 +77,7 @@ describe('applySeasonalTrend', () => {
     const next = applySeasonalTrend(filters, {
       kind: 'attribute',
       field: 'brands',
-      value: 'Acme',
+      values: ['Acme'],
     });
     expect(next.brands).toEqual(['Acme']);
   });
@@ -125,7 +136,26 @@ describe('resolveSeasonalTrend', () => {
     expect(await resolveSeasonalTrend('trend-page')).toEqual({
       kind: 'attribute',
       field: 'materials',
-      value: 'Suede',
+      values: ['Suede'],
+    });
+  });
+
+  it('splits a comma-separated st_trends list and drops repeats', async () => {
+    // Live shape on the stand: `women_fitness_yoga` carries "Cozy, Sporty, Cozy".
+    getPageByUrl.mockResolvedValue({
+      id: 9,
+      attributeValues: {
+        en_US: {
+          'st_type-of-trends': { value: 'Style' },
+          st_trends: { value: 'Cozy, Sporty, Cozy' },
+        },
+      },
+    });
+    const { resolveSeasonalTrend } = await importFresh();
+    expect(await resolveSeasonalTrend('trend-page')).toEqual({
+      kind: 'attribute',
+      field: 'styles',
+      values: ['Cozy', 'Sporty'],
     });
   });
 
@@ -143,7 +173,7 @@ describe('resolveSeasonalTrend', () => {
     expect(await resolveSeasonalTrend('trend-page')).toEqual({
       kind: 'attribute',
       field: 'materials',
-      value: 'Leather',
+      values: ['Leather'],
     });
   });
 
@@ -161,7 +191,7 @@ describe('resolveSeasonalTrend', () => {
     expect(await resolveSeasonalTrend('trend-page')).toEqual({
       kind: 'attribute',
       field: 'materials',
-      value: 'Cotton',
+      values: ['Cotton'],
     });
   });
 
@@ -179,7 +209,7 @@ describe('resolveSeasonalTrend', () => {
     expect(await resolveSeasonalTrend('trend-page')).toEqual({
       kind: 'attribute',
       field: 'styles',
-      value: 'Casual',
+      values: ['Casual'],
     });
   });
 
@@ -195,7 +225,7 @@ describe('resolveSeasonalTrend', () => {
     expect(await resolveSeasonalTrend('trend-page')).toEqual({
       kind: 'attribute',
       field: 'brands',
-      value: 'Acme',
+      values: ['Acme'],
     });
   });
 
@@ -227,7 +257,7 @@ describe('resolveSeasonalTrend', () => {
     expect(await resolveSeasonalTrend('trend-page')).toEqual({
       kind: 'attribute',
       field: 'seasons',
-      value: 'Winter',
+      values: ['Winter'],
     });
   });
 });

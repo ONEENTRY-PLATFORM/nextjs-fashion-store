@@ -55,8 +55,9 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     price: formatPrice(v.price),
     ...(v.salePrice !== undefined && v.salePrice < v.price && { salePrice: formatPrice(v.salePrice) }),
     sku: v.sku,
-    image: v.preview,
-    images: v.images,
+    // Cards render the light ~300px `thumb`; the PDP adapter keeps the full-res gallery.
+    image: v.previewThumb,
+    images: v.imagesThumb,
     imageBlurs: v.imageBlurs,
     inStock: variantHasStock(v),
     // Forward numeric stock so QuickView's Add-to-Cart can seed the cart item's `stockLimit`. Zero + status-only tracking leaves `stock` undefined.
@@ -75,9 +76,10 @@ export function adaptCatalogProductToUiProduct(p: CatalogProduct): Product {
     brand: p.brand || undefined,
     price: formatPrice(p.price),
     ...(p.salePrice !== undefined && p.salePrice < p.price && { salePrice: formatPrice(p.salePrice) }),
-    image: p.preview,
-    colorImages: p.images.slice(0, p.colors.length || 1),
-    // Keyed by URL, so slicing `images` above cannot desync it.
+    // Catalog card paints the light ~300px `thumb`; the PDP adapter serves full-res.
+    image: p.previewThumb,
+    colorImages: p.imagesThumb.slice(0, p.colors.length || 1),
+    // Keyed by URL, so slicing `imagesThumb` above cannot desync it.
     imageBlurs: p.imageBlurs,
     label: label || undefined,
     colors: p.colors,

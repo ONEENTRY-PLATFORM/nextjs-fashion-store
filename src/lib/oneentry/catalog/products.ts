@@ -39,8 +39,12 @@ export interface CatalogProduct {
   country: string;
   categories: string[];
   images: string[];
+  /** Resized (~300px) `thumb` variants parallel to `images`; falls back to the full URL where the upload carried no preview. Grids/cards render these instead of the multi-hundred-KB originals. */
+  imagesThumb: string[];
   /** First image — preview thumbnail. */
   preview: string;
+  /** First `thumb` variant — the light image the catalog card should paint. */
+  previewThumb: string;
   /** Blur data URI per image URL, for `next/image`'s `blurDataURL`. Keyed by URL rather than index so the adapters can slice `images` freely. */
   imageBlurs: Record<string, string>;
   /** Clothing-only extras coming from the OE attribute set. */
@@ -71,7 +75,11 @@ export interface CatalogProductVariant {
   salePrice?: number;
   sku: string;
   preview: string;
+  /** First `thumb` variant — see the same field on the product above. */
+  previewThumb: string;
   images: string[];
+  /** Resized (~300px) `thumb` variants parallel to `images` — see the product field. */
+  imagesThumb: string[];
   /** Blur data URI per image URL — see the same field on the product above. */
   imageBlurs: Record<string, string>;
   stock: number;
@@ -263,6 +271,7 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
   // Real attribute markers in the live tenant (snapshot from /inspect-api): gallery, brand, colors, sizes, material, style, label, season, brand_country, fit, lining_material, description, sku, title, currency, price, tags.
   const gallery = imagesValue(findAttr(attrs, ['gallery', 'pictures']));
   const images = gallery.map((img) => img.url);
+  const imagesThumb = gallery.map((img) => img.thumb ?? img.url);
   const brand = listValues(findAttr(attrs, ['brand']))[0] ?? '';
   const colors = listValues(findAttr(attrs, ['colors', 'color']));
   const sizes = listValues(findAttr(attrs, ['sizes', 'size']));
@@ -313,7 +322,9 @@ const normalize = (raw: RawProduct, lang: Lang): CatalogProduct => {
     country: countries[0] ?? '',
     categories: Array.isArray(raw.categories) ? raw.categories.map(normalizeCategoryPath) : [],
     images,
+    imagesThumb,
     preview: images[0] ?? '',
+    previewThumb: imagesThumb[0] ?? '',
     imageBlurs: blurByUrl(gallery),
     descriptionHtml,
     careInstructions,
@@ -422,7 +433,9 @@ function aggregateByName(items: CatalogProduct[], allById: Map<number, CatalogPr
       ...(v.salePrice !== undefined && { salePrice: v.salePrice }),
       sku: v.sku,
       preview: v.preview,
+      previewThumb: v.previewThumb,
       images: v.images,
+      imagesThumb: v.imagesThumb,
       imageBlurs: v.imageBlurs,
       stock: v.stock,
       statusIdentifier: v.statusIdentifier,
@@ -602,7 +615,9 @@ export const loadProductById = withTiming(
       sku: v.sku,
       ...(v.salePrice !== undefined && { salePrice: v.salePrice }),
       preview: v.preview,
+      previewThumb: v.previewThumb,
       images: v.images,
+      imagesThumb: v.imagesThumb,
       imageBlurs: v.imageBlurs,
       stock: v.stock,
       statusIdentifier: v.statusIdentifier,
@@ -769,7 +784,23 @@ function matchesCatalogFilters(p: CatalogProduct, f: CatalogFilters): boolean {
       .replace(/^-+|-+$/g, '');
     const hit = p.categories.some((path) => {
       const segs = path.toLowerCase().split('/').filter(Boolean);
-      return segs.includes(raw) || (slug && slug !== raw && segs.includes(slug));
+      if (segs.includes(raw) || (slug && slug !== raw && segs.includes(slug))) return true;
+      // Mega-menu leaves link by OE `pageUrl`, which is conventionally `<parent>_<leaf>`
+      // (`women_bags_bags`, `women_accessories_headwear`), while a product's category path
+      // keeps the two apart (`home/women/women_bags/bags`). Without this the whole second
+      // level of the menu landed on "NO RESULTS FOUND" — every leaf except the handful
+      // whose pageUrl happens to carry no parent prefix (`keychains`).
+      // The parent segment must sit on the SAME path, so `..._bags` cannot match a `bags`
+      // leaf hanging under some other parent.
+      return segs.some((parent, i) => {
+        if (!raw.startsWith(`${parent}_`)) return false;
+        const leaf = raw.slice(parent.length + 1);
+        // The leaf is word-separated by `_` in a pageUrl and by `-` in a category path
+        // (`women_clothing_hoodies_sweaters` vs `.../women_clothing/hoodies-sweaters`).
+        const leafSlug = leaf.replace(/_/g, '-');
+        const rest = segs.slice(i + 1);
+        return rest.includes(leaf) || rest.includes(leafSlug);
+      });
     });
     if (!hit) return false;
   }

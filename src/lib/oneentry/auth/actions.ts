@@ -1,5 +1,6 @@
 /** Shopper-scoped OneEntry calls (profile, orders, cart, wishlist, checkout). */
 import type {
+  FormDataPostType,
   FormDataType,
   IAuthFormData,
   IAuthProvidersEntity,
@@ -609,7 +610,8 @@ async function formDataPost<T>(body: {
     const result = await api.FormData.postFormsData(
       {
         ...body,
-        formData: flat as FormDataType[],
+        // Submission side: `FormDataPostType` is not the shape a read returns.
+        formData: flat as FormDataPostType[],
       },
       DEFAULT_LOCALE,
     );

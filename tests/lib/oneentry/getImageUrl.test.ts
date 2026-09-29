@@ -117,6 +117,8 @@ describe('getImage — preview-template LQIP', () => {
     expect(getImage(lqipFile('coat'))).toEqual({
       url: 'https://cdn.oneentry.cloud/coat.jpg',
       blur: 'data:image/webp;base64,default-coat',
+      // The resized `thumb` level travels alongside the full url — grids paint it.
+      thumb: 'https://cdn.oneentry.cloud/coat.preview.thumb.jpg',
     });
   });
 
@@ -162,15 +164,27 @@ describe('getImage — preview-template LQIP', () => {
 describe('getImages — galleries carry per-file blur', () => {
   it('pairs every url with its own blur', () => {
     expect(getImages([lqipFile('a'), lqipFile('b')])).toEqual([
-      { url: 'https://cdn.oneentry.cloud/a.jpg', blur: 'data:image/webp;base64,default-a' },
-      { url: 'https://cdn.oneentry.cloud/b.jpg', blur: 'data:image/webp;base64,default-b' },
+      {
+        url: 'https://cdn.oneentry.cloud/a.jpg',
+        blur: 'data:image/webp;base64,default-a',
+        thumb: 'https://cdn.oneentry.cloud/a.preview.thumb.jpg',
+      },
+      {
+        url: 'https://cdn.oneentry.cloud/b.jpg',
+        blur: 'data:image/webp;base64,default-b',
+        thumb: 'https://cdn.oneentry.cloud/b.preview.thumb.jpg',
+      },
     ]);
   });
 
   it('mixes legacy and preview-template records without dropping either', () => {
     expect(getImages([file('old'), lqipFile('new')])).toEqual([
       { url: 'https://cdn.oneentry.cloud/old.jpg', blur: undefined },
-      { url: 'https://cdn.oneentry.cloud/new.jpg', blur: 'data:image/webp;base64,default-new' },
+      {
+        url: 'https://cdn.oneentry.cloud/new.jpg',
+        blur: 'data:image/webp;base64,default-new',
+        thumb: 'https://cdn.oneentry.cloud/new.preview.thumb.jpg',
+      },
     ]);
   });
 

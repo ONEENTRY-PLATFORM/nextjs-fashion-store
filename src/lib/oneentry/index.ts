@@ -207,6 +207,8 @@ type OeFileValue = {
 export type OeImage = {
   url: string;
   blur?: string;
+  /** Resized `thumb` variant from the OE preview template (~300px), when the upload carried one. Full-size grids should prefer this over `url`. */
+  thumb?: string;
 };
 
 /** Pull the LQIP data URI out of a file record, when the upload went through a preview template. */
@@ -221,6 +223,29 @@ function fileBlur(file: OeFileValue): string | undefined {
 
   const [blur] = pair;
   return typeof blur === 'string' && blur.startsWith('data:') ? blur : undefined;
+}
+
+/**
+ * Pull the resized `thumb` variant URL from a preview-template upload. Each `previewLink[level]`
+ * is `[lqipDataUri, resizedUrl]`, and the `thumb` level's `resizedUrl` is the light copy the
+ * catalog grid paints instead of the multi-hundred-KB original.
+ *
+ * Whatever size the OE preview template emits is what ships — nothing here resizes. On
+ * `e-commerce.oneentry.cloud` the template currently produces a 300×300 square while a catalog
+ * card is 431×575 CSS px (862×1150 on a 2× screen, cropped `cover` to 225×300 of the source):
+ * a 3.8× upscale, which is why the cards look soft. Fixing that is a template setting — aim for
+ * a card-sized 3:4 variant, roughly 900×1200 — and this function picks it up with no change
+ * here. `tests/e2e/card-image-resolution.spec.ts` measures the ratio.
+ */
+function fileThumb(file: OeFileValue): string | undefined {
+  const preview = file.previewLink;
+  if (!preview || typeof preview !== 'object') return undefined;
+
+  const thumb = (preview as Record<string, unknown>).thumb;
+  if (!Array.isArray(thumb)) return undefined;
+
+  const url = thumb[1];
+  return typeof url === 'string' && /^https?:\/\//.test(url) ? url : undefined;
 }
 
 /** Normalize any OE image-ish attribute value into a single URL. */
@@ -248,12 +273,13 @@ export function getImage(value: unknown): OeImage {
 
   const file = first as OeFileValue;
   const blur = fileBlur(file);
+  const thumb = fileThumb(file);
 
   if (typeof file.downloadLink === 'string' && file.downloadLink) {
-    return { url: file.downloadLink, blur };
+    return { url: file.downloadLink, blur, thumb };
   }
   // Only the legacy string shape is a usable `src`; the preview-template object would stringify to "[object Object]".
-  return { url: typeof file.previewLink === 'string' ? file.previewLink : '', blur };
+  return { url: typeof file.previewLink === 'string' ? file.previewLink : '', blur, thumb };
 }
 
 /** Every image of an OE attribute, in wire order, each with its blur. */
@@ -271,7 +297,11 @@ export function getImages(value: unknown): OeImage[] {
 export function blurByUrl(images: OeImage[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const img of images) {
-    if (img.blur) map[img.url] = img.blur;
+    if (!img.blur) continue;
+    // Key by both the full and the resized URL so the LQIP resolves whichever
+    // one an adapter feeds to `next/image` (grids use `thumb`, the PDP the full url).
+    map[img.url] = img.blur;
+    if (img.thumb) map[img.thumb] = img.blur;
   }
   return map;
 }

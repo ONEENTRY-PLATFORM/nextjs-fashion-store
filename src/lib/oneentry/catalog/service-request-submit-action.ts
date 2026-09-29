@@ -1,4 +1,4 @@
-import type { FormDataType, IBodyPostFormData, IPostFormResponse } from 'oneentry/types';
+import type { FormDataPostType, IBodyPostFormData, IPostFormResponse } from 'oneentry/types';
 
 import { readUserIdentifier } from '@/lib/oneentry/auth/browser-session';
 import { loadFormModuleConfigId } from '@/lib/oneentry/forms/module-config';
@@ -39,19 +39,23 @@ export async function submitServiceRequestAction(
   const mm = isoDate.slice(5, 7);
   const dd = isoDate.slice(8, 10);
 
-  // `FormDataType`'s per-type members plus its catch-all `Record<string, unknown>` cover every envelope below.
-  const formDataArray: FormDataType[] = [
+  // `FormDataPostType` is the SUBMISSION side: its shapes are not the ones a
+  // read returns. Its catch-all `Record<string, unknown>` covers the envelopes
+  // it does not name (date, integer).
+  const formDataArray: FormDataPostType[] = [
     { marker: 'item', type: 'string', value: input.item },
     { marker: 'category', type: 'list', value: [input.category] },
     ...(input.description.trim().length >= 5
       ? [
           {
             marker: 'description',
-            type: 'text',
+            type: 'text' as const,
+            // Exactly ONE representation and no `params`: the platform refuses
+            // editor params with `400 value[0].params.isEditorDisabled is not
+            // allowed`, so the request never reached it before.
             value: [
               {
                 htmlValue: `<p>${input.description.replace(/</g, '&lt;')}</p>`,
-                params: { isEditorDisabled: false, isImageCompressed: true },
               },
             ],
           },

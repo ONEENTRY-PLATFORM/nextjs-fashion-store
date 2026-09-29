@@ -133,6 +133,39 @@ describe('loadFilteredProducts — category slugify branch', () => {
     expect(result.items[0].id).toBe(1);
   });
 
+  it('matches a mega-menu leaf whose pageUrl carries the parent prefix', async () => {
+    // The link the mega-menu emits is the OE `pageUrl` (`women_bags_bags`); the product
+    // stores the same leaf split from its parent (`home/women/women_bags/bags`). Every
+    // second-level menu entry returned "NO RESULTS FOUND" until these were reconciled.
+    getProducts.mockResolvedValue({
+      total: 2,
+      items: [
+        makeRawProduct(20, ['home/women/women_bags/bags']),
+        makeRawProduct(21, ['home/women/women_accessories/headwear']),
+      ],
+    });
+    const { loadFilteredProducts } = await importFresh();
+    const result = await loadFilteredProducts({
+      filters: { category: 'women_bags_bags' },
+    });
+    expect(result.total).toBe(1);
+    expect(result.items[0].id).toBe(20);
+  });
+
+  it('does not let a prefixed needle reach a same-named leaf under another parent', async () => {
+    // `women_bags_bags` must not pull in `home/men/men_shoes/bags`: the parent segment the
+    // prefix names has to be on the very path being tested.
+    getProducts.mockResolvedValue({
+      total: 1,
+      items: [makeRawProduct(30, ['home/men/men_shoes/bags'])],
+    });
+    const { loadFilteredProducts } = await importFresh();
+    const result = await loadFilteredProducts({
+      filters: { category: 'women_bags_bags' },
+    });
+    expect(result.total).toBe(0);
+  });
+
   it('matches when needle is a display name containing "&" and spaces', async () => {
     // p.categories only ever stores the slug; the needle here is the raw
     // human-readable value merchant put in the st_trends attribute.
